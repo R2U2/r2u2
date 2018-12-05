@@ -1,0 +1,8 @@
+map alt_gte_600 = 0.
+map pitch_gte_5 = 1.
+
+logic(ft).
+
+INPUT1: alt_gte_600	 &
+Interval: G[5](alt_gte_600 & alt_gte_600)
+.

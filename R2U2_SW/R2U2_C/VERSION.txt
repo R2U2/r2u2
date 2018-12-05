@@ -1,0 +1,26 @@
+VERSION 1.5
+  - Commit Tag: 28110a8. 7/13/2017
+  - Implementation of the nextInput algorithm incorporated for all 5 Observer Algorithms
+  - All observers will run indefinently in the same time step until they have nothing left to process
+  - Debug Logs for all observers providing debug information
+
+VERSION 1.4
+  - Commit Tag: 2a44019. 6/27/2017
+  - Addition of the Shared Connection Queue structure
+  - Updated Read Pointer structure to match Shared Connection Queue 
+
+VERSION 1.3
+  - Commit Tag: ee5686c. 5/31/2017
+  - Addition of Test Case directory enviornment as well as repo and directory cleanup
+
+VERSION 1.2
+  - Commit Tag: 1fbaac7. 5/24/2017
+  - Test Case generator script added
+
+VERSION 1.1
+  - Commit Tag: e60eeaf. 5/18/2017
+  - Asynchronous output of observers piped to MATLAB to be able to be output
+
+VERSION 1.0
+  - Commit Tag: c0ee1a0. 5/12/2017
+  - Baseline R2U2 Implementation

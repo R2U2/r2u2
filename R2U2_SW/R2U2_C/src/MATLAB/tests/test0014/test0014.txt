@@ -1,0 +1,9 @@
+map a0 = 0.
+map a1 = 1.
+
+logic(ft).
+
+a_0: a0 &
+a_1: a1 &
+check: (a0 & G[2](a1)) 
+.

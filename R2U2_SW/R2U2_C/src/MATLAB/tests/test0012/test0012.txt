@@ -1,0 +1,9 @@
+map alt_gte_600 = 0.
+map pitch_gte_5 = 1.
+
+logic(ft).
+
+INPUT1WAVE: alt_gte_600	 &
+INPUT2WAVE: pitch_gte_5  &
+UNTILFUTUREINTERVAL: (alt_gte_600 U[1,2] pitch_gte_5)
+.

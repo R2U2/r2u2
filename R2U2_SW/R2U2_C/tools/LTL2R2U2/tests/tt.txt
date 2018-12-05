@@ -1,0 +1,6 @@
+%logic(pt).
+
+aa & aa .
+aa.
+ab.
+ac.

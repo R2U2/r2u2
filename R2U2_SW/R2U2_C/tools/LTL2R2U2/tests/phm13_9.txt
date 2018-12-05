@@ -1,0 +1,12 @@
+% formulas from PHM 13
+
+logic(ft).
+
+map cmd_takeoff = 0.		% 
+map alt_gt_600 = 1.		% 
+
+G[1] (
+	cmd_takeoff -> F[0,40] alt_gt_600
+     ).
+
+

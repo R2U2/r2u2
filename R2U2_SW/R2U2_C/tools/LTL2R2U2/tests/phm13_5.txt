@@ -1,0 +1,12 @@
+% formulas from PHM 13
+
+logic(ft).
+
+map alpha_gt_lb = 0.		% alpha > alpha0
+map V_z_gt_0 = 1.		% V_z > 0
+
+G[1] (
+	G[0,20] alpha_gt_lb -> F[0,2] V_z_gt_0 
+     ).
+
+

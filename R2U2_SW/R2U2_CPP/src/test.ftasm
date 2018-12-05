@@ -1,0 +1,7 @@
+load_ft a000
+load_ft a001
+and s000 s001
+load_ft a000
+boxdot s003 3 5
+and s002 s004
+end s005

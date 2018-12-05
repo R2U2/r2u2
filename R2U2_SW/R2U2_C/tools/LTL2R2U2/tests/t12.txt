@@ -1,0 +1,7 @@
+logic(ft).
+
+map a0 = 0.
+map a1 = 1.
+
+a0 R[1,30]  a1 .
+

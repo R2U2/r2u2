@@ -1,0 +1,7 @@
+map alt_gte_600 = 0.
+map pitch_gte_5 = 1.
+
+logic(ft).
+
+NEGATION: !alt_gte_600
+.

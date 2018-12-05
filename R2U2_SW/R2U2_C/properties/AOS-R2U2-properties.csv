@@ -1,0 +1,36 @@
+Property Name,ID,logic,Property,Description,Scenarios,Notes
+Battery-voltage,BATT_VOLTAGE,BOOL,!U_batt_low & !U_batt_high,monitor the battery voltage with respect to upper and lower bounds that should not be crossed,all,1. battery voltages in SIL (jsbsim) are 12V     2. battery voltage can be 0 if flight battery not connected                                                   3. Units are in mV
+Battery-current,BATT_CURRENT,BOOL,!I_batt_low & !I_batt_high,monitor the overall battery current,all,1. I_batt_low > 0 only makes sense if we monitor the vehicle in flight                            2. Note: Units in x10mA
+Battery-current-climb,BATT_CLIMB,PT,H[10](I_batt_thr_climb) -> O[10](H[3](climb_vz)),"If the battery current is higher that ""climb_thr"" for the last 10 seconds, we can expect at least a consecutive climb of 3 seconds during that time",all,
+Altitude-vert-speed,ALT_VZ,BOOL,!((climb_alt_rate <-> climb_vz) & (descend_alt_rate <-> descend_vz) & (level_alt_rate <-> level_vz)),"This  property monitors the rates of the altitude (binned into: climbing, descending, level) with binned versions of the vertical speed",all,must set thresholds accordingly. Might need to smooth
+Heading-achieved,HDG_ACHIEVE,PT,O[2](heading_achieved) | O[3](nav_bearing_changed),"After a new waypoint is targeted (detected by: nav_bearing_changed), the new heading should be achieved within a few (3) seconds. O[2](heading_achieved) is used to filter out short deviations from the course. Heading_achieved is defined as alignment between nav-bearing and target-bearing of the autopilot. Nav-bearing-changed is a thresholded rate of the nav-bearing angle",all,
+,,,,,,
+,CLR_CMD_ALT,PT,Y(cleared_alt_X) & commanding_alt_X,"When there is a clearance for a new altitude, this altitude must be commanded within the next time step. ",,
+,CMD_CLIMB_ALT,PT,,"When an altitude has been commanded, the UAS should start climbing toward this altitude after a short time",,Not quite clear: * is the climbing_alt_X coming from PLEXIL or essentially from the autopilot? * what happens if current altitude > commanded altitude ?
+,CMD_REACHED_ALT,PT,O[10](commanding_alt_X) & reached_alt_X ,"When a certain altitude has been commanded, that altitude should be reached within a certain time.",,"* Can something else happen in between? * the length of the interval depends on the actual altitude difference to be climbed. How to get this difference? (NOTE: we only have the symbolic WPs here, but cannot access coordinates/altitudes of the waypoints * after ""commanded_alt_ALT0"" can there be a message ""reached_alt_ALT1""? That would require some more powerful handling of parameters (simplified predicate logic?)"
+,,,,,,
+,WP_CLR,PT,Y(WP_cleared) & WP_in_progress,"After a waypoint has been cleared, that waypoint should be set as the current target soon afterwards (one timestep)",,This simple property does not distinguish between different waypoints. Might be an issue later on
+,WP_ACHIEVED,PT,WP_achieved -> H[10](WP_in_progress),A waypoint-achived can be received only after a waypoint is in progress (for at least a certain amount of time),,
+,WP_ACHIEVED_2,PT,WP_achieved -> O[20](WP_cleared),"After a waypoint has been cleared, it should be achieved after a certain time",,time interval should depend on the distance to that WP. Might have different interval length for en-route or approach
+,,,,,,
+,WP_CLR_AUTOPILOT,PT,Y(WP_cleared) | mav_wp_changed,"After a waypoint has been cleared (by PLEXIL), a new waypoint must be the current waypoint in the autopilot.",,within on timestep? Can the new WP be the same as the old one? [hope not…]
+,WP_ACHIEVED_AUTOPILOT,PT,,"When the WP is considered achieved by PLEXIL, the ""mav_mission_item_reached"" must have changed recently",,
+,WP_CLR_UAS_MOVEMENT,PT,,"After a waypoint has been cleared, the UAS should move toward it, i.e., altitude or heading or position or horizontal speed should change",,
+,,,,,,
+,HDG_ACHIEVE_FT,FT,nav_bearing_changed    ? F[3](heading_achieved),Future time version of HDG_ACHIEVE property.,,
+,CMD_REACHED_ALT_SEQ,FT,"reached_alt_X ?  ( (! climbing_alt) U[0,+inf] (commanding_alt_X) )","There should be dependency between commanding_altX, climbing_altX and reached_altX. The only illegal case is to have the following scenario: commanding_altX,reached_altX, climbing_altX. The climbing indication is optional (since the UAV might have already reached the altitude and need not actually climb). Having a climbing event after the altitude is reached is wrong.",,
+,CMD_REACHED_MAX_TIME,FT,commanding_alt_X ? F[MAX_REACH_TIME]reached_alt_X ,The altitude must always be reached no later than MAX_REACH_TIME after the command was issued.,,
+,,,,,,
+,,,,,,
+,,,,"When waypoint A in approach-pattern has recently been in progress, then the next cleared waypoint will be B-RHS or B-LHS unless an ATC command has been received in-between",,
+,,,,WP in progress means that we move toward that waypoint: bearings need to be aligned and rate(wp_dist) should be <0 for most of the time,,
+,,,,,,
+,,,,,,
+,,,,The SOA of the battery must always remain above 60%.,,
+,,,,The SOA must not drop below 75% for more than 10 consecutive seconds,,
+,,,,"The SOA must be above 80% when the commanded WP is ""OUTBOUND""",,
+,,,,,,
+,,,,The altitude must always be below 300ft [baroalt],,
+,,,,"If the altitude is > 250ft, then the vertical speed must be less than 10ft/min",,
+,,,,,,
+,,,,,,"How about the modes? *all these properties in mode ""auto"" only? *what to monitor for the other modes (loiter, land, guided)?"

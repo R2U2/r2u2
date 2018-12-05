@@ -1,0 +1,22 @@
+	% set logic -- currently in there; will be deprecated
+	%
+logic(ft).
+
+	% map named variables to specific addresses
+	% all other variables (atomics) get indices starting with 0,1,..
+map foobar = 10.
+map foobar2 = 11.
+map foo = 12.
+map xx = 13.
+map a0 = 15.
+
+lmap L0003 = 0.
+lmap f1 = 1.
+lmap f2 = 2.
+
+	% subformulas can be labeled, such that they can be extracted
+	% for BN interface
+L0003: (((X ((! ((F[0,8] foobar -> foo )))))) & 
+	(((a0 U[20, 34] foobar2)) | (xx))) &
+f2:( xx | f1: ~ foobar) &
+(xx | foobar).

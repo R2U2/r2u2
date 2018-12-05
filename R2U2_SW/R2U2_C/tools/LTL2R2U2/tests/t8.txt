@@ -1,0 +1,8 @@
+logic(pt).
+map f1 = 3.
+map f2 = 4.
+map f3 = 5.
+lmap L1 = 7.
+
+(L1: ( f1 & f2)) & ( f3 & O[17] @L1).
+%(L1: ( f1 & f2)) & ( f3 & O[17] (f1 & f2)).

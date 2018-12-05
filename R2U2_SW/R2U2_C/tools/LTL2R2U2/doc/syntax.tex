@@ -1,0 +1,195 @@
+\documentclass{article}
+\begin{document}
+
+\begin{table}[htb]
+\footnotesize
+\begin{tabular}{|l|l|l|l|}
+\hline
+HW-OP & ASM & Compiler & binary \\
+\hline\hline
+\multicolumn{4}{|c|}{PT}\\
+\hline
+OP\_PREVIOUSLY & previous/yesterday & Y & 01000 \\
+?OP\_EVENTUALLY &once & O & 01001 \\
+?OP\_ALWAYS & historically & H & 01010 \\
+OP\_SINCE & since & S & 01110 \\
+\hline
+\multicolumn{4}{|c|}{MTL-PT}\\
+\hline
+OP\_MTL\_BOXBOX & boxbox & H[t] & 10001 \\
+OP\_MTL\_DIAMONDDIAMOND & diamonddiamond & O[t] & 01111 \\
+OP\_MTL\_BOXDOT & boxdot & H[t1,t2] & 10010 \\
+OP\_MTL\_DIAMONDDOT & diamonddot & O[t1,t2] & 10000 \\
+OP\_MTL\_SINCE & since& S[t1,t2] & 10011 \\
+\hline
+\multicolumn{4}{|c|}{FT (only opcodes + end)}\\
+\hline
+OP\_FT\_NOT & not & \verb+!+ & 10100 \\
+OP\_FT\_AND & and & \verb+&+ & 10101 \\
+---- & or & \verb+|+ & N/A \\
+OP\_FT\_IMPLICIT  & impl & \verb+->+ & 11011 \\
+\hline
+OP\_FT\_BOXBOX & boxbox & G[t] & 10110 \\
+OP\_FT\_DIAMONDDIAMOND & diamonddiamond & F[t] & 11000 \\
+OP\_FT\_BOXDOT & boxdot & G[t1,t2] & 10111 \\
+OP\_FT\_DIAMONDDOT & diamonddot & F[t1,t2] & 11001 \\
+OP\_FT\_UNTIL & until & U[t1,t2] & 11010 \\
+---- & release & R[t1,t2] & N/A \\
+\hline
+\multicolumn{4}{|c|}{BOOL}\\
+\hline
+OP\_NOT & not & \verb+!+ & 00011 \\
+OP\_AND & and & \verb+&+ & 00100 \\
+OP\_OR & or & \verb+|+ & 00101 \\
+OP\_IMPLICIT  & impl & \verb+->+ & 00110 \\
+OP\_EQUIVALENT & equ & \verb+<->+ & 00111 \\
+\hline
+\multicolumn{4}{|c|}{MISC}\\
+\hline
+???OP\_TRUE  & true & true & 00001 \\
+???OP\_FALSE  & false & false & 00000 \\
+???OP\_ATOMIC  & ??? & ??? & 00010 \\
+???OP\_LOAD  & ??? & ??? & 00010 \\
+???OP\_INTERVAL  & ??? & ??? & 01101 \\
+OP\_NOP & N/A & N/A & 11110 \\
+???OP\_START & re & up & 01011 \\
+???OP\_END & fe & down & 01100 \\
+OP\_END\_SEQUENCE & end & N/A & 11111 \\
+\hline
+\multicolumn{4}{|c|}{SW OPCODES}\\
+\hline
+OP\_LOD\_FT& load\_ft & N/A & 11100 \\
+\hline
+\multicolumn{4}{|c|}{Missing OPCODES}\\
+\hline
+?? & ?? & ?? & 11101 \\
+\hline
+\multicolumn{4}{|c|}{PSEUDO}\\
+\hline
+N/A & mapping & map NAME = NUMBER & \\
+N/A & BN mapping & lmap NAME = NUMBER & \\
+N/A & logic  & logic(pt) & \\
+N/A & logic  & logic(ft) & \\
+N/A & comment & -\,- or \% or \# to EOL & \\
+N/A & end-of-formula & . & \\
+\hline
+\end{tabular}
+\caption{Opcodes from mu\_monitor\_pkg.vhd}
+\end{table}
+
+\end{document}
+\clearpage
+\footnotesize
+\begin{tabular}{|lll|}
+\hline
+\multicolumn{3}{|c|}{PT}\\
+\hline
+previous/yesterday & Y & 01000 \\
+once & O & 01001 \\
+historically & H & 01010 \\
+since & S & 01110 \\
+\hline
+\multicolumn{3}{|c|}{MTL-PT}\\
+\hline
+boxbox-Te & H[t] & 10001 \\
+diamonddiamond-Te & O[t] & 01111 \\
+boxdot-J & H[t1,t2] & 10010 \\
+diamonddot-Te & O[t1,t2] & 10000 \\
+since-J& S[t1,t2] & 10011 \\
+\hline
+\multicolumn{3}{|c|}{MTL-FT}\\
+\hline
+boxbox-Te & G[t] & 10001 \\
+diamonddiamond-Te & F[t] & 01111 \\
+boxdot-J & G[t1,t2] & 10010 \\
+diamonddot-Te & F[t1,t2] & 10000 \\
+until-J& U[t1,t2] & 10011 \\
+\hline
+
+\multicolumn{3}{|c|}{BOOL-FT}\\
+\hline
+not & \verb+!+ & 10100 \\
+and & \verb+&+ & 10101 \\
+or & \verb+|+ & ???? \\
+imply & \verb+->+ & 11011 \\
+equiv & \verb+<->+ & 00111 \\
+\hline
+
+
+
+\multicolumn{3}{|c|}{MISC-FT}\\
+\hline
+nop & N/A & ???? \\
+rising & up & ???? \\
+falling & down & ???? \\
+end & N/A & 11111 \\
+\hline
+\multicolumn{3}{|c|}{MISC-PT}\\
+\hline
+nop & N/A & 11110 \\
+rising & up & 01011 \\
+falling & down & 01100 \\
+end & N/A & 11111 \\
+\hline
+
+\multicolumn{3}{|c|}{PSEUDO}\\
+\hline
+mapping & MAP NAME = NUMBER & \\
+constant & CONST NAME = NUMBER & TBD \\
+logic  & LOGIC(pt) & \\
+logic  & LOGIC(ft) & \\
+comment & -- or \% or \# & \\
+end-of-formula & . & \\
+\hline
+\end{tabular}
+
+Notes:
+\begin{itemize}
+\item the FT machine only accepts FT op-codes and the OP\_END.
+\item all other opcodes are processed by the PT machine
+\item PT and FT machines have separate address spaces; each starting
+at 0.
+\item PT and FT have different index spaces starting at 0
+\item 
+\end{itemize}
+
+
+\subsection{Explicit Mapping of Variables and Subformulas}
+Atomic variables are mapped to a specific memory address using the
+{\tt map} directive. If not explicitely mapped, addresses are automatically
+allocated and a warning is issued.
+
+Sub-formulas can have labels. Memory addresses corresponding to the
+labels are provided in the mapping file.
+\begin{verbatim}
+	% set logic -- currently in there; will be deprecated
+	%
+logic(ft).
+
+	% map named variables to specific addresses
+	% all other variables (atomics) get indices starting with 0,1,..
+map foobar = 99.
+map xx = 12.
+
+	% subformulas can be labeled, such that they can be extracted
+	% for BN interface
+L0003: (((X ((! ((F[0,8] foobar -> foo )))))) & 
+	(((a0 U[20, 34] foobar2)) | (xx))) &
+f2:( xx | f1: ~ foobar) &
+(xx | foobar).
+\end{verbatim}
+
+
+\section{Mapping TL to Bayesian Network}
+
+\begin{description}
+\item[15] type of temporal monitor (ft = 0; pt =1)
+\item[14\ldots 7] address label for sub-formula (see .map file)
+\item[6\ldots 1] address of input to Bayesian network
+\item[0] negate data if set to 1
+\end{description}
+
+\end{document}
+
+
+

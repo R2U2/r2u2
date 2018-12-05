@@ -1,0 +1,833 @@
+Created by PLY version 3.10 (http://www.dabeaz.com/ply)
+
+Grammar
+
+Rule 0     S' -> expression
+Rule 1     expression -> expression AND expression
+Rule 2     expression -> expression OR expression
+Rule 3     expression -> NEG expression
+Rule 4     expression -> GLOBAL LBRACK NUMBER RBRACK expression
+Rule 5     expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+Rule 6     expression -> FUTURE LBRACK NUMBER RBRACK expression
+Rule 7     expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+Rule 8     expression -> expression UNTIL LBRACK NUMBER RBRACK expression
+Rule 9     expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+Rule 10    expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+Rule 11    expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+Rule 12    expression -> LPAREN expression RPAREN
+Rule 13    expression -> ATOMIC
+
+Terminals, with rules where they appear
+
+AND                  : 1
+ATOMIC               : 13
+COMMA                : 5 7 9 11
+FUTURE               : 6 7
+GLOBAL               : 4 5
+LBRACK               : 4 5 6 7 8 9 10 11
+LPAREN               : 12
+NEG                  : 3
+NUMBER               : 4 5 5 6 7 7 8 9 9 10 11 11
+OR                   : 2
+RBRACK               : 4 5 6 7 8 9 10 11
+RPAREN               : 12
+UNTIL                : 8 9
+WEAK_UNTIL           : 10 11
+error                : 
+
+Nonterminals, with rules where they appear
+
+expression           : 1 1 2 2 3 4 5 6 7 8 8 9 9 10 10 11 11 12 0
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 1
+
+state 1
+
+    (0) S' -> expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             shift and go to state 7
+    OR              shift and go to state 8
+    UNTIL           shift and go to state 9
+    WEAK_UNTIL      shift and go to state 10
+
+
+state 2
+
+    (3) expression -> NEG . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 11
+
+state 3
+
+    (4) expression -> GLOBAL . LBRACK NUMBER RBRACK expression
+    (5) expression -> GLOBAL . LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    LBRACK          shift and go to state 12
+
+
+state 4
+
+    (6) expression -> FUTURE . LBRACK NUMBER RBRACK expression
+    (7) expression -> FUTURE . LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    LBRACK          shift and go to state 13
+
+
+state 5
+
+    (12) expression -> LPAREN . expression RPAREN
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 14
+
+state 6
+
+    (13) expression -> ATOMIC .
+
+    AND             reduce using rule 13 (expression -> ATOMIC .)
+    OR              reduce using rule 13 (expression -> ATOMIC .)
+    UNTIL           reduce using rule 13 (expression -> ATOMIC .)
+    WEAK_UNTIL      reduce using rule 13 (expression -> ATOMIC .)
+    $end            reduce using rule 13 (expression -> ATOMIC .)
+    RPAREN          reduce using rule 13 (expression -> ATOMIC .)
+
+
+state 7
+
+    (1) expression -> expression AND . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 15
+
+state 8
+
+    (2) expression -> expression OR . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 16
+
+state 9
+
+    (8) expression -> expression UNTIL . LBRACK NUMBER RBRACK expression
+    (9) expression -> expression UNTIL . LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    LBRACK          shift and go to state 17
+
+
+state 10
+
+    (10) expression -> expression WEAK_UNTIL . LBRACK NUMBER RBRACK expression
+    (11) expression -> expression WEAK_UNTIL . LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    LBRACK          shift and go to state 18
+
+
+state 11
+
+    (3) expression -> NEG expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 3 (expression -> NEG expression .)
+    OR              reduce using rule 3 (expression -> NEG expression .)
+    UNTIL           reduce using rule 3 (expression -> NEG expression .)
+    WEAK_UNTIL      reduce using rule 3 (expression -> NEG expression .)
+    $end            reduce using rule 3 (expression -> NEG expression .)
+    RPAREN          reduce using rule 3 (expression -> NEG expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 12
+
+    (4) expression -> GLOBAL LBRACK . NUMBER RBRACK expression
+    (5) expression -> GLOBAL LBRACK . NUMBER COMMA NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 19
+
+
+state 13
+
+    (6) expression -> FUTURE LBRACK . NUMBER RBRACK expression
+    (7) expression -> FUTURE LBRACK . NUMBER COMMA NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 20
+
+
+state 14
+
+    (12) expression -> LPAREN expression . RPAREN
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    RPAREN          shift and go to state 21
+    AND             shift and go to state 7
+    OR              shift and go to state 8
+    UNTIL           shift and go to state 9
+    WEAK_UNTIL      shift and go to state 10
+
+
+state 15
+
+    (1) expression -> expression AND expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 1 (expression -> expression AND expression .)
+    OR              reduce using rule 1 (expression -> expression AND expression .)
+    $end            reduce using rule 1 (expression -> expression AND expression .)
+    RPAREN          reduce using rule 1 (expression -> expression AND expression .)
+    UNTIL           shift and go to state 9
+    WEAK_UNTIL      shift and go to state 10
+
+  ! UNTIL           [ reduce using rule 1 (expression -> expression AND expression .) ]
+  ! WEAK_UNTIL      [ reduce using rule 1 (expression -> expression AND expression .) ]
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+
+
+state 16
+
+    (2) expression -> expression OR expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 2 (expression -> expression OR expression .)
+    OR              reduce using rule 2 (expression -> expression OR expression .)
+    $end            reduce using rule 2 (expression -> expression OR expression .)
+    RPAREN          reduce using rule 2 (expression -> expression OR expression .)
+    UNTIL           shift and go to state 9
+    WEAK_UNTIL      shift and go to state 10
+
+  ! UNTIL           [ reduce using rule 2 (expression -> expression OR expression .) ]
+  ! WEAK_UNTIL      [ reduce using rule 2 (expression -> expression OR expression .) ]
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+
+
+state 17
+
+    (8) expression -> expression UNTIL LBRACK . NUMBER RBRACK expression
+    (9) expression -> expression UNTIL LBRACK . NUMBER COMMA NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 22
+
+
+state 18
+
+    (10) expression -> expression WEAK_UNTIL LBRACK . NUMBER RBRACK expression
+    (11) expression -> expression WEAK_UNTIL LBRACK . NUMBER COMMA NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 23
+
+
+state 19
+
+    (4) expression -> GLOBAL LBRACK NUMBER . RBRACK expression
+    (5) expression -> GLOBAL LBRACK NUMBER . COMMA NUMBER RBRACK expression
+
+    RBRACK          shift and go to state 24
+    COMMA           shift and go to state 25
+
+
+state 20
+
+    (6) expression -> FUTURE LBRACK NUMBER . RBRACK expression
+    (7) expression -> FUTURE LBRACK NUMBER . COMMA NUMBER RBRACK expression
+
+    RBRACK          shift and go to state 26
+    COMMA           shift and go to state 27
+
+
+state 21
+
+    (12) expression -> LPAREN expression RPAREN .
+
+    AND             reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+    OR              reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+    UNTIL           reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+    WEAK_UNTIL      reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+    $end            reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+    RPAREN          reduce using rule 12 (expression -> LPAREN expression RPAREN .)
+
+
+state 22
+
+    (8) expression -> expression UNTIL LBRACK NUMBER . RBRACK expression
+    (9) expression -> expression UNTIL LBRACK NUMBER . COMMA NUMBER RBRACK expression
+
+    RBRACK          shift and go to state 28
+    COMMA           shift and go to state 29
+
+
+state 23
+
+    (10) expression -> expression WEAK_UNTIL LBRACK NUMBER . RBRACK expression
+    (11) expression -> expression WEAK_UNTIL LBRACK NUMBER . COMMA NUMBER RBRACK expression
+
+    RBRACK          shift and go to state 30
+    COMMA           shift and go to state 31
+
+
+state 24
+
+    (4) expression -> GLOBAL LBRACK NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 32
+
+state 25
+
+    (5) expression -> GLOBAL LBRACK NUMBER COMMA . NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 33
+
+
+state 26
+
+    (6) expression -> FUTURE LBRACK NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 34
+
+state 27
+
+    (7) expression -> FUTURE LBRACK NUMBER COMMA . NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 35
+
+
+state 28
+
+    (8) expression -> expression UNTIL LBRACK NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 36
+
+state 29
+
+    (9) expression -> expression UNTIL LBRACK NUMBER COMMA . NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 37
+
+
+state 30
+
+    (10) expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 38
+
+state 31
+
+    (11) expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA . NUMBER RBRACK expression
+
+    NUMBER          shift and go to state 39
+
+
+state 32
+
+    (4) expression -> GLOBAL LBRACK NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+    OR              reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+    $end            reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 4 (expression -> GLOBAL LBRACK NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 33
+
+    (5) expression -> GLOBAL LBRACK NUMBER COMMA NUMBER . RBRACK expression
+
+    RBRACK          shift and go to state 40
+
+
+state 34
+
+    (6) expression -> FUTURE LBRACK NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+    OR              reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+    $end            reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 6 (expression -> FUTURE LBRACK NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 35
+
+    (7) expression -> FUTURE LBRACK NUMBER COMMA NUMBER . RBRACK expression
+
+    RBRACK          shift and go to state 41
+
+
+state 36
+
+    (8) expression -> expression UNTIL LBRACK NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+    OR              reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+    $end            reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 8 (expression -> expression UNTIL LBRACK NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 37
+
+    (9) expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER . RBRACK expression
+
+    RBRACK          shift and go to state 42
+
+
+state 38
+
+    (10) expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+    OR              reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+    $end            reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 10 (expression -> expression WEAK_UNTIL LBRACK NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 39
+
+    (11) expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER . RBRACK expression
+
+    RBRACK          shift and go to state 43
+
+
+state 40
+
+    (5) expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 44
+
+state 41
+
+    (7) expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 45
+
+state 42
+
+    (9) expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 46
+
+state 43
+
+    (11) expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK . expression
+    (1) expression -> . expression AND expression
+    (2) expression -> . expression OR expression
+    (3) expression -> . NEG expression
+    (4) expression -> . GLOBAL LBRACK NUMBER RBRACK expression
+    (5) expression -> . GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (6) expression -> . FUTURE LBRACK NUMBER RBRACK expression
+    (7) expression -> . FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (8) expression -> . expression UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> . expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> . expression WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> . expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (12) expression -> . LPAREN expression RPAREN
+    (13) expression -> . ATOMIC
+
+    NEG             shift and go to state 2
+    GLOBAL          shift and go to state 3
+    FUTURE          shift and go to state 4
+    LPAREN          shift and go to state 5
+    ATOMIC          shift and go to state 6
+
+    expression                     shift and go to state 47
+
+state 44
+
+    (5) expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    OR              reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    $end            reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 5 (expression -> GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 45
+
+    (7) expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    OR              reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    $end            reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 7 (expression -> FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 46
+
+    (9) expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    OR              reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    $end            reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 9 (expression -> expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+
+
+state 47
+
+    (11) expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .
+    (1) expression -> expression . AND expression
+    (2) expression -> expression . OR expression
+    (8) expression -> expression . UNTIL LBRACK NUMBER RBRACK expression
+    (9) expression -> expression . UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+    (10) expression -> expression . WEAK_UNTIL LBRACK NUMBER RBRACK expression
+    (11) expression -> expression . WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+
+    AND             reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    OR              reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    UNTIL           reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    WEAK_UNTIL      reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    $end            reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+    RPAREN          reduce using rule 11 (expression -> expression WEAK_UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression .)
+
+  ! AND             [ shift and go to state 7 ]
+  ! OR              [ shift and go to state 8 ]
+  ! UNTIL           [ shift and go to state 9 ]
+  ! WEAK_UNTIL      [ shift and go to state 10 ]
+

@@ -1,0 +1,17 @@
+% formulas from PHM 13
+
+logic(ft).
+
+map U_batt_lb = 0.		% U_batt > 20V
+map U_batt_ub = 1.		% U_batt <= 20.5V
+map I_batt_peak = 2.		% I_batt <= 75A
+map I_batt_lb = 3.		% I_batt > 50A
+%map I_batt_ub = 4.		% I_batt <= 50A
+
+G[1] (
+	( U_batt_lb & U_batt_ub) &
+	I_batt_peak &
+	( I_batt_lb U[0,29]  ! I_batt_lb)
+     ).
+
+

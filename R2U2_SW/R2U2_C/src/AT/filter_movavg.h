@@ -1,0 +1,49 @@
+/*=======================================================================================
+** File Name: filter_fft.h
+**
+** Title: header for moving average filter
+**
+** $Author:  P. Moosbrugger
+** $Revision: $
+** $Date:   2014
+**
+** Purpose: 
+**
+** Limitations, Assumptions, External Events, and Notes:
+**
+** Modification History:
+**  Date | Author | Description
+**  ---------------------------
+**
+**=====================================================================================*/
+#ifndef _MOVAVERAGE_H_
+#define _MOVAVERAGE_H_
+
+#include "circbuffer.h"
+
+/*
+ * Author: Patrick Moosbrugger
+ * Usage: instantiate with MOVAVERAGE_DEF(name, size_of_averaging_window)
+ */
+ 
+//#define MOVAVERAGE_DEF(x,y) uint8_t x##_space[y+1]; circBuf_t x##_cb = { x##_space, 0, 0, y+1}; movAvg_t x = {&x##_cb, 0, 0, y};
+
+typedef struct
+{
+	circBuf_t * pCb;
+	int sum;
+	float avg;
+	uint16_t num_of_elements;
+	uint16_t size;
+} movAvg_t;
+
+
+/* returns a moving average with the window size defined in the
+ * instance of pMovAvg (size) for a stream of data that is
+ * forwarded with *pData to this function 
+ * initially the average of the number of included elements is calculated
+ * once the windows size has been reached, the average is calculated over the whole window
+ * */
+void filter_movavg_update_data(movAvg_t *pMovAvg, int16_t data);
+float filter_movavg_get(movAvg_t *pMovAvg);
+#endif

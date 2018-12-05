@@ -1,0 +1,17 @@
+% comment
+
+map alt_gte_600 = 0.
+map pitch_gte_5 = 1.
+
+logic(ft) .
+
+AltGTE600: alt_gte_600                      &
+PitchGTE5: pitch_gte_5                      &
+
+Negation: !pitch_gte_5                      &
+InvarNextTsteps: G[5](pitch_gte_5)          &
+InvarFutInterval: G[5,10](alt_gte_600)      &
+Conjunction: (alt_gte_600 & pitch_gte_5)    &
+Until: (pitch_gte_5 U[5,10] alt_gte_600)    &
+ConjunctionwithInvarNextTsteps: (pitch_gte_5 & G[5] (alt_gte_600))
+.

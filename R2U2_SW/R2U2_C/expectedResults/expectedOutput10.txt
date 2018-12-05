@@ -1,0 +1,279 @@
+**********RESULTS**********
+
+----------TIME STEP: 0----------
+LOAD PC:0 = (0,0)
+LOAD PC:1 = (0,0)
+G[8] PC:2 = (0,0)
+AND PC:3 = (0,0)
+END PC:4 = (0,0)
+
+----------TIME STEP: 1----------
+LOAD PC:0 = (0,1)
+LOAD PC:1 = (0,1)
+G[8] PC:2 = (0,1)
+AND PC:3 = (0,1)
+END PC:4 = (0,1)
+
+----------TIME STEP: 2----------
+LOAD PC:0 = (0,2)
+LOAD PC:1 = (0,2)
+G[8] PC:2 = (0,2)
+AND PC:3 = (0,2)
+END PC:4 = (0,2)
+
+----------TIME STEP: 3----------
+LOAD PC:0 = (1,3)
+LOAD PC:1 = (0,3)
+G[8] PC:2 = (0,3)
+AND PC:3 = (0,3)
+END PC:4 = (0,3)
+
+----------TIME STEP: 4----------
+LOAD PC:0 = (1,4)
+LOAD PC:1 = (0,4)
+G[8] PC:2 = (0,4)
+AND PC:3 = (0,4)
+END PC:4 = (0,4)
+
+----------TIME STEP: 5----------
+LOAD PC:0 = (1,5)
+LOAD PC:1 = (0,5)
+G[8] PC:2 = (0,5)
+AND PC:3 = (0,5)
+END PC:4 = (0,5)
+
+----------TIME STEP: 6----------
+LOAD PC:0 = (1,6)
+LOAD PC:1 = (0,6)
+G[8] PC:2 = (0,6)
+AND PC:3 = (0,6)
+END PC:4 = (0,6)
+
+----------TIME STEP: 7----------
+LOAD PC:0 = (1,7)
+LOAD PC:1 = (0,7)
+G[8] PC:2 = (0,7)
+AND PC:3 = (0,7)
+END PC:4 = (0,7)
+
+----------TIME STEP: 8----------
+LOAD PC:0 = (1,8)
+LOAD PC:1 = (0,8)
+G[8] PC:2 = (0,8)
+AND PC:3 = (0,8)
+END PC:4 = (0,8)
+
+----------TIME STEP: 9----------
+LOAD PC:0 = (1,9)
+LOAD PC:1 = (0,9)
+G[8] PC:2 = (0,9)
+AND PC:3 = (0,9)
+END PC:4 = (0,9)
+
+----------TIME STEP: 10----------
+LOAD PC:0 = (1,10)
+LOAD PC:1 = (1,10)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 11----------
+LOAD PC:0 = (0,11)
+LOAD PC:1 = (1,11)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 12----------
+LOAD PC:0 = (0,12)
+LOAD PC:1 = (1,12)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 13----------
+LOAD PC:0 = (1,13)
+LOAD PC:1 = (1,13)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 14----------
+LOAD PC:0 = (0,14)
+LOAD PC:1 = (1,14)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 15----------
+LOAD PC:0 = (1,15)
+LOAD PC:1 = (1,15)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 16----------
+LOAD PC:0 = (1,16)
+LOAD PC:1 = (1,16)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 17----------
+LOAD PC:0 = (1,17)
+LOAD PC:1 = (1,17)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 18----------
+LOAD PC:0 = (1,18)
+LOAD PC:1 = (1,18)
+G[8] PC:2 = (1,10)
+AND PC:3 = (1,10)
+AND PC:3 = (0,12)
+END PC:4 = (1,10)
+END PC:4 = (0,12)
+
+----------TIME STEP: 19----------
+LOAD PC:0 = (0,19)
+LOAD PC:1 = (1,19)
+G[8] PC:2 = (1,11)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 20----------
+LOAD PC:0 = (0,20)
+LOAD PC:1 = (1,20)
+G[8] PC:2 = (1,12)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 21----------
+LOAD PC:0 = (1,21)
+LOAD PC:1 = (1,21)
+G[8] PC:2 = (1,13)
+AND PC:3 = (1,13)
+AND PC:3 = (0,14)
+END PC:4 = (1,13)
+END PC:4 = (0,14)
+
+----------TIME STEP: 22----------
+LOAD PC:0 = (1,22)
+LOAD PC:1 = (1,22)
+G[8] PC:2 = (1,14)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 23----------
+LOAD PC:0 = (1,23)
+LOAD PC:1 = (1,23)
+G[8] PC:2 = (1,15)
+AND PC:3 = (1,15)
+END PC:4 = (1,15)
+
+----------TIME STEP: 24----------
+LOAD PC:0 = (1,24)
+LOAD PC:1 = (1,24)
+G[8] PC:2 = (1,16)
+AND PC:3 = (1,16)
+END PC:4 = (1,16)
+
+----------TIME STEP: 25----------
+LOAD PC:0 = (0,25)
+LOAD PC:1 = (0,25)
+G[8] PC:2 = (0,25)
+AND PC:3 = (0,25)
+END PC:4 = (0,25)
+
+----------TIME STEP: 26----------
+LOAD PC:0 = (1,26)
+LOAD PC:1 = (0,26)
+G[8] PC:2 = (0,26)
+AND PC:3 = (0,26)
+END PC:4 = (0,26)
+
+----------TIME STEP: 27----------
+LOAD PC:0 = (1,27)
+LOAD PC:1 = (0,27)
+G[8] PC:2 = (0,27)
+AND PC:3 = (0,27)
+END PC:4 = (0,27)
+
+----------TIME STEP: 28----------
+LOAD PC:0 = (1,28)
+LOAD PC:1 = (0,28)
+G[8] PC:2 = (0,28)
+AND PC:3 = (0,28)
+END PC:4 = (0,28)
+
+----------TIME STEP: 29----------
+LOAD PC:0 = (0,29)
+LOAD PC:1 = (0,29)
+G[8] PC:2 = (0,29)
+AND PC:3 = (0,29)
+END PC:4 = (0,29)
+
+----------TIME STEP: 30----------
+LOAD PC:0 = (0,30)
+LOAD PC:1 = (0,30)
+G[8] PC:2 = (0,30)
+AND PC:3 = (0,30)
+END PC:4 = (0,30)
+
+----------TIME STEP: 31----------
+LOAD PC:0 = (1,31)
+LOAD PC:1 = (1,31)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 32----------
+LOAD PC:0 = (1,32)
+LOAD PC:1 = (1,32)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 33----------
+LOAD PC:0 = (1,33)
+LOAD PC:1 = (1,33)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 34----------
+LOAD PC:0 = (1,34)
+LOAD PC:1 = (1,34)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 35----------
+LOAD PC:0 = (1,35)
+LOAD PC:1 = (1,35)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 36----------
+LOAD PC:0 = (1,36)
+LOAD PC:1 = (1,36)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 37----------
+LOAD PC:0 = (1,37)
+LOAD PC:1 = (1,37)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+
+----------TIME STEP: 38----------
+LOAD PC:0 = (1,38)
+LOAD PC:1 = (1,38)
+G[8] PC:2 = (-,-)
+AND PC:3 = (-,-)
+END PC:4 = (-,-)
+

@@ -1,0 +1,1500 @@
+**********CURRENT TIME STEP: 1**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 0)
+Write Pointer Location: 1
+Queue Contents: t=0 N=1 <(0,0) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 0)
+Write Pointer Location: 1
+Queue Contents: t=0 N=1 <(0,0) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 0) and (0, 0)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 0)
+Queue Contents: t=0 N=1 <(0,0) >
+----LOADING DATA----
+PC: 3
+Loading (0, 0)
+Write Pointer Location: 1
+Queue Contents: t=0 N=1 <(0,0) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 0)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=0 N=0 <>
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 0) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 0)
+Queue Contents: t=0 N=1 <(0,0) >
+
+
+**********CURRENT TIME STEP: 2**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 1)
+Write Pointer Location: 1
+Queue Contents: t=1 N=1 <(0,1) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 1)
+Write Pointer Location: 1
+Queue Contents: t=1 N=1 <(0,1) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 1) and (0, 1)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 1)
+Queue Contents: t=1 N=1 <(0,1) >
+----LOADING DATA----
+PC: 3
+Loading (0, 1)
+Write Pointer Location: 1
+Queue Contents: t=1 N=1 <(0,1) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 1)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=1 N=0 <>
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 1) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 1)
+Queue Contents: t=1 N=1 <(0,1) >
+
+
+**********CURRENT TIME STEP: 3**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 2)
+Write Pointer Location: 1
+Queue Contents: t=2 N=1 <(0,2) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 2)
+Write Pointer Location: 1
+Queue Contents: t=2 N=1 <(0,2) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 2) and (0, 2)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 2)
+Queue Contents: t=2 N=1 <(0,2) >
+----LOADING DATA----
+PC: 3
+Loading (0, 2)
+Write Pointer Location: 1
+Queue Contents: t=2 N=1 <(0,2) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 2)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=2 N=0 <>
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 2) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 2)
+Queue Contents: t=2 N=1 <(0,2) >
+
+
+**********CURRENT TIME STEP: 4**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 3)
+Write Pointer Location: 1
+Queue Contents: t=3 N=1 <(0,3) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 3)
+Write Pointer Location: 2
+Queue Contents: t=3 N=2 <(0,2) (1,3) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 3) and (1, 3)
+Output set to (false, t_e1
+Algorithm Return (0, 3)
+Queue Contents: t=3 N=1 <(0,3) >
+----LOADING DATA----
+PC: 3
+Loading (0, 3)
+Write Pointer Location: 1
+Queue Contents: t=3 N=1 <(0,3) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 3)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,0)
+Queue Contents: t=3 N=1 <(0,0) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 3) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 3)
+Queue Contents: t=3 N=1 <(0,3) >
+
+
+**********CURRENT TIME STEP: 5**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 4)
+Write Pointer Location: 1
+Queue Contents: t=4 N=1 <(0,4) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 4)
+Write Pointer Location: 2
+Queue Contents: t=4 N=2 <(0,2) (1,4) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 4) and (1, 4)
+Output set to (false, t_e1
+Algorithm Return (0, 4)
+Queue Contents: t=4 N=1 <(0,4) >
+----LOADING DATA----
+PC: 3
+Loading (0, 4)
+Write Pointer Location: 1
+Queue Contents: t=4 N=1 <(0,4) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 4)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,1)
+Queue Contents: t=4 N=1 <(0,1) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 4) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 4)
+Queue Contents: t=4 N=1 <(0,4) >
+
+
+**********CURRENT TIME STEP: 6**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 5)
+Write Pointer Location: 1
+Queue Contents: t=5 N=1 <(0,5) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 5)
+Write Pointer Location: 2
+Queue Contents: t=5 N=2 <(0,2) (1,5) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 5) and (1, 5)
+Output set to (false, t_e1
+Algorithm Return (0, 5)
+Queue Contents: t=5 N=1 <(0,5) >
+----LOADING DATA----
+PC: 3
+Loading (0, 5)
+Write Pointer Location: 1
+Queue Contents: t=5 N=1 <(0,5) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 5)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,2)
+Queue Contents: t=5 N=1 <(0,2) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 5) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 5)
+Queue Contents: t=5 N=1 <(0,5) >
+
+
+**********CURRENT TIME STEP: 7**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 6)
+Write Pointer Location: 1
+Queue Contents: t=6 N=1 <(0,6) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 6)
+Write Pointer Location: 2
+Queue Contents: t=6 N=2 <(0,2) (1,6) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 6) and (1, 6)
+Output set to (false, t_e1
+Algorithm Return (0, 6)
+Queue Contents: t=6 N=1 <(0,6) >
+----LOADING DATA----
+PC: 3
+Loading (0, 6)
+Write Pointer Location: 1
+Queue Contents: t=6 N=1 <(0,6) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 6)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,3)
+Queue Contents: t=6 N=1 <(0,3) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 6) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 6)
+Queue Contents: t=6 N=1 <(0,6) >
+
+
+**********CURRENT TIME STEP: 8**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 7)
+Write Pointer Location: 1
+Queue Contents: t=7 N=1 <(0,7) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 7)
+Write Pointer Location: 2
+Queue Contents: t=7 N=2 <(0,2) (1,7) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 7) and (1, 7)
+Output set to (false, t_e1
+Algorithm Return (0, 7)
+Queue Contents: t=7 N=1 <(0,7) >
+----LOADING DATA----
+PC: 3
+Loading (0, 7)
+Write Pointer Location: 1
+Queue Contents: t=7 N=1 <(0,7) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 7)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,4)
+Queue Contents: t=7 N=1 <(0,4) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 7) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 7)
+Queue Contents: t=7 N=1 <(0,7) >
+
+
+**********CURRENT TIME STEP: 9**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 8)
+Write Pointer Location: 1
+Queue Contents: t=8 N=1 <(0,8) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 8)
+Write Pointer Location: 2
+Queue Contents: t=8 N=2 <(0,2) (1,8) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 8) and (1, 8)
+Output set to (false, t_e1
+Algorithm Return (0, 8)
+Queue Contents: t=8 N=1 <(0,8) >
+----LOADING DATA----
+PC: 3
+Loading (0, 8)
+Write Pointer Location: 1
+Queue Contents: t=8 N=1 <(0,8) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 8)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,5)
+Queue Contents: t=8 N=1 <(0,5) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 8) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 8)
+Queue Contents: t=8 N=1 <(0,8) >
+
+
+**********CURRENT TIME STEP: 10**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 9)
+Write Pointer Location: 1
+Queue Contents: t=9 N=1 <(0,9) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 9)
+Write Pointer Location: 2
+Queue Contents: t=9 N=2 <(0,2) (1,9) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 9) and (1, 9)
+Output set to (false, t_e1
+Algorithm Return (0, 9)
+Queue Contents: t=9 N=1 <(0,9) >
+----LOADING DATA----
+PC: 3
+Loading (0, 9)
+Write Pointer Location: 1
+Queue Contents: t=9 N=1 <(0,9) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 9)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,6)
+Queue Contents: t=9 N=1 <(0,6) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 9) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 9)
+Queue Contents: t=9 N=1 <(0,9) >
+
+
+**********CURRENT TIME STEP: 11**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 10)
+Write Pointer Location: 2
+Queue Contents: t=10 N=2 <(0,9) (1,10) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 10)
+Write Pointer Location: 2
+Queue Contents: t=10 N=2 <(0,2) (1,10) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 10) and (1, 10)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 10)
+Queue Contents: t=10 N=2 <(0,9) (1,10) >
+----LOADING DATA----
+PC: 3
+Loading (1, 10)
+Write Pointer Location: 2
+Queue Contents: t=10 N=2 <(0,9) (1,10) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 10)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=10 N=1 <(0,6) >
+
+
+**********CURRENT TIME STEP: 12**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 11)
+Write Pointer Location: 2
+Queue Contents: t=11 N=2 <(0,9) (1,11) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 11)
+Write Pointer Location: 3
+Queue Contents: t=11 N=3 <(0,2) (1,10) (0,11) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 11) and (0, 11)
+Output set to (false, t_e2)
+Algorithm Return (0, 11)
+Queue Contents: t=11 N=3 <(0,9) (1,10) (0,11) >
+----LOADING DATA----
+PC: 3
+Loading (1, 11)
+Write Pointer Location: 2
+Queue Contents: t=11 N=2 <(0,9) (1,11) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 11)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=11 N=1 <(0,6) >
+
+
+**********CURRENT TIME STEP: 13**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 12)
+Write Pointer Location: 2
+Queue Contents: t=12 N=2 <(0,9) (1,12) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 12)
+Write Pointer Location: 3
+Queue Contents: t=12 N=3 <(0,2) (1,10) (0,12) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 12) and (0, 12)
+Output set to (false, t_e2)
+Algorithm Return (0, 12)
+Queue Contents: t=12 N=3 <(0,9) (1,10) (0,12) >
+----LOADING DATA----
+PC: 3
+Loading (1, 12)
+Write Pointer Location: 2
+Queue Contents: t=12 N=2 <(0,9) (1,12) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 12)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,7)
+Queue Contents: t=12 N=2 <(0,6) (1,7) >
+
+
+**********CURRENT TIME STEP: 14**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 13)
+Write Pointer Location: 2
+Queue Contents: t=13 N=2 <(0,9) (1,13) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 13)
+Write Pointer Location: 4
+Queue Contents: t=13 N=4 <(0,2) (1,10) (0,12) (1,13) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 13) and (1, 13)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 13)
+Queue Contents: t=13 N=4 <(0,9) (1,10) (0,12) (1,13) >
+----LOADING DATA----
+PC: 3
+Loading (1, 13)
+Write Pointer Location: 2
+Queue Contents: t=13 N=2 <(0,9) (1,13) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 13)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,8)
+Queue Contents: t=13 N=2 <(0,6) (1,8) >
+
+
+**********CURRENT TIME STEP: 15**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 14)
+Write Pointer Location: 2
+Queue Contents: t=14 N=2 <(0,9) (1,14) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 14)
+Write Pointer Location: 5
+Queue Contents: t=14 N=5 <(0,2) (1,10) (0,12) (1,13) (0,14) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 14) and (0, 14)
+Output set to (false, t_e2)
+Algorithm Return (0, 14)
+Queue Contents: t=14 N=5 <(0,9) (1,10) (0,12) (1,13) (0,14) >
+----LOADING DATA----
+PC: 3
+Loading (1, 14)
+Write Pointer Location: 2
+Queue Contents: t=14 N=2 <(0,9) (1,14) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 14)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,9)
+Queue Contents: t=14 N=2 <(0,6) (1,9) >
+
+
+**********CURRENT TIME STEP: 16**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 15)
+Write Pointer Location: 2
+Queue Contents: t=15 N=2 <(0,9) (1,15) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 15)
+Write Pointer Location: 6
+Queue Contents: t=15 N=6 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,15) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 15) and (1, 15)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 15)
+Queue Contents: t=15 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,15) >
+----LOADING DATA----
+PC: 3
+Loading (1, 15)
+Write Pointer Location: 2
+Queue Contents: t=15 N=2 <(0,9) (1,15) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 15)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,10)
+Queue Contents: t=15 N=2 <(0,6) (1,10) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 10) and (1, 10)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 10)
+Queue Contents: t=15 N=2 <(0,9) (1,10) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 12) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 12)
+Queue Contents: t=15 N=3 <(0,9) (1,10) (0,12) >
+
+
+**********CURRENT TIME STEP: 17**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 16)
+Write Pointer Location: 2
+Queue Contents: t=16 N=2 <(0,9) (1,16) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 16)
+Write Pointer Location: 6
+Queue Contents: t=16 N=6 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,16) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 16) and (1, 16)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 16)
+Queue Contents: t=16 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,16) >
+----LOADING DATA----
+PC: 3
+Loading (1, 16)
+Write Pointer Location: 2
+Queue Contents: t=16 N=2 <(0,9) (1,16) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 16)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,11)
+Queue Contents: t=16 N=2 <(0,6) (1,11) >
+
+
+**********CURRENT TIME STEP: 18**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 17)
+Write Pointer Location: 2
+Queue Contents: t=17 N=2 <(0,9) (1,17) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 17)
+Write Pointer Location: 6
+Queue Contents: t=17 N=6 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,17) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 17) and (1, 17)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 17)
+Queue Contents: t=17 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,17) >
+----LOADING DATA----
+PC: 3
+Loading (1, 17)
+Write Pointer Location: 2
+Queue Contents: t=17 N=2 <(0,9) (1,17) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 17)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,12)
+Queue Contents: t=17 N=2 <(0,6) (1,12) >
+
+
+**********CURRENT TIME STEP: 19**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 18)
+Write Pointer Location: 2
+Queue Contents: t=18 N=2 <(0,9) (1,18) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 18)
+Write Pointer Location: 6
+Queue Contents: t=18 N=6 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 18) and (1, 18)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 18)
+Queue Contents: t=18 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) >
+----LOADING DATA----
+PC: 3
+Loading (1, 18)
+Write Pointer Location: 2
+Queue Contents: t=18 N=2 <(0,9) (1,18) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 18)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,13)
+Queue Contents: t=18 N=2 <(0,6) (1,13) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 13) and (1, 13)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 13)
+Queue Contents: t=18 N=4 <(0,9) (1,10) (0,12) (1,13) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 14) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 14)
+Queue Contents: t=18 N=5 <(0,9) (1,10) (0,12) (1,13) (0,14) >
+
+
+**********CURRENT TIME STEP: 20**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 19)
+Write Pointer Location: 2
+Queue Contents: t=19 N=2 <(0,9) (1,19) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 19)
+Write Pointer Location: 7
+Queue Contents: t=19 N=7 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,19) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 19) and (0, 19)
+Output set to (false, t_e2)
+Algorithm Return (0, 19)
+Queue Contents: t=19 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,19) >
+----LOADING DATA----
+PC: 3
+Loading (1, 19)
+Write Pointer Location: 2
+Queue Contents: t=19 N=2 <(0,9) (1,19) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 19)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,14)
+Queue Contents: t=19 N=2 <(0,6) (1,14) >
+
+
+**********CURRENT TIME STEP: 21**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 20)
+Write Pointer Location: 2
+Queue Contents: t=20 N=2 <(0,9) (1,20) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 20)
+Write Pointer Location: 7
+Queue Contents: t=20 N=7 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 20) and (0, 20)
+Output set to (false, t_e2)
+Algorithm Return (0, 20)
+Queue Contents: t=20 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) >
+----LOADING DATA----
+PC: 3
+Loading (1, 20)
+Write Pointer Location: 2
+Queue Contents: t=20 N=2 <(0,9) (1,20) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 20)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,15)
+Queue Contents: t=20 N=2 <(0,6) (1,15) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 18) and (1, 15)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 15)
+Queue Contents: t=20 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,15) >
+
+
+**********CURRENT TIME STEP: 22**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 21)
+Write Pointer Location: 2
+Queue Contents: t=21 N=2 <(0,9) (1,21) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 21)
+Write Pointer Location: 8
+Queue Contents: t=21 N=8 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,21) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 21) and (1, 21)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 21)
+Queue Contents: t=21 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,21) >
+----LOADING DATA----
+PC: 3
+Loading (1, 21)
+Write Pointer Location: 2
+Queue Contents: t=21 N=2 <(0,9) (1,21) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 21)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,16)
+Queue Contents: t=21 N=2 <(0,6) (1,16) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 18) and (1, 16)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 16)
+Queue Contents: t=21 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,16) >
+
+
+**********CURRENT TIME STEP: 23**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 22)
+Write Pointer Location: 2
+Queue Contents: t=22 N=2 <(0,9) (1,22) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 22)
+Write Pointer Location: 8
+Queue Contents: t=22 N=8 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,22) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 22) and (1, 22)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 22)
+Queue Contents: t=22 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,22) >
+----LOADING DATA----
+PC: 3
+Loading (1, 22)
+Write Pointer Location: 2
+Queue Contents: t=22 N=2 <(0,9) (1,22) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 22)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,17)
+Queue Contents: t=22 N=2 <(0,6) (1,17) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 18) and (1, 17)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 17)
+Queue Contents: t=22 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,17) >
+
+
+**********CURRENT TIME STEP: 24**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 23)
+Write Pointer Location: 2
+Queue Contents: t=23 N=2 <(0,9) (1,23) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 23)
+Write Pointer Location: 8
+Queue Contents: t=23 N=8 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,23) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 23) and (1, 23)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 23)
+Queue Contents: t=23 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,23) >
+----LOADING DATA----
+PC: 3
+Loading (1, 23)
+Write Pointer Location: 2
+Queue Contents: t=23 N=2 <(0,9) (1,23) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 23)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,18)
+Queue Contents: t=23 N=2 <(0,6) (1,18) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 18) and (1, 18)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 18)
+Queue Contents: t=23 N=6 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 20) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 20)
+Queue Contents: t=23 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) >
+
+
+**********CURRENT TIME STEP: 25**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 24)
+Write Pointer Location: 2
+Queue Contents: t=24 N=2 <(0,9) (1,24) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 24)
+Write Pointer Location: 8
+Queue Contents: t=24 N=8 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 24) and (1, 24)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 24)
+Queue Contents: t=24 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) >
+----LOADING DATA----
+PC: 3
+Loading (1, 24)
+Write Pointer Location: 2
+Queue Contents: t=24 N=2 <(0,9) (1,24) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 24)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,19)
+Queue Contents: t=24 N=2 <(0,6) (1,19) >
+
+
+**********CURRENT TIME STEP: 26**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 25)
+Write Pointer Location: 3
+Queue Contents: t=25 N=3 <(0,9) (1,24) (0,25) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 25)
+Write Pointer Location: 9
+Queue Contents: t=25 N=9 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 25) and (0, 25)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 25)
+Queue Contents: t=25 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) >
+----LOADING DATA----
+PC: 3
+Loading (0, 25)
+Write Pointer Location: 3
+Queue Contents: t=25 N=3 <(0,9) (1,24) (0,25) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 25)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,22)
+Queue Contents: t=25 N=3 <(0,6) (1,19) (0,22) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 24) and (0, 22)
+Output set to (false, t_e2)
+Algorithm Return (0, 22)
+Queue Contents: t=25 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,22) >
+
+
+**********CURRENT TIME STEP: 27**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 26)
+Write Pointer Location: 3
+Queue Contents: t=26 N=3 <(0,9) (1,24) (0,26) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 26)
+Write Pointer Location: 10
+Queue Contents: t=26 N=10 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,26) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 26) and (1, 26)
+Output set to (false, t_e1
+Algorithm Return (0, 26)
+Queue Contents: t=26 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,26) >
+----LOADING DATA----
+PC: 3
+Loading (0, 26)
+Write Pointer Location: 3
+Queue Contents: t=26 N=3 <(0,9) (1,24) (0,26) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 26)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,23)
+Queue Contents: t=26 N=3 <(0,6) (1,19) (0,23) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 24) and (0, 23)
+Output set to (false, t_e2)
+Algorithm Return (0, 23)
+Queue Contents: t=26 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,23) >
+
+
+**********CURRENT TIME STEP: 28**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 27)
+Write Pointer Location: 3
+Queue Contents: t=27 N=3 <(0,9) (1,24) (0,27) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 27)
+Write Pointer Location: 10
+Queue Contents: t=27 N=10 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,27) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 27) and (1, 27)
+Output set to (false, t_e1
+Algorithm Return (0, 27)
+Queue Contents: t=27 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,27) >
+----LOADING DATA----
+PC: 3
+Loading (0, 27)
+Write Pointer Location: 3
+Queue Contents: t=27 N=3 <(0,9) (1,24) (0,27) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 27)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,24)
+Queue Contents: t=27 N=3 <(0,6) (1,19) (0,24) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 24) and (0, 24)
+Output set to (false, t_e2)
+Algorithm Return (0, 24)
+Queue Contents: t=27 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,24) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 27) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 27)
+Queue Contents: t=27 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,27) >
+
+
+**********CURRENT TIME STEP: 29**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 28)
+Write Pointer Location: 3
+Queue Contents: t=28 N=3 <(0,9) (1,24) (0,28) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 28)
+Write Pointer Location: 10
+Queue Contents: t=28 N=10 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 28) and (1, 28)
+Output set to (false, t_e1
+Algorithm Return (0, 28)
+Queue Contents: t=28 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,28) >
+----LOADING DATA----
+PC: 3
+Loading (0, 28)
+Write Pointer Location: 3
+Queue Contents: t=28 N=3 <(0,9) (1,24) (0,28) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 28)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,25)
+Queue Contents: t=28 N=3 <(0,6) (1,19) (0,25) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 28) and (1, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 28)
+Queue Contents: t=28 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,28) >
+
+
+**********CURRENT TIME STEP: 30**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 29)
+Write Pointer Location: 3
+Queue Contents: t=29 N=3 <(0,9) (1,24) (0,29) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 29)
+Write Pointer Location: 11
+Queue Contents: t=29 N=11 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,29) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 29) and (0, 29)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 29)
+Queue Contents: t=29 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,29) >
+----LOADING DATA----
+PC: 3
+Loading (0, 29)
+Write Pointer Location: 3
+Queue Contents: t=29 N=3 <(0,9) (1,24) (0,29) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 29)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,26)
+Queue Contents: t=29 N=3 <(0,6) (1,19) (0,26) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 29) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 29)
+Queue Contents: t=29 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,29) >
+
+
+**********CURRENT TIME STEP: 31**********
+
+----LOADING DATA----
+PC: 0
+Loading (0, 30)
+Write Pointer Location: 3
+Queue Contents: t=30 N=3 <(0,9) (1,24) (0,30) >
+
+----LOADING DATA----
+PC: 1
+Loading (0, 30)
+Write Pointer Location: 11
+Queue Contents: t=30 N=11 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (0, 30) and (0, 30)
+Output set to (false, max(t_e1 or t_e2))
+Algorithm Return (0, 30)
+Queue Contents: t=30 N=9 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) >
+----LOADING DATA----
+PC: 3
+Loading (0, 30)
+Write Pointer Location: 3
+Queue Contents: t=30 N=3 <(0,9) (1,24) (0,30) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (0, 30)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (0,27)
+Queue Contents: t=30 N=3 <(0,6) (1,19) (0,27) >
+----AND OPERATION----
+PC: 5
+Received Inputs (0, 30) and (0, -1)
+Output set to (false, t_e1
+Algorithm Return (0, 30)
+Queue Contents: t=30 N=7 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,30) >
+
+
+**********CURRENT TIME STEP: 32**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 31)
+Write Pointer Location: 4
+Queue Contents: t=31 N=4 <(0,9) (1,24) (0,30) (1,31) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 31)
+Write Pointer Location: 12
+Queue Contents: t=31 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,31) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 31) and (1, 31)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 31)
+Queue Contents: t=31 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,31) >
+----LOADING DATA----
+PC: 3
+Loading (1, 31)
+Write Pointer Location: 4
+Queue Contents: t=31 N=4 <(0,9) (1,24) (0,30) (1,31) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 31)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=31 N=3 <(0,6) (1,19) (0,27) >
+
+
+**********CURRENT TIME STEP: 33**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 32)
+Write Pointer Location: 4
+Queue Contents: t=32 N=4 <(0,9) (1,24) (0,30) (1,32) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 32)
+Write Pointer Location: 12
+Queue Contents: t=32 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,32) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 32) and (1, 32)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 32)
+Queue Contents: t=32 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,32) >
+----LOADING DATA----
+PC: 3
+Loading (1, 32)
+Write Pointer Location: 4
+Queue Contents: t=32 N=4 <(0,9) (1,24) (0,30) (1,32) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 32)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (-,-)
+Queue Contents: t=32 N=3 <(0,6) (1,19) (0,27) >
+
+
+**********CURRENT TIME STEP: 34**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 33)
+Write Pointer Location: 4
+Queue Contents: t=33 N=4 <(0,9) (1,24) (0,30) (1,33) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 33)
+Write Pointer Location: 12
+Queue Contents: t=33 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,33) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 33) and (1, 33)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 33)
+Queue Contents: t=33 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,33) >
+----LOADING DATA----
+PC: 3
+Loading (1, 33)
+Write Pointer Location: 4
+Queue Contents: t=33 N=4 <(0,9) (1,24) (0,30) (1,33) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 33)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,28)
+Queue Contents: t=33 N=4 <(0,6) (1,19) (0,27) (1,28) >
+
+
+**********CURRENT TIME STEP: 35**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 34)
+Write Pointer Location: 4
+Queue Contents: t=34 N=4 <(0,9) (1,24) (0,30) (1,34) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 34)
+Write Pointer Location: 12
+Queue Contents: t=34 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,34) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 34) and (1, 34)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 34)
+Queue Contents: t=34 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,34) >
+----LOADING DATA----
+PC: 3
+Loading (1, 34)
+Write Pointer Location: 4
+Queue Contents: t=34 N=4 <(0,9) (1,24) (0,30) (1,34) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 34)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,29)
+Queue Contents: t=34 N=4 <(0,6) (1,19) (0,27) (1,29) >
+
+
+**********CURRENT TIME STEP: 36**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 35)
+Write Pointer Location: 4
+Queue Contents: t=35 N=4 <(0,9) (1,24) (0,30) (1,35) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 35)
+Write Pointer Location: 12
+Queue Contents: t=35 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,35) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 35) and (1, 35)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 35)
+Queue Contents: t=35 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,35) >
+----LOADING DATA----
+PC: 3
+Loading (1, 35)
+Write Pointer Location: 4
+Queue Contents: t=35 N=4 <(0,9) (1,24) (0,30) (1,35) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 35)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,30)
+Queue Contents: t=35 N=4 <(0,6) (1,19) (0,27) (1,30) >
+
+
+**********CURRENT TIME STEP: 37**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 36)
+Write Pointer Location: 4
+Queue Contents: t=36 N=4 <(0,9) (1,24) (0,30) (1,36) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 36)
+Write Pointer Location: 12
+Queue Contents: t=36 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,36) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 36) and (1, 36)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 36)
+Queue Contents: t=36 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,36) >
+----LOADING DATA----
+PC: 3
+Loading (1, 36)
+Write Pointer Location: 4
+Queue Contents: t=36 N=4 <(0,9) (1,24) (0,30) (1,36) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 36)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,31)
+Queue Contents: t=36 N=4 <(0,6) (1,19) (0,27) (1,31) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 36) and (1, 31)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 31)
+Queue Contents: t=36 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,30) (1,31) >
+
+
+**********CURRENT TIME STEP: 38**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 37)
+Write Pointer Location: 4
+Queue Contents: t=37 N=4 <(0,9) (1,24) (0,30) (1,37) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 37)
+Write Pointer Location: 12
+Queue Contents: t=37 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,37) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 37) and (1, 37)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 37)
+Queue Contents: t=37 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,37) >
+----LOADING DATA----
+PC: 3
+Loading (1, 37)
+Write Pointer Location: 4
+Queue Contents: t=37 N=4 <(0,9) (1,24) (0,30) (1,37) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 37)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,32)
+Queue Contents: t=37 N=4 <(0,6) (1,19) (0,27) (1,32) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 37) and (1, 32)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 32)
+Queue Contents: t=37 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,30) (1,32) >
+
+
+**********CURRENT TIME STEP: 39**********
+
+----LOADING DATA----
+PC: 0
+Loading (1, 38)
+Write Pointer Location: 4
+Queue Contents: t=38 N=4 <(0,9) (1,24) (0,30) (1,38) >
+
+----LOADING DATA----
+PC: 1
+Loading (1, 38)
+Write Pointer Location: 12
+Queue Contents: t=38 N=12 <(0,2) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,25) (1,28) (0,30) (1,38) >
+
+----AND OPERATION----
+PC: 2
+Received Inputs (1, 38) and (1, 38)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 38)
+Queue Contents: t=38 N=10 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,20) (1,24) (0,30) (1,38) >
+----LOADING DATA----
+PC: 3
+Loading (1, 38)
+Write Pointer Location: 4
+Queue Contents: t=38 N=4 <(0,9) (1,24) (0,30) (1,38) >
+
+----GLOBAL INTERVAL OPERATION----
+PC: 4
+Retrieved Data: (1, 38)
+Lower Bound: 3  Upper Bound: 5
+Algorithm Returns: (1,33)
+Queue Contents: t=38 N=4 <(0,6) (1,19) (0,27) (1,33) >
+----AND OPERATION----
+PC: 5
+Received Inputs (1, 38) and (1, 33)
+Output set to (true, min(t_e1 or t_e2))
+Algorithm Return (1, 33)
+Queue Contents: t=38 N=8 <(0,9) (1,10) (0,12) (1,13) (0,14) (1,18) (0,30) (1,33) >
+
+

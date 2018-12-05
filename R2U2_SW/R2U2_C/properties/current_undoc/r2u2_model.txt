@@ -1,0 +1,180 @@
+%
+% mappings:
+
+#include "signalspecs_header.txt"
+
+logic(pt).
+%
+% battery voltage
+%	signal:	voltage_battery
+%	units: mV
+%	filter: smooth 10
+%	limits: <12V, > 13V
+%	Bnames: U_batt_low, U_batt_high
+%	figure: f_voltage_battery
+%
+
+BATT_VOLTAGE:	(
+	(mode_guided | mode_auto) ->
+		(!U_batt_low & !U_batt_high)
+	) &
+
+% battery current
+%	signal: current_battery
+%	Units: mA
+%	filter: smooth 10
+%	limits: <0A >= 50A, >20A, >8A, <12A
+%	Bnames: I_batt_low, I_batt_high, I_batt_gt20A, I_batt_gt8A, I_batt_lt12A
+%	figure: f_current_battery
+%
+BATT_CURRENT:	(
+	(mode_guided | mode_auto) ->
+		(!I_batt_low & !I_batt_high)
+	) &
+
+
+% battery current related to climbing, level, and descent
+% climbing: defined a vz
+%	signal: vz
+%	units: ???
+%	filter: -
+%	limits: >100, <100, inbetween
+%	Bnames: climb_vz, descend_vz, level_vz
+%	figure: f_climb_battery
+%
+
+		%
+		% if the current is high the last 10 seconds,
+		% we can expect that during that time, we
+		% have a consecutive climb for at least 3 seconds
+		%
+CLIMB_BATTERY1:	(
+	(CLIMB_BATTERY_1_LHS: H[10](I_batt_gt28A)) -> 
+		(CLIMB_BATTERY_1_RHS: O[10](
+		   (CLIMB_BATTERY_1_RHS_H: H[3](climb_vz))))
+	) &
+
+
+% altitude vs vertical speed
+% vertical speed (vz) and rate(relative_altitude) should be
+% sign aligned
+%	signal: relative_alt
+%	units:  ???
+%	filter: rate
+%	limits: >5000, <-5000, inbetween
+%	Bnames: climb_alt_rate, descend_alt_rate, level_alt_rate
+%
+
+		%
+		% both climb rates and descend rates should be
+		% on the same side
+		%
+ALT_VZ: (
+	!H[3](
+          !( ALT_VZ_NT: (
+	     ((climb_alt_rate <-> climb_vz)) &
+	     ((descend_alt_rate <-> descend_vz)) &
+	     ((level_alt_rate <-> level_vz))
+	     )
+	   )
+         )
+	) &
+
+%
+% after we have a change of the target heading, the
+% nav heading needs to be aligned within 5 timestamps
+% short glitches in the alignment should not count
+
+HDG_ACHIEVE: (
+	(mode_guided | mode_auto) ->
+		(O[2](heading_achieved) | O[3](nav_bearing_changed))
+	)
+
+&
+
+	%
+	% commanding only after clearance
+	% or after "beginning_normal_approach"
+CLR_CMD_ALT: (
+	(commanding_alt_X -> O[0,1] cleared_alt_X) |
+           O[0,30] beginning_normal_approach
+	)
+&
+CMD_CLIMB_ALT: (
+	climbing_alt_X -> O[0,1] commanding_alt_X
+	)
+&
+CMD_REACHED_ALT: (
+	reached_alt_X -> O[0,10] commanding_alt_X
+	)
+&
+CMD_MAINTAIN_ALT: (
+	maintain_alt_X -> O[0,20] commanding_alt_X
+	)
+&
+
+WP_CLR_PROGRESS: (
+	WP_in_progress -> O[0,1] WP_cleared
+	)
+&
+WP_PROGRESS_ACHIEVED: (
+	WP_achieved -> O[0,40] WP_in_progress
+	)
+&
+WP_CLR_ACHIEVED: (
+	WP_achieved -> O[0,10] WP_cleared
+	)
+&
+WP_CLR_ACHIEVED_LONG: (
+	WP_achieved -> O[0,40] WP_cleared
+	)
+&
+ATC_ENTER_AIRSPACE: (
+	ATC_clr_enter_airspace -> O[0,10] ATC_req_enter_airspace
+	)
+&
+ATC_LANDING: (
+	landing -> O[0,10] ATC_clr_landing
+	)
+&
+ATC_CLR_LANDING: (
+	ATC_clr_landing -> O[0,3] awaiting_landing_clearance
+	)
+&
+LANDING_1: (
+	entering_downwind_leg -> O[0,3] beginning_normal_approach
+	)
+&
+LANDING_2: (
+	entering_base_leg -> O[0,10] entering_downwind_leg
+	)
+&
+LANDING_3: (
+	start_final_approach -> O[0,10] entering_base_leg
+	)
+&
+LANDING_4: (
+	landing -> O[0,10] start_final_approach
+	)
+&
+WP_ACHIEVED_MAV_PLX: (
+	WP_achieved -> O[0,1] mission_current_changed
+	)
+&
+WP_ACHIEVED_MAV_PLX_SHORT: (
+	WP_achieved_short -> O[0,1] mission_current_changed
+	)
+&
+WP_ACHIEVED_PLX_MAV: (
+	mission_current_changed -> (O[0,1] WP_achieved)
+	)
+&
+WP_ACHIEVED_PLX_MAV_ALL: (
+	mission_current_changed -> (
+		(O[0,1] WP_achieved) |
+		(O[0,1] WP_achieved_short)
+		)
+	)
+.
+
+
