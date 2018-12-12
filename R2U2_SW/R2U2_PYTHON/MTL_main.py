@@ -24,8 +24,8 @@ def define_automaton():
 
 
 def main():
-	a = define_automaton()
-	a.init()
+	# a = define_automaton()
+	# a.init()
 	#a.show()# show a .pdf figure of the state space model
 	MTL = '( G[4] a1 )'
 	top_node = parser.parse(MTL)
@@ -33,8 +33,10 @@ def main():
 	SCQ_size, _ = MTLparse.queue_size_assign()
 	MTLparse.gen_assembly()
 
-	solution = Search(a,cnt2observer,agent='DES')
-	solution.run(['s0','s0','s0','s1','s1','s1','s1','s1','s1','s1','s3','s2','s2','s3','s2','s3','s3','s3','s3','s2','s2','s3','s3','s3','s3','s0','s1','s1','s1','s0','s0'])
+	solution = Traverse(cnt2observer,'signal_trace.txt')
+	print(solution.run())
+	#solution = Search(a,cnt2observer,agent='DES')
+	#solution.run(['s0','s0','s0','s1','s1','s1','s1','s1','s1','s1','s3','s2','s2','s3','s2','s3','s3','s3','s3','s2','s2','s3','s3','s3','s3','s0','s1','s1','s1','s0','s0'])
 
 if __name__ == "__main__":
 	main()

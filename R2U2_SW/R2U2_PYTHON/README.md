@@ -1,5 +1,6 @@
 # ACOW
-#### Metric Linear Temporal Logic Model Checking Tool written in Python 3.X
+#### Metric Temporal Logic Model Checking Tool written in Python 3.X
+###### (This is the project for AERE/COMS 407X/507X Applied Formal Methods. You need Conda and Graphviz installed first.)
 ---
 #### What this tool can do:
 #### 1) Verication of safety/liveness property

@@ -76,6 +76,7 @@ class ATOM(Observer):
 		res = [time,False] if var[self.name]==0 else [time,True]
 		super().write_result(res)
 		logging.debug('%s %s return: %s',self.type, self.name, res)
+		return res
 	
 	def gen_assembly(self, s):
 		substr = "load "+self.name
@@ -98,13 +99,16 @@ class NEG(Observer):
 	def run(self):
 		super().record_status()
 		self.has_output = False
+		resArray = []
 		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		while(not isEmpty):
 			res = [time_stamp,not verdict]
 			self.desired_time_stamp = time_stamp+1
 			super().write_result(res)
+			resArray.append(res)
 			logging.debug('%s return: %s',self.type, res)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+		return resArray
 
 
 class AND(Observer):
@@ -124,6 +128,7 @@ class AND(Observer):
 	def run(self):
 		super().record_status()
 		self.has_output = False
+		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
 		while(not isEmpty_1 or not isEmpty_2):
@@ -145,12 +150,14 @@ class AND(Observer):
 					res = [time_stamp_1,False]
 			if(res[0]!=-1):
 				super().write_result(res)
+				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
+		return resArray
 
 class OR(Observer):
 	def __init__(self,ob1,ob2):
@@ -164,6 +171,7 @@ class OR(Observer):
 	def run(self):
 		super().record_status()
 		self.has_output = False
+		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
 		while(not isEmpty_1 or not isEmpty_2):
@@ -185,12 +193,14 @@ class OR(Observer):
 					res = [time_stamp_1,True]
 			if(res[0]!=-1):
 				super().write_result(res)
+				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
+		return resArray
 
 class GLOBAL(Observer):
 	def __init__(self,ob1,ub,lb=0):
@@ -222,6 +232,7 @@ class GLOBAL(Observer):
 	def run(self):
 		self.record_status()		
 		self.has_output = False
+		resArray = []
 		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		pre_time_stamp, pre_verdict = self.pre
 		while(not isEmpty):
@@ -231,15 +242,17 @@ class GLOBAL(Observer):
 			if verdict:
 				if time_stamp-self.m_up >= self.ub-self.lb and time_stamp-self.ub >= 0:
 					res = [time_stamp-self.ub,True]
-					super().write_result(res)	
+					super().write_result(res)
+					resArray.append(res)	
 					logging.debug('%s return: %s',self.type, res)
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,False]
 				super().write_result(res)
+				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
 			self.pre = (time_stamp, verdict)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
-
+		return resArray
 
 class FUTURE(Observer):
 	def __init__(self,ob1,ub,lb=0):
@@ -263,6 +276,7 @@ class FUTURE(Observer):
 	def run(self):
 		self.record_status()		
 		self.has_output = False
+		resArray = []
 		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		pre_time_stamp, pre_verdict = self.pre
 		while(not isEmpty):
@@ -273,13 +287,16 @@ class FUTURE(Observer):
 				if time_stamp-self.m_down >= self.ub-self.lb and time_stamp-self.ub >= 0:
 					res = [time_stamp-self.ub,False]
 					super().write_result(res)
+					resArray.append(res)
 					logging.debug('%s return: %s',self.type, res)
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,True]
 				super().write_result(res)
+				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
 			self.pre = (time_stamp, verdict)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+		return resArray
 
 class UNTIL(Observer):
 	def __init__(self,ob1,ob2,ub,lb=0):
@@ -310,6 +327,7 @@ class UNTIL(Observer):
 	def run(self):
 		self.record_status()	
 		self.has_output = False
+		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
 		pre_time_stamp_2, pre_verdict_2 = self.pre
@@ -327,11 +345,13 @@ class UNTIL(Observer):
 				res = [tau-self.ub,False]
 			if res[0]>=self.preResult:
 				super().write_result(res)
+				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
+		return resArray
 
 class WEAK_UNTIL(Observer):
 	def __init__(self,ob1,ob2,ub,lb=0):
@@ -357,6 +377,7 @@ class WEAK_UNTIL(Observer):
 	def run(self):
 		self.record_status()	
 		self.has_output = False
+		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
 		pre_time_stamp_2, pre_verdict_2 = self.pre
@@ -374,11 +395,13 @@ class WEAK_UNTIL(Observer):
 				res = [tau-self.ub,True] # The only difference from until
 			if res[0]>=self.preResult:
 				super().write_result(res)
+				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
+		return resArray
 
 ###########################################################
 #SCQ: Shared Connection Queue
