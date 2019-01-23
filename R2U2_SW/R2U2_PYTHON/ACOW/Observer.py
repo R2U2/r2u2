@@ -16,7 +16,8 @@ class Observer():
 	line_cnt = 0 #static var to record line number
 	def __init__(self, ob1=None, ob2=None,name='Default'):		
 		self.name = name
-		self.scq = SCQ(name=self.name+'_SCQ',size=2)
+		# self.scq = SCQ(name=self.name+'_SCQ',size=2)
+		self.scq = None
 		self.input_1, self.input_2 = ob1, ob2
 		self.rd_ptr_1, self.rd_ptr_2 = 0, 0
 		self.status_stack = []
@@ -31,6 +32,7 @@ class Observer():
 
 	def set_scq_size(self,queue_size=1):
 		self.scq = SCQ(name=self.name+'_SCQ',size=queue_size)
+		self.scq_size = queue_size
 
 	def gen_assembly(self, s, substr):
 		self.hook = 's'+str(Observer.line_cnt)
@@ -83,10 +85,32 @@ class ATOM(Observer):
 		s = super().gen_assembly(s, substr)
 		return s
 
+class END(Observer):
+	# This class only be used in decoding assembly input
+	def __init__(self,ob1):
+		logging.debug('Initiate END Observer')
+		super().__init__(ob1,name='fin')
+		self.type = 'END'
+		self.input_1.parent = self
+
+	def run(self):
+		super().record_status()
+		self.has_output = False
+		resArray = []
+		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+		while(not isEmpty):
+			res = [time_stamp, verdict]
+			self.desired_time_stamp = time_stamp+1
+			super().write_result(res)
+			resArray.append(res)
+			logging.debug('%s return: %s',self.type, res)
+			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+		return resArray
+
 class NEG(Observer):
 	def __init__(self,ob1):
 		logging.debug('Initiate NEG Observer')
-		super().__init__(ob1,name='!')
+		super().__init__(ob1,name='-')
 		self.type = 'NEG'
 		self.input_1.parent = self
 
@@ -121,7 +145,7 @@ class AND(Observer):
 		self.input_2.parent = self
 
 	def gen_assembly(self, s):
-		substr = "and "+self.input_1.hook+" "+self.input_1.hook
+		substr = "and "+self.input_1.hook+" "+self.input_2.hook
 		s = super().gen_assembly(s, substr)
 		return s
 

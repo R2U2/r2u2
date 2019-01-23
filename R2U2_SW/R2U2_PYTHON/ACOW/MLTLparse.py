@@ -1,11 +1,11 @@
 # ------------------------------------------------------------
-# MTLparse.py
+# MLTLparse.py
 #
-# Parser for MTL formula.
+# Parser for MLTL formula.
 # Construct observer abstract syntax tree and remove the duplicate branch
 # ------------------------------------------------------------
 import ply.yacc as yacc
-from .MTLlex import tokens
+from .MLTLlex import tokens
 from .Observer import *
 import sys
 
@@ -19,7 +19,7 @@ def record_operators(ob):
 	cnt2observer[operator_cnt] = ob
 	operator_cnt += 1
 
-def p_MTL_operators(p):
+def p_MLTL_operators(p):
 	'''
 	expression 	: expression AND expression
 				| expression OR expression
@@ -153,7 +153,8 @@ def queue_size_assign(predLen = 0):
 	def get_node_set(node):
 		if(node!=None):
 			if(node.type=='ATOMIC'):
-				node.bcd = -1*predLen
+				node.bcd = -1*predLen				
+				node.set_scq_size(2) # interesting part of the real implementation
 				visited.add(node)
 			else:
 				get_node_set(node.input_1)
@@ -171,10 +172,10 @@ def queue_size_assign(predLen = 0):
 				n.bcd, n.wcd = min(left.bcd, right.bcd), max(left.wcd, right.wcd)
 			else:
 				n.bcd, n.wcd = min(left.bcd, right.bcd)+n.lb, max(left.wcd, right.wcd)+n.ub
-			left.scq_size = max(left.scq_size,right.wcd-left.bcd+1)
-			right.scq_size = max(right.scq_size,left.wcd-right.bcd+1)
-			left.set_scq_size(left.scq_size) # init the SCQ in observer with specified size
-			right.set_scq_size(right.scq_size)  # init the SCQ in observer with specified size
+			size1 = max(left.scq_size,right.wcd-left.bcd+1)
+			size2 = max(right.scq_size,left.wcd-right.bcd+1)
+			left.set_scq_size(size1) # init the SCQ in observer with specified size
+			right.set_scq_size(size2)  # init the SCQ in observer with specified size
 		else:
 			left = n.input_1
 			queue_size_assign_helper(left)
@@ -182,13 +183,13 @@ def queue_size_assign(predLen = 0):
 				n.bcd, n.wcd = left.bcd, left.wcd
 			else:
 				n.bcd, n.wcd = left.bcd + n.lb, left.wcd + n.ub
-
+		n.set_scq_size(n.scq_size+1) # increase by 1 to prevent null pointer
 		visited.add(n)
 
 	def get_total_size(node):
 		if(node and node not in visited):
 			visited.add(node)
-			#print(node.name,'	',node,':	',node.scq_size)
+			print(node.name,'	',node,':	',node.scq_size)
 			return get_total_size(node.input_1)+get_total_size(node.input_2)+node.scq_size
 		return 0
 
@@ -201,18 +202,17 @@ def queue_size_assign(predLen = 0):
 				return get_total_pred_time(node.input_1)+ predLen+1
 			#print(node.name,'	',node,':	',node.scq_size)
 			return get_total_pred_time(node.input_1)+get_total_pred_time(node.input_2)+node.input_1.scq_size+node.input_2.scq_size
-		# return 0
 
 
 	top = cnt2observer[len(cnt2observer)-1]
 	get_node_set(top)
+	top.set_scq_size(1) # prevent null pointer to SCQ, needs attention
 	queue_size_assign_helper(top)
 
 	visited = set()#clear the set for other purpose
 	totsize = get_total_size(top)
 	visited = set()#clear the set for other purpose
 	return totsize,get_total_pred_time(top)
-
 
 # Generate assembly code
 def gen_assembly():	

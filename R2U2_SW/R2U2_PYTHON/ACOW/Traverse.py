@@ -1,24 +1,41 @@
 import re
-from .MTLparse import *
-
+#from .MLTLparse import * # Pei: Do we really need this???
+ 
 # Travese the signal input and get output
 class Traverse():
-	def __init__(self, observer_seq, trace_file):
+	def __init__(self, observer_seq, trace_file, isAtomic):
 		self.observer_seq = observer_seq
 		self._file = trace_file
+		self.isAtomic = isAtomic
 		self.RTC = 0
 		self.verify_result = []
 		self.trace = []
+		self.trace_name = []
 
-	# Read the trace file
-	def construct_trace(self):
+	# Read the trace file, each signal in colom-wise format
+	def construct_trace(self): 
+		# s1 s2
+		# 1   2
+		# 2   3
+		# 3   4
 		l = re.compile(r'[ ,]+')
+		line_cnt = 0
 		lines = []
 		with open(self._file, 'r') as handle:
 			lines = handle.readlines()
 		for line in lines:
-			data_split = [float(i) for i in l.split(line)];
-			self.trace.append(data_split);
+			line = line.strip()
+			if(line):
+				if line_cnt == 0:
+					self.trace_name = l.split(line)
+				else:
+					data_split = [float(i) for i in l.split(line)]
+					self.trace.append(data_split)
+				line_cnt+=1
+
+
+
+
 
 	# map number to atomic, revise the mapping based on the MLTL formulae, column of the signal
 	def s2a(self,signal_trace):	
@@ -34,11 +51,18 @@ class Traverse():
 
 		return atomic_map
 
+	# if the input is atomic, no need to do atomic conversion. The signal name is the first line of the signal file
+	def a2a(self,signal_trace):
+		atomic_map = {}
+		for i in self.trace_name:
+			atomic_map[i] = signal_trace[0]==1
+		return atomic_map
+
 	def run(self):
 		self.construct_trace()
+		atconv = self.a2a if self.isAtomic else self.s2a
 		for signal_trace in self.trace:
-			atomic_map = self.s2a(signal_trace)
-
+			atomic_map = atconv(signal_trace)
 			for i in range(len(self.observer_seq)):
 				observer = self.observer_seq[i]
 				if(i==len(self.observer_seq)-1):

@@ -2,7 +2,7 @@
 top level automaton class
 {'s0',{'a0':1,'a1':0,'a2':1,'a3':1}} #s0:1011
 """
-from graphviz import *
+#from graphviz import *
 
 class state():
 	def __init__(self, name, var = {}):
@@ -41,6 +41,7 @@ class automaton():
 		self.INITIAL_STATE = self.state_map[self.INITIAL_STATE]
 		self.DEST_STATE = self.state_map[self.DEST_STATE]
 
+'''
 	def show(self):
 		dot = Digraph(comment='State Space Graph')
 		for states in self.STATE:
@@ -55,4 +56,4 @@ class automaton():
 			for next_state in next_states:		
 				dot.edge(states,next_state)
 		dot.render('visual_output/ss.gv', view=True) 
-
+'''
