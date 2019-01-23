@@ -34,9 +34,9 @@ def bare_input(MLTL,optimize=True):
 	MLTLparse.gen_assembly()
 	return cnt2observer
 
-def assembly_input(MLTLfile):
+def assembly_input(MLTL):
 	from ACOW import Assembly
-	cnt2observer = Assembly.decode_assembly(MLTLfile)
+	cnt2observer = Assembly.decode_assembly(MLTL)
 	SCQ_size, _ = Assembly.queue_size_assign()
 	return cnt2observer
 
@@ -56,7 +56,7 @@ def main():
 	#a.show()# show a .pdf figure of the state space model
 	args = parserInfo()
 	MLTL = args['mltl']
-	if('.' in MLTL): # the input is the assembly file name
+	if(':' in MLTL): # the input is the assembly file name
 		cnt2observer = assembly_input(MLTL)
 	else: # the input is one line MLTL string
 		cnt2observer = bare_input(MLTL)

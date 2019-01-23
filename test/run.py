@@ -1,6 +1,7 @@
 import os
 import argparse
 import subprocess
+from subprocess import check_output
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))
 __TLDir__ = __AbsolutePath__+'/TL_formula/'
@@ -10,6 +11,7 @@ __CDir__ = __AbsolutePath__+'/../R2U2_SW/R2U2_C/'
 __CPPDIR__ = __AbsolutePath__+'/../R2U2_SW/R2U2_CPP/'
 __VHDLDIR__ = __AbsolutePath__+'/../R2U2_HW/R2U2_VHDL/'
 __ResultDIR__ = __AbsolutePath__+'/results/'
+__ToolDir__ = __AbsolutePath__+'/../tools/Compiler/'
 
 def parserInfo():
 	parser = argparse.ArgumentParser(description='Suffer from R2U2 Runtime Verification Regression Test')
@@ -24,13 +26,15 @@ def list_file():
 	print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
 	return formulaFiles,inputFiles
 
+
 def test_python(formulaFiles,inputFiles):
 	for _formula in formulaFiles:
 		f = open(__TLDir__+_formula,'r')
 		lines =  [i.strip() for i in f]
 		for line in lines:
+			out = check_output(["python", __ToolDir__+'main.py',line])
 			for _input in inputFiles:
-				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',line,'-a',__InputDir__+_input])
+				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',out,'-a',__InputDir__+_input])
 		f.close()
 
 

@@ -71,13 +71,14 @@ def queue_size_assign(predLen = 0):
 	return totsize,get_total_pred_time(top)
 
 
-def decode_assembly(assembly_file):
+def decode_assembly(assembly):
 	# construct the SCQ connection first
 	str2observer = {}
 	global cnt2observer
 	cnt = 0
-	f = open(assembly_file,'r')
-	for line in f:
+	f = assembly
+	for line in f.splitlines():
+
 		token = line.split()
 		target,op = token[0][:-1],token[1] # remove the symbol ':' for target
 		if(op=='load'):
@@ -85,13 +86,13 @@ def decode_assembly(assembly_file):
 		elif(op=='not'):
 			str2observer[target] = NEG(str2observer[token[2]])
 		elif(op=='boxbox'):
-			str2observer[target] = GLOBAL(str2observer[token[2]],token[3])
+			str2observer[target] = GLOBAL(str2observer[token[2]],int(token[3]))
 		elif(op=='boxdot'):
-			str2observer[target] = GLOBAL(str2observer[token[2]],token[3],token[4])
+			str2observer[target] = GLOBAL(str2observer[token[2]],int(token[3]),int(token[4]))
 		elif(op=='and'):
 			str2observer[target] = AND(str2observer[token[2]],str2observer[token[3]])
 		elif(op=='until'):
-			str2observer[target] = UNTIL(token[2],str2observer[token[2]],token[3],token[4])
+			str2observer[target] = UNTIL(token[2],str2observer[token[2]],int(token[3]),int(token[4]))
 		elif(op=='end'):
 			str2observer[target] = END(str2observer[token[2]])
 		else:
@@ -99,8 +100,6 @@ def decode_assembly(assembly_file):
 			quit()
 		cnt2observer[cnt]=str2observer[target]
 		cnt+=1
-
-	f.close()
 	return cnt2observer
 
 
