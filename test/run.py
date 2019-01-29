@@ -1,6 +1,7 @@
 import os
 import argparse
 import subprocess
+import re
 from subprocess import check_output
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))
@@ -26,16 +27,36 @@ def list_file():
 	print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
 	return formulaFiles,inputFiles
 
+def post_file_process(file):
+	# Reformat the output file
+	f=open(file,'r')
+	f_temp = open(file+'_tmp','w')
+	lines =  [i.strip() for i in f]
+	pattern = re.compile(r'(?=PC\=[\d]+:)|([-]{3}RTC:[\d]+[-]{3})')
+	PC_pattern = re.compile(r'\s*PC\=[\d]+:\s*')
+	for line in lines:
+		pc = re.split(pattern,line)
+		pc = [x for x in pc if (x and not PC_pattern.fullmatch(x))]
+		for y in pc:
+			f_temp.write(y+'\n')
+	f.close()
+	f_temp.close()
+	os.rename(file+'_tmp', file)
 
 def test_python(formulaFiles,inputFiles):
+	__OutputDIR__ = __ResultDIR__+'python_version/'
+	if not os.path.exists(__OutputDIR__):
+		os.makedirs(__OutputDIR__)
 	for _formula in formulaFiles:
 		f = open(__TLDir__+_formula,'r')
 		lines =  [i.strip() for i in f]
-		for line in lines:
+		for cnt,line in enumerate(lines):
 			out = check_output(["python", __ToolDir__+'main.py',line])
 			for _input in inputFiles:
-				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',out,'-a',__InputDir__+_input])
+				filename = __OutputDIR__+_formula+'_case'+str(cnt)+'.txt'
+				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',out,'-a',__InputDir__+_input,'-o',filename])
 		f.close()
+		post_file_process(filename)
 
 
 def test_c():

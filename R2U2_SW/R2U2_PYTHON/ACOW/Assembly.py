@@ -92,7 +92,8 @@ def decode_assembly(assembly):
 		elif(op=='and'):
 			str2observer[target] = AND(str2observer[token[2]],str2observer[token[3]])
 		elif(op=='until'):
-			str2observer[target] = UNTIL(token[2],str2observer[token[2]],int(token[3]),int(token[4]))
+			print(token)
+			str2observer[target] = UNTIL(str2observer[token[2]],str2observer[token[3]],int(token[4]),int(token[5]))
 		elif(op=='end'):
 			str2observer[target] = END(str2observer[token[2]])
 		else:
@@ -101,9 +102,3 @@ def decode_assembly(assembly):
 		cnt2observer[cnt]=str2observer[target]
 		cnt+=1
 	return cnt2observer
-
-
-
-
-
-

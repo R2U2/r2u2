@@ -9,8 +9,8 @@
 import logging, sys
 
 # use level=logging.DEBUG to enable debug info
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
-#logging.basicConfig(stream=sys.stderr, level=logging.CRITICAL)
+# logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stderr, level=logging.CRITICAL)
 
 class Observer():
 	line_cnt = 0 #static var to record line number
@@ -73,11 +73,12 @@ class ATOM(Observer):
 		self.type = 'ATOMIC'
 		self.name= name
 
-	def run(self,var,time):
+	def run(self,var,time,f):
 		super().record_status()	
 		res = [time,False] if var[self.name]==0 else [time,True]
 		super().write_result(res)
 		logging.debug('%s %s return: %s',self.type, self.name, res)
+		f.write('%s %s return: %s\n'%(self.type, self.name, res))
 		return res
 	
 	def gen_assembly(self, s):
@@ -93,7 +94,7 @@ class END(Observer):
 		self.type = 'END'
 		self.input_1.parent = self
 
-	def run(self):
+	def run(self,f):
 		super().record_status()
 		self.has_output = False
 		resArray = []
@@ -104,6 +105,7 @@ class END(Observer):
 			super().write_result(res)
 			resArray.append(res)
 			logging.debug('%s return: %s',self.type, res)
+			f.write('%s return: %s\n'%(self.type, res))
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
 
@@ -120,7 +122,7 @@ class NEG(Observer):
 		s = super().gen_assembly(s, substr)
 		return s
 
-	def run(self):
+	def run(self,f):
 		super().record_status()
 		self.has_output = False
 		resArray = []
@@ -131,6 +133,7 @@ class NEG(Observer):
 			super().write_result(res)
 			resArray.append(res)
 			logging.debug('%s return: %s',self.type, res)
+			f.write('%s return: %s\n'%(self.type, res))
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
 
@@ -149,7 +152,7 @@ class AND(Observer):
 		s = super().gen_assembly(s, substr)
 		return s
 
-	def run(self):
+	def run(self,f):
 		super().record_status()
 		self.has_output = False
 		resArray = []
@@ -177,6 +180,7 @@ class AND(Observer):
 				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
@@ -192,7 +196,7 @@ class OR(Observer):
 		self.input_1.parent = self
 		self.input_2.parent = self
 
-	def run(self):
+	def run(self,f):
 		super().record_status()
 		self.has_output = False
 		resArray = []
@@ -220,6 +224,7 @@ class OR(Observer):
 				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
@@ -253,7 +258,7 @@ class GLOBAL(Observer):
 		s = super().gen_assembly(s, substr)
 		return s
 
-	def run(self):
+	def run(self,f):
 		self.record_status()		
 		self.has_output = False
 		resArray = []
@@ -269,11 +274,13 @@ class GLOBAL(Observer):
 					super().write_result(res)
 					resArray.append(res)	
 					logging.debug('%s return: %s',self.type, res)
+					f.write('%s return: %s\n'%(self.type, res))
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,False]
 				super().write_result(res)
 				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			self.pre = (time_stamp, verdict)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
@@ -297,7 +304,7 @@ class FUTURE(Observer):
 		super().recede_status()
 		self.m_down, self.pre = self.inner_status_stack.pop()
 
-	def run(self):
+	def run(self,f):
 		self.record_status()		
 		self.has_output = False
 		resArray = []
@@ -313,11 +320,13 @@ class FUTURE(Observer):
 					super().write_result(res)
 					resArray.append(res)
 					logging.debug('%s return: %s',self.type, res)
+					f.write('%s return: %s\n'%(self.type, res))
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,True]
 				super().write_result(res)
 				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			self.pre = (time_stamp, verdict)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
@@ -348,7 +357,7 @@ class UNTIL(Observer):
 		super().recede_status()
 		self.m_down, self.pre, self.preResult = self.inner_status_stack.pop()
 
-	def run(self):
+	def run(self,f):
 		self.record_status()	
 		self.has_output = False
 		resArray = []
@@ -372,6 +381,7 @@ class UNTIL(Observer):
 				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
@@ -398,7 +408,7 @@ class WEAK_UNTIL(Observer):
 		super().recede_status()
 		self.m_down, self.pre, self.preResult = self.inner_status_stack.pop()
 
-	def run(self):
+	def run(self,f):
 		self.record_status()	
 		self.has_output = False
 		resArray = []
@@ -422,6 +432,7 @@ class WEAK_UNTIL(Observer):
 				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
+				f.write('%s return: %s\n'%(self.type, res))
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)

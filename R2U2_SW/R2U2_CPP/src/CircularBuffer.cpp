@@ -7,8 +7,9 @@
 #include <string>
 #include <vector>
 #include "CircularBuffer.h"
-#include "Observer.h"
 #include "common.h"
+#include "Observer.h"
+
 
 CircularBuffer::CircularBuffer(): wrPtr(0){
 	// TODO Auto-generated constructor stub

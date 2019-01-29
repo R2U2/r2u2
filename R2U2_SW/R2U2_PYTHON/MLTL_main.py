@@ -43,6 +43,7 @@ def assembly_input(MLTL):
 def parserInfo():
 	parser = argparse.ArgumentParser(description='ACOW: Model Checking tool for MLTL')
 	parser.add_argument('-m','--mltl', help='Choose MLTL formula', required=True)
+	parser.add_argument('-o','--output', help='Output file name', required=False)
 	group = parser.add_mutually_exclusive_group(required=True)
 	group.add_argument('-a','--atomic',help='Give the input as atomic')
 	group.add_argument('-s','--sensor',help='Give the input in raw sensor signal')
@@ -56,14 +57,15 @@ def main():
 	#a.show()# show a .pdf figure of the state space model
 	args = parserInfo()
 	MLTL = args['mltl']
+	output_file_name = args['output'] if args['output'] else 'untitled.txt'
 	if(':' in MLTL): # the input is the assembly file name
 		cnt2observer = assembly_input(MLTL)
 	else: # the input is one line MLTL string
 		cnt2observer = bare_input(MLTL)
 	if(args['atomic']):
-		solution = Traverse(cnt2observer,args['atomic'],isAtomic=True)
+		solution = Traverse(cnt2observer,args['atomic'],isAtomic=True,output_file_name=output_file_name)
 	else:
-		solution = Traverse(cnt2observer,args['sensor'],isAtomic=False)
+		solution = Traverse(cnt2observer,args['sensor'],isAtomic=False,output_file_name=output_file_name)
 
 	print(solution.run())
 	#solution = Search(a,cnt2observer,agent='DES')

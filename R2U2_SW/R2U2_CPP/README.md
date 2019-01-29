@@ -38,8 +38,8 @@ string formula="AND{AND{S[0],S[1]},ALW[3,5]{S[0]}}";
 #### 1. run setup.sh to compile the project
 #### 2. type ./Debug/MTL to running MTL
 ```bash
-./setup.sh
-./Debug/MTL
+make
+./build/app/main
 ```
 ---
 ## Notes

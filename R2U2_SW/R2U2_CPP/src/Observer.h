@@ -5,7 +5,6 @@
 // Description : Class of different observers
 //============================================================================
 
-#pragma once
 #ifndef SRC_OBSERVER_H_
 #define SRC_OBSERVER_H_
 
