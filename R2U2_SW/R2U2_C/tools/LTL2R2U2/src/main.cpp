@@ -114,7 +114,7 @@ void rtR2U2_print_initial(struct rtU2D2_files fp,char *outfile, int stamp);
 
 //=================================================
 int main(int argc, char **argv) {
-    
+
     int stamp = 44; // why this value????
 
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 
     extern node *yyparse();
     extern FILE *yyin;
- 
+
     if (argc <= 1){
 	printf("usage: r2u2prepare <modelfile>.txt\n");
 	exit(2);
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 	outfile = argv[i+1];
     	if (verbose) {
 		fprintf(stderr, "Got formula from stdin\n");
-		fprintf(stderr, "writing files into %s\n", get_current_dir_name());
+		fprintf(stderr, "writing files into %s\n", getcwd(NULL, 0));
     	}
 
 	}
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 
     	if (verbose) {
 		fprintf(stderr, "Got formula file %s\n", infile);
-		fprintf(stderr, "writing files into %s\n", get_current_dir_name());
+		fprintf(stderr, "writing files into %s\n", getcwd(NULL, 0));
     	}
     	yyin = fopen(infile, "r");
     	if (!yyin) {
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
 	rtR2U2_print_initial(fp, outfile, stamp);
 
 	rtR2U2_print_timestamp(&fp, stamp);
-    	yyparse(); 
+    	yyparse();
 
     	if (verbose) {
 		fprintf(stderr, "Done parsing\n");
