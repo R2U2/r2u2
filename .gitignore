@@ -257,3 +257,6 @@ TSWLatexianTemp*
 
 # standalone packages
 *.sta
+
+# OS cahce fiels
+.DS_Store
