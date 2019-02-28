@@ -6,7 +6,7 @@
 
   where:
      inputs=csvread('flight_data.csv');
-     
+
 
   returns:
 
@@ -20,7 +20,7 @@
 
 #define BOUNDS_CHECKING
 #include <math.h>
-#include <octave/config.h>
+#include <octave-config.h>
 #include <iostream>
 #include <octave/oct.h>
 #include <octave/defun-dld.h>
@@ -62,7 +62,7 @@ DEFUN_DLD(r2u2,input_args,output_args,
   //-- Input declarations ----------------------------------------------------
 
  octave_value arg_sim_data = input_args(0);
- 
+
 
   if (!arg_sim_data.is_real_matrix()){
     gripe_wrong_type_arg("inputs", (const std::string &)"Matrix expected");
@@ -115,7 +115,7 @@ fprintf(fp2, "**********RESULTS**********\n\n");
 for (int ts=0; ts< N_timestamps; ts++){
   printf("\n");
   printf("***************************************");
-  printf("**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****",ts+1); 
+  printf("**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****",ts+1);
   //index shifted due to octave arrays starting index is 1
   printf("***************************************");
   printf("\n");
@@ -157,7 +157,7 @@ for (int ts=0; ts< N_timestamps; ts++){
 		}
 	printf("\n");
 #	endif
-	
+
 		//
 		// run the TL
 		//
@@ -177,7 +177,7 @@ for (int ts=0; ts< N_timestamps; ts++){
 	for (int k=0; k<N_INSTRUCTIONS; k++){
 		v_results_ft(ts,k)   = (double)results_ft[k].sync_val;
 		}
-  
+
   	for (int k=0; k<N_INSTRUCTIONS; k++){
 		v_results_a_ft(ts,k) = (double)results_ft[k].async_val;
 
@@ -186,7 +186,7 @@ for (int ts=0; ts< N_timestamps; ts++){
 		}
 		v_times_a_ft(ts,k) = (double)results_ft[k].async_t;
 		}
-  
+
 
 
 #	ifdef DEBUG
