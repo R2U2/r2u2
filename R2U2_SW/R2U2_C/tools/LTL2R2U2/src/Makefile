@@ -3,11 +3,17 @@ TARGET = r2u2prepare
 CPPFLAGS= $(INCLUDES:%=-I%)
 CFLAGS= $(INCLUDES:%=-I%)
 LDFLAGS = $(LIBRARIES:%=-L%)
-LDLIBS	= $(USED_TOOLS:%=-l%)
-
 INCLUDES	= ./
-LIBRARIES	= /opt/local/lib
 
+UNAME = ${shell uname}
+ifeq ($(UNAME), Darwin)
+LIBRARIES	= ./
+LDLIBS	= -ll
+endif
+ifeq ($(UNAME), Linux)
+LIBRARIES	= /opt/local/lib
+LDLIBS	= -lfl
+endif
 
 MY_MODULES =\
 	KItem\
@@ -22,7 +28,7 @@ MY_OBJS = $(MY_MODULES:%=%.o)
 MY_SRC = $(MY_MODULES:%=%.c)
 
 all: y.tab.c $(MY_OBJS)
-	g++ ${CPPFLAGS} ${LDFLAGS} ${LDLIBS} ${OBJS} ${MY_OBJS} -o $(TARGET) -lfl
+	g++ -g ${CPPFLAGS} ${LDFLAGS} ${LDLIBS} ${OBJS} ${MY_OBJS} -o $(TARGET)
 
 
 install: all
