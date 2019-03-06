@@ -1,0 +1,2 @@
+#define R2U2_C_VERSION_MAJOR 0
+#define R2U2_C_VERSION_MINOR 1
