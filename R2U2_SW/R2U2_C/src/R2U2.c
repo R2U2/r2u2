@@ -16,19 +16,38 @@ int main(int argc, char const *argv[]) {
     static int MAX_TIME = 5; /* TODO: Replace with sensor data */
     static int NUM_SIG = 2;    /* TODO: Replace with sensor data */
     r2u2_in_type in_dat[5][2] = {{0, 1},
-                                      {2, 3},
-                                      {4, 5},
-                                      {6, 7},
-                                      {8, 9}};
+                                 {2, 3},
+                                 {4, 5},
+                                 {6, 7},
+                                 {8, 9}};
 
-    TL_init();
-    //at_checkers_init(); AT Disabled during refactor BCSK
+    /* TODO: Dynamically load from *_ft.c */
+    /* Currently provied by test0006_ft.c */
+    //instruction_mem_t instruction_mem_ft;
+
+    /* TODO: Dynamically load from *_pt.c */
+    //instruction_mem_t instruction_mem_pt;
+
+    /* Dynamicly load from _pti.c */
+    //interval_t interval_mem_pt[];
+    //int l_interval_mem_pt;
+
+    /* TODO: Dynamicly load from *_fti.c */
+    //interval_t interval_mem_ft[];
+    //int l_interval_mem_ft; // (not found, not used?)
 
     /* Allocate Memory */
     r2u2_in_type *cur_sigs;
     cur_sigs = malloc(sizeof(r2u2_in_type) * NUM_SIG);
     if (cur_sigs == NULL) return 1;
     /* TODO: Alloc full results buffers - memory map to file? */
+
+    /* Engine Initialization */
+    TL_init();
+    int TL_init(const char *FN_ftm, const char *FN_fti,
+        const char *FN_ptm, const char *FN_pti,
+        const char *FN_map);
+    //at_checkers_init(); AT Disabled during refactor BCSK
 
     /* Open File Output  */
     FILE *out_file, *dbg_file;
