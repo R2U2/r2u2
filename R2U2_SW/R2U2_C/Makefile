@@ -7,17 +7,19 @@ OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/prognostics
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/prognostics
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 
 # Search paths and libs
-IDIR =$(SRC_DIRS)
-LDIR =../lib
-LIBS=-lm
+IDIR=$(SRC_DIRS)
+IN_LIBS=$(shell pkg-config --cflags fftw3)
+LDIR=../lib
+LD_LIBS=$(shell pkg-config --libs fftw3) -lm
 
-CFLAGS :=$(IDIR:%=-I%) -DR2U2_STANDALONE
+CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
 DBGFLAG := -g -Wall -Wextra -pendantic
 CCOBJFLAG := $(CFLAGS) -c
+LDFLAGS := $(LD_LIBS)
 
 # compile marcros
 TARGET_NAME := r2u2
@@ -34,30 +36,24 @@ OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 
 # clean files list
-DISTCLEAN_LIST := $(OBJ) \
-				  $(OBJ_DEBUG)
+DISTCLEAN_LIST := $(OBJ_PATH) \
+				  $(DBG_PATH)
 CLEAN_LIST := $(TARGET) \
 			  $(TARGET_DEBUG) \
 			  $(DISTCLEAN_LIST)
 
 # default rule
 default: all
-	@echo SRC_PATH: $(SRC_PATH)
-	@echo OBJ_PATH: $(OBJ_PATH)
-	@echo SRC_DIRS: $(SRC_DIRS)
-	@echo OBJ_DIRS: $(OBJ_DIRS)
-	@echo SRC: $(SRC)
-	@echo OBJ: $(OBJ)
 
 # non-phony targets
 $(TARGET): $(OBJ) | $(BIN_PATH)
-	$(CC) $(CFLAGS) -o $@ $?
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $?
 
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
 	$(CC) $(CCOBJFLAG) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
-	$(CC) $(CFLAGS) $(DBGFLAG) -o $@ $?
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DBGFLAG) -o $@ $?
 
 $(DBG_PATH)/%.o: %.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
@@ -82,9 +78,9 @@ debug: $(TARGET_DEBUG)
 .PHONY: clean
 clean:
 	@echo CLEAN $(CLEAN_LIST)
-	@rm -f $(CLEAN_LIST)
+	@rm -rf $(CLEAN_LIST)
 
 .PHONY: distclean
 distclean:
 	@echo CLEAN $(CLEAN_LIST)
-	@rm -f $(DISTCLEAN_LIST)
+	@rm -rf $(DISTCLEAN_LIST)
