@@ -11,8 +11,8 @@
 ** Functions Defined:
 **	TL_backpatch()
 **
-** Purpose:  
-**	generate the correct asynchronous results vector, once 
+** Purpose:
+**	generate the correct asynchronous results vector, once
 **	the results become known
 **
 ** Limitations, Assumptions, External Events, and Notes:
@@ -33,7 +33,7 @@
 
 
 //TURN DEBUG_FT_FT ON OFF
-#define DEBUG_BPATCH(X) 
+#define DEBUG_BPATCH(X)
 
 
 
@@ -58,12 +58,12 @@ void backpatch_async(unsigned int pc){
 
 		DEBUG_BPATCH(printf("before dequeing:\n");)
 		DEBUG_BPATCH(print_ft_queue(&ft_patch_queues[pc]);)
-		
+
 		//dispose irrelevant timestamps
 		if (t_now - max_time_horizon >= t_e) {
-			dequeue(&ft_patch_queues[pc], t_now - max_time_horizon);		
+			dequeue(&ft_patch_queues[pc], t_now - max_time_horizon);
 		}
-		
+
 		DEBUG_BPATCH(printf("after dequeing:\n");)
 		DEBUG_BPATCH(print_ft_queue(&ft_patch_queues[pc]);)
 	}
@@ -71,7 +71,7 @@ void backpatch_async(unsigned int pc){
 		//dont produce any result before max_time_horizon
 	}
 
-	
+
 
 }
 

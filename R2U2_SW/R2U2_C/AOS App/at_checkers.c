@@ -1,9 +1,8 @@
-// auto-generated do not modify 
+// auto-generated do not modify
 // from specification file spec.txt
 
 #define R2U2_AOS
 #include <math.h>
-#include "r2u2_private_types.h"
 #include "at_checkers.h"
 #include "filter_fft.h"
 #include "filter_filt.h"

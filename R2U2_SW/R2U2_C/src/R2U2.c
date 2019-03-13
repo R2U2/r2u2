@@ -3,7 +3,7 @@
 
 #include "R2U2Config.h"
 #include "TL/TL_observers.h"
-//#include "AT/at_checkers.h"; AT Disabled during refactor BCSK
+#include "AT/at_checkers.h"
 
 int main(int argc, char const *argv[]) {
     fprintf(stdout,"%s Version %d.%d\n",
@@ -44,31 +44,42 @@ int main(int argc, char const *argv[]) {
 
     /* Engine Initialization */
     TL_init();
-    int TL_init(const char *FN_ftm, const char *FN_fti,
-        const char *FN_ptm, const char *FN_pti,
-        const char *FN_map);
-    //at_checkers_init(); AT Disabled during refactor BCSK
+    at_checkers_init();
 
     /* Open File Output  */
     FILE *out_file, *dbg_file;
     out_file = fopen("./R2U2.out", "w+");
     dbg_file = fopen("./R2U2.log", "w+");
     if ((out_file == NULL) || (dbg_file == NULL)) return 1;
+    fprintf(dbg_file, "**********RESULTS**********\n\n");
     /* TODO: Async file I/O */
 
     /* Main processing loop */
     for (int cur_time=0; cur_time < MAX_TIME; cur_time++) {
+        printf("\n");
+        printf("***************************************");
+        printf("**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****",cur_time+1);
+        printf("***************************************");
+        printf("\n");
+
+        fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time+1);
+
+        fprintf(dbg_file, "----------TIME STEP: %d----------\n", cur_time);
+
 
         /* Sensor values for current time step */
         /* TODO: Replace with memory map */
         for (int i=0; i<NUM_SIG; i++) {cur_sigs[i] = in_dat[cur_time][i];}
 
         /* Atomics Update */
-        //at_checkers_update(cur_sigs); AT Disabled during refactor BCSK
+        at_checkers_update(cur_sigs);
 
         /* Temporal Logic Update */
         /* TODO: Why does this require file pointers? */
         TL_update(out_file, dbg_file);
+
+        fprintf(out_file,"\n\n");
+        fprintf(dbg_file, "\n");
 
         /* Copy outputs from vectors */
 
