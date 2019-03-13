@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_update_ft()
 **
-** Purpose:  
+** Purpose:
 **	execute all TL instructions for the FT engine
 **	gets input from atomics_vector and places
 ** 	outputs into results_ft
@@ -31,14 +31,45 @@
 #include <string.h>
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
-#include "TL_backpatch.c"
 
+// include "TL_backpatch.c"
+#define DEBUG_BPATCH(X)
+void backpatch_async(unsigned int pc){
+
+	unsigned int	t_e;
+	bool v;
+
+	if (t_now > max_time_horizon) {  //after a horizon has passed
+		//peek_queue_ft_tail(pc, &, &ft_patch_queues[pc], &v, &t_e);
+
+		DEBUG_BPATCH(printf("[TRC]::backpatch_async:: Producing result[%d] = %d\t%s\n",pc,v,"end");)
+
+		DEBUG_BPATCH(printf("before dequeing:\n");)
+		DEBUG_BPATCH(print_ft_queue(&ft_patch_queues[pc]);)
+
+		//dispose irrelevant timestamps
+		if (t_now - max_time_horizon >= t_e) {
+			dequeue(&ft_patch_queues[pc], t_now - max_time_horizon);
+		}
+
+		DEBUG_BPATCH(printf("after dequeing:\n");)
+		DEBUG_BPATCH(print_ft_queue(&ft_patch_queues[pc]);)
+	}
+	else {
+		//dont produce any result before max_time_horizon
+	}
+
+
+
+}
+
+// End include TL_backaptch
 
 //TURN DEBUG_FT_FT ON OFF  // javey:
 #define	TRACE_TOP_FT(X) X // Indicates that the Future Time (FT) engine begins
 #define	TRACE_INSTR_FT(X) // Debug info on what the current instruction is (i.e. NOT, AND, UNTIL, Invariance)
 #define	TRACE_OPND_FT(X) // Debug info on the current instructions operand type and value (direct, subformula, atomic, not set) idk what these mean yet
-#define TRACE_RESULT_FT(X) // not used 
+#define TRACE_RESULT_FT(X) // not used
 #define DEBUG_FT(X)  // Indicates time when the Future Time (FT) engine begins
 #define TRACE_GLOBALLY_FT(X)  // Debug info for algorithm 2
 #define TRACE_GLOBALLY_INTERVAL_FT(X) // Debug info for algorithm 4
@@ -108,7 +139,7 @@ static void op_ft_and(int *tau_op, FILE *fp, FILE *fp2, unsigned int pc, bool *v
 
 /**
 * Function implementing asynchronous observer for G[T] Future Time operator. (ALGORITHM 2 TACAS paper)
-*/ 
+*/
 static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v, unsigned int *t_e, unsigned int lb);
 
 /**
@@ -144,7 +175,7 @@ void remove_operand(int pc, unsigned int op_num);
 */
 //unsigned int t_tau_s[N_SUBFORMULA_SNYC_QUEUES]; //timestamp next time moment
 
-/** 
+/**
 * Pei: Array of values for memorizing last output timestamps
 */
 //unsigned int t_tau[N_SUBFORMULA_SNYC_QUEUES];
@@ -164,19 +195,19 @@ unsigned int ts_max (int t_e1, int t_e2);
 //	* updates results_ft and queues
 //--------------------------------------------------------------------
 int TL_update_ft(FILE *fp, FILE *fp2){
-	
+
 int  		pc=0;
 int 		stop = 0;
 int 		attemptNum = 0;
 bool 		doWrite = true;
-//bool async verdicts 
+//bool async verdicts
 bool		v;
 bool		v1;
 bool		v2;
 
 bool valueInput1;
 int timeInput1;
-	
+
 bool valueInput2;
 int timeInput2;
 
@@ -187,30 +218,30 @@ unsigned int	t_e2;
 
 int nextInputValue;
 int nextInputValue2;
-	
+
 //sync FT verdicts
 //sync FT verdicts
 ft_sync_t 	sync;
 ft_sync_t 	sync1;
 ft_sync_t 	sync2;
-	
+
 unsigned int	lb;
 unsigned int	ub;
-	
-//aux object 
+
+//aux object
 
 DEBUG_FT(printf("\n[DBG] TL_update_ft::invoked at t=%d\n",t_now);)
 TRACE_TOP_FT(printf("TL_update: %s[%d]\n",__FILE__,__LINE__);)
 
-	
+
 
 	//
 	// put the current output into the previous one
 	//
 memcpy(results_ft_prev, results_ft, sizeof(results_ft_t));
 
-	
-		
+
+
 	//
 	// go through all instructions
 	//
@@ -231,7 +262,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		while(1){
 			printf("END PC VALUE: %d\n", instruction_mem_ft[pc].op1.value);
 			timeInput1 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
 			if(timeInput1 >= ft_sync_queues[pc].tau_op){
 				fprintf(fp2, "END PC:%d = (%d,%d)\n", pc, valueInput1, timeInput1);
 				ft_sync_queues[pc].tau_op = timeInput1+1;
@@ -245,7 +276,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			attemptNum++;
 		}
 		printf(" * * * * * * END * * * * * *");
-		int i;			
+		int i;
 		stop=1;
 		break;
 
@@ -258,7 +289,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 	case OP_FT_LOD:
 		//Retrieve Input Data
 		get_opnd1_ft_tail(pc,&v, &t_e, &sync);
-		
+
 		//Add Asynchrounous Results to Queue
 		add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 		fprintf(fp2, "LOAD PC:%d = (%d,%d)\n", pc, v, t_e);
@@ -277,7 +308,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			fprintf(fp, "\n");
 		}
 
-		//Synchronous Observer Load Logic	
+		//Synchronous Observer Load Logic
 		switch (sync){
 		case F:
 			sync = F;
@@ -290,21 +321,21 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		}
 		results_ft[pc].sync_val = sync;
 		results_ft[pc].async_val = sync;
-		break;		
+		break;
 
 
 
 		//----------------------------------------------------
 		// OP_FT_NOT
 		//----------------------------------------------------
-	case OP_FT_NOT:	
+	case OP_FT_NOT:
 		doWrite=true;
 		while(1){
-			//Get the Next Input		
+			//Get the Next Input
 			timeInput1 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
-		
-			//If Queue is Empty, break out of observer. 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
+
+			//If Queue is Empty, break out of observer.
 			if(nextInputValue == 0){
 				if(doWrite) fprintf(fp2, "NOT PC:%d = (-,-)\n", pc);
 				break;
@@ -324,7 +355,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			}
 
 			//Save Data Results
-			results_ft[pc].sync_val = sync;		
+			results_ft[pc].sync_val = sync;
 			results_ft[pc].async_val = !valueInput1;
 			results_ft[pc].async_t = timeInput1;
 			add_and_aggregate_queue_ft(&ft_sync_queues[pc], !valueInput1, timeInput1);
@@ -341,13 +372,13 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				fprintf(fp, "Input Queue PC Value: %d\n", instruction_mem_ft[pc].op1.value);
 				fprintf(fp, "Retrieved Data: (%d, %d)\n", valueInput1, timeInput1);
 				fprintf(fp, "Read Pointer Location: %d\n", ft_sync_queues[pc].read_ptr);
-				fprintf(fp, "Not Algorithm Returns (%d, %d)\n", results_ft[pc].async_val, results_ft[pc].async_t);		
+				fprintf(fp, "Not Algorithm Returns (%d, %d)\n", results_ft[pc].async_val, results_ft[pc].async_t);
 				fprintf(fp, "Queue Contents: ");
 				print_ft_queue_file(&ft_sync_queues[pc], fp);
 				fprintf(fp, "\n");
 			}
 		}
-		
+
 		break;
 
 
@@ -357,16 +388,16 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		// OP_FT_AND
 		//----------------------------------------------------
 
-	case OP_FT_AND:		
+	case OP_FT_AND:
 
 		attemptNum = 0;
 		while(1){
 
-			//Get the Next Input		
+			//Get the Next Input
 			timeInput1 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
 			timeInput2 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op2.value], &ft_sync_queues[pc].read_ptr2, ft_sync_queues[instruction_mem_ft[pc].op2.value].write_ptr, &valueInput2, &timeInput2); 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op2.value], &ft_sync_queues[pc].read_ptr2, ft_sync_queues[instruction_mem_ft[pc].op2.value].write_ptr, &valueInput2, &timeInput2);
 
 			//Both Queues Empty
 			if(timeInput1 == -1 && timeInput2 == -1){
@@ -394,9 +425,9 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 
 			//Call to Asynchronous Observer Function
 			//Function will update Tau_Op in accordance to the time stamp of the output
-			op_ft_and(&ft_sync_queues[pc].tau_op, fp, fp2, pc, &valueInput1, &timeInput1, &valueInput2, &timeInput2); 
+			op_ft_and(&ft_sync_queues[pc].tau_op, fp, fp2, pc, &valueInput1, &timeInput1, &valueInput2, &timeInput2);
 
-			//Print queue contents to file	
+			//Print queue contents to file
 			fprintf(fp, "Queue Contents: ");
 			print_ft_queue_file(&ft_sync_queues[pc], fp);
 			attemptNum++;
@@ -424,7 +455,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			results_ft[pc].sync_val = sync;
 		}
 		break;
-		
+
 
 
 		//----------------------------------------------------
@@ -475,9 +506,9 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		//----------------------------------------------------
 	case OP_FT_GT:
 		//while(1){
-			//Get the Next Input		
+			//Get the Next Input
 			timeInput1 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
 			lb = get_interval_lb_ft(pc);
 
 			//If no new Input
@@ -486,16 +517,16 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			}
 
 			//Debug Info
-			if(DEBUG_FILE_OUTPUT == 1){			
+			if(DEBUG_FILE_OUTPUT == 1){
 				fprintf(fp, "----GLOBAL OPERATION----\n");
-				fprintf(fp, "PC: %d\n", pc);	
+				fprintf(fp, "PC: %d\n", pc);
 				fprintf(fp, "Retrieved Data: (%d, %d)\n", valueInput1, timeInput1);
 			}
 
 			//async observer for G[T]
 			op_ft_timed_globally(fp, fp2, pc, &valueInput1, &timeInput1, lb);
 
-			//Print queue contents to file	
+			//Print queue contents to file
 			fprintf(fp, "Queue Contents: ");
 			print_ft_queue_file(&ft_sync_queues[pc], fp);
 			fprintf(fp, "\n");
@@ -521,13 +552,13 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				break;
 				}
 			results_ft[pc].sync_val = sync;
-			
+
 			//Update Tau OP Value
 			ft_sync_queues[pc].tau_op = timeInput1+1;
 
 			printf("Num Elements End of Global: %d\n", ft_sync_queues[0].n_elts);
 
-			
+
 	//	}
 		break;
 
@@ -543,11 +574,11 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		//----------------------------------------------------
 	case OP_FT_GJ:
 		while(1){
-			//Get the Next Input		
+			//Get the Next Input
 			printf("Tau Value: %d\n", ft_sync_queues[pc].tau_op);
 			printf("Read Ptr: %d\n", ft_sync_queues[pc].read_ptr);
 			timeInput1 = -1;
-			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
+			nextInputValue = nextInput(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
 			lb = get_interval_lb_ft(pc);
 			ub = get_interval_ub_ft(pc);
 
@@ -555,11 +586,11 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			if(nextInputValue == 0){
 				break;
 			}
-					
+
 			//Debug Info
 			if(DEBUG_FILE_OUTPUT == 1){
 				fprintf(fp, "----GLOBAL INTERVAL OPERATION----\n");
-				fprintf(fp, "PC: %d\n", pc);	
+				fprintf(fp, "PC: %d\n", pc);
 				fprintf(fp, "Retrieved Data: (%d, %d)\n", valueInput1, timeInput1);
 				fprintf(fp, "Lower Bound: %d  Upper Bound: %d\n", lb, ub);
 			}
@@ -611,19 +642,19 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				printf("\n-------UNTIL--------\n");
 				printf("Tau Op: %d\n\n", ft_sync_queues[pc].tau_op);
 
-							
+
 				printf("Getting Input 1:\n");
 				timeInput1 = 0;
 				printf("Getting:\n");
-				nextInputValue = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
-				//nextInputValue = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1); 
+				nextInputValue = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
+				//nextInputValue = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op1.value], &ft_sync_queues[pc].read_ptr, ft_sync_queues[instruction_mem_ft[pc].op1.value].write_ptr, &valueInput1, &timeInput1);
 				printf("read Ptr 1: %d\n\n", ft_sync_queues[pc].read_ptr);
 
 
 
 				printf("Getting Input 2:\n");
 				timeInput2 = 0;
-				nextInputValue2 = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op2.value], &ft_sync_queues[pc].read_ptr2, ft_sync_queues[instruction_mem_ft[pc].op2.value].write_ptr, &valueInput2, &timeInput2); 
+				nextInputValue2 = nextInput_UJ(ft_sync_queues[pc].tau_op, &ft_sync_queues[instruction_mem_ft[pc].op2.value], &ft_sync_queues[pc].read_ptr2, ft_sync_queues[instruction_mem_ft[pc].op2.value].write_ptr, &valueInput2, &timeInput2);
 				printf("read Ptr 2: %d\n\n", ft_sync_queues[pc].read_ptr2);
 
 				lb = get_interval_lb_ft(pc);
@@ -640,13 +671,13 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 
 				ft_sync_queues[pc].tau_op = min_tau+1; // or timeInput2+1, since they match with each other
 
-				op_ft_timed_until(fp2, fp, pc, valueInput1, min_tau, valueInput2, min_tau, lb, ub, &doWrite);	
+				op_ft_timed_until(fp2, fp, pc, valueInput1, min_tau, valueInput2, min_tau, lb, ub, &doWrite);
 
 
 				//Debug Info
 				if(DEBUG_FILE_OUTPUT == 1){
 					fprintf(fp, "----UNTIL OPERATION----\n");
-					fprintf(fp, "PC: %d\n", pc);	
+					fprintf(fp, "PC: %d\n", pc);
 					fprintf(fp, "Retrieved Data: (%d, %d) and (%d, %d)\n", valueInput1, timeInput1, valueInput2, timeInput2);
 					fprintf(fp, "Lower Bound: %d  Upper Bound: %d\n", lb, ub);
 				}
@@ -704,10 +735,10 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 	if (t_now == 0){
 		results_ft_prev[pc] = results_ft[pc];
 		}
-	
+
 	//creates printable results foran instruction
 	backpatch_async(pc);
-		
+
 	}
 
 return 0;
@@ -745,15 +776,15 @@ static void get_opnd2_ft_head(int pc, bool *v, unsigned int *t_e, ft_sync_t *syn
 //  get_opnd_ft
 //--------------------------------------------------------------------
 static void get_opnd_ft(int pc, operand_t op, bool *v, unsigned int *t_e, ft_sync_t *sync, head_or_tail_t head_or_tail){
-	
+
 	//OPERAND TYPES:
 	//direct 		= 0b01,  atomic 		= 0b00,
 	//subformula 	= 0b10,  not_set 	= 0b11
-		
+
 	TRACE_OPND_FT(printf("[TRC]::get_opnd_ft: pc = %d;\t op = %d\top_type = %d\n", pc, op.value, op.opnd_type);)
 
 switch (op.opnd_type){
-		
+
 		//ok sync, async
 	case direct:
 		*v = op.value;
@@ -762,7 +793,7 @@ switch (op.opnd_type){
 		break;
 
 		//ok sync, async
-	case atomic:				
+	case atomic:
 
 		//fetch from the atomic vector
 
@@ -773,11 +804,11 @@ switch (op.opnd_type){
 		break;
 
 	case subformula:
-		
+
 		*v = results_ft[op.value].async_val;		//TODO - WHY WHY WHY IS THIS HERE!
 		*t_e = results_ft[op.value].async_t;		//TODO - WHY WHY WHY IS THIS HERE!
 
-		TRACE_OPND_FT(printf("[TRC]::get_opnd_ft:: queue_addr = %p\n", &ft_sync_queues[op.value]);)		
+		TRACE_OPND_FT(printf("[TRC]::get_opnd_ft:: queue_addr = %p\n", &ft_sync_queues[op.value]);)
 		TRACE_OPND_FT(print_ft_queue(&ft_sync_queues[op.value]));
 
 		//peek_queue_ft_tail(pc, &ft_sync_queues[op.value], v, t_e);
@@ -804,13 +835,13 @@ void dequeue_operand(int pc, unsigned int time2remove, unsigned int op_num){
 	op = (op_num==1) ? instruction_mem_ft[pc].op1 : instruction_mem_ft[pc].op2;
 
 	switch (op.opnd_type){
-		
+
 		//ok sync, async
 	case direct:
 		//nothing to deque
 		break;
 
-	case atomic:				
+	case atomic:
 		//nothing to deque
 		break;
 
@@ -838,7 +869,7 @@ unsigned int t;
 	op = (op_num==1) ? instruction_mem_ft[pc].op1 : instruction_mem_ft[pc].op2;
 
 	switch (op.opnd_type){
-		
+
 		//ok sync, async
 	case direct:
 		//nothing to deque
@@ -890,37 +921,37 @@ return interval_mem_ft[adr].ub;
 /**
 * op_ft_and
 * Function which generates the results for future time AND operator.
-*/									 
+*/
 static void op_ft_and(int *tau_op, FILE *fp, FILE *fp2, unsigned int pc, bool *v1, unsigned int *t_e1, bool *v2, unsigned int *t_e2){
 	/*
-	* The comments with the word "line"  below refer to the TACAS paper. 
-	* This function should implement algorithm 3 for the conjunction of two 
+	* The comments with the word "line"  below refer to the TACAS paper.
+	* This function should implement algorithm 3 for the conjunction of two
 	* prepositions formally outlined in the TACAS paper.
 	*
-	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based 
+	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based
 	*	Runtime Observer Pairs for System Health Management of Real-Time System",
 	* 	TACAS, 2014
 	*/
 	results_ft_elt_t  result_ts;
 	unsigned int aux_ix1;
-	unsigned int aux_ix2; 
+	unsigned int aux_ix2;
 
 		//Algorithm 3: Line 2
-		if ((*v1==true) && (*v2==true) && (*t_e1!= -1) && (*t_e2!= -1)) { 
+		if ((*v1==true) && (*v2==true) && (*t_e1!= -1) && (*t_e2!= -1)) {
 			// line 3
 			result_ts.async_val = true;
 			result_ts.async_t   = (*t_e1 < *t_e2) ? *t_e1 : *t_e2; //min
 			if(DEBUG_FILE_OUTPUT == 1)
-				fprintf(fp,"Output set to (true, min(t_e1 or t_e2))\n");		
+				fprintf(fp,"Output set to (true, min(t_e1 or t_e2))\n");
 		}
 
 		//Algorithm 3: Line 4
-		else if ((*v1==false) && (*v2==false) && (*t_e1!= -1) && (*t_e2!= -1)){ 
+		else if ((*v1==false) && (*v2==false) && (*t_e1!= -1) && (*t_e2!= -1)){
 			// line 5
 			result_ts.async_val = false;
 			result_ts.async_t   = (*t_e1 > *t_e2) ? *t_e1 : *t_e2; //max
 			if(DEBUG_FILE_OUTPUT == 1)
-				fprintf(fp,"Output set to (false, max(t_e1 or t_e2))\n");		
+				fprintf(fp,"Output set to (false, max(t_e1 or t_e2))\n");
 		}
 
 		//Algorithm 3: Line 6
@@ -929,7 +960,7 @@ static void op_ft_and(int *tau_op, FILE *fp, FILE *fp2, unsigned int pc, bool *v
 			result_ts.async_val = false;
 			result_ts.async_t   = *t_e1;
 			if(DEBUG_FILE_OUTPUT == 1)
-				fprintf(fp,"Output set to (false, t_e1\n");		
+				fprintf(fp,"Output set to (false, t_e1\n");
 
 		}
 
@@ -946,33 +977,33 @@ static void op_ft_and(int *tau_op, FILE *fp, FILE *fp2, unsigned int pc, bool *v
 		else {
 			// line 11
 			result_ts.async_val = false; // according to the paper this else-block should output (_,_)
-			result_ts.async_t   = TL_INF; // javey: <-- this must be how they identify (_,_) 
+			result_ts.async_t   = TL_INF; // javey: <-- this must be how they identify (_,_)
 			//fprintf(fp2, "AND PC:%d = (-,-)", pc);
 			if(DEBUG_FILE_OUTPUT == 1)
 				fprintf(fp, "Output set to (-,-)\n");
 		}
 
-		// the type for instruction_mem_ft (instruction_mem_t) is defined in TL_observers.h 
+		// the type for instruction_mem_ft (instruction_mem_t) is defined in TL_observers.h
 		// and the variable itself is filled with instruction in TL_formula_ft.c
-		aux_ix1 = instruction_mem_ft[pc].op1.value; 
-		aux_ix2 = instruction_mem_ft[pc].op2.value;					
+		aux_ix1 = instruction_mem_ft[pc].op1.value;
+		aux_ix2 = instruction_mem_ft[pc].op2.value;
 
 
 		//if there was a valid result, put it into queue for other async observers
 		if (result_ts.async_t != TL_INF	){
-			
+
 			// Pei: add tau variable to record the last time stamp
 			t_tau[pc] = result_ts.async_t;
 			ft_q_addr = &ft_sync_queues[pc];
-			
+
 			// Add Results to queue
 			add_and_aggregate_queue_ft(ft_q_addr, result_ts.async_val, result_ts.async_t);
-			add_and_aggregate_queue_ft(&ft_patch_queues[pc], result_ts.async_val, result_ts.async_t);			
-	
+			add_and_aggregate_queue_ft(&ft_patch_queues[pc], result_ts.async_val, result_ts.async_t);
+
 			results_ft[pc].async_val = result_ts.async_val;
 			results_ft[pc].async_t = result_ts.async_t;
 			fprintf(fp2, "AND PC:%d = (%d,%d)\n", pc, result_ts.async_val, result_ts.async_t);
-			*tau_op = results_ft[pc].async_t + 1; 
+			*tau_op = results_ft[pc].async_t + 1;
 
 			if(DEBUG_FILE_OUTPUT == 1)
 				fprintf(fp, "Algorithm Return (%d, %d)\n", results_ft[pc].async_val, results_ft[pc].async_t);
@@ -983,21 +1014,21 @@ static void op_ft_and(int *tau_op, FILE *fp, FILE *fp2, unsigned int pc, bool *v
 		}
 
 
-		TRACE_OP_FT_AND(printf("TL_update_ft:: OP_FT_AND RESULTS value = %d\ttime = %d\n",result_ts.async_val,result_ts.async_t);)	
+		TRACE_OP_FT_AND(printf("TL_update_ft:: OP_FT_AND RESULTS value = %d\ttime = %d\n",result_ts.async_val,result_ts.async_t);)
 		// javey: it appears that instead of returning T_e "Tuple epsilon" (as in the TACAS algorithms)
 		//			they use a queue(s) for recording results (add_and_aggregate_queue_ft())
 }
 
 
 ///----------------------------------------------------------------------------------------///
-					   
+
 static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, unsigned int *t_e1, unsigned int lb){
 	/*
-	* The comments with the word "line"  below refer to the TACAS paper. 
-	* This function should implement algorithm 2 from the paper which is "Invariant within 
+	* The comments with the word "line"  below refer to the TACAS paper.
+	* This function should implement algorithm 2 from the paper which is "Invariant within
 	* the Next Tau Time Stamps".
 	*
-	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based 
+	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based
 	*	Runtime Observer Pairs for System Health Management of Real-Time System",
 	* 	TACAS, 2014+
 	*/
@@ -1009,17 +1040,17 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 		results_ft_elt_t  tuple_epsilon;
 		int retval = 0;
 
-		//Tuple_epsilon = Tuple_fi	
+		//Tuple_epsilon = Tuple_fi
 		tuple_epsilon.async_val = *v1;  // line 2
 		tuple_epsilon.async_t   = *t_e1;	//results_ft[pc].sync_val = sync;
-			
+
 		//we are using sync val as previous value of operator, if it was false the sync result must be false as well
 		TRACE_GLOBALLY_FT(printf("[TRC]::op_ft_timed_globally:: edge detection : tuple_epsilon.async_val=%d, results_ft[pc].sync_val=%d\n ",tuple_epsilon.async_val, results_ft[pc].sync_val);)
 		if ((tuple_epsilon.async_val == true) && (results_ft[pc].sync_val == 0)) { // line 3
 			TRACE_GLOBALLY_FT(printf("[TRC]::op_ft_timed_globally:: rising edge detected!, LB=%d",lb);)
 			t_rising_fi[pc] = t_tau_s[pc]; // line 4
 		}
-		
+
 
 
 		//if(DEBUG_FILE_OUTPUT == 1)
@@ -1027,7 +1058,7 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 
 
 		t_tau_s[pc] = *t_e1 + 1; // line 6
-	
+
 
 
 		if(DEBUG_FILE_OUTPUT == 1){
@@ -1041,7 +1072,7 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 			//if(DEBUG_FILE_OUTPUT == 1)
 			//	fprintf(fp, "Input Value Holds True\n");
 
-			
+
 			TRACE_GLOBALLY_FT(printf("[TRC]::op_ft_timed_globally::t_rising_fi[%d]=%d, tuple_epsilon.async_t=%d, LB=%d\n ",pc , t_rising_fi[pc], tuple_epsilon.async_t, lb);)
 
 			fprintf(fp, "TRISING: %d    LB: %d    TUPLE ASYNC T: %d\n", t_rising_fi[pc], lb, tuple_epsilon.async_t);
@@ -1049,13 +1080,13 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 			if ( (t_rising_fi[pc] <= (tuple_epsilon.async_t - lb)) && (tuple_epsilon.async_t >= lb) ){ // line 8 with underflow check
 				tuple_epsilon.async_t = tuple_epsilon.async_t - lb; // line 9
 				TRACE_GLOBALLY_FT(printf("[TRC]::op_ft_timed_globally::TRUE RESULTS (%d,%d)\n",tuple_epsilon.async_val,tuple_epsilon.async_t);)
-				
+
 
 				//put to queues for other async observers
 				//add_and_aggregate_queue_ft(&ft_sync_queues[pc], tuple_epsilon.async_val, tuple_epsilon.async_t);
 				//remove_operand(pc, 1);
-				
-				//save or backpatch			
+
+				//save or backpatch
 
 				add_and_aggregate_queue_ft(&ft_patch_queues[pc], tuple_epsilon.async_val, tuple_epsilon.async_t);
 				fprintf(fp, "Algorithm Returns True (%d,%d)\n", tuple_epsilon.async_val, tuple_epsilon.async_t);
@@ -1067,7 +1098,7 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 
 				//if(DEBUG_FILE_OUTPUT == 1)
 				//	fprintf(fp, "Return Data: (%d, %d)\n", results_ft[pc].async_val, results_ft[pc].async_t);
-				
+
 				fprintf(fp2, "G[%d] PC:%d = (%d,%d)\n", lb, pc, results_ft[pc].async_val, results_ft[pc].async_t);
 				add_and_aggregate_queue_ft(&ft_sync_queues[pc], results_ft[pc].async_val, results_ft[pc].async_t);
 				//remove_operand(pc, 1);
@@ -1099,25 +1130,25 @@ static int op_ft_timed_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, 
 
 		//if(DEBUG_FILE_OUTPUT == 1)
 		//	fprintf(fp, "\n");
-	
+
 	TRACE_GLOBALLY_FT(printf("[TRC]::op_ft_timed_globally:: t_now = %d\n",t_now);)
 	return retval;
 
 	// javey: it appears that instead of returning T_e "Tuple epsilon" (as in the TACAS algorithms)
 	//			they use a queue(s) for recording results (add_and_aggregate_queue_ft())
-		
+
 }
 
 
 ///----------------------------------------------------------------------------------------///
-					   
+
 static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *v1, unsigned int *t_e1, unsigned int lb, unsigned int ub){
 	/*
-	* The comments with the word "line"  below refer to the TACAS paper. 
-	* This function should implement algorithm 4 from the paper which is "Invariant within 
+	* The comments with the word "line"  below refer to the TACAS paper.
+	* This function should implement algorithm 4 from the paper which is "Invariant within
 	* Future Interval".
 	*
-	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based 
+	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based
 	*	Runtime Observer Pairs for System Health Management of Real-Time System",
 	* 	TACAS, 2014
 	*/
@@ -1130,8 +1161,8 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 
 	//if the algorithm generates a tuple retval will be 1
 	int retval = 0;
-	
-	//Tuple_epsilon = Tuple_fi	
+
+	//Tuple_epsilon = Tuple_fi
 	tuple_epsilon.async_val = *v1;
 	tuple_epsilon.async_t   = *t_e1;	//results_ft[pc].sync_val = sync;
 
@@ -1144,15 +1175,15 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 	}
 
 	t_tau_s[pc] = *t_e1 + 1;
-								 
+
 	if (tuple_epsilon.async_val == 1) {
-		
+
 		//TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally::t_rising_fi[%d]=%d, tuple_epsilon.async_t=%d, LB=%d, INTERVAL=%d\n ",pc , t_rising_fi[pc], tuple_epsilon.async_t, lb, interval);)
 
 		if ( (t_rising_fi[pc] <= (tuple_epsilon.async_t - interval)) && (tuple_epsilon.async_t >= interval) ){
-			tuple_epsilon.async_t = tuple_epsilon.async_t - interval;	
+			tuple_epsilon.async_t = tuple_epsilon.async_t - interval;
 			//TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally::TRUE RESULTS (%d,%d)\n",tuple_epsilon.async_val,tuple_epsilon.async_t);)
-			
+
 			retval = 1;
 			//remove_operand(pc, 1);
 			//TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally::TRUE RESULTS (%d,%d)\n",tuple_epsilon.async_val,tuple_epsilon.async_t);)
@@ -1168,7 +1199,7 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 		//remove_operand(pc, 1);
 		//TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally::FALSE RESULTS (%d,%d)\n",tuple_epsilon.async_val,tuple_epsilon.async_t);)
 	}
-	
+
 	//TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally:: t_now = %d\n",t_now);)
 									// END line 2
 //-----------------------------------
@@ -1177,7 +1208,7 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 		tuple_epsilon.async_t = tuple_epsilon.async_t - lb;	// line 4
 		add_and_aggregate_queue_ft(&ft_sync_queues[pc], tuple_epsilon.async_val, tuple_epsilon.async_t);
 		add_and_aggregate_queue_ft(&ft_patch_queues[pc], tuple_epsilon.async_val, tuple_epsilon.async_t);
-		
+
 		TRACE_GLOBALLY_INTERVAL_FT(printf("[TRC]::op_ft_interval_globally::3 added RESULTS (%d,%d)\n",tuple_epsilon.async_val,tuple_epsilon.async_t);)
 		fprintf(fp, "Algorithm Returns: (%d,%d)\n", tuple_epsilon.async_val, tuple_epsilon.async_t);
 		results_ft[pc].async_val = tuple_epsilon.async_val;
@@ -1186,7 +1217,7 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 		t_tau[pc] = tuple_epsilon.async_t + 1;//pei : add this
 	}
 	else{ // line 6
-	//do nothing	
+	//do nothing
 		fprintf(fp, "Algorithm Returns: (-,-)\n");
 		fprintf(fp2, "G[%d,%d] PC:%d = (-,-)\n", lb, ub, pc);
 		TRACE_GLOBALLY_INTERVAL_FT(printf("Algorithm Return (-,-)\n");)
@@ -1201,17 +1232,17 @@ static void op_ft_interval_globally(FILE *fp, FILE *fp2, unsigned int pc, bool *
 ///----------------------------------------------------------------------------------------///
 static void op_ft_timed_until(FILE *fp2, FILE *fp, unsigned int pc, bool v1, unsigned int t_e1,bool v2, unsigned int t_e2, unsigned int lb, unsigned int ub, bool *doWrite) {
 	/*
-	* The comments with the word "line"  below refer to the TACAS paper. 
+	* The comments with the word "line"  below refer to the TACAS paper.
 	* This function should implement algorithm 5 from the paper which is "Until within
 	* Future Interval".
 	*
-	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based 
+	*	TACAS paper: T. Reinbacher, K. Rozier, J. Schumann "Temporal-Logic Based
 	*	Runtime Observer Pairs for System Health Management of Real-Time System",
 	* 	TACAS, 2014
 	*/
 
 	//Pei: Note::ft_until_local_mem[pc].m_rising_phi_last actually is the falling edge of psi
-	//Pei: Note::ft_until_local_mem[pc].phi_last_val actually is the last verdict of psi			
+	//Pei: Note::ft_until_local_mem[pc].phi_last_val actually is the last verdict of psi
 
 	//pc is program counter
 	//v1 is the head value of first operand
@@ -1225,7 +1256,7 @@ static void op_ft_timed_until(FILE *fp2, FILE *fp, unsigned int pc, bool v1, uns
 	unsigned int t_e = t_e1;//or t_e = t_e2
 	bool have_new_result = false;
 	printf("ft_until_local_mem[pc].m_rising_phi_last: %d\n",ft_until_local_mem[pc].m_rising_phi_last);
-	
+
 	if((ft_until_local_mem[pc].phi_last_val == true ) && (t_psi_val == false)){
 		ft_until_local_mem[pc].m_rising_phi_last = t_e;
 	}
@@ -1234,16 +1265,16 @@ static void op_ft_timed_until(FILE *fp2, FILE *fp, unsigned int pc, bool v1, uns
 		if(t_e >= lb){
 			have_new_result = true;
 			results_ft[pc].async_val = true;
-			results_ft[pc].async_t = t_e - lb; 	
+			results_ft[pc].async_t = t_e - lb;
 			printf("UNTIL* PC:%d = (%d,%d)\n",pc, results_ft[pc].async_val, results_ft[pc].async_t);
-		}	
-		
+		}
+
 	}
 	else if(t_phi_val == false && t_psi_val == false){
 		if(t_e >= lb){
 			have_new_result = true;
 			results_ft[pc].async_val = false;
-			results_ft[pc].async_t = t_e - lb; 
+			results_ft[pc].async_t = t_e - lb;
 			printf("UNTIL** PC:%d = (%d,%d)\n",pc, results_ft[pc].async_val, results_ft[pc].async_t);
 		}
 	}
@@ -1252,13 +1283,13 @@ static void op_ft_timed_until(FILE *fp2, FILE *fp, unsigned int pc, bool v1, uns
 			if(t_e >= ub){
 				have_new_result = true;
 				results_ft[pc].async_val = false;
-				results_ft[pc].async_t = t_e - ub; 	
-			}			
-		}	
+				results_ft[pc].async_t = t_e - ub;
+			}
+		}
 	}
-	
+
 	ft_until_local_mem[pc].phi_last_val = t_psi_val;
-	
+
 	if (have_new_result) {
 		add_and_aggregate_queue_ft(&ft_sync_queues[pc], results_ft[pc].async_val, results_ft[pc].async_t);
 		add_and_aggregate_queue_ft(&ft_patch_queues[pc], results_ft[pc].async_val, results_ft[pc].async_t);
@@ -1289,7 +1320,7 @@ switch (op1.opnd_type){
 		v = false;
 		v_p = false;
 		break;
-	
+
 	case atomic:
 		v = atomics_vector[op1.value];
 		v_p = atomics_vector_prev[op1.value];
@@ -1363,7 +1394,7 @@ unsigned int ts_max (int t_e1, int t_e2){
 
 
 static int nextInput(int tau_op, ft_sync_queue_t *ftq, int *read_ptr, int write_ptr, bool *valueInput, int *timeInput){
-	
+
 	while(1){
 		//Valid Useful Data found in queue
 		int temp = ftq->ft_queue[*read_ptr].t_q;
@@ -1400,7 +1431,7 @@ static int nextInput(int tau_op, ft_sync_queue_t *ftq, int *read_ptr, int write_
 			printf("Increase Rd Ptr Size\n");
 			*read_ptr = *read_ptr + 1;
 		}
-		
+
 	}
 }
 
@@ -1428,7 +1459,7 @@ bool incRdPtr(int *read_ptr, int write_ptr){
 	}
 
 	*read_ptr = *read_ptr + 1;
-	
+
 	if(*read_ptr == L_FT_BUFFER){
 		*read_ptr = 0;
 	}

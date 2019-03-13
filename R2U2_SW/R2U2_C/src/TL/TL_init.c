@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_init()
 **
-** Purpose:  
+** Purpose:
 **	initalize memories, counters, and queues for the TL
 **
 ** Limitations, Assumptions, External Events, and Notes:
@@ -72,7 +72,7 @@ for (i=0; i<N_INSTRUCTIONS;i++){
 	results_ft[i].async_val = false;
 	results_ft[i].async_val = false;
 	results_ft[i].sync_val  = F;  //initialize to false due to edge detection
-		
+
 	ft_until_local_mem[i].m_pre = 0;
 	ft_until_local_mem[i].m_pre_minus_infinity = false;
 	ft_until_local_mem[i].m_rising_phi_last = 0;
@@ -127,7 +127,7 @@ for (i=0; i<N_SUBFORMULA_SNYC_QUEUES; i++) {
 
 
 	for (j=0;j<L_FT_BUFFER;j++) {
-		
+
 		ft_sync_queues[i].ft_queue[j].t_q=-1;
 		ft_sync_queues[i].ft_queue[j].v_q=0;
 	}
@@ -158,7 +158,7 @@ return 0;
 
 /**
 * Discovering maximum time horizon of all forlumar.
-* TODO : Please note this needs to consider nested  
+* TODO : Please note this needs to consider nested
 * operators as well
 */
 static int set_max_time_horizon() {
@@ -166,17 +166,17 @@ static int set_max_time_horizon() {
 	int max = 0;
 	int i;
 	int lb,ub;
-	
+
 	for (i = 0; i<N_INSTRUCTIONS;i++){
 
 		lb = get_interval_lb_ft(i);
 		ub = get_interval_ub_ft(i);
-	
+
 	  if ( lb > max ) max = lb;
 	  if ( ub > max ) max = ub;
-	}	
+	}
 	INFO_BPATCH(printf("[INFO]::set_max_time_horizon():: Discovered Maximum time horizon of [%d] \n",max);)
-		
+
 	return max;
 }
 
