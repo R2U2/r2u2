@@ -6,15 +6,16 @@ BIN_PATH := bin
 OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
+VDR_PATH := vendor
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/prognostics
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 
 # Search paths and libs
-IDIR=$(SRC_DIRS)
-IN_LIBS=$(shell pkg-config --cflags fftw3)
-LDIR=../lib
-LD_LIBS=$(shell pkg-config --libs fftw3) -lm
+IDIR=$(SRC_DIRS) $(VDR_PATH)/include
+LIBS := fftw3
+IN_LIBS=$(shell pkg-config --cflags $(LIBS))
+LD_LIBS=$(shell pkg-config --libs $(LIBS)) -lm -L $(VDR_PATH)/lib -lcsv
 
 CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
 DBGFLAG := -g -Wall -Wextra -pendantic
@@ -50,12 +51,14 @@ $(TARGET): $(OBJ) | $(BIN_PATH)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $?
 
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
+	cd $(VDR_PATH) && $(MAKE) all
 	$(CC) $(CCOBJFLAG) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DBGFLAG) -o $@ $?
 
 $(DBG_PATH)/%.o: %.c* | $(DBG_PATH)
+	cd $(VDR_PATH) && $(MAKE) debug
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
 # Path rules
@@ -68,6 +71,9 @@ $(OBJ_PATH):
 $(DBG_PATH):
 	mkdir -p $(DBG_PATH)
 
+$(VDR_PATH):
+	mkdir -p $(VDR_PATH)/include $(VDR_PATH)/lib
+
 # phony rules
 .PHONY: all
 all: $(TARGET)
@@ -79,8 +85,10 @@ debug: $(TARGET_DEBUG)
 clean:
 	@echo CLEAN $(CLEAN_LIST)
 	@rm -rf $(CLEAN_LIST)
+	cd $(VDR_PATH) && $(MAKE) clean
 
 .PHONY: distclean
 distclean:
 	@echo CLEAN $(CLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
+	cd $(VDR_PATH) && $(MAKE) distclean
