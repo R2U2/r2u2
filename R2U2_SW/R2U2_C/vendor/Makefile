@@ -26,13 +26,16 @@
 all:
 	mkdir -p ../target/release/CsvParser/
 	gcc -c -I CsvParser/include/ CsvParser/src/csvparser.c -o ../target/release/CsvParser/csvparser.o
+	mkdir -p lib
 	ar rs lib/libcsv.a ../target/release/CsvParser/csvparser.o
+	mkdir -p include
 	cp CsvParser/include/csvparser.h include/csvparser.h
 
 debug:
 	mkdir -p ../target/debug/CsvParser/
 	gcc -g -c -I CsvParser/include/ CsvParser/src/csvparser.c -o ../target/debug/CsvParser/csvparser.o
 	ar rs lib/libcsv.a ../target/debug/CsvParser/csvparser.o
+	mkdir -p include
 	cp CsvParser/include/csvparser.h include/csvparser.h
 
 # clean files list
