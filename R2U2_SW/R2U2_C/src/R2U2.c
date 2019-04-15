@@ -45,7 +45,6 @@ if (argc != 2) {
 
     /* TODO: Dynamicly load from *_fti.c */
     //interval_t interval_mem_ft[];
-    //int l_interval_mem_ft; // (not found, not used?)
 
     /* Allocate Memory */
     r2u2_in_type *cur_sigs;

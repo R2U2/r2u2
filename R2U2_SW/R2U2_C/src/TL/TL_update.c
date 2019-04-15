@@ -38,17 +38,10 @@ if (t_now == 0){
 	memcpy(atomics_vector_prev, atomics_vector, sizeof(atomics_vector_t));
 	}
 
-	//
-	// run the PT engine
-	//
-TL_update_pt();
 
+// TL_update_pt(); 
 
-		
-	//
-	// run the FT engine
-	//
-TL_update_ft(fp, fp2);
+	TL_update_ft(fp, fp2);
 
 	//
 	// do temporal housekeeping:

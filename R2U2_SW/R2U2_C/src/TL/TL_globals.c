@@ -49,12 +49,4 @@ box_queue_mem_pt_t	pt_box_queue_mem;
 box_queues_pt_t		pt_box_queues;
 
 sync_queues_ft_t	ft_sync_queues;
-
-unsigned int t_rising_fi[N_SUBFORMULA_SNYC_QUEUES] = {0};
-unsigned int t_tau_s[N_SUBFORMULA_SNYC_QUEUES] = {0};
-unsigned int t_tau[N_SUBFORMULA_SNYC_QUEUES] = {0};
-
-
-sync_queues_ft_t	ft_patch_queues;
-
-ft_until_local_mem_t	ft_until_local_mem;
+SCQ_t SCQ;

@@ -225,6 +225,13 @@ typedef struct {
 	unsigned char	scratch;
 	} instruction_t;
 
+// data structure for address info of SCQ
+typedef struct {
+	int start_addr;
+	int end_addr;
+}	addr_SCQ_t;
+
+
 	//
 	// data type for
 	// buffer head or tail distinction
@@ -245,6 +252,7 @@ typedef struct {
 	unsigned int	ub;
 	} interval_t;
 
+
 	//
 	// data type for edge detection
 	//
@@ -254,53 +262,7 @@ typedef enum {
 	rising
 	} edge_t;
 
-	//
-	// data type for FT sync output
-	//
-typedef enum {
-	F = false,
-	T = true,
-	M = 2
-	} ft_sync_t;
 
-	//
-	// data type for FT results
-	//
-typedef struct {
-	//value of asynchronous verdict
-	bool		async_val;	
-	//time of the asynchronous value
-	unsigned int	async_t;
-	
-	//synchronous 3-value verdict
-	ft_sync_t	sync_val;
-	} results_ft_elt_t;
-
-	//
-	// data type for the FT until local data
-	//
-typedef struct {
-	// timestamp of last time when phiUpsi held
-	unsigned int m_pre;
-	// flag if m_pre is minus infinity
-	bool m_pre_minus_infinity;
-	// timestamp of last rising edge of phi
-	unsigned int m_rising_phi_last;
-	// timestamp of last falling edge of phi
-	unsigned int m_falling_phi_last;
-	// flag if m_falling_phi_last is minus infinity
-	bool m_falling_phi_last_minus_infinity;
-	// flag p if condition in Algorithm line 6 holds
-	bool p_holds;
-	// remembers the last state of phi
-	bool phi_last_val;
-	} ft_until_local_t;
-
-//
-//--------------------------------------------
-//	memories
-//--------------------------------------------
-//
 
 	//
 	// atomic inputs, Vector of Booleans
@@ -313,6 +275,9 @@ typedef bool atomics_vector_t[N_ATOMICS];
 	//
 typedef instruction_t instruction_mem_t[N_INSTRUCTIONS];
 
+
+typedef addr_SCQ_t addr_SCQ_map_t[N_INSTRUCTIONS];
+
 	//
 	// map memory
 	//
@@ -324,24 +289,10 @@ typedef unsigned char	map_mem_t[N_MAP];
 	//
 typedef bool results_pt_t[N_INSTRUCTIONS];
 
-	//
-	// FT results vector
-	//
-typedef results_ft_elt_t results_ft_t[N_INSTRUCTIONS];
-
     //
     // Async queue array
 //typedef  results_a_ft_t[N_INSTRUCTIONS];
 
-	//
-	// vectors for rising-edge storage
-	//
-typedef int results_rising_pt_t[N_INSTRUCTIONS];
-
-	//
-	// vecotor with local memory for until operation
-	//
-typedef ft_until_local_t ft_until_local_mem_t[N_INSTRUCTIONS];
 
 #ifdef __cplusplus
 extern "C" {
@@ -360,6 +311,8 @@ extern atomics_vector_t		atomics_vector_prev;
 extern instruction_mem_t	instruction_mem_ft;
 extern instruction_mem_t	instruction_mem_pt;
 
+extern addr_SCQ_map_t	addr_SCQ_map_ft;
+
 extern map_mem_t		map_mem_pt;
 extern map_mem_t		map_mem_ft;
 
@@ -367,17 +320,12 @@ extern interval_t		interval_mem_pt[];
 extern int			l_interval_mem_pt;
 
 extern interval_t		interval_mem_ft[];
-extern int			l_interval_mem_ft;
 
 extern results_pt_t		results_pt;
 extern results_pt_t		results_pt_prev;
 
-extern results_rising_pt_t	results_pt_rising;
 
-extern results_ft_t		results_ft;
-extern results_ft_t		results_ft_prev;
 
-extern ft_until_local_mem_t	ft_until_local_mem;
 
 //async future time synchronization queues
 //TODO to remove extern ft_sync_queue_t	results_a_ft_sync_q;

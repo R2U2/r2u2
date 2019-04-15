@@ -48,7 +48,7 @@ default: all
 
 # non-phony targets
 $(TARGET): $(OBJ) | $(BIN_PATH)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $?
+	$(CC) $(CFLAGS) -o $@ $? $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
 	cd $(VDR_PATH) && $(MAKE) all
