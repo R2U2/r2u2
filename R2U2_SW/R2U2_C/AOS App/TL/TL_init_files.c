@@ -17,7 +17,7 @@ int  p_m_ft=0;
 
 
 f=fopen(FN_ftm,"r");
-
+printf("fjsenfwefnhsenhosefioefoiejf\n");
 while (1){
 	fgets(buf, L_INSTRUCTION+1, f);
 	if (feof(f)){

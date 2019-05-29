@@ -13,6 +13,9 @@ reserved = {
 	'X' : 'NEXT',
 	# '!' : 'NOT',
 	# '&' : 'AND',
+	'TRUE' : 'TRUE',
+	'FALSE' : 'FALSE',
+
 }
 
 # List of token names. This is compulsory.
@@ -35,7 +38,7 @@ tokens = [
 # t_UNTIL		= r'U'
 t_AND			= r'\&'
 t_OR			= r'\|'
-t_NEG			= r'\-'
+t_NEG			= r'\!'
 #t_ATOMIC		= r'([A-Za-z])\w*'
 t_COMMA			= r','
 t_LPAREN		= r'\('

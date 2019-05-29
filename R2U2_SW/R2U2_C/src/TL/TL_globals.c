@@ -40,9 +40,6 @@ map_mem_t		map_mem_pt;
 results_pt_t		results_pt;
 results_pt_t		results_pt_prev;
 
-results_ft_t		results_ft;
-results_ft_t		results_ft_prev;
-
 results_rising_pt_t	results_pt_rising;
 
 box_queue_mem_pt_t	pt_box_queue_mem;

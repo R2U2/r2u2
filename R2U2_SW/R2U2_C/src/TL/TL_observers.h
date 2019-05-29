@@ -29,7 +29,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define DEBUG_FILE_OUTPUT 1
 
 //------------------------------------------------------------------
 // definition of OPCODE for PT and FT engines
@@ -292,7 +291,7 @@ typedef bool results_pt_t[N_INSTRUCTIONS];
     //
     // Async queue array
 //typedef  results_a_ft_t[N_INSTRUCTIONS];
-
+typedef int results_rising_pt_t[N_INSTRUCTIONS];
 
 #ifdef __cplusplus
 extern "C" {
@@ -324,7 +323,7 @@ extern interval_t		interval_mem_ft[];
 extern results_pt_t		results_pt;
 extern results_pt_t		results_pt_prev;
 
-
+extern results_rising_pt_t results_pt_rising;
 
 
 //async future time synchronization queues

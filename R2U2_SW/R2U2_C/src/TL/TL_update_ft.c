@@ -50,6 +50,11 @@ int	get_interval_lb_ft(int pc);
 */
 int	get_interval_ub_ft(int pc);
 
+elt_ft_queue_t pop_cap(int pc, int obNum, elt_ft_queue_t* scq, int rd_ptr);
+
+bool isEmpty_cap(int pc, int ObNum, elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp);
+
+
 inline elt_ft_queue_t pop(elt_ft_queue_t* scq, int rd_ptr);
 
 //--------------------------------------------------------------------
@@ -75,14 +80,20 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		//----------------------------------------------------
 		case OP_END:
 		case OP_END_SEQUENCE: {
-			int op1 = instruction_mem_ft[pc].op1.value;
-			int scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+			int op1=0, scq_size_rd=0, input_wr_ptr=0;
+			elt_ft_queue_t *scq_seg;
+			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
+				op1 = instruction_mem_ft[pc].op1.value;
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
+				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
+			} 	
+
 			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
-			elt_ft_queue_t* scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
-			int input_wr_ptr = ft_sync_queues[op1].wr_ptr;
-			while(!isEmpty(scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
-				elt_ft_queue_t input = pop(scq_seg, *rd_ptr);
+			
+			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+				elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 				elt_ft_queue_t res = {input.v_q,input.t_q};
 				add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 				ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
@@ -116,13 +127,17 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		// OP_FT_NOT
 		//----------------------------------------------------
 		case OP_FT_NOT: {
-			int op1 = instruction_mem_ft[pc].op1.value;
-			int scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+			int op1=0, scq_size_rd=0, input_wr_ptr=0;
+			elt_ft_queue_t *scq_seg;
+			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
+				op1 = instruction_mem_ft[pc].op1.value;
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
+				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
+			} 	
 			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
-			elt_ft_queue_t* scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
-			int input_wr_ptr = ft_sync_queues[op1].wr_ptr;
-			while(!isEmpty(scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 				//Get the Next Input
 				elt_ft_queue_t input = pop(scq_seg, *rd_ptr);
 				elt_ft_queue_t res = {!input.v_q,input.t_q};
@@ -143,38 +158,41 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		//----------------------------------------------------
 
 		case OP_FT_AND: {
-			int op1 = instruction_mem_ft[pc].op1.value;
-			int op2 = instruction_mem_ft[pc].op2.value;
-
-			int scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
-			int scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+			int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;
+			elt_ft_queue_t *scq_seg_1, *scq_seg_2;
+			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
+				op1 = instruction_mem_ft[pc].op1.value;
+				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+				scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
+				input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
+			}
+			if(instruction_mem_ft[pc].op2.opnd_type==subformula) {
+				op2 = instruction_mem_ft[pc].op2.value;
+				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+				scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
+				input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
+			}
 
 			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
-			elt_ft_queue_t* scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
-			elt_ft_queue_t* scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
-
 			int* rd_ptr_1 = &(ft_sync_queues[pc].rd_ptr);
-			int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);
+			int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);	
 
-			int input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
-			int input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
-
-			bool isEmpty_1 = isEmpty(scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-			bool isEmpty_2 = isEmpty(scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
+			bool isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
+			bool isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 			while(!isEmpty_1|| !isEmpty_2) {
 				elt_ft_queue_t res = {false,-1};
 				if(!isEmpty_1 && !isEmpty_2) {
-					elt_ft_queue_t res_1 = pop(scq_seg_1, *rd_ptr_1);
-					elt_ft_queue_t res_2 = pop(scq_seg_2, *rd_ptr_2);
+					elt_ft_queue_t res_1 = pop_cap(pc, 1, scq_seg_1, *rd_ptr_1);
+					elt_ft_queue_t res_2 = pop_cap(pc, 2, scq_seg_2, *rd_ptr_2);
 					if(res_1.v_q && res_2.v_q) res = (elt_ft_queue_t){true, min(res_1.t_q, res_2.t_q)};
 					else if (!res_1.v_q && !res_2.v_q) res = (elt_ft_queue_t){false, max(res_1.t_q, res_2.t_q)};
 					else if (res_1.v_q) res = (elt_ft_queue_t){false, res_2.t_q};
 					else res = (elt_ft_queue_t){false, res_1.t_q};
 				} else if(isEmpty_1) {
-					elt_ft_queue_t res_2 = pop(scq_seg_2, *rd_ptr_2);
+					elt_ft_queue_t res_2 = pop_cap(pc, 2, scq_seg_2, *rd_ptr_2);
 					if(!res_2.v_q) res = (elt_ft_queue_t){false, res_2.t_q};
 				} else {
-					elt_ft_queue_t res_1 = pop(scq_seg_1, *rd_ptr_1);
+					elt_ft_queue_t res_1 = pop_cap(pc, 1, scq_seg_1, *rd_ptr_1);
 					if(!res_1.v_q) res = (elt_ft_queue_t){false, res_1.t_q};
 				}
 				
@@ -184,8 +202,8 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 					fprintf(fp2, "AND PC:%d = (%d,%d)\n", pc, res.v_q, res.t_q);
 					printf("AND PC:%d = (%d,%d)\n", pc, res.v_q, res.t_q);
 				} else break;
-				isEmpty_1 = isEmpty(scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-				isEmpty_2 = isEmpty(scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
+				isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
+				isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 			}
 
 			break;
@@ -208,16 +226,22 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		break;
 
 		case OP_FT_GJ: {
-			int op1 = instruction_mem_ft[pc].op1.value;
-			int scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+			int op1=0, scq_size_rd=0, input_wr_ptr=0;
+			elt_ft_queue_t *scq_seg;
+			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
+				op1 = instruction_mem_ft[pc].op1.value;
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
+				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
+			}
+
 			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
-			elt_ft_queue_t* scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
-			int input_wr_ptr = ft_sync_queues[op1].wr_ptr;
+
 			int lb = get_interval_lb_ft(pc);
 			int ub = get_interval_ub_ft(pc);
-			while(!isEmpty(scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
-				elt_ft_queue_t input = pop(scq_seg, *rd_ptr);
+			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+				elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 				ft_sync_queues[pc].desired_time_stamp += 1;
 				if(input.v_q && !ft_sync_queues[pc].pre.v_q) {
 					ft_sync_queues[pc].m_edge = ft_sync_queues[pc].pre.t_q + 1; // rising edge
@@ -245,31 +269,35 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		// OP_FT_UJ (until, interval:  U[t1,t2])
 		//----------------------------------------------------
 		case OP_FT_UJ: {
-			int op1 = instruction_mem_ft[pc].op1.value;
-			int op2 = instruction_mem_ft[pc].op2.value;
-			
-			int scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;		
-			int scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+			int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;
+			elt_ft_queue_t *scq_seg_1, *scq_seg_2;
+			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
+				op1 = instruction_mem_ft[pc].op1.value;
+				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+				scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
+				input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
+			}
+			if(instruction_mem_ft[pc].op2.opnd_type==subformula) {
+				op2 = instruction_mem_ft[pc].op2.value;
+				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+				scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
+				input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
+			}
+		
 			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
-			
-			elt_ft_queue_t* scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
-			elt_ft_queue_t* scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
 			
 			int* rd_ptr_1 = &(ft_sync_queues[pc].rd_ptr);
 			int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);
-			
-			int input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
-			int input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
 
 			int lb = get_interval_lb_ft(pc);
 			int ub = get_interval_ub_ft(pc);
 
-			bool isEmpty_1 = isEmpty(scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-			bool isEmpty_2 = isEmpty(scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
+			bool isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
+			bool isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 			while(!isEmpty_1 && !isEmpty_2) {
 				elt_ft_queue_t res = (elt_ft_queue_t){false, -1};
-				elt_ft_queue_t input_1 =  pop(scq_seg_1, *rd_ptr_1);
-				elt_ft_queue_t input_2 =  pop(scq_seg_2, *rd_ptr_2);
+				elt_ft_queue_t input_1 =  pop_cap(pc, 1, scq_seg_1, *rd_ptr_1);
+				elt_ft_queue_t input_2 =  pop_cap(pc, 2, scq_seg_2, *rd_ptr_2);
 				int tau = min(input_1.t_q, input_2.t_q);
 				ft_sync_queues[pc].desired_time_stamp = tau+1;
 				if(ft_sync_queues[pc].pre.v_q && !input_2.v_q) {
@@ -285,8 +313,8 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 					printf("U[%d,%d] PC:%d = (%d,%d)\n",lb,ub,pc,res.v_q,res.t_q);
 				}
 				ft_sync_queues[pc].pre = input_2;
-				isEmpty_1 = isEmpty(scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-				isEmpty_2 = isEmpty(scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
+				isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
+				isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 			}
 			break;
 		}
@@ -328,3 +356,72 @@ int	get_interval_ub_ft(int pc){
 	int adr = instruction_mem_ft[pc].adr_interval;
 	return interval_mem_ft[adr].ub;
 }
+
+//-------------------------------------------------------------------
+bool isEmpty_cap(int pc, int obNum, elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp) {
+	if(obNum==1) {
+		switch(instruction_mem_ft[pc].op1.opnd_type) {
+			case atomic:
+				return false;
+			case subformula:
+				return isEmpty(scq, size, wr_ptr, rd_ptr, desired_time_stamp);
+			case direct:
+				return false;
+			case not_set:
+				return true;
+			default:
+				printf("operand Error\n");
+		}
+	} else if(obNum==2){
+		switch(instruction_mem_ft[pc].op2.opnd_type) {
+			case atomic:
+				return false;
+			case subformula:
+				return isEmpty(scq, size, wr_ptr, rd_ptr, desired_time_stamp);
+			case direct:
+				return false;
+			case not_set:
+				return true;
+			default:
+				printf("operand Error\n");
+		}
+	} else {
+		printf("obNum Error\n");
+	}	
+	return true;
+}
+
+
+elt_ft_queue_t pop_cap(int pc, int obNum, elt_ft_queue_t* scq, int rd_ptr) {
+	if(obNum==1) {
+		switch(instruction_mem_ft[pc].op1.opnd_type) {
+			case atomic:// return anything you want
+				break;
+			case subformula:
+				return pop(scq, rd_ptr);
+			case direct:
+				return (elt_ft_queue_t){instruction_mem_ft[pc].op1.value, t_now};
+			case not_set:// return anything you want
+				break;
+			default:
+				printf("operand Error\n");
+		}
+	} else if(obNum==2){
+		switch(instruction_mem_ft[pc].op2.opnd_type) {
+			case atomic:// return anything you want
+				break;
+			case subformula:
+				return pop(scq, rd_ptr);
+			case direct:
+				return (elt_ft_queue_t){instruction_mem_ft[pc].op2.value, t_now};
+			case not_set:// return anything you want
+				break;
+			default:
+				printf("operand Error\n");
+		}
+	} else {
+		printf("obNum Error\n");
+	}
+	return (elt_ft_queue_t){false, -1};
+}
+

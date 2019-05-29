@@ -8,6 +8,7 @@ def main():
 	parser.parse(MLTL)
 	MLTLparse.optimize() # Comment this line to see unoptimized code
 	MLTLparse.gen_assembly()
+	print(MLTLparse.queue_size_assign())
 
 
 if __name__ == "__main__":

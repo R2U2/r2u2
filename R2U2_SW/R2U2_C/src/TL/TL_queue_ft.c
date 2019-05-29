@@ -21,7 +21,7 @@
 ** Modification History:
 **   Date | Author | Description
 **   ---------------------------
-**	Apr.14.2019 | Pei | Clean up the code and rewrite the function
+**	Apr.14.2019 | Pei | Clean up the code and rewrite the function. Consistent with the definition of Shared Connection Queue (SCQ)
 **=====================================================================================*/
 #include <stdio.h>
 #include "TL_observers.h"
