@@ -33,6 +33,7 @@ class ATOM(Observer):
 class BOOL(Observer):
 	def __init__(self, tOrF):
 		super().__init__()
+		self.scq_size = 0
 		self.type = 'BOOL'
 		self.name = tOrF
 		self.tag = -1
@@ -45,6 +46,7 @@ class NEG(Observer):
 	def __init__(self, left):
 		super().__init__(left)
 		self.type = 'NEG'
+		self.name = 'NEG'
 		self.tag = 1
 		self.left.pre = self
 
@@ -57,6 +59,7 @@ class AND(Observer):
 	def __init__(self, left, right):
 		super().__init__(left, right)		
 		self.type = 'AND'
+		self.name = 'AND'
 		self.tag = 2
 		self.left.pre, self.right.pre = self, self
 
@@ -65,11 +68,25 @@ class AND(Observer):
 		s = super().gen_assembly(s, substr)
 		return s
 
+class OR(Observer):
+	def __init__(self, left, right):
+		super().__init__(left, right)		
+		self.type = 'OR'
+		self.name = 'OR'
+		self.tag = -2
+		self.left.pre, self.right.pre = self, self
+
+	def gen_assembly(self, s):
+		substr = "or "+self.left.hook+" "+self.right.hook
+		s = super().gen_assembly(s, substr)
+		return s
+
 class GLOBAL(Observer):
 	def __init__(self, left, ub, lb=0):
 		super().__init__(left)
 		self.type = 'GLOBAL'
 		self.tag = 3
+		self.name = 'G['+str(lb)+','+str(ub)+']'
 		self.lb, self.ub = lb, ub
 		self.left.pre = self
 
@@ -86,6 +103,7 @@ class UNTIL(Observer):
 		super().__init__(left, right)
 		self.type = 'UNTIL'
 		self.tag = 4
+		self.name = 'U['+str(lb)+','+str(ub)+']'
 		self.lb, self.ub = lb, ub
 		self.left.pre, self.right.pre = self, self
 
