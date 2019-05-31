@@ -7,6 +7,7 @@
 #include "R2U2Config.h"
 #include "TL/TL_observers.h"
 #include "AT/at_checkers.h"
+#include "binParser/parse.h"
 
 void count_signals(char*, int*, int*);
 r2u2_in_type** load_signals(char*, int, int);
@@ -104,6 +105,8 @@ if (argc != 2) {
         /* Temporal Logic Update */
         /* TODO: Why does this require file pointers? */
         TL_update(out_file, dbg_file);
+        parse_inst("src/inputs/a_ft.b");
+        break;
 
         fprintf(out_file,"\n\n");
         fprintf(dbg_file, "\n");
