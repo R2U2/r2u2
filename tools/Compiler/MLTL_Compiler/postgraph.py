@@ -10,7 +10,6 @@ class Postgraph():
 		if(optimize_cse):
 			self.optimize_cse()
 		self.valid_node_set = self.sort_node()
-		print(self.valid_node_set)
 		self.queue_size_assign()
 		self.gen_assembly()
 
@@ -117,8 +116,8 @@ class Postgraph():
 
 		def get_total_size():
 			totsize = 0
-			for n in stack:
-				print(n.type,'	',n,':	',n.scq_size)
+			for n in vstack:
+				# print(n.name,'	',n,':	(',n.scq_size,')')
 				totsize += n.scq_size
 			return totsize
 
