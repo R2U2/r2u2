@@ -1,4 +1,5 @@
 /* initialization from file -- NOT USED -- */
+// Jun.3.2019 Pei: Don't use this file. The count of OP length is incorrect.
 #include <stdio.h>
 #include "TL_observers.h"
 

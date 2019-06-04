@@ -92,3 +92,5 @@ distclean:
 	@echo CLEAN $(CLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
 	cd $(VDR_PATH) && $(MAKE) distclean
+
+print-%  : ; @echo $* = $($*)

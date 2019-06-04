@@ -121,8 +121,20 @@ class Postgraph():
 				totsize += n.scq_size
 			return totsize
 
+		def generate_scq_size_file():
+			s=""
+			pos = 0
+			for n in vstack:
+				st_pos = pos
+				ed_pos = st_pos+n.scq_size
+				pos = ed_pos+1;
+				s = s+'{0:08b}'.format(st_pos)+'{0:08b}'.format(ed_pos)+'\n'
+			with open("tmp.ftscq","w+") as f:
+				f.write(s)
+
 		compute_propagation_delay()
 		compute_scq_size()
+		generate_scq_size_file()
 		return get_total_size()
 
 	# Generate assembly code
@@ -136,3 +148,6 @@ class Postgraph():
 			s = node.gen_assembly(s)
 		s = s+'s'+str(len(stack))+': end s'+str(len(stack)-1) # append the end command
 		print(s)
+		with open("tmp.ftasm","w+") as f:
+			f.write(s)
+

@@ -8,7 +8,7 @@
 
 // };
 
-interval_t	interval_mem_ft[] = {
+interval_mem_t	interval_mem_ft = {
 
 { 5, 10 },
 };

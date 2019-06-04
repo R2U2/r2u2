@@ -24,22 +24,25 @@ def toBinary(value, width):
 	return b
 
 def parseOperand(op):
-	o = op[0]
 	c = ""
-	
-	if o == "a":	# load atomic
-		c = c + "00"
-	elif o == "p":	# pt address
-		c = c + "11"
-	elif o == "i":  # immediate
-		c = c + "01"
-	elif o == "s":	# subformula
-		c = c + "10"
+	if(op=='TRUE'):
+		c = c + "01"+toBinary(1, 8)
+	elif(op=='FALSE'):
+ 		c = c + "01"+toBinary(0, 8)
 	else:
-		print("Error in line", i)
+		o = op[0]
+		if o == "a":	# load atomic
+			c = c + "00"
+		elif o == "p":	# pt address, not set
+			c = c + "11"
+		elif o == "i":  # immediate, direct
+			c = c + "01"
+		elif o == "s":	# subformula
+			c = c + "10"
+		else:
+			print("Error in specifying input type, did you use any weird atomic names?", i)
 
-	c = c + toBinary(int(op[1:]), 8)
-	
+		c = c + toBinary(int(op[1:]), 8)
 	return c
 
 i = 0

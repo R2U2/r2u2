@@ -50,6 +50,10 @@
 	//
 #define L_INSTRUCTION		(L_OPC+L_OP+L_OP+L_INTVL+L_SCRATCH)
 
+	// for the file .ftscq
+#define L_SCQ_ADDRESS 8
+
+
 	//
 	// length of registers in bits for mapping
 	//
@@ -226,8 +230,8 @@ typedef struct {
 
 // data structure for address info of SCQ
 typedef struct {
-	int start_addr;
-	int end_addr;
+	unsigned int start_addr;
+	unsigned int end_addr;
 }	addr_SCQ_t;
 
 
@@ -274,6 +278,7 @@ typedef bool atomics_vector_t[N_ATOMICS];
 	//
 typedef instruction_t instruction_mem_t[N_INSTRUCTIONS];
 
+typedef interval_t interval_mem_t[N_INSTRUCTIONS];
 
 typedef addr_SCQ_t addr_SCQ_map_t[N_INSTRUCTIONS];
 
@@ -318,7 +323,9 @@ extern map_mem_t		map_mem_ft;
 extern interval_t		interval_mem_pt[];
 extern int			l_interval_mem_pt;
 
-extern interval_t		interval_mem_ft[];
+// extern interval_t		interval_mem_ft[];
+
+extern interval_mem_t  interval_mem_ft;
 
 extern results_pt_t		results_pt;
 extern results_pt_t		results_pt_prev;

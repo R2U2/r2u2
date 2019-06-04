@@ -5,9 +5,11 @@
 #include "csvparser.h"
 
 #include "R2U2Config.h"
+#include "binParser/parse.h"
 #include "TL/TL_observers.h"
 #include "AT/at_checkers.h"
-#include "binParser/parse.h"
+
+#define ONLINE_MODE  //test in real time
 
 void count_signals(char*, int*, int*);
 r2u2_in_type** load_signals(char*, int, int);
@@ -23,7 +25,6 @@ if (argc != 2) {
 }
 
 
-
     /* Get Config */
     int MAX_TIME;    /* TODO: Replace with sensor data */
     int NUM_SIG;     /* TODO: Replace with sensor data */
@@ -32,20 +33,6 @@ if (argc != 2) {
     r2u2_in_type **in_dat = load_signals(argv[1], NUM_SIG, MAX_TIME);
 
     static int NUM_ATM = 2;     /* TODO: Replace with config data */
-
-    /* TODO: Dynamically load from *_ft.c */
-    /* Currently provied by test0006_ft.c */
-    //instruction_mem_t instruction_mem_ft;
-
-    /* TODO: Dynamically load from *_pt.c */
-    //instruction_mem_t instruction_mem_pt;
-
-    /* Dynamicly load from _pti.c */
-    //interval_t interval_mem_pt[];
-    //int l_interval_mem_pt;
-
-    /* TODO: Dynamicly load from *_fti.c */
-    //interval_t interval_mem_ft[];
 
     /* Allocate Memory */
     r2u2_in_type *cur_sigs;
@@ -69,15 +56,19 @@ if (argc != 2) {
     out_file = fopen("./R2U2.out", "w+");
     dbg_file = fopen("./R2U2.log", "w+");
     if ((out_file == NULL) || (dbg_file == NULL)) return 1;
+
+    /*Async file I/O */
+    TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
+
     fprintf(dbg_file, "**********RESULTS**********\n\n");
-    /* TODO: Async file I/O */
+    
 
     /* Main processing loop */
     for (int cur_time=0; cur_time < MAX_TIME; cur_time++) {
         printf("\n");
-        printf("***************************************");
+        // printf("***************************");
         printf("**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****",cur_time+1);
-        printf("***************************************");
+        // printf("***************************");
         printf("\n");
 
         fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time+1);
@@ -90,7 +81,7 @@ if (argc != 2) {
         for (int i=0; i<NUM_SIG; i++) {cur_sigs[i] = in_dat[cur_time][i];}
 
         /* Atomics Update */
-        at_checkers_update(cur_sigs);
+        at_checkers_update(cur_sigs); //update atomic_vector
         for (int i=0; i<NUM_ATM; i++) {atom_out[cur_time][i] = atomics_vector[i];}
         /* TODO: Memcopy? Memory-maped file */
         //printf("\n[DBG] t=%d; ATOMICS VECTOR:\n",cur_time);
@@ -103,11 +94,8 @@ if (argc != 2) {
         //printf("\n");
 
         /* Temporal Logic Update */
-        /* TODO: Why does this require file pointers? */
         TL_update(out_file, dbg_file);
-        parse_inst("src/inputs/a_ft.b");
-        break;
-
+        
         fprintf(out_file,"\n\n");
         fprintf(dbg_file, "\n");
 
