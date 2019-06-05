@@ -8,7 +8,7 @@ SRC_PATH := src
 DBG_PATH := target/debug
 VDR_PATH := vendor
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/prognostics $(SRC_PATH)/binParser
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/prognostics $(SRC_PATH)/binParser $(SRC_PATH)/CSVProcess
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 
 # Search paths and libs

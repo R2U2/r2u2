@@ -92,7 +92,6 @@ void parse_scq_size(char* filename) {
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
 			decode_scq_size(line, &addr_SCQ_map_ft[PC]);
-			printf("%d\n",addr_SCQ_map_ft[PC].start_addr);
 			PC++;
 		}
 		fclose ( file );

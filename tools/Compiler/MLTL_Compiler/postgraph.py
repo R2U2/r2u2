@@ -117,7 +117,7 @@ class Postgraph():
 		def get_total_size():
 			totsize = 0
 			for n in vstack:
-				# print(n.name,'	',n,':	(',n.scq_size,')')
+				print(n.name,'	',n,':	(',n.scq_size,')')
 				totsize += n.scq_size
 			return totsize
 
@@ -134,7 +134,7 @@ class Postgraph():
 
 		compute_propagation_delay()
 		compute_scq_size()
-		generate_scq_size_file()
+		generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
 		return get_total_size()
 
 	# Generate assembly code
