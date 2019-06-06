@@ -12,7 +12,7 @@
 #include "AT/at_checkers.h"
 
 
-#define ONLINE_MODE  //test in real time
+// #define ONLINE_MODE  //test in real time
 
 void sys_init() {
     /* Engine Initialization */
@@ -101,6 +101,7 @@ int main(int argc, char const *argv[]) {
         }
 
     #else
+        sys_init();
         decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
         FILE *out_file, *dbg_file;
         out_file = fopen("./R2U2.out", "w+");
