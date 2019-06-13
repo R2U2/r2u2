@@ -1,84 +1,69 @@
 from .Observer import *
-__all__ = ['cnt2observer', 'parser']
+# __all__ = ['cnt2observer', 'parser']
 
-operator_cnt = 0
-cnt2observer={}
-
-def queue_size_assign(predLen = 0):
-	visited = set()
-	predLen = predLen
-	def get_node_set(node):
-		if(node!=None):
-			if(node.type=='ATOMIC'):
-				node.bcd = -1*predLen				
-				node.set_scq_size(2) # interesting part of the real implementation
-				visited.add(node)
-			else:
-				get_node_set(node.input_1)
-				get_node_set(node.input_2)
+# operator_cnt = 0
+# cnt2observer={}
 
 
-	def queue_size_assign_helper(n):
-		if(n in visited):
-			return
-		if(n.type=='AND' or n.type=='OR' or n.type=='UNTIL' or n.type=='WEAK_UNTIL'):
-			left, right = n.input_1, n.input_2
-			queue_size_assign_helper(left)
-			queue_size_assign_helper(right)
-			if(n.type=='AND' or n.type=='OR'):
-				n.bcd, n.wcd = min(left.bcd, right.bcd), max(left.wcd, right.wcd)
-			else:
-				n.bcd, n.wcd = min(left.bcd, right.bcd)+n.lb, max(left.wcd, right.wcd)+n.ub
-			size1 = max(left.scq_size,right.wcd-left.bcd+1)
-			size2 = max(right.scq_size,left.wcd-right.bcd+1)
-			left.set_scq_size(size1) # init the SCQ in observer with specified size
-			right.set_scq_size(size2)  # init the SCQ in observer with specified size
-		else:
-			left = n.input_1
-			queue_size_assign_helper(left)
-			if(n.type == 'NEG' or n.type == 'END'):
-				n.bcd, n.wcd = left.bcd, left.wcd
-			else:
-				n.bcd, n.wcd = left.bcd + n.lb, left.wcd + n.ub
-		n.set_scq_size(n.scq_size+1) # increase by 1 to prevent null pointer
-		visited.add(n)
+class Assembly():
+	def __init__(self,MLTL_ASSEMBLY):
+		self.valid_node_set = []
+		decode_assembly(self,MLTL_ASSEMBLY)
+		self.queue_size_assign() # assign SCQ size
 
-	def get_total_size(node):
-		if(node and node not in visited):
-			visited.add(node)
-			print(node.name,'	',node,':	',node.scq_size)
-			return get_total_size(node.input_1)+get_total_size(node.input_2)+node.scq_size
-		return 0
+	###############################################################
+	# Assign the size for each queue
+	def queue_size_assign(self,predLen = 0):
+		stack = self.valid_node_set # child to parent
 
-	def get_total_pred_time(node):
-		if(node and node not in visited):
-			visited.add(node)
-			if(node.input_1==None):#atomic
-				return predLen+1
-			if(node.input_2==None):#Unary Operator
-				return get_total_pred_time(node.input_1)+ predLen+1
-			#print(node.name,'	',node,':	',node.scq_size)
-			return get_total_pred_time(node.input_1)+get_total_pred_time(node.input_2)+node.input_1.scq_size+node.input_2.scq_size
+		# compute propagation delay from bottom up
+		def compute_propagation_delay():
+			for n in stack:
+				if(n.type=='ATOMIC'):
+					n.bpd = -1*predLen
+					n.scq_size = 1
+				elif(n.type=='BOOL'):
+					n.bpd = 0
+					n.scq_size = 1
+				elif(n.type=='AND' or n.type=='OR' or n.type=='UNTIL' or n.type=='WEAK_UNTIL'):
+					left, right = n.left, n.right
+					if(n.type=='AND' or n.type=='OR'):
+						n.bpd, n.wpd = min(left.bpd, right.bpd), max(left.wpd, right.wpd)
+					else:
+						n.bpd, n.wpd = min(left.bpd, right.bpd)+n.lb, max(left.wpd, right.wpd)+n.ub
+				else:	
+					left = n.left
+					if(n.type == 'NEG' or n.type == 'END'):
+						n.bpd, n.wpd = left.bpd, left.wpd
+					else:
+						print(n.type)
+						n.bpd, n.wpd = left.bpd + n.lb, left.wpd + n.ub
 
-	top = cnt2observer[len(cnt2observer)-1]
-	get_node_set(top)
-	top.set_scq_size(1) # prevent null pointer to SCQ, needs attention
-	queue_size_assign_helper(top)
+		# compute scq size from top down
+		def compute_scq_size():
+			for n in stack:
+				if(n.left and n.right):
+					left, right = n.left, n.right;			
+					left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
+					right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
 
-	visited = set()#clear the set for other purpose
-	totsize = get_total_size(top)
-	visited = set()#clear the set for other purpose
-	return totsize,get_total_pred_time(top)
+		def get_total_size():
+			totsize = 0
+			for n in stack:
+				n.set_scq_size()
+				print(n.name,'	',n,' SCQ size',':	(',n.scq_size,')')
+				totsize += n.scq_size
+			return totsize
 
+		compute_propagation_delay()
+		compute_scq_size()		
+		return get_total_size()
 
-def decode_assembly(assembly):
+def decode_assembly(self,assembly):
 	# construct the SCQ connection first
 	str2observer = {}
-	global cnt2observer
-	cnt = 0
 	f = assembly
 	for line in f.splitlines():
-
 		token = line.split()
 		target,op = token[0][:-1],token[1] # remove the symbol ':' for target
 		if(op=='load'):
@@ -92,13 +77,14 @@ def decode_assembly(assembly):
 		elif(op=='and'):
 			str2observer[target] = AND(str2observer[token[2]],str2observer[token[3]])
 		elif(op=='until'):
-			print(token)
 			str2observer[target] = UNTIL(str2observer[token[2]],str2observer[token[3]],int(token[4]),int(token[5]))
 		elif(op=='end'):
 			str2observer[target] = END(str2observer[token[2]])
+		elif(op=='TRUE'):
+			str2observer[target] = BOOL('TRUE')
+		elif(op=='FALSE'):
+			str2observer[target] = BOOL('FALSE')
 		else:
 			print('Invalid operator, exit')
 			quit()
-		cnt2observer[cnt]=str2observer[target]
-		cnt+=1
-	return cnt2observer
+		self.valid_node_set.append(str2observer[target])

@@ -12,8 +12,12 @@ reserved = {
 	'U' : 'UNTIL',
 	'W' : 'WEAK_UNTIL',
 	'F' : 'FUTURE',
+	'X' : 'NEXT',
 	# '!' : 'NOT',
 	# '&' : 'AND',
+	'TRUE' : 'TRUE',
+	'FALSE' : 'FALSE',
+
 }
 
 # List of token names. This is compulsory.
