@@ -1,0 +1,9 @@
+log data input width: 38
+atmomics width: 2
+atChecker configuration:
+    atChecker 0:
+        in1: APS1 (filter:  )
+        in2: APS2 (filter:  )
+    atChecker 1:
+        in1: APS1 (filter:  )
+        in2: APS2 (filter:  )
