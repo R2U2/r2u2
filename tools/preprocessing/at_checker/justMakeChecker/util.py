@@ -1,8 +1,8 @@
 
-import fileinput
-import matplotlib
-from matplotlib.backends.backend_pdf import PdfPages
-import pylab
+# import fileinput
+# import matplotlib
+# from matplotlib.backends.backend_pdf import PdfPages
+# import pylab
 
 def onescomp(binstr):
     return ''.join('1' if b=='0' else '0' for b in binstr)

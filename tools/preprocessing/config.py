@@ -12,7 +12,6 @@ MEMINT_FILE = 'tmp.fti'
 SETUP_DATA_WIDTH_extend_byte = 5 # do not modify
 SETUP_ADDR_WIDTH_extend_byte = 2 # do not modify
 DATA_BYTE_WIDTH_extend_byte =  (LOG_DATA_WIDTH-1)//8+1# combined sensor data width (byte)
-MONITOR_RUN_MODE = 'read_uart' # read_bus, read_uart
 
 # atomic checker -> assert_convert.py
 CHECKER_INPUT_FILE = 'input.ast'
@@ -24,12 +23,10 @@ DATA_WIDTH = LOG_DATA_WIDTH
 
 # ser.py
 TIMESTAMP_BYTE_extend_byte = 2
-SERIAL_RUN_MODE = 'type_input'# self_sensing, read_log, type_input
-# configuration file in uart byte format
-UART_FILE = 'send.uart'
+SERIAL_RUN_MODE = 'self_sensing'# self_sensing, read_log, type_input
+UART_FILE = 'send.uart'# configuration file in uart byte format
 
 # gen_log_data.py
 LOG_DATA_FILE = 'logged_data.dat'
 SENSOR_DATA_FILE = 'sensor_data.dat'
 DATA_SAMPLE_NUMBER = 10
-

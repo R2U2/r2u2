@@ -21,7 +21,7 @@ from config import SERIAL_RUN_MODE as run_mode
 # Configure the serial connections (the parameters differs on the device you are connecting to)
 # By default, it is configured as 9600 8IN1
 ser = serial.Serial(
-    port='/dev/ttyUSB1',
+    port='/dev/ttyUSB0',
     timeout=0,
     baudrate=9600,
     # parity=serial.PARITY_ODD,

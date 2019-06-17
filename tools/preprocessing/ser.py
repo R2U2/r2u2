@@ -1,27 +1,16 @@
 #!/usr/bin/python
-
+#(requires python 2.7)
 import time
 import serial
 from config import DATA_BYTE_WIDTH_extend_byte,TIMESTAMP_BYTE_extend_byte,UART_FILE
 from config import SERIAL_RUN_MODE as run_mode
-# auto run will periodically feed each data into the FPGA
-# change this to False if you want to manually send sensor data to FPGA
-# run_mode = 'read_log'# self_sensing, read_log, type_input
-
-# configuration file in uart byte format
-# UART_FILE = 'send.uart'
-
-### Modify the following parameters according to R2U2_pkg.vhd ###
-# DATA_BYTE_WIDTH_extend_byte = 8 # used in 'read_log' and 'type_input' mode
-# TIMESTAMP_BYTE_extend_byte = 2
-
-
+from config import DATA_SAMPLE_NUMBER as total_sample
 
 #################################################################
 # Configure the serial connections (the parameters differs on the device you are connecting to)
 # By default, it is configured as 9600 8IN1
 ser = serial.Serial(
-    port='/dev/ttyUSB1',
+    port='/dev/ttyUSB0',
     timeout=0,
     baudrate=9600,
     # parity=serial.PARITY_ODD,
@@ -110,10 +99,14 @@ if run_mode=='type_input':
             # input = input(">> ")
         output = []
         if input == 'exit':
+            ############# newly added line for system reset function
+            input = bits_to_hex(bin(1)[2:].zfill(8)).decode('hex')
+            ser.write(input)
+            ######################
             ser.close()
             exit()
         else:
-            # check input correctnedd
+            # check input correctness
             for i in input:
                 if(i not in ('0','1')):
                     correct_format = False
@@ -128,8 +121,8 @@ if run_mode=='type_input':
             # send the character to the device
             splitted = split_to_byte(input,DATA_BYTE_WIDTH_extend_byte)
             for i in splitted:
-                input = bits_to_hex(i).decode('hex')
-                ser.write(input)
+                splitted_input = bits_to_hex(i).decode('hex')
+                ser.write(splitted_input)
             # wait before reading output (let's give device time to answer)
             time.sleep(wait_FPGA_time)
             print("----------TIME STEP: {0}----------").format(time_cnt)
@@ -139,10 +132,14 @@ if run_mode=='type_input':
                 output.append(res)
 
             decode_uart_out(output)
+            ############# newly added line for system reset function
+            input = bits_to_hex(bin(0)[2:].zfill(8)).decode('hex')
+            ser.write(input)
+            ######################
             print('')
 
 elif(run_mode =='read_log'):
-    sample_period = 5 #Period that FPGA send the sensor data. This data should >= wait_FPGA_time!
+    sample_period = 2 #Period that FPGA send the sensor data. This data should >= wait_FPGA_time!
     wait_FPGA_time = 0.5 # wait FPGA finish send result (s)
     log_data_file = 'logged_data.dat'
     logged_data = []
@@ -175,7 +172,7 @@ elif(run_mode =='read_log'):
         print('')
         
 
-        if(idx < 9):
+        if(idx < total_sample):
             input = bits_to_hex(bin(0)[2:].zfill(8)).decode('hex')
             ser.write(input)
         else:
@@ -218,7 +215,9 @@ elif(run_mode =='self_sensing'):
         
         print('Natural Time: {0}(s)'.format(time.time()-begin_time))
         print(output)
-        if(decode_uart_out(output[:-8])):
+        # if(decode_uart_out(output[:-8])): # if you want to check sensor data from uart, remove the suffix sensor data before decode 
+        #     time_cnt += 1
+        if(decode_uart_out(output)):
             time_cnt += 1
         print('')
 

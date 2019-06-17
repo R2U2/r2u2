@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from config import SETUP_DATA_WIDTH_extend_byte, SETUP_ADDR_WIDTH_extend_byte, DATA_BYTE_WIDTH_extend_byte
-from config import MONITOR_RUN_MODE as RUN_MODE,\
+from config import SERIAL_RUN_MODE as RUN_MODE,\
 					UART_FILE as dest_file,\
 					CHECKER_OUTPUT_FILE as atc_in_file,\
 					MEM_FILE as mem_in_file,\
@@ -37,7 +37,7 @@ Each of them with size <general_config_info_byte> byte
 # 00000001100
 # 00000000000000000000000000000101
 
-# .mem sample
+# .ftm sample
 # 1110000000000010000000000000000000000000
 # 1011010000000000000000000000000000000000
 # 1110000000000010000000000000000000000000
@@ -46,24 +46,9 @@ Each of them with size <general_config_info_byte> byte
 # 1010110000000011000000100000000000000000
 # 1111110000001010000000000000000000000000
 
-# .int sample
+# .fti sample
 # 0000000000000000000000000000000000000000000000000000000000000100
 # 0000000000000000000000000000010100000000000000000000000000001010
-
-# RUN_MODE = 'read_uart' # read_uart
-
-### Modify the following parameters according to R2U2_pkg.vhd ###
-# SETUP_DATA_WIDTH_extend_byte = 5
-# SETUP_ADDR_WIDTH_extend_byte = 2
-# DATA_BYTE_WIDTH_extend_byte = 8 
-#################################################################
-
-# dest_file = 'send.uart'
-# atc_in_file = 'res.atc'
-# mem_in_file = 'imem.imem'
-# int_in_file = 'imem.imem.int'
-
-# log_data_file = 'logged_data.dat'
 
 #### Don't modify anything below the line ####
 #################################################################
@@ -95,9 +80,6 @@ with open(atc_in_file) as f:
 		is_set_up_data = not is_set_up_data 
 atc_cnt/=2
 
-a=len(res)
-print(a)
-
 for file in (mem_in_file,int_in_file):
 	line_cnt = 0
 	with open(file) as f:
@@ -112,31 +94,14 @@ for file in (mem_in_file,int_in_file):
 	else:
 		int_cnt = line_cnt
 
-b=len(res)
-print(b)
 
 mode_line = 0
-if(RUN_MODE == 'read_uart'):
+if(RUN_MODE in ('read_log','type_input')):
 	mode = 0
-elif(RUN_MODE == 'read_bus'):
+elif(RUN_MODE == 'self_sensing'):
 	mode = 1
 
-# Don't use this. This is used for simulation
-# if(RUN_MODE == 'read_uart'):
-# 	with open(log_data_file) as f:
-# 		for idx, line in enumerate(f):
-# 			line = line.strip()
-# 			if not line or line[0]=='#':
-# 				continue			
-# 			res+=split_to_byte(line,DATA_BYTE_WIDTH_extend_byte)
-# 			if(idx <= 20):
-# 				uart_command = split_to_byte("0",1)
-# 			else:
-# 				uart_command = split_to_byte("1",1)
-# 			res+=uart_command
-# 			# res+='\n'
 
-# append general info in the front
 res = split_dec_to_byte(mode,general_config_info_byte)+ split_dec_to_byte(atc_cnt,general_config_info_byte)+\
 	split_dec_to_byte(mem_cnt,general_config_info_byte)+split_dec_to_byte(int_cnt,general_config_info_byte)+res
 
@@ -145,7 +110,3 @@ with open(dest_file,'w+') as f:
 	f.write('# Auto Generated Configuration Byte File for UART\n') 
 	for eachline in res:
 		f.write("%s\n" % eachline) 
-	# for i,eachline in enumerate(res):
-	# 	f.write("%s\n" % eachline)
-	# 	if(i==3 or i==3+a or i==3+b):
-	# 		f.write("\n")
