@@ -35,8 +35,8 @@ class Traverse():
 	# map number to atomic, revise the mapping based on the MLTL formulae, column of the signal
 	def s2a(self,signal_trace):	
 		atomic_map = {}
-		s2d = {signal_name:i for i,signal_name in enumerate(self.trace_name)}
-
+		s2d = {signal_name:signal_trace[i] for i,signal_name in enumerate(self.trace_name)}
+		
 		##################################################################
 		# For User: map boolean function to atomic
 		atomic_map['a0'] = abs(s2d['s0'])<0.04

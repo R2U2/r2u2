@@ -200,7 +200,6 @@ class AND(Observer):
 		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
-		print(str(isEmpty_1)+str(isEmpty_2))
 		while(not isEmpty_1 or not isEmpty_2):		
 			res = [-1,False]
 			if(not isEmpty_1 and not isEmpty_2):
