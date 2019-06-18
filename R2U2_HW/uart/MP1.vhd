@@ -11,8 +11,7 @@
 -------------------------------------------------------------------------------
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use ieee.numeric_std.all;
 
 
 entity MP1_top is
@@ -22,8 +21,12 @@ port
   RESET_low : in  std_logic;  -- Active low (but polarity is immediate made active high)
   FPGA_SERIAL1_TX  : out std_logic;
   FPGA_SERIAL1_RX  : in  std_logic;
+  pRBUS_DATA : in std_logic_vector(15 downto 0);
+  pRBUS_ADDR : in std_logic_vector(7 downto 0);
+  pRBUS_EN : in std_logic;
   LD0 : out std_logic;
-  LD1 : out std_logic
+  LD1 : out std_logic;
+  LD2 : out std_logic
 );  
 end MP1_top;
 
@@ -78,8 +81,13 @@ port
   RD_n      : out  STD_LOGIC; -- Active low: read a byte from the UART
   WR_n      : out  STD_LOGIC; -- Active low: write a byte to UART for transmission
   data_out  : out  STD_LOGIC_VECTOR (7 downto 0); -- data to transmit
+  soft_reset : out std_logic;
+  pRBUS_DATA : in std_logic_vector(15 downto 0);
+  pRBUS_ADDR : in std_logic_vector(7 downto 0);
+  pRBUS_EN : in std_logic;
   LD0 : out std_logic;
-  LD1 : out std_logic        
+  LD1 : out std_logic;
+  LD2 : out std_logic       
 );
 end component;
 
@@ -95,9 +103,13 @@ signal RD_N      : std_logic;  -- Active low read enable
 signal D_IN   : std_logic_vector(7 downto 0);  -- Data to Transmit
 signal D_OUT  : std_logic_vector(7 downto 0);  -- Data Recieved
 
+
 signal RX_full   : std_logic;     -- Byte of Data Ready to read
 signal TX_busy_n : std_logic;     -- Active low indicate busy transmitting
   
+signal soft_reset : std_logic;
+signal cnt : std_logic_vector(31 downto 0);
+signal start_cnt : std_logic;
 
 begin
 
@@ -105,7 +117,35 @@ begin
 
 -- Combinational assignments
 --reset <= not RESET_low;  -- convert to active high reset
-reset <= RESET_low;
+--reset <= RESET_low;
+
+
+soft_reset_process : process(sysclk,RESET_low)
+begin
+  if(sysclk='1' and sysclk'event)then
+    if(RESET_low='1') then
+      cnt <= (others=>'0');
+      start_cnt <= '0';
+      reset <= '1';
+    else
+      reset <= '0';
+      if(soft_reset='1')then
+        start_cnt <= '1';
+      end if;
+      if(start_cnt='1')then
+        if(unsigned(cnt)<102129222)then -- reset signal should longer than 1 sample period??
+          cnt <= std_logic_vector(unsigned(cnt)+1);
+          reset <= '1';
+        else
+          start_cnt <= '0';
+          reset <= '0';
+          cnt <= (others=>'0');
+        end if;
+      end if; 
+    end if;
+  end if;
+end process;
+
 
 -- Port map UART interface component
 -- One side of the interface connects to the UART cable
@@ -117,9 +157,10 @@ port map
   Reset_n => reset,           -- main reset(phjones made active high)
   TXD     => FPGA_SERIAL1_TX, -- RS232 TX data
   RXD     => FPGA_SERIAL1_RX, -- RS232 RX data
-  ck_div => x"0D90", --100 MHz, 9600
+  --ck_div => x"0D90", --100 MHz, 9600
+  ck_div => x"10F4", --125 MHz, 9600
   --ck_div  => x"0004", --for simulation
- -- ck_div  => x"0478",
+  --ck_div  => x"06C8", -- 50 MHz, 9600
                               -- clock divider value
                               -- used to get the baud rate
                               -- baud_rate = F(clk) / (ck_div * 3)
@@ -150,8 +191,16 @@ port map
   RD_n      => RD_n,   -- Request to read a byte from the UART
   WR_n      => WR_n,  -- Write a byte to the UART inteface for transmission
   data_out  => D_IN,  -- Data to be transmitted by the FPGA
+  soft_reset => soft_reset,
+--  pRBUS_DATA => pRBUS_DATA,
+--  pRBUS_ADDR => pRBUS_ADDR,
+--  pRBUS_EN => pRBUS_EN,
+  pRBUS_DATA => "0000000000000000",
+  pRBUS_ADDR => "00000000",
+  pRBUS_EN => '1',
   LD0 => LD0,
-  LD1 => LD1
+  LD1 => LD1,
+  LD2 => LD2
 );
 
 

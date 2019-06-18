@@ -41,8 +41,13 @@ entity process_data is
            RD_n : out  STD_LOGIC; -- Read the byte from the UART
            WR_n : out  STD_LOGIC; -- Write a byte to the UART
            data_out : out  STD_LOGIC_VECTOR (7 downto 0); -- Data for UART to transmit
+           soft_reset : out std_logic;
+           pRBUS_DATA : in std_logic_vector(15 downto 0);
+           pRBUS_ADDR : in std_logic_vector(7 downto 0);
+           pRBUS_EN : in std_logic;
            LD0 : out std_logic;
-           LD1 : out std_logic
+           LD1 : out std_logic;
+           LD2 : out std_logic
            );
 end process_data;
 
@@ -53,6 +58,9 @@ architecture Behavioral of process_data is
 -- Component that echos data recived from the PC
 -- back to the PC.
 component echo
+generic(
+    rtc_divid : integer range 1 to 200000000 := 200000000
+    );
 port
 (
   clk       : in  STD_LOGIC;
@@ -62,8 +70,13 @@ port
   TX_busy_n : in  STD_LOGIC;  -- Active low, indicates when UART is ready to transmit
   send_data : out  STD_LOGIC; -- Tell UART to transmit a byte
   data_out  : out  STD_LOGIC_VECTOR (7 downto 0);  -- Data to send to the UART
+  soft_reset : out std_logic;
+  pRBUS_DATA : in std_logic_vector(15 downto 0);
+  pRBUS_ADDR : in std_logic_vector(7 downto 0);
+  pRBUS_EN : in std_logic;
   LD0 : out std_logic;
-  LD1 : out std_logic
+  LD1 : out std_logic;
+  LD2 : out std_logic
 );
 end component;
 
@@ -148,11 +161,12 @@ WR_n <= WR_n_reg;
 data_out <= data_out_reg;
 
 
--- Component instantiations
-
--- Component that echos data recived from the PC
--- back to the PC.
 echo1 : echo
+generic map(
+  --rtc_divid: Sampling frequency for R2U2
+  --rtc_divid  => 11800 -- simulation
+  rtc_divid => 50000000 --25000000 update 0.5s, 50MHz clock
+  )
 port map
 ( 
   clk       => clk,
@@ -162,8 +176,13 @@ port map
   TX_busy_n => TX_busy_n,
   send_data => send_data,
   data_out  => data_to_send,
+  soft_reset => soft_reset,
+  pRBUS_DATA => pRBUS_DATA,
+  pRBUS_ADDR => pRBUS_ADDR,
+  pRBUS_EN => pRBUS_EN, 
   LD0 => LD0,
-  LD1 => LD1
+  LD1 => LD1,
+  LD2 => LD2
 );
 
 

@@ -3,67 +3,22 @@
 from inputs import *
 import sys
 
-minLen = sys.maxint
+# minLen = sys.maxint # python 2
+minLen = sys.maxsize # python 3
 startTimestamp = 0
 commonWidth = 0;
 
-r = ""		# generation report
-r = r + "input samples:\n"
+# r = ""		# generation report
+# r = r + "input samples:\n"
 
-# read inputs
-for i in inputFiles:
-	i.parse()
-		
-	if startTimestamp < i.firstTimestamp:
-		startTimestamp = i.firstTimestamp
-		
+# # read inputs
+for i in inputFiles:		
 	commonWidth = commonWidth + i.commonWidth 
-		
-	r = r + "    " + i.file + ": " + str(i.len()) + " samples starting at " + str(i.firstTimestamp) + "\n"
-
-r = r + "start timestamp: " + str(startTimestamp) + "\n"
-r = r + "sample period: " + str(SAMPLE_PERIOD) + "s (" + str(1/float(SAMPLE_PERIOD)) + "Hz)\n"
-r = r + "sampled data:\n"
-
-# sample data
-pp = PdfPages("logged_data.pdf")
-
-for i in inputFiles:
-	i.sampleData(startTimestamp, SAMPLE_PERIOD)
-	
-	if minLen > i.len():
-		minLen = i.len()
-	
-	r = r + "    " + i.file + ": " + str(i.len()) + " samples starting at " + str(i.firstTimestamp) + "\n"
-	p = i.addPlot(pp)
-
-pp.close()
-
-
-# generate output
-readable = ""
-binary = ""
-headers = ""
-for i in inputFiles:
-	headers = headers + i.getReadableHeaders()
-readable = readable + headers + "\n"
-
-for lineNr in range(0, minLen):
-	line = ""
-	binaryLine = ""
-	for i in inputFiles:
-		line = line + i.getReadableDataLine(lineNr)
-		binaryLine = binaryLine + i.getBinaryDataLine(lineNr)
-		
-	readable = readable + line + "\n"
-	binary = binary + binaryLine + "\n"
-	
-writeToFile("logged_data.csv", readable)
-writeToFile("logged_data.dat", binary)
-
 # generate VHDL code
 
 aCConfig = AtCheckerConfig()
+
+r=""
 
 r = r + "log data input width: " + str(commonWidth) + "\n"
 r = r + "atmomics width: " + str(aCConfig.count) + "\n"
@@ -116,7 +71,7 @@ a = a + "use ieee.std_logic_1164.all;\n"
 a = a + "use ieee.numeric_std.all;\n"
 a = a + "use work.at_checker_pkg.all;\n"
 a = a + "use work.log_input_pkg.all;\n"
-a = a + "use work.filter_pkg.all;\n\n"
+a = a + "--use work.filter_pkg.all;\n\n"
 
 a = a + "entity at_checkers is\n"
 a = a + "    port(\n"
@@ -193,7 +148,7 @@ a = a + "end architecture;"
 
 writeToFile("at_checkers.vhd", a)
 writeToFile("report.txt", r)
-print r
+print(r)
 
 #print binary
 #print p

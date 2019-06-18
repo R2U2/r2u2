@@ -6,6 +6,8 @@
 -- Copyright  : 2011, Thomas Reinbacher (treinbacher@ecs.tuwien.ac.at)
 --              Vienna University of Technology, ECS Group
 -------------------------------------------------------------------------------
+-- Fixed by ISU RCL 2017
+-------------------------------------------------------------------------------
 -- Description: A state machine for mu_monitor calculation.
 -- PAMO:   op1Type unterscheidet typen des inputs wie ich es verstehe --> 
 --         der bug dass es nur mit atomics geht koennte hier gesucht werden
@@ -131,6 +133,7 @@ architecture arch of ft_mu_monitor_fsm is
   signal sr_rdData : std_logic_vector(SR_DATA_WIDTH-1 downto 0);
   signal queue_i : ft_queue_in_t;
   signal queue_o : ft_queue_out_t;
+  signal pip_cout : std_logic_vector(4 downto 0);
   signal op1 : ft_tuple_t;
   signal op2 : ft_tuple_t;
   signal pc : std_logic_vector(log2c(ROM_LEN) - 1 downto 0);
@@ -140,6 +143,13 @@ architecture arch of ft_mu_monitor_fsm is
   signal have_new_result_box : std_logic;
   signal op1_temp : std_logic_vector(TIMESTAMP_WIDTH downto 0);
   signal op2_temp : std_logic_vector(TIMESTAMP_WIDTH downto 0);
+  signal finish_sig : std_logic;
+
+  signal rst_finish : std_logic;
+  signal sr_addr_cnt : std_logic_vector(sr_addr'length downto 0);--should be 1 bit wider than sr_addr
+  signal sr_addr_reset : std_logic_vector(sr_addr'length-1 downto 0);
+
+
 
 begin
   
@@ -163,7 +173,9 @@ begin
   debug.new_result <= queue_i.new_result;
   debug.command <= this.command.command;
   debug.interval <= this.interval;
+  debug.finish <= finish_sig;
   -- instantiate components    
+  finish <= finish_sig;
 
   i_queue : ft_queue
     port map (
@@ -175,149 +187,157 @@ begin
       map_wrAddr => (others=>'0')
       );
   -- logic
-  combination : process(this, atomics, timestamp, imemData, interval_memory_data, trigger, data_memory_addr,
-    queue_i.new_result_rdy, queue_o)
+  combination : process(res_n, this, atomics, timestamp, imemData, interval_memory_data, trigger, data_memory_addr,
+    queue_i.new_result_rdy, queue_o, rst_finish)
 
 
   begin
-    nxt <= this;
 
-    -- default values for signals and variables
-    imemAddr                  <= this.programCounter;
-    finish                    <= '0';
-    async_out                 <= this.async_out;
+    if (res_n = '0') then
+      nxt <= registerReset;
 
-    op1Type <= this.command.op1.is_memory_addr & this.command.op1.is_immediate;
-    op2Type <= this.command.op2.is_memory_addr & this.command.op2.is_immediate;
+    else
+      nxt <= this;
 
-    interval_memory_addr <= this.command.intervalAddr(interval_memory_addr'length - 1 downto 0);
-    
+      -- default values for signals and variables
+      imemAddr                  <= this.programCounter;
+      finish_sig                <= '0';
+      async_out                 <= this.async_out;
 
-    -- fsm
-    case this.state is
-      when RESET =>
-        nxt.state          <= IDLE;
-        
-      when IDLE =>
-        nxt.new_result <= '0';
-        nxt.programCounter <= (others => '0');
-        imemAddr           <= (others => '0');--instruction memory address
-        if trigger = '1' then           -- start new run
-          nxt.state <= FETCH;
-        end if;
-        
-      when FETCH =>
-        nxt.new_result <= '0';
-        finish <= '0';
-        nxt.atomics <= atomics;
-        nxt.command <= slv_to_instruction(imemData);
-        nxt.time    <= timestamp;--Pei: ??
-        nxt.state   <= LOAD_OP_WAIT;
-        nxt.programCounter <= this.programCounter + 1;
-      when LOAD_OP_WAIT =>
-        if(queue_o.state = FETCH_RD)then
-          nxt.state <= LOAD_OP_CHECKING;
-        end if;
+      op1Type <= this.command.op1.is_memory_addr & this.command.op1.is_immediate;
+      op2Type <= this.command.op2.is_memory_addr & this.command.op2.is_immediate;
 
-      when LOAD_OP_CHECKING =>
-        if(queue_o.state=WAIT_NEW_RESULT)then
-          nxt.state <= LOAD_OP;
-        end if;
-        if(queue_o.state=IDLE)then--no new result because of no new input
-          nxt.state <= INC_PC;
-        end if;
-      when LOAD_OP =>
-        case op1Type is
-          when "10" => --read from queue
-            nxt.op1.tail <= op1;
-          when "00" => -- read atomic
-            nxt.op1.tail.value <= this.atomics(conv_to_integer(this.command.op1.value(log2c(ATOMICS_WIDTH)-1 downto 0)));
-            nxt.op1.tail.time  <= timestamp; 
-          when others =>
-            null;
-        end case;
-        case op2Type is
-          when "10" => --read from queue
-            nxt.op2.tail <= op2;        
-          when "00" => -- read atomic
-            nxt.op2.tail.value <= this.atomics(conv_to_integer(this.command.op2.value(log2c(ATOMICS_WIDTH)-1 downto 0)));
-            nxt.op2.tail.time  <= timestamp; 
-          when others =>
-            null;
-        end case;
-        -- load timestamps
-        nxt.interval.min <= interval_memory_data(2*TIMESTAMP_WIDTH-1 downto TIMESTAMP_WIDTH);
-        nxt.interval.max <= interval_memory_data(TIMESTAMP_WIDTH-1 downto 0);
-  
-        nxt.state <= CALC;
-
-      when CALC =>
-        if(queue_i.new_result_rdy='1')then
-          nxt.state      <= WRITE_BACK;
-        end if;
-
-        case this.command.command is
-          when OP_LOAD =>
-            
-          when OP_END_SEQUENCE => 
-            nxt.async_out  <= this.op1.head;
-            
-          when OP_FT_BOXBOX |
-            OP_FT_DIAMONDDIAMOND |
-            OP_FT_BOXDOT |
-            OP_FT_DIAMONDDOT =>
-
-            case this.command.command is
-              when OP_FT_BOXBOX =>
-                
-              when OP_FT_DIAMONDDIAMOND =>
-              
-                
-              when OP_FT_BOXDOT | OP_FT_DIAMONDDOT =>
-                
-              when others =>
-                null;
-            end case;
-            
-          when OP_FT_UNTIL =>
-            
-            
-          when OP_FT_NOT =>
-            
-          when OP_FT_AND =>
-            
-          when OP_FT_IMPLICIT =>
-
-          when others =>
-            null;
-        end case;
-        
+      interval_memory_addr <= this.command.intervalAddr(interval_memory_addr'length - 1 downto 0);
       
-      when WRITE_BACK =>
-        if((queue_o.state=WRITE_NEW_RESULT_AND_PTR or queue_o.state=UPDATE_PTR) and queue_o.ptr_write='1')then
-          if(queue_o.doSelfLoop='0')then-------------------------------tmp:new feature
-            nxt.state <= INC_PC;
-          else
-            nxt.state <= LOAD_OP_WAIT;--correct??
-          end if;
-        end if;
-        
-        
-      when INC_PC =>
-        nxt.new_result <= '1';
-        case this.command.command is
-          when OP_END_SEQUENCE=>
-            nxt.state <= IDLE;
-            finish <= '1';
-          when others=>
-            nxt.state <= FETCH;
-        end case;
-      when others =>
-        null;
-    end case;
 
-    -- precalculations
-    nxt.interval_length <= this.interval.max - this.interval.min;
+      -- fsm
+      case this.state is
+        when RESET =>
+          if(rst_finish='1')then
+            nxt.state          <= IDLE;
+          end if;
+          
+        when IDLE =>
+          nxt.new_result <= '0';
+          nxt.programCounter <= (others => '0');
+          imemAddr           <= (others => '0');--instruction memory address
+          if trigger = '1' then           -- start new run
+            nxt.state <= FETCH;
+          end if;
+          
+        when FETCH =>
+          nxt.new_result <= '0';
+          finish_sig <= '0';
+          nxt.atomics <= atomics;
+          nxt.command <= slv_to_instruction(imemData);
+          nxt.time    <= timestamp;--Pei: ??
+          nxt.state   <= LOAD_OP_WAIT;
+          nxt.programCounter <= this.programCounter + 1;
+        when LOAD_OP_WAIT =>
+          if(queue_o.state = FETCH_RD)then
+            nxt.state <= LOAD_OP_CHECKING;
+          end if;
+
+        when LOAD_OP_CHECKING =>
+          if(queue_o.state=WAIT_NEW_RESULT)then
+            nxt.state <= LOAD_OP;
+          end if;
+          if(queue_o.state=IDLE)then--no new result because of no new input
+            nxt.state <= INC_PC;
+          end if;
+        when LOAD_OP =>
+          case op1Type is
+            when "10" => --read from queue
+              nxt.op1.tail <= op1;
+            when "00" => -- read atomic
+              nxt.op1.tail.value <= this.atomics(conv_to_integer(this.command.op1.value(log2c(ATOMICS_WIDTH)-1 downto 0)));
+              nxt.op1.tail.time  <= timestamp; 
+            when others =>
+              null;
+          end case;
+          case op2Type is
+            when "10" => --read from queue
+              nxt.op2.tail <= op2;        
+            when "00" => -- read atomic
+              nxt.op2.tail.value <= this.atomics(conv_to_integer(this.command.op2.value(log2c(ATOMICS_WIDTH)-1 downto 0)));
+              nxt.op2.tail.time  <= timestamp; 
+            when others =>
+              null;
+          end case;
+          -- load timestamps
+          nxt.interval.min <= interval_memory_data(2*TIMESTAMP_WIDTH-1 downto TIMESTAMP_WIDTH);
+          nxt.interval.max <= interval_memory_data(TIMESTAMP_WIDTH-1 downto 0);
+    
+          nxt.state <= CALC;
+
+        when CALC =>
+          if(queue_i.new_result_rdy='1')then
+            nxt.state      <= WRITE_BACK;
+          end if;
+
+          case this.command.command is
+            when OP_LOAD =>
+              
+            when OP_END_SEQUENCE => 
+              nxt.async_out  <= this.op1.head;
+              
+            when OP_FT_BOXBOX |
+              OP_FT_DIAMONDDIAMOND |
+              OP_FT_BOXDOT |
+              OP_FT_DIAMONDDOT =>
+
+              case this.command.command is
+                when OP_FT_BOXBOX =>
+                  
+                when OP_FT_DIAMONDDIAMOND =>
+                
+                  
+                when OP_FT_BOXDOT | OP_FT_DIAMONDDOT =>
+                  
+                when others =>
+                  null;
+              end case;
+              
+            when OP_FT_UNTIL =>
+              
+              
+            when OP_FT_NOT =>
+              
+            when OP_FT_AND =>
+              
+            when OP_FT_IMPLICIT =>
+
+            when others =>
+              null;
+          end case;
+          
+        
+        when WRITE_BACK =>
+          if((queue_o.state=WRITE_NEW_RESULT_AND_PTR or queue_o.state=UPDATE_PTR) and queue_o.ptr_write='1')then
+            if(queue_o.doSelfLoop='0')then-------------------------------tmp:new feature
+              nxt.state <= INC_PC;
+            else
+              nxt.state <= LOAD_OP_WAIT;--correct??
+            end if;
+          end if;
+          
+          
+        when INC_PC =>
+          nxt.new_result <= '1';
+          case this.command.command is
+            when OP_END_SEQUENCE=>
+              nxt.state <= IDLE;
+              finish_sig <= '1';
+            when others=>
+              nxt.state <= FETCH;
+          end case;
+        when others =>
+          null;
+      end case;
+
+      -- precalculations
+      nxt.interval_length <= this.interval.max - this.interval.min;
+    end if;
 
   end process;
 
@@ -330,7 +350,7 @@ begin
   op1 <= slv_to_ts(op1_temp) when queue_i.is_op1_atomic='1' else queue_o.op1;
   op2 <= slv_to_ts(op2_temp) when queue_i.is_op2_atomic='1' else queue_o.op2;
   s_reg_data <= slv_to_sr(sr_rdData);
-  sr_addr <= pc;
+  sr_addr <=  sr_addr_reset when this.state=RESET else pc;
 
 
   reg : process (clk , res_n)
@@ -357,10 +377,31 @@ begin
       s_reg_temp <= SR_T_NULL;
       sr_write <= '0';
       sr_wrData <= (others => '0');
+      pip_cout <= (others => '0');
+      
+      rst_finish <= '0';
+      sr_addr_cnt <= (others=>'0');
+      sr_addr_reset <= (others=>'0');
+
     elsif rising_edge (clk) then
       this <= nxt;
       sr_write <= '0';
+      rst_finish <= '0';
       case this.state is 
+        when RESET =>
+          if(unsigned(sr_addr_cnt)=NUMBER_OF_QUEUES)then
+            sr_wrData <=  (others=>'0');
+            rst_finish <= '1';
+            sr_addr_reset <= (others=>'0');
+            sr_addr_cnt <= (others=>'0');
+            sr_write <= '0';
+          else
+            sr_addr_cnt <= std_logic_vector(unsigned(sr_addr_cnt)+1);
+            sr_addr_reset <= sr_addr_cnt(sr_addr_reset'length-1 downto 0);
+            sr_wrData <= (others=>'0');
+            sr_write <= '1';
+          end if;
+
         when IDLE =>
           pc <= (others=>'0');
         when FETCH =>
@@ -421,31 +462,31 @@ begin
                 queue_i.have_new_result <= '1';
               end if;
             ----------------------------------------------------------------------
-            when OP_FT_BOXBOX =>--question: how to define the transition of a wave
-              queue_i.new_result_rdy <= '1';
-              if(queue_o.isEmpty_1='0')then
-                queue_i.new_result <= op1;
-                s_reg_temp.last_value <= op1.value;
-                queue_i.have_new_result <= '1';
-                if(op1.value='1' and s_reg_data.last_value='0')then
-                  s_reg_temp.mUp <= s_reg_data.mPre;
-                end if;
-                s_reg_temp.mPre <= std_logic_vector(unsigned(op1.time(mPre_DATA_WIDTH-1 downto 0)) + 1);
-                if(op1.value='1')then
-                  if (s_reg_data.last_value='0' and unsigned(s_reg_data.mPre)+unsigned(this.interval.max)<=unsigned(op1.time)) or 
-                   (s_reg_data.last_value='1' and unsigned(s_reg_data.mUp)+unsigned(this.interval.max)<=unsigned(op1.time)) then
-                    queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));    
-                    --queue_i.have_new_result <= '1';
-                    --s_reg_temp.last_value <= '1';
-                  else 
-                    queue_i.have_new_result <= '0';
-                    --s_reg_temp.last_value <= '1';--last_value=???, depends on how we inteprete line 3
-                  end if;
-                end if;
-              else 
-                queue_i.have_new_result <= '0';
-                --s_reg_temp.last_value <= '0';--last_value=???, depends on how we inteprete line 3
-              end if;
+            when OP_FT_BOXBOX =>--This operation is no longer supported, use OP_FT_BOTDOT
+              --queue_i.new_result_rdy <= '1';
+              --if(queue_o.isEmpty_1='0')then
+              --  queue_i.new_result <= op1;
+              --  s_reg_temp.last_value <= op1.value;
+              --  queue_i.have_new_result <= '1';
+              --  if(op1.value='1' and s_reg_data.last_value='0')then
+              --    s_reg_temp.mUp <= s_reg_data.mPre;
+              --  end if;
+              --  s_reg_temp.mPre <= std_logic_vector(unsigned(op1.time(mPre_DATA_WIDTH-1 downto 0)) + 1);
+              --  if(op1.value='1')then
+              --    if (s_reg_data.last_value='0' and unsigned(s_reg_data.mPre)+unsigned(this.interval.max)<=unsigned(op1.time)) or 
+              --     (s_reg_data.last_value='1' and unsigned(s_reg_data.mUp)+unsigned(this.interval.max)<=unsigned(op1.time)) then
+              --      queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));    
+              --      --queue_i.have_new_result <= '1';
+              --      --s_reg_temp.last_value <= '1';
+              --    else 
+              --      queue_i.have_new_result <= '0';
+              --      --s_reg_temp.last_value <= '1';--last_value=???, depends on how we inteprete line 3
+              --    end if;
+              --  end if;
+              --else 
+              --  queue_i.have_new_result <= '0';
+              --  --s_reg_temp.last_value <= '0';--last_value=???, depends on how we inteprete line 3
+              --end if;
             ----------------------------------------------------------------------
             when OP_FT_AND =>
               queue_i.new_result_rdy <= '1';
@@ -487,78 +528,185 @@ begin
               end if;
             ----------------------------------------------------------------------
             when OP_FT_BOXDOT =>
-              if(new_result_rdy_box='0')then
-                new_result_rdy_box <= '1';
-                if(queue_o.isEmpty_1='0')then
-                  queue_i.new_result <= op1;
-                  s_reg_temp.last_value <= op1.value;
-                  box_result_time <= op1.time;
-                  have_new_result_box <= '1';
-                  if(op1.value='1' and s_reg_data.last_value='0')then
-                    s_reg_temp.mUp <= s_reg_data.mPre;
-                  end if;
-                  s_reg_temp.mPre <= std_logic_vector(unsigned(op1.time(mPre_DATA_WIDTH-1 downto 0)) + 1);
-                  if(op1.value='1')then
-                    if (s_reg_data.last_value='0' and unsigned(s_reg_data.mPre)+unsigned(this.interval.max)<=unsigned(op1.time)+unsigned(this.interval.min)) or 
-                     (s_reg_data.last_value='1' and unsigned(s_reg_data.mUp)+unsigned(this.interval.max)<=unsigned(op1.time)+unsigned(this.interval.min)) then
-                      queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)+unsigned(this.interval.min)-unsigned(this.interval.max));
-                      box_result_time <=  std_logic_vector(unsigned(op1.time)+unsigned(this.interval.min)-unsigned(this.interval.max));
-                    else 
-                      have_new_result_box <= '0';
-                    end if;
-                  end if;
-                else 
-                  have_new_result_box <= '0';
-                end if; 
-              end if;
-              --------------------------------------------
-              if(new_result_rdy_box='1')then
-                queue_i.new_result_rdy <= '1';
+            -- Update: split the pipeline
+              -- s_reg_temp.mUp s_reg_data.mPre s_reg_data.last_value
+              -- m, tau_pre, v_pre
 
-                if(have_new_result_box='1' and unsigned(box_result_time)>=unsigned(this.interval.min))then
-      
-                  queue_i.new_result.time <= std_logic_vector(unsigned(box_result_time)-unsigned(this.interval.min)); 
-                  queue_i.have_new_result <= '1';
-                end if;
-              end if;
-            ----------------------------------------------------------------------  
-            when OP_FT_UNTIL =>--op1.time == op2.time
-              queue_i.new_result_rdy <= '1';
-              if(queue_o.isEmpty_1='0' and queue_o.isEmpty_2='0')then
-                if(s_reg_data.last_value='1' and op2.value='0')then
-                  s_reg_temp.mPre <= op1.time;
-                end if;
-                if(op2.value='1')then
-                  if(unsigned(op1.time)>=unsigned(this.interval.min))then
-                    queue_i.have_new_result <= '1';
-                    queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
-                    queue_i.new_result.value <= '1';
+
+              if(unsigned(pip_cout)=0)then
+                if(queue_o.isEmpty_1='1')then
+                  pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
+                  queue_i.new_result_rdy <= '1';
+                else
+                  s_reg_temp.t_pre <= op1.time;
+                  s_reg_temp.v_pre <= op1.value;
+                  if(op1.value='1' and s_reg_data.v_pre='0' and s_reg_data.m /= s_reg_data.t_pre)then
+                    s_reg_temp.m <= std_logic_vector(unsigned(s_reg_data.t_pre)+1);
+                  else
+                    s_reg_temp.m <= s_reg_data.m;
                   end if;
-                elsif(op1.value='0')then
-                  if(unsigned(op1.time)>=unsigned(this.interval.min))then
-                    queue_i.have_new_result <= '1';
-                    queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
-                    queue_i.new_result.value <= '0';
+                  pip_cout <= std_logic_vector(to_unsigned(1,pip_cout'length));
+                end if;
+              elsif (unsigned(pip_cout)=1) then
+                if(op1.value='1')then
+                  if(unsigned(op1.time)+unsigned(this.interval.min)>=unsigned(s_reg_temp.m)+unsigned(this.interval.max))then
+                    pip_cout <= std_logic_vector(to_unsigned(2,pip_cout'length));--check if result time <0
+                  else
+                    queue_i.new_result_rdy <= '1';
+                    pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
+                    queue_i.have_new_result <= '0';
+                    
                   end if;
                 else
-                  queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));
-                  queue_i.new_result.value <= '0';
-                  if(s_reg_data.last_value='1')then
-                    if(unsigned(this.interval.min)>=unsigned(this.interval.max))then
-                      if(unsigned(op1.time)>=unsigned(this.interval.max))then
-                        queue_i.have_new_result <= '1';
-                      end if;
-                    end if;
-                  else
-                    if(unsigned(op1.time)+unsigned(this.interval.min)>=unsigned(this.interval.max)+unsigned(s_reg_data.mPre))then
-                      if(unsigned(op1.time)>=unsigned(this.interval.max))then
-                        queue_i.have_new_result <= '1';
-                      end if;
-                    end if;
+                  if(unsigned(op1.time) >= unsigned(this.interval.min))then
+                    queue_i.new_result.time <=  std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
+                    queue_i.new_result.value <= '0';
+                    queue_i.have_new_result <= '1';
+                  else                     
+                    queue_i.have_new_result <= '0';
                   end if;
+                  queue_i.new_result_rdy <= '1';
+                  pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));                    
                 end if;
-                s_reg_temp.last_value <= op2.value;
+              elsif(unsigned(pip_cout)=2) then
+                if(unsigned(op1.time)>=unsigned(this.interval.max))then
+                  queue_i.new_result.time <=  std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));
+                  queue_i.new_result.value <= '1';
+                  queue_i.have_new_result <= '1';
+                else
+                  queue_i.have_new_result <= '0';
+                end if;
+                queue_i.new_result_rdy <= '1';
+                pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
               end if;
+
+
+
+              --if(new_result_rdy_box='0')then
+              --  new_result_rdy_box <= '1';
+              --  if(queue_o.isEmpty_1='0')then
+              --    queue_i.new_result <= op1;
+              --    s_reg_temp.last_value <= op1.value;
+              --    box_result_time <= op1.time;
+              --    have_new_result_box <= '1';
+              --    if(op1.value='1' and s_reg_data.last_value='0')then
+              --      s_reg_temp.mUp <= s_reg_data.mPre;
+              --    end if;
+              --    s_reg_temp.mPre <= std_logic_vector(unsigned(op1.time(mPre_DATA_WIDTH-1 downto 0)) + 1);
+              --    if(op1.value='1')then
+              --      if (s_reg_data.last_value='0' and unsigned(s_reg_data.mPre)+unsigned(this.interval.max)<=unsigned(op1.time)+unsigned(this.interval.min)) or 
+              --       (s_reg_data.last_value='1' and unsigned(s_reg_data.mUp)+unsigned(this.interval.max)<=unsigned(op1.time)+unsigned(this.interval.min)) then
+              --        queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)+unsigned(this.interval.min)-unsigned(this.interval.max));
+              --        box_result_time <=  std_logic_vector(unsigned(op1.time)+unsigned(this.interval.min)-unsigned(this.interval.max));
+              --      else 
+              --        have_new_result_box <= '0';
+              --      end if;
+              --    end if;
+              --  else 
+              --    have_new_result_box <= '0';
+              --  end if; 
+              --end if;
+              ----------------------------------------------
+              --if(new_result_rdy_box='1')then
+              --  queue_i.new_result_rdy <= '1';
+
+              --  if(have_new_result_box='1' and unsigned(box_result_time)>=unsigned(this.interval.min))then
+      
+              --    queue_i.new_result.time <= std_logic_vector(unsigned(box_result_time)-unsigned(this.interval.min)); 
+              --    queue_i.have_new_result <= '1';
+              --  end if;
+              --end if;
+            ----------------------------------------------------------------------  
+            when OP_FT_UNTIL =>--op1.time == op2.time
+
+              if(unsigned(pip_cout)=0)then
+                if(queue_o.isEmpty_1='0' and queue_o.isEmpty_2='0')then
+                  pip_cout <= std_logic_vector(to_unsigned(1,pip_cout'length));
+                  s_reg_temp.v_pre <= op2.value;
+                  s_reg_temp.t_pre <= op2.time;
+                else -- no new output
+                  queue_i.new_result_rdy <= '1';
+                  queue_i.have_new_result <= '0';
+                  pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
+--                  s_reg_temp.v_pre <= s_reg_data.v_pre;--
+--                  s_reg_temp.t_pre <= s_reg_data.t_pre;--
+--                  s_reg_temp.m <= s_reg_data.m;--
+                end if;
+              elsif(unsigned(pip_cout)=1)then
+                if(s_reg_data.v_pre = '1' and op2.value = '0')then
+                  s_reg_temp.m <= std_logic_vector(unsigned(s_reg_data.t_pre)+1);
+                else
+                  s_reg_temp.m <= s_reg_data.m;
+                end if;
+                queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
+                if(op2.value = '1')then
+                  queue_i.new_result.value <= '1'; 
+                  pip_cout <= std_logic_vector(to_unsigned(4,pip_cout'length));
+                elsif(op1.value = '0')then
+                  queue_i.new_result.value <= '0';
+                  pip_cout <= std_logic_vector(to_unsigned(4,pip_cout'length));
+                else 
+                  pip_cout <= std_logic_vector(to_unsigned(2,pip_cout'length));
+                  queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)+unsigned(this.interval.min));--serve as temp register
+                end if; 
+              elsif (unsigned(pip_cout)=2) then
+                queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));
+                queue_i.new_result_rdy <= '1';
+                pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
+                if(unsigned(queue_i.new_result.time)>=unsigned(this.interval.max)+unsigned(s_reg_temp.m))then
+                  queue_i.new_result.value <= '0'; -- '0' for strong until. '1' for weak until
+                  queue_i.have_new_result <= '1';
+                end if;
+              elsif (unsigned(pip_cout)=4) then
+                queue_i.new_result_rdy <= '1';
+                pip_cout <= std_logic_vector(to_unsigned(10,pip_cout'length));
+                if(unsigned(op1.time)>=unsigned(this.interval.min))then
+                  queue_i.have_new_result <= '1';
+                end if;
+
+
+              end if;
+                
+
+
+
+
+              --queue_i.new_result_rdy <= '1';
+              --if(queue_o.isEmpty_1='0' and queue_o.isEmpty_2='0')then
+              --  if(s_reg_data.last_value='1' and op2.value='0')then
+              --    s_reg_temp.mPre <= op1.time;
+              --  end if;
+              --  if(op2.value='1')then
+              --    if(unsigned(op1.time)>=unsigned(this.interval.min))then
+              --      queue_i.have_new_result <= '1';
+              --      queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
+              --      queue_i.new_result.value <= '1';
+              --    end if;
+              --  elsif(op1.value='0')then
+              --    if(unsigned(op1.time)>=unsigned(this.interval.min))then
+              --      queue_i.have_new_result <= '1';
+              --      queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.min));
+              --      queue_i.new_result.value <= '0';
+              --    end if;
+              --  else
+              --    queue_i.new_result.time <= std_logic_vector(unsigned(op1.time)-unsigned(this.interval.max));
+              --    queue_i.new_result.value <= '0';
+              --    if(s_reg_data.last_value='1')then
+              --      if(unsigned(this.interval.min)>=unsigned(this.interval.max))then
+              --        if(unsigned(op1.time)>=unsigned(this.interval.max))then
+              --          queue_i.have_new_result <= '1';
+              --        end if;
+              --      end if;
+              --    else
+              --      if(unsigned(op1.time)+unsigned(this.interval.min)>=unsigned(this.interval.max)+unsigned(s_reg_data.mPre))then
+              --        if(unsigned(op1.time)>=unsigned(this.interval.max))then
+              --          queue_i.have_new_result <= '1';
+              --        end if;
+              --      end if;
+              --    end if;
+              --  end if;
+              --  s_reg_temp.last_value <= op2.value;
+              --end if;
             -----------------------------------------------------------------------  
             when others =>
           end case;
@@ -569,13 +717,15 @@ begin
             have_new_result_box <= '0';
             queue_i.new_result_rdy <= '0';
             queue_i.have_new_result <= '0';
+            pip_cout <= (others=>'0');
           end if;
 
         when WRITE_BACK =>
           --queue_i.is_load_command <= '0';
           --this.programCounter <= std_logic_vector(unsigned(this.programCounter)+1);
           if(this.command.command=OP_FT_BOXBOX or this.command.command=OP_FT_BOXDOT or this.command.command=OP_FT_UNTIL)then
-            sr_wrData <= sr_to_slv(s_reg_temp.last_value, s_reg_temp.mUp, s_reg_temp.mPre);
+            --sr_wrData <= sr_to_slv(s_reg_temp.last_value, s_reg_temp.mUp, s_reg_temp.mPre);
+            sr_wrData <= sr_to_slv( s_reg_temp.m, s_reg_temp.t_pre, s_reg_temp.v_pre);
             sr_write <= '1';
           end if;
           --queue_i.need_op2 <= '0';

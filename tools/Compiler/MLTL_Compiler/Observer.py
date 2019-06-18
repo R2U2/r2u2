@@ -91,10 +91,10 @@ class GLOBAL(Observer):
 		self.left.pre = self
 
 	def gen_assembly(self, s):
-		if(self.lb==0):
-			substr = "boxbox "+self.left.hook+" "+str(self.ub)
-		else:
-			substr = "boxdot "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
+		# if(self.lb==0): # boxdot no longer support in VHDL
+		# 	substr = "boxbox "+self.left.hook+" "+str(self.ub)
+		# else:
+		substr = "boxdot "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
 		s = super().gen_assembly(s, substr)
 		return s
 

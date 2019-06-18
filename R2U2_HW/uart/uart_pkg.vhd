@@ -25,7 +25,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 package uart_pkg is
     
     function str_to_std_logic_vector(input :    string) return std_logic_vector;
-    constant data_size: integer:=1024;
+    constant data_size: integer:=1024;--for simulation purpose
     type TEST_DATA_type is array (0 to data_size-1) of std_logic_vector(7 downto 0);
     
     

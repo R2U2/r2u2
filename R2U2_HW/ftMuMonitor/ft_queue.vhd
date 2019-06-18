@@ -96,16 +96,20 @@ architecture arch of ft_queue is
 
   signal data_addr_1    : std_logic_vector(log2c(NUMBER_OF_QUEUES)+log2c(QUEUE_SIZE)-1 downto 0); 
   signal data_addr_2    : std_logic_vector(log2c(NUMBER_OF_QUEUES)+log2c(QUEUE_SIZE)-1 downto 0); 
-  signal data_wrData_1  : std_logic_vector(TIMESTAMP_WIDTH downto 0); 
-  signal data_wrData_2  : std_logic_vector(TIMESTAMP_WIDTH downto 0); 
-  signal data_write_1   : std_logic; 
-  signal data_write_2   : std_logic; 
+  signal data_wrData  : std_logic_vector(TIMESTAMP_WIDTH downto 0); 
+  signal data_write   : std_logic; 
+  signal data_wrAddr : std_logic_vector(log2c(NUMBER_OF_QUEUES)+log2c(QUEUE_SIZE)-1 downto 0); 
   signal data_rdData_1  : std_logic_vector(TIMESTAMP_WIDTH downto 0); 
   signal data_rdData_2  : std_logic_vector(TIMESTAMP_WIDTH downto 0); 
 
   signal debug : std_logic;
 
-  constant initial_last_value : std_logic_vector(TIMESTAMP_WIDTH-1 downto 0) := (others=>'1');
+  signal rst_finish : std_logic;
+  signal rst_finish_1 : std_logic;
+  signal rst_finish_2 : std_logic;
+  signal lastRd_addr_cnt : std_logic_vector(log2c(NUMBER_OF_QUEUES) downto 0);
+  signal data_addr_1_cnt : std_logic_vector(log2c(NUMBER_OF_QUEUES)+log2c(QUEUE_SIZE) downto 0);
+  --constant initial_last_value : std_logic_vector(TIMESTAMP_WIDTH-1 downto 0) := (others=>'1');
 begin
 
   --usage structure: [1st read pointer,2nd read pointer,writer pointer,last verdict]
@@ -123,6 +127,7 @@ begin
       );
 
   -- last data that the read pointer points to that contributes to an output
+  -- new: the time_stamp that we are looking for
   last_rd_inst : sp_ram
     generic map(
       ADDR_WIDTH => log2c(NUMBER_OF_QUEUES),
@@ -143,18 +148,28 @@ begin
       DATA_WIDTH => TIMESTAMP_WIDTH + 1
       )
     port map(
-      clk      => clk,
-      addr_1   => data_addr_1,
-      addr_2   => data_addr_2,
-      wrData_1 => data_wrData_1,
-      wrData_2 => data_wrData_2,
-      write_1  => data_write_1,
-      write_2  => data_write_2,
-      rdData_1 => data_rdData_1,
-      rdData_2 => data_rdData_2
+      clk     => clk,                     
+      rdAddrA => data_addr_1,
+      rdAddrB => data_addr_2,
+      wrAddr  => data_wrAddr,
+      wrData  => data_wrData,
+      write   => data_write,
+      rdDataA => data_rdData_1,
+      rdDataB => data_rdData_2
+
+
+      --clk      => clk,
+      --addr_1   => data_addr_1,
+      --addr_2   => data_addr_2,
+      --wrData_1 => data_wrData_1,
+      --wrData_2 => data_wrData_2,
+      --write_1  => data_write_1,
+      --write_2  => data_write_2,
+      --rdData_1 => data_rdData_1,
+      --rdData_2 => data_rdData_2
       );
 
-  combination : process (this, i, res_n, isEmpty_1, isEmpty_2, ptr_write)
+  combination : process (this, i, res_n, isEmpty_1, isEmpty_2, ptr_write, rst_finish)
   begin
     nxt.state <= this.state;
     if(res_n = '0') then
@@ -163,7 +178,9 @@ begin
       
       case this.state is
         when RESET =>
-          nxt.state <= IDLE;
+          if(rst_finish = '1')then
+            nxt.state <= IDLE;
+          end if;
         when IDLE=>
           if(i.opNum_rdy='1')then
             nxt.state <= FETCH_RD;
@@ -216,6 +233,8 @@ begin
     end if;
   end process;
 
+rst_finish <= rst_finish_1 and rst_finish_2;
+
   reg : process (clk , res_n)
   begin
     if res_n = '0' then
@@ -232,12 +251,17 @@ begin
       op2_wrptr_reg <= (others=>'0');
       data_addr_1 <= (others=>'0');
       data_addr_2 <= (others=>'0');
-      data_wrData_1 <= (others=>'0');
-      data_wrData_2 <= (others=>'0');
-      data_write_1 <= '0';
-      data_write_2 <= '0';
+      data_addr_1_cnt <= (others=>'0');
+      --data_wrData_1 <= (others=>'0');
+      --data_wrData_2 <= (others=>'0');
+      data_wrData <= (others=>'0');---
+      data_wrAddr <= (others=>'0');---        
+      --data_write_1 <= '0';
+      --data_write_2 <= '0';
+      data_write <= '0';
       lastRd_wrData <= (others=>'0');
       lastRd_addr <= (others=>'0');
+      lastRd_addr_cnt <= (others=>'0');
       lastRd_write <= '0';
       ptr_wrData <= (others=>'0');
       ptr_addr <= (others=>'0');
@@ -245,10 +269,55 @@ begin
       debug <= '0';
       isFirstLoop <= '1';
       doSelfLoop <= '0';
+      rst_finish_1 <= '0';
+      rst_finish_2 <= '0';
     elsif rising_edge (clk) then
       this.state <= nxt.state;
       ptr_write <= '0';
       case this.state is
+        when RESET => --need if state to reset all the content of BRAM to 0
+          if(rst_finish_1='1' and rst_finish_2='1')then
+            rst_finish_1 <= '0';
+            rst_finish_2 <= '0';
+          else
+            if(rst_finish_1 = '0')then
+              if(unsigned(lastRd_addr_cnt)=NUMBER_OF_QUEUES)then
+                rst_finish_1 <= '1';
+                lastRd_addr <= (others=>'0');
+                ptr_addr <= (others =>'0');
+                lastRd_addr_cnt <= (others=>'0');
+                lastRd_write <= '0';
+                ptr_write <= '0';
+              else
+                lastRd_addr_cnt <= std_logic_vector(unsigned(lastRd_addr_cnt)+1);
+                lastRd_addr <= lastRd_addr_cnt(lastRd_addr'length-1 downto 0);
+                ptr_addr <= lastRd_addr_cnt(lastRd_addr'length-1 downto 0);
+                lastRd_wrData <= (others=>'0');
+                ptr_wrData <= (others =>'0');
+                lastRd_write <= '1';
+                ptr_write <= '1';
+              end if;
+            end if;
+
+            rst_finish_2 <= '1';
+            -- -- seems no need to reset data contend
+            --if(rst_finish_2='0')then
+            --  if(unsigned(data_addr_1_cnt)=DATA_QUEUE_SIZE)then
+            --    data_wrAddr <=  (others=>'0');
+            --    rst_finish_2 <= '1';
+            --    data_addr_1_cnt <= (others=>'0');
+            --    data_write <= '0';
+            --  else
+            --    data_addr_1_cnt <= std_logic_vector(unsigned(data_addr_1_cnt)+1);
+            --    data_addr_1 <= data_addr_1_cnt(data_addr_1'length-1 downto 0);
+            --    data_wrAddr <= (others=>'0');
+            --    data_write <= '1';
+            --  end if;
+            --end if;
+
+          end if;
+          
+
         when IDLE =>
           isEmpty_1 <= '0';
           isEmpty_2 <= '0';
@@ -306,7 +375,8 @@ begin
               if(unsigned(ptr_inc_1)<2)then
                 ptr_inc_1 <= std_logic_vector(unsigned(ptr_inc_1)+1);
               else
-                if unsigned(lastRd_1)<unsigned(queue_data_1.time) or lastRd_1=initial_last_value then
+                --if unsigned(lastRd_1)<unsigned(queue_data_1.time) or lastRd_1=initial_last_value then
+                if unsigned(lastRd_1)<=unsigned(queue_data_1.time) then
                   this.queue_1_inc_finish <= '1';
                   op1 <= queue_data_1;
                   rdPtr_1_temp <= std_logic_vector(unsigned(rdPtr_1)+unsigned(ptr_inc_1)-2) and size_mask;
@@ -335,7 +405,8 @@ begin
               if(unsigned(ptr_inc_2)<2)then
                 ptr_inc_2 <= std_logic_vector(unsigned(ptr_inc_2)+1);
               else
-                if unsigned(lastRd_2)<unsigned(queue_data_2.time) or lastRd_2=initial_last_value then
+                --if unsigned(lastRd_2)<unsigned(queue_data_2.time) or lastRd_2=initial_last_value then
+                if unsigned(lastRd_2)<=unsigned(queue_data_2.time) then
                   this.queue_2_inc_finish <= '1';
                   op2 <= queue_data_2;
                   rdPtr_2_temp <= std_logic_vector(unsigned(rdPtr_2)+unsigned(ptr_inc_2)-2) and size_mask;
@@ -380,7 +451,7 @@ begin
         when UPDATE_PTR =>
           ptr_write <= '1'; 
           case i.command is 
-            when OP_LOAD | OP_FT_AND | OP_FT_NOT=> 
+            when OP_LOAD | OP_FT_AND | OP_FT_NOT | OP_END_SEQUENCE=> 
             --TODO
               --Pei: can we remove this?
               doSelfLoop <= '0';
@@ -389,11 +460,11 @@ begin
             when OP_FT_UNTIL=>
               if(isEmpty_1='0' and isEmpty_2='0')then
                 lastRd_write <= '1';
-                lastRd_wrData <= op1.time & op2.time;--whatever op1 or op2, since they are equal
-                if(lastRd_wrData_mem/=op1.time & op2.time or isFirstLoop='1')then
+                lastRd_wrData <= std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1);--whatever op1 or op2, since they are equal
+                if(lastRd_wrData_mem/=std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1) or isFirstLoop='1')then
                   isFirstLoop <= '0';
                   doSelfLoop <= '1';
-                  lastRd_wrData_mem <= op1.time & op2.time;
+                  lastRd_wrData_mem <= std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1);
                 else
                   doSelfLoop <= '0';
                   isFirstLoop <= '1';
@@ -405,11 +476,11 @@ begin
             --Pei: (Answer to myself) If Boxbox or boxdot use any data for computation but with no output, we still update tau
               if(isEmpty_1='0')then
                 lastRd_write <= '1';
-                lastRd_wrData <= op1.time & lastRd_2;
-                if(lastRd_wrData_mem/=op1.time & lastRd_2 or isFirstLoop='1')then
+                lastRd_wrData <= std_logic_vector(unsigned(op1.time)+1) & lastRd_2;
+                if(lastRd_wrData_mem/=std_logic_vector(unsigned(op1.time)+1) & lastRd_2 or isFirstLoop='1')then
                   isFirstLoop <= '0';
                   doSelfLoop <= '1';
-                  lastRd_wrData_mem <= op1.time & lastRd_2;
+                  lastRd_wrData_mem <= std_logic_vector(unsigned(op1.time)+1) & lastRd_2;
                 else
                   doSelfLoop <= '0';
                   isFirstLoop <= '1';
@@ -428,21 +499,22 @@ begin
           isEmpty_1 <= '0';
           isEmpty_2 <= '0';
 
-          data_wrData_1 <= ts_to_slv(i.new_result);
-
+          --data_wrData_1 <= ts_to_slv(i.new_result);
+          data_wrData <= ts_to_slv(i.new_result);
           case i.command is 
             when OP_LOAD => 
-              lastRd_wrData <= i.new_result.time & lastRd_2;
+              --lastRd_wrData <= i.new_result.time & lastRd_2;
+              lastRd_wrData <= std_logic_vector(unsigned(i.new_result.time)+1) & lastRd_2;
               doSelfLoop <= '0'; 
               isFirstLoop <= '1';
 
             when OP_FT_AND =>
-              lastRd_wrData <= i.new_result.time & i.new_result.time;
+              lastRd_wrData <= std_logic_vector(unsigned(i.new_result.time)+1) & std_logic_vector(unsigned(i.new_result.time)+1);
               if(ptr_write='0')then
-                if(lastRd_wrData_mem/=i.new_result.time & i.new_result.time or isFirstLoop='1')then
+                if(lastRd_wrData_mem/=std_logic_vector(unsigned(i.new_result.time)+1) & std_logic_vector(unsigned(i.new_result.time)+1) or isFirstLoop='1')then
                   isFirstLoop <= '0';
                   doSelfLoop <= '1';
-                  lastRd_wrData_mem <= i.new_result.time & i.new_result.time;
+                  lastRd_wrData_mem <= std_logic_vector(unsigned(i.new_result.time)+1) & std_logic_vector(unsigned(i.new_result.time)+1);
                 else
                   doSelfLoop <= '0';
                   isFirstLoop <= '1';
@@ -451,12 +523,12 @@ begin
 
             when OP_FT_UNTIL=>
             --TODO
-              lastRd_wrData <= op1.time & op2.time;--whatever op1 or op2, since they are equal
+              lastRd_wrData <= std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1);--whatever op1 or op2, since they are equal
               if(ptr_write='0')then
-                if(lastRd_wrData_mem/=op1.time & op2.time or isFirstLoop='1')then
+                if(lastRd_wrData_mem/=std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1) or isFirstLoop='1')then
                   isFirstLoop <= '0';
                   doSelfLoop <= '1';
-                  lastRd_wrData_mem <= op1.time & op2.time;
+                  lastRd_wrData_mem <= std_logic_vector(unsigned(op1.time)+1) & std_logic_vector(unsigned(op2.time)+1);
                 else
                   doSelfLoop <= '0';
                   isFirstLoop <= '1';
@@ -464,12 +536,12 @@ begin
               end if;
 
             when others =>
-              lastRd_wrData <= op1.time & lastRd_2;
+              lastRd_wrData <= std_logic_vector(unsigned(op1.time)+1) & lastRd_2;
               if(ptr_write='0')then
-                if(lastRd_wrData_mem/=op1.time & lastRd_2 or isFirstLoop='1')then
+                if(lastRd_wrData_mem/=std_logic_vector(unsigned(op1.time)+1) & lastRd_2 or isFirstLoop='1')then
                   isFirstLoop <= '0';
                   doSelfLoop <= '1';
-                  lastRd_wrData_mem <= op1.time & lastRd_2;
+                  lastRd_wrData_mem <= std_logic_vector(unsigned(op1.time)+1) & lastRd_2;
                 else
                   doSelfLoop <= '0';
                   isFirstLoop <= '1';
@@ -479,21 +551,26 @@ begin
           
 
           lastRd_write <= '1';
-          data_write_1 <= '1';
+          --data_write_1 <= '1';
+          data_write <= '1';
           ptr_write <= '1';
 
-          if(i.new_result.value=last_value and lastRd_1/=initial_last_value and ever_write='1')then--need aggregation
-            data_addr_1 <= i.pc & (std_logic_vector(unsigned(wrPtr)-1) and size_mask);
+          -- if(i.new_result.value=last_value and lastRd_1/=initial_last_value and ever_write='1')then--need aggregation
+          if(i.new_result.value=last_value and ever_write='1')then--need aggregation
+            --data_addr_1 <= i.pc & (std_logic_vector(unsigned(wrPtr)-1) and size_mask);
+            data_wrAddr <= i.pc & (std_logic_vector(unsigned(wrPtr)-1) and size_mask);
             ptr_wrData <= '1' & rdPtr_1_temp & rdPtr_2_temp & (wrPtr and size_mask) & i.new_result.value;
           else 
-            data_addr_1 <= i.pc & (wrPtr and size_mask);            
+            --data_addr_1 <= i.pc & (wrPtr and size_mask);
+            data_wrAddr <= i.pc & (wrPtr and size_mask);
             ptr_wrData <= '1' & rdPtr_1_temp & rdPtr_2_temp & (std_logic_vector(unsigned(wrPtr)+1) and size_mask) & i.new_result.value;
             --ptr_wrData <= rdPtr_1 & rdPtr_2 & (std_logic_vector(unsigned(wrPtr)+1) and size_mask) & i.new_result.value;
           end if;
 
           if(ptr_write='1')then
             doSelfLoop <= '0';
-            data_write_1 <= '0';
+            --data_write_1 <= '0';
+            data_write <= '0';
             ptr_write <= '0';
             lastRd_write <= '0';
             

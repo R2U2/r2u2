@@ -22,7 +22,7 @@ package ft_mu_monitor_pkg is
   constant NUMBER_OF_QUEUES         : integer := ROM_LEN;--maximum instruction
   constant NUMBER_OF_QUEUE_ELEMENTS : integer := 2048;
   constant QUEUE_SIZE : integer := 32;
-
+  constant DATA_QUEUE_SIZE : integer := NUMBER_OF_QUEUES*QUEUE_SIZE;
 
   constant FT_TUPLE_T_NULL : ft_tuple_t := ('0', (others => '0'));
   constant FT_TUPLE_T_LEN  : integer    := 1 + TIMESTAMP_WIDTH;

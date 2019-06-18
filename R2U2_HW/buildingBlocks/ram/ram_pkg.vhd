@@ -41,15 +41,14 @@ package ram_pkg is
       DATA_WIDTH : integer    -- data width
       );
     port (
-      clk         : in  std_logic;                                
-      addr_1      : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
-      addr_2      : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);
-      wrData_1    : in  std_logic_vector(DATA_WIDTH  - 1 downto 0);
-      wrData_2    : in  std_logic_vector(DATA_WIDTH  - 1 downto 0);
-      write_1     : in  std_logic;
-      write_2     : in  std_logic;
-      rdData_1    : out std_logic_vector(DATA_WIDTH - 1 downto 0);
-      rdData_2    : out std_logic_vector(DATA_WIDTH - 1 downto 0)
+        clk     : in  std_logic;                                  -- clock signal
+        rdAddrA : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);  -- read address
+        rdAddrB : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);  -- read address
+        wrAddr  : in  std_logic_vector(ADDR_WIDTH - 1 downto 0);  -- write address
+        wrData  : in  std_logic_vector(DATA_WIDTH - 1 downto 0);  -- write data
+        write   : in  std_logic;
+        rdDataA    : out std_logic_vector(DATA_WIDTH - 1 downto 0);-- read data
+        rdDataB    : out std_logic_vector(DATA_WIDTH - 1 downto 0)-- read data
       );
   end component;
 

@@ -5,6 +5,7 @@ import serial
 from config import DATA_BYTE_WIDTH_extend_byte,TIMESTAMP_BYTE_extend_byte,UART_FILE
 from config import SERIAL_RUN_MODE as run_mode
 from config import DATA_SAMPLE_NUMBER as total_sample
+from config import LOG_DATA_FILE as log_data_file
 
 #################################################################
 # Configure the serial connections (the parameters differs on the device you are connecting to)
@@ -141,7 +142,6 @@ if run_mode=='type_input':
 elif(run_mode =='read_log'):
     sample_period = 2 #Period that FPGA send the sensor data. This data should >= wait_FPGA_time!
     wait_FPGA_time = 0.5 # wait FPGA finish send result (s)
-    log_data_file = 'logged_data.dat'
     logged_data = []
     with open(log_data_file) as f:
         for line in f:
@@ -172,11 +172,12 @@ elif(run_mode =='read_log'):
         print('')
         
 
-        if(idx < total_sample):
+        if(idx < total_sample-1):
             input = bits_to_hex(bin(0)[2:].zfill(8)).decode('hex')
             ser.write(input)
         else:
             input = bits_to_hex(bin(1)[2:].zfill(8)).decode('hex')
+            print('R2U2 reset.')
             ser.write(input)
             ser.close()
             exit()

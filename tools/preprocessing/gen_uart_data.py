@@ -107,6 +107,6 @@ res = split_dec_to_byte(mode,general_config_info_byte)+ split_dec_to_byte(atc_cn
 
 # write output
 with open(dest_file,'w+') as f:
-	f.write('# Auto Generated Configuration Byte File for UART\n') 
+	f.write('# Auto Generated R2U2 Configuration Byte File for UART Transmission.\n') 
 	for eachline in res:
 		f.write("%s\n" % eachline) 

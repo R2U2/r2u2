@@ -99,97 +99,10 @@ input=1
 time_cnt = 0
 
 if run_mode=='type_input':
-    wait_FPGA_time = 0.5 # wait FPGA finish send result (s)
-    print ('Enter log data in binary format.\r\n(Insert "exit" to leave the application.)\n')
-    while 1 :
-        correct_format = True
-        correct_size = True
-        # get keyboard input
-        input = raw_input("data>> ")
-            # Python 3 users
-            # input = input(">> ")
-        output = []
-        if input == 'exit':
-            ser.close()
-            exit()
-        else:
-            # check input correctnedd
-            for i in input:
-                if(i not in ('0','1')):
-                    correct_format = False
-            if len(input)>DATA_BYTE_WIDTH_extend_byte*8:
-                correct_size = False
-            if(not correct_format):
-                print('Input is not in binary format, type again.\n')
-                continue
-            if(not correct_size):
-                print('Size is larger than {0} bits, try again:\n').format(DATA_BYTE_WIDTH_extend_byte*8)
-                continue
-            # send the character to the device
-            splitted = split_to_byte(input,DATA_BYTE_WIDTH_extend_byte)
-            for i in splitted:
-                input = bits_to_hex(i).decode('hex')
-                ser.write(input)
-            # wait before reading output (let's give device time to answer)
-            time.sleep(wait_FPGA_time)
-            print("----------TIME STEP: {0}----------").format(time_cnt)
-            time_cnt += 1
-            while ser.inWaiting() > 0:
-                res = ser.read(1).encode('hex')
-                output.append(res)
-
-            decode_uart_out(output)
-            print('')
+    pass
 
 elif(run_mode =='read_log'):
-    sample_period = 5 #Period that FPGA send the sensor data. This data should >= wait_FPGA_time!
-    wait_FPGA_time = 0.5 # wait FPGA finish send result (s)
-    log_data_file = 'logged_data.dat'
-    logged_data = []
-    with open(log_data_file) as f:
-        for line in f:
-            line = line.strip()
-            if not line or line[0]=='#':
-                continue
-            logged_data.append(line)
-
-    for idx,i in enumerate(logged_data):
-
-
-        print("data>> "+i)
-        output = []
-        # send the character to the device
-        splitted = split_to_byte(i,DATA_BYTE_WIDTH_extend_byte)
-        for i in splitted:
-            input = bits_to_hex(i).decode('hex')
-            ser.write(input)
-        # wait before reading output (let's give device time to answer)
-        time.sleep(wait_FPGA_time)
-        print("----------TIME STEP: {0}----------").format(time_cnt)
-        time_cnt += 1
-        while ser.inWaiting() > 0:
-            res = ser.read(1).encode('hex')
-            output.append(res)
-
-        decode_uart_out(output)
-        print('')
-        
-
-        if(idx < 9):
-            input = bits_to_hex(bin(0)[2:].zfill(8)).decode('hex')
-            ser.write(input)
-        else:
-            input = bits_to_hex(bin(1)[2:].zfill(8)).decode('hex')
-            ser.write(input)
-            ser.close()
-            exit()
-        
-        time.sleep(sample_period-wait_FPGA_time)
-
-
-    print('Finish sending all the data with period {0} s'.format(sample_period))
-    ser.close()
-    exit()
+   pass
 
 elif(run_mode =='self_sensing'):
  	input = bits_to_hex(bin(1)[2:].zfill(8)).decode('hex')

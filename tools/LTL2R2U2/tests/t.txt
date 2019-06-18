@@ -1,6 +1,0 @@
-logic(pt).
-map foobar = 99.
-map xx = 12.
-f2:( xx | f1: ~ foobar) &
-(xx | foobar).
-

@@ -132,7 +132,7 @@ begin
       -- shift 1
       if this.shift_1 /= std_logic_vector(to_unsigned(0, this.shift_1'length)) then
         if this.config_shift_1_sign = '1' then  -- shift right
-          nxt.in1_shifted := this.in1_shifted(OP_WIDTH-1) & this.in1_shifted(OP_WIDTH-1-1 downto 0);
+          nxt.in1_shifted := '0' & this.in1_shifted(OP_WIDTH-1-1 downto 0);
         else                                    -- shift left
           nxt.in1_shifted := this.in1_shifted(OP_WIDTH-1 downto 1) & '0';
         end if;
@@ -144,7 +144,7 @@ begin
       -- shift 2
       if this.shift_2 /= std_logic_vector(to_unsigned(0, this.shift_2'length)) then
         if this.config_shift_2_sign = '1' then  -- shift right
-          nxt.in2_shifted := this.in2_shifted(OP_WIDTH-1) & this.in2_shifted(OP_WIDTH-1-1 downto 0);
+          nxt.in2_shifted := '0' & this.in2_shifted(OP_WIDTH-1-1 downto 0);
         else                                    -- shift left
           nxt.in2_shifted := this.in2_shifted(OP_WIDTH-1 downto 1) & '0';
         end if;
@@ -162,13 +162,14 @@ begin
     if this.shift_fin = '1' then
       case this.config_add_operator is
         when A_ADD =>
-          nxt.left_result := this.in1_shifted + this.in2_shifted;
+          nxt.left_result := std_logic_vector(unsigned(this.in1_shifted) + unsigned(this.in2_shifted));
         when A_SUB =>
-          nxt.left_result := this.in1_shifted - this.in2_shifted;
+          nxt.left_result := std_logic_vector(unsigned(this.in1_shifted) - unsigned(this.in2_shifted));
         when A_DIF =>
-          nxt.left_result := this.in1_shifted - this.in2_shifted;
-          if nxt.left_result(31) = '1' then  -- result negative ?
-            nxt.left_result := (not nxt.left_result) + 1;
+          if(unsigned(this.in1_shifted)>unsigned(this.in2_shifted))then
+            nxt.left_result := std_logic_vector(unsigned(this.in1_shifted) - unsigned(this.in2_shifted));
+          else
+            nxt.left_result := std_logic_vector(unsigned(this.in2_shifted) - unsigned(this.in1_shifted));
           end if;
         when others =>
           null;

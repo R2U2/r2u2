@@ -1,4 +1,3 @@
-
 # DATA_WIDTH = 32 # sensor data width
 SENSOR_DATA_WIDTH = 19
 NUM_OF_SENSOR = 2
@@ -9,8 +8,8 @@ MEM_FILE = 'tmp.ftm'
 MEMINT_FILE = 'tmp.fti' 
 
 # UART Data Conversion -> gen_uart_data.py
-SETUP_DATA_WIDTH_extend_byte = 5 # do not modify
-SETUP_ADDR_WIDTH_extend_byte = 2 # do not modify
+SETUP_DATA_WIDTH_extend_byte = 5 # do not modify!
+SETUP_ADDR_WIDTH_extend_byte = 2 # do not modify!
 DATA_BYTE_WIDTH_extend_byte =  (LOG_DATA_WIDTH-1)//8+1# combined sensor data width (byte)
 
 # atomic checker -> assert_convert.py
@@ -23,10 +22,10 @@ DATA_WIDTH = LOG_DATA_WIDTH
 
 # ser.py
 TIMESTAMP_BYTE_extend_byte = 2
-SERIAL_RUN_MODE = 'self_sensing'# self_sensing, read_log, type_input
+SERIAL_RUN_MODE = 'read_log'# select from one of: 1) self_sensing, 2) read_log, 3) type_input
 UART_FILE = 'send.uart'# configuration file in uart byte format
 
 # gen_log_data.py
-LOG_DATA_FILE = 'logged_data.dat'
 SENSOR_DATA_FILE = 'sensor_data.dat'
-DATA_SAMPLE_NUMBER = 10
+LOG_DATA_FILE = 'logged_data.datb'
+DATA_SAMPLE_NUMBER = 10 # total time stamp of sensor data you want to test in read_log mode

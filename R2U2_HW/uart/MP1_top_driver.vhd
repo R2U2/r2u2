@@ -22,7 +22,8 @@ port
   RESET_low : in  std_logic;  -- Active low (polartity immediately change to active high)
   FPGA_SERIAL1_TX  : out std_logic;
   FPGA_SERIAL1_RX  : in  std_logic;
-  Send_Data_array : in TEST_DATA_type
+  Send_Data_array : in TEST_DATA_type;
+  send_finish : out std_logic
 );  
 end MP1_top_driver;
 
@@ -87,7 +88,7 @@ signal my_pause_cnt : std_logic_vector (19 downto 0); -- Slow down input ~5x
 
 
 signal array_index : integer range 0 to data_size-1; -- Index into test
-
+signal send_finish_sig : std_logic;
   
 --signal Send_Data_array : TEST_DATA_type :=
 --  (
@@ -140,13 +141,16 @@ begin
 Send_chars : process(sysclk)
 begin
   if (sysclk = '1' and sysclk'event) then
+    
     -- Defaults
+
     WR_N  <= '1';
     D_IN  <= D_IN;
     array_index <= array_index;
 	 my_pulse <= '1'; -- Ensure WR_N on active for on clk
     
     if(reset = '1') then
+      send_finish_sig <= '0';
       WR_N  <= '1';
       D_IN  <= (others => '0');
       array_index <= 0;
@@ -161,19 +165,27 @@ begin
 	   end if;
 		                                           -- Slow down input ~5x
       --if(TX_busy_n = '1' and my_pulse = '1' and my_pause_cnt = x"30D40") then
-      if(TX_busy_n = '1' and my_pulse = '1' and my_pause_cnt = x"02B40") then
-		  my_pause_cnt <= (others => '0');  -- Slow down input by ~5x
-		  my_pulse <= '0';
+      --if(TX_busy_n = '1' and my_pulse = '1' and my_pause_cnt = x"02B40" and send_finish_sig = '0') then
+      if(TX_busy_n = '1' and my_pulse = '1' and my_pause_cnt = x"2B40" and send_finish_sig = '0') then
+  		  my_pause_cnt <= (others => '0');  -- Slow down input by ~5x
+  		  my_pulse <= '0';
         WR_N     <= '0';   -- start transmission	  
         D_IN     <= Send_Data_array(array_index);
         array_index  <= array_index + 1;
+        if(array_index=174)then--number of data
+          send_finish_sig <= '1';
+          WR_N     <= '1';
+        end if;
       end if;
+
     end if;
-      
+      if(send_finish_sig='1')then
+          WR_N     <= '1';  
+        end if;
   end if;
 end process Send_chars;
 
-
+send_finish <= send_finish_sig;
 ------------------------------------------------------------
 ------------------------------------------------------------
 --                                                        --

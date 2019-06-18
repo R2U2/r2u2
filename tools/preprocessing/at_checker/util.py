@@ -57,7 +57,6 @@ class ParserConfigItem:
 class CsvParser:
 	def __init__(self):
 		self.config = []
-		self.file = ""
 		self.__data = []
 		self.firstTimestamp = 0
 		self.commonWidth = 0
@@ -65,86 +64,6 @@ class CsvParser:
 	def addConfig(self, channel, type, comma, width, name, comment):
 		self.config.append(ParserConfigItem(channel, type, comma, width, name, comment))
 		self.commonWidth = self.commonWidth + width
-	
-	def processLine(self, items, sampleNr):
-		line = []
-		
-		# process timestamp
-		if sampleNr == 0:
-			self.firstTimestamp = float(items[0])
-		line.append(float(items[0]))
-		
-		# process data
-		for c in self.config:
-			if c.type == "float":
-				line.append(int(round(float(items[c.channel]) * 2**c.comma)))
-		
-		self.__data.append(line)
-	
-	def parse(self):
-		nr = 0
-		for line in fileinput.input([self.file]):
-			data = line.split(",")
-			self.processLine(data, nr)
-			nr = nr + 1
-			
-	def len(self):
-		return len(self.__data)
-	
-	def getReadableHeaders(self):
-		line = ""
-		
-		for i in range(0, len(self.config)):
-			line = line + str(self.config[i].name) + ", "
-			
-		return line
-	
-	def getReadableDataLine(self, lineNr):
-		line = ""
-		
-		for i in range(0, len(self.config)):
-			line = line + str(self.__data[lineNr][i+1]) + ", "
-			
-		return line
-	
-	def getBinaryDataLine(self, lineNr):
-		line = ""
-		
-		for i in range(0, len(self.config)):
-			line = line + toBinary(self.__data[lineNr][i+1], self.config[i].width)
-			
-		return line
-	
-	def sampleData(self, start, period):
-		sampledData = []
-		nextSample = start
-		sampleNr = 0;
-		while 1:
-			while self.__data[sampleNr][0] < nextSample:			# skip old samples
-				sampleNr = sampleNr + 1
-				if sampleNr >= len(self.__data):
-					break
-			
-			if sampleNr >= len(self.__data):
-				break
-
-			sampledData.append(self.__data[sampleNr])				# sample
-			nextSample = nextSample + period
-
-		self.firstTimestamp = sampledData[0][0]
-		self.__data = sampledData
-
-	def addPlot(self, pp):
-		d = zip(*self.__data)
-		i = 1
-		for c in self.config:
-			pylab.figure()
-			pylab.plot(d[i], label=c.name+" "+c.comment)
-			i = i + 1
-			pylab.legend() 
-			pylab.title(self.file)
-			pp.savefig()
-
 		
 class AtCheckerConfigItem:
 	def __init__(self, input1, input2, count, filter1, filter2, rate1, rate2):

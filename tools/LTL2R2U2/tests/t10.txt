@@ -1,7 +1,0 @@
-logic(ft).
-
-map a0 = 0.
-map a1 = 1.
-
-(a0 | a1) .
-

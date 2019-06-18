@@ -53,13 +53,6 @@ entity ft_mu_monitor is
     
     --Pei: signal for writing output
     debug : out debug_t
-    --have_new_result : out std_logic;
-    --new_result_rdy : out std_logic;
-    --new_result : out ft_tuple_t;
-    --command : out operator_t;
-    --pc_debug : out std_logic_vector(log2c(ROM_LEN) - 1 downto 0);
-    --have_new_result_intermediate : out std_logic;
-    --new_result_rdy_intermediate : out std_logic
 
     );
 end entity;
@@ -161,7 +154,7 @@ begin
       --have_new_result => have_new_result,
       --new_result_rdy => new_result_rdy,
       --new_result => new_result,
-      --command => command,
+      --commandata_memory_sync_datad => command,
       --pc_debug => pc_debug,
       --have_new_result_intermediate => have_new_result_intermediate,
       --new_result_rdy_intermediate => new_result_rdy_intermediate

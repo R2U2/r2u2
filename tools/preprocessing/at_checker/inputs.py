@@ -5,7 +5,7 @@ from util import *
 class APS(CsvParser):
 	def __init__(self):
 		CsvParser.__init__(self)
-		self.file = "cpds_20120804_0750/DGPS_0.csv"
+		self.file = ""
 		
 		self.addConfig(1, "", 0, 19, "APS1", "radius")
 		self.addConfig(2, "", 0, 19, "APS2", "radius")

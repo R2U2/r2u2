@@ -22,15 +22,15 @@ package mu_monitor_pkg is
   --------------------------------------------------------------------
   --                          CONSTANTS                             --
   --------------------------------------------------------------------
-  constant TIMESTAMP_WIDTH     : integer := 32;
+  constant TIMESTAMP_WIDTH     : integer := 16;
 
   -- constant TIMESTAMP_WIDTH     : integer := 48;
 --  constant ATOMICS_WIDTH       : integer := 10;
-  constant ROM_LEN             : integer := 256;  -- number of rom entries
+  constant ROM_LEN             : integer := 64;  -- number of rom entries
   constant DATA_MEMORY_LEN     : integer := ROM_LEN;
-  constant BOX_MEMORY_LEN      : integer := 64;
-  constant DOT_BUFFER_LEN      : integer := 64;  -- number of buffers
-  constant DOT_BUFFER_SIZE     : integer := 256;  -- size of one buffer
+  constant BOX_MEMORY_LEN      : integer := 32;
+  constant DOT_BUFFER_LEN      : integer := 32;  -- number of buffers
+  constant DOT_BUFFER_SIZE     : integer := 64;  -- size of one buffer
   constant INTERVAL_MEMORY_LEN : integer := BOX_MEMORY_LEN + DOT_BUFFER_LEN;
   constant COMMAND_WIDTH       : integer := 40;  -- width of mu_monitor-instruction
   -- This is for the Prom and intervall memorys which share the same bus
@@ -38,10 +38,13 @@ package mu_monitor_pkg is
   constant MEMBUS_ADDR_WIDTH   : integer := max(log2c(ROM_LEN), log2c(INTERVAL_MEMORY_LEN));
   --Pei: constant for status register
   --constant mPre_DATA_WIDTH : integer := 10;
-  constant mPre_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
-  constant mUp_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
-  constant mDown_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
-  constant SR_DATA_WIDTH : integer := mPre_DATA_WIDTH + mUp_DATA_WIDTH + mDown_DATA_WIDTH + 2;
+  constant m_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
+  constant t_pre_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
+  --constant mUp_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
+  --constant mDown_DATA_WIDTH : integer := TIMESTAMP_WIDTH;
+  --constant SR_DATA_WIDTH : integer := mPre_DATA_WIDTH + mUp_DATA_WIDTH + mDown_DATA_WIDTH + 2;
+  --constant SR_DATA_WIDTH : integer := mPre_DATA_WIDTH + mUp_DATA_WIDTH + mDown_DATA_WIDTH + 2;
+  constant SR_DATA_WIDTH : integer := m_DATA_WIDTH + t_pre_DATA_WIDTH + 1;
 
   subtype program_counter_t is std_logic_vector(log2c(ROM_LEN) - 1 downto 0);
   constant PROGRAMM_COUNTER_DEFAULT : program_counter_t := (others=>'0');
@@ -102,11 +105,9 @@ package mu_monitor_pkg is
   end component mu_monitor;
 
   type sr_t is record
-    last_value : std_logic;
-    mPre       : std_logic_vector(mPre_DATA_WIDTH-1 downto 0);
-    mUp        : std_logic_vector(mUp_DATA_WIDTH-1 downto 0);
-    mDown      : std_logic_vector(mDown_DATA_WIDTH-1 downto 0);
-    p          : std_logic;
+    m        : std_logic_vector(m_DATA_WIDTH-1 downto 0);
+    t_pre    : std_logic_vector(t_pre_DATA_WIDTH-1 downto 0);
+    v_pre    : std_logic;
   end record;
 
   type operands_t is record
@@ -206,7 +207,7 @@ package mu_monitor_pkg is
   function slv_to_operand(slv : std_logic_vector(10-1 downto 0)) return operand_t;
   constant OPERAND_T_NULL     : operand_t := ((others => '0'), '0', '0');
 
-  constant SR_T_NULL : sr_t := ('0',(others=>'0'),(others=>'0'),(others=>'0'),'0');
+  constant SR_T_NULL : sr_t := ((others=>'0'),(others=>'0'),'0');
 
   type instruction_t is record
     command      : operator_t;
@@ -225,6 +226,7 @@ package mu_monitor_pkg is
     pc_debug : std_logic_vector(log2c(ROM_LEN) - 1 downto 0);
     have_new_result_intermediate : std_logic;
     new_result_rdy_intermediate :  std_logic;
+    finish : std_logic;
   end record;
 
   function slv_to_instruction(slv : std_logic_vector(COMMAND_WIDTH-1 downto 0)) return instruction_t;
@@ -232,10 +234,11 @@ package mu_monitor_pkg is
 
   --pei: new function
   function slv_to_sr(slv : std_logic_vector(SR_DATA_WIDTH-1 downto 0)) return sr_t;
-  function sr_to_slv(last_value : std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0)) return std_logic_vector;
-  function sr_to_slv(last_value : std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mDown : std_logic_vector(mDown_DATA_WIDTH-1 downto 0);
-                     mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0); p : std_logic) return std_logic_vector;
-
+  --function sr_to_slv(last_value : std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0)) return std_logic_vector;
+  --function sr_to_slv(last_value : std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mDown : std_logic_vector(mDown_DATA_WIDTH-1 downto 0);
+  --                   mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0); p : std_logic) return std_logic_vector;
+  function sr_to_slv(m : std_logic_vector(m_DATA_WIDTH-1 downto 0); t_pre : std_logic_vector(t_Pre_DATA_WIDTH-1 downto 0); v_pre : std_logic) return std_logic_vector;
+  
 
   component list_array is
     generic (
@@ -441,33 +444,29 @@ package body mu_monitor_pkg is
   function slv_to_sr(slv : std_logic_vector(SR_DATA_WIDTH-1 downto 0)) return sr_t is
     variable ret : sr_t;
   begin
-    ret.last_value := slv(SR_DATA_WIDTH-1);
-    ret.mUp        := slv(mUp_DATA_WIDTH+mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mDown_DATA_WIDTH+mPre_DATA_WIDTH+1);
-    ret.mDown      := slv(mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mPre_DATA_WIDTH+1);
-    ret.mPre       := slv(mPre_DATA_WIDTH downto 1);
-    ret.p          := slv(0);
+    ret.m        := slv(t_pre_DATA_WIDTH+m_DATA_WIDTH downto t_pre_DATA_WIDTH+1);
+    ret.t_pre    := slv(t_pre_DATA_WIDTH downto 1);
+    ret.v_pre    := slv(0);
     return ret;
   end function;
   
-  function sr_to_slv(last_value: std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0)) return std_logic_vector is
-    variable ret : std_logic_vector(SR_DATA_WIDTH-1 downto 0);
-  begin
-    ret(SR_DATA_WIDTH-1)                                                                            := last_value;
-    ret(mUp_DATA_WIDTH+mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mDown_DATA_WIDTH+mPre_DATA_WIDTH+1)  := mUp;
-    ret(mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mPre_DATA_WIDTH+1)                                  := (others=>'0');
-    ret(mPre_DATA_WIDTH downto 1)                                                                   := mPre;
-    ret(0)                                                                                          := '0';
-    return ret;
-  end function;
+  --function sr_to_slv(last_value: std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0)) return std_logic_vector is
+  --  variable ret : std_logic_vector(SR_DATA_WIDTH-1 downto 0);
+  --begin
+  --  ret(SR_DATA_WIDTH-1)                                                                            := last_value;
+  --  ret(mUp_DATA_WIDTH+mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mDown_DATA_WIDTH+mPre_DATA_WIDTH+1)  := mUp;
+  --  ret(mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mPre_DATA_WIDTH+1)                                  := (others=>'0');
+  --  ret(mPre_DATA_WIDTH downto 1)                                                                   := mPre;
+  --  ret(0)                                                                                          := '0';
+  --  return ret;
+  --end function;
 
-  function sr_to_slv(last_value : std_logic; mUp : std_logic_vector(mUp_DATA_WIDTH-1 downto 0); mDown : std_logic_vector(mDown_DATA_WIDTH-1 downto 0); mPre : std_logic_vector(mPre_DATA_WIDTH-1 downto 0); p : std_logic) return std_logic_vector is
+  function sr_to_slv(m : std_logic_vector(m_DATA_WIDTH-1 downto 0); t_pre : std_logic_vector(t_pre_DATA_WIDTH-1 downto 0); v_pre : std_logic) return std_logic_vector is
     variable ret : std_logic_vector(SR_DATA_WIDTH-1 downto 0);
   begin
-    ret(SR_DATA_WIDTH-1)                                                                            := last_value;
-    ret(mUp_DATA_WIDTH+mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mDown_DATA_WIDTH+mPre_DATA_WIDTH+1)  := mUp;
-    ret(mDown_DATA_WIDTH+mPre_DATA_WIDTH downto mPre_DATA_WIDTH+1)                                  := mDown;
-    ret(mPre_DATA_WIDTH downto 1)                                                                   := mPre;
-    ret(0)                                                                                          := p;
+    ret(t_pre_DATA_WIDTH+m_DATA_WIDTH downto t_pre_DATA_WIDTH+1)  := m;
+    ret(t_pre_DATA_WIDTH downto 1)                                := t_pre;
+    ret(0)                                                        := v_pre;
     return ret;
   end function;
 

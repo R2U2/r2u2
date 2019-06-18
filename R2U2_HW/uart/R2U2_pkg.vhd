@@ -39,8 +39,8 @@ package R2U2_pkg is
 --function max(L : natural; R : natural) return natural;
 
     type config_type is (idel, config_ac, config_fm_imem, config_fm_int, config_log_data);
-    constant SETUP_DATA_WIDTH : integer := max(32, MEMBUS_DATA_WIDTH);
-    constant SETUP_ADDR_WIDTH : integer := max(11, MEMBUS_ADDR_WIDTH);
+    constant SETUP_DATA_WIDTH : integer := max(32, MEMBUS_DATA_WIDTH);--40
+    constant SETUP_ADDR_WIDTH : integer := max(11, MEMBUS_ADDR_WIDTH);--11
 
     constant CONFIG_DATA_BYTE : integer := (SETUP_DATA_WIDTH-1) / 8 + 1;
     constant CONFIG_ADDR_BYTE : integer := (SETUP_ADDR_WIDTH-1) / 8 + 1;
