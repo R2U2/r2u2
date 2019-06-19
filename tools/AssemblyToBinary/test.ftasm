@@ -1,7 +1,0 @@
-000:		load_ft	b0		
-001:		load_ft	b1		
-002:		and	s000	s001	
-003:		load_ft	a000		
-004:		boxdot	s003		3 5
-005:		and	s002	s004	
-006:		end	s005	
