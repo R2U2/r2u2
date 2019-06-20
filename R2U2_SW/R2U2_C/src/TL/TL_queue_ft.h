@@ -84,9 +84,6 @@ elt_ft_queue_t pop(elt_ft_queue_t* scq, int rd_ptr);
 void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_ptr);
 bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp);
 
-
-	
-
 void read_atomic(int pc, bool* v, unsigned int* t_e);
 
 #endif

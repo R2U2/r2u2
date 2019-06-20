@@ -122,12 +122,13 @@ class Postgraph():
 			return totsize
 
 		def generate_scq_size_file():
+			# the scq size range [st_pos,ed_pos)
 			s=""
 			pos = 0
 			for n in vstack:
 				st_pos = pos
 				ed_pos = st_pos+n.scq_size
-				pos = ed_pos+1;
+				pos = ed_pos;
 				s = s+'{0:08b}'.format(st_pos)+'{0:08b}'.format(ed_pos)+'\n'
 			with open("tmp.ftscq","w+") as f:
 				f.write(s)

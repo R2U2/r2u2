@@ -12,25 +12,26 @@
 #include "AT/at_checkers.h"
 
 
-// #define ONLINE_MODE  //test in real time
+// #define ONLINE_MODE  //test in online mode (realtime change the input file)
 
-void sys_init() {
+void sys_init(char *argv[]) {
     /* Engine Initialization */
     TL_init();
     at_checkers_init();
-    TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
+    //TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
+    TL_init_files(argv[2],argv[3],argv[4]);
 }
 
 
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         fprintf(stdout,"%s Version %d.%d\n",
                 argv[0],
                 R2U2_C_VERSION_MAJOR,
                 R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: input data file name\n");
+        fprintf(stdout, "Usage: 1) trace data file, 2) .ftm, 3) .fti, 4) .ftscq\n");
     }
     r2u2_in_type **in_dat;
     r2u2_in_type *cur_sigs;
@@ -52,12 +53,12 @@ int main(int argc, char const *argv[]) {
 
         while(command==-1) {
             printf("Starting a new session\n");
-            sys_init();
+            sys_init(argv);
             printf("waiting for the first sensor data to start the RV...\n");
             do{
                 decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
                 command = in_dat[0][0];
-                sleep(1);
+                sleep(0.5);
             }while(command!=0);
             
             /* Open File Output  */
@@ -101,7 +102,7 @@ int main(int argc, char const *argv[]) {
         }
 
     #else
-        sys_init();
+        sys_init(argv);
         decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
         FILE *out_file, *dbg_file;
         out_file = fopen("./R2U2.out", "w+");

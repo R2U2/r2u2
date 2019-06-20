@@ -22,6 +22,7 @@
 **   Date | Author | Description
 **   ---------------------------
 **	Apr.14.2019 | Pei | Clean up the code and rewrite the function. Consistent with the definition of Shared Connection Queue (SCQ)
+**  Jun.20.2019 | Pei | fix a bug when checking if an SCQ is empty
 **=====================================================================================*/
 #include <stdio.h>
 #include "TL_observers.h"
@@ -65,16 +66,11 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 
 // *scq points to the curent node info structure
 // size: size of the current SCQ assign to the specific node (addr_end - addr_start + 1)
-// wr_prt and rd_ptr are relative to addr_start (counting from 0~size-1)
+// wr_ptr and rd_ptr are relative to addr_start (counting from 0~size-1)
 bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp){
-	bool isEmpty = false;
-	bool curCheck = true;
-	while((*rd_ptr != wr_ptr || curCheck) && (scq+*rd_ptr)->t_q < desired_time_stamp) {
-		curCheck = false;
-		*rd_ptr = inc_ptr(*rd_ptr, size);
-	}
-	if(*rd_ptr == wr_ptr) isEmpty = true;
-	return isEmpty;
+	if(*rd_ptr==wr_ptr && (scq+*rd_ptr)->t_q >= desired_time_stamp) return false;
+	while(*rd_ptr!=wr_ptr && (scq+*rd_ptr)->t_q < desired_time_stamp) *rd_ptr = inc_ptr(*rd_ptr, size);
+	return *rd_ptr==wr_ptr;
 }
 
 // always check isEmpty first before pop();

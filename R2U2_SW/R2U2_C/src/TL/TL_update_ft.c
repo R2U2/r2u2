@@ -41,21 +41,19 @@
 *	get the lower bound (or time point) from temporal information
 *	for instruction at pc
 */
-int	get_interval_lb_ft(int pc);
+inline int	get_interval_lb_ft(int pc);
 
 /**
 *   get_interval_ub_ft
 *	get the upper bound (or time point) from temporal information
 *	for instruction at pc
 */
-int	get_interval_ub_ft(int pc);
+inline int	get_interval_ub_ft(int pc);
 
 elt_ft_queue_t pop_cap(int pc, int obNum, elt_ft_queue_t* scq, int rd_ptr);
 
 bool isEmpty_cap(int pc, int ObNum, elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp);
 
-
-inline elt_ft_queue_t pop(elt_ft_queue_t* scq, int rd_ptr);
 
 //--------------------------------------------------------------------
 //	TL_update_ft()
@@ -84,12 +82,12 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 			elt_ft_queue_t *scq_seg;
 			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 				op1 = instruction_mem_ft[pc].op1.value;
-				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;	
 				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
 			} 	
 
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
 			
 			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
@@ -111,11 +109,11 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 		case OP_FT_LOD: {
 			//Retrieve Input Data
 			bool v;
-			int t_e;
+			unsigned int t_e;
 			read_atomic(pc, &v, &t_e);
 			elt_ft_queue_t newData = {v,t_e};
 			//Add Asynchrounous Results to Queue
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, newData, &(ft_sync_queues[pc].wr_ptr));
 			//add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 			fprintf(fp2, "LOAD PC:%d = (%d,%d)\n", pc, v, t_e);
@@ -131,15 +129,15 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 			elt_ft_queue_t *scq_seg;
 			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 				op1 = instruction_mem_ft[pc].op1.value;
-				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;	
 				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
 			} 	
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
 			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 				//Get the Next Input
-				elt_ft_queue_t input = pop(scq_seg, *rd_ptr);
+				elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 				elt_ft_queue_t res = {!input.v_q,input.t_q};
 				add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 
@@ -162,18 +160,18 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 			elt_ft_queue_t *scq_seg_1, *scq_seg_2;
 			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 				op1 = instruction_mem_ft[pc].op1.value;
-				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;
 				scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 				input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
 			}
 			if(instruction_mem_ft[pc].op2.opnd_type==subformula) {
 				op2 = instruction_mem_ft[pc].op2.value;
-				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr;
 				scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
 				input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
 			}
 
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			int* rd_ptr_1 = &(ft_sync_queues[pc].rd_ptr);
 			int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);	
 
@@ -230,16 +228,17 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 			elt_ft_queue_t *scq_seg;
 			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 				op1 = instruction_mem_ft[pc].op1.value;
-				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].	start_addr+1;	
+				scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;	
 				scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 				input_wr_ptr = ft_sync_queues[op1].wr_ptr;
 			}
 
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
 
 			int lb = get_interval_lb_ft(pc);
 			int ub = get_interval_ub_ft(pc);
+			// printf("%d,%d,%d\n",pc,lb,ub);
 			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 				elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 				ft_sync_queues[pc].desired_time_stamp += 1;
@@ -273,18 +272,18 @@ int TL_update_ft(FILE *fp, FILE *fp2){
 			elt_ft_queue_t *scq_seg_1, *scq_seg_2;
 			if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 				op1 = instruction_mem_ft[pc].op1.value;
-				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr+1;
+				scq_size_rd_1 = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;
 				scq_seg_1 = &SCQ[addr_SCQ_map_ft[op1].start_addr];
 				input_wr_ptr_1 = ft_sync_queues[op1].wr_ptr;
 			}
 			if(instruction_mem_ft[pc].op2.opnd_type==subformula) {
 				op2 = instruction_mem_ft[pc].op2.value;
-				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr+1;
+				scq_size_rd_2 = addr_SCQ_map_ft[op2].end_addr-addr_SCQ_map_ft[op2].start_addr;
 				scq_seg_2 = &SCQ[addr_SCQ_map_ft[op2].start_addr];
 				input_wr_ptr_2 = ft_sync_queues[op2].wr_ptr;
 			}
 		
-			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr+1; 
+			int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr; 
 			
 			int* rd_ptr_1 = &(ft_sync_queues[pc].rd_ptr);
 			int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);

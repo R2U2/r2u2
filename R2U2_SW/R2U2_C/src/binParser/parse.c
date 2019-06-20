@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "TL_observers.h"
-
+#include "TL_queue_ft.h"
 
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
@@ -48,7 +48,6 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 } 
 
 void parse_inst(char* filename) {
-	// instruction_mem_t instruction_mem_ft={}; // use extern variable
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
@@ -66,15 +65,13 @@ void parse_inst(char* filename) {
 }
 
 void parse_interval(char* filename) {
-	interval_mem_t interval_mem_ft; // use extern variable
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);
-			// printf("%d\n",interval_mem_ft[address_count].lb);
+			decode_interval(line, &interval_mem_ft[PC]);			
 			PC++;
 		}
 		fclose ( file );
@@ -84,7 +81,6 @@ void parse_interval(char* filename) {
 }
 
 void parse_scq_size(char* filename) {
-	addr_SCQ_map_t addr_SCQ_map_ft ;
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
@@ -92,6 +88,7 @@ void parse_scq_size(char* filename) {
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
 			decode_scq_size(line, &addr_SCQ_map_ft[PC]);
+			(SCQ+(addr_SCQ_map_ft[PC].start_addr))->t_q = -1; // initialize timestamp of the first elelment to -1
 			PC++;
 		}
 		fclose ( file );
