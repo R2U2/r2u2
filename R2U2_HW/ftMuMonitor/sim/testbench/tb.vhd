@@ -12,7 +12,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use ieee.std_logic_unsigned.all;
+--use ieee.std_logic_unsigned.all;
 use work.ft_mu_monitor_pkg.all;
 use work.mu_monitor_pkg.all;
 use work.log_input_pkg.all;
@@ -26,9 +26,10 @@ use work.math_pkg.all;
 
 entity tb is
   generic (
-    imemFilePath  : string := "../testcases/imem.imem";
+    imemFilePath  : string := "../testcases/tmp.ftm";    
+    intFilePath   : string := "../testcases/tmp.fti";
     inputFilePath : string := "../testcases/atomic.trc";
-    intFilePath   : string := "../testcases/imem.imem.int"
+    outputFilePath : string := "../result/async_out.txt"
     );
 end entity;
 
@@ -43,40 +44,28 @@ architecture sim of tb is
   signal   s_atomics                  : std_logic_vector(ATOMICS_WIDTH-1 downto 0)      := (others => '0');
   signal   s_programming_stop         : boolean                                         := false;
   signal   stop                       : boolean                                         := false;
-  signal   s_programming_imem         : std_logic;
-  signal   s_programming_interval_mem : std_logic;
+  signal   s_programming_imem         : std_logic                                       := '0';
+  signal   s_programming_interval_mem : std_logic                                       := '0';
   signal   s_en                       : std_logic                                       := '0';
   signal   s_trigger                  : std_logic                                       := '0';
   signal   s_programming_memory_addr  : std_logic_vector(MEMBUS_ADDR_WIDTH-1 downto 0)  := (others => '0');
-  signal   s_programming_memory_data  : std_logic_vector (2*TIMESTAMP_WIDTH-1 downto 0) := (others => '0');
+  --signal   s_programming_memory_data  : std_logic_vector (2*TIMESTAMP_WIDTH-1 downto 0) := (others => '0');
+  signal   s_programming_memory_data  : std_logic_vector (MEMBUS_DATA_WIDTH-1 downto 0) := (others => '0');
   signal   s_violated                 : std_logic                                       := '0';
   signal   s_violated_valid           : std_logic                                       := '0';
   file mumonProgram_file              : text open read_mode is imemFilePath;
   file mumonInterval_file             : text open read_mode is intFilePath;
   file testSample_file                : text open read_mode is inputFilePath;
-  file testSampleResult_file                : text open read_mode is inputFilePath;
+  file testSampleResult_file          : text open write_mode is outputFilePath;
   signal   s_rtc_en                   : std_logic                                       := '0';
   
   -- spy signals
   signal new_result_spy	: std_logic;
   signal result_time_spy : std_logic_vector(TIMESTAMP_WIDTH - 1 downto 0);
-  signal result_value_spy : std_logic;
+ 
 
   --write output signal
-  --signal s_have_new_result : std_logic;
-  --signal s_new_result_rdy : std_logic;
-  --signal s_new_result : ft_tuple_t;
-  --signal s_command : operator_t;
-  --signal pc_debug : std_logic_vector(log2c(ROM_LEN) - 1 downto 0);
-  --signal s_have_new_result_intermediate : std_logic;
-  --signal s_new_result_rdy_intermediate : std_logic;
   signal s_debug : debug_t;
---  component simple_mem is
---  generic(addr_length_bits : integer := 8);
---  port(CLK            : in  std_logic;
---       w_addr         : in  std_logic_vector(addr_length_bits-1 downto 0); -- write address    
---       w_data         : in  std_logic); -- write data
--- end simple_mem;
 
 
   function reverse(input : std_logic_vector) return std_logic_vector is
@@ -195,10 +184,11 @@ end process;
     variable v_file_line_rd    : line;
     variable v_str_line        : string (COMMAND_WIDTH downto 1);
     --variable v_str_line_ts     : string (32 downto 1);
-    variable v_str_line_ts     : string (64 downto 1);
+    variable v_str_line_ts     : string (2*TIMESTAMP_WIDTH downto 1);
     variable v_mumon_prom_addr : std_logic_vector(s_programming_memory_addr'length-1 downto 0) := (others => '0');
   begin
-
+    --s_programming_memory_data  <= (others=>'0');
+    --s_programming_memory_addr  <= (others=>'0');
     s_programming_imem         <= '0';
     s_programming_interval_mem <= '0';
     s_reset_n                  <= '0';
@@ -206,13 +196,15 @@ end process;
     s_reset_n                  <= '1';
     wait_cycle(s_clk, 20);
 
+
     while not endfile(mumonProgram_file) loop
       readline(mumonProgram_file, v_file_line_rd);
       read(v_file_line_rd, v_str_line);
-
+      
       s_programming_imem        <= '1';
       s_programming_memory_addr <= v_mumon_prom_addr;
-      s_programming_memory_data <= "000000000000000000000000" & str_to_std_logic_vector(v_str_line);
+      --s_programming_memory_data only use (COMMAND_WIDTH-1 downto 0)
+      s_programming_memory_data <= std_logic_vector(to_unsigned(0,s_programming_memory_data'length-v_str_line'length)) & str_to_std_logic_vector(v_str_line);
       wait_cycle(s_clk, 1);
       -- increment prom address;
       v_mumon_prom_addr         := increment_slv(v_mumon_prom_addr);
@@ -221,16 +213,15 @@ end process;
     s_programming_imem <= '0';
     v_mumon_prom_addr  := (others => '0');
 
+
     while not endfile(mumonInterval_file) loop
       readline(mumonInterval_file, v_file_line_rd);
       read(v_file_line_rd, v_str_line_ts);
 
       s_programming_interval_mem <= '1';
       s_programming_memory_addr  <= v_mumon_prom_addr;
-      --binary from python ftassembly
-      s_programming_memory_data  <= str_to_std_logic_vector(v_str_line_ts)(63 downto 0);
-      -- binary from c software
-      --s_programming_memory_data  <= "0000000000000000" & str_to_std_logic_vector(v_str_line_ts)(32-1 downto 16) & "0000000000000000" & str_to_std_logic_vector(v_str_line_ts)(16-1 downto 0);
+      --s_programming_memory_data only use (2*TIMESTAMP_WIDTH-1 downto 0)
+      s_programming_memory_data  <= std_logic_vector(to_unsigned(0,s_programming_memory_data'length-v_str_line_ts'length)) & str_to_std_logic_vector(v_str_line_ts);
       wait_cycle(s_clk, 1);
       -- increment prom address;
       v_mumon_prom_addr          := increment_slv(v_mumon_prom_addr);
@@ -247,62 +238,98 @@ end process;
   end process;
 
 
-Verify_data_process : 
-  process
+verify_data_process : process
       variable my_line:  line; 
-      file l_file:       TEXT;  
+      --file l_file:       TEXT;  
       variable file_is_open:  boolean;
-      variable whichCommand: string(1 to 4);
+      --variable whichCommand: string(1 to 4);
       variable lastTimeStamp : std_logic_vector(TIMESTAMP_WIDTH-1 downto 0)    := (others => '1');
       variable lastPC : std_logic_vector(log2c(ROM_LEN) - 1 downto 0) :=(others=>'1');
   begin -- process
-    if not file_is_open then
-      file_open (l_file, "../result/async_out.txt", write_mode);
-      file_is_open := true;
-      write(my_line, string'("**********RESULTS**********"));
-      writeline(l_file, my_line);
-    end if;
+--    if not file_is_open then
+--      file_open (l_file,testSampleResult_file, write_mode);
+--      file_is_open := true;
+--      write(my_line, string'("**********RESULTS**********"));
+--      writeline(l_file, my_line);
+--    end if;
     wait until rising_edge(s_clk);
 
     if s_debug.new_result_rdy_intermediate='1' then
 
       if(lastTimeStamp/=s_rtc_timestamp)then
         lastTimeStamp := s_rtc_timestamp;
-        writeline(l_file, my_line);
+        --writeline(l_file, my_line);
+        write(my_line,string'(""));
+        writeline(testSampleResult_file, my_line);
+
         write(my_line,string'("----------TIME STEP: "));
         write(my_line,to_integer(unsigned(lastTimeStamp)));
         write(my_line,string'("----------"));
-        writeline(l_file, my_line);
+        writeline(testSampleResult_file, my_line);
       end if;
 
+      -- The following code is workable. I just want to change the output to match with the regression test output format
+      --if(s_debug.pc_debug/=lastPC or s_debug.have_new_result_intermediate='1')then
+      --  lastPC := s_debug.pc_debug;
+      --  case s_debug.command is
+      --    when OP_LOAD=>
+      --      write(my_line,string'("LOAD "));
+      --    when OP_FT_NOT=>
+      --      write(my_line,string'("NOT "));
+      --    when OP_FT_BOXBOX=>
+      --      write(my_line,"G[" & integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
+      --    when OP_FT_BOXDOT=>
+      --      write(my_line,"G[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
+      --    when OP_FT_AND=>
+      --      write(my_line,string'("AND "));
+      --    when OP_FT_UNTIL=>
+      --      write(my_line,"U[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
+
+      --    when OP_END_SEQUENCE=>
+      --      write(my_line,string'("END "));
+      --    when others=>
+      --      write(my_line,string'("??? "));
+      --  end case;
+      --  if s_debug.have_new_result_intermediate='1' then
+      --    write(my_line,"PC:" & integer'image(to_integer(unsigned(s_debug.pc_debug))) & " = (" & integer'image(std_to_integer(s_debug.new_result.value)) & "," & integer'image(to_integer(unsigned(s_debug.new_result.time))) &")");
+      --  else 
+      --    write(my_line,"PC:" & integer'image(to_integer(unsigned(s_debug.pc_debug))) & " = (-,-)");
+      --  end if;
+      --  writeline(testSampleResult_file, my_line);
+      --end if;
       if(s_debug.pc_debug/=lastPC or s_debug.have_new_result_intermediate='1')then
         lastPC := s_debug.pc_debug;
-        case s_debug.command is
-          when OP_LOAD=>
-            write(my_line,string'("LOAD "));
-          when OP_FT_NOT=>
-            write(my_line,string'("NOT "));
-          when OP_FT_BOXBOX=>
-            write(my_line,"G[" & integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
-            --whichCommand:="G   "&"v";
-          when OP_FT_BOXDOT=>
-            write(my_line,"G[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
-          when OP_FT_AND=>
-            write(my_line,string'("AND "));
-          when OP_FT_UNTIL=>
-            write(my_line,"U[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "] ");
-
-          when OP_END_SEQUENCE=>
-            write(my_line,string'("END "));
-          when others=>
-            write(my_line,string'("??? "));
-        end case;
+       
         if s_debug.have_new_result_intermediate='1' then
-          write(my_line,"PC:" & integer'image(to_integer(unsigned(s_debug.pc_debug))) & " = (" & integer'image(std_to_integer(s_debug.new_result.value)) & "," & integer'image(to_integer(unsigned(s_debug.new_result.time))) &")");
-        else 
-          write(my_line,"PC:" & integer'image(to_integer(unsigned(s_debug.pc_debug))) & " = (-,-)");
+          write(my_line,"PC:" & integer'image(to_integer(unsigned(s_debug.pc_debug))));        
+          case s_debug.command is
+            when OP_LOAD=>
+              write(my_line,string'(" LOAD"));
+            when OP_FT_NOT=>
+              write(my_line,string'(" NOT"));
+            when OP_FT_BOXBOX=>
+              write(my_line," G[" & integer'image(to_integer(unsigned(s_debug.interval.max))) & "]");
+            when OP_FT_BOXDOT=>
+              write(my_line," G[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "]");
+            when OP_FT_AND=>
+              write(my_line,string'(" AND"));
+            when OP_FT_UNTIL=>
+              write(my_line," U[" & integer'image(to_integer(unsigned(s_debug.interval.min))) &","&integer'image(to_integer(unsigned(s_debug.interval.max))) & "]");
+
+            when OP_END_SEQUENCE=>
+              write(my_line,string'(" END"));
+            when others=>
+              write(my_line,string'(" ???"));
+          end case;
+
+          if(s_debug.new_result.value='1')then
+            write(my_line," = [" & integer'image(to_integer(unsigned(s_debug.new_result.time))) & "," & "True" &"]");
+          else
+            write(my_line," = [" & integer'image(to_integer(unsigned(s_debug.new_result.time))) & "," & "False" &"]");
+          end if;        
+          writeline(testSampleResult_file, my_line);
+
         end if;
-        writeline(l_file, my_line);
       end if;
     end if;
   end process;
@@ -323,49 +350,34 @@ Verify_data_process :
     wait until s_programming_stop = true;
     wait until (s_sutclk'event and s_sutclk = '1');
 
+    
     -- set initial atomics values
     s_atomics <= (others => '0');
-    wait_cycle(s_sutclk, 2);
-
-    -- activate mu_monitor
+    wait_cycle(s_sutclk, 1);
     s_en     <= '1';
+    
+   
+    wait_cycle(s_sutclk, 1);
+    -- activate mu_monitor
     s_rtc_en <= '1';
 
     --log_to_file_ts("Start applying test input, enabling RTC", s_rtc_timestamp, log_file);
     while not endfile(testSample_file) loop
       readline(testSample_file, v_file_line_rd);
       read(v_file_line_rd, v_str_line);
+
       -- disassemble the read line
       v_str_atomics := v_str_line(ATOMICS_WIDTH downto 1);
       v_atomics     := str_to_std_logic_vector(v_str_atomics);
-
+--      report "The value of 'v_atomics' is " & to_string(v_atomics);
       -- apply new atomic propositions
       s_atomics <= reverse(v_atomics);
       -- wait for given delta
       wait_cycle(s_sutclk, 1);
 
-      -- check result
-      if new_result_spy = '1' or v_last_output_time = std_logic_vector(to_unsigned(0, TIMESTAMP_WIDTH)) then
-        while v_last_output_time <= result_time_spy  or v_last_output_time = std_logic_vector(to_unsigned(0, TIMESTAMP_WIDTH)) loop
-	        readline(testSampleResult_file, v_file_line_rd);
-    	  	read(v_file_line_rd, v_str_line);
-      		-- disassemble the read line
-      		v_str_atomics := v_str_line(ATOMICS_WIDTH downto 1);
-      		v_atomics     := str_to_std_logic_vector(v_str_atomics);
-      
---            if result_value_spy = not v_atomics(0) then
---              report "testcase FAILED" severity warning;
---            end if;
-            
-            v_last_output_time := v_last_output_time + 1;
-        end loop;
-      end if;
 
     end loop;
 
-    --if s_violated_valid = '0' then
-    --  report "testcase FAILED" severity warning;
-    --end if;
 
     s_en <= '0';
     stop <= true;

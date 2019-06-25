@@ -64,11 +64,12 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 	#endif
 }
 
+
 // *scq points to the curent node info structure
 // size: size of the current SCQ assign to the specific node (addr_end - addr_start + 1)
 // wr_ptr and rd_ptr are relative to addr_start (counting from 0~size-1)
 bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp){
-	if(*rd_ptr==wr_ptr && (scq+*rd_ptr)->t_q >= desired_time_stamp) return false;
+	if(*rd_ptr==wr_ptr && (int)(scq+*rd_ptr)->t_q >= desired_time_stamp) return false;
 	while(*rd_ptr!=wr_ptr && (scq+*rd_ptr)->t_q < desired_time_stamp) *rd_ptr = inc_ptr(*rd_ptr, size);
 	return *rd_ptr==wr_ptr;
 }

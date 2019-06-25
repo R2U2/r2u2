@@ -106,6 +106,7 @@ class Postgraph():
 					else:
 						print(n.type)
 						n.bpd, n.wpd = left.bpd + n.lb, left.wpd + n.ub
+				n.scq_size += 1 # (June.25,2019) Intentionally plue 1 here. Python version use different mentod to check SCQ emptyness
 
 		# compute scq size from top down
 		def compute_scq_size():
@@ -117,6 +118,7 @@ class Postgraph():
 
 		def get_total_size():
 			totsize = 0
+			print("(Intentionally increase all SCQ size by 1. Python version use a different method to check SCQ emptyness.)")
 			for n in stack:
 				n.set_scq_size()
 				print(n.name,'	',n,' SCQ size',':	(',n.scq_size,')')

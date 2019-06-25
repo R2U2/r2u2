@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
             if ((out_file == NULL) || (dbg_file == NULL)) return 1;
             /*Async file I/O */
             
-            fprintf(dbg_file, "**********RESULTS**********\n\n"); 
+            // fprintf(dbg_file, "**********RESULTS**********\n\n"); 
             /* Main processing loop */
             for (int cur_time=0; ; cur_time++) {
                 while(true) {
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
         out_file = fopen("./R2U2.out", "w+");
         dbg_file = fopen("./R2U2.log", "w+");
         if ((out_file == NULL) || (dbg_file == NULL)) return 1;
-        fprintf(dbg_file, "**********RESULTS**********\n\n"); 
+        // fprintf(dbg_file, "**********RESULTS**********\n\n"); 
         /* Main processing loop */
         for (int cur_time=0; cur_time < MAX_TIME; cur_time++) {
             for (int i=0; i<NUM_SIG; i++) cur_sigs[i] = in_dat[cur_time][i]; 

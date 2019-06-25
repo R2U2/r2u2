@@ -1,27 +1,27 @@
 
 ---RTC:0---
-PC=0: ATOMIC a0 return: [0, False]
+PC=0: ATOMIC a0 return: [0, True]
 
 ---RTC:1---
 PC=0: ATOMIC a0 return: [1, False]
 
 ---RTC:2---
-PC=0: ATOMIC a0 return: [2, False]
+PC=0: ATOMIC a0 return: [2, True]
 
 ---RTC:3---
-PC=0: ATOMIC a0 return: [3, False]
+PC=0: ATOMIC a0 return: [3, True]
 
 ---RTC:4---
-PC=0: ATOMIC a0 return: [4, False]
+PC=0: ATOMIC a0 return: [4, True]
 
 ---RTC:5---
-PC=0: ATOMIC a0 return: [5, False]
+PC=0: ATOMIC a0 return: [5, True]
 
 ---RTC:6---
-PC=0: ATOMIC a0 return: [6, False]
+PC=0: ATOMIC a0 return: [6, True]
 
 ---RTC:7---
-PC=0: ATOMIC a0 return: [7, False]
+PC=0: ATOMIC a0 return: [7, True]
 
 ---RTC:8---
 PC=0: ATOMIC a0 return: [8, False]
@@ -31,12 +31,3 @@ PC=0: ATOMIC a0 return: [9, False]
 
 ---RTC:10---
 PC=0: ATOMIC a0 return: [10, False]
-
----RTC:11---
-PC=0: ATOMIC a0 return: [11, False]
-
----RTC:12---
-PC=0: ATOMIC a0 return: [12, False]
-
----RTC:13---
-PC=0: ATOMIC a0 return: [13, False]

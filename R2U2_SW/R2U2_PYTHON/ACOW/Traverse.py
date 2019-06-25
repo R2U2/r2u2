@@ -59,9 +59,9 @@ class Traverse():
 		atconv = self.a2a if self.isAtomic else self.s2a
 		for signal_trace in self.trace:
 			atomic_map = atconv(signal_trace)
-			f.write("\n---RTC:%d---\n"%(self.RTC))
+			f.write("\n----------TIME STEP: %d----------\n"%(self.RTC))
 			for i, ob in enumerate(self.observer_seq):
-				f.write("PC=%d: "%(i))
+				f.write("PC:%d "%(i))
 				if(i==len(self.observer_seq)-1):
 					if(ob.type=='ATOMIC'):						
 						self.verify_result.append(ob.run(atomic_map,self.RTC,f))

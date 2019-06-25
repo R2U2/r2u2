@@ -2,8 +2,10 @@
 
 import sys
 import re
-
-TIMESTAMP_WIDTH = 32
+# usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
+#from config import TIMESTAMP_BYTE_extend_byte
+TIMESTAMP_BYTE_extend_byte = int(sys.argv[2])
+TIMESTAMP_WIDTH = 8*TIMESTAMP_BYTE_extend_byte
 
 def writeToFile(file, content):
 	f = open(file, 'w')
@@ -56,7 +58,9 @@ print("Compile future time config")
 
 header=re.compile("s*\d+:")
 
-for line in sys.stdin:
+f = open(sys.argv[1])
+
+for line in f:
 	i = i + 1
 	op = line.split()
 	if(header.match(op[0])):
@@ -152,9 +156,10 @@ for line in sys.stdin:
 		continue
 	
 	opcode = opcode + "\n"
+f.close()
 
-writeToFile(sys.argv[1] + ".ftm", opcode)
-writeToFile(sys.argv[1] + ".fti", ts)
+writeToFile("tmp.ftm", opcode)
+writeToFile("tmp.fti", ts)
 	
 #print opcode
 #print ts

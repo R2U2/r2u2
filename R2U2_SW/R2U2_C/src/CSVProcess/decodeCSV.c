@@ -8,7 +8,7 @@ void count_signals(const char* data_file, int* NUM_SIG, int* MAX_TIME) {
 	*MAX_TIME = 0;
 	*NUM_SIG = 0;
 	// file, delimiter, first_line_is_header?
-	CsvParser *csvparser = CsvParser_new(data_file, " ", 0);
+	CsvParser *csvparser = CsvParser_new(data_file, " ", 1);
 	CsvRow *row;
 
 	while ((row = CsvParser_getRow(csvparser)) ) {
@@ -18,7 +18,7 @@ void count_signals(const char* data_file, int* NUM_SIG, int* MAX_TIME) {
 		if (*NUM_SIG == 0) *NUM_SIG = CsvParser_getNumFields(row);
 		if (CsvParser_getNumFields(row) != *NUM_SIG) {
 			/* Inconsistant number of signals */
-			/* TODO: Handle errors properl */
+			/* TODO: Handle errors properly */
 			printf("WARNING: Improper signal file - row ignored!\n\tFound: %d\tExpected: %d\n", CsvParser_getNumFields(row), *NUM_SIG);
 		} else {
 			*MAX_TIME += 1;
@@ -31,7 +31,7 @@ void count_signals(const char* data_file, int* NUM_SIG, int* MAX_TIME) {
 void load_signals(const char* data_file, int NUM_SIG, int MAX_TIME, r2u2_in_type ***in_dat) {
 	int i =  0;
 	// file, delimiter, first_line_is_header?
-	CsvParser *csvparser = CsvParser_new(data_file, " ", 0);
+	CsvParser *csvparser = CsvParser_new(data_file, " ", 1);
 	CsvRow *row;
 	/* Malloc Input data array */
 	// r2u2_in_type **in_dat;

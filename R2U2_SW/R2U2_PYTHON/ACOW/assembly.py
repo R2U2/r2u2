@@ -38,7 +38,8 @@ class Assembly():
 					else:
 						print(n.type)
 						n.bpd, n.wpd = left.bpd + n.lb, left.wpd + n.ub
-
+				n.scq_size += 1 # (June.25,2019) Intentionally plue 1 here. Python version use different mentod to check SCQ emptyness
+		
 		# compute scq size from top down
 		def compute_scq_size():
 			for n in stack:
@@ -49,6 +50,7 @@ class Assembly():
 
 		def get_total_size():
 			totsize = 0
+			print("(Intentionally increase all SCQ size by 1. Python version use a different method to check SCQ emptyness.)")
 			for n in stack:
 				n.set_scq_size()
 				print(n.name,'	',n,' SCQ size',':	(',n.scq_size,')')
@@ -73,11 +75,11 @@ def decode_assembly(self,assembly):
 		elif(op=='boxbox'):
 			str2observer[target] = GLOBAL(str2observer[token[2]],int(token[3]))
 		elif(op=='boxdot'):
-			str2observer[target] = GLOBAL(str2observer[token[2]],int(token[3]),int(token[4]))
+			str2observer[target] = GLOBAL(str2observer[token[2]],int(token[4]),int(token[3]))
 		elif(op=='and'):
 			str2observer[target] = AND(str2observer[token[2]],str2observer[token[3]])
 		elif(op=='until'):
-			str2observer[target] = UNTIL(str2observer[token[2]],str2observer[token[3]],int(token[4]),int(token[5]))
+			str2observer[target] = UNTIL(str2observer[token[2]],str2observer[token[3]],int(token[5]),int(token[4]))
 		elif(op=='end'):
 			str2observer[target] = END(str2observer[token[2]])
 		elif(op=='TRUE'):
@@ -85,6 +87,7 @@ def decode_assembly(self,assembly):
 		elif(op=='FALSE'):
 			str2observer[target] = BOOL('FALSE')
 		else:
+			print(op)
 			print('Invalid operator, exit')
 			quit()
 		self.valid_node_set.append(str2observer[target])
