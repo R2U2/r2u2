@@ -1,7 +1,0 @@
-map alt_gte_600 = 0.
-map pitch_gte_5 = 1.
-
-logic(ft).
-
-UNTILSINGLEINTERVAL: (alt_gte_600 U[0,2] pitch_gte_5)
-.

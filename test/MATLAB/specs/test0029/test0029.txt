@@ -1,7 +1,0 @@
-map alt_gte_600 = 0.
-map pitch_gte_5 = 1.
-
-logic(ft).
-
-TEST: pitch_gte_5 & (G[0,8] alt_gte_600)
-.

@@ -1,7 +1,0 @@
-map alt_gte_600 = 0.
-map pitch_gte_5 = 1.
-
-logic(ft).
-
-COMPLEXUNTIL: (pitch_gte_5 U[5,10] alt_gte_600) U[1,2] pitch_gte_5 
-.

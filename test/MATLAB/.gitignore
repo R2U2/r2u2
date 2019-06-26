@@ -1,9 +1,0 @@
-# ignore temp file generated from make_r2u2_octave/make_r2u2
-*.map*
-*.o
-*.oct
-*.trc
-*.c
-*.pt*
-*.ft*
-*.dat
