@@ -16,17 +16,20 @@
 #include <string>
 #include "CircularBuffer.h"
 #include "common.h"
+#include "Loader.h"
 
 using namespace std;
 
+#define to_verdict(x) x?"True":"False"
 
 class Observer{
 public:
 	Observer();
 	Observer(Observer *cob1, Observer *cob2);
 	Observer(Observer *cob);
-	virtual void run(FILE*,string){};
-	virtual void run(){};
+	// virtual void run(FILE*,string){};
+	virtual void run(FILE*,string,int){};
+	// virtual void run(){};
 	virtual void dprint1(FILE*,string){};
 	virtual void dprint2(FILE*,string){};
 	virtual void dprint1(){};
@@ -46,33 +49,13 @@ protected:
 	mem track={-1,-1,{0,-1}};
 };
 
-
-class Event: public Observer{
-public:
-	Event(string filename){
-		cb->isBottom=true;
-		ifstream infile(filename.c_str());
-		if(!infile){cout<<"Cannot find file!"<<endl;}
-		else{
-			string line;
-			while (getline(infile, line)){
-				istringstream iss(line);
-				int verdict,time_stamp;
-				if (!(iss >> verdict>> time_stamp )) { break; } // error
-				en cur_node={verdict,time_stamp};
-				cb->write(cur_node);
-			}
-		}
-	}
-};
-
 //END (for assembly only)
-class Observer_type_end : public Observer{
+class END : public Observer{
 public:
 	int pc=0;
-	~Observer_type_end(){}
-	Observer_type_end(Observer *cob):Observer(cob){}
-	Observer_type_end(Observer *cob, int pc):Observer(cob),pc(pc){}
+	~END(){}
+	// END(Observer *cob):Observer(cob){}
+	END(Observer *cob, int pc):Observer(cob),pc(pc){}
 	bool read_buffer(){
 		read_data=child_observer_1->cb->read(rdPtr);
 		return read_data.time_stamp>last_tau;
@@ -80,13 +63,13 @@ public:
 	void dprint1(FILE* pFile,string s){
 		if(result.time_stamp!=-1){
 			hasPrint=true;
-			fprintf(pFile,"END %s:%d = (%d,%d)\n",s.c_str(),pc,read_data.verdict,read_data.time_stamp);
+			fprintf(pFile,"%s:%d END = [%d,%s]\n",s.c_str(),pc,read_data.time_stamp,to_verdict(read_data.verdict));
 			//cout<<"END "<<s<<":"<<pc<<" = ("<<read_data.verdict<<","<<read_data.time_stamp<<")"<<endl;
 		}
 	}
 	void dprint2(FILE* pFile,string s) {if(!hasPrint) fprintf(pFile,"END %s:%d = (-,-)\n",s.c_str(),pc);}
 	//cout<<"END "<<s<<":"<<pc<<" = (-,-)"<<endl;
-	void run(FILE* pFile,string s){
+	void run(FILE* pFile,string s, int time_stamp){
 		hasPrint=false;
 		result={0,-1};
 		while(!child_observer_1->cb->isEmpty(rdPtr)){
@@ -98,37 +81,40 @@ public:
 			rdPtr++;
 			last_tau=result.time_stamp==-1?last_tau:result.time_stamp;
 		}
-		dprint2(pFile,s);
+		// dprint2(pFile,s);
 		if(child_observer_1->cb->recedPtr(rdPtr)) rdPtr--;
 	}
 };
 
 //LOAD
-class Observer_type_0 : public Observer{
+class ATOM : public Observer{
 public:
-	~Observer_type_0(){}
+	~ATOM(){}
 //constructor
-	Observer_type_0(Observer *cob):Observer(cob){}
-	Observer_type_0(Observer *cob, int pc):Observer(cob),pc(pc){}
+	// ATOM(Observer *cob):Observer(cob){}
+	ATOM(int atom_num, Loader* sensor_loader, int pc):atom_num(atom_num),sensor_loader(sensor_loader),pc(pc){}
 //override
-	void dprint1(FILE* pFile, string s) {fprintf(pFile,"LOAD %s:%d = (%d,%d)\n",s.c_str(),pc,result.verdict,result.time_stamp);}
+	void dprint1(FILE* pFile, string s) {fprintf(pFile,"%s:%d LOAD = [%d,%s]\n",s.c_str(),pc,result.time_stamp,to_verdict(result.verdict));}
 	//cout<<"LOAD "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
-	void run(FILE* pFile, string s){//child_node_1.out_node
-		result=child_observer_1->cb->read(rdPtr);;
+	void run(FILE* pFile, string s, int time_stamp){//child_node_1.out_node
+		// result=child_observer_1->cb->read(rdPtr);
+		result={sensor_loader->get(atom_num),time_stamp};
 		cb->write(result);
 		dprint1(pFile,s);
 	}
 private:
+	int atom_num=0;
+	Loader* sensor_loader;
 	int pc=0;
 };
 
 //NOT
-class Observer_type_1 : public Observer{
+class NEG : public Observer{
 public:
-	~Observer_type_1(){}
+	~NEG(){}
 //constructor
-	Observer_type_1(Observer *cob):Observer(cob){}
-	Observer_type_1(Observer *cob, int pc):Observer(cob),pc(pc){}
+	// NEG(Observer *cob):Observer(cob){}
+	NEG(Observer *cob, int pc):Observer(cob),pc(pc){}
 //override
 	bool read_buffer(){
 		read_data=child_observer_1->cb->read(rdPtr);
@@ -138,12 +124,12 @@ public:
 		if(result.time_stamp!=-1){
 			hasPrint=true;
 			//cout<<"NOT "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
-			fprintf(pFile,"NOT %s:%d = (%d,%d)\n",s.c_str(),pc,result.verdict,result.time_stamp);
+			fprintf(pFile,"%s:%d NOT = [%d,%s]\n",s.c_str(),pc,result.time_stamp,to_verdict(result.verdict));
 		}
 	}
 	void dprint2(FILE* pFile,string s) {if(!hasPrint) fprintf(pFile,"NOT %s:%d = (-,-)\n",s.c_str(),pc);}
 	//cout<<"NOT "<<s<<":"<<pc<<" = (-,-)"<<endl;
-	void run(FILE* pFile,string s){//child_node_1.out_node
+	void run(FILE* pFile,string s, int time_stamp){//child_node_1.out_node
 		hasPrint=false;
 		result={0,-1};
 		while(!child_observer_1->cb->isEmpty(rdPtr)){
@@ -155,70 +141,20 @@ public:
 			last_tau=result.time_stamp==-1?last_tau:result.time_stamp;
 			rdPtr++;
 		}
-		dprint2(pFile,s);
+		// dprint2(pFile,s);
 		if(child_observer_1->cb->recedPtr(rdPtr)) rdPtr--;
 	}
 private:
 	int pc=0;
 };
 
-//KEP
-class Observer_type_2 : public Observer{
-public:
-	~Observer_type_2(){}
-	Observer_type_2(Observer *cob, int tau):Observer(cob),tau(tau){}
-	Observer_type_2(Observer *cob, int tau, int pc):Observer(cob),pc(pc),tau(tau),counter(0){}
-	bool read_buffer(){
-		if(child_observer_1->cb->isEmpty(rdPtr)) return false;
-		read_data=child_observer_1->cb->read(rdPtr);
-		return read_data.time_stamp>last_tau;
-	}
-	void dprint1(FILE* pFile, string s){
-		if(result.time_stamp!=-1){
-			hasPrint=true;
-			fprintf(pFile,"G[%d] %s:%d = (%d,%d)\n",tau,s.c_str(),pc,result.verdict,result.time_stamp);
-			//cout<<"G["<<tau<<"] "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
-		}
-	}
-	void dprint2(FILE* pFile, string s) {if(!hasPrint) fprintf(pFile,"G[%d] %s:%d = (-,-)\n",tau,s.c_str(),pc);}
-	// cout<<"G["<<tau<<"] "<<s<<":"<<pc<<" = (-,-)"<<endl;
-	void run(FILE* pFile,string s){
-		hasPrint=false;
-		while(true){
-			track={rdPtr,rdPtr2,result};
-			result={0,-1};
-			while(!child_observer_1->cb->isEmpty(rdPtr)&&!read_buffer()) rdPtr++;
-			if(read_buffer()){
-				if(read_data.verdict==1){
-					if(counter>=tau){
-						result={1,read_data.time_stamp-tau};
-						cb->write(result);
-					}
-					counter++;
-				}else{
-					counter=0;
-					result={0,read_data.time_stamp};
-					cb->write(result);
-				}
-			}
-			last_tau=read_data.time_stamp;
-
-			if(child_observer_1->cb->recedPtr(rdPtr)) rdPtr--;
-			if(track.rdPtr_mem==rdPtr&&track.result_mem.time_stamp==result.time_stamp) break;
-			if(track.result_mem.time_stamp!=result.time_stamp) dprint1(pFile,s);
-		}
-		dprint2(pFile,s);
-	}
-private:
-	int pc=0,tau,counter=0;
-};
 
 //AND
-class Observer_type_3 : public Observer{
+class AND : public Observer{
 public:
-	~Observer_type_3(){}
-	Observer_type_3(Observer *cob1, Observer *cob2):Observer(cob1,cob2){}
-	Observer_type_3(Observer *cob1, Observer *cob2, int pc):Observer(cob1,cob2),pc(pc){}
+	~AND(){}
+	// AND(Observer *cob1, Observer *cob2):Observer(cob1,cob2){}
+	AND(Observer *cob1, Observer *cob2, int pc):Observer(cob1,cob2),pc(pc){}
 	bool read_buffer(){
 		if(child_observer_1->cb->isEmpty(rdPtr)) return false;
 		read_data=child_observer_1->cb->read(rdPtr);
@@ -232,13 +168,13 @@ public:
 	void dprint1(FILE* pFile, string s){
 		if(result.time_stamp!=-1){
 			hasPrint=true;
-			fprintf(pFile,"AND %s:%d = (%d,%d)\n",s.c_str(),pc,result.verdict,result.time_stamp);
+			fprintf(pFile,"%s:%d AND = [%d,%s]\n",s.c_str(),pc,result.time_stamp,to_verdict(result.verdict));
 			//cout<<"AND "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
 		}
 	}
 	void dprint2(FILE* pFile, string s) {if(!hasPrint) fprintf(pFile,"AND %s:%d = (-,-)\n",s.c_str(),pc);}
 	//cout<<"AND "<<s<<":"<<pc<<" = (-,-)"<<endl;
-	void run(FILE* pFile, string s){
+	void run(FILE* pFile, string s, int time_stamp){
 		result={0,-1};
 		hasPrint=false;
 		while(true){
@@ -279,7 +215,7 @@ public:
 			if(track.rdPtr_mem==rdPtr&&track.rdPtr2_mem==rdPtr2&&track.result_mem.time_stamp==result.time_stamp) break;
 			if(track.result_mem.time_stamp!=result.time_stamp) dprint1(pFile,s);
 		}
-		dprint2(pFile,s);
+		// dprint2(pFile,s);
 	}
 private:
 	int pc=0;
@@ -287,11 +223,12 @@ private:
 };
 
 //ALW
-class Observer_type_4 : public Observer{
+class GLOBAL : public Observer{
 public:
-	~Observer_type_4(){}
-	Observer_type_4(Observer *cob, int tau1, int tau2):Observer(cob),tau1(tau1),tau2(tau2){}
-	Observer_type_4(Observer *cob, int tau1, int tau2, int pc):Observer(cob),tau1(tau1),tau2(tau2),pc(pc){}
+	~GLOBAL(){}
+	// GLOBAL(Observer *cob, int tau1, int tau2):Observer(cob),tau1(tau1),tau2(tau2){}
+	GLOBAL(Observer *cob, int tau1, int tau2, int pc):Observer(cob),tau1(tau1),tau2(tau2),pc(pc){}
+	GLOBAL(Observer *cob, int tau2, int pc):Observer(cob),tau1(0),tau2(tau2),pc(pc){}
 	bool read_buffer(){
 		if(child_observer_1->cb->isEmpty(rdPtr)) return false;
 		read_data=child_observer_1->cb->read(rdPtr);
@@ -300,14 +237,14 @@ public:
 	void dprint1(FILE* pFile,string s){
 		if(result.time_stamp!=-1){
 			hasPrint=true;
-			fprintf(pFile,"G[%d,%d] %s:%d = (%d,%d)\n",tau1,tau2,s.c_str(),pc,result.verdict,result.time_stamp);
+			fprintf(pFile,"%s:%d G[%d,%d] = [%d,%s]\n",s.c_str(),pc,tau1,tau2,result.time_stamp,to_verdict(result.verdict));
 			//cout<<"G["<<tau1<<","<<tau2<<"] "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
 		}
 	}
 	void dprint2(FILE* pFile,string s){if(!hasPrint) fprintf(pFile,"G[%d,%d] %s:%d = (-,-)\n",tau1,tau2,s.c_str(),pc);}
 	//cout<<"G["<<tau1<<","<<tau2<<"] "<<s<<":"<<pc<<" = (-,-)"<<endl;
 
-	void run(FILE* pFile,string s){
+	void run(FILE* pFile,string s, int time_stamp){
 		int tau=tau2-tau1;
 		hasPrint=false;
 		result={0,-1};
@@ -336,12 +273,70 @@ public:
 			if(track.rdPtr_mem==rdPtr&&track.result_mem.time_stamp==result.time_stamp) break;
 			if(track.result_mem.time_stamp!=result.time_stamp) dprint1(pFile,s);
 		}
-		dprint2(pFile,s);
+		// dprint2(pFile,s);
 	}
 private:
 	int tau1,tau2,counter=0,pc=0;
 };
 
-//TODO until
-class Observer_type_5 : public Observer{};
+class UNTIL : public Observer{
+public:
+	~UNTIL(){}
+	UNTIL(Observer *cob1, Observer *cob2, int tau1, int tau2, int pc):Observer(cob1,cob2),tau1(tau1), tau2(tau2), pc(pc){}
+	bool read_buffer(){
+		if(child_observer_1->cb->isEmpty(rdPtr)) return false;
+		read_data=child_observer_1->cb->read(rdPtr);
+		return read_data.time_stamp>last_tau;
+	}
+	bool read_buffer2(){
+		if(child_observer_2->cb->isEmpty(rdPtr2)) return false;
+		read_data2=child_observer_2->cb->read(rdPtr2);
+		return read_data2.time_stamp>last_tau;
+	}
+	void dprint1(FILE* pFile,string s){
+		if(result.time_stamp!=-1){
+			hasPrint=true;
+			fprintf(pFile,"%s:%d U[%d,%d] = [%d,%s]\n",s.c_str(),pc,tau1,tau2,result.time_stamp,to_verdict(result.verdict));
+			//cout<<"G["<<tau1<<","<<tau2<<"] "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
+		}
+	}
+
+	void run(FILE* pFile,string s, int time_stamp){
+		bool has_data = read_buffer();
+		bool has_data2 = read_buffer2();
+		int pre_time_stamp_2 = pre.time_stamp;
+		int pre_verdict_2 = pre.verdict;
+		while(has_data or has_data2) {
+			result = {0,-1};
+			tau = min(read_data.time_stamp,read_data2.time_stamp);
+			last_tau = tau + 1;
+			// cout<<"ODIOJEOD"<<endl;
+			if(pre_verdict_2 && !read_data2.verdict) m_down = pre_time_stamp_2+1;
+			if(read_data2.verdict) result = {1,tau-tau1};
+			else if(!read_data.verdict) result = {0,tau-tau1};
+			else if(tau>=tau2-tau1+m_down) result = {0,tau-tau2};
+			if(result.time_stamp>=preResult) {
+				cb->write(result);
+				dprint1(pFile,s);
+			}
+			pre = {read_data2.verdict,read_data2.time_stamp};
+			if(child_observer_1->cb->recedPtr(rdPtr)) rdPtr--;
+			if(child_observer_2->cb->recedPtr(rdPtr2)) rdPtr2--;
+			has_data = read_buffer();
+			has_data2 = read_buffer2();
+		}
+	}
+private:
+	en pre = {1,-1};
+	int m_down = 0;
+	int preResult = 0;//time stamp of previous result
+	int tau1,tau2;
+	int tau;
+	int pc=0;
+	en read_data2={0,0};
+
+
+};
+
+
 #endif

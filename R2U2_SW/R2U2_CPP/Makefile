@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++11 -Wall -g
 BUILD := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/app
-TARGET   := main
+TARGET   := MLTL
 SRC      := $(wildcard src/*.cpp) 
 
 
