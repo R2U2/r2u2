@@ -29,7 +29,6 @@ int main() {
 	assm.Construct(sensor_loader, observer);
 	FILE* pFile;
 	pFile = fopen("result.txt","w");
-	fprintf(pFile,"**********RESULTS**********\n\n");
 	int time_step = 0;
 	while(sensor_loader->has_next()) {
 	//MUST follow the update sequence from bottom layer to top layer (no need to care)

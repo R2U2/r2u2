@@ -42,8 +42,9 @@ void Assembly::Construct(Loader* sensor_loader, Observer** observer){
 		}
 		if(tokens.at(0).compare("load")==0 || tokens.at(0).compare("load_ft")==0) {
 			string src=tokens.at(1);
-			int obNum=stoi(src.substr(1,src.length()),nullptr);
-			observer[subformula_tag]=new ATOM(obNum,sensor_loader,subformula_tag);
+			string name = src;
+			// int obNum=stoi(src.substr(1,src.length()),nullptr);
+			observer[subformula_tag]=new ATOM(name,sensor_loader,subformula_tag);
 		} else if(tokens.at(0).compare("not")==0) {
 			string src=tokens.at(1);
 			int obNum=stoi(src.substr(1,src.length()),nullptr);

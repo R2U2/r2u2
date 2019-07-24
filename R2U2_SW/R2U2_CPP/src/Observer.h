@@ -92,18 +92,18 @@ public:
 	~ATOM(){}
 //constructor
 	// ATOM(Observer *cob):Observer(cob){}
-	ATOM(int atom_num, Loader* sensor_loader, int pc):atom_num(atom_num),sensor_loader(sensor_loader),pc(pc){}
+	ATOM(string atom_name, Loader* sensor_loader, int pc):atom_name(atom_name),sensor_loader(sensor_loader),pc(pc){}
 //override
 	void dprint1(FILE* pFile, string s) {fprintf(pFile,"%s:%d LOAD = [%d,%s]\n",s.c_str(),pc,result.time_stamp,to_verdict(result.verdict));}
 	//cout<<"LOAD "<<s<<":"<<pc<<" = ("<<result.verdict<<","<<result.time_stamp<<")"<<endl;
 	void run(FILE* pFile, string s, int time_stamp){//child_node_1.out_node
 		// result=child_observer_1->cb->read(rdPtr);
-		result={sensor_loader->get(atom_num),time_stamp};
+		result={sensor_loader->get(atom_name),time_stamp};
 		cb->write(result);
 		dprint1(pFile,s);
 	}
 private:
-	int atom_num=0;
+	string atom_name;
 	Loader* sensor_loader;
 	int pc=0;
 };

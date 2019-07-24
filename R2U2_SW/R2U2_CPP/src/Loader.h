@@ -7,40 +7,38 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 using namespace std;
 
 class CSVRow {
 public:
-	std::string const& operator[](std::size_t index) const {
+	string const& operator[](size_t index) const {
 		return m_data[index];
 	}
-	std::size_t size() const {
+	size_t size() const {
 		return m_data.size();
 	}
-	// operator overload
-	// std::istream& operator>>(std::istream& str) {
-	// 	readNextRow(str);
-	// 	return str;
-	// }
+
 	~CSVRow(){};
 
-	std::vector<std::string> m_data;
+	vector<string> m_data;
+	
 
-	bool is_empty(std::ifstream& pFile) {
-		return pFile.peek() == std::ifstream::traits_type::eof();
+	bool is_empty(ifstream& pFile) {
+		return pFile.peek() == ifstream::traits_type::eof();
 	}
 
-	bool readNextRow(std::ifstream& str){
+	bool readNextRow(ifstream& str){
 		if(is_empty(str)) return false;
-		std::string line;
+		string line;
 		std::getline(str, line);
 
-		std::stringstream lineStream(line);
-		std::string cell;
+		stringstream lineStream(line);
+		string cell;
 
 		m_data.clear();
-		while(std::getline(lineStream, cell, ',')) {
+		while(getline(lineStream, cell, ',')) {
 			m_data.push_back(cell);
 		}
 		// This checks for a trailing comma with no data after it.
@@ -60,14 +58,17 @@ class Loader {
 public:
 	Loader(string);
 	bool has_next();
-	vector<string> load_next();
-	int get(int atom_num);
+	// vector<string> load_next();
+	void convert();
+	bool get(string atom_name);
 	~Loader();
 	
 
 private:
 	CSVRow* csv_row;
 	ifstream* file;
+	unordered_map<string,int> sen2pos;
+	vector<double> data_row;
 };
 
 #endif

@@ -4,11 +4,36 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include "Loader.h"
+
+#define SENSOR(x) data_row[sen2pos[x]] //x is the sensor name in sensor log file
+
+using namespace std;
+
+// user specified atomic conversion function
+bool Loader::get(string atom_name) {
+	if(atom_name.compare("a0")==0) {
+		return SENSOR("a0")>0.5;
+	} else if(atom_name.compare("a1")==0) {
+		return SENSOR("a1")>0.5;
+	} else if(atom_name.compare("a2")==0) {
+		return SENSOR("a2")>0.5;
+	} else {
+		throw "Sensor conversion function unspecified.";
+	}
+
+}
+
 
 Loader::Loader(std::string filename) {
 	file = new ifstream(filename.c_str());
 	csv_row = new CSVRow;
+	csv_row->readNextRow(*file);//collect sensor names in the first line
+	for(int i=0;i<csv_row->m_data.size();i++) {
+		sen2pos.insert(pair<string,int>(csv_row->m_data[i],i));
+	}
+	cout<<sen2pos["a1"]<<endl;
 }
 
 Loader::~Loader() {
@@ -16,17 +41,27 @@ Loader::~Loader() {
 	delete csv_row;
 }
 
+
+
 bool Loader::has_next() {
-	//return true;
-	return csv_row->readNextRow(*file);
+	if(csv_row->readNextRow(*file)) {
+		convert();
+		return true;
+	}
+	return false;
 }
 
-std::vector<std::string> Loader::load_next() {
-	return csv_row->m_data;
+void Loader::convert() {
+	data_row.clear();
+	for(string s:csv_row->m_data) {
+		data_row.push_back(stod(s,nullptr));
+	}
 }
 
-int Loader::get(int atom_num) {
-	return std::stoi(csv_row->m_data[atom_num],nullptr);
-}
+// std::vector<std::string> Loader::load_next() {
+// 	return csv_row->m_data;
+// }
+
+
 
 
