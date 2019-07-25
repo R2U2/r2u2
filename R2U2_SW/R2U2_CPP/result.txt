@@ -1,60 +1,83 @@
-**********RESULTS**********
-
 ----------TIME STEP: 0----------
 PC:0 LOAD = [0,False]
 PC:1 LOAD = [0,True]
+PC:3 AND = [0,False]
+PC:4 END = [0,False]
 
 ----------TIME STEP: 1----------
 PC:0 LOAD = [1,False]
 PC:1 LOAD = [1,True]
+PC:2 U[1,3] = [0,True]
+PC:3 AND = [1,False]
+PC:4 END = [1,False]
 
 ----------TIME STEP: 2----------
 PC:0 LOAD = [2,False]
 PC:1 LOAD = [2,True]
-PC:2 U[1,3] = [1,False]
-PC:3 END = [1,False]
+PC:2 U[1,3] = [1,True]
+PC:3 AND = [2,False]
+PC:4 END = [2,False]
 
 ----------TIME STEP: 3----------
 PC:0 LOAD = [3,False]
 PC:1 LOAD = [3,True]
+PC:2 U[1,3] = [2,True]
+PC:3 AND = [3,False]
+PC:4 END = [3,False]
 
 ----------TIME STEP: 4----------
 PC:0 LOAD = [4,False]
 PC:1 LOAD = [4,False]
 PC:2 U[1,3] = [3,False]
-PC:3 END = [3,False]
+PC:3 AND = [4,False]
+PC:4 END = [4,False]
 
 ----------TIME STEP: 5----------
 PC:0 LOAD = [5,False]
 PC:1 LOAD = [5,True]
+PC:2 U[1,3] = [4,True]
+PC:3 AND = [5,False]
+PC:4 END = [5,False]
 
 ----------TIME STEP: 6----------
 PC:0 LOAD = [6,False]
 PC:1 LOAD = [6,True]
-PC:2 U[1,3] = [5,False]
-PC:3 END = [5,False]
+PC:2 U[1,3] = [5,True]
+PC:3 AND = [6,False]
+PC:4 END = [6,False]
 
 ----------TIME STEP: 7----------
 PC:0 LOAD = [7,False]
 PC:1 LOAD = [7,False]
+PC:2 U[1,3] = [6,False]
+PC:3 AND = [7,False]
+PC:4 END = [7,False]
 
 ----------TIME STEP: 8----------
 PC:0 LOAD = [8,False]
 PC:1 LOAD = [8,False]
 PC:2 U[1,3] = [7,False]
-PC:3 END = [7,False]
+PC:3 AND = [8,False]
+PC:4 END = [8,False]
 
 ----------TIME STEP: 9----------
 PC:0 LOAD = [9,False]
 PC:1 LOAD = [9,False]
+PC:2 U[1,3] = [8,False]
+PC:3 AND = [9,False]
+PC:4 END = [9,False]
 
 ----------TIME STEP: 10----------
 PC:0 LOAD = [10,True]
 PC:1 LOAD = [10,False]
+PC:2 U[1,3] = [7,False]
 
 ----------TIME STEP: 11----------
 PC:0 LOAD = [11,True]
 PC:1 LOAD = [11,True]
+PC:2 U[1,3] = [10,True]
+PC:3 AND = [10,True]
+PC:4 END = [10,True]
 
 ----------TIME STEP: 12----------
 PC:0 LOAD = [12,True]
@@ -63,10 +86,16 @@ PC:1 LOAD = [12,False]
 ----------TIME STEP: 13----------
 PC:0 LOAD = [13,True]
 PC:1 LOAD = [13,True]
+PC:2 U[1,3] = [12,True]
+PC:3 AND = [12,True]
+PC:4 END = [12,True]
 
 ----------TIME STEP: 14----------
 PC:0 LOAD = [14,True]
 PC:1 LOAD = [14,True]
+PC:2 U[1,3] = [13,True]
+PC:3 AND = [13,True]
+PC:4 END = [13,True]
 
 ----------TIME STEP: 15----------
 PC:0 LOAD = [15,True]
@@ -75,6 +104,9 @@ PC:1 LOAD = [15,False]
 ----------TIME STEP: 16----------
 PC:0 LOAD = [16,True]
 PC:1 LOAD = [16,True]
+PC:2 U[1,3] = [15,True]
+PC:3 AND = [15,True]
+PC:4 END = [15,True]
 
 ----------TIME STEP: 17----------
 PC:0 LOAD = [17,True]
@@ -83,6 +115,9 @@ PC:1 LOAD = [17,False]
 ----------TIME STEP: 18----------
 PC:0 LOAD = [18,True]
 PC:1 LOAD = [18,True]
+PC:2 U[1,3] = [17,True]
+PC:3 AND = [17,True]
+PC:4 END = [17,True]
 
 ----------TIME STEP: 19----------
 PC:0 LOAD = [19,True]
@@ -91,6 +126,9 @@ PC:1 LOAD = [19,False]
 ----------TIME STEP: 20----------
 PC:0 LOAD = [20,True]
 PC:1 LOAD = [20,True]
+PC:2 U[1,3] = [19,True]
+PC:3 AND = [19,True]
+PC:4 END = [19,True]
 
 ----------TIME STEP: 21----------
 PC:0 LOAD = [21,True]
@@ -99,42 +137,70 @@ PC:1 LOAD = [21,False]
 ----------TIME STEP: 22----------
 PC:0 LOAD = [22,True]
 PC:1 LOAD = [22,True]
+PC:2 U[1,3] = [21,True]
+PC:3 AND = [21,True]
+PC:4 END = [21,True]
 
 ----------TIME STEP: 23----------
 PC:0 LOAD = [23,True]
 PC:1 LOAD = [23,True]
+PC:2 U[1,3] = [22,True]
+PC:3 AND = [22,True]
+PC:4 END = [22,True]
 
 ----------TIME STEP: 24----------
 PC:0 LOAD = [24,True]
 PC:1 LOAD = [24,True]
+PC:2 U[1,3] = [23,True]
+PC:3 AND = [23,True]
+PC:4 END = [23,True]
 
 ----------TIME STEP: 25----------
 PC:0 LOAD = [25,False]
 PC:1 LOAD = [25,True]
+PC:2 U[1,3] = [24,True]
+PC:3 AND = [24,True]
+PC:4 END = [24,True]
 
 ----------TIME STEP: 26----------
 PC:0 LOAD = [26,False]
 PC:1 LOAD = [26,False]
+PC:2 U[1,3] = [25,False]
+PC:3 AND = [26,False]
+PC:4 END = [26,False]
 
 ----------TIME STEP: 27----------
 PC:0 LOAD = [27,False]
 PC:1 LOAD = [27,True]
+PC:2 U[1,3] = [26,True]
+PC:3 AND = [27,False]
+PC:4 END = [27,False]
 
 ----------TIME STEP: 28----------
 PC:0 LOAD = [28,False]
 PC:1 LOAD = [28,False]
+PC:2 U[1,3] = [27,False]
+PC:3 AND = [28,False]
+PC:4 END = [28,False]
 
 ----------TIME STEP: 29----------
 PC:0 LOAD = [29,False]
 PC:1 LOAD = [29,False]
+PC:2 U[1,3] = [28,False]
+PC:3 AND = [29,False]
+PC:4 END = [29,False]
 
 ----------TIME STEP: 30----------
 PC:0 LOAD = [30,False]
 PC:1 LOAD = [30,False]
+PC:2 U[1,3] = [29,False]
+PC:3 AND = [30,False]
+PC:4 END = [30,False]
 
 ----------TIME STEP: 31----------
 PC:0 LOAD = [31,True]
 PC:1 LOAD = [31,True]
+PC:2 U[1,3] = [30,True]
 
 ----------TIME STEP: 32----------
 PC:0 LOAD = [32,True]
@@ -143,6 +209,9 @@ PC:1 LOAD = [32,False]
 ----------TIME STEP: 33----------
 PC:0 LOAD = [33,True]
 PC:1 LOAD = [33,True]
+PC:2 U[1,3] = [32,True]
+PC:3 AND = [32,True]
+PC:4 END = [32,True]
 
 ----------TIME STEP: 34----------
 PC:0 LOAD = [34,True]
@@ -151,20 +220,35 @@ PC:1 LOAD = [34,False]
 ----------TIME STEP: 35----------
 PC:0 LOAD = [35,True]
 PC:1 LOAD = [35,True]
+PC:2 U[1,3] = [34,True]
+PC:3 AND = [34,True]
+PC:4 END = [34,True]
 
 ----------TIME STEP: 36----------
 PC:0 LOAD = [36,True]
 PC:1 LOAD = [36,True]
+PC:2 U[1,3] = [35,True]
+PC:3 AND = [35,True]
+PC:4 END = [35,True]
 
 ----------TIME STEP: 37----------
 PC:0 LOAD = [37,True]
 PC:1 LOAD = [37,True]
+PC:2 U[1,3] = [36,True]
+PC:3 AND = [36,True]
+PC:4 END = [36,True]
 
 ----------TIME STEP: 38----------
 PC:0 LOAD = [38,True]
 PC:1 LOAD = [38,True]
+PC:2 U[1,3] = [37,True]
+PC:3 AND = [37,True]
+PC:4 END = [37,True]
 
 ----------TIME STEP: 39----------
 PC:0 LOAD = [39,True]
 PC:1 LOAD = [39,True]
+PC:2 U[1,3] = [38,True]
+PC:3 AND = [38,True]
+PC:4 END = [38,True]
 

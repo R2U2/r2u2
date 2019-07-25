@@ -21,20 +21,26 @@
 
 using namespace std;
 
-int main() {
-	string asm_file="./src/test.ftasm";
-	Loader* sensor_loader = new Loader("./src/sensor.log");
-	Assembly assm = Assembly(asm_file);
+int main(int argc,char* argv[]) {
+	// string asm_file="./input/test.ftasm";
+	// string sensor_data_file="./input/sensor.log";
+	// string result_file="result.txt";
+	if(argc!=4) {
+		throw "Argument incorrect\n";
+		return -1;
+	}
+	string asm_file = argv[1], sensor_data_file = argv[2], result_file = argv[3];
+	Loader* sensor_loader = new Loader(sensor_data_file.c_str());
+	Assembly assm = Assembly(asm_file.c_str());
 	Observer** observer = new Observer*[assm.num_of_observer];
 	assm.Construct(sensor_loader, observer);
 	FILE* pFile;
-	pFile = fopen("result.txt","w");
-	int time_step = 0;
+	pFile = fopen(result_file.c_str(),"w");
 	while(sensor_loader->has_next()) {
 	//MUST follow the update sequence from bottom layer to top layer (no need to care)
-		fprintf(pFile,"----------TIME STEP: %d----------\n",time_step);
-		for(int n=0;n<assm.num_of_observer;n++) observer[n]->run(pFile,"PC",time_step);
-		time_step++;
+		fprintf(pFile,"----------TIME STEP: %d----------\n",observer[0]->time_stamp);
+		for(int n=0;n<assm.num_of_observer;n++) observer[n]->run(pFile);
+		observer[0]->time_stamp++;
 		fprintf(pFile,"\n");
 	}
 	fclose (pFile);

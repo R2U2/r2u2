@@ -4,7 +4,7 @@
 #include <string>
 using namespace std;
 typedef	struct{
-	int verdict;//0:false, 1:true, 2:maybe
+	bool verdict;
 	int time_stamp;
 }en;
 

@@ -75,7 +75,7 @@ void Assembly::Construct(Loader* sensor_loader, Observer** observer){
 			string src_1=tokens.at(1);
 			int obNum_1=stoi(src_1.substr(1,src_1.length()),nullptr);
 			string src_2=tokens.at(2);
-			int obNum_2=stoi(src_1.substr(1,src_2.length()),nullptr);
+			int obNum_2=stoi(src_2.substr(1,src_2.length()),nullptr);
 			int intNum_1=stoi(tokens.at(3),nullptr);
 			int intNum_2=stoi(tokens.at(4),nullptr);
 			observer[subformula_tag]=new UNTIL(observer[obNum_1],observer[obNum_2],intNum_1,intNum_2,subformula_tag);

@@ -8,30 +8,25 @@
 #define SRC_CIRCULARBUFFER_H_
 
 #define circularQueue_size 32
-#include <vector>
 #include "common.h"
 
 class CircularBuffer {
 public:
+	//CircularBuffer(int size);
+	CircularBuffer(int size);
 	CircularBuffer();
-	virtual ~CircularBuffer();
-	void write(en);
-	en read(int&);//read from observer
-	en read();//read from sensor(only for load operation)
-	bool isEmpty(int);
-	en peek(int);
-	void incPtr(int&);
-	void decPtr(int&);
-	int preWrPtr();
-	bool recedPtr(int);
-	void debug();
+	~CircularBuffer();
 
-public:
-	en data[circularQueue_size];
-	int wrPtr;
-	std::vector<en> atomic;
-	bool isBottom=false;
-	bool everWrite=false;
+	int inc_ptr(int ptr);
+	int dec_ptr(int ptr);
+	void add(en newData);
+	en pop(int rd_ptr);
+	bool isEmpty(int& rd_ptr, int desired_time_stamp);
+
+private:
+	en* queue; //dynamically allocated queue
+	int size;
+	int wr_ptr=0;
 };
 
 

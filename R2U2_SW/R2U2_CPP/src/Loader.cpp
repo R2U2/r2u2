@@ -33,7 +33,6 @@ Loader::Loader(std::string filename) {
 	for(int i=0;i<csv_row->m_data.size();i++) {
 		sen2pos.insert(pair<string,int>(csv_row->m_data[i],i));
 	}
-	cout<<sen2pos["a1"]<<endl;
 }
 
 Loader::~Loader() {
