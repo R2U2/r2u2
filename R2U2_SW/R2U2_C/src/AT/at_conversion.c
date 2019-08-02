@@ -35,8 +35,7 @@ void at_checkers_init(){
 void at_checkers_update(const r2u2_input_data_t *r2u2_input_data){
 
 	DEBUG(fprintf(stderr,"%s[%d]: %s\n",__FILE__,__LINE__,"at_checkers_update"));
-
-	for (int i=0; i< N_ATOMICS; i++){
+	for (int i=0; i< 4; i++){
 		atomics_vector[i] = AT_COMP((r2u2_input_data[i]), > , 0.5);
 	}
 }

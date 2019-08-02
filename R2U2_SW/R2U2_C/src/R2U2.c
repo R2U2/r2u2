@@ -24,8 +24,8 @@ void sys_init(char *argv[]) {
 
 
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[]) 
+{
     if (argc != 2) {
         fprintf(stdout,"%s Version %d.%d\n",
                 argv[0],
@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
                 R2U2_C_VERSION_MINOR);
         fprintf(stdout, "Usage: 1) trace data file, 2) .ftm, 3) .fti, 4) .ftscq\n");
     }
-    r2u2_in_type **in_dat;
     r2u2_in_type *cur_sigs;
     int MAX_TIME = 0, NUM_SIG = 0;
 
@@ -44,9 +43,12 @@ int main(int argc, char *argv[]) {
         int command = 0; //-1: restart -2: terminate
         printf("waiting for the sensor data file...\n");
         while(access( argv[1], F_OK ) == -1) sleep(1); // file not exists
+        count_signals(argv[1], &NUM_SIG, &MAX_TIME);
+        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*)); 
         printf("find sensor data file: %s, wait for starting command...\n",argv[1]);
         do{
-            decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+            //decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+            load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
             command = in_dat[0][0];
             sleep(1);
         }while(command!=-1 && command!=-2);
@@ -56,7 +58,9 @@ int main(int argc, char *argv[]) {
             sys_init(argv);
             printf("waiting for the first sensor data to start the RV...\n");
             do{
-                decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+
+                //decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+                load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
                 command = in_dat[0][0];
                 sleep(0.5);
             }while(command!=0);
@@ -72,7 +76,8 @@ int main(int argc, char *argv[]) {
             /* Main processing loop */
             for (int cur_time=0; ; cur_time++) {
                 while(true) {
-                    decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+                    //decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+                    load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
                     int curTime= in_dat[0][0];
                     command = in_dat[0][0];
                     if(command<0) break;
@@ -85,7 +90,8 @@ int main(int argc, char *argv[]) {
                     sleep(1); // check the command every 1 s
                 }
                 if(command<0) break;
-                for (int i=1; i<NUM_SIG; i++) cur_sigs[i] = in_dat[0][i]; //first number is the command
+                //for (int i=1; i<NUM_SIG; i++) cur_sigs[i] = in_dat[0][i]; //first number is the command
+                cur_sigs = &in_dat[cur_time][0]; 
                 printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
                 fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
                 fprintf(dbg_file, "----------TIME STEP: %d----------\n", cur_time);
@@ -103,15 +109,19 @@ int main(int argc, char *argv[]) {
 
     #else
         sys_init(argv);
-        decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
+        count_signals(argv[1], &NUM_SIG, &MAX_TIME);
+        //decodeCSV(argv[1],&in_dat,&MAX_TIME,&NUM_SIG);
+        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*)); 
+        load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
         FILE *out_file, *dbg_file;
         out_file = fopen("./R2U2.out", "w+");
         dbg_file = fopen("./R2U2.log", "w+");
+
         if ((out_file == NULL) || (dbg_file == NULL)) return 1;
         // fprintf(dbg_file, "**********RESULTS**********\n\n"); 
         /* Main processing loop */
         for (int cur_time=0; cur_time < MAX_TIME; cur_time++) {
-            for (int i=0; i<NUM_SIG; i++) cur_sigs[i] = in_dat[cur_time][i]; 
+            cur_sigs = &in_dat[cur_time][0]; 
             printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
             fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
             fprintf(dbg_file, "----------TIME STEP: %d----------\n", cur_time);
