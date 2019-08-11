@@ -29,8 +29,9 @@ void Assembly::Construct(Loader* sensor_loader, Observer** observer){
 	string partial;
 	vector<std::string> tokens;
 	while (getline(infile, line)&&line.compare("")!=0){
-		line.erase(line.find_last_not_of(" \n\r\t")+1);
-		line.erase(0,line.find_first_not_of(" \n\r\t\'1'\'2'\'3'\'4'\'5'\'6'\'7'\'8'\'9'\'0'\':'"));
+		line.erase(line.find_last_not_of(" \n\r\t")+1); //remove ending space etc
+		line.erase(0,line.find_first_of(":")+1);
+		line = line.substr(line.find_first_not_of(" \n\r\t")); //remove front space etc
 		istringstream iss(line);
 		string token;
 		string tinyToken;

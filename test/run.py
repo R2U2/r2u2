@@ -119,11 +119,10 @@ def test_c(formulaFiles,inputFiles):
 		for cnt,formula in enumerate(lines):
 			gen_assembly(formula,4,True)
 			for _input in inputFiles:
-				# print(formula+"	"+_formulaFile+"	"+_input)
-				filename = __OutputDIR__+     _formulaFile+_input+'formula_'+str(cnt)+'.txt'
+				filename = __OutputDIR__+_formulaFile+_input+'formula_'+str(cnt)+'.txt'
 				print(filename)
-				
-				subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'],stdout=subprocess.PIPE)
+				# subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'],stdout=subprocess.PIPE)
+				subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'])
 				subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
 		f.close()
 	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','R2U2.out'):
@@ -133,8 +132,27 @@ def test_c(formulaFiles,inputFiles):
 # def test_c():
 # 	pass
 
-def test_cpp():
-	pass
+def test_cpp(formulaFiles,inputFiles):
+	__OutputDIR__ = __ResultDIR__+'cpp_version/'
+	# subprocess_cmd('cd '+__CPPDIR__+'; '+'make') # compile Cpp version
+	if not os.path.exists(__OutputDIR__):
+		os.makedirs(__OutputDIR__)
+	for _formulaFile in formulaFiles:
+		f = open(__TLDir__+_formulaFile,'r')
+		lines =  [i.strip() for i in f]
+		for cnt,formula in enumerate(lines):
+			gen_assembly(formula,4,True)
+			for _input in inputFiles:
+				filename = __OutputDIR__+_formulaFile+_input+'formula_'+str(cnt)+'.txt'
+				print(filename)
+				subprocess.run([__CPPDIR__+'build/app/MLTL','tmp.ftasm',__InputDir__+_input,"result.txt"])
+				print(__CPPDIR__+'build/app/MLTL')
+				# quit()
+				subprocess.run(['mv','result.txt',filename],stdout=subprocess.PIPE)
+		f.close()
+	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','result.txt'):
+		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
+
 	
 
 def test_vhdl(formulaFiles,inputFiles):
@@ -173,20 +191,7 @@ def main():
 	elif(args['version'].lower()=='c'):
 		test_c(formulaFiles,inputFiles)
 	elif(args['version'].lower()=='cpp'):
-		# f=open(file,'r')
-		# f_temp = open(file+'_tmp','w')
-		# lines =  [i.strip() for i in f]
-		# pattern = re.compile(r'(?=PC\=[\d]+:)')
-		# for line in lines:
-		# 	# pc = re.split(pattern,line)
-		# 	# pc = [x for x in pc if (x and not PC_pattern.fullmatch(x))]
-		# 	f_temp.write(re.sub(r'PC:[\d](\s*)(?=(PC:[\d]+|\n))',"",line)+'\n')
-		# 	# for y in pc:
-		# 	# 	f_temp.write(y+'\n')
-		# f.close()
-		# f_temp.close()
-		# os.rename(file+'_tmp', file)
-		test_cpp()
+		test_cpp(formulaFiles,inputFiles)
 	elif(args['version'].lower()=='vhdl'):
 		test_vhdl(formulaFiles,inputFiles)
 	else:
