@@ -11,6 +11,7 @@ reserved = {
 	'G' : 'GLOBAL',
 	'U' : 'UNTIL',
 	'X' : 'NEXT',
+	'F' : 'FUTURE',
 	# '!' : 'NOT',
 	# '&' : 'AND',
 	'TRUE' : 'TRUE',
@@ -48,7 +49,7 @@ t_RBRACK		= r'\]'
 
 def t_NUMBER(t):
 	r'\d+'
-	t.value = int(t.value)    
+	t.value = int(t.value)
 	return t
 
 def t_ATOMIC(t):

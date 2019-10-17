@@ -16,7 +16,7 @@ operator_cnt = 0
 cnt2observer = {}
 
 def record_operators(ob):
-	global operator_cnt	
+	global operator_cnt
 	cnt2observer[operator_cnt] = ob
 	operator_cnt += 1
 
@@ -26,10 +26,12 @@ def p_MLTL_operators(p):
 				| NEG expression
 				| NEXT expression
 				| expression OR expression
+				| FUTURE LBRACK NUMBER RBRACK expression
+				| FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
 				| GLOBAL LBRACK NUMBER RBRACK expression
 				| GLOBAL LBRACK NUMBER COMMA NUMBER RBRACK expression
 				| expression UNTIL LBRACK NUMBER RBRACK expression
-				| expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression				
+				| expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
 	'''
 	if p[1] == '!':
 		p[0] = NEG(p[2])
@@ -48,6 +50,11 @@ def p_MLTL_operators(p):
 		p[0] = UNTIL(p[1],p[6],ub=p[4])
 	elif p[2] == 'U' and len(p)==9:
 		p[0] = UNTIL(p[1],p[8],lb=p[4],ub=p[6])
+	elif p[1] == 'F' and len(p)==6:
+		p[0] = UNTIL(BOOL('TRUE'),p[5],ub=p[3])
+	elif p[1] == 'F' and len(p)==8:
+		p[0] = UNTIL(BOOL('TRUE'),p[7],lb=p[3],ub=p[5])
+
 	else:
 		raise Exception('Syntax error in type! Cannot find matching format.')
 		sys.exit(0)
@@ -74,7 +81,7 @@ def p_bool_token(p):
 
 precedence = (
 	('left', 'AND', 'OR'),
-	('left', 'GLOBAL', 'UNTIL'),	
+	('left', 'GLOBAL', 'UNTIL'),
 	('left', 'NEG','NEXT'),
 	('left', 'LPAREN', 'RPAREN','ATOMIC','LBRACK','RBRACK'),
 )
