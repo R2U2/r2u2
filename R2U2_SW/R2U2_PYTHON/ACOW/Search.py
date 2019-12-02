@@ -7,7 +7,7 @@
 # ------------------------------------------------------------
 from random import shuffle
 from .automaton import automaton
-from .MLTLparse import *
+# from .MLTLparse import *
 import logging, sys
 
 # use level=logging.DEBUG to enable debug info

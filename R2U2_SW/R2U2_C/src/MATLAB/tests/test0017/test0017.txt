@@ -1,9 +1,0 @@
-map alt_gte_600 = 0.
-map pitch_gte_5 = 1.
-
-logic(ft).
-
-INPUT1: alt_gte_600	 &
-NEGATION: (!(!alt_gte_600)) &
-CONJUNCTION: (!(!alt_gte_600)) & (pitch_gte_5)
-.

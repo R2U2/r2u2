@@ -257,3 +257,13 @@ TSWLatexianTemp*
 
 # standalone packages
 *.sta
+
+# OS cache files
+.DS_Store
+
+Lex and Yacc Autogen files:
+*.yy.c
+*.tab.c
+*.tab.h
+
+R2U2_SW/R2U2_C/bin/

@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="cevlib_unsigned_pkg" />
+            <top_module name="ft_mu_monitor_pkg" />
+            <top_module name="log_input_pkg" />
+            <top_module name="math_pkg" />
+            <top_module name="mu_monitor_pkg" />
+            <top_module name="ram_pkg" />
+            <top_module name="tb" />
+            <top_module name="testbench_util_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="601000000001fs"></ZoomEndTime>
+      <Cursor1Time time="215000000000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="319"></NameColumnWidth>
+      <ValueColumnWidth column_width="117"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="87" />
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/res_n">
+      <obj_property name="ElementShortName">res_n</obj_property>
+      <obj_property name="ObjectShortName">res_n</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/violated">
+      <obj_property name="ElementShortName">violated</obj_property>
+      <obj_property name="ObjectShortName">violated</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/violatedValid">
+      <obj_property name="ElementShortName">violatedValid</obj_property>
+      <obj_property name="ObjectShortName">violatedValid</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/trigger">
+      <obj_property name="ElementShortName">trigger</obj_property>
+      <obj_property name="ObjectShortName">trigger</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/atomics[1]">
+      <obj_property name="ElementShortName">[1]</obj_property>
+      <obj_property name="ObjectShortName">[1]</obj_property>
+      <obj_property name="CustomSignalColor">#FF0000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/atomics[0]">
+      <obj_property name="ElementShortName">[0]</obj_property>
+      <obj_property name="ObjectShortName">[0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF0000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/timestamp">
+      <obj_property name="ElementShortName">timestamp[31:0]</obj_property>
+      <obj_property name="ObjectShortName">timestamp[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/imemAddr">
+      <obj_property name="ElementShortName">imemAddr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">imemAddr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/imemData">
+      <obj_property name="ElementShortName">imemData[39:0]</obj_property>
+      <obj_property name="ObjectShortName">imemData[39:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/interval_memory_data">
+      <obj_property name="ElementShortName">interval_memory_data[63:0]</obj_property>
+      <obj_property name="ObjectShortName">interval_memory_data[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/interval_memory_addr">
+      <obj_property name="ElementShortName">interval_memory_addr[6:0]</obj_property>
+      <obj_property name="ObjectShortName">interval_memory_addr[6:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/pt_data_memory_addr">
+      <obj_property name="ElementShortName">pt_data_memory_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pt_data_memory_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/pt_data_memory_data">
+      <obj_property name="ElementShortName">pt_data_memory_data</obj_property>
+      <obj_property name="ObjectShortName">pt_data_memory_data</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/sync_out">
+      <obj_property name="ElementShortName">sync_out[1:0]</obj_property>
+      <obj_property name="ObjectShortName">sync_out[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/async_out">
+      <obj_property name="ElementShortName">async_out</obj_property>
+      <obj_property name="ObjectShortName">async_out</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/finish">
+      <obj_property name="ElementShortName">finish</obj_property>
+      <obj_property name="ObjectShortName">finish</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/data_memory_async_data">
+      <obj_property name="ElementShortName">data_memory_async_data[33:0]</obj_property>
+      <obj_property name="ObjectShortName">data_memory_async_data[33:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/data_memory_async_empty">
+      <obj_property name="ElementShortName">data_memory_async_empty</obj_property>
+      <obj_property name="ObjectShortName">data_memory_async_empty</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/data_memory_sync_data">
+      <obj_property name="ElementShortName">data_memory_sync_data[1:0]</obj_property>
+      <obj_property name="ObjectShortName">data_memory_sync_data[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/data_memory_addr">
+      <obj_property name="ElementShortName">data_memory_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_memory_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/this_new_result">
+      <obj_property name="ElementShortName">this_new_result</obj_property>
+      <obj_property name="ObjectShortName">this_new_result</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/this_sync_out_data_time">
+      <obj_property name="ElementShortName">this_sync_out_data_time[31:0]</obj_property>
+      <obj_property name="ObjectShortName">this_sync_out_data_time[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/registerReset">
+      <obj_property name="ElementShortName">registerReset</obj_property>
+      <obj_property name="ObjectShortName">registerReset</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/this">
+      <obj_property name="ElementShortName">this</obj_property>
+      <obj_property name="ObjectShortName">this</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/nxt">
+      <obj_property name="ElementShortName">nxt</obj_property>
+      <obj_property name="ObjectShortName">nxt</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op1Type">
+      <obj_property name="ElementShortName">op1Type[1:0]</obj_property>
+      <obj_property name="ObjectShortName">op1Type[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op2Type">
+      <obj_property name="ElementShortName">op2Type[1:0]</obj_property>
+      <obj_property name="ObjectShortName">op2Type[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/timestamp">
+      <obj_property name="ElementShortName">timestamp[31:0]</obj_property>
+      <obj_property name="ObjectShortName">timestamp[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#FFD700</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/last_value">
+      <obj_property name="ElementShortName">last_value</obj_property>
+      <obj_property name="ObjectShortName">last_value</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/s_reg_data">
+      <obj_property name="ElementShortName">s_reg_data</obj_property>
+      <obj_property name="ObjectShortName">s_reg_data</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/s_reg_temp">
+      <obj_property name="ElementShortName">s_reg_temp</obj_property>
+      <obj_property name="ObjectShortName">s_reg_temp</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/sr_addr">
+      <obj_property name="ElementShortName">sr_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">sr_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/sr_wrData">
+      <obj_property name="ElementShortName">sr_wrData[31:0]</obj_property>
+      <obj_property name="ObjectShortName">sr_wrData[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/sr_write">
+      <obj_property name="ElementShortName">sr_write</obj_property>
+      <obj_property name="ObjectShortName">sr_write</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/sr_rdData">
+      <obj_property name="ElementShortName">sr_rdData[31:0]</obj_property>
+      <obj_property name="ObjectShortName">sr_rdData[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/queue_i">
+      <obj_property name="ElementShortName">queue_i</obj_property>
+      <obj_property name="ObjectShortName">queue_i</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/queue_o">
+      <obj_property name="ElementShortName">queue_o</obj_property>
+      <obj_property name="ObjectShortName">queue_o</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op1">
+      <obj_property name="ElementShortName">op1</obj_property>
+      <obj_property name="ObjectShortName">op1</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op2">
+      <obj_property name="ElementShortName">op2</obj_property>
+      <obj_property name="ObjectShortName">op2</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/pc">
+      <obj_property name="ElementShortName">pc[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pc[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op1_temp">
+      <obj_property name="ElementShortName">op1_temp[32:0]</obj_property>
+      <obj_property name="ObjectShortName">op1_temp[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/op2_temp">
+      <obj_property name="ElementShortName">op2_temp[32:0]</obj_property>
+      <obj_property name="ObjectShortName">op2_temp[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/res_n">
+      <obj_property name="ElementShortName">res_n</obj_property>
+      <obj_property name="ObjectShortName">res_n</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/i">
+      <obj_property name="ElementShortName">i</obj_property>
+      <obj_property name="ObjectShortName">i</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/tb/dut/ift_mu_monitor_fsm/this.state">
+      <obj_property name="ElementShortName">.state</obj_property>
+      <obj_property name="ObjectShortName">.state</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/o">
+      <obj_property name="ElementShortName">o</obj_property>
+      <obj_property name="ObjectShortName">o</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/this">
+      <obj_property name="ElementShortName">this</obj_property>
+      <obj_property name="ObjectShortName">this</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/wrPtr">
+      <obj_property name="ElementShortName">wrPtr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">wrPtr[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/last_value">
+      <obj_property name="ElementShortName">last_value</obj_property>
+      <obj_property name="ObjectShortName">last_value</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/rdPtr_1">
+      <obj_property name="ElementShortName">rdPtr_1[4:0]</obj_property>
+      <obj_property name="ObjectShortName">rdPtr_1[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/rdPtr_2">
+      <obj_property name="ElementShortName">rdPtr_2[4:0]</obj_property>
+      <obj_property name="ObjectShortName">rdPtr_2[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_inc_1">
+      <obj_property name="ElementShortName">ptr_inc_1[4:0]</obj_property>
+      <obj_property name="ObjectShortName">ptr_inc_1[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_inc_2">
+      <obj_property name="ElementShortName">ptr_inc_2[4:0]</obj_property>
+      <obj_property name="ObjectShortName">ptr_inc_2[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/size_mask">
+      <obj_property name="ElementShortName">size_mask[4:0]</obj_property>
+      <obj_property name="ObjectShortName">size_mask[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/isEmpty_1">
+      <obj_property name="ElementShortName">isEmpty_1</obj_property>
+      <obj_property name="ObjectShortName">isEmpty_1</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/isEmpty_2">
+      <obj_property name="ElementShortName">isEmpty_2</obj_property>
+      <obj_property name="ObjectShortName">isEmpty_2</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/op1_wrptr_reg">
+      <obj_property name="ElementShortName">op1_wrptr_reg[4:0]</obj_property>
+      <obj_property name="ObjectShortName">op1_wrptr_reg[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/op2_wrptr_reg">
+      <obj_property name="ElementShortName">op2_wrptr_reg[4:0]</obj_property>
+      <obj_property name="ObjectShortName">op2_wrptr_reg[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/queue_data_1">
+      <obj_property name="ElementShortName">queue_data_1</obj_property>
+      <obj_property name="ObjectShortName">queue_data_1</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/queue_data_2">
+      <obj_property name="ElementShortName">queue_data_2</obj_property>
+      <obj_property name="ObjectShortName">queue_data_2</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_addr_1">
+      <obj_property name="ElementShortName">data_addr_1[12:0]</obj_property>
+      <obj_property name="ObjectShortName">data_addr_1[12:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_addr_2">
+      <obj_property name="ElementShortName">data_addr_2[12:0]</obj_property>
+      <obj_property name="ObjectShortName">data_addr_2[12:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_wrData_1">
+      <obj_property name="ElementShortName">data_wrData_1[32:0]</obj_property>
+      <obj_property name="ObjectShortName">data_wrData_1[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_wrData_2">
+      <obj_property name="ElementShortName">data_wrData_2[32:0]</obj_property>
+      <obj_property name="ObjectShortName">data_wrData_2[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_write_1">
+      <obj_property name="ElementShortName">data_write_1</obj_property>
+      <obj_property name="ObjectShortName">data_write_1</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_write_2">
+      <obj_property name="ElementShortName">data_write_2</obj_property>
+      <obj_property name="ObjectShortName">data_write_2</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_rdData_1">
+      <obj_property name="ElementShortName">data_rdData_1[32:0]</obj_property>
+      <obj_property name="ObjectShortName">data_rdData_1[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/data_rdData_2">
+      <obj_property name="ElementShortName">data_rdData_2[32:0]</obj_property>
+      <obj_property name="ObjectShortName">data_rdData_2[32:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_1">
+      <obj_property name="ElementShortName">lastRd_1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">lastRd_1[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_2">
+      <obj_property name="ElementShortName">lastRd_2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">lastRd_2[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_addr">
+      <obj_property name="ElementShortName">ptr_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ptr_addr[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_wrData">
+      <obj_property name="ElementShortName">ptr_wrData[16:0]</obj_property>
+      <obj_property name="ObjectShortName">ptr_wrData[16:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_write">
+      <obj_property name="ElementShortName">ptr_write</obj_property>
+      <obj_property name="ObjectShortName">ptr_write</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/ptr_rdData">
+      <obj_property name="ElementShortName">ptr_rdData[16:0]</obj_property>
+      <obj_property name="ObjectShortName">ptr_rdData[16:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_rdData">
+      <obj_property name="ElementShortName">lastRd_rdData[63:0]</obj_property>
+      <obj_property name="ObjectShortName">lastRd_rdData[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_addr">
+      <obj_property name="ElementShortName">lastRd_addr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">lastRd_addr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_wrData">
+      <obj_property name="ElementShortName">lastRd_wrData[63:0]</obj_property>
+      <obj_property name="ObjectShortName">lastRd_wrData[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/lastRd_write">
+      <obj_property name="ElementShortName">lastRd_write</obj_property>
+      <obj_property name="ObjectShortName">lastRd_write</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/rdPtr_1_temp">
+      <obj_property name="ElementShortName">rdPtr_1_temp[4:0]</obj_property>
+      <obj_property name="ObjectShortName">rdPtr_1_temp[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/rdPtr_2_temp">
+      <obj_property name="ElementShortName">rdPtr_2_temp[4:0]</obj_property>
+      <obj_property name="ObjectShortName">rdPtr_2_temp[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/new_result_rdy_box">
+      <obj_property name="ElementShortName">new_result_rdy_box</obj_property>
+      <obj_property name="ObjectShortName">new_result_rdy_box</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/have_new_result_box">
+      <obj_property name="ElementShortName">have_new_result_box</obj_property>
+      <obj_property name="ObjectShortName">have_new_result_box</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/dut/ift_mu_monitor_fsm/box_result_time">
+      <obj_property name="ElementShortName">box_result_time[31:0]</obj_property>
+      <obj_property name="ObjectShortName">box_result_time[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/isFirstLoop">
+      <obj_property name="ElementShortName">isFirstLoop</obj_property>
+      <obj_property name="ObjectShortName">isFirstLoop</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/dut/ift_mu_monitor_fsm/i_queue/doselfloop">
+      <obj_property name="ElementShortName">doselfloop</obj_property>
+      <obj_property name="ObjectShortName">doselfloop</obj_property>
+   </wvobject>
+</wave_config>

@@ -40,21 +40,10 @@ map_mem_t		map_mem_pt;
 results_pt_t		results_pt;
 results_pt_t		results_pt_prev;
 
-results_ft_t		results_ft;
-results_ft_t		results_ft_prev;
-
 results_rising_pt_t	results_pt_rising;
 
 box_queue_mem_pt_t	pt_box_queue_mem;
 box_queues_pt_t		pt_box_queues;
 
 sync_queues_ft_t	ft_sync_queues;
-
-unsigned int t_rising_fi[N_SUBFORMULA_SNYC_QUEUES] = {0};
-unsigned int t_tau_s[N_SUBFORMULA_SNYC_QUEUES] = {0};
-unsigned int t_tau[N_SUBFORMULA_SNYC_QUEUES] = {0};
-
-
-sync_queues_ft_t	ft_patch_queues;
-
-ft_until_local_mem_t	ft_until_local_mem;
+SCQ_t SCQ;

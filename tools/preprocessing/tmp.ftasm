@@ -1,0 +1,4 @@
+s0: load a0
+s1: load a1
+s2: and s1 s0
+s3: end s2

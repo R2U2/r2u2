@@ -9,8 +9,8 @@
 import logging, sys
 
 # use level=logging.DEBUG to enable debug info
-# logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
-logging.basicConfig(stream=sys.stderr, level=logging.CRITICAL)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+# logging.basicConfig(stream=sys.stderr, level=logging.CRITICAL)
 
 class Observer():
 	line_cnt = 0 #static var to record line number
@@ -18,7 +18,7 @@ class Observer():
 		self.name = name
 		# self.scq = SCQ(name=self.name+'_SCQ',size=2)
 		self.scq = None
-		self.input_1, self.input_2 = ob1, ob2
+		self.left, self.right = ob1, ob2
 		self.rd_ptr_1, self.rd_ptr_2 = 0, 0
 		self.status_stack = []
 		self.desired_time_stamp = 0
@@ -26,13 +26,12 @@ class Observer():
 		self.has_output = True
 		self.parent = None # This attribute is used for AST optimization
 		self.scq_size = 1
-		self.bcd = 0 # best case delay
-		self.wcd = 0 # worst case delay
+		self.bpd = 0 # best case delay
+		self.wpd = 0 # worst case delay
 
 
-	def set_scq_size(self,queue_size=1):
-		self.scq = SCQ(name=self.name+'_SCQ',size=queue_size)
-		self.scq_size = queue_size
+	def set_scq_size(self):
+		self.scq = SCQ(name=self.name+'_SCQ',size=self.scq_size)
 
 	def gen_assembly(self, s, substr):
 		self.hook = 's'+str(Observer.line_cnt)
@@ -40,17 +39,19 @@ class Observer():
 		Observer.line_cnt += 1
 		return s
 
-	def write_result(self,data):
-		self.scq.add(data)
+	def write_result(self,data,doAggregation=True):
+		self.scq.add(data,doAggregation)
 		self.has_output = True
 		self.return_verdict = data[1]
 
 	def read_next(self,desired_time_stamp,observer_number=1):
+
 		assert observer_number in (1,2), 'Error: wrong oberver number to read.'
+
 		if observer_number == 1:
-			return self.input_1.scq.try_read_and_fetch_data(self.rd_ptr_1,desired_time_stamp)
+			return self.left.scq.try_read_and_fetch_data(self.rd_ptr_1,desired_time_stamp)
 		else:
-			return self.input_2.scq.try_read_and_fetch_data(self.rd_ptr_2,desired_time_stamp)
+			return self.right.scq.try_read_and_fetch_data(self.rd_ptr_2,desired_time_stamp)
 
 	# record status before do any operations to the SCQ every time
 	def record_status(self):
@@ -66,6 +67,30 @@ class Observer():
 
 ###########################################################
 
+class BOOL(Observer):
+	def __init__(self,tOrF):
+		super().__init__(name='BOOL')
+		self.type = 'BOOL'
+		self.name = tOrF
+		self.hook = self.name # TRUE or FALSE
+
+	def run(self,curTime):
+		super().record_status()	
+		res = []
+		if(self.name == 'TRUE'):
+			res = [curTime,True]
+		elif(self.name == 'FALSE'):
+			res = [curTime,False]
+		super().write_result(res)
+		logging.debug('%s %s return: %s',self.type, self.name, res)
+		return res
+
+	def gen_assembly(self, s):
+		substr = self.name
+		s = super().gen_assembly(s, substr)
+		return s
+
+
 class ATOM(Observer):
 	def __init__(self,name):
 		logging.debug('Initiate ATOMIC %s',name)
@@ -73,12 +98,12 @@ class ATOM(Observer):
 		self.type = 'ATOMIC'
 		self.name= name
 
-	def run(self,var,time,f):
+	def run(self,var,curTime,f):
 		super().record_status()	
-		res = [time,False] if var[self.name]==0 else [time,True]
+		res = [curTime,False] if var[self.name]==0 else [curTime,True]
 		super().write_result(res)
 		logging.debug('%s %s return: %s',self.type, self.name, res)
-		f.write('%s %s return: %s\n'%(self.type, self.name, res))
+		f.write('LOAD %s = %s\n'%(self.name, res))
 		return res
 	
 	def gen_assembly(self, s):
@@ -92,7 +117,7 @@ class END(Observer):
 		logging.debug('Initiate END Observer')
 		super().__init__(ob1,name='fin')
 		self.type = 'END'
-		self.input_1.parent = self
+		self.left.parent = self
 
 	def run(self,f):
 		super().record_status()
@@ -105,20 +130,38 @@ class END(Observer):
 			super().write_result(res)
 			resArray.append(res)
 			logging.debug('%s return: %s',self.type, res)
-			f.write('%s return: %s\n'%(self.type, res))
+			f.write('END = %s\n'%(res))
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
+
+
+
+# class BOOL(Observer):
+# 	def __init__(self, tOrF):
+# 		super().__init__()
+# 		self.scq_size = 0
+# 		self.type = 'BOOL'
+# 		self.name = tOrF
+# 		self.tag = -1
+# 		self.hook = tOrF
+# 		if(self.name == 'TRUE'):
+# 			self.verdict = True
+# 		else:
+# 			self.verdict = False
+
+# 	def gen_assembly(self, s):
+# 		pass
 
 class NEG(Observer):
 	def __init__(self,ob1):
 		logging.debug('Initiate NEG Observer')
-		super().__init__(ob1,name='-')
+		super().__init__(ob1,name='!')
 		self.type = 'NEG'
-		self.input_1.parent = self
+		self.left.parent = self
 
 
 	def gen_assembly(self, s):
-		substr = "not "+self.input_1.hook
+		substr = "not "+self.left.hook
 		s = super().gen_assembly(s, substr)
 		return s
 
@@ -133,10 +176,9 @@ class NEG(Observer):
 			super().write_result(res)
 			resArray.append(res)
 			logging.debug('%s return: %s',self.type, res)
-			f.write('%s return: %s\n'%(self.type, res))
+			f.write('NOT = %s\n'%(res))
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
-
 
 class AND(Observer):
 	def __init__(self,ob1,ob2):
@@ -144,11 +186,11 @@ class AND(Observer):
 		super().__init__(ob1,ob2,name='&')
 		self.type = 'AND'
 		self.last_desired_time_stamp = 0
-		self.input_1.parent = self
-		self.input_2.parent = self
+		self.left.parent = self
+		self.right.parent = self
 
 	def gen_assembly(self, s):
-		substr = "and "+self.input_1.hook+" "+self.input_2.hook
+		substr = "and "+self.left.hook+" "+self.right.hook
 		s = super().gen_assembly(s, substr)
 		return s
 
@@ -158,7 +200,7 @@ class AND(Observer):
 		resArray = []
 		isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 		isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
-		while(not isEmpty_1 or not isEmpty_2):
+		while(not isEmpty_1 or not isEmpty_2):		
 			res = [-1,False]
 			if(not isEmpty_1 and not isEmpty_2):
 				if(verdict_1 and verdict_2):
@@ -180,7 +222,7 @@ class AND(Observer):
 				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('AND = %s\n'%(res))
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
@@ -193,8 +235,8 @@ class OR(Observer):
 		super().__init__(ob1,ob2,name='|')
 		self.type = 'OR'
 		self.last_desired_time_stamp = 0
-		self.input_1.parent = self
-		self.input_2.parent = self
+		self.left.parent = self
+		self.right.parent = self
 
 	def run(self,f):
 		super().record_status()
@@ -224,7 +266,7 @@ class OR(Observer):
 				resArray.append(res)
 				self.desired_time_stamp = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('OR = %s\n'%(res))
 			else:
 				break;
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
@@ -240,7 +282,7 @@ class GLOBAL(Observer):
 		self.m_up = 0
 		self.pre = (-1,False) # must init as -1
 		self.inner_status_stack = []
-		self.input_1.parent = self
+		self.left.parent = self
 
 	def record_status(self):
 		super().record_status()
@@ -252,17 +294,17 @@ class GLOBAL(Observer):
 
 	def gen_assembly(self, s):
 		if(self.lb==0):
-			substr = "boxbox "+self.input_1.hook+" "+str(self.ub)
+			substr = "boxbox "+self.left.hook+" "+str(self.ub)
 		else:
-			substr = "boxdot "+self.input_1.hook+" "+str(self.lb)+" "+str(self.ub)
+			substr = "boxdot "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
 		s = super().gen_assembly(s, substr)
 		return s
 
-	def run(self,f):
+	def run(self,f):		
 		self.record_status()		
 		self.has_output = False
 		resArray = []
-		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+		isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)			
 		pre_time_stamp, pre_verdict = self.pre
 		while(not isEmpty):
 			self.desired_time_stamp = time_stamp + 1
@@ -274,15 +316,15 @@ class GLOBAL(Observer):
 					super().write_result(res)
 					resArray.append(res)	
 					logging.debug('%s return: %s',self.type, res)
-					f.write('%s return: %s\n'%(self.type, res))
+					f.write('G[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,False]
 				super().write_result(res)
 				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('G[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			self.pre = (time_stamp, verdict)
-			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
+			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)		
 		return resArray
 
 class FUTURE(Observer):
@@ -294,7 +336,7 @@ class FUTURE(Observer):
 		self.m_down = 0
 		self.pre = (-1,True)
 		self.inner_status_stack = []
-		self.input_1.parent = self
+		self.left.parent = self
 
 	def record_status(self):
 		super().record_status()
@@ -320,13 +362,13 @@ class FUTURE(Observer):
 					super().write_result(res)
 					resArray.append(res)
 					logging.debug('%s return: %s',self.type, res)
-					f.write('%s return: %s\n'%(self.type, res))
+					f.write('F[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			elif time_stamp-self.lb >= 0:
 				res = [time_stamp-self.lb,True]
 				super().write_result(res)
 				resArray.append(res)
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('F[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			self.pre = (time_stamp, verdict)
 			isEmpty, time_stamp, verdict = super().read_next(self.desired_time_stamp)
 		return resArray
@@ -341,11 +383,11 @@ class UNTIL(Observer):
 		self.m_down = 0
 		self.preResult = 0#time stamp of previous result
 		self.inner_status_stack = []
-		self.input_1.parent = self
-		self.input_2.parent = self
+		self.left.parent = self
+		self.right.parent = self
 	
 	def gen_assembly(self, s):
-		substr = "until "+self.input_1.hook+" "+self.input_2.hook+" "+str(self.lb)+" "+str(self.ub)
+		substr = "until "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
 		s = super().gen_assembly(s, substr)
 		return s		
 	
@@ -381,7 +423,7 @@ class UNTIL(Observer):
 				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('U[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
@@ -397,8 +439,8 @@ class WEAK_UNTIL(Observer):
 		self.preResult = 0
 		self.m_down = 0
 		self.inner_status_stack = []
-		self.input_1.parent = self
-		self.input_2.parent = self
+		self.left.parent = self
+		self.right.parent = self
 	
 	def record_status(self):
 		super().record_status()
@@ -432,7 +474,7 @@ class WEAK_UNTIL(Observer):
 				resArray.append(res)
 				self.preResult = res[0]+1
 				logging.debug('%s return: %s',self.type, res)
-				f.write('%s return: %s\n'%(self.type, res))
+				f.write('U[%d,%d] = %s\n'%(self.lb, self.ub, res))
 			self.pre = (time_stamp_2, verdict_2)
 			isEmpty_1, time_stamp_1, verdict_1 = super().read_next(self.desired_time_stamp)
 			isEmpty_2, time_stamp_2, verdict_2 = super().read_next(self.desired_time_stamp,2)
@@ -449,18 +491,19 @@ class SCQ():
 		#self.queue = [[0 for x in range(2)] for y in range(size)] # revise the queue from list to array to speed up
 		self.queue = [ [0,False] for y in range(size)] # revise the queue from list to array to speed up
 		
-	def add(self,data):
-		# push data into the SCQ
-		if self.wr_ptr ==0:
-			self.queue[0] = data
-			self.wr_ptr = self.inc_ptr(self.wr_ptr)
-		elif self.queue[self.dec_ptr(self.wr_ptr)][1] != data[1]:
-			self.queue[self.wr_ptr] = data			
+	def add(self,data,doAggregation):
+		if(not doAggregation):
+			self.queue[self.wr_ptr] = data
 			self.wr_ptr = self.inc_ptr(self.wr_ptr)
 		else:
-			# Aggregation
-			self.queue[self.dec_ptr(self.wr_ptr)] = data
-		#print(self.queue)
+		# push data into the SCQ
+			if self.queue[self.dec_ptr(self.wr_ptr)][1] == data[1] and self.queue[self.dec_ptr(self.wr_ptr)][0] < data[0]:
+				# Aggregation
+				self.queue[self.dec_ptr(self.wr_ptr)] = data
+			else:
+				self.queue[self.wr_ptr] = data
+				self.wr_ptr = self.inc_ptr(self.wr_ptr)
+
 
 	def dec_ptr(self,ptr):
 		if(ptr==0):
@@ -481,16 +524,22 @@ class SCQ():
 
 	# Searching for interval that contains info time_stamp >= desired_time_stamp
 	def try_read_and_fetch_data(self,rd_ptr,desired_time_stamp):
-		# logging.debug(self.name+': SCQ: wr_ptr: %d, rd_ptr: %d, dt: %d',self.wr_ptr,rd_ptr,desired_time_stamp)
-		isEmpty = False
-		time_stamp = -1
-		verdict = False
-		while rd_ptr!=self.wr_ptr and self.queue[rd_ptr][0]<desired_time_stamp:
+		logging.debug(self.name+': SCQ: wr_ptr: %d, rd_ptr: %d, dt: %d',self.wr_ptr,rd_ptr,desired_time_stamp)
+		# isEmpty = False
+		# time_stamp = -1
+		# verdict = False
+		# curCheck = True # added on Feb.20.2019
+
+		# if(rd_ptr==self.wr_ptr and self.queue[rd_ptr][0]>=desired_time_stamp):
+		# 	return False,self.queue[rd_ptr][0],self.queue[rd_ptr][1]
+
+		# while(rd_ptr!=self.wr_ptr and self.queue[rd_ptr][0]<desired_time_stamp):
+		# 	rd_ptr = self.inc_ptr(rd_ptr)
+		# return rd_ptr==self.wr_ptr,self.queue[rd_ptr][0],self.queue[rd_ptr][1]
+		if(rd_ptr==self.wr_ptr):
+
+			return True,self.queue[rd_ptr][0],self.queue[rd_ptr][1]
+		while(rd_ptr!=self.wr_ptr and self.queue[rd_ptr][0]<desired_time_stamp):
 			rd_ptr = self.inc_ptr(rd_ptr)
-		if rd_ptr == self.wr_ptr:
-			isEmpty = True
-			if(self.queue[rd_ptr][0]!=0):
-				rd_ptr = self.dec_ptr(rd_ptr)
-		else:
-			time_stamp, verdict = self.queue[rd_ptr]
-		return isEmpty,time_stamp,verdict
+		return rd_ptr==self.wr_ptr,self.queue[rd_ptr][0],self.queue[rd_ptr][1]
+	

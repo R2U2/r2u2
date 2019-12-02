@@ -7,7 +7,7 @@
 ** $Revision: $
 ** $Date:   2014
 **
-** Purpose: 
+** Purpose:
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **
@@ -25,14 +25,8 @@
 #	undef PROGNOSTICS
 #endif
 
-	//
-	// different input data types for different configurations
-	//
-#ifdef R2U2_AOS
-#	include "r2u2_private_types.h"
-#else
-#	include "r2u2_input_types.h"
-#endif
+#include "r2u2_input_types.h"
+
 
 #include "filter_fft.h"
 #include "filter_filt.h"
@@ -78,7 +72,7 @@ void at_checkers_free();
 #define FILTER_FFT_UPDATE(ID, FFT_SIZE, DATA) \
 	filter_fft_update_data(DATA, FFT_SIZE, filter## ID ##_buf, \
 		filter## ID ##_obuf, filter## ID ##_fftw_plan);
-	
+
 #define FILTER_FFT_GET(ID, FFT_SIZE, FREQ_IDX) \
 	filter_fft_get(filter## ID ##_obuf, FREQ_IDX)
 
@@ -94,7 +88,7 @@ void at_checkers_free();
 	//-------------------------------------------------------
 #define FILTER_FILT_DECL(ID, FILT_SIZE) \
 	static double *filter## ID ##_buf; \
-	static double filter## ID ##_filtered_val; 
+	static double filter## ID ##_filtered_val;
 
 #define FILTER_FILT_INIT(ID, FILT_SIZE) \
 	filter_filt_init(FILT_SIZE, &filter## ID ##_buf);
@@ -102,10 +96,10 @@ void at_checkers_free();
 #define FILTER_FILT_UPDATE(ID, FILT_SIZE, DATA) \
 	filter## ID ##_filtered_val = \
 	 filter_filt_update_data(DATA, FILT_SIZE, filter## ID ##_buf)/FILT_SIZE;
-	
+
 #define FILTER_FILT_GET(ID) \
 	filter## ID ##_filtered_val
-	
+
 #define FILTER_FILT_FREE(ID) \
 	filter_filt_free(filter## ID ##_buf);
 
@@ -132,7 +126,7 @@ void at_checkers_free();
 	//-------------------------------------------------------
 #define FILTER_RATE_DECL(ID, RATE_SIZE) \
 	static double filter## ID ##_prev; \
-	static double filter## ID ##_rate; 
+	static double filter## ID ##_rate;
 
 #define FILTER_RATE_INIT(ID, RATE_SIZE) \
 	filter_rate_init(&filter## ID ##_prev);
@@ -140,10 +134,10 @@ void at_checkers_free();
 #define FILTER_RATE_UPDATE(ID, RATE_SIZE, DATA) \
 	filter## ID ##_rate = \
 	 filter_rate_update_data(DATA, &filter## ID ##_prev);
-	
+
 #define FILTER_RATE_GET(ID) \
 	filter## ID ##_rate
-	
+
 #define FILTER_RATE_FREE(ID) \
 	;
 
@@ -165,10 +159,10 @@ void at_checkers_free();
 	filter## ID ##_anglerate = \
 	  abs_diff_angle(DATA, (isinf(filter## ID ##_prev))?0.0:filter## ID ##_prev); \
 	filter## ID ##_prev = DATA;
-	
+
 #define FILTER_RATE_ANGLE_GET(ID) \
 	filter## ID ##_anglerate
-	
+
 #define FILTER_RATE_ANGLE_FREE(ID) \
 	;
 
@@ -182,14 +176,14 @@ void at_checkers_free();
 #define FILTER_ABS_DIFF_ANGLE_DECL(ID, DUMMY) \
 	static double filter## ID ##_anglediff;
 
-#define FILTER_ABS_DIFF_ANGLE_INIT(ID, DUMMY) 
+#define FILTER_ABS_DIFF_ANGLE_INIT(ID, DUMMY)
 
 #define FILTER_ABS_DIFF_ANGLE_UPDATE(ID, DUMMY, DATA1, DATA2) \
 	filter## ID ##_anglediff = abs_diff_angle(DATA1, DATA2);
-	
+
 #define FILTER_ABS_DIFF_ANGLE_GET(ID) \
 	filter## ID ##_anglediff
-	
+
 #define FILTER_ABS_DIFF_ANGLE_FREE(ID) \
 	;
 
@@ -201,7 +195,7 @@ void at_checkers_free();
 	//-------------------------------------------------------
 #define FILTER_REGEX_DECL(ID, MATCHSTRING) \
 	static regex_t filter## ID ##_RE; \
-	static int filter## ID ##_match; 
+	static int filter## ID ##_match;
 
 #define FILTER_REGEX_INIT(ID, MATCHSTRING) \
 	filter_regex_init(&filter## ID ##_RE, MATCHSTRING);
@@ -209,10 +203,10 @@ void at_checkers_free();
 #define FILTER_REGEX_UPDATE(ID, MATCHSTRING, DATA) \
 	filter## ID ##_match = \
 	 filter_regex_update_data(&filter## ID ##_RE, DATA, NULL);
-	
+
 #define FILTER_REGEX_GET(ID) \
 	filter## ID ##_match
-	
+
 #define FILTER_REGEX_FREE(ID) \
 	filter_regex_free(&filter## ID ##_RE);
 
@@ -224,7 +218,7 @@ void at_checkers_free();
 	//-------------------------------------------------------
 #define FILTER_REGEX_PLEXIL_DECL(ID, MATCHSTRING) \
 	static regex_t filter## ID ##_RE; \
-	static int filter## ID ##_match; 
+	static int filter## ID ##_match;
 
 #define FILTER_REGEX_PLEXIL_INIT(ID, MATCHSTRING) \
 	filter_regex_init(&filter## ID ##_RE, MATCHSTRING);
@@ -232,10 +226,10 @@ void at_checkers_free();
 #define FILTER_REGEX_PLEXIL_UPDATE(ID, MATCHSTRING, DATA) \
 	filter## ID ##_match = \
 	 filter_regex_plexil_update_data(&filter## ID ##_RE, DATA, NULL);
-	
+
 #define FILTER_REGEX_PLEXIL_GET(ID) \
 	filter## ID ##_match
-	
+
 #define FILTER_REGEX_PLEXIL_FREE(ID) \
 	filter_regex_free(&filter## ID ##_RE);
 

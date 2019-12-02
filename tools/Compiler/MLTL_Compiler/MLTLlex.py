@@ -11,8 +11,12 @@ reserved = {
 	'G' : 'GLOBAL',
 	'U' : 'UNTIL',
 	'X' : 'NEXT',
+	'F' : 'FUTURE',
 	# '!' : 'NOT',
 	# '&' : 'AND',
+	'TRUE' : 'TRUE',
+	'FALSE' : 'FALSE',
+
 }
 
 # List of token names. This is compulsory.
@@ -35,7 +39,7 @@ tokens = [
 # t_UNTIL		= r'U'
 t_AND			= r'\&'
 t_OR			= r'\|'
-t_NEG			= r'\-'
+t_NEG			= r'\!'
 #t_ATOMIC		= r'([A-Za-z])\w*'
 t_COMMA			= r','
 t_LPAREN		= r'\('
@@ -45,7 +49,7 @@ t_RBRACK		= r'\]'
 
 def t_NUMBER(t):
 	r'\d+'
-	t.value = int(t.value)    
+	t.value = int(t.value)
 	return t
 
 def t_ATOMIC(t):

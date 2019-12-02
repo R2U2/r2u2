@@ -1,0 +1,5 @@
+load_ft a0
+load_ft a1
+until s0 s1 1 3
+and s0 s2
+end s3

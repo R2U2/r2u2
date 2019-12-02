@@ -14,7 +14,7 @@ using namespace std;
 class Assembly {
 public:
 	Assembly(string);
-	void Construct(Observer** sensor,Observer** observer);
+	void Construct(Loader* loader, Observer** observer);
 
 	virtual ~Assembly();
 

@@ -36,7 +36,7 @@ fftw_plan filter_fft_init(int N, double **buf, fftw_complex **outbuf){
 
 int i;
 int nc;
- 
+
 	*buf = (double *)fftw_malloc(N*sizeof(double));
 	for (i=0; i<N; i++){
 		(*buf)[i] = 0.0;
@@ -50,7 +50,7 @@ int nc;
 	}
 
 //--------------------------------------------------------------------
-/	free FFT memory and buffers
+//	free FFT memory and buffers
 //--------------------------------------------------------------------
 void filter_fft_free(fftw_plan p, double *buf, fftw_complex *outbuf){
 
@@ -63,7 +63,7 @@ void filter_fft_free(fftw_plan p, double *buf, fftw_complex *outbuf){
 //	update the FFT with data x, call the FFT and
 //	calculate the output buffer
 //--------------------------------------------------------------------
-void filter_fft_update_data(double x, int N, 
+void filter_fft_update_data(double x, int N,
 	double *buf, fftw_complex *outbuf, fftw_plan p){
 
 int i;

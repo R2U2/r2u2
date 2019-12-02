@@ -1,7 +1,0 @@
-map alt_gte_600 = 0.
-map pitch_gte_5 = 1.
-
-logic(ft).
-
-DOUBLEGLOBAL: G[2,4](G[2]pitch_gte_5)
-.
