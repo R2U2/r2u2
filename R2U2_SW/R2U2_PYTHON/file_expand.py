@@ -26,10 +26,10 @@ with open(file_inx) as csvfile:
   #reads data and replaces blank points with previous data
   for row in csv_reader:
     for i in range(col):
-      #tests for data represented by empty string or 1, 2, or 3 spaces
-	    if row[i] == " " or row[i] == "  " or row[i] == "   " or row[i] == "":
+      #tests for data represented by empty string or space(s)
+        if row[i].isspace() or not row[i]:
         #replaces empties with data from previous line
-	      row[i] = stor[line_count][i]
+	        row[i] = stor[line_count][i]
 	  #endfor
     #adds row to storage list
     stor.append(row)
