@@ -12,7 +12,7 @@ print("Input atomic trace file: " + file_inx)
 with open(file_inx) as csvfile:
   csv_reader = csv.reader(csvfile,delimiter=',')
   #open blank file for writing of expanded format
-  f = open(file_in + "_exp.csv","w")
+  
   line_count = 0
   
   #finds number of columns and reset to reader to first row
@@ -29,13 +29,14 @@ with open(file_inx) as csvfile:
       #tests for data represented by empty string or space(s)
         if row[i].isspace() or not row[i]:
         #replaces empties with data from previous line
-	        row[i] = stor[line_count][i]
+            row[i] = stor[line_count][i]
 	  #endfor
     #adds row to storage list
     stor.append(row)
     line_count += 1
   #endfor
 
+  f = open(file_in + "_exp.csv","w")
   #writes storage array to expanded file
   for j in range(line_count+1):
     for k in range(col):
