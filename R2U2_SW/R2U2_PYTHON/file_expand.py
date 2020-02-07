@@ -20,6 +20,7 @@ with open(file_inx) as csvfile:
   csvfile.seek(0)   
 
   #create 2D list for storing data
+  #begins with row of zeros, which is not printed to file
   stor = [[0] * col for i in range(1)] 
 
   #reads data and replaces blank points with previous data
