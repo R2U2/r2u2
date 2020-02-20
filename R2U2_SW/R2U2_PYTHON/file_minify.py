@@ -6,10 +6,11 @@ import csv, sys
 def minify(arg):
 	
 	# Holds the final values for each row
-	row_values = []
+    row_values = []
 
 	# Open the CSV file specified in the command line
-	with open(arg, newline="") as csvfile:
+    #with open(arg, newline="") as csvfile:
+    with open(arg,'rU') as csvfile:
 		csv_reader = csv.reader(csvfile)
 		
 		# Holds the value of the last line from the file
@@ -50,18 +51,19 @@ def minify(arg):
 			last_values = current_values
 
 	# Creates the new output file name
-	file_name = arg.replace(".csv", "_min.csv")
+    file_name = arg.replace(".csv", "_min.csv")
 
 	# Writes the new values to a CSV file called "output.csv"
-	with open(file_name, "w", newline="") as csvfile:
+    with open(file_name, "w") as csvfile:
 		csv_writer = csv.writer(csvfile, delimiter=",")
 		for row in row_values:
 			csv_writer.writerow(row)
-			
-	csvfile.close()
+	
+    csvfile.close()
 	
 	
 
-if __name__=="__main__":
-	minify(sys.argv[1])
+#if __name__=="__main__":
+#	minify(sys.argv[1])
 
+#minify('test_four.csv')

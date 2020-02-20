@@ -1,12 +1,12 @@
 #file expansion script
 #expands atomic trace format to fill repeated data points
 
-import csv
+import os,csv
 
 def expand(file_input):
   #open atomic trace for reading
   #file_inx = file_input + ".csv"
-  with open(file_input) as csvfile:
+  with open(file_input,'rU') as csvfile:
     csv_reader = csv.reader(csvfile,delimiter=',')
     #open blank file for writing of expanded format
   
@@ -34,6 +34,16 @@ def expand(file_input):
       line_count += 1
     #endfor
 
+    #storage of output in different directory
+    #pathe = os.getcwd()
+    '''try:
+        os.mkdir(/output)
+    except OSError:
+        print ("Creation of the directory %s failed" % path)
+    else:
+        print ("Successfully created the directory %s " % path)
+    os.chdir(/output)'''
+    
     file_in = file_input.replace(".csv","_exp.csv")
     f = open(file_in,"w")
     #writes storage array to expanded file
@@ -60,5 +70,5 @@ def expand(file_input):
 '''file_in = input("Please input the name of the desired csv file in quotes, without the extension: ")
 file_inx = file_in + ".csv"
 print("Input atomic trace file: " + file_inx)
-
-expand(file_in)'''
+'''
+#expand('test_four.csv')
