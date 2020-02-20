@@ -33,16 +33,6 @@ def expand(file_input):
       stor.append(row)
       line_count += 1
     #endfor
-
-    #storage of output in different directory
-    #pathe = os.getcwd()
-    '''try:
-        os.mkdir(/output)
-    except OSError:
-        print ("Creation of the directory %s failed" % path)
-    else:
-        print ("Successfully created the directory %s " % path)
-    os.chdir(/output)'''
     
     file_in = file_input.replace(".csv","_exp.csv")
     f = open(file_in,"w")
@@ -62,10 +52,11 @@ def expand(file_input):
       #endif
     #endfor  
 
-  #closes read and write files
-  csvfile.close() 
-  f.close()
-    
+    #closes read and write files
+    csvfile.close() 
+    f.close()
+
+  
 #user file input request (currently non-functional)
 '''file_in = input("Please input the name of the desired csv file in quotes, without the extension: ")
 file_inx = file_in + ".csv"

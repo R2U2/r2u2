@@ -1,4 +1,4 @@
-import csv, sys
+import os, csv, sys
 
 # This program will take a CSV file as a command_line input and will 
 # return an output file with zero-order-holds replacing repeated values
@@ -53,6 +53,9 @@ def minify(arg):
 	# Creates the new output file name
     file_name = arg.replace(".csv", "_min.csv")
 
+    #storage of output in different directory
+    
+    
 	# Writes the new values to a CSV file called "output.csv"
     with open(file_name, "w") as csvfile:
 		csv_writer = csv.writer(csvfile, delimiter=",")
@@ -60,7 +63,8 @@ def minify(arg):
 			csv_writer.writerow(row)
 	
     csvfile.close()
-	
+
+    #os.chdir('..')
 	
 
 #if __name__=="__main__":

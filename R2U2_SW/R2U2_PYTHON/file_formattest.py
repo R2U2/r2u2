@@ -1,7 +1,7 @@
 #file format test script
 #validates trace files contained in a directory
 
-import csv, os, glob
+import csv, os, glob, shutil
 from file_expand import expand
 from file_minify import minify
 
@@ -28,6 +28,19 @@ tracefile = []
 
 for file in glob.glob("*.csv"):
     tracefile.append(file)
+#endfor
+
+pathP = os.getcwd()
+path = pathP + '/output'
+
+try:
+    os.mkdir(path)
+except OSError:
+    print ("Directory already exists")
+else:
+    check = os.getcwd()
+    print ("Successfully created output directory: " + check)
+
 
 #expansion only case
 if case == '1':
@@ -60,4 +73,18 @@ elif case == '4':
     #endfor
 else:
     print("Invalid case number")
+    
 #endif
+
+tracefileNew = []
+
+for file in glob.glob("*.csv"):
+    tracefileNew.append(file)
+#endfor
+
+for j in range(len(tracefileNew)):
+    if "exp" in tracefileNew[j] or "min" in tracefileNew[j]:
+        #print(pathP + '/output/' + tracefileNew[j])
+        shutil.move(pathP + '/' + tracefileNew[j],pathP + '/output/' + tracefileNew[j])
+    #endif
+#endfor
