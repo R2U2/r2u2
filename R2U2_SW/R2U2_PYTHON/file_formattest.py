@@ -7,11 +7,12 @@ from file_minify import minify
 
 #user input request for desired directory name
 #is this always included in current working directory?
-dir_in = input("Please input the name of the desired directory: ")
-print("The script will use the directory: " + dir_in)
+dir_in = input("Please input the name of the desired directory in quotes: ")
 
 #currently, dir_in must be in the R2U2_PYTHON directory to be functional
 os.chdir(dir_in)
+check = os.getcwd()
+print("The script will use the directory: " + check)
 
 #prints test case options
 print('Test Cases: \r')
@@ -21,7 +22,7 @@ print('3. Expand-Minify-Expand \r')
 print('4. Minify-Expand-Minify \r')
 
 #requests input of desired test case
-case = input('Choose a case by indicating its number: ')
+case = input('Choose a case by indicating its number in quotes, e.g. \'2\': ')
 
 #empty array for file name storage
 tracefile = []
@@ -31,17 +32,17 @@ for file in glob.glob("*.csv"):
     tracefile.append(file)
 #endfor
 
-#directory creation for output storage
+#directory creation for Output storage
 pathP = os.getcwd()
-path = pathP + '/output'
+path = pathP + '/Output'
 
 try:
     os.mkdir(path)
 except OSError:
-    print ("Directory already exists")
+    print ("Output directory already exists")
 else:
-    check = os.getcwd()
-    print ("Successfully created output directory: " + check)
+    
+    print ("Successfully created Output directory: " + check + '/Output')
 
 
 #expansion only case
@@ -85,9 +86,10 @@ for file in glob.glob("*.csv"):
     tracefileNew.append(file)
 #endfor
 
-#moves output files to output directory
+#moves Output files to Output directory
 for j in range(len(tracefileNew)):
     if "exp" in tracefileNew[j] or "min" in tracefileNew[j]:
-        shutil.move(pathP + '/' + tracefileNew[j],pathP + '/output/' + tracefileNew[j])
+        shutil.move(pathP + '/' + tracefileNew[j],pathP + '/Output/' + tracefileNew[j])
     #endif
 #endfor
+print("Output files created and stored in directory: " + check + "/Output")
