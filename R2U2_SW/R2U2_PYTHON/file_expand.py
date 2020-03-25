@@ -34,8 +34,8 @@ def expand(file_input):
             print('r,i' + row[0] + ' ' + str(int(stor[line_count][0])))
             delta = int(row[0])-int(stor[line_count][0])-1
             print('d:' + str(delta))
-            for w in range(delta):
-                blank=stor[line_count]
+            for w in range(delta-1):
+                blank=list(stor[line_count])
                 blank[0] = str(int(stor[line_count+w][0]) + 1)
                 #bcount += 1
                 #blank[bcount][0] = str(int(stor[line_count][0]) + 1)
