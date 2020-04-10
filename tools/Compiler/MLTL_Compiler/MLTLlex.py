@@ -3,71 +3,94 @@
 #
 # tokenizer for a simple expression evaluator for
 # numbers and G,&,~,|,U,(),[]
+# Reference: https://www.dabeaz.com/ply/ply.html#ply_nn9
 # ------------------------------------------------------------
 import ply.lex as lex
 #import ply.yacc as yacc
 
 reserved = {
-	'G' : 'GLOBAL',
-	'U' : 'UNTIL',
-	'X' : 'NEXT',
-	'F' : 'FUTURE',
-	# '!' : 'NOT',
-	# '&' : 'AND',
-	'TRUE' : 'TRUE',
-	'FALSE' : 'FALSE',
+# future time
+    'G' : 'GLOBAL',
+    'U' : 'UNTIL',
+    'R' : 'RELEASE',
+    'X' : 'NEXT', # removed from MLTL
+    'F' : 'FUTURE',
+# past time
+    'Y' : 'YESTERDAY',
+    'S' : 'SINCE', #can be unbounded or bounded
+    'O' : 'ONCE', #can be unbounded or bounded
+    'H' : 'HISTORICALLY', #can be unbounded or bounded
+
+    # '!' : 'NOT',
+    # '&' : 'AND',
+    'TRUE' : 'TRUE',
+    'FALSE' : 'FALSE',
 
 }
 
 # List of token names. This is compulsory.
 tokens = [
-	'NUMBER',
-	'COMMA',
-	'LPAREN',
-	'RPAREN',
-	'LBRACK',
-	'RBRACK',
-	'AND',
-	'OR',
-	'NEG',
-	'ATOMIC'#atomic
+    'NUMBER',
+    'COMMA',
+    'LPAREN',
+    'RPAREN',
+    'LBRACK',
+    'RBRACK',
+    'AND',
+    'OR',
+    'NEG',
+    'IMPLY',
+    'EQ',
+    'ATOMIC',#atomic
+    'SEMI',
         ]+ list(reserved.values())
 
 
 # Regular statement rules for tokens.
-# t_GLOBAL 		= r'G'
-# t_UNTIL		= r'U'
-t_AND			= r'\&'
-t_OR			= r'\|'
-t_NEG			= r'\!'
-#t_ATOMIC		= r'([A-Za-z])\w*'
-t_COMMA			= r','
-t_LPAREN		= r'\('
-t_RPAREN		= r'\)'
-t_LBRACK		= r'\['
-t_RBRACK		= r'\]'
-
+# t_GLOBAL      = r'G'
+# t_UNTIL       = r'U'
+t_AND           = r'\&'
+t_OR            = r'\|'
+t_NEG           = r'\!'
+t_IMPLY         = r'->'
+t_EQ            = r'<->'
+#t_ATOMIC       = r'([A-Za-z])\w*'
+t_COMMA         = r','
+t_LPAREN        = r'\('
+t_RPAREN        = r'\)'
+t_LBRACK        = r'\['
+t_RBRACK        = r'\]'
+t_SEMI          = r';'
 def t_NUMBER(t):
-	r'\d+'
-	t.value = int(t.value)
-	return t
+    r'\d+'
+    t.value = int(t.value)    
+    return t
 
 def t_ATOMIC(t):
-	r'([A-Za-z])\w*'
-	if t.value in reserved:
-		t.type = reserved[t.value]
-	return t
+    r'([A-Za-z])\w*'
+    if t.value in reserved:
+        t.type = reserved[t.value]
+    return t
 
 def t_COMMENT(t):
-	r'\#.*'
-	pass
+    r'\#.*'
+    pass
 
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t\n'
 
 # Error handling rule
 def t_error(t):
-	print("Illegal character '%s'" % t.value[0])
-	t.lexer.skip(1)
+    print("Illegal character '%s'" % t.value[0])
+    t.lexer.skip(1)
 
 lexer = lex.lex()
+
+# print of lex token
+# lexer.input("""a0;
+#     a1&a3;""")
+# while True:
+#     tok = lexer.token()
+#     if not tok: 
+#        break
+#     print(tok)
