@@ -17,8 +17,8 @@ LIBS := fftw3
 IN_LIBS=$(shell pkg-config --cflags $(LIBS))
 LD_LIBS=$(shell pkg-config --libs $(LIBS)) -lm -L $(VDR_PATH)/lib -lcsv
 
-CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
-DBGFLAG := -g -Wall -Wextra -pendantic
+CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE 
+DBGFLAG := -g -Wall -Wextra -pendantic -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 

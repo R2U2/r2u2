@@ -24,8 +24,8 @@ void sys_init(char *argv[]) {
 
 
 
-int main(int argc, char *argv[]) 
-{
+int main(int argc, char *argv[]) {
+    //
     if (argc != 2) {
         fprintf(stdout,"%s Version %d.%d\n",
                 argv[0],
@@ -35,8 +35,8 @@ int main(int argc, char *argv[])
     }
     r2u2_in_type *cur_sigs;
     int MAX_TIME = 0, NUM_SIG = 0;
-
-
+       
+    // Code for exectuing R2U2 in real-time
     #ifdef ONLINE_MODE
         MAX_TIME = INT_MAX; //max
         int preTime = -1;
@@ -66,13 +66,13 @@ int main(int argc, char *argv[])
             }while(command!=0);
             
             /* Open File Output  */
-            FILE *out_file, *dbg_file;
+            FILE *out_file, *log_file;
             out_file = fopen("./R2U2.out", "w+");
-            dbg_file = fopen("./R2U2.log", "w+");
-            if ((out_file == NULL) || (dbg_file == NULL)) return 1;
+            log_file = fopen("./R2U2.log", "w+");
+            if ((out_file == NULL) || (log_file == NULL)) return 1;
             /*Async file I/O */
             
-            // fprintf(dbg_file, "**********RESULTS**********\n\n"); 
+            // fprintf(log_file, "**********RESULTS**********\n\n"); 
             /* Main processing loop */
             for (int cur_time=0; ; cur_time++) {
                 while(true) {
@@ -94,47 +94,57 @@ int main(int argc, char *argv[])
                 cur_sigs = &in_dat[cur_time][0]; 
                 printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
                 fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
-                fprintf(dbg_file, "----------TIME STEP: %d----------\n", cur_time);
+                fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
                 /* Atomics Update */
                 at_checkers_update(cur_sigs); //update atomic_vector
                 /* Temporal Logic Update */
-                TL_update(out_file, dbg_file);
+                TL_update(out_file, log_file);
 
                 fprintf(out_file,"\n\n");
-                fprintf(dbg_file, "\n");
+                fprintf(log_file, "\n");
             }
             fclose(out_file);
-            fclose(dbg_file);
+            fclose(log_file);
         }
-
+    }
+    // Code for executing R2U2 in simulated time
     #else
         sys_init(argv);
         count_signals(argv[1], &NUM_SIG, &MAX_TIME);
         //decodeCSV(argv[1],&in_dat,&MAX_TIME,&NUM_SIG);
         r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*)); 
         load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
-        FILE *out_file, *dbg_file;
+        FILE *out_file, *log_file;
         out_file = fopen("./R2U2.out", "w+");
-        dbg_file = fopen("./R2U2.log", "w+");
+        log_file = fopen("./R2U2.log", "w+");
+        
+        
+        if((out_file == NULL) || (log_file == NULL)) return 1;
 
-        if ((out_file == NULL) || (dbg_file == NULL)) return 1;
-        // fprintf(dbg_file, "**********RESULTS**********\n\n"); 
+        // fprintf(log_file, "**********RESULTS**********\n\n"); 
+        
         /* Main processing loop */
-        for (int cur_time=0; cur_time < MAX_TIME; cur_time++) {
+        int cur_time = 0;
+        for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
             cur_sigs = &in_dat[cur_time][0]; 
+            
+            // Print to the terminal
             printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
+            // Print to the '.out' file
             fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
-            fprintf(dbg_file, "----------TIME STEP: %d----------\n", cur_time);
+            // Print to the '.log' file
+            fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
+            
             /* Atomics Update */
             at_checkers_update(cur_sigs); //update atomic_vector
             /* Temporal Logic Update */
-            TL_update(out_file, dbg_file);
+            TL_update(out_file, log_file);
 
             fprintf(out_file,"\n\n");
-            fprintf(dbg_file, "\n");
+            fprintf(log_file,"\n");
         }
         fclose(out_file);
-        fclose(dbg_file);
+        fclose(log_file);
     #endif
   
     return 0;
