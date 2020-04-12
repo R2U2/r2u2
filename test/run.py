@@ -5,22 +5,39 @@ import re
 from subprocess import check_output
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TLDir__ = __AbsolutePath__+'TL_formula/'
-__InputDir__ = __AbsolutePath__+'Inputs/'
-__PythonDir__ = __AbsolutePath__+'../R2U2_SW/R2U2_PYTHON/'
-__CDir__ = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
-__CPPDIR__ = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'
-__VHDLDIR__ = __AbsolutePath__+'../R2U2_HW/'
-__ResultDIR__ = __AbsolutePath__+'results/'
-__CompilerDir__ = __AbsolutePath__+'../tools/Compiler/'
-__BinGenDir__ = __AbsolutePath__+'../tools/AssemblyToBinary/'
+__TLDir__        = __AbsolutePath__+'TL_formula/formulaFiles/'
+__InputDir__     = __AbsolutePath__+'Inputs/InputFiles/'
+__PythonDir__    = __AbsolutePath__+'../R2U2_SW/R2U2_PYTHON/'
+__CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
+__CPPDIR__       = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'
+__VHDLDIR__      = __AbsolutePath__+'../R2U2_HW/'
+__ResultDIR__    = __AbsolutePath__+'results/'
+__CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
+__BinGenDir__    = __AbsolutePath__+'../tools/AssemblyToBinary/'
+'''
+print(__AbsolutePath__)
+print(__TLDir__)
+print(__InputDir__)
+print(__PythonDir__)
+print(__CDir__)
+print(__CPPDIR__)
+print(__VHDLDIR__)
+print(__ResultDIR__)
+print(__CompilerDir__)
+print(__BinGenDir__)
+'''
+'''
 
+'''
 def parserInfo():
 	parser = argparse.ArgumentParser(description='Suffer from R2U2 Runtime Verification Regression Test')
 	parser.add_argument('-v','--version', help='Choose the R2U2 implementation version to test', required=True)
 	args = vars(parser.parse_args())
 	return args
 
+'''
+
+'''
 def list_file():
 	from os import listdir
 	from os.path import isfile, join
@@ -44,6 +61,9 @@ def list_file():
 # 	f_temp.close()
 # 	os.rename(file+'_tmp', file)
 
+'''
+
+'''
 def post_python_version_process(file):
 	# Reformat the output file
 	f=open(file,'r')
@@ -58,12 +78,17 @@ def post_python_version_process(file):
 	os.rename(file+'_tmp', file)
 
 
+'''
 
+'''
 def subprocess_cmd(command):
 	process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True)
 	proc_stdout = process.communicate()[0].strip()
 	print(proc_stdout)
 
+'''
+
+'''
 def preprocessVHDLinput(input_case):
 	f = open(input_case)
 	lines =  [i.strip() for i in f][1:] # remove first line (first line is the atomic name, useless in VHDL test)
@@ -74,19 +99,24 @@ def preprocessVHDLinput(input_case):
 	fw.close()
 	f.close()
 
+'''
 
-def gen_assembly(MLTL,timestamp_byte = 4,gen_bin = False):
-	subprocess.run(["python", __CompilerDir__+'main.py',MLTL], stdout=subprocess.PIPE)
+'''
+def gen_assembly(MLTL,timestamp_byte=4,gen_bin=False):
+	#print(MLTL)
+	subprocess.run(["python3", __CompilerDir__+'main.py',MLTL], stdout=subprocess.PIPE)
 	f = open('tmp.ftasm')
 	asm = f.read()
+	#print(asm)
+	#input("\n")
 	f.close()
 	if gen_bin:
-		subprocess.run(["python", __BinGenDir__+'ftas.py','tmp.ftasm',str(timestamp_byte)], stdout=subprocess.PIPE)
+		subprocess.run(["python3", __BinGenDir__+'ftas.py','tmp.ftasm',str(timestamp_byte)], stdout=subprocess.PIPE)
 	return asm
 
+'''
 
-# python ../R2U2_SW/R2U2_PYTHON/MLTL_main.py -m G[3]a0 -a Inputs/case_1
-#  python ../R2U2_SW/R2U2_PYTHON/MLTL_main.py -m "$(cat tmp.ftasm)" -a Inputs/case_0
+'''
 def test_python(formulaFiles,inputFiles):
 	__OutputDIR__ = __ResultDIR__+'python_version/'
 	if not os.path.exists(__OutputDIR__):
@@ -97,41 +127,45 @@ def test_python(formulaFiles,inputFiles):
 		for cnt,formula in enumerate(lines):
 			asm = gen_assembly(formula)
 			for _input in inputFiles:
-				filename = __OutputDIR__+     _formulaFile+_input+'formula_'+str(cnt)+'.txt'
+				filename = __OutputDIR__+_formulaFile+_input+'.txt'
 				# filename = __OutputDIR__+_formulaFile+'_case'+str(cnt)+'.txt'
-				print(filename)
+				#print(filename)
 				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',asm,'-a',__InputDir__+_input,'-o',filename],stdout=subprocess.PIPE)
 				post_python_version_process(filename)
 		f.close()
 	for tmp in ('tmp.ftasm','tmp.ftscq'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
-
 # ../R2U2_SW/R2U2_C/bin/r2u2 Inputs/case_0 tmp.ftm tmp.fti tmp.ftscq
+'''
+
+'''
 def test_c(formulaFiles,inputFiles):
 	__OutputDIR__ = __ResultDIR__+'c_version/'
 	# subprocess_cmd('cd '+__CDir__+'; '+'make') # compile C version
 	if not os.path.exists(__OutputDIR__):
 		os.makedirs(__OutputDIR__)
+	# For all formula files within the formulaFiles directory
 	for _formulaFile in formulaFiles:
 		f = open(__TLDir__+_formulaFile,'r')
 		lines =  [i.strip() for i in f]
-		for cnt,formula in enumerate(lines):
+		# For each formula within 
+        for cnt,formula in enumerate(lines):
 			gen_assembly(formula,4,True)
+			#input('Pause for Review\n')
 			for _input in inputFiles:
-				filename = __OutputDIR__+_formulaFile+_input+'formula_'+str(cnt)+'.txt'
-				print(filename)
+				filename = __OutputDIR__+'test_'+str(cnt)+'_'+_input+'.txt'
 				# subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'],stdout=subprocess.PIPE)
 				subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'])
 				subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
 		f.close()
-	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','R2U2.out'):
+	# Cleanup the tmp assembly R2U2 files
+    for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','R2U2.out'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
+'''
 
-# def test_c():
-# 	pass
-
+'''
 def test_cpp(formulaFiles,inputFiles):
 	__OutputDIR__ = __ResultDIR__+'cpp_version/'
 	# subprocess_cmd('cd '+__CPPDIR__+'; '+'make') # compile Cpp version
@@ -143,7 +177,7 @@ def test_cpp(formulaFiles,inputFiles):
 		for cnt,formula in enumerate(lines):
 			gen_assembly(formula,4,True)
 			for _input in inputFiles:
-				filename = __OutputDIR__+_formulaFile+_input+'formula_'+str(cnt)+'.txt'
+				filename = __OutputDIR__+_formulaFile+_input+'.txt'
 				print(filename)
 				subprocess.run([__CPPDIR__+'build/app/MLTL','tmp.ftasm',__InputDir__+_input,"result.txt"])
 				print(__CPPDIR__+'build/app/MLTL')
@@ -153,8 +187,9 @@ def test_cpp(formulaFiles,inputFiles):
 	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','result.txt'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
-	
+'''
 
+'''
 def test_vhdl(formulaFiles,inputFiles):
 	__OutputDIR__ = __ResultDIR__+'vhdl_version/'
 	# subprocess_cmd('cd '+__CDir__+'; '+'make') # compile C version
@@ -170,7 +205,7 @@ def test_vhdl(formulaFiles,inputFiles):
 			# quit()
 			for _input in inputFiles:
 				preprocessVHDLinput(__InputDir__+_input) # generate trc file
-				filename = __OutputDIR__+     _formulaFile+_input+'formula_'+str(cnt)+'.txt'
+				filename = __OutputDIR__+     _formulaFile+_input+'.txt'
 				print(filename)
 				
 				subprocess.run(['bash',__VHDLDIR__+'GHDL_scripts/ftMonitor_GHDLSim.sh'],stdout=subprocess.PIPE)
@@ -179,10 +214,15 @@ def test_vhdl(formulaFiles,inputFiles):
 	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 	
+'''
 
+'''
 def test_board():
 	pass
 
+'''
+
+'''
 def main():
 	args = parserInfo()
 	formulaFiles,inputFiles = list_file()
