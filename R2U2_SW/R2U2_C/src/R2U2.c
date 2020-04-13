@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
             /* Temporal Logic Update */
             TL_update(out_file, log_file);
 
-            fprintf(out_file,"\n\n");
-            fprintf(log_file,"\n");
+            //fprintf(out_file,"\n\n");
+            //fprintf(log_file,"\n");
         }
         fclose(out_file);
         fclose(log_file);
