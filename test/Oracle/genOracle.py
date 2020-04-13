@@ -18,7 +18,7 @@ inputFilename   = "input00"
 # Number of input files
 NumInputs = 52
 # Number of formula files
-NumFormulas = 14
+NumFormulas = 36
 
 #------------------------------------------------------------------------------------#
 # Based on the input arguements, read in the input file and return the trace as a 2D 
