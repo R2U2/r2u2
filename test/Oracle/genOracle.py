@@ -93,7 +93,24 @@ def getVerdict(formNum, Input):
     elif(formNum == 3):
         for i in range(0,len(Input[0])):
             try:
-                Verdict.append(Input[0][i] and Input[0][i+1] and Input[0][i+2] and Input[0][i+3]and Input[0][i+4] and Input[0][i+5])
+                # If we are False at t = 0
+                if(not Input[0][i]):
+                    Verdict.append(Input[0][i])
+                # Else, if we are False at t = 1
+                elif(not Input[0][i+1]):
+                    Verdict.append(Input[0][i+1])
+                # Else, if we are False at t = 2
+                elif(not Input[0][i+2]):
+                    Verdict.append(Input[0][i+2])
+                # Else, if we are False at t = 3
+                elif(not Input[0][i+3]):
+                    Verdict.append(Input[0][i+3])
+                # Else, if we are False at t = 4
+                elif(not Input[0][i+4]):
+                    Verdict.append(Input[0][i+4])
+                # Else,
+                else:
+                    Verdict.append(Input[0][i+5])
             except:
                 pass
         pcNum = 2
@@ -110,7 +127,14 @@ def getVerdict(formNum, Input):
     elif(formNum == 5):
         for i in range(0,len(Input[0])):
             try:
-                Verdict.append(Input[0][i] and Input[0][i+1])
+                # If we are False at t = 0
+                if(not Input[0][i]):
+                    # Append Input[0][i] == False to the list
+                    Verdict.append(Input[0][i])
+                # Else, 
+                else:
+                    # Append Input[0][i+1] at t = 1; its verdict is the correct output of the formula
+                    Verdict.append(Input[0][i+1])
             except:
                 pass
         pcNum = 2
@@ -120,7 +144,24 @@ def getVerdict(formNum, Input):
     elif(formNum == 6):
         for i in range(0,len(Input[0])):
             try:
-                Verdict.append(Input[0][i+5] and Input[0][i+6] and Input[0][i+7] and Input[0][i+8] and Input[0][i+9] and Input[0][i+10])
+                # If we are False at t = 5
+                if(not Input[0][i+5]):
+                    Verdict.append(Input[0][i+5])
+                # Else, if we are False at t = 6
+                elif(not Input[0][i+6]):
+                    Verdict.append(Input[0][i+6])
+                # Else, if we are False at t = 7
+                elif(not Input[0][i+7]):
+                    Verdict.append(Input[0][i+7])
+                # Else, if we are False at t = 8
+                elif(not Input[0][i+8]):
+                    Verdict.append(Input[0][i+8])
+                # Else, if we are False at t = 9
+                elif(not Input[0][i+9]):
+                    Verdict.append(Input[0][i+9])
+                # Else,
+                else:
+                    Verdict.append(Input[0][i+10])
             except:
                 pass
         pcNum = 2
