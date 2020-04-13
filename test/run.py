@@ -1,9 +1,23 @@
+#------------------------------------------------------------------------------------#
+# Author:      Pei Zhang(1st), Matt Cauwels(2nd)
+# Date:        April 12th, 2020
+# File Name:   run.py
+# Description: A Python 3 script used automatically run any version of R2U2, based on
+#              the version specified in the input arguement. Output logs of R2U2 can
+#              be found in the 'results/XXX_version/' directory, where *** is the 
+#              version (c, cpp, vhdl, python). The results directory can be cleaned by
+#              entering the input flag '-r', rather than '-v', and any arguement.
+#------------------------------------------------------------------------------------#
+import shutil
 import os
 import argparse
 import subprocess
 import re
 from subprocess import check_output
 
+'''
+Paths needed to navigate across the r2u2 directory
+'''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'TL_formula/formulaFiles/'
 __InputDir__     = __AbsolutePath__+'Inputs/InputFiles/'
@@ -12,31 +26,27 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __CPPDIR__       = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'
 __VHDLDIR__      = __AbsolutePath__+'../R2U2_HW/'
 __ResultDIR__    = __AbsolutePath__+'results/'
-__CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
+#__CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
+__CompilerDir__  = __AbsolutePath__+'../tools/Compiler_OLD/'
 __BinGenDir__    = __AbsolutePath__+'../tools/AssemblyToBinary/'
-'''
-print(__AbsolutePath__)
-print(__TLDir__)
-print(__InputDir__)
-print(__PythonDir__)
-print(__CDir__)
-print(__CPPDIR__)
-print(__VHDLDIR__)
-print(__ResultDIR__)
-print(__CompilerDir__)
-print(__BinGenDir__)
-'''
+
+# Names of the directories where the results for each version are stored
+__ResultPythonDir__ = 'python_version/'
+__ResultCDir__      = 'c_version/'
+__ResultCppDir__    = 'cpp_version/'
+__ResultVHDLDir__   = 'vhdl_version/'
 '''
 
 '''
 def parserInfo():
 	parser = argparse.ArgumentParser(description='Suffer from R2U2 Runtime Verification Regression Test')
-	parser.add_argument('-v','--version', help='Choose the R2U2 implementation version to test', required=True)
+	parser.add_argument('-v','--version', help='Choose the R2U2 implementation version to test', required=False)
+	parser.add_argument('-r','--remove', help='Remove all R2U2 log files from the /results/ directory', required=False)
 	args = vars(parser.parse_args())
 	return args
 
 '''
-
+Method for listing all the files within a given directory.
 '''
 def list_file():
 	from os import listdir
@@ -100,25 +110,24 @@ def preprocessVHDLinput(input_case):
 	f.close()
 
 '''
-
+Method for generating the assembly code for R2U2 based on the given MLTL formula.
 '''
-def gen_assembly(MLTL,timestamp_byte=4,gen_bin=False):
+def gen_assembly(MLTL,timestamp_byte=4,gen_bin=True):
 	#print(MLTL)
 	subprocess.run(["python3", __CompilerDir__+'main.py',MLTL], stdout=subprocess.PIPE)
+	print("python3 " + __CompilerDir__+'main.py ' + MLTL)
 	f = open('tmp.ftasm')
 	asm = f.read()
-	#print(asm)
-	#input("\n")
 	f.close()
 	if gen_bin:
 		subprocess.run(["python3", __BinGenDir__+'ftas.py','tmp.ftasm',str(timestamp_byte)], stdout=subprocess.PIPE)
 	return asm
 
 '''
-
+Method for testing the python version of R2U2.
 '''
 def test_python(formulaFiles,inputFiles):
-	__OutputDIR__ = __ResultDIR__+'python_version/'
+	__OutputDIR__ = __ResultDIR__+__ResultPythonDir__
 	if not os.path.exists(__OutputDIR__):
 		os.makedirs(__OutputDIR__)
 	for _formulaFile in formulaFiles:
@@ -136,12 +145,12 @@ def test_python(formulaFiles,inputFiles):
 	for tmp in ('tmp.ftasm','tmp.ftscq'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
-# ../R2U2_SW/R2U2_C/bin/r2u2 Inputs/case_0 tmp.ftm tmp.fti tmp.ftscq
 '''
-
+Method for testing the C version of R2U2.
+Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
 '''
 def test_c(formulaFiles,inputFiles):
-	__OutputDIR__ = __ResultDIR__+'c_version/'
+	__OutputDIR__ = __ResultDIR__+__ResultCDir__
 	# subprocess_cmd('cd '+__CDir__+'; '+'make') # compile C version
 	if not os.path.exists(__OutputDIR__):
 		os.makedirs(__OutputDIR__)
@@ -150,24 +159,24 @@ def test_c(formulaFiles,inputFiles):
 		f = open(__TLDir__+_formulaFile,'r')
 		lines =  [i.strip() for i in f]
 		# For each formula within 
-        for cnt,formula in enumerate(lines):
+		for cnt,formula in enumerate(lines):
 			gen_assembly(formula,4,True)
 			#input('Pause for Review\n')
 			for _input in inputFiles:
-				filename = __OutputDIR__+'test_'+str(cnt)+'_'+_input+'.txt'
+				filename = __OutputDIR__+ _formulaFile+'_'+_input+'.txt'
 				# subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'],stdout=subprocess.PIPE)
 				subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'])
 				subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
 		f.close()
 	# Cleanup the tmp assembly R2U2 files
-    for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','R2U2.out'):
+	for tmp in ('tmp.ftasm','tmp.ftm','tmp.fti','tmp.ftscq','R2U2.out'):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
 '''
-
+Method for testing the C++ version of R2U2.
 '''
 def test_cpp(formulaFiles,inputFiles):
-	__OutputDIR__ = __ResultDIR__+'cpp_version/'
+	__OutputDIR__ = __ResultDIR__+__ResultCppDir__
 	# subprocess_cmd('cd '+__CPPDIR__+'; '+'make') # compile Cpp version
 	if not os.path.exists(__OutputDIR__):
 		os.makedirs(__OutputDIR__)
@@ -188,10 +197,11 @@ def test_cpp(formulaFiles,inputFiles):
 		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
 
 '''
-
+Method for testing the VHDL version of R2U2.
+Note: GHDL must be installed prior to running this method!
 '''
 def test_vhdl(formulaFiles,inputFiles):
-	__OutputDIR__ = __ResultDIR__+'vhdl_version/'
+	__OutputDIR__ = __ResultDIR__+__ResultVHDLDir__
 	# subprocess_cmd('cd '+__CDir__+'; '+'make') # compile C version
 	if not os.path.exists(__OutputDIR__):
 		os.makedirs(__OutputDIR__)
@@ -221,21 +231,40 @@ def test_board():
 	pass
 
 '''
-
+The main method for this file.
+	- Parses the directories for the input traces and the formula files.
+	- Parses the input arguement, to determine if you are running a test or cleaning the directories.
+	- If running the test,determines which version of R2U2 you want to test.
 '''
 def main():
 	args = parserInfo()
-	formulaFiles,inputFiles = list_file()
-	if(args['version'].lower()=='python'):
-		test_python(formulaFiles,inputFiles)
-	elif(args['version'].lower()=='c'):
-		test_c(formulaFiles,inputFiles)
-	elif(args['version'].lower()=='cpp'):
-		test_cpp(formulaFiles,inputFiles)
-	elif(args['version'].lower()=='vhdl'):
-		test_vhdl(formulaFiles,inputFiles)
+    # If there is the remove flag, remove all directories and files in the results directory
+	if(args['remove']):
+		print('Removing all R2U2 log files from the results directory')
+		try:
+			shutil.rmtree(__ResultDIR__+__ResultPythonDir__)
+			shutil.rmtree(__ResultDIR__+__ResultCDir__)
+			shutil.rmtree(__ResultDIR__+__ResultCppDir__)
+			shutil.rmtree(__ResultDIR__+__ResultVHDLDir__)
+		except:
+			pass
+	# If not, then test the specified version of R2U2
+	elif(args['version']):
+		formulaFiles,inputFiles = list_file()
+		if(args['version'].lower()=='python'):
+			test_python(formulaFiles,inputFiles)
+		elif(args['version'].lower()=='c'):
+			test_c(formulaFiles,inputFiles)
+		elif(args['version'].lower()=='cpp'):
+			test_cpp(formulaFiles,inputFiles)
+		elif(args['version'].lower()=='vhdl'):
+			test_vhdl(formulaFiles,inputFiles)
+		else:
+			print('unknown argument')
+	# Else, throw an error message
 	else:
-		print('unknown argument')
+		print('ERROR: Invalid arguement flags or missing input arguement after flag')
+		print('Use "-h" flag for more information')
 
 if __name__ == "__main__":
    main()
