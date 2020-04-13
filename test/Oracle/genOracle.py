@@ -16,7 +16,7 @@ oracleDir  = 'oracleFiles/'
 inputFilename   = "input00"
 
 # Number of input files
-NumInputs = 52
+NumInputs = 53
 # Number of formula files
 NumFormulas = 36
 
