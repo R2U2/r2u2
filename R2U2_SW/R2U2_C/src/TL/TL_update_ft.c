@@ -117,8 +117,8 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
                     // Print to the command line
                     printf("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
                 #else
-                    fprintf(fp2, "(%d,%s)\n", res.t_q, res.v_q?"True":"False");
-                    printf("(%d,%d)\n", res.t_q, res.v_q);    
+                    fprintf(fp2,"%d:(%d,%s)\n", pc, res.t_q, res.v_q?"True":"False");
+                    printf("%d:(%d,%d)\n", pc, res.t_q, res.v_q);    
                 #endif
                 
 			}
