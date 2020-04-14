@@ -13,7 +13,7 @@ def writeToFile(file, content):
 	f.close
 	
 def toBinary(value, width):
-	print(value)
+	#print(value)
 	value = int(value) # parse string to integer first
 	
 	b = bin(value)[2:]
