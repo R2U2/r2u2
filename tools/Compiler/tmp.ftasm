@@ -1,19 +1,19 @@
 s0: load a0
-s1: boxdot s0 0 2
-s2: boxdot s1 1 3
-s3: once s0 3 5
-s4: load b2
-s5: and s3 s4
-s6: end s5
-s7: and s2 s1
-s8: load f3
-s9: until s0 s8 2 3
-s10: load a1
-s11: not s0
-s12: until s10 s11 0 2
-s13: and s7 s12
-s14: end s13
-s15: end s9
-s16: yesterday s0
+s1: load f3
+s2: until s0 s1 2 3
+s3: end s2
+s4: once s0 3 5
+s5: boxdot s0 0 2
+s6: boxdot s5 1 3
+s7: and s6 s5
+s8: load a1
+s9: not s0
+s10: until s8 s9 0 2
+s11: and s7 s10
+s12: end s11
+s13: yesterday s0
+s14: load b2
+s15: end s13
+s16: and s4 s14
 s17: end s16
 s18: end sequence
