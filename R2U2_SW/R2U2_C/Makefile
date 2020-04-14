@@ -58,7 +58,7 @@ $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
 	$(CC) $(CCOBJFLAG) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(DBGFLAG) -o $@ $?
+	$(CC) $(CFLAGS) $(DBGFLAG) -o $@ $? $(LDFLAGS)
 
 $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	cd $(VDR_SRCS) && $(MAKE) all
