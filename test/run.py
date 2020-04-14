@@ -26,8 +26,7 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __CPPDIR__       = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'
 __VHDLDIR__      = __AbsolutePath__+'../R2U2_HW/'
 __ResultDIR__    = __AbsolutePath__+'results/'
-#__CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
-__CompilerDir__  = __AbsolutePath__+'../tools/Compiler_OLD/'
+__CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
 __BinGenDir__    = __AbsolutePath__+'../tools/AssemblyToBinary/'
 
 # Names of the directories where the results for each version are stored
