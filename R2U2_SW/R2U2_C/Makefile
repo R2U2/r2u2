@@ -6,7 +6,8 @@ BIN_PATH := bin
 OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
-VDR_PATH := vendor
+VDR_SRCS := vendor
+VDR_PATH := target/vendor
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/AT $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/prognostics $(SRC_PATH)/binParser $(SRC_PATH)/CSVProcess
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
@@ -25,22 +26,23 @@ LDFLAGS := $(LD_LIBS)
 
 # compile marcros
 TARGET_NAME := r2u2
+TARGET_RELES := $(BIN_PATH)/$(TARGET_NAME)
+TARGET_DEBUG := $(BIN_PATH)/$(TARGET_NAME)_debug
 ifeq ($(OS),Windows_NT)
-	TARGET_NAME := $(addsuffix .exe,$(TARGET_NAME))
+	TARGET_RELES := $(addsuffix .exe,$(TARGET_RELES))
+	TARGET_DEBUG := $(addsuffix .exe,$(TARGET_DEBUG))
 endif
-TARGET := $(BIN_PATH)/$(TARGET_NAME)
-TARGET_DEBUG := $(DBG_PATH)/$(TARGET_NAME)
 MAIN_SRC := src/$(TARGET_NAME).c
 
 # src files & obj files
 SRC := $(foreach x, $(SRC_DIRS), $(wildcard $(addprefix $(x)/*,.c*)))
-OBJ := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
+OBJ_RELES := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 
 # clean files list
 DISTCLEAN_LIST := $(OBJ_PATH) \
 				  $(DBG_PATH)
-CLEAN_LIST := $(TARGET) \
+CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
 			  $(DISTCLEAN_LIST)
 
@@ -48,18 +50,18 @@ CLEAN_LIST := $(TARGET) \
 default: all
 
 # non-phony targets
-$(TARGET): $(OBJ) | $(BIN_PATH)
+$(TARGET_RELES): $(OBJ_RELES) | $(BIN_PATH)
 	$(CC) $(CFLAGS) -o $@ $? $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
-	cd $(VDR_PATH) && $(MAKE) all
+	cd $(VDR_SRCS) && $(MAKE) all
 	$(CC) $(CCOBJFLAG) -o $@ $<
 
 $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DBGFLAG) -o $@ $?
 
 $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
-	cd $(VDR_PATH) && $(MAKE) all
+	cd $(VDR_SRCS) && $(MAKE) all
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
 # Path rules
@@ -72,12 +74,9 @@ $(OBJ_PATH):
 $(DBG_PATH):
 	mkdir -p $(OBJ_DBG_DIRS)
 
-$(VDR_PATH):
-	mkdir -p $(VDR_PATH)/include $(VDR_PATH)/lib
-
 # phony rules
 .PHONY: all
-all: $(TARGET)
+all: $(TARGET_RELES)
 
 .PHONY: debug
 debug: $(TARGET_DEBUG)
