@@ -24,7 +24,6 @@ def makeInputs():
     # Create the file
     filename = 'input0000'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     
     Array = []
     for i in range(0,nRow):
@@ -33,7 +32,7 @@ def makeInputs():
             Array[i].append(0.0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 1.) Both all ones test cases
@@ -41,7 +40,6 @@ def makeInputs():
     # Create the file
     filename = 'input0001'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     
     Array = []
     for i in range(0,nRow):
@@ -50,7 +48,7 @@ def makeInputs():
             Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 2.) First Input All True, Second Input All False
@@ -58,7 +56,6 @@ def makeInputs():
     # Create the file
     filename = 'input0002'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -69,7 +66,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 3.) First Input All False, Second Input All True
@@ -77,7 +74,6 @@ def makeInputs():
     # Create the file
     filename = 'input0003'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -88,7 +84,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 4.) First Input All True, Second Input Oscillating between false and true
@@ -96,7 +92,6 @@ def makeInputs():
     # Create the file
     filename = 'input0004'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -112,7 +107,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 5.) First Input All True, Second Input Oscillating between true and false
@@ -120,7 +115,6 @@ def makeInputs():
     # Create the file
     filename = 'input0005'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -136,7 +130,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 6.) First Input All False, Second Input Oscillating between false and true
@@ -144,7 +138,6 @@ def makeInputs():
     # Create the file
     filename = 'input0006'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -160,7 +153,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 7.) First Input All False, Second Input Oscillating between true and false
@@ -168,7 +161,6 @@ def makeInputs():
     # Create the file
     filename = 'input0007'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -184,7 +176,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 8.) First Input Oscillating between false and true, Second Input All True
@@ -192,7 +184,6 @@ def makeInputs():
     # Create the file
     filename = 'input0008'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -208,7 +199,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 9.) First Input Oscillating between true and false, Second Input All True
@@ -216,7 +207,6 @@ def makeInputs():
     # Create the file
     filename = 'input0009'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -232,7 +222,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 10.) First Input Oscillating between false and true, Second Input All False
@@ -240,7 +230,6 @@ def makeInputs():
     # Create the file
     filename = 'input0010'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -256,7 +245,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 11.) First Input Oscillating between true and false, Second Input All False
@@ -264,7 +253,6 @@ def makeInputs():
     # Create the file
     filename = 'input0011'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -280,7 +268,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 12.) First Input Five Time Step Pulse Wave, Second Input All True
@@ -288,7 +276,6 @@ def makeInputs():
     # Create the file
     filename = 'input0012'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -309,7 +296,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 13.) First Input Five Time Step Pulse Wave, Second Input All False
@@ -317,7 +304,6 @@ def makeInputs():
     # Create the file
     filename = 'input0013'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -338,7 +324,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 14.) First Input Five Time Step Pulse Wave, Second Input All True
@@ -346,7 +332,6 @@ def makeInputs():
     # Create the file
     filename = 'input0014'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -367,7 +352,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 15.) First Input Five Time Step Pulse Wave, Second Input All False
@@ -375,7 +360,6 @@ def makeInputs():
     # Create the file
     filename = 'input0015'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -396,7 +380,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 16.) First Input All True, Second Input Five Time Step Pulse Wave
@@ -404,7 +388,6 @@ def makeInputs():
     # Create the file
     filename = 'input0016'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -425,7 +408,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 17.) First Input All False, Second Input Five Time Step Pulse Wave
@@ -433,7 +416,6 @@ def makeInputs():
     # Create the file
     filename = 'input0017'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -454,7 +436,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 18.) First Input All True, Second Input Five Time Step Inverse Pulse Wave
@@ -462,7 +444,6 @@ def makeInputs():
     # Create the file
     filename = 'input0018'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -483,7 +464,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 19.) First Input All False, Second Input Five Time Step Inverse Pulse Wave
@@ -491,7 +472,6 @@ def makeInputs():
     # Create the file
     filename = 'input0019'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -512,7 +492,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 20.) Both Inputs are 5 time step pulse waves
@@ -520,7 +500,6 @@ def makeInputs():
     # Create the file
     filename = 'input0020'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -536,7 +515,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 21.) First Input 5 time step Inverse Pulse Wave. Second Input 5 time step pulse wave
@@ -544,7 +523,6 @@ def makeInputs():
     # Create the file
     filename = 'input0021'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -566,7 +544,7 @@ def makeInputs():
                     Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 22.) First Input 5 time step Inverse Pulse Wave. Second Input 5 time step pulse wave
@@ -574,7 +552,6 @@ def makeInputs():
     # Create the file
     filename = 'input0022'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -596,7 +573,7 @@ def makeInputs():
                     Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 23.) Both Inputs are 5 time step pulse waves
@@ -604,7 +581,6 @@ def makeInputs():
     # Create the file
     filename = 'input0023'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = False
     for i in range(0,nRow):
@@ -620,7 +596,7 @@ def makeInputs():
                 Array[i].append(0)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 24.) Both Inputs are five time step pulses, with the second input shifted right by 3
@@ -628,7 +604,6 @@ def makeInputs():
     # Create the file
     filename = 'input0024'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = True
     flip2 = True
@@ -658,7 +633,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 25.)  Both Inputs are five time step pulses, with the second input shifted right by 3
@@ -667,7 +642,6 @@ def makeInputs():
     # Create the file
     filename = 'input0025'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = True
     flip2 = False
@@ -697,7 +671,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 26.)  Both Inputs are five time step pulses, with the second input shifted right by 3
@@ -706,7 +680,6 @@ def makeInputs():
     # Create the file
     filename = 'input0026'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = True
     flip2 = False
@@ -736,7 +709,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 27.) Both Inputs are five time step pulses, with the second input shifted right by 3
@@ -745,7 +718,6 @@ def makeInputs():
     # Create the file
     filename = 'input0027'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = True
     flip2 = False
@@ -775,7 +747,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 28.) Both Inputs are five time step pulses, with the first input shifted right by 3
@@ -783,7 +755,6 @@ def makeInputs():
     # Create the file
     filename = 'input0028'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = False
     flip2 = True
@@ -813,7 +784,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 29.)  Both Inputs are five time step pulses, with the first input shifted right by 3
@@ -822,7 +793,6 @@ def makeInputs():
     # Create the file
     filename = 'input0029'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = False
     flip2 = True
@@ -852,7 +822,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 30.)  Both Inputs are five time step pulses, with the first input shifted right by 3
@@ -861,7 +831,6 @@ def makeInputs():
     # Create the file
     filename = 'input0030'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = False
     flip2 = True
@@ -891,7 +860,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 31.) Both Inputs are five time step pulses, with the second input shifted right by 3
@@ -900,7 +869,6 @@ def makeInputs():
     # Create the file
     filename = 'input0031'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip1 = False
     flip2 = True
@@ -930,7 +898,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 32.) Figure 4.39
@@ -938,7 +906,6 @@ def makeInputs():
     # Create the file
     filename = 'input0032'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -960,7 +927,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 33.) Example for TACAS14 Paper
@@ -968,7 +935,6 @@ def makeInputs():
     # Create the file
     filename = 'input0033'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -990,7 +956,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 34.) test AND operation
@@ -998,7 +964,6 @@ def makeInputs():
     # Create the file
     filename = 'input0034'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -1020,7 +985,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 35.) First Input all True; Second Input Increasing Pulse
@@ -1028,7 +993,6 @@ def makeInputs():
     # Create the file
     filename = 'input0035'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1055,7 +1019,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 36.) First Input all True; Second Input Increasing Inverse Pulse
@@ -1063,7 +1027,6 @@ def makeInputs():
     # Create the file
     filename = 'input0036'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1090,7 +1053,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 37.) First Input all True; Second Input Increasing Pulse
@@ -1098,7 +1061,6 @@ def makeInputs():
     # Create the file
     filename = 'input0037'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1125,7 +1087,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 38.) First Input all True; Second Input Increasing Inverse Pulse
@@ -1133,7 +1095,6 @@ def makeInputs():
     # Create the file
     filename = 'input0038'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1160,7 +1121,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 39.) Second Input all True; First Input Increasing Pulse
@@ -1168,7 +1129,6 @@ def makeInputs():
     # Create the file
     filename = 'input0039'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1195,7 +1155,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 40.) Second Input all True; First Input Increasing Inverse Pulse
@@ -1203,7 +1163,6 @@ def makeInputs():
     # Create the file
     filename = 'input0040'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1230,7 +1189,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 41.) Second Input all True; First Input Increasing Pulse
@@ -1238,7 +1197,6 @@ def makeInputs():
     # Create the file
     filename = 'input0041'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1265,7 +1223,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 42.) Second Input all True; First Input Increasing Inverse Pulse
@@ -1273,7 +1231,6 @@ def makeInputs():
     # Create the file
     filename = 'input0042'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 1
@@ -1300,7 +1257,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 43.) First Input all True; Second Input Decreasing Pulse
@@ -1308,7 +1265,6 @@ def makeInputs():
     # Create the file
     filename = 'input0043'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1335,7 +1291,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 44.) First Input all True; Second Input Decreasing Inverse Pulse
@@ -1343,7 +1299,6 @@ def makeInputs():
     # Create the file
     filename = 'input0044'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1370,7 +1325,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 45.) First Input all True; Second Input Decreasing Pulse
@@ -1378,7 +1333,6 @@ def makeInputs():
     # Create the file
     filename = 'input0045'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1405,7 +1359,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 46.) First Input all True; Second Input Decreasing Inverse Pulse
@@ -1413,7 +1367,6 @@ def makeInputs():
     # Create the file
     filename = 'input0046'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1440,7 +1393,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 47.) Second Input all True; First Input Decreasing Pulse
@@ -1448,7 +1401,6 @@ def makeInputs():
     # Create the file
     filename = 'input0047'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1475,7 +1427,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 48.) Second Input all True; First Input Decreasing Inverse Pulse
@@ -1483,7 +1435,6 @@ def makeInputs():
     # Create the file
     filename = 'input0048'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1510,7 +1461,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 49.) Second Input all True; First Input Decreasing Pulse
@@ -1518,7 +1469,6 @@ def makeInputs():
     # Create the file
     filename = 'input0049'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1545,7 +1495,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 50.) Second Input all True; First Input Decreasing Inverse Pulse
@@ -1553,7 +1503,6 @@ def makeInputs():
     # Create the file
     filename = 'input0050'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1580,7 +1529,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 51.) 
@@ -1588,7 +1537,6 @@ def makeInputs():
     # Create the file
     filename = 'input0051'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1615,7 +1563,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
     #------------------------------------------------------------------------------------#
     # 52.) Pei Test Input
@@ -1624,7 +1572,6 @@ def makeInputs():
     #filename = 'tacas'
     filename = 'input0052'
     f = open('inputFiles/' + filename,'w+')
-    f.write('a0,a1'+'\n')
     Array = []
     flip = True
     counter = 4
@@ -1648,7 +1595,7 @@ def makeInputs():
                 Array[i].append(1)
 
     # Save the array to a .csv file
-    np.savetxt(f,Array,fmt="%1.6f",delimiter=",")
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
 
 
