@@ -29,11 +29,9 @@ def plotInputs():
         f = open('inputFiles/' + filename,'r').read()
         lines = f.split('\n')
         input = []
-        title = []
         for i in range(0,nCol):
             input.append([])
-            title.append(lines[0].split(',')[i])
-            for line in range(1,len(lines)+1):
+            for line in lines:
                 try:
                     input[i].append(float(line.split(',')[i]))
                 except:
@@ -50,7 +48,7 @@ def plotInputs():
             axarr[i].set_ylim([-0.2,1.2])
             axarr[i].tick_params(axis = 'x', labelsize = 16)
             axarr[i].tick_params(axis = 'y', labelsize = 16)
-            axarr[i].set_title('Input ' + str(title[i]), fontsize = 20)
+            axarr[i].set_title('Input ' + str(i), fontsize = 20)
             axarr[i].grid()
 
         plt.tight_layout()
