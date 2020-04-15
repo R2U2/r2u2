@@ -235,9 +235,11 @@ def makeFormulas():
     filename = 'formulaFiles/test0036'
     for i in range(0,len(allFormulas)):
         if(i == 0):
+            writeFormulaFile(allFormulas[i]+'\n',filename,'w+')
+        elif(i == (len(allFormulas)-1)):
             writeFormulaFile(allFormulas[i],filename,'a+')
         else:
-            writeFormulaFile(allFormulas[i],filename,'a+')
+            writeFormulaFile(allFormulas[i]+'\n',filename,'a+')
   
 #------------------------------------------------------------------------------------#
 # Method for writing formula files
