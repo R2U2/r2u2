@@ -1598,7 +1598,49 @@ def makeInputs():
     np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
 
-
+    #------------------------------------------------------------------------------------#
+    # 53.) Pei Test Input
+    #------------------------------------------------------------------------------------#
+    # Create the file
+    #filename = 'tacas'
+    filename = 'input0053'
+    f = open('inputFiles/' + filename,'w+')
+    Array = []
+    flip0 = True
+    flip1 = True
+    counter0 = 1
+    counter1 = 4
+    for i in range(0,nRow):
+        Array.append([])
+        # Toggle the input 0
+        if(np.mod(i,counter0) == 0):
+            flip0 = not flip0
+        # Toggle the input 1
+        if(np.mod(i,counter1) == 0):
+            flip1 = not flip1
+        # Double the counter at these times
+        if((i == 4) or (i == 12)):
+            counter0 = counter0 * 2
+        # Half the counter at these time
+        if((i == 16) or (i == 24)):
+            counter1 = counter1 / 2
+        
+        for j in range(0,nCol):
+            # The first input
+            if(j == 0):
+                if(flip0):
+                    Array[i].append(0)
+                else:
+                    Array[i].append(1)
+            # The second input
+            if(j == 1):
+                if(flip1):
+                    Array[i].append(0)
+                else:
+                    Array[i].append(1)
+    # Save the array to a .csv file
+    np.savetxt(f,Array,fmt="%d",delimiter=",")
+    f.close()
 #------------------------------------------------------------------------------------#
 # Method for removing formula files
 #------------------------------------------------------------------------------------#

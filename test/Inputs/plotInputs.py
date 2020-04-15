@@ -12,7 +12,7 @@ import os
 
 nRow = 32
 nCol = 2
-numInputs = 53
+numInputs = 54
 def plotInputs():
     global nRow,nCol,numInputs
     #------------------------------------------------------------------------------------#
