@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
-# Date:        April 10th, 2020
+# Date:        April 16th, 2020
 # File Name:   genInputs.py
 # Description: A Python 3 script used to generate test formula files for cases used
 #              for R2U2 regression testing. Note that this script is built using the 
@@ -16,6 +16,7 @@ numFormula = 37
 #------------------------------------------------------------------------------------#
 def makeFormulas():
     allFormulas = []
+    HydraAllFormulas = []
     
     # test0000 - Test Case will output the Negation of the First Input Wave
     filename = 'formulaFiles/test0000'
@@ -57,6 +58,7 @@ def makeFormulas():
     filename = 'formulaFiles/test0006'
     formula = "G[5,10] (a0);"
     allFormulas.append(formula)
+    HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0007 - Test Case will output the First Input Wave Until an interval an zero interval, the Second Input Wave
@@ -81,6 +83,7 @@ def makeFormulas():
     filename = 'formulaFiles/test0010'
     formula = "(a0) U[0,2] (a1);"
     allFormulas.append(formula)
+    HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0011
@@ -115,6 +118,7 @@ def makeFormulas():
     filename = 'formulaFiles/test0015'
     formula = "(!a1) & (a0);"
     allFormulas.append(formula)
+    HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0016 - Test Case testing embedding AND operations
@@ -211,6 +215,7 @@ def makeFormulas():
     filename = 'formulaFiles/test0031'
     formula = "G[2] a1;"
     allFormulas.append(formula)
+    HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0032 - Test Case testing multiple conjunctions with intervals
@@ -223,6 +228,7 @@ def makeFormulas():
     filename = 'formulaFiles/test0034'
     formula = "a1 & F[5,10] a0;"
     allFormulas.append(formula)
+    HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0035 - Test Case testing for complete global
@@ -240,12 +246,65 @@ def makeFormulas():
             writeFormulaFile(allFormulas[i],filename,'a+')
         else:
             writeFormulaFile(allFormulas[i]+'\n',filename,'a+')
-  
+    
+      
+    # test0037 - Test Case testing historical
+    filename = 'formulaFiles/test0037'
+    formula = "H[5,10] a0;"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0038 - Test Case testing since
+    filename = 'formulaFiles/test0038'
+    formula = "(a0) S[0,2] (a1);"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0039 - Test Case testing historical past-time operator with implied lower bound
+    filename = 'formulaFiles/test0037'
+    formula = "H[2] a1;"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0040 - Test Case testing once past-time operator
+    filename = 'formulaFiles/test0037'
+    formula = "a1 & O[5,10]a0;"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0041 - Test Case testing implication propasitional operator
+    filename = 'formulaFiles/test0037'
+    formula = "a1 -> a0;"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0042 - Test Case testing equivalence propasitional operator
+    filename = 'formulaFiles/test0037'
+    formula = "a1 <-> a0;"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0043 - Test Case testing disjunction (or) propasitional operator
+    filename = 'formulaFiles/test0037'
+    formula = "!(a1 | a0);"
+    HydraAllFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
+    # test0044 - Test Case testing historical
+    filename = 'formulaFiles/test0044'
+    for i in range(0,len(HydraAllFormulas)):
+        if(i == 0):
+            writeFormulaFile(HydraAllFormulas[i]+'\n',filename,'w+')
+        elif(i == (len(HydraAllFormulas)-1)):
+            writeFormulaFile(HydraAllFormulas[i],filename,'a+')
+        else:
+            writeFormulaFile(HydraAllFormulas[i]+'\n',filename,'a+')
+
 #------------------------------------------------------------------------------------#
 # Method for writing formula files
 #------------------------------------------------------------------------------------#
 def writeFormulaFile(formula, filename,writeVsAppend):
-    f = open(filename,writeVsAppend)
+    f = open(filename+'.mltl',writeVsAppend)
     f.write(formula)
     f.close()
     
