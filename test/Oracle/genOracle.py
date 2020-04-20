@@ -32,7 +32,7 @@ def readInput(inCount):
         Count = str(inCount)
     
     # Open the input file and read the inputs
-    f = open(inputDir+inputFilename+Count,'r').read()
+    f = open(inputDir+inputFilename+Count+'.csv','r').read()
     # Split the file object by rows
     lines = f.split('\n')
     
@@ -48,11 +48,10 @@ def readInput(inCount):
     # Need a try statement or else there is an exception thrown when reading the 
     # end-of-file charater
     try:
-    #if(True):
         # Read each row
-        for i in range(1,len(lines)+1):
+        for line in lines:
             # Split each row segment into columns
-            part = lines[i].split(',')
+            part = line[i].split(',')
             # For all columns of that row,
             for j in range(0,len(part)):
                 # Append the number to the corresponding list
