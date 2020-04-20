@@ -6,6 +6,7 @@
 #              for R2U2 regression testing. Note that this script is built using the 
 #              old readme file, "README.md", as a template.
 #------------------------------------------------------------------------------------#
+import shutil
 import sys
 import os
 
@@ -309,24 +310,6 @@ def writeFormulaFile(formula, filename,writeVsAppend):
     f.close()
     
 #------------------------------------------------------------------------------------#
-# Method for removing formula files
-#------------------------------------------------------------------------------------#
-def removeFormulas():
-    global numFormula
-    for i in range(0,numFormula):
-        # Format the filename of the input file name with the correct number of 0s
-        if(i < 10):
-            formulaFilename = "test000" + str(i)
-        else:
-            formulaFilename = "test00" + str(i)
-            
-        filename = "formulaFiles/" + formulaFilename + ".mltl"
-        try:
-            os.remove(filename)
-        except:
-            pass
-
-#------------------------------------------------------------------------------------#
 # Main function call
 #------------------------------------------------------------------------------------#
 # If there are no arguements
@@ -337,9 +320,14 @@ except:
     print("Use '-h' flag for more information")
     exit()
 
+# See if oracleFiles directory exists; if not make, items
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+if(not os.path.isdir(__AbsolutePath__+'formulaFiles')):
+    os.mkdir(__AbsolutePath__+'formulaFiles')
+
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    removeFormulas()
+    shutil.rmtree(__AbsolutePath__+'formulaFiles')
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):

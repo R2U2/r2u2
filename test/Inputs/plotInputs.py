@@ -5,6 +5,7 @@
 # Description: A Python 3 script to generate plots of the inputs, to check for their
 #              correctness. Also saves them as a .png
 #------------------------------------------------------------------------------------#
+import shutil
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
@@ -26,7 +27,7 @@ def plotInputs():
             filename = 'input00' + str(k)
         
         # Open the file and parse the inputs
-        f = open('inputFiles/' + filename,'r').read()
+        f = open('inputFiles/' + filename + '.csv','r').read()
         lines = f.split('\n')
         input = []
         for i in range(0,nCol):
@@ -57,29 +58,24 @@ def plotInputs():
         plt.close()
 
 #------------------------------------------------------------------------------------#
-# Method for removing formula files
-#------------------------------------------------------------------------------------#
-def removePlots():
-    global numInputs
-    for i in range(0,numInputs):
-        # Format the filename of the input file name with the correct number of 0s
-        if(i < 10):
-            inputFilename = "input000" + str(i)
-        else:
-            inputFilename = "input00" + str(i)
-            
-        filename = "inputImages/" + inputFilename + '.png'
-        try:
-            os.remove(filename)
-        except:
-            pass
-
-#------------------------------------------------------------------------------------#
 # Main function call
 #------------------------------------------------------------------------------------#
+# If there are no arguements
+try:
+    sys.argv[1]
+except:
+    print("ERROR: Missing input arguement")
+    print("Use '-h' flag for more information")
+    exit()
+
+# See if inputImages directory exists; if not make, items
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+if(not os.path.isdir(__AbsolutePath__+'inputImages')):
+    os.mkdir(__AbsolutePath__+'inputImages')
+
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    removePlots()
+    shutil.rmtree(__AbsolutePath__+'inputImages')
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):

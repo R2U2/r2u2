@@ -4,7 +4,7 @@
 # File Name:   genOracle.py
 # Description: 
 #------------------------------------------------------------------------------------#
-
+import shutil
 import sys
 import os
 
@@ -851,27 +851,6 @@ def saveOracle(pcNum, TimeStamp, Verdict, formulaFilename, numInput):
     f.close()
  
 #------------------------------------------------------------------------------------#
-# Method for removing oracle files
-#------------------------------------------------------------------------------------#
-def removeOracle(numFormula, numInput):
-    # Format the filename of the input file name with the correct number of 0s
-    if(numFormula < 10):
-        formulaFilename = "test000" + str(numFormula)
-    else:
-        formulaFilename = "test00" + str(numFormula)
-    
-    # Format the filename of the input file name with the correct number of 0s
-    if(numInput < 10):
-        countInput = "0" + str(numInput)
-    else:
-        countInput = str(numInput)
-        
-    filename = oracleDir+formulaFilename+"_"+inputFilename+countInput+'.txt'
-    try:
-        os.remove(filename)
-    except:
-        pass
-#------------------------------------------------------------------------------------#
 # Main function call
 #------------------------------------------------------------------------------------#
 # If there are no arguements
@@ -882,11 +861,14 @@ except:
     print("Use '-h' flag for more information")
     exit()
 
+# See if oracleFiles directory exists; if not make, items
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+if(not os.path.isdir(__AbsolutePath__+'oracleFiles')):
+    os.mkdir(__AbsolutePath__+'oracleFiles')
+
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    for i in range(0,NumFormulas):
-        for j in range(0,NumInputs):
-            removeOracle(i,j)
+    shutil.rmtree(__AbsolutePath__+'oracleFiles')
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):

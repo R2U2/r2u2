@@ -6,6 +6,7 @@
 #              for R2U2 regression testing. Note that this script is built using the 
 #              old Matlab script, "genInputs.m", as a template.
 #------------------------------------------------------------------------------------#
+import shutil
 import numpy as np
 import csv
 import sys
@@ -1641,23 +1642,6 @@ def makeInputs():
     # Save the array to a .csv file
     np.savetxt(f,Array,fmt="%d",delimiter=",")
     f.close()
-#------------------------------------------------------------------------------------#
-# Method for removing formula files
-#------------------------------------------------------------------------------------#
-def removeInputs():
-    global numInputs
-    for i in range(0,numInputs+1):
-        # Format the filename of the input file name with the correct number of 0s
-        if(i < 10):
-            inputFilename = "input000" + str(i)
-        else:
-            inputFilename = "input00" + str(i)
-            
-        filename = "inputFiles/" + inputFilename + ".csv"
-        try:
-            os.remove(filename)
-        except:
-            pass
 
 #------------------------------------------------------------------------------------#
 # Main function call
@@ -1669,10 +1653,15 @@ except:
     print("ERROR: Missing input arguement")
     print("Use '-h' flag for more information")
     exit()
-    
+
+# See if inputFiles directory exists; if not make, items
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+if(not os.path.isdir(__AbsolutePath__+'inputFiles')):
+    os.mkdir(__AbsolutePath__+'inputFiles')
+
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    removeInputs()
+    shutil.rmtree(__AbsolutePath__+'inputFiles')
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
