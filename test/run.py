@@ -114,7 +114,7 @@ Method for generating the assembly code for R2U2 based on the given MLTL formula
 def gen_assembly(MLTL,timestamp_byte=4,gen_bin=True):
 	#print(MLTL)
 	subprocess.run(["python3", __CompilerDir__+'main.py',MLTL], stdout=subprocess.PIPE)
-	print("python3 " + __CompilerDir__+'main.py ' + MLTL)
+	#print("python3 " + __CompilerDir__+'main.py ' + MLTL)
 	f = open('tmp.ftasm')
 	asm = f.read()
 	f.close()
@@ -187,9 +187,9 @@ def test_cpp(formulaFiles,inputFiles):
 			gen_assembly(formula,4,True)
 			for _input in inputFiles:
 				filename = __OutputDIR__+_formulaFile+_input+'.txt'
-				print(filename)
+				#print(filename)
 				subprocess.run([__CPPDIR__+'build/app/MLTL','tmp.ftasm',__InputDir__+_input,"result.txt"])
-				print(__CPPDIR__+'build/app/MLTL')
+				#print(__CPPDIR__+'build/app/MLTL')
 				# quit()
 				subprocess.run(['mv','result.txt',filename],stdout=subprocess.PIPE)
 		f.close()
@@ -216,7 +216,7 @@ def test_vhdl(formulaFiles,inputFiles):
 			for _input in inputFiles:
 				preprocessVHDLinput(__InputDir__+_input) # generate trc file
 				filename = __OutputDIR__+     _formulaFile+_input+'.txt'
-				print(filename)
+				#print(filename)
 				
 				subprocess.run(['bash',__VHDLDIR__+'GHDL_scripts/ftMonitor_GHDLSim.sh'],stdout=subprocess.PIPE)
 				subprocess.run(['mv',__VHDLDIR__+'ftMuMonitor/sim/result/async_out.txt',filename],stdout=subprocess.PIPE)

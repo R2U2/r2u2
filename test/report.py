@@ -28,22 +28,18 @@ for formulaNum in range(FORMULA_LIMIT):
         formulaFilename = "test000" + str(formulaNum)
     else:
         formulaFilename = "test00"  + str(formulaNum)
-    try:
-        # Loop for each input
-        for inputNum in range(INPUT_LIMIT):
-            # Format the input filename
-            if(inputNum < 10):
-                inputFilename = "input000" + str(inputNum)
-            else:
-                inputFilename = "input00"  + str(inputNum)
-            result = "results/c_version/"+formulaFilename+"_"+inputFilename+".txt"
-            oracle = "Oracle/oracleFiles/"+formulaFilename+"_"+inputFilename+".txt"
-            f.write("# Diff output " + result + ' and ' + oracle + '\n')
-            f.flush()
-            subprocess.run(['diff',result,oracle],stdout=f)
-            f.flush()
-    except:
-        print('Missing formula '+str(formulaNum)+' at input '+str(inputNum))
-        pass
+    # Loop for each input
+    for inputNum in range(INPUT_LIMIT):
+        # Format the input filename
+        if(inputNum < 10):
+            inputFilename = "input000" + str(inputNum)
+        else:
+            inputFilename = "input00"  + str(inputNum)
+        result = "results/c_version/"+formulaFilename+"_"+inputFilename+".txt"
+        oracle = "Oracle/oracleFiles/"+formulaFilename+"_"+inputFilename+".txt"
+        f.write("# Diff output " + result + ' and ' + oracle + '\n')
+        f.flush()
+        subprocess.run(['diff',result,oracle],stdout=f)
+        f.flush()
             
 f.close();
