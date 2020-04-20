@@ -48,14 +48,14 @@ def readInput(inCount):
     # Need a try statement or else there is an exception thrown when reading the 
     # end-of-file charater
     try:
-        # Read each row
+    # Read each row
         for line in lines:
             # Split each row segment into columns
-            part = line[i].split(',')
+            part = line.split(',')
             # For all columns of that row,
             for j in range(0,len(part)):
                 # Append the number to the corresponding list
-                Array[j].append(float(part[j]))        
+                Array[j].append(int(part[j]))        
     # If an exception is raised when parsing the input file, ignore it
     except:
         pass
