@@ -160,9 +160,10 @@ def test_c(formulaFiles,inputFiles):
 		# For each formula within 
 		for cnt,formula in enumerate(lines):
 			gen_assembly(formula,4,True)
-			#input('Pause for Review\n')
 			for _input in inputFiles:
-				filename = __OutputDIR__+ _formulaFile+'_'+_input+'.txt'
+				formula = _formulaFile.replace('.mltl','')
+				trace = _input.replace('.csv','')
+				filename = __OutputDIR__+ formula+'_'+trace+'.txt'
 				# subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'],stdout=subprocess.PIPE)
 				subprocess.run([__CDir__+'bin/r2u2',__InputDir__+_input,'tmp.ftm','tmp.fti','tmp.ftscq'])
 				subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
