@@ -9,7 +9,7 @@
 import sys
 import os
 
-numFormula = 37
+numFormula = 45
 
 #------------------------------------------------------------------------------------#
 # Method for making formula files
@@ -320,7 +320,7 @@ def removeFormulas():
         else:
             formulaFilename = "test00" + str(i)
             
-        filename = "formulaFiles/" + formulaFilename
+        filename = "formulaFiles/" + formulaFilename + ".mltl"
         try:
             os.remove(filename)
         except:

@@ -1646,14 +1646,14 @@ def makeInputs():
 #------------------------------------------------------------------------------------#
 def removeInputs():
     global numInputs
-    for i in range(0,numInputs):
+    for i in range(0,numInputs+1):
         # Format the filename of the input file name with the correct number of 0s
         if(i < 10):
             inputFilename = "input000" + str(i)
         else:
             inputFilename = "input00" + str(i)
             
-        filename = "inputFiles/" + inputFilename
+        filename = "inputFiles/" + inputFilename + ".csv"
         try:
             os.remove(filename)
         except:
