@@ -122,13 +122,8 @@ int main(int argc, char *argv[]) {
         if((out_file == NULL) || (log_file == NULL)) return 1;
 
         // R2U2 Output headers
-        #ifdef DEBUG
-            printf("**********RESULTS**********\n");
-            fprintf(log_file, "**********RESULTS**********\n");
-        #else
-            printf("**********RESULTS**********\n");
-            fprintf(log_file, "**********RESULTS**********\n");
-        #endif
+        printf("**********RESULTS**********\n");
+        fprintf(log_file, "**********RESULTS**********\n");
         
         /* Main processing loop */
         int cur_time = 0;
@@ -150,8 +145,6 @@ int main(int argc, char *argv[]) {
             /* Temporal Logic Update */
             TL_update(out_file, log_file);
 
-            //fprintf(out_file,"\n\n");
-            //fprintf(log_file,"\n");
         }
         fclose(out_file);
         fclose(log_file);
