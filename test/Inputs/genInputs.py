@@ -1662,6 +1662,14 @@ def removeInputs():
 #------------------------------------------------------------------------------------#
 # Main function call
 #------------------------------------------------------------------------------------#
+# If there are no arguements
+try:
+    sys.argv[1]
+except:
+    print("ERROR: Missing input arguement")
+    print("Use '-h' flag for more information")
+    exit()
+    
 # for removing the formula files
 if(sys.argv[1] == '-r'):
     removeInputs()
