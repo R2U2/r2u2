@@ -121,27 +121,30 @@ int main(int argc, char *argv[]) {
         
         if((out_file == NULL) || (log_file == NULL)) return 1;
 
-        // fprintf(log_file, "**********RESULTS**********\n\n"); 
+        // R2U2 Output headers
+        printf("**********RESULTS**********\n");
+        fprintf(log_file, "**********RESULTS**********\n");
         
         /* Main processing loop */
         int cur_time = 0;
         for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
             cur_sigs = &in_dat[cur_time][0]; 
             
-            // Print to the terminal
-            printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
-            // Print to the '.out' file
-            fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
-            // Print to the '.log' file
-            fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
+            // Terminal and log file headings, when in debug mode
+            #ifdef DEBUG
+                // Print to the terminal
+                printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
+                // Print to the '.out' file
+                fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
+                // Print to the '.log' file
+                fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);               
+            #endif
             
             /* Atomics Update */
             at_checkers_update(cur_sigs); //update atomic_vector
             /* Temporal Logic Update */
             TL_update(out_file, log_file);
 
-            fprintf(out_file,"\n\n");
-            fprintf(log_file,"\n");
         }
         fclose(out_file);
         fclose(log_file);

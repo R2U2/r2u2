@@ -110,15 +110,16 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
                 add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 				// Synchronize the queues
                 ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
-
+                
                 #ifdef DEBUG
                     // Print to the log file
-                    fprintf(fp2, "PC:%d END = [%d,%s]\n", pc, res.t_q, res.v_q?"True":"False");
+                    fprintf(fp2, "PC:%d END = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
                     // Print to the command line
                     printf("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
                 #else
-                    fprintf(fp2, "(%d,%s)\n", res.t_q, res.v_q?"True":"False");
-                    printf("(%d,%d)\n", res.t_q, res.v_q);    
+                    // TODO: Replace pc with formula argument
+                    fprintf(fp2,"%d:(%d,%s)\n", pc, res.t_q, res.v_q?"T":"F");
+                    printf("%d:(%d,%d)\n", pc, res.t_q, res.v_q);    
                 #endif
                 
 			}
@@ -149,7 +150,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
             
             // If the dbg_flag is set, print to log and command line
             #ifdef DEBUG
-                fprintf(fp2, "PC:%d LOAD = [%d,%s]\n", pc, t_e, v?"True":"False");
+                fprintf(fp2, "PC:%d LOAD = [%d,%s]\n", pc, t_e, v?"T":"F");
                 printf("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
             #endif
 			break;
@@ -193,7 +194,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
 				ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 				// The code is generated as 'make debug', print to log and command line
                 #ifdef DEBUG
-                    fprintf(fp2, "PC:%d NOT = [%d,%s]\n", pc, res.t_q, res.v_q?"True":"False");
+                    fprintf(fp2, "PC:%d NOT = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
                     printf("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
                 #endif
 			}
@@ -271,7 +272,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
                     ft_sync_queues[pc].desired_time_stamp += 1;
 					// The code is generated as 'make debug', print to log and command
                     #ifdef DEBUG
-                        fprintf(fp2, "PC:%d AND = [%d,%s]\n", pc, res.t_q, res.v_q?"True":"False");
+                        fprintf(fp2, "PC:%d AND = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
                         printf("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
                     #endif
 				} else break;
@@ -333,7 +334,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
 						add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 						// The code is generated as 'make debug', print to log and command
                         #ifdef DEBUG
-                            fprintf(fp2, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"True":"False");
+                            fprintf(fp2, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
                             printf("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
                         #endif
 					}
@@ -346,7 +347,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
                     add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 					// The code is generated as 'make debug', print to log and command
                     #ifdef DEBUG
-                        fprintf(fp2, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"True":"False");
+                        fprintf(fp2, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
                         printf("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
                     #endif
 				}
@@ -443,7 +444,7 @@ int TL_update_ft(FILE *fp, FILE *fp2) {
                     ft_sync_queues[pc].preResult = res.t_q + 1;
                     // The code is generated as 'make debug', print to log and command
                     #ifdef DEBUG
-                        fprintf(fp2, "PC:%d U[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"True":"False");
+                        fprintf(fp2, "PC:%d U[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
                         printf("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
                     #endif
 				}
