@@ -38,7 +38,7 @@ for formulaNum in range(FORMULA_LIMIT):
             else:
                 inputFilename = "input00"  + str(inputNum)
             result = "results/c_version/"+formulaFilename+"_"+inputFilename+".txt"
-            oracle = "Oracle/oracleFiles/"+formulaFilename+"_"+inputFilename
+            oracle = "Oracle/oracleFiles/"+formulaFilename+"_"+inputFilename+".txt"
             f = open("Results.txt",'a+')
             f.write("# Diff output " + result + ' and ' + oracle + '\n')
             f.close()
