@@ -85,12 +85,12 @@ debug: $(TARGET_DEBUG)
 clean:
 	@echo CLEAN $(CLEAN_LIST)
 	@rm -rf $(CLEAN_LIST)
-	cd $(VDR_PATH) && $(MAKE) clean
+	cd $(VDR_SRCS) && $(MAKE) clean
 
 .PHONY: distclean
 distclean:
 	@echo CLEAN $(CLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
-	cd $(VDR_PATH) && $(MAKE) distclean
+	cd $(VDR_SRCS) && $(MAKE) distclean
 
 print-%  : ; @echo $* = $($*)

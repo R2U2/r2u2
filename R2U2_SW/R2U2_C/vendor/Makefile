@@ -7,7 +7,7 @@ all:
 	cp CsvParser/include/csvparser.h ../target/vendor/include/csvparser.h
 
 # clean files list
-DISTCLEAN_LIST := ../target/vendor/CsvParser/
+DISTCLEAN_LIST := ../target/vendor/
 
 CLEAN_LIST := ../target/vendor/lib/libcsv.a \
 			  ../target/vendor/include/csvparser.h \
