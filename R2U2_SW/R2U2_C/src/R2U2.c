@@ -13,22 +13,32 @@ void sys_init(char *argv[]) {
     TL_init();
     at_checkers_init();
     //TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
-    TL_init_files(argv[2],argv[3],argv[4]);
+    TL_init_files(argv[1],argv[2],argv[3]);
 }
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
-    if (argc != 4) {
+    if (argc < 4 || argc > 5) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: 1) trace data file, 2) .ftm, 3) .fti, 4) .ftscq\n");
+        fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
     }
-    r2u2_in_type *cur_sigs = {1, 0};
     int MAX_TIME = INT_MAX, NUM_SIG = 0;
+    FILE *input_file;
     char inbuf[BUFSIZ];
 
-    while(access( argv[1], F_OK ) == -1) sleep(1);
+    // TODO: Does this crash on bad bins?
     sys_init(argv); // TODO: Weird memory stuff to be checked
+
+    /* Select file vs stream */
+    if (argc == 5 && (access( argv[4], F_OK ) == 0))
+    {
+        printf("Using trace file: %s\n", argv[4]);
+        input_file = fopen(argv[4], "r");
+    } else {
+        printf("Reading from stdin\n");
+        input_file = stdin;
+    }
 
     // R2U2 Output File
     FILE *log_file;
@@ -42,9 +52,10 @@ int main(int argc, char *argv[]) {
     int cur_time = 0;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
-        fgets(inbuf, sizeof inbuf, stdin);
+        if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
         if (inbuf[strlen(inbuf)-1] == '\n') {
             // read full line
+            printf("Got: %s\n", inbuf);
         } else {
             // line was truncated
             return -7;
