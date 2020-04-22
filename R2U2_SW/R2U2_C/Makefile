@@ -22,6 +22,9 @@ IN_LIBS=$(shell pkg-config --cflags $(LIBS))
 LD_LIBS=$(shell pkg-config --libs $(LIBS)) -lm
 
 CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
+ifdef R2U2_AT
+	CFLAGS := $(CFLAGS) -DR2U2_AT
+endif
 DBGFLAG := -g -Wall -Wextra -pedantic -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
