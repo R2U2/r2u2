@@ -1,3 +1,0 @@
-s0: load a0
-s1: boxdot s0 0 3
-s2: end s1

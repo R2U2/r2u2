@@ -31,6 +31,8 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include "R2U2.h"
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 
@@ -111,16 +113,9 @@ int TL_update_ft(FILE *log_file) {
 				// Synchronize the queues
                 ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
-                #ifdef DEBUG
-                    // Print to the log file
-                    fprintf(log_file, "PC:%d END = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
-                    // Print to the command line
-                    printf("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
-                #else
+                    DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
                     // TODO: Replace pc with formula argument
                     fprintf(log_file,"%d:%d,%s\n", pc, res.t_q, res.v_q?"T":"F");
-                    printf("%d:%d,%s\n", pc, res.t_q, res.v_q?"T":"F");
-                #endif
 
 			}
 			stop = 1;
@@ -149,10 +144,7 @@ int TL_update_ft(FILE *log_file) {
             //add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 
             // If the dbg_flag is set, print to log and command line
-            #ifdef DEBUG
-                fprintf(log_file, "PC:%d LOAD = [%d,%s]\n", pc, t_e, v?"T":"F");
-                printf("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
-            #endif
+            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
 			break;
 
 		}
@@ -193,10 +185,7 @@ int TL_update_ft(FILE *log_file) {
                 // Synchronize the queues
 				ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 				// The code is generated as 'make debug', print to log and command line
-                #ifdef DEBUG
-                    fprintf(log_file, "PC:%d NOT = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
-                    printf("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
-                #endif
+                DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
 			}
 			break;
 		}
@@ -271,10 +260,7 @@ int TL_update_ft(FILE *log_file) {
 					// Synchronize the queues
                     ft_sync_queues[pc].desired_time_stamp += 1;
 					// The code is generated as 'make debug', print to log and command
-                    #ifdef DEBUG
-                        fprintf(log_file, "PC:%d AND = [%d,%s]\n", pc, res.t_q, res.v_q?"T":"F");
-                        printf("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
-                    #endif
+                    DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
 				} else break;
 
                 // Update the loop conditions
@@ -315,7 +301,7 @@ int TL_update_ft(FILE *log_file) {
 
 			int lb = get_interval_lb_ft(pc);
 			int ub = get_interval_ub_ft(pc);
-			// printf("%d,%d,%d\n",pc,lb,ub);
+			// DEBUG_PRINT("%d,%d,%d\n",pc,lb,ub);
 			while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 				elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 				ft_sync_queues[pc].desired_time_stamp += 1;
@@ -333,10 +319,7 @@ int TL_update_ft(FILE *log_file) {
                         // And add asynchrounous results to the shared connection queue
 						add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 						// The code is generated as 'make debug', print to log and command
-                        #ifdef DEBUG
-                            fprintf(log_file, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
-                            printf("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
-                        #endif
+                        DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 					}
 				}
                 // If the verdict is false and the time stamp is after the lower bound,
@@ -346,10 +329,7 @@ int TL_update_ft(FILE *log_file) {
 					// And add asynchrounous results to the shared connection queue
                     add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 					// The code is generated as 'make debug', print to log and command
-                    #ifdef DEBUG
-                        fprintf(log_file, "PC:%d G[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
-                        printf("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
-                    #endif
+                    DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 				}
 
 				ft_sync_queues[pc].pre = input;
@@ -443,10 +423,7 @@ int TL_update_ft(FILE *log_file) {
 					// Update the previous synch result
                     ft_sync_queues[pc].preResult = res.t_q + 1;
                     // The code is generated as 'make debug', print to log and command
-                    #ifdef DEBUG
-                        fprintf(log_file, "PC:%d U[%d,%d] = [%d,%s]\n", pc, lb, ub, res.t_q, res.v_q?"T":"F");
-                        printf("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
-                    #endif
+                    DEBUG_PRINT("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
 				}
                 // Update the synchronous queues with the second operand
 				ft_sync_queues[pc].pre = input_2;
@@ -468,7 +445,7 @@ int TL_update_ft(FILE *log_file) {
         // OR = !(!a0 AND !a1)
 		case OP_OR:
 		default:
-			printf("%d\t[ERR]::FT:: illegal instruction\n",pc);
+			DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
 			r2u2_errno = 1;
 			break;
 		}
