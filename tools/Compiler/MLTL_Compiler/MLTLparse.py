@@ -133,6 +133,10 @@ def p_ptMLTL_operators(p):
         else:
             raise Exception('Syntax error in type! Cannot find matching format for ONCE')
             status = 'syntax_err'
+    elif p[2] == '<->':
+        p[0] = EQ(p[1],p[3])
+    elif p[2] == '->':
+        p[0] = IMPLY(p[1],p[3])
     elif p[1] == 'H':
         if len(p)==3:
             p[0] = HISTORICALLY(p[2])
