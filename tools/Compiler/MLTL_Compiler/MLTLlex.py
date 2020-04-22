@@ -33,8 +33,8 @@ reserved = {
 }
 
 reserved.update(literal_names)
-print(reserved)
-print(list(set(reserved.values())))
+#print(reserved)
+#print(list(set(reserved.values())))
 # List of token names. This is compulsory.
 tokens = [
     'NUMBER',
