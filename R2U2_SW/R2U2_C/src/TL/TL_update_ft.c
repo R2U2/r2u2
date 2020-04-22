@@ -118,8 +118,8 @@ int TL_update_ft(FILE *log_file) {
                     printf("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
                 #else
                     // TODO: Replace pc with formula argument
-                    fprintf(log_file,"%d:(%d,%s)\n", pc, res.t_q, res.v_q?"T":"F");
-                    printf("%d:(%d,%d)\n", pc, res.t_q, res.v_q);
+                    fprintf(log_file,"%d:%d,%s\n", pc, res.t_q, res.v_q?"T":"F");
+                    printf("%d:%d,%s\n", pc, res.t_q, res.v_q?"T":"F");
                 #endif
 
 			}
