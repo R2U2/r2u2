@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_update()
 **
-** Purpose:  
+** Purpose:
 **	execute one time step for the PT and FT engined
 **
 ** Limitations, Assumptions, External Events, and Notes:
@@ -30,7 +30,7 @@
 #include "TL_observers.h"
 
 
-int TL_update(FILE *fp, FILE *fp2){
+int TL_update(FILE *log_file){
 
 r2u2_errno = 0;
 
@@ -39,9 +39,9 @@ if (t_now == 0){
 	}
 
 
-// TL_update_pt(); 
+// TL_update_pt();
 
-	TL_update_ft(fp, fp2);
+	TL_update_ft(log_file);
 
 	//
 	// do temporal housekeeping:

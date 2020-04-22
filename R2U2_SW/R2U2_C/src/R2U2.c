@@ -22,10 +22,7 @@ void sys_init(char *argv[]) {
     TL_init_files(argv[2],argv[3],argv[4]);
 }
 
-
-
 int main(int argc, char *argv[]) {
-    //
     if (argc != 2) {
         fprintf(stdout,"%s Version %d.%d\n",
                 argv[0],
@@ -35,7 +32,7 @@ int main(int argc, char *argv[]) {
     }
     r2u2_in_type *cur_sigs;
     int MAX_TIME = 0, NUM_SIG = 0;
-       
+
     // Code for exectuing R2U2 in real-time
     #ifdef ONLINE_MODE
         MAX_TIME = INT_MAX; //max
@@ -44,7 +41,7 @@ int main(int argc, char *argv[]) {
         printf("waiting for the sensor data file...\n");
         while(access( argv[1], F_OK ) == -1) sleep(1); // file not exists
         count_signals(argv[1], &NUM_SIG, &MAX_TIME);
-        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*)); 
+        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*));
         printf("find sensor data file: %s, wait for starting command...\n",argv[1]);
         do{
             //decodeCSV(argv[1],&in_dat,&cur_sigs,&MAX_TIME,&NUM_SIG);
@@ -64,15 +61,15 @@ int main(int argc, char *argv[]) {
                 command = in_dat[0][0];
                 sleep(0.5);
             }while(command!=0);
-            
+
             /* Open File Output  */
             FILE *out_file, *log_file;
             out_file = fopen("./R2U2.out", "w+");
             log_file = fopen("./R2U2.log", "w+");
             if ((out_file == NULL) || (log_file == NULL)) return 1;
             /*Async file I/O */
-            
-            // fprintf(log_file, "**********RESULTS**********\n\n"); 
+
+            // fprintf(log_file, "**********RESULTS**********\n\n");
             /* Main processing loop */
             for (int cur_time=0; ; cur_time++) {
                 while(true) {
@@ -91,7 +88,7 @@ int main(int argc, char *argv[]) {
                 }
                 if(command<0) break;
                 //for (int i=1; i<NUM_SIG; i++) cur_sigs[i] = in_dat[0][i]; //first number is the command
-                cur_sigs = &in_dat[cur_time][0]; 
+                cur_sigs = &in_dat[cur_time][0];
                 printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
                 fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
                 fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
@@ -110,46 +107,40 @@ int main(int argc, char *argv[]) {
     // Code for executing R2U2 in simulated time
     #else
         sys_init(argv);
+
         count_signals(argv[1], &NUM_SIG, &MAX_TIME);
-        //decodeCSV(argv[1],&in_dat,&MAX_TIME,&NUM_SIG);
-        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*)); 
+        r2u2_in_type** in_dat = (r2u2_in_type**)malloc(MAX_TIME * sizeof(r2u2_in_type*));
         load_signals(argv[1], NUM_SIG, MAX_TIME, in_dat);
-        FILE *out_file, *log_file;
-        out_file = fopen("./R2U2.out", "w+");
-        log_file = fopen("./R2U2.log", "w+");
-        
-        
-        if((out_file == NULL) || (log_file == NULL)) return 1;
 
         // R2U2 Output headers
+        FILE *log_file;
+        log_file = fopen("./R2U2.log", "w+");
+        if(log_file == NULL) return 1;
         printf("**********RESULTS**********\n");
         fprintf(log_file, "**********RESULTS**********\n");
-        
+
         /* Main processing loop */
         int cur_time = 0;
         for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
-            cur_sigs = &in_dat[cur_time][0]; 
-            
+            cur_sigs = &in_dat[cur_time][0];
+
             // Terminal and log file headings, when in debug mode
             #ifdef DEBUG
                 // Print to the terminal
                 printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
-                // Print to the '.out' file
-                fprintf(out_file, "**********CURRENT TIME STEP: %d**********\n\n", cur_time);
                 // Print to the '.log' file
-                fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);               
+                fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
             #endif
-            
+
             /* Atomics Update */
             at_checkers_update(cur_sigs); //update atomic_vector
             /* Temporal Logic Update */
-            TL_update(out_file, log_file);
+            TL_update(log_file);
 
         }
-        fclose(out_file);
         fclose(log_file);
     #endif
-  
+
     return 0;
 }
 
