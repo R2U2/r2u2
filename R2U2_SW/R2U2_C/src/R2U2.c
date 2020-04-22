@@ -8,14 +8,6 @@
 #include "TL/TL_observers.h"
 // #include "AT/at_checkers.h"
 
-void sys_init(char *argv[]) {
-    /* Engine Initialization */
-    TL_init();
-    // at_checkers_init();
-    //TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
-    TL_init_files(argv[1],argv[2],argv[3]);
-}
-
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
     if (argc < 4 || argc > 5) {
@@ -27,17 +19,19 @@ int main(int argc, char *argv[]) {
     FILE *input_file;
     char inbuf[BUFSIZ];
 
+    /* Engine Initialization */
+    TL_init();
+    // at_checkers_init();
     // TODO: Does this crash on bad bins?
-    sys_init(argv); // TODO: Weird memory stuff to be checked
+    // TODO: Weird memory stuff to be checked
+    TL_init_files(argv[1],argv[2],argv[3]);
 
     /* Select file vs stream */
     if (argc == 5 && (access( argv[4], F_OK ) == 0))
     {
-        printf("Using trace file: %s\n", argv[4]);
         input_file = fopen(argv[4], "r");
-        if (input_file == NULL) return -7;
+        if (input_file == NULL) return 1;
     } else {
-        printf("Reading from stdin\n");
         input_file = stdin;
     }
 
@@ -55,7 +49,7 @@ int main(int argc, char *argv[]) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
         for (int atom = 0; atom < strlen(inbuf)/2; ++atom) {
-            if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) break; // TODO: Exit?
+            if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) return 1;
         }
 
         // Terminal and log file headings, when in debug mode
