@@ -100,8 +100,8 @@ def p_ftMLTL_operators(p):
 def p_ptMLTL_operators(p):
     '''
     expression  : YESTERDAY expression
-                | SINCE expression
-                | SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
+                | expression SINCE expression
+                | expression SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
                 | ONCE expression
                 | ONCE LBRACK NUMBER RBRACK expression
                 | ONCE LBRACK NUMBER COMMA NUMBER RBRACK expression
@@ -111,11 +111,11 @@ def p_ptMLTL_operators(p):
     '''
     if p[1] == 'Y':
         p[0] = YESTERDAY(p[2])
-    elif p[1] == 'S':
-        if len(p)==3:
-            p[0] = SINCE(p[2])
-        elif len(p)==8:
-            p[0] = SINCE(p[2],lb=p[3],ub=p[5])
+    elif p[2] == 'S':
+        if len(p)==7:
+            p[0] = SINCE(p[1],p[6],ub=p[4])
+        elif len(p)==9:
+            p[0] = SINCE(p[1],p[8],lb=p[4],ub=p[6])
         else:
             raise Exception('Syntax error in type! Cannot find matching format for SINCE')
             status = 'syntax_err'
