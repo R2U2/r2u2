@@ -8,6 +8,12 @@
 #include "TL/TL_observers.h"
 // #include "AT/at_checkers.h"
 
+#ifdef DEBUG
+    #define DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
+#else
+    #define DEBUG_PRINT(...) do{ } while ( false )
+#endif
+
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
     if (argc < 4 || argc > 5) {
@@ -27,8 +33,7 @@ int main(int argc, char *argv[]) {
     TL_init_files(argv[1],argv[2],argv[3]);
 
     /* Select file vs stream */
-    if (argc == 5 && (access( argv[4], F_OK ) == 0))
-    {
+    if (argc == 5 && (access(argv[4], F_OK) == 0)) {
         input_file = fopen(argv[4], "r");
         if (input_file == NULL) return 1;
     } else {
@@ -40,8 +45,6 @@ int main(int argc, char *argv[]) {
     log_file = fopen("./R2U2.log", "w+");
     // TODO: Name after input and output
     if(log_file == NULL) return 1;
-    printf("**********RESULTS**********\n");
-    fprintf(log_file, "**********RESULTS**********\n");
 
     /* Main processing loop */
     int cur_time = 0;
@@ -52,13 +55,7 @@ int main(int argc, char *argv[]) {
             if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) return 1;
         }
 
-        // Terminal and log file headings, when in debug mode
-        #ifdef DEBUG
-        // Print to the terminal
-        printf("\n**** [DBG]::R2U2:: CURRENT TIME STEP: %d ****\n",cur_time);
-        // Print to the '.log' file
-        fprintf(log_file, "----------TIME STEP: %d----------\n", cur_time);
-        #endif
+        DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
         // at_checkers_update(cur_sigs);
