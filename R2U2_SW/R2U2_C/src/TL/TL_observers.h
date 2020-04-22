@@ -9,9 +9,9 @@
 **
 **
 **
-** Purpose:  
+** Purpose:
 **	Definition and data types for the TL engines
-**	
+**
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **	NA
@@ -118,7 +118,7 @@
 //#define N_FT_INTERVAL		128
 
 	//
-	// length of each individual synchronization 
+	// length of each individual synchronization
 	// ring buffer for ft operators
 	//
 #define L_FT_BUFFER		64
@@ -155,7 +155,7 @@ typedef enum {
 	OP_END			= 0b01100,
 	OP_END_SEQUENCE		= 0b11111,
 	OP_NOP			= 0b11110,
-	OP_NOT			= 0b00011,  
+	OP_NOT			= 0b00011,
 
 	OP_AND			= 0b00100,
 	OP_IMPL			= 0b00110,
@@ -271,7 +271,7 @@ typedef enum {
 	// atomic inputs, Vector of Booleans
 	//
 typedef bool atomics_vector_t[N_ATOMICS];
-	
+
 
 	//
 	// instruction memory
@@ -311,7 +311,7 @@ extern int			max_time_horizon;
 
 extern atomics_vector_t		atomics_vector;
 extern atomics_vector_t		atomics_vector_prev;
-	
+
 extern instruction_mem_t	instruction_mem_ft;
 extern instruction_mem_t	instruction_mem_pt;
 
@@ -347,9 +347,9 @@ int TL_init(const char *FN_ftm, const char *FN_fti,
 int TL_init();
 #endif
 
-int TL_update(FILE *fp, FILE *fp2);
+int TL_update(FILE *fp);
 int TL_update_pt();
-int TL_update_ft(FILE *fp, FILE *fp2);
+int TL_update_ft(FILE *fp);
 
 #ifdef __cplusplus
 }

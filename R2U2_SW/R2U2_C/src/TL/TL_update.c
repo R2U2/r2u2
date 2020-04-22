@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_update()
 **
-** Purpose:  
+** Purpose:
 **	execute one time step for the PT and FT engined
 **
 ** Limitations, Assumptions, External Events, and Notes:
@@ -30,18 +30,12 @@
 #include "TL_observers.h"
 
 
-int TL_update(FILE *fp, FILE *fp2){
+int TL_update(FILE *log_file){
 
-r2u2_errno = 0;
+	r2u2_errno = 0;
 
-if (t_now == 0){
-	memcpy(atomics_vector_prev, atomics_vector, sizeof(atomics_vector_t));
-	}
-
-
-// TL_update_pt(); 
-
-	TL_update_ft(fp, fp2);
+	// TL_update_pt();
+	TL_update_ft(log_file);
 
 	//
 	// do temporal housekeeping:
@@ -51,12 +45,13 @@ if (t_now == 0){
 	//
 	// put the current atomics into the previous one
 	//
-memcpy(atomics_vector_prev, atomics_vector, sizeof(atomics_vector_t));
+	// TODO: Would it be better to dubble flip buffers?
+	memcpy(atomics_vector_prev, atomics_vector, sizeof(atomics_vector_t));
 
 	//
 	// increase time stamp
 	//
-t_now++;
+	t_now++;
 
 return 0;
 }

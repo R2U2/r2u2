@@ -25,7 +25,7 @@
 #	undef PROGNOSTICS
 #endif
 
-#include "r2u2_input_types.h"
+#include "R2U2Config.h"
 
 
 #include "filter_fft.h"
