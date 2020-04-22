@@ -55,16 +55,20 @@ class PROGRAM(AST_node): # PROGRAM is always the top AST node
 
 
 class STATEMENT(AST_node):
+    formula_cnt = 0
     def __init__(self, ob):
         super().__init__()
         self.type = 'SM'
         self.name = 'STATEMENT'
         self.add(ob)
         self.ob = ob
+        self.formula_num = STATEMENT.formula_cnt
+        STATEMENT.formula_cnt += 1
+        
     def gen_assembly(self, s):
         substr = 'end '+self.child[0].hook
         self.hook = 's'+str(Observer.line_cnt)
-        s += self.hook+": "+substr+'\n'
+        s += self.hook+": "+substr+ ' (FORM-'+str(self.formula_num)+')' + '\n'
         Observer.line_cnt += 1
         return s
         
@@ -118,9 +122,9 @@ class BOOL(Observer):
         super().__init__()
         self.scq_size = 0
         self.type = 'BOOL'
-        self.name = tOrF
+        self.name = tOrF.upper()
         self.tag = -1
-        self.hook = tOrF
+        self.hook = tOrF.upper()
 
     def gen_assembly(self, s):
         pass
@@ -148,6 +152,32 @@ class YESTERDAY(Observer):
 
     def gen_assembly(self, s):
         substr = "yesterday "+self.left.hook
+        s = super().gen_assembly(s, substr)
+        return s
+
+class EQ(Observer):
+    def __init__(self, left, right):
+        super().__init__(left, right)       
+        self.type = 'EQ'
+        self.name = 'EQ'
+        self.tag = 2
+        self.left.pre, self.right.pre = self, self
+
+    def gen_assembly(self, s):
+        substr = "eq "+self.left.hook+" "+self.right.hook
+        s = super().gen_assembly(s, substr)
+        return s
+
+class IMPLY(Observer):
+    def __init__(self, left, right):
+        super().__init__(left, right)       
+        self.type = 'IMPLY'
+        self.name = 'IMPLY'
+        self.tag = 2
+        self.left.pre, self.right.pre = self, self
+
+    def gen_assembly(self, s):
+        substr = "imply "+self.left.hook+" "+self.right.hook
         s = super().gen_assembly(s, substr)
         return s
 
@@ -195,19 +225,18 @@ class GLOBAL(Observer):
         return s
 
 class SINCE(Observer):
-    def __init__(self, left, ub=0, lb=0):
-        super().__init__(left)
+    def __init__(self, left, right, ub, lb=0):
+        super().__init__(left, right)
         self.type = 'SINCE'
-        self.tag = 3
-        self.name = 'G['+str(lb)+','+str(ub)+']'
+        self.tag = 4
+        self.name = 'S['+str(lb)+','+str(ub)+']'
         self.lb, self.ub = lb, ub
-        self.left.pre = self
+        self.left.pre, self.right.pre = self, self
 
     def gen_assembly(self, s):
-        substr = "since "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
+        substr = "since "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s
-
 
 class FUTURE(Observer):
     def __init__(self, left, ub, lb=0):
@@ -245,16 +274,16 @@ class ONCE(Observer):
 
 
 class HISTORICALLY(Observer):
-    def __init__(self, left, right, ub, lb=0):
-        super().__init__(left, right)
+    def __init__(self, left, ub=0, lb=0):
+        super().__init__(left)
         self.type = 'HIS'
         self.tag = 4
         self.name = 'H['+str(lb)+','+str(ub)+']'
         self.lb, self.ub = lb, ub
-        self.left.pre, self.right.pre = self, self
+        self.left.pre = self
 
     def gen_assembly(self, s):
-        substr = "his "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
+        substr = "his "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s
 
@@ -270,5 +299,19 @@ class UNTIL(Observer):
 
     def gen_assembly(self, s):
         substr = "until "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
+        s = super().gen_assembly(s, substr)
+        return s
+
+class RELEASE(Observer):
+    def __init__(self, left, right, ub, lb=0):
+        super().__init__(left, right)
+        self.type = 'RELEASE'
+        self.tag = 4
+        self.name = 'U['+str(lb)+','+str(ub)+']'
+        self.lb, self.ub = lb, ub
+        self.left.pre, self.right.pre = self, self
+
+    def gen_assembly(self, s):
+        substr = "release "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s

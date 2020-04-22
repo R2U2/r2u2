@@ -129,9 +129,9 @@ class Postgraph():
                 elif(n.type=='BOOL'):
                     n.bpd = 0
                     n.scq_size = 0
-                elif(n.type=='AND' or n.type=='OR' or n.type=='UNTIL' or n.type=='WEAK_UNTIL'):
+                elif( n.type in ('AND','OR','UNTIL','WEAK_UNTIL','RELEASE','IMPLY','EQ') ):
                     left, right = n.left, n.right
-                    if(n.type=='AND' or n.type=='OR'):
+                    if(n.type in ('AND', 'OR', 'IMPLY','EQ')):
                         n.bpd, n.wpd = min(left.bpd, right.bpd), max(left.wpd, right.wpd)
                     else:
                         n.bpd, n.wpd = min(left.bpd, right.bpd)+n.lb, max(left.wpd, right.wpd)+n.ub
@@ -190,6 +190,7 @@ class Postgraph():
         for node in stack:
             if (not (isinstance(node, Observer) or isinstance(node, STATEMENT))): # statement is used to generate the end command
                 continue
+            print(node)
             s = node.gen_assembly(s)
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
         print(s)

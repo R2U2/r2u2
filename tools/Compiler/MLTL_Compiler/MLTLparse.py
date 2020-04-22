@@ -60,6 +60,8 @@ def p_ftMLTL_operators(p):
                 | FUTURE LBRACK NUMBER COMMA NUMBER RBRACK expression
                 | expression UNTIL LBRACK NUMBER RBRACK expression
                 | expression UNTIL LBRACK NUMBER COMMA NUMBER RBRACK expression
+                | expression RELEASE LBRACK NUMBER RBRACK expression
+                | expression RELEASE LBRACK NUMBER COMMA NUMBER RBRACK expression
     '''
     if p[1] == 'G' and len(p) == 6:
         p[0] = GLOBAL(p[5],ub=p[3])
@@ -73,13 +75,19 @@ def p_ftMLTL_operators(p):
         p[0] = UNTIL(p[1],p[6],ub=p[4])
     elif p[2] == 'U' and len(p)==9:
         p[0] = UNTIL(p[1],p[8],lb=p[4],ub=p[6])
+    elif p[2] == 'R' and len(p)==7:
+        p[0] = RELEASE(p[1],p[6],ub=p[4])
+    elif p[2] == 'R' and len(p)==9:
+        p[0] = RELEASE(p[1],p[8],lb=p[4],ub=p[6])
     print(p[0])
 
 def p_ptMLTL_operators(p):
     '''
     expression  : YESTERDAY expression
-                | SINCE expression
-                | SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
+                | expression SINCE LBRACK NUMBER RBRACK expression
+                | expression SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
+                | expression EQ expression
+                | expression IMPLY expression
                 | ONCE expression
                 | ONCE LBRACK NUMBER RBRACK expression
                 | ONCE LBRACK NUMBER COMMA NUMBER RBRACK expression
@@ -89,11 +97,11 @@ def p_ptMLTL_operators(p):
     '''
     if p[1] == 'Y':
         p[0] = YESTERDAY(p[2])
-    elif p[1] == 'S':
-        if len(p)==3:
-            p[0] = SINCE(p[2])
-        elif len(p)==8:
-            p[0] = SINCE(p[2],lb=p[3],ub=p[5])
+    elif p[2] == 'S':
+        if len(p)==7:
+            p[0] = SINCE(p[1],p[6],ub=p[4])
+        if len(p)==9:
+            p[0] = SINCE(p[1],p[8],lb=p[4],ub=p[6])
         else:
             raise Exception('Syntax error in type! Cannot find matching format for SINCE')
             status = 'syntax_err'
@@ -101,17 +109,21 @@ def p_ptMLTL_operators(p):
         if len(p)==3:
             p[0] = ONCE(p[2])
         elif len(p)==6:
-            p[0] = ONCE(p[5],lb=p[3])
+            p[0] = ONCE(p[5],ub=p[3])
         elif len(p)==8:
             p[0] = ONCE(p[7],lb=p[3],ub=p[5])
         else:
             raise Exception('Syntax error in type! Cannot find matching format for ONCE')
             status = 'syntax_err'
+    elif p[2] == '<->':
+        p[0] = EQ(p[1],p[3])
+    elif p[2] == '->':
+        p[0] = IMPLY(p[1],p[3])
     elif p[1] == 'H':
         if len(p)==3:
             p[0] = HISTORICALLY(p[2])
         elif len(p)==6:
-            p[0] = HISTORICALLY(p[5],lb=p[3])
+            p[0] = HISTORICALLY(p[5],ub=p[3])
         elif len(p)==8:
             p[0] = HISTORICALLY(p[7],lb=p[3],ub=p[5])
         else:
@@ -131,18 +143,19 @@ def p_atomic_token(p):
 def p_bool_token(p):
     '''
     expression : TRUE
-                | FALSE
+               | FALSE
     '''
-    if p[1] == 'TRUE':
-        p[0] = BOOL('TRUE')
-    elif p[1] == 'FALSE':
-        p[0] = BOOL('FALSE')
+    p[0] = BOOL(p[1])
+    # if p[1] == 'TRUE':
+    #     p[0] = BOOL('TRUE')
+    # elif p[1] == 'FALSE':
+    #     p[0] = BOOL('FALSE')
 
 precedence = (
     ('left', 'SEMI'),
     ('left', 'COMMA'),
-    ('left', 'AND', 'OR'),
-    ('left', 'GLOBAL', 'UNTIL'),    
+    ('left', 'AND', 'OR', 'IMPLY', 'EQ'),
+    ('left', 'GLOBAL', 'FUTURE', 'UNTIL', 'RELEASE'),    
     ('left', 'NEG','YESTERDAY','SINCE'),
     ('left', 'LPAREN', 'RPAREN','ATOMIC','LBRACK','RBRACK'),
 )
