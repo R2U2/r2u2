@@ -6,7 +6,7 @@
 
 #include "TL_observers.h"
 
-#include "r2u2_input_types.h"
+#include "R2U2Config.h"
 
 //#define DEBUG(X)	X;fflush(stderr);
 #define DEBUG(X)
