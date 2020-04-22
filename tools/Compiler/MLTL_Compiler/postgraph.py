@@ -190,7 +190,7 @@ class Postgraph():
         for node in stack:
             if (not (isinstance(node, Observer) or isinstance(node, STATEMENT))): # statement is used to generate the end command
                 continue
-            print(node)
+            #print(node)
             s = node.gen_assembly(s)
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
         print(s)
