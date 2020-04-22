@@ -1,19 +1,29 @@
 s0: load a0
-s1: load f3
-s2: until s0 s1 2 3
-s3: end s2
-s4: once s0 3 5
-s5: boxdot s0 0 2
-s6: boxdot s5 1 3
-s7: and s6 s5
-s8: load a1
-s9: not s0
-s10: until s8 s9 0 2
-s11: and s7 s10
-s12: end s11
-s13: yesterday s0
-s14: load b2
-s15: end s13
-s16: and s4 s14
-s17: end s16
-s18: end sequence
+s1: boxdot s0 0 2
+s2: boxdot s1 1 3
+s3: and s2 s1
+s4: load a1
+s5: not s0
+s6: until s4 s5 0 2
+s7: and s3 s6
+s8: end s7 (FORM-0)
+s9: once s0 0 2
+s10: end s9 (FORM-4)
+s11: load f3
+s12: until s0 s11 2 3
+s13: load b
+s14: imply s0 s13
+s15: end s14 (FORM-5)
+s16: load b2
+s17: once s0 3 5
+s18: and s17 s16
+s19: end s18 (FORM-3)
+s20: end s12 (FORM-1)
+s21: and TRUE FALSE
+s22: eq s0 s4
+s23: yesterday s0
+s24: end s23 (FORM-2)
+s25: end s22 (FORM-6)
+s26: end TRUE (FORM-7)
+s27: end s21 (FORM-9)
+s28: end sequence

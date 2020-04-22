@@ -11,14 +11,13 @@ import ply.lex as lex
 literal_names = {}
 for literal in ['TRUE', 'FALSE']:
     literal_names.update({getattr(literal, x)() : literal for x in ['upper', 'title', 'lower']})
-    literal_names.update({getattr(literal[0], x)() : literal for x in ['upper', 'lower']})
+    # literal_names.update({getattr(literal[0], x)() : literal for x in ['upper', 'lower']})
 
 reserved = {
 # future time
     'G' : 'GLOBAL',
     'U' : 'UNTIL',
     'R' : 'RELEASE',
-    'X' : 'NEXT', # removed from MLTL
     'F' : 'FUTURE',
 # past time
     'Y' : 'YESTERDAY',
@@ -33,6 +32,9 @@ reserved = {
 
 }
 
+reserved.update(literal_names)
+print(reserved)
+print(list(set(reserved.values())))
 # List of token names. This is compulsory.
 tokens = [
     'NUMBER',
@@ -48,7 +50,7 @@ tokens = [
     'EQ',
     'ATOMIC',#atomic
     'SEMI',
-        ]+ list(reserved.values())
+        ]+ list(set(reserved.values()))
 
 
 # Regular statement rules for tokens.
@@ -75,9 +77,9 @@ def t_ATOMIC(t):
     r'([A-Za-z])\w*'
     if t.value in reserved:
         t.type = reserved[t.value]
-    if t.value in literal_names.keys():
-        t.type = literal_names[t.value]
-        t.value = t.type
+    # if t.value in literal_names.keys():
+    #     t.type = literal_names[t.value]
+    #     t.value = t.type
     return t
 
 def t_COMMENT(t):
