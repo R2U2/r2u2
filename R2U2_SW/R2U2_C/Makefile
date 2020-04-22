@@ -53,7 +53,7 @@ default: all
 
 # non-phony targets
 $(TARGET_RELES): $(OBJ_RELES) | $(BIN_PATH)
-	$(CC) $(CFLAGS) -o $@ $? $(LDFLAGS)
+	$(CC) $(CFLAGS) -O3 -o $@ $? $(LDFLAGS)
 
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
 	$(CC) $(CCOBJFLAG) -o $@ $<
