@@ -3,16 +3,11 @@
 #include <limits.h>
 #include <string.h>
 
+#include "R2U2.h"
 #include "R2U2Config.h"
 #include "binParser/parse.h"
 #include "TL/TL_observers.h"
 // #include "AT/at_checkers.h"
-
-#ifdef DEBUG
-    #define DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
-#else
-    #define DEBUG_PRINT(...) do{ } while ( false )
-#endif
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
