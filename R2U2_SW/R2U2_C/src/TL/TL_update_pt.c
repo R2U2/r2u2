@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_update_pt()
 **
-** Purpose:  
+** Purpose:
 **	execute all TL instructions for the PT engine
 **	gets input from atomics_vector and places
 ** 	outputs into results_pt
@@ -33,6 +33,7 @@
 #include "TL_queue_pt.h"
 
 //TURN DEBUG_PT ON OFF
+// TODO: Manage debug output
 #define	TRACE_TOP_PT(X) X
 #define	TRACE_INSTR_PT(X) X
 #define	TRACE_OPND_PT(X) X
@@ -220,7 +221,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			//
 			// for falling edge
 			//
-		if ((edge == falling) && 
+		if ((edge == falling) &&
 		    !isempty_queue_pt(bq_addr)){
 			remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 				//
@@ -233,7 +234,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			}
 
 		peek_queue_pt(bq_addr, &t_s, &t_e);
-			
+
 		dt = t_now - get_interval_ub_pt(pc);
 		if (dt < 0){
 			dt = 0;
@@ -246,7 +247,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		//----------------------------------------------------
 		// OP_PT_OJ (once, interval:  o[t1,t2] P )
 		//
-		// OJ is implemented as equivalence to 
+		// OJ is implemented as equivalence to
 		//   <> = ~[](~phi)
 		//----------------------------------------------------
 	case OP_PT_OJ:
@@ -281,7 +282,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 					// feasibility check
 					//   feasible((t_s,n-1),n,J)
 				if (((t_now-1) -t_s) >=
-		            	     (get_interval_ub_pt(pc) - 
+		            	     (get_interval_ub_pt(pc) -
 				      get_interval_lb_pt(pc))){
 		       			add_queue_pt(bq_addr, t_s, t_now-1);
 					}
@@ -289,7 +290,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			}
 
 		peek_queue_pt(bq_addr, &t_s, &t_e);
-			
+
 		dt = t_now - get_interval_ub_pt(pc);
 		if (dt < 0){
 			dt = 0;
@@ -329,7 +330,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				//
 				// for rising edge
 				//
-			if ((edge == rising) && 
+			if ((edge == rising) &&
 		    	    !isempty_queue_pt(bq_addr)){
 				remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
@@ -355,7 +356,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 			}
 
 		peek_queue_pt(bq_addr, &t_s, &t_e);
-			
+
 		dt = t_now - get_interval_ub_pt(pc);
 		if (dt < 0){
 			dt = 0;
@@ -364,7 +365,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				 (t_e < (t_now - get_interval_lb_pt(pc))));
 
 		break;
-			
+
 
 		//----------------------------------------------------
 		// operators on time points
@@ -384,7 +385,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				results_pt_rising[pc] = TL_INF;
 				}
 			}
-		
+
 		dt = t_now - get_interval_lb_pt(pc);
 		if (dt < 0){
 			dt = 0;
@@ -395,7 +396,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 		//----------------------------------------------------
 		// OP_PT_OT (once, time point  O[t] P )
 		//
-		// OJ is implemented as equivalence to 
+		// OJ is implemented as equivalence to
 		//   <> = ~[](~phi)
 		//----------------------------------------------------
 	case OP_PT_OT:
@@ -410,7 +411,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 				results_pt_rising[pc] = TL_INF;
 				}
 			}
-		
+
 		dt = t_now - get_interval_lb_pt(pc);
 		if (dt < 0){
 			dt = 0;
@@ -435,7 +436,7 @@ for (pc=0; pc< N_INSTRUCTIONS;pc++){
 	if (t_now == 0){
 		results_pt_prev[pc] = results_pt[pc];
 		}
-		
+
 	}
 
 
@@ -458,7 +459,7 @@ switch (op1.opnd_type){
 	case direct:
 		res = op1.value;
 		break;
-	
+
 	case atomic:
 		res = atomics_vector[op1.value];
 		TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op1.value,res);)
@@ -491,7 +492,7 @@ switch (op1.opnd_type){
 	case direct:
 		res = op1.value;
 		break;
-	
+
 	case atomic:
 		res = atomics_vector_prev[op1.value];
 		TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op1.value,res);)
@@ -523,7 +524,7 @@ switch (op2.opnd_type){
 	case direct:
 		res = op2.value;
 		break;
-	
+
 	case atomic:
 		res = atomics_vector[op2.value];
 		TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op2.value,res);)
@@ -556,7 +557,7 @@ switch (op2.opnd_type){
 	case direct:
 		res = op2.value;
 		break;
-	
+
 	case atomic:
 		res = atomics_vector_prev[op2.value];
 		TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op2.value,res);)
@@ -589,7 +590,7 @@ switch (op1.opnd_type){
 		v = false;
 		v_p = false;
 		break;
-	
+
 	case atomic:
 		v = atomics_vector[op1.value];
 		v_p = atomics_vector_prev[op1.value];
@@ -631,7 +632,7 @@ switch (op2.opnd_type){
 		v = false;
 		v_p = false;
 		break;
-	
+
 	case atomic:
 		v = atomics_vector[op2.value];
 		v_p = atomics_vector_prev[op2.value];

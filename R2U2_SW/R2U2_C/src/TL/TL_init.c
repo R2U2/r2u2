@@ -31,7 +31,6 @@
 #include "TL_queue_ft.h"
 #include "TL_queue_pt.h"
 
-#define DEBUG(X)
 #define INFO_BPATCH(X) X
 
 /**
