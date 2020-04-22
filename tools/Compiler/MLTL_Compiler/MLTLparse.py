@@ -93,9 +93,13 @@ def p_ftMLTL_operators(p):
     elif p[2] == 'U' and len(p)==9:
         p[0] = UNTIL(p[1],p[8],lb=p[4],ub=p[6])
     elif p[2] == 'R' and len(p)==7:
-        p[0] = RELEASE(p[1],p[6],ub=p[4])
+        #p[0] = RELEASE(p[1],p[6],ub=p[4])
+        # Syntactic Sugar for Release just using Until
+        p[0] = NEG(UNTIL(NEG(p[1]),NEG(p[6]),ub=p[4]))
     elif p[2] == 'R' and len(p)==9:
         p[0] = RELEASE(p[1],p[8],lb=p[4],ub=p[6])
+        # Syntactic Sugar for Release just using Until
+        p[0] = NEG(UNTIL(NEG(p[1]),NEG(p[8]),lb=p[4],ub=p[6]))
 
 def p_ptMLTL_operators(p):
     '''
