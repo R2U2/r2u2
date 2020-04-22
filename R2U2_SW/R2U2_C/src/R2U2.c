@@ -2,9 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
-/* From vendored libs */
-#include "csvparser.h"
-#include "decodeCSV.h"
 
 #include "R2U2Config.h"
 #include "binParser/parse.h"
