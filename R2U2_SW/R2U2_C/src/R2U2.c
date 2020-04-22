@@ -1,17 +1,17 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <limits.h>
+#include <string.h>
 
 #include "R2U2Config.h"
 #include "binParser/parse.h"
 #include "TL/TL_observers.h"
-#include "AT/at_checkers.h"
+// #include "AT/at_checkers.h"
 
 void sys_init(char *argv[]) {
     /* Engine Initialization */
     TL_init();
-    at_checkers_init();
+    // at_checkers_init();
     //TL_init_files("src/inputs/tmp.ftm","src/inputs/tmp.fti","src/inputs/tmp.ftscq");
     TL_init_files(argv[1],argv[2],argv[3]);
 }
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
         fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
     }
-    int MAX_TIME = INT_MAX, NUM_SIG = 0;
+    int MAX_TIME = INT_MAX;
     FILE *input_file;
     char inbuf[BUFSIZ];
 
