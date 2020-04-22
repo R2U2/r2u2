@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
     {
         printf("Using trace file: %s\n", argv[4]);
         input_file = fopen(argv[4], "r");
+        if (input_file == NULL) return -7;
     } else {
         printf("Reading from stdin\n");
         input_file = stdin;
@@ -53,12 +54,8 @@ int main(int argc, char *argv[]) {
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-        if (inbuf[strlen(inbuf)-1] == '\n') {
-            // read full line
-            printf("Got: %s\n", inbuf);
-        } else {
-            // line was truncated
-            return -7;
+        for (int atom = 0; atom < strlen(inbuf)/2; ++atom) {
+            if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) break; // TODO: Exit?
         }
 
         // Terminal and log file headings, when in debug mode
