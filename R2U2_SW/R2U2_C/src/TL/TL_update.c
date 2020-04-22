@@ -35,6 +35,9 @@ int TL_update(FILE *log_file){
 r2u2_errno = 0;
 
 if (t_now == 0){
+	for (int i=0; i< 4; i++){
+		atomics_vector[i] = false; //AT_COMP((r2u2_input_data[i]), > , 0.5);
+	}
 	memcpy(atomics_vector_prev, atomics_vector, sizeof(atomics_vector_t));
 	}
 
