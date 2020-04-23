@@ -14,21 +14,25 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
+        fprintf(stdout, "Usage: [path to configuration directory] [path to trace file]\n");
     }
     int MAX_TIME = INT_MAX;
     FILE *input_file;
-    char inbuf[BUFSIZ];
+    char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     /* Engine Initialization */
     TL_init();
     // at_checkers_init();
+    getcwd(inbuf, sizeof(inbuf));
+    if(inbuf == NULL) return 1;
+    chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin");
+    chdir(inbuf);
 
     /* Select file vs stream */
     // TODO: Really need some better handeling
-    if (access(argv[1], F_OK) == 0) {
-        input_file = fopen(argv[1], "r");
+    if (access(argv[2], F_OK) == 0) {
+        input_file = fopen(argv[2], "r");
         if (input_file == NULL) return 1;
     } else {
         input_file = stdin;
