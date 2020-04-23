@@ -38,7 +38,7 @@ OP_PT_OJ = "10000"
 OP_PT_SJ = "10011"
 # Implicitly Bounded Past-Time Operators
 OP_PT_HT = "10001"
-OP_PT_OT = "11100"
+OP_PT_OT = "01111"
 
 
 #------------------------------------------------------------------------------#
@@ -92,8 +92,8 @@ def parseOperand(op):
 
 i = 0
 timestampAddr = 0
-boxMemAddr = 0
-diamondMemAddr = 0
+hisMemAddr = 0
+onceMemAddr = 0
 sinceMemAddr = 0
 opcode = ""
 ts = ""
@@ -150,6 +150,13 @@ for line in f:
         opcode = opcode + parseOperand(op[2])
         opcode = opcode + "0000000"
         opcode = opcode + "00000000"
+    # Disjunction (OR)
+    elif op[0] == "or":
+        opcode = opcode + OP_OR
+        opcode = opcode + parseOperand(op[1])
+        opcode = opcode + parseOperand(op[2])
+        opcode = opcode + "0000000"
+        opcode = opcode + "00000000"
     # Implies
     elif op[0] == "impl":
         opcode = opcode + OP_IMPL
@@ -176,8 +183,8 @@ for line in f:
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(boxMemAddr, 7)
-        boxMemAddr = boxMemAddr + 1
+        opcode = opcode + toBinary(hisMemAddr, 7)
+        hisMemAddr = hisMemAddr + 1
         timestampAddr = timestampAddr + 1
         ts = ts + toBinary(1, 2*TIMESTAMP_WIDTH) + '\n'
     # Historically with single time point (H[t1,t2])
@@ -186,8 +193,8 @@ for line in f:
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(boxMemAddr, 7)
-        boxMemAddr = boxMemAddr + 1
+        opcode = opcode + toBinary(hisMemAddr, 7)
+        hisMemAddr = hisMemAddr + 1
         timestampAddr = timestampAddr + 1
         ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
     # Historically with interval (H[t])
@@ -196,8 +203,8 @@ for line in f:
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(boxMemAddr, 7)
-        boxMemAddr = boxMemAddr + 1
+        opcode = opcode + toBinary(hisMemAddr, 7)
+        hisMemAddr = hisMemAddr + 1
         timestampAddr = timestampAddr + 1
         ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
     # Once with interval (O[t1,t2])
@@ -206,8 +213,8 @@ for line in f:
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(diamondMemAddr, 7)
-        diamondMemAddr = diamondMemAddr + 1
+        opcode = opcode + toBinary(onceMemAddr, 7)
+        onceMemAddr = onceMemAddr + 1
         timestampAddr = timestampAddr + 1
         ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
     # Once with interval (O[t])
@@ -216,8 +223,8 @@ for line in f:
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(diamondMemAddr, 7)
-        diamondMemAddr = diamondMemAddr + 1
+        opcode = opcode + toBinary(onceMemAddr, 7)
+        onceMemAddr = onceMemAddr + 1
         timestampAddr = timestampAddr + 1
         ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
     # Since with interval (S[t1,t2])
