@@ -8,8 +8,8 @@
 ** $Date:      2016-6-16
 **
 **
-** Purpose:  
-**	global variables for the TL engine 
+** Purpose:
+**	global variables for the TL engine
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **	the global variables: instruction_mem and interval_mem
@@ -33,7 +33,7 @@ int max_time_horizon = 0;
 
 atomics_vector_t	atomics_vector;
 atomics_vector_t	atomics_vector_prev;
-	
+
 map_mem_t		map_mem_ft;
 map_mem_t		map_mem_pt;
 

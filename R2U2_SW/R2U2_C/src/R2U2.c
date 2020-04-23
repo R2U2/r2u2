@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-        for (int atom = 0; atom < strlen(inbuf)/2; ++atom) {
+        for (size_t atom = 0; atom < strlen(inbuf)/2; ++atom) {
             if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) return 1;
         }
 

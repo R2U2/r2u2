@@ -7,7 +7,7 @@ OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/binParser
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser
 ifdef R2U2_AT
 	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/prognostics
 endif

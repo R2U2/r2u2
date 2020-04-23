@@ -3,6 +3,32 @@
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 
+instruction_mem_t instruction_mem_ft = {
+  { OP_FT_LOD, 	{ atomic, 0 },	{ not_set, 0 }, 	0,	0},
+  { OP_FT_LOD, 	{ atomic, 1 },	{ not_set, 0 }, 	0,	1},
+  { OP_FT_UJ, 	{ direct, 1 },	{ subformula, 1 }, 	0,	2},
+  { OP_END_SEQUENCE, 	{ subformula, 2 },	{ not_set, 0 }, 	0,	3},
+};
+interval_mem_t	interval_mem_ft = {
+
+{ 5, 10 },
+};
+instruction_mem_t	instruction_mem_pt = {
+
+  { OP_END,		{ not_set, 0 },	{ not_set, 0},	0,	0}
+};
+interval_t	interval_mem_pt[] = {
+
+{ 44, 44 },
+};
+int l_interval_mem_pt = 1;
+addr_SCQ_map_t addr_SCQ_map_ft = {
+	{0,10},
+	{11,20},
+	{21,30},
+	{31,40},
+};
+
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
 	for(int i=0;i<len;i++) {
@@ -45,7 +71,7 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
-} 
+}
 
 void parse_inst(char* filename) {
 	int PC = 0;
@@ -54,7 +80,7 @@ void parse_inst(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);			
+			decode_inst(line, &instruction_mem_ft[PC]);
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
@@ -71,7 +97,7 @@ void parse_interval(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);			
+			decode_interval(line, &interval_mem_ft[PC]);
 			PC++;
 		}
 		fclose ( file );
@@ -96,7 +122,6 @@ void parse_scq_size(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-
 
 void TL_init_files(char* ftm, char* fti, char* ftscq) {
 	parse_inst(ftm);
