@@ -222,6 +222,8 @@ extern results_rising_pt_t results_pt_rising;
 //---------------------------------------------
 // functions
 //---------------------------------------------
+void TL_init_files(char* ftm, char* fti, char* ftscq);
+
 int TL_init();
 
 int TL_update(FILE *fp);

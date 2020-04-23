@@ -41,6 +41,12 @@ static int set_max_time_horizon();
 
 extern interval_t interval_mem_pt[];
 
+void TL_init_files(char* ftm, char* fti, char* ftscq) {
+	parse_inst(ftm);
+	parse_interval(fti);
+	parse_scq_size(ftscq);
+}
+
 int TL_init()
 {
     int i;
@@ -124,3 +130,4 @@ int TL_init()
 
     return 0;
 }
+

@@ -3,32 +3,6 @@
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 
-instruction_mem_t instruction_mem_ft = {
-  { OP_FT_LOD, 	{ atomic, 0 },	{ not_set, 0 }, 	0,	0},
-  { OP_FT_LOD, 	{ atomic, 1 },	{ not_set, 0 }, 	0,	1},
-  { OP_FT_UJ, 	{ direct, 1 },	{ subformula, 1 }, 	0,	2},
-  { OP_END_SEQUENCE, 	{ subformula, 2 },	{ not_set, 0 }, 	0,	3},
-};
-interval_mem_t	interval_mem_ft = {
-
-{ 5, 10 },
-};
-instruction_mem_t	instruction_mem_pt = {
-
-  { OP_END,		{ not_set, 0 },	{ not_set, 0},	0,	0}
-};
-interval_t	interval_mem_pt[] = {
-
-{ 44, 44 },
-};
-int l_interval_mem_pt = 1;
-addr_SCQ_map_t addr_SCQ_map_ft = {
-	{0,10},
-	{11,20},
-	{21,30},
-	{31,40},
-};
-
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
 	for(int i=0;i<len;i++) {
@@ -121,10 +95,4 @@ void parse_scq_size(char* filename) {
 	} else {
 		perror ( filename ); /* why didn't the file open? */
 	}
-}
-
-void TL_init_files(char* ftm, char* fti, char* ftscq) {
-	parse_inst(ftm);
-	parse_interval(fti);
-	parse_scq_size(ftscq);
 }
