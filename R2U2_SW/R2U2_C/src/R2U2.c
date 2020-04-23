@@ -20,22 +20,10 @@ int main(int argc, char *argv[]) {
     FILE *input_file;
     char inbuf[BUFSIZ];
 
-    /* Find configuration files */
-    TL_asm_files tl_asm_files;
-    // for (int i = 0; i < 3; ++i) {
-    //     tl_asm_files[i] = fopen("ftm.bin", "r");
-    // }
-    tl_asm_files[0] = fopen("ftm.bin", "r");
-    tl_asm_files[1] = fopen("fti.bin", "r");
-    tl_asm_files[2] = fopen("ftscq.bin", "r");
-    TL_config(tl_asm_files);
-    for (int i = 0; i < 3; ++i) {
-        fclose(tl_asm_files[i]);
-    }
-
     /* Engine Initialization */
     TL_init();
     // at_checkers_init();
+    TL_config("ftm.bin", "fti.bin", "ftscq.bin");
 
     /* Select file vs stream */
     // TODO: Really need some better handeling

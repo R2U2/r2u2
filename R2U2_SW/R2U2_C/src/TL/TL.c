@@ -6,13 +6,13 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
-void TL_config(TL_asm_files files)
+void TL_config(char* ftm, char* fti, char* ftscq)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_inst(files[0]);
-    parse_interval(files[1]);
-    parse_scq_size(files[2]);
+    parse_inst(ftm);
+    parse_interval(fti);
+    parse_scq_size(ftscq);
 }
 
 int TL_init()

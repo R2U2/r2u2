@@ -47,8 +47,9 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
 }
 
-void parse_inst(FILE *file) {
+void parse_inst(char* filename) {
 	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
@@ -57,13 +58,15 @@ void parse_inst(FILE *file) {
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
+		fclose ( file );
 	} else {
-		// TODO: Disable FT mode
+		perror ( filename ); /* why didn't the file open? */
 	}
 }
 
-void parse_interval(FILE *file) {
+void parse_interval(char* filename) {
 	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
@@ -71,13 +74,15 @@ void parse_interval(FILE *file) {
 			decode_interval(line, &interval_mem_ft[PC]);
 			PC++;
 		}
+		fclose ( file );
 	} else {
-		// TODO: Disable FT mode
+		perror ( filename ); /* why didn't the file open? */
 	}
 }
 
-void parse_scq_size(FILE *file) {
+void parse_scq_size(char* filename) {
 	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
@@ -86,7 +91,8 @@ void parse_scq_size(FILE *file) {
 			(SCQ+(addr_SCQ_map_ft[PC].start_addr))->t_q = -1; // initialize timestamp of the first elelment to -1
 			PC++;
 		}
+		fclose ( file );
 	} else {
-		// TODO: Disable FT mode
+		perror ( filename ); /* why didn't the file open? */
 	}
 }
