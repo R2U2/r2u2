@@ -11,10 +11,10 @@
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
-    if (argc < 4 || argc > 5) {
+    if (argc < 6 || argc > 7) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
+        fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) .ptm, 5) .pti, 6) trace data file (or none for stdin)\n");
     }
     int MAX_TIME = INT_MAX;
     FILE *input_file;
@@ -25,11 +25,11 @@ int main(int argc, char *argv[]) {
     // at_checkers_init();
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    TL_init_files(argv[1],argv[2],argv[3]);
+    TL_init_files(argv[1],argv[2],argv[3],argv[4],argv[5]);
 
     /* Select file vs stream */
-    if (argc == 5 && (access(argv[4], F_OK) == 0)) {
-        input_file = fopen(argv[4], "r");
+    if (argc == 7 && (access(argv[6], F_OK) == 0)) {
+        input_file = fopen(argv[6], "r");
         if (input_file == NULL) return 1;
     } else {
         input_file = stdin;

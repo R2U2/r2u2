@@ -348,7 +348,7 @@ int TL_init();
 #endif
 
 int TL_update(FILE *fp);
-int TL_update_pt();
+int TL_update_pt(FILE *fp);
 int TL_update_ft(FILE *fp);
 
 #ifdef __cplusplus

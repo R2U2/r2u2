@@ -52,39 +52,27 @@ int TL_init()
     t_now = 0;
     r2u2_errno = 0;
 
-    //
     // reset execution engine (TBD)
     // initialize input and output vectors
     // and local memories
-    //
-    // for (i=0; i<N_INSTRUCTIONS;i++){
-    // 		//
-    // 		// initialize PT results
-    // 		//
-    // 	results_pt[i]= false;
-    // 	results_pt_prev[i]= false;
-    // 	results_pt_rising[i] = TL_INF;
-    // 		//
-    // 		// initialize FT results
-    // 		//
+     for (i=0; i<N_INSTRUCTIONS;i++){
+ 		// initialize PT results
+     	results_pt[i]= false;
+     	results_pt_prev[i]= false;
+     	results_pt_rising[i] = TL_INF;
+ 		// initialize FT results
     // 	results_ft[i].async_val = false;
     // 	results_ft[i].async_val = false;
-    // 	results_ft[i].sync_val  = F;  //initialize to false due to edge
-    // detection
+    // 	results_ft[i].sync_val  = false;  //initialize to false due to edge detection
+    }
 
-    // }
-
-    //
     // initialize atomics
-    //
     for (i = 0; i < N_ATOMICS; i++) {
         atomics_vector[i] = false;
         atomics_vector_prev[i] = false;
     }
 
-    //
     // initialize queues
-    //
 
     // get number of pt queues
     n_queues_pt = l_interval_mem_pt;
@@ -96,12 +84,12 @@ int TL_init()
     }
 
     // set up pt queues
-    // for (i=0; i< n_queues_pt;i++){
-    // 	pt_box_queues[i].head = 0;
-    // 	pt_box_queues[i].tail = 0;
-    // 	pt_box_queues[i].n_elts = 0;
-    // 	pt_box_queues[i].queue = pt_box_queue_mem + i * L_DOT_BUFFER;
-    // 	}
+    for (i=0; i< n_queues_pt;i++){
+     	pt_box_queues[i].head = 0;
+     	pt_box_queues[i].tail = 0;
+     	pt_box_queues[i].n_elts = 0;
+     	pt_box_queues[i].queue = pt_box_queue_mem + i * L_DOT_BUFFER;
+    }
 
     // Initialize ft-sync queues
     for (i = 0; i < N_SUBFORMULA_SNYC_QUEUES; i++) {
