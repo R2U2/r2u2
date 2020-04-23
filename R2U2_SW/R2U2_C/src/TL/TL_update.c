@@ -35,7 +35,7 @@ int TL_update(FILE *log_file){
 	r2u2_errno = 0;
 
 	TL_update_pt(log_file);
-    //TL_update_ft(log_file);
+    TL_update_ft(log_file);
     
 	//
 	// do temporal housekeeping:
