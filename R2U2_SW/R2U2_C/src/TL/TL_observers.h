@@ -229,7 +229,7 @@ extern results_rising_pt_t results_pt_rising;
 //---------------------------------------------
 // functions
 //---------------------------------------------
-void TL_config(char*, char*, char*);
+void TL_config(TL_asm_files);
 
 int TL_init();
 

@@ -11,7 +11,7 @@
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
-    if (argc < 4 || argc > 5) {
+    if (argc < 2) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
         fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
@@ -22,10 +22,13 @@ int main(int argc, char *argv[]) {
 
     /* Find configuration files */
     TL_asm_files tl_asm_files;
-    for (int i = 0; i < 3; ++i) {
-        tl_asm_files[i] = fopen("ftm.bin", "r");
-    }
-    TL_config(argv[1],argv[2],argv[3]);
+    // for (int i = 0; i < 3; ++i) {
+    //     tl_asm_files[i] = fopen("ftm.bin", "r");
+    // }
+    tl_asm_files[0] = fopen("ftm.bin", "r");
+    tl_asm_files[1] = fopen("fti.bin", "r");
+    tl_asm_files[2] = fopen("ftscq.bin", "r");
+    TL_config(tl_asm_files);
     for (int i = 0; i < 3; ++i) {
         fclose(tl_asm_files[i]);
     }
@@ -35,8 +38,9 @@ int main(int argc, char *argv[]) {
     // at_checkers_init();
 
     /* Select file vs stream */
-    if (argc == 5 && (access(argv[4], F_OK) == 0)) {
-        input_file = fopen(argv[4], "r");
+    // TODO: Really need some better handeling
+    if (access(argv[1], F_OK) == 0) {
+        input_file = fopen(argv[1], "r");
         if (input_file == NULL) return 1;
     } else {
         input_file = stdin;
