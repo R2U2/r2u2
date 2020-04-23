@@ -6,8 +6,10 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
-void TL_init_files(char* ftm, char* fti, char* ftscq)
+void TL_config(char* ftm, char* fti, char* ftscq)
 {
+    // TODO: Does this crash on bad bins?
+    // TODO: Weird memory stuff to be checked
     parse_inst(ftm);
     parse_interval(fti);
     parse_scq_size(ftscq);

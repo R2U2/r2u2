@@ -20,12 +20,19 @@ int main(int argc, char *argv[]) {
     FILE *input_file;
     char inbuf[BUFSIZ];
 
+    /* Find configuration files */
+    TL_asm_files tl_asm_files;
+    for (int i = 0; i < 3; ++i) {
+        tl_asm_files[i] = fopen("ftm.bin", "r");
+    }
+    TL_config(argv[1],argv[2],argv[3]);
+    for (int i = 0; i < 3; ++i) {
+        fclose(tl_asm_files[i]);
+    }
+
     /* Engine Initialization */
     TL_init();
     // at_checkers_init();
-    // TODO: Does this crash on bad bins?
-    // TODO: Weird memory stuff to be checked
-    TL_init_files(argv[1],argv[2],argv[3]);
 
     /* Select file vs stream */
     if (argc == 5 && (access(argv[4], F_OK) == 0)) {

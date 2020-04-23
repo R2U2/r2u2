@@ -181,6 +181,13 @@ typedef bool results_pt_t[N_INSTRUCTIONS];
 //typedef  results_a_ft_t[N_INSTRUCTIONS];
 typedef int results_rising_pt_t[N_INSTRUCTIONS];
 
+typedef enum {
+	ft_m,
+	ft_i,
+	ft_scq
+} TL_asm_file_t;
+typedef FILE *TL_asm_files[3];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -222,7 +229,7 @@ extern results_rising_pt_t results_pt_rising;
 //---------------------------------------------
 // functions
 //---------------------------------------------
-void TL_init_files(char* ftm, char* fti, char* ftscq);
+void TL_config(char*, char*, char*);
 
 int TL_init();
 
