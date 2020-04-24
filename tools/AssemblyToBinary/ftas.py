@@ -254,8 +254,14 @@ for line in f:
 	opcode = opcode + "\n"
 f.close()
 
-writeToFile("tmp.ftm", opcode)
-writeToFile("tmp.fti", ts)
-	
+# Check to see if the '../binary_files' directory exists; if not make, the file
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirBinaryPath__ = __AbsolutePath__ + '../binary_files'
+if(not os.path.isdir(__AbsolutePath__+__DirBinaryPath__)):
+	os.mkdir(__AbsolutePath__+__DirBinaryPath__)
+
+writeToFile(__DirBinaryPath__+'ftm.bin', opcode)
+writeToFile(__DirBinaryPath__+'fti.bin', ts)
+
 #print opcode
 #print ts

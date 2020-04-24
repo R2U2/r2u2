@@ -6,7 +6,7 @@
 
 #------------------------------------------------------------------------------#
 #!/usr/bin/python
-
+import os
 import sys
 import re
 # usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
@@ -263,8 +263,14 @@ for line in f:
     opcode = opcode + "\n"
 f.close()
 
-writeToFile("tmp.ptm", opcode)
-writeToFile("tmp.pti", ts)
+# Check to see if the '../binary_files' directory exists; if not make, the file
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirBinaryPath__ = __AbsolutePath__ + '../binary_files'
+if(not os.path.isdir(__AbsolutePath__+__DirBinaryPath__)):
+    os.mkdir(__AbsolutePath__+__DirBinaryPath__)
+
+writeToFile(__DirBinaryPath__+'ptm.bin', opcode)
+writeToFile(__DirBinaryPath__+'pti.bin', ts)
     
 #print opcode
 #print ts
