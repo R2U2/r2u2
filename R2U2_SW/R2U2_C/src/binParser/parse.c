@@ -45,7 +45,7 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
-} 
+}
 
 void parse_inst(char* filename) {
 	int PC = 0;
@@ -54,7 +54,7 @@ void parse_inst(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);			
+			decode_inst(line, &instruction_mem_ft[PC]);
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
@@ -71,7 +71,7 @@ void parse_interval(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);			
+			decode_interval(line, &interval_mem_ft[PC]);
 			PC++;
 		}
 		fclose ( file );
@@ -95,11 +95,4 @@ void parse_scq_size(char* filename) {
 	} else {
 		perror ( filename ); /* why didn't the file open? */
 	}
-}
-
-
-void TL_init_files(char* ftm, char* fti, char* ftscq) {
-	parse_inst(ftm);
-	parse_interval(fti);
-	parse_scq_size(ftscq);
 }

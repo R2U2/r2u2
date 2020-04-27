@@ -26,13 +26,14 @@
 **=====================================================================================*/
 #include <stdio.h>
 #include "TL_observers.h"
+#include "R2U2.h"
 #include "TL_queue_ft.h"
 
 #define	TRACE_OPND_FT(X) X
 
 #define AGGREGATION  // do aggregation
 
-// //* synchronization queues for instructions 
+// //* synchronization queues for instructions
 // extern sync_queues_ft_t		ft_sync_queues;
 
 
@@ -47,12 +48,12 @@ static inline int dec_ptr(int ptr, int size) {
 	return ptr-1;
 }
 
-// add new element to the SCQ 
+// add new element to the SCQ
 void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_ptr) {
 	#ifdef AGGREGATION
 		if((scq+dec_ptr(*wr_ptr, size))->v_q == newData.v_q && \
 			(scq+dec_ptr(*wr_ptr, size))->t_q < newData.t_q) { // assign to previous address
-			*(scq+dec_ptr(*wr_ptr,size)) = newData; 
+			*(scq+dec_ptr(*wr_ptr,size)) = newData;
 		} else {
 			*(scq+*wr_ptr) = newData;
 			*wr_ptr = inc_ptr(*wr_ptr, size);
