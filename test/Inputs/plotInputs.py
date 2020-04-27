@@ -10,26 +10,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import os
+from os import listdir
+from os.path import isfile, join
 
-nRow = 32
-nCol = 2
-numInputs = 54
-def plotInputs():
-    global nRow,nCol,numInputs
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__InputDir__ = __AbsolutePath__ + 'inputFiles/'
+
+def plotInputs(inputFiles):
     #------------------------------------------------------------------------------------#
     # Plot each of the inputs from 'input00xx.csv'
     #------------------------------------------------------------------------------------#
-    for k in range(0,numInputs):
-        # Get the correct filename
-        if(k < 10):
-            filename = 'input000' + str(k)
-        else:
-            filename = 'input00' + str(k)
-        
-        # Open the file and parse the inputs
-        f = open('inputFiles/' + filename + '.csv','r').read()
+    for _inputFile in inputFiles:
+        f = open(__InputDir__ + _inputFile,'r').read()
         lines = f.split('\n')
         input = []
+        nCol = len(lines[0].split(','))
         for i in range(0,nCol):
             input.append([])
             for line in lines:
@@ -53,7 +48,7 @@ def plotInputs():
             axarr[i].grid()
 
         plt.tight_layout()
-        plt.savefig('inputImages/'+filename+'.png')
+        plt.savefig('inputImages/'+_inputFile+'.png')
         
         plt.close()
 
@@ -79,7 +74,8 @@ if(sys.argv[1] == '-r'):
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
-    plotInputs()
+    inputFiles = [f for f in listdir(__InputDir__) if isfile(join(__InputDir__, f))]
+    plotInputs(inputFiles)
  
 else:
     print("Invalid input arguement")
