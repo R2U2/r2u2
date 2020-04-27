@@ -9,9 +9,10 @@ import sys
 import os
 
 # Paths to input and formula directories (from oracle directory)
-inputDir     = '../Inputs/inputFiles/'
-oracleDir  = 'oracleFiles/'
 
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__OracleDir__    = __AbsolutePath__+'oracleFiles/'
+__InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
 # Filenames for each file type
 inputFilename   = "input00"
 
@@ -32,7 +33,7 @@ def readInput(inCount):
         Count = str(inCount)
     
     # Open the input file and read the inputs
-    f = open(inputDir+inputFilename+Count+'.csv','r').read()
+    f = open(__InputDir__+inputFilename+Count+'.csv','r').read()
     # Split the file object by rows
     lines = f.split('\n')
     
@@ -830,7 +831,7 @@ def saveOracle(pcNum, TimeStamp, Verdict, formulaFilename, numInput):
         countInput = str(numInput)
     
     # Creat the oracle file
-    filename = oracleDir+formulaFilename+"_"+inputFilename+countInput+'.txt'
+    filename = __OracleDir__+formulaFilename+"_"+inputFilename+countInput+'.txt'
     f = open(filename,'w+')
     
     f.write('**********RESULTS**********\n')
@@ -862,13 +863,12 @@ except:
     exit()
 
 # See if oracleFiles directory exists; if not make, items
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-if(not os.path.isdir(__AbsolutePath__+'oracleFiles')):
-    os.mkdir(__AbsolutePath__+'oracleFiles')
+if(not os.path.isdir(__OracleDir__)):
+    os.mkdir(__OracleDir__)
 
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    shutil.rmtree(__AbsolutePath__+'oracleFiles')
+    shutil.rmtree(__OracleDir__)
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
