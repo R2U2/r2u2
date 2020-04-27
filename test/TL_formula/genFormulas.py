@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
-# Date:        April 16th, 2020
+# Date:        April 27th, 2020
 # File Name:   genInputs.py
 # Description: A Python 3 script used to generate test formula files for cases used
 #              for R2U2 regression testing. Note that this script is built using the 
@@ -9,8 +9,6 @@
 import shutil
 import sys
 import os
-
-numFormula = 45
 
 #------------------------------------------------------------------------------------#
 # Method for making formula files
