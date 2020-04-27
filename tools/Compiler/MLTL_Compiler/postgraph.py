@@ -9,15 +9,15 @@ import os
 
 # Paths for saving files
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = 'binary_files/'
+__DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
 asmFileName = ""
 class Postgraph():
     def __init__(self,MLTL,FTorPT, optimize_cse=True, Hp=0):
         global asmFileName 
         asmFileName = FTorPT
         # Check to see if the '../binary_files' directory exists; if not make, the file
-        if(not os.path.isdir(__AbsolutePath__+'../../'+__DirBinaryPath__)):
-            os.mkdir(__AbsolutePath__+'../../'+__DirBinaryPath__)
+        if(not os.path.isdir(__DirBinaryPath__)):
+            os.mkdir(__DirBinaryPath__)
         # Observer.Observer.line_cnt = 0 # clear var for multiple runs
         AST_node.reset()
         Observer.reset()

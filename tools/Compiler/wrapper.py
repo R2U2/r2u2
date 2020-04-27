@@ -2,8 +2,18 @@ from MLTL_Compiler import *
 import sys
 import os
 import subprocess
+import shutil
 
+TIMESTAMP_WIDTH = 4
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__CompilerDir__  = __AbsolutePath__
+__BinGenDir__    = __AbsolutePath__ + '../AssemblyToBinary/'
+__BinFileDir__   = __AbsolutePath__ + '../binary_files/'
 def main():
+    # Remove 'binary_files' directory, if it exists, and start fresh
+    if(os.path.isdir(__BinFileDir__)):
+        shutil.rmtree(__BinFileDir__)
+    
     #MLTL = "G[1,3](G[2]a0) & G[2]a0 &(a1 U[2] !a0)"
     MLTL = sys.argv[1]
     FT = ""
@@ -41,10 +51,23 @@ def main():
             FT = FT + line + ';'
     
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
-    print('************************************************************')
-    subprocess.run(['python3', 'Compiler/main.py', FT, 'ft'])
-    subprocess.run(['python3', 'Compiler/main.py', PT, 'pt'])
+    if(FT != ""):
+        print('************************************************************')
+        subprocess.run(['python3', __AbsolutePath__+'main.py', FT, 'ft'])
+    if(PT != ""):
+        print('************************************************************')
+        subprocess.run(['python3', __AbsolutePath__+'main.py', PT, 'pt'])
     
-
+    # Call ftas, if the ft.asm file exists
+    if(os.path.isfile(__BinFileDir__+'ft.asm')):
+        print('************************************************************')
+        subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
+    # Call ptas, if the pt.asm file exists
+    if(os.path.isfile(__BinFileDir__+'pt.asm')):
+        print('************************************************************')
+        subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
+    
+    print('************************************************************')
+    
 if __name__ == "__main__":
     main()
