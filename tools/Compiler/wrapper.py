@@ -27,6 +27,7 @@ def main():
                 
         # If a formula has both PT and FT, throw an error and exit the program
         if((isPT > 0) and (isFT > 0)):
+            print('************************************************************')
             print('Formula has both past-time and future-time operators.')
             print('R2U2 does not support mixed-time formulas.')
             print('The following formula is invalid: ' + line)
@@ -40,6 +41,7 @@ def main():
             FT = FT + line + ';'
     
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
+    print('************************************************************')
     subprocess.run(['python3', 'Compiler/main.py', FT, 'ft'])
     subprocess.run(['python3', 'Compiler/main.py', PT, 'pt'])
     
