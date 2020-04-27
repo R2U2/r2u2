@@ -267,3 +267,5 @@ Lex and Yacc Autogen files:
 *.tab.h
 
 R2U2_SW/R2U2_C/bin/
+tools/Compiler/MLTL_Compiler/parsetab.py
+binary_files/
