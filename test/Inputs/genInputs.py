@@ -15,8 +15,6 @@ import os
 nRow = 31
 nCol = 2
 
-numInputs = 53
-
 def makeInputs():
     global nRow, nCol
     #------------------------------------------------------------------------------------#
