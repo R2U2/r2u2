@@ -6,13 +6,16 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
-void TL_config(char* ftm, char* fti, char* ftscq)
+void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_inst(ftm);
-    parse_interval(fti);
+    parse_inst_ft(ftm);
+    parse_interval_ft(fti);
     parse_scq_size(ftscq);
+
+    parse_inst_pt(ptm);
+    parse_interval_pt(pti);
 }
 
 int TL_init()
@@ -30,22 +33,21 @@ int TL_init()
     // initialize input and output vectors
     // and local memories
     //
-    // for (i=0; i<N_INSTRUCTIONS;i++){
-    //      //
-    //      // initialize PT results
-    //      //
-    //  results_pt[i]= false;
-    //  results_pt_prev[i]= false;
-    //  results_pt_rising[i] = TL_INF;
-    //      //
-    //      // initialize FT results
-    //      //
-    //  results_ft[i].async_val = false;
-    //  results_ft[i].async_val = false;
-    //  results_ft[i].sync_val  = F;  //initialize to false due to edge
-    // detection
-
-    // }
+    for (i=0; i<N_INSTRUCTIONS;i++){
+        //
+        // initialize PT results
+        //
+        results_pt[i]= false;
+        results_pt_prev[i]= false;
+        results_pt_rising[i] = TL_INF;
+        //
+        // initialize FT results
+        //
+        // results_ft[i].async_val = false;
+        // results_ft[i].async_val = false;
+        // initialize to false due to edge detection
+        // results_ft[i].sync_val  = F;
+    }
 
     //
     // initialize atomics
@@ -69,12 +71,12 @@ int TL_init()
     }
 
     // set up pt queues
-    // for (i=0; i< n_queues_pt;i++){
-    //  pt_box_queues[i].head = 0;
-    //  pt_box_queues[i].tail = 0;
-    //  pt_box_queues[i].n_elts = 0;
-    //  pt_box_queues[i].queue = pt_box_queue_mem + i * L_DOT_BUFFER;
-    //  }
+    for (i=0; i< n_queues_pt;i++){
+         pt_box_queues[i].head = 0;
+         pt_box_queues[i].tail = 0;
+         pt_box_queues[i].n_elts = 0;
+         pt_box_queues[i].queue = pt_box_queue_mem + i * L_DOT_BUFFER;
+     }
 
     // Initialize ft-sync queues
     for (i = 0; i < N_SUBFORMULA_SNYC_QUEUES; i++) {
@@ -104,7 +106,7 @@ int TL_update(FILE* log_file)
 
     r2u2_errno = 0;
 
-    // TL_update_pt();
+    TL_update_pt(log_file);
     TL_update_ft(log_file);
 
     //

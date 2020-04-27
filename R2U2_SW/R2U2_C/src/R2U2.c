@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: [path to configuration directory] [path to trace file]\n");
+        fprintf(stdout, "Usage: <path to configuration directory> [path to trace file]\n");
     }
     int MAX_TIME = INT_MAX;
     FILE *input_file;
@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     getcwd(inbuf, sizeof(inbuf));
     if(inbuf == NULL) return 1;
     chdir(argv[1]);
-    TL_config("ftm.bin", "fti.bin", "ftscq.bin");
+    TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     chdir(inbuf);
 
     /* Select file vs stream */

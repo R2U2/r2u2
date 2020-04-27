@@ -227,7 +227,7 @@ class GLOBAL(Observer):
 class SINCE(Observer):
     def __init__(self, left, right, ub, lb=0):
         super().__init__(left, right)
-        self.type = 'SINCE' 
+        self.type = 'SINCE'
         self.tag = 4
         self.name = 'S['+str(lb)+','+str(ub)+']'
         self.lb, self.ub = lb, ub
@@ -237,7 +237,6 @@ class SINCE(Observer):
         substr = "since "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s
-
 
 class FUTURE(Observer):
     def __init__(self, left, ub, lb=0):

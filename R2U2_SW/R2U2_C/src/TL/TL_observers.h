@@ -222,12 +222,12 @@ extern results_rising_pt_t results_pt_rising;
 //---------------------------------------------
 // functions
 //---------------------------------------------
-void TL_config(char*, char*, char*);
+void TL_config(char*, char*, char*, char*, char*);
 
 int TL_init();
 
 int TL_update(FILE *fp);
-int TL_update_pt();
+int TL_update_pt(FILE *fp);
 int TL_update_ft(FILE *fp);
 
 #ifdef __cplusplus
