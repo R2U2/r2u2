@@ -45,7 +45,7 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
-} 
+}
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ void parse_inst_ft(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);			
+			decode_inst(line, &instruction_mem_ft[PC]);
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
@@ -75,7 +75,7 @@ void parse_inst_pt(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_pt[PC]);			
+			decode_inst(line, &instruction_mem_pt[PC]);
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
@@ -94,7 +94,7 @@ void parse_interval_ft(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);			
+			decode_interval(line, &interval_mem_ft[PC]);
 			PC++;
 		}
 		fclose ( file );
@@ -112,7 +112,7 @@ void parse_interval_pt(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);			
+			decode_interval(line, &interval_mem_ft[PC]);
 			PC++;
 		}
 		fclose ( file );
@@ -138,13 +138,4 @@ void parse_scq_size(char* filename) {
 	} else {
 		perror ( filename ); /* why didn't the file open? */
 	}
-}
-
-
-void TL_init_files(char* ftm, char* fti, char* ftscq, char* ptm, char* pti) {
-	parse_inst_ft(ftm);
-	parse_interval_ft(fti);
-	parse_scq_size(ftscq);
-    parse_inst_pt(ptm);
-    parse_interval_pt(pti);
 }

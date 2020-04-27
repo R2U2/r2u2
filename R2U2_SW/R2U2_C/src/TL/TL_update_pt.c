@@ -11,7 +11,7 @@
 ** Functions Defined:
 **	TL_update_pt()
 **
-** Purpose:  
+** Purpose:
 **	execute all TL instructions for the PT engine
 **	gets input from atomics_vector and places
 ** 	outputs into results_pt
@@ -34,6 +34,7 @@
 #include "TL_queue_pt.h"
 
 //TURN DEBUG_PT ON OFF
+// TODO: Manage debug output
 #define	TRACE_TOP_PT(X) X
 #define	TRACE_INSTR_PT(X) X
 #define	TRACE_OPND_PT(X) X
