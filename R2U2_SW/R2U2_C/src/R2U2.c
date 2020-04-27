@@ -11,25 +11,28 @@
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
-    if (argc < 4 || argc > 5) {
+    if (argc < 2) {
         fprintf(stdout,"%s Version %d.%d\n",
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stdout, "Usage: 1) .ftm, 2) .fti, 3) .ftscq, 4) trace data file (or none for stdin)\n");
+        fprintf(stdout, "Usage: <path to configuration directory> [path to trace file]\n");
     }
     int MAX_TIME = INT_MAX;
     FILE *input_file;
-    char inbuf[BUFSIZ];
+    char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     /* Engine Initialization */
     TL_init();
     // at_checkers_init();
-    // TODO: Does this crash on bad bins?
-    // TODO: Weird memory stuff to be checked
-    TL_init_files(argv[1],argv[2],argv[3]);
+    getcwd(inbuf, sizeof(inbuf));
+    if(inbuf == NULL) return 1;
+    chdir(argv[1]);
+    TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
+    chdir(inbuf);
 
     /* Select file vs stream */
-    if (argc == 5 && (access(argv[4], F_OK) == 0)) {
-        input_file = fopen(argv[4], "r");
+    // TODO: Really need some better handeling
+    if (access(argv[2], F_OK) == 0) {
+        input_file = fopen(argv[2], "r");
         if (input_file == NULL) return 1;
     } else {
         input_file = stdin;
@@ -46,7 +49,7 @@ int main(int argc, char *argv[]) {
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-        for (int atom = 0; atom < strlen(inbuf)/2; ++atom) {
+        for (size_t atom = 0; atom < strlen(inbuf)/2; ++atom) {
             if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) return 1;
         }
 

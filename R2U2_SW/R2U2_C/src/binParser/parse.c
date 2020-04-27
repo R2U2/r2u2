@@ -45,16 +45,18 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
-} 
-
-void parse_inst(char* filename) {
+}
+//------------------------------------------------------------------------------
+// Future Time Instruction Parser
+//------------------------------------------------------------------------------
+void parse_inst_ft(char* filename) {
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);			
+			decode_inst(line, &instruction_mem_ft[PC]);
 			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
@@ -63,15 +65,18 @@ void parse_inst(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-
-void parse_interval(char* filename) {
+//------------------------------------------------------------------------------
+// Past Time Instruction Parser
+//------------------------------------------------------------------------------
+void parse_inst_pt(char* filename) {
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);			
+			decode_inst(line, &instruction_mem_pt[PC]);
+			// printf("%d\n",instruction_mem_ft[PC].op1.value);
 			PC++;
 		}
 		fclose ( file );
@@ -79,7 +84,45 @@ void parse_interval(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-
+//------------------------------------------------------------------------------
+// Future-Time Interval Parser
+//------------------------------------------------------------------------------
+void parse_interval_ft(char* filename) {
+	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
+	if ( file != NULL ) {
+		char line [128]; /* or other suitable maximum line size */
+		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
+			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
+			decode_interval(line, &interval_mem_ft[PC]);
+			PC++;
+		}
+		fclose ( file );
+	} else {
+		perror ( filename ); /* why didn't the file open? */
+	}
+}
+//------------------------------------------------------------------------------
+// Past-Time Interval Parser
+//------------------------------------------------------------------------------
+void parse_interval_pt(char* filename) {
+	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
+	if ( file != NULL ) {
+		char line [128]; /* or other suitable maximum line size */
+		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
+			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
+			decode_interval(line, &interval_mem_ft[PC]);
+			PC++;
+		}
+		fclose ( file );
+	} else {
+		perror ( filename ); /* why didn't the file open? */
+	}
+}
+//------------------------------------------------------------------------------
+// SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
+//------------------------------------------------------------------------------
 void parse_scq_size(char* filename) {
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
@@ -95,11 +138,4 @@ void parse_scq_size(char* filename) {
 	} else {
 		perror ( filename ); /* why didn't the file open? */
 	}
-}
-
-
-void TL_init_files(char* ftm, char* fti, char* ftscq) {
-	parse_inst(ftm);
-	parse_interval(fti);
-	parse_scq_size(ftscq);
 }
