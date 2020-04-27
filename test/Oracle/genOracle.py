@@ -7,33 +7,23 @@
 import shutil
 import sys
 import os
+from os import listdir
+from os.path import isfile, join
 
 # Paths to input and formula directories (from oracle directory)
-
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __OracleDir__    = __AbsolutePath__+'oracleFiles/'
 __InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
-# Filenames for each file type
-inputFilename   = "input00"
-
-# Number of input files
-NumInputs = 54
-# Number of formula files
-NumFormulas = 36
+__TLDir__        = __AbsolutePath__+'../TL_Formula/formulaFiles/'
 
 #------------------------------------------------------------------------------------#
 # Based on the input arguements, read in the input file and return the trace as a 2D 
 # array
 #------------------------------------------------------------------------------------#
-def readInput(inCount):
-    # Format the count of the input file name with the correct number of 0s
-    if(inCount < 10):
-        Count = "0" + str(inCount)
-    else:
-        Count = str(inCount)
-    
+def readInput(_inputFile):
+        
     # Open the input file and read the inputs
-    f = open(__InputDir__+inputFilename+Count+'.csv','r').read()
+    f = open(__InputDir__ + _inputFile,'r').read()
     # Split the file object by rows
     lines = f.split('\n')
     
@@ -43,7 +33,8 @@ def readInput(inCount):
     Array = []
     
     # Determine the number of columns in the input file
-    for i in range(0,len(lines[0].split(','))):
+    nCol = len(lines[0].split(','))
+    for i in range(0,nCol):
         Array.append([])
     
     # Need a try statement or else there is an exception thrown when reading the 
@@ -67,35 +58,32 @@ def readInput(inCount):
 #------------------------------------------------------------------------------------#
 # 
 #------------------------------------------------------------------------------------#
-def getVerdict(formNum, Input):
+def getVerdict(_formulaFile, Input):
     Verdict = []
     TimeStamp = []
     # 0.) !a0
-    if(formNum == 0):
+    if(_formulaFile == "test0000"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(not Input[0][i])
         pcNum = 2
-        formulaFilename = "test0000"
         
     # 1.) (a0 & a1)
-    elif(formNum == 1):
+    elif(_formulaFile == "test0001"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(Input[0][i] and Input[1][i])
         pcNum = 3
-        formulaFilename = "test0001"
         
     # 2.) G[0] (a0)
-    elif(formNum == 2):
+    elif(_formulaFile == "test0002"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(Input[0][i])
         pcNum = 2
-        formulaFilename = "test0002"
         
     # 3.) G[5] (a0)
-    elif(formNum == 3):
+    elif(_formulaFile == "test0003"):
         LB = 0
         UB = 5
         Counter = UB
@@ -118,18 +106,16 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0003"
         
     # 4.) G[0,0] (a0)
-    elif(formNum == 4):
+    elif(_formulaFile == "test0004"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(Input[0][i])
         pcNum = 2
-        formulaFilename = "test0004"
         
     # 5.) G[0,1] (a0)
-    elif(formNum == 5):
+    elif(_formulaFile == "test0005"):
         LB = 0
         UB = 1
         Counter = UB
@@ -152,10 +138,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0005"
         
     # 6.) G[5,10] (a0)
-    elif(formNum == 6):
+    elif(_formulaFile == "test0006"):
         LB = 5
         UB = 10
         Counter = UB
@@ -178,10 +163,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0006"
         
     # 7.) (a0) U[0,0] (a1) *****
-    elif(formNum == 7):
+    elif(_formulaFile == "test0007"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append((not Input[0][i]) and Input[1][i])
@@ -189,10 +173,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0007"
     
     # 8.) (a0) U[0,1] (a1) *****
-    elif(formNum == 8):
+    elif(_formulaFile == "test0008"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append((Input[0][i] and (not Input[1][i]) and (not Input[0][i+1]) and Input[1][i+1]) or ((not Input[0][i]) and Input[1][i] and (not Input[0][i+1]) and Input[1][i+1]))
@@ -200,10 +183,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0008"
     
     # 9.) (a0) U[5,10] (a1) *****
-    elif(formNum == 9):
+    elif(_formulaFile == "test0009"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append(((not Input[0][i+5]) and Input[1][i+5] and (not Input[0][i+6]) and Input[1][i+6] and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10])or (Input[0][i+5] and (not Input[1][i+5]) and (not Input[0][i+6]) and Input[1][i+6] and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and Input[0][i+8] and (not Input[1][i+8]) and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and Input[0][i+8] and (not Input[1][i+8]) and Input[0][i+9] and (not Input[1][i+9]) and (not Input[0][i+10]) and Input[1][i+10]))
@@ -211,10 +193,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0009"
     
     # 10.) (a0) U[0,2] (a1) *****
-    elif(formNum == 10):
+    elif(_formulaFile == "test0010"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append(((not Input[0][i]) and Input[1][i] and (not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i] and (not Input[1][i]) and (not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i] and (not Input[1][i]) and Input[0][i+1] and (not Input[1][i+1]) and (not Input[0][i+2]) and Input[1][i+2]))
@@ -222,10 +203,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0010"
     
     # 12.) (a0) U[1,2] (a1) *****
-    elif(formNum == 12):
+    elif(_formulaFile == "test0012"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append(((not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i+1] and (not Input[1][i+1]) and (not Input[0][i+2]) and Input[1][i+2]))
@@ -233,10 +213,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0012"
     
     # 13.) (a0) U[2,3] (a1) *****
-    elif(formNum == 13):
+    elif(_formulaFile == "test0013"):
         for i in range(0,len(Input[0])):
             try:
                 Verdict.append(((not Input[0][i+2]) and Input[1][i+2] and (not Input[0][i+3]) and Input[1][i+3]) or (Input[0][i+2] and (not Input[1][i+2]) and (not Input[0][i+3]) and Input[1][i+3]))
@@ -244,10 +223,9 @@ def getVerdict(formNum, Input):
             except:
                 pass
         pcNum = 3
-        formulaFilename = "test0013"
     
     # 14.) a0 & G[2] (a1)
-    elif(formNum == 14):
+    elif(_formulaFile == "test0014"):
         LB = 0
         UB = 2
         Counter = UB
@@ -270,42 +248,37 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0014"
     
     # 15.) (!a1) & (a0)
-    elif(formNum == 15):
+    elif(_formulaFile == "test0015"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append((not Input[1][i]) and Input[0][i])
         pcNum = 4
-        formulaFilename = "test0015"
     
     # 16.) (a0 & a0) & (a1)
-    elif(formNum == 16):
+    elif(_formulaFile == "test0016"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append((Input[0][i] and Input[0][i]) and Input[1][i])
         pcNum = 4
-        formulaFilename = "test0016"
     
     # 17.) (!(!a0)) & (a1)
-    elif(formNum == 17):
+    elif(_formulaFile == "test0017"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append((not (not (Input[0][i]))) and Input[1][i])
         pcNum = 5
-        formulaFilename = "test0017"
     
     # 18.) !(a0 & a0)
-    elif(formNum == 18):
+    elif(_formulaFile == "test0018"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(not(Input[0][i] and Input[0][i]))
         pcNum = 4
-        formulaFilename = "test0018"
         
     # 19.) G[5] (a0 & a0)
-    elif(formNum == 19):
+    elif(_formulaFile == "test0019"):
         LB = 0
         UB = 5
         Counter = UB
@@ -328,10 +301,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0019"
     
     # 20.) G[5] (!(!(a0 & a0))) = G[5] a0
-    elif(formNum == 20):
+    elif(_formulaFile == "test0020"):
         LB = 0
         UB = 5
         Counter = UB
@@ -354,10 +326,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 6
-        formulaFilename = "test0020"
     
     # 21.) !(G[2] a0)
-    elif(formNum == 21):
+    elif(_formulaFile == "test0021"):
         LB = 0
         UB = 2
         Counter = UB
@@ -384,10 +355,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 3
-        formulaFilename = "test0021"
         
     # 22.) (G[2] a0) & (G[2] a1)
-    elif(formNum == 22):
+    elif(_formulaFile == "test0022"):
         LB = 0
         UB = 2
         Counter0 = UB
@@ -425,18 +395,16 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 5
-        formulaFilename = "test0022"
     
     # 23.) !(!a0) 
-    elif(formNum == 23):
+    elif(_formulaFile == "test0023"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(not(not(Input[0][i])))
         pcNum = 3
-        formulaFilename = "test0023"
     
     # 24.) G[5] a1
-    elif(formNum == 24):
+    elif(_formulaFile == "test0024"):
         LB = 0
         UB = 5
         Counter = UB
@@ -459,10 +427,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0024"
     
     # 25.) !(G[2] (!a1) )*****
-    elif(formNum == 25):
+    elif(_formulaFile == "test0025"):
         LB = 0
         UB = 2
         Counter = UB
@@ -485,10 +452,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 4
-        formulaFilename = "test0025"
     
     # 26.) (G[2] a0) & (a1)
-    elif(formNum == 26):
+    elif(_formulaFile == "test0026"):
         LB = 0
         UB = 2
         Counter = UB
@@ -511,10 +477,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False) 
         pcNum = 4
-        formulaFilename = "test0026"
     
     # 27.) !( (G[5,10] a0) & (G[2] a1) ))
-    elif(formNum == 27):
+    elif(_formulaFile == "test0027"):
         LB0 = 5
         UB0 = 10
         LB1 = 0
@@ -552,10 +517,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 6
-        formulaFilename = "test0027"
     
     # 28.) G[2](!(!a0)) & a1
-    elif(formNum == 28):
+    elif(_formulaFile == "test0028"):
         LB = 0
         UB = 2
         Counter = UB
@@ -579,10 +543,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 6
-        formulaFilename = "test0028"
     
     # 29.) a1 & (G[0,8] a0)
-    elif(formNum == 29):
+    elif(_formulaFile == "test0029"):
         LB = 0
         UB = 8
         Counter = UB
@@ -606,10 +569,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 4
-        formulaFilename = "test0029"
     
     # 30.) (G[2] a1) & (G[5,10] a0)
-    elif(formNum == 30):
+    elif(_formulaFile == "test0030"):
         LB0 = 5
         UB0 = 10
         LB1 = 0
@@ -647,10 +609,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 5
-        formulaFilename = "test0030"
     
     # 31.) G[2] a1
-    elif(formNum == 31):
+    elif(_formulaFile == "test0031"):
         LB = 0
         UB = 2
         Counter = UB
@@ -673,10 +634,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0031"
     
     # 32.) (a0 & a1) & (G[3,5] a0)
-    elif(formNum == 32):
+    elif(_formulaFile == "test0032"):
         LB = 3
         UB = 5
         Counter = UB
@@ -699,10 +659,9 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0032"
     
     # 34.) a1 & F[5,10] a0
-    elif(formNum == 34):
+    elif(_formulaFile == "test0034"):
         LB = 5
         UB = 10
         Counter = LB
@@ -726,126 +685,115 @@ def getVerdict(formNum, Input):
                 TimeStamp.append(i)
                 Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0034"
     
     # 35.) G[2,4](G[2]a1)
-    elif(formNum == 35):
+    elif(_formulaFile == "test0035"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0035"
     
     # 36.) All formulas
-    elif(formNum == 36):
+    elif(_formulaFile == "test0036"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0036"
         
     
     # 37.) H[5,10] a0
-    elif(formNum == 37):
+    elif(_formulaFile == "test0037"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0037"
     
     # 38.) (a0) S[0,2] (a1)
-    elif(formNum == 38):
+    elif(_formulaFile == "test0038"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 3
-        formulaFilename = "test0038"
         
     # 39.) H[2] a1
-    elif(formNum == 39):
+    elif(_formulaFile == "test0039"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 2
-        formulaFilename = "test0039"
         
     # 40.) a1 & O[5,10] a0
-    elif(formNum == 40):
+    elif(_formulaFile == "test0040"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0040"
         
     # 41.) a1 -> a0 = (!a1 | a0
-    elif(formNum == 41):
+    elif(_formulaFile == "test0041"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append((not Input[1][i]) or Input[0][i])
         pcNum = 4
-        formulaFilename = "test0041"
         
     # 42.) a1 <-> a0 = (a1 -> a0) & (a0 -> a1) = (!a1 | a0) & (!a0 | a1)
-    elif(formNum == 42):
+    elif(_formulaFile == "test0042"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append((Input[1][i] or (not Input[0][i])) and ((not Input[1][i]) or Input[0][i]))
         pcNum = 4
-        formulaFilename = "test0042"
         
     # 43.) !(a1 | a0)
-    elif(formNum == 43):
+    elif(_formulaFile == "test0043"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(not (Input[1][i] or Input[0][i]))
-        pcNum = 4
-        formulaFilename = "test0043"    
+        pcNum = 4  
     
     # 44.) tests 6, 10, 15, 31, 34, 37-43
-    elif(formNum == 44):
+    elif(_formulaFile == "test0044"):
         for i in range(0,len(Input[0])):
             TimeStamp.append(i)
             Verdict.append(False)
         pcNum = 4
-        formulaFilename = "test0044"  
     
-    
-    
-    # Default
     else:
-        return -1,False, -1, ""
+        print('Unknown formula file:' + _formulaFile)
+        return -1,False, -1
     
     
-    return TimeStamp, Verdict, pcNum, formulaFilename
+    return TimeStamp, Verdict, pcNum
+    
+#------------------------------------------------------------------------------------#
+# Method for Global Operator
+#------------------------------------------------------------------------------------#
+
 #------------------------------------------------------------------------------------#
 # Method for saving oracle files
 #------------------------------------------------------------------------------------#
-def saveOracle(pcNum, TimeStamp, Verdict, formulaFilename, numInput):       
+def saveOracle(pcNum, TimeStamp, Verdict, filename):       
+    # If there is no known formula
     if(pcNum == -1):
         return -1
     
-    # Format the filename of the input file name with the correct number of 0s
-    if(numInput < 10):
-        countInput = "0" + str(numInput)
-    else:
-        countInput = str(numInput)
-    
     # Creat the oracle file
-    filename = __OracleDir__+formulaFilename+"_"+inputFilename+countInput+'.txt'
     f = open(filename,'w+')
     
+    # Print the header
     f.write('**********RESULTS**********\n')
     
+    # If there is a mismatch in the TimeStamp and Verdict, 
     if(len(TimeStamp) != len(Verdict)):
+        # Print the filename
         print(filename)
         
     for i in range(0,len(Verdict)):
         # If Verdict is 0 (False),
         if(Verdict[i]):
-            Output = str(pcNum) + ':(' + str(TimeStamp[i]) + ',T)\n'
+            Output = str(pcNum) + ':' + str(TimeStamp[i]) + ',T\n'
         # Else, Verdict is 1 (True),
         else:
-            Output = str(pcNum) + ':(' + str(TimeStamp[i]) + ',F)\n'
+            Output = str(pcNum) + ':' + str(TimeStamp[i]) + ',F\n'
         f.write(Output)
 
     # Close the file
@@ -872,11 +820,25 @@ if(sys.argv[1] == '-r'):
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
-    for i in range(0,NumFormulas):
-        for j in range(0,NumInputs):
-            AtomicInput = readInput(j)
-            TimeStamp, Verdict, pcNum, formulaFilename = getVerdict(i,AtomicInput)
-            saveOracle(pcNum,TimeStamp, Verdict,formulaFilename,j)
+    # Grab all the formulas in the TL_Formula/formulaFiles/ directory and
+    # grab all the inputs in the Inputs/inputFiles/ directory
+    formulaFiles,inputFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__TLDir__,__InputDir__)]
+    # For each formula file,
+    for _formulaFile in formulaFiles:
+        # Pull off the '.mltl' of the fromula filename
+        formula = _formulaFile.replace('.mltl','')
+        # For each input file,
+        for _inputFile in inputFiles:
+            # Parse the input file into a list
+            AtomicInput = readInput(_inputFile)
+            # Pull off the '.csv' of the input filename
+            input = _inputFile.replace('.csv','')
+            # Generate the oracles output file name
+            filename = __OracleDir__ + formula + '_' + input + '.txt'
+            # Determine the verdict for the given formula and input
+            TimeStamp, Verdict, pcNum = getVerdict(formula,AtomicInput)
+            # Save the Oracle output, if it is valid
+            saveOracle(pcNum, TimeStamp, Verdict, filename)
  
 else:
     print("Invalid input arguement")
