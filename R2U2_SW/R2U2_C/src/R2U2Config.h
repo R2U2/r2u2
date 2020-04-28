@@ -11,27 +11,19 @@ typedef double r2u2_input_data_t;
 #define L_OPC 5
 #define L_OP 10
 #define L_INTVL 8
-#define L_PMEM 7
+// #define L_PMEM 7
 #define L_SCRATCH 7
-#define L_TIMESTAMP 16
+// #define L_TIMESTAMP 16
 
 //
 // length of instruction
 //
-#define L_INSTRUCTION (L_OPC + L_OP + L_OP + L_INTVL + L_SCRATCH)
+// #define L_INSTRUCTION (L_OPC + L_OP + L_OP + L_INTVL + L_SCRATCH)
 
 // for the file .ftscq
 #define L_SCQ_ADDRESS 8
 
-//
-// length of registers in bits for mapping
-//
-#define L_MAP_PTFT 1
-#define L_MAP_VALUE 8
-#define L_MAP_SCRATCH 7
-#define L_MAP (L_MAP_PTFT + L_MAP_VALUE + L_MAP_SCRATCH)
-
-#define L_INTVL_TS 16
+// #define L_INTVL_TS 16
 #define L_INTERVAL 32
 
 //
@@ -56,11 +48,6 @@ typedef double r2u2_input_data_t;
 #define N_INSTRUCTIONS 256
 
 //
-// number of MAP entries
-//
-#define N_MAP 256
-
-//
 // maximal number of past time INTERVAL ENTRIES
 // this is equal to maximal number of pt temporal operators
 //
@@ -71,6 +58,8 @@ typedef double r2u2_input_data_t;
 //
 #define L_DOT_BUFFER 64
 
+#define N_PT_QUEUES 128
+
 //
 // total size of pt buffer pool
 // Note: For a total number of buffers used of N_BUF
@@ -78,19 +67,13 @@ typedef double r2u2_input_data_t;
 //  N_BUF * L_DOT_BUFFER < N_DOT_BUFFERS_TOTAL
 // This is checked in TL_init.c
 //
-#define N_DOT_BUFFERS_TOTAL 4096
-
-//
-// maximal number of future time INTERVAL ENTRIES
-// this is equal to maximal number of ft temporal operators
-//
-//#define N_FT_INTERVAL     128
+#define N_DOT_BUFFERS_TOTAL N_PT_QUEUES * L_DOT_BUFFER
 
 //
 // length of each individual synchronization
 // ring buffer for ft operators
 //
-#define L_FT_BUFFER 64
+// #define L_FT_BUFFER 64
 
 //
 // total size of ft buffer pool
@@ -111,6 +94,6 @@ typedef double r2u2_input_data_t;
 // atomic inputs
 // TODO Stefan: how large does this have to be in the worst case
 //
-#define N_PATCH_SNYC_QUEUES N_SUBFORMULA_SNYC_QUEUES
+// #define N_PATCH_SNYC_QUEUES N_SUBFORMULA_SNYC_QUEUES
 
 #endif

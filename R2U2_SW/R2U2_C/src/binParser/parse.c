@@ -112,7 +112,7 @@ void parse_interval_pt(char* filename) {
 		char line [128]; /* or other suitable maximum line size */
 		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);
+			decode_interval(line, &interval_mem_pt[PC]);
 			PC++;
 		}
 		fclose ( file );

@@ -32,7 +32,7 @@ def p_statement(p):
     '''
     statement : expression SEMI
     '''
-    p[0] = STATEMENT(p[1])
+    p[0] = STATEMENT(p[1], p[2])
 
 def p_prop_operators(p):
     '''
@@ -67,7 +67,6 @@ def p_prop_operators(p):
         # Syntactic sugar for Equivalence, w/ just AND and NOT
         # (a0 -> a1) & (a1 -> a0) = (!a0 | a1) & (!a1 & a0) = !(a0 & !a1) & !(a1 & !a0)
         p[0] = AND(NEG(AND(p[1],NEG(p[3]))),NEG(AND(p[3],NEG(p[1]))))
-
 
 def p_ftMLTL_operators(p):
     '''
@@ -151,7 +150,7 @@ def p_ptMLTL_operators(p):
         else:
             raise Exception('Syntax error in type! Cannot find matching format for HISTORICALLY')
             status = 'syntax_err'
-        
+
 def p_paren_token(p):
     '''expression : LPAREN expression RPAREN'''
     p[0] = p[2]
@@ -176,14 +175,14 @@ precedence = (
     ('left', 'SEMI'),
     ('left', 'COMMA'),
     ('left', 'AND', 'OR', 'IMPLY', 'EQ'),
-    ('left', 'GLOBAL', 'FUTURE', 'UNTIL', 'RELEASE'),    
+    ('left', 'GLOBAL', 'FUTURE', 'UNTIL', 'RELEASE'),
     ('left', 'NEG','YESTERDAY','SINCE'),
     ('left', 'LPAREN', 'RPAREN','ATOMIC','LBRACK','RBRACK'),
 )
 
 # Error rule for syntax errors
 def p_error(p):
-    global status   
+    global status
     print("Syntax error in input!")
     print("Illegal character '%s'" % p.value[0])
     status = 'syntax_err'
