@@ -84,9 +84,13 @@ def p_ftMLTL_operators(p):
     elif p[1] == 'G' and len(p)==8:
         p[0] = GLOBAL(p[7],lb=p[3],ub=p[5])
     if p[1] == 'F' and len(p) == 6:
-        p[0] = FUTURE(p[5],ub=p[3])
+        #p[0] = FUTURE(p[5],ub=p[3])
+        # Syntactic Sugar for Future just using Until
+        p[0] = UNTIL(BOOL('TRUE'), p[5],ub=p[3])
     elif p[1] == 'F' and len(p)==8:
-        p[0] = FUTURE(p[7],lb=p[3],ub=p[5])
+        #p[0] = FUTURE(p[7],lb=p[3],ub=p[5])
+        # Syntactic Sugar for Future just using Until
+        p[0] = UNTIL(BOOL('TRUE'), p[7],lb=p[3],ub=p[5])
     elif p[2] == 'U' and len(p)==7:
         p[0] = UNTIL(p[1],p[6],ub=p[4])
     elif p[2] == 'U' and len(p)==9:

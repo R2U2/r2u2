@@ -88,6 +88,8 @@ def main():
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
 
     print('************************************************************')
-
+    print('Binary files are located in the '+__BinFileDir__+' directory')
+    print('************************************************************')
+    
 if __name__ == "__main__":
     main()
