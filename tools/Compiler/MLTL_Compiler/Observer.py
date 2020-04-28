@@ -64,14 +64,14 @@ class STATEMENT(AST_node):
         self.ob = ob
         self.formula_num = STATEMENT.formula_cnt
         STATEMENT.formula_cnt += 1
-        
+
     def gen_assembly(self, s):
         substr = 'end '+self.child[0].hook
         self.hook = 's'+str(Observer.line_cnt)
-        s += self.hook+": "+substr+ ' (FORM-'+str(self.formula_num)+')' + '\n'
+        s += self.hook+": "+substr+ ' '+str(self.formula_num)+ '\n'
         Observer.line_cnt += 1
         return s
-        
+
 
 class Observer(AST_node):
     line_cnt = 0 #static var to record line number
@@ -116,7 +116,7 @@ class ATOM(Observer):
         substr = "load "+self.name
         s = super().gen_assembly(s, substr)
         return s
-        
+
 class BOOL(Observer):
     def __init__(self, tOrF):
         super().__init__()
@@ -157,7 +157,7 @@ class YESTERDAY(Observer):
 
 class EQ(Observer):
     def __init__(self, left, right):
-        super().__init__(left, right)       
+        super().__init__(left, right)
         self.type = 'EQ'
         self.name = 'EQ'
         self.tag = 2
@@ -170,7 +170,7 @@ class EQ(Observer):
 
 class IMPLY(Observer):
     def __init__(self, left, right):
-        super().__init__(left, right)       
+        super().__init__(left, right)
         self.type = 'IMPLY'
         self.name = 'IMPLY'
         self.tag = 2
@@ -183,7 +183,7 @@ class IMPLY(Observer):
 
 class AND(Observer):
     def __init__(self, left, right):
-        super().__init__(left, right)       
+        super().__init__(left, right)
         self.type = 'AND'
         self.name = 'AND'
         self.tag = 2
@@ -196,7 +196,7 @@ class AND(Observer):
 
 class OR(Observer):
     def __init__(self, left, right):
-        super().__init__(left, right)       
+        super().__init__(left, right)
         self.type = 'OR'
         self.name = 'OR'
         self.tag = -2
