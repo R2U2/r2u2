@@ -79,7 +79,6 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_END:
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
-            // TODO: Replace pc with formula argument
             fprintf(log_file, "%d:%d,%s\n", (int)instruction_mem_pt[pc].op2.value, t_now, res ? "T" : "F");
             break;
 

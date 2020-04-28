@@ -51,7 +51,7 @@ def main():
             FT.update({form_num: line + ';\n'})
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
-    if(FT != ""):
+    if(len(FT) != 0):
         print('************************** FT ASM **************************')
         FT_str = ""
         for i in range(max(FT.keys())+1):
@@ -60,7 +60,7 @@ def main():
             else:
                 FT_str += "\n"
         subprocess.run(['python3', __AbsolutePath__+'main.py', FT_str, 'ft'])
-    if(PT != ""):
+    if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
         for i in range(max(PT.keys())+1):
