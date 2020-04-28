@@ -173,7 +173,7 @@ extern "C" {
 //---------------------------------------------
 // externals
 //---------------------------------------------
-extern int					t_now;
+extern timestamp_t					t_now;
 
 extern int					r2u2_errno;
 extern int					max_time_horizon;

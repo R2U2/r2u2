@@ -26,7 +26,7 @@
 #include "TL_queue_pt.h"
 #include "TL_queue_ft.h"
 
-int t_now;
+timestamp_t t_now;
 
 int r2u2_errno = 0;
 int max_time_horizon = 0;
