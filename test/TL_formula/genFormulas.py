@@ -260,31 +260,31 @@ def makeFormulas():
     writeFormulaFile(formula,filename,'w+')
     
     # test0039 - Test Case testing historical past-time operator with implied lower bound
-    filename = __TLDir__+'test0037'
+    filename = __TLDir__+'test0039'
     formula = "H[2] a1;"
     HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0040 - Test Case testing once past-time operator
-    filename = __TLDir__+'test0037'
+    filename = __TLDir__+'test0040'
     formula = "a1 & O[5,10]a0;"
     HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0041 - Test Case testing implication propasitional operator
-    filename = __TLDir__+'test0037'
+    filename = __TLDir__+'test0041'
     formula = "a1 -> a0;"
     HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0042 - Test Case testing equivalence propasitional operator
-    filename = __TLDir__+'test0037'
+    filename = __TLDir__+'test0042'
     formula = "a1 <-> a0;"
     HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0043 - Test Case testing disjunction (or) propasitional operator
-    filename = __TLDir__+'test0037'
+    filename = __TLDir__+'test0043'
     formula = "!(a1 | a0);"
     HydraAllFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
