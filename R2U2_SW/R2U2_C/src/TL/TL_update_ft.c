@@ -66,12 +66,13 @@ bool isEmpty_cap(int pc, int ObNum, elt_ft_queue_t* const scq, int size, const i
 //--------------------------------------------------------------------
 int TL_update_ft(FILE *log_file) {
 	int pc   = 0;
-	int stop = 0;
 
     // Sequentially iterate through the program instructions
 	for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
-        // If 'stop' is True, exit the for-loop
-		if(stop) break;
+		if(instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
+            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+            break;
+        }
 
         // Case statement for determining which opcode is currently in the program counter 'pc'
 		switch(instruction_mem_ft[pc].opcode)
@@ -80,8 +81,7 @@ int TL_update_ft(FILE *log_file) {
 		//----------------------------------------------------
 		// OP_END, OP_END_SEQUENCE
 		//----------------------------------------------------
-		case OP_END:
-		case OP_END_SEQUENCE: {
+		case OP_END: {
 			int op1 = 0, scq_size_rd = 0, input_wr_ptr = 0;
 
             // Declare a new pointer for the SCQ's operand
@@ -113,12 +113,9 @@ int TL_update_ft(FILE *log_file) {
 				// Synchronize the queues
                 ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
-                    DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
-                    // TODO: Replace pc with formula argument
-                    fprintf(log_file,"%d:%d,%s\n", pc, res.t_q, res.v_q?"T":"F");
-
+                DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
+                fprintf(log_file,"%d:%d,%s\n", (int)instruction_mem_ft[pc].op2.value, res.t_q, res.v_q?"T":"F");
 			}
-			stop = 1;
 			break;
 		}
 

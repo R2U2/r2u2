@@ -25,7 +25,7 @@ CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
 ifdef R2U2_AT
 	CFLAGS := $(CFLAGS) -DR2U2_AT
 endif
-DBGFLAG := -g -Wall -Wextra -pedantic -DDEBUG
+DBGFLAG := -g -Wall -Wextra -pedantic -Wno-gnu-binary-literal -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 

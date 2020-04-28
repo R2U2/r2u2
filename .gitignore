@@ -268,4 +268,14 @@ Lex and Yacc Autogen files:
 
 R2U2_SW/R2U2_C/bin/
 tools/Compiler/MLTL_Compiler/parsetab.py
+test/Inputs/inputFiles/
+test/Inputs/inputImages/
+test/Oracle/oracleFiles/
+test/TL_formula/formulaFiles/
 binary_files/
+
+test/Inputs/inputImages/
+
+test/Oracle/oracleFiles/
+
+test/TL_formula/formulaFiles/

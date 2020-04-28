@@ -32,7 +32,7 @@ def p_statement(p):
     '''
     statement : expression SEMI
     '''
-    p[0] = STATEMENT(p[1])
+    p[0] = STATEMENT(p[1], p[2])
 
 def p_prop_operators(p):
     '''
@@ -68,7 +68,6 @@ def p_prop_operators(p):
         # (a0 -> a1) & (a1 -> a0) = (!a0 | a1) & (!a1 & a0) = !(a0 & !a1) & !(a1 & !a0)
         p[0] = AND(NEG(AND(p[1],NEG(p[3]))),NEG(AND(p[3],NEG(p[1]))))
 
-
 def p_ftMLTL_operators(p):
     '''
     expression  : GLOBAL LBRACK NUMBER RBRACK expression
@@ -85,9 +84,13 @@ def p_ftMLTL_operators(p):
     elif p[1] == 'G' and len(p)==8:
         p[0] = GLOBAL(p[7],lb=p[3],ub=p[5])
     if p[1] == 'F' and len(p) == 6:
-        p[0] = FUTURE(p[5],ub=p[3])
+        #p[0] = FUTURE(p[5],ub=p[3])
+        # Syntactic Sugar for Future just using Until
+        p[0] = UNTIL(BOOL('TRUE'), p[5],ub=p[3])
     elif p[1] == 'F' and len(p)==8:
-        p[0] = FUTURE(p[7],lb=p[3],ub=p[5])
+        #p[0] = FUTURE(p[7],lb=p[3],ub=p[5])
+        # Syntactic Sugar for Future just using Until
+        p[0] = UNTIL(BOOL('TRUE'), p[7],lb=p[3],ub=p[5])
     elif p[2] == 'U' and len(p)==7:
         p[0] = UNTIL(p[1],p[6],ub=p[4])
     elif p[2] == 'U' and len(p)==9:
@@ -147,7 +150,7 @@ def p_ptMLTL_operators(p):
         else:
             raise Exception('Syntax error in type! Cannot find matching format for HISTORICALLY')
             status = 'syntax_err'
-        
+
 def p_paren_token(p):
     '''expression : LPAREN expression RPAREN'''
     p[0] = p[2]
@@ -172,14 +175,14 @@ precedence = (
     ('left', 'SEMI'),
     ('left', 'COMMA'),
     ('left', 'AND', 'OR', 'IMPLY', 'EQ'),
-    ('left', 'GLOBAL', 'FUTURE', 'UNTIL', 'RELEASE'),    
+    ('left', 'GLOBAL', 'FUTURE', 'UNTIL', 'RELEASE'),
     ('left', 'NEG','YESTERDAY','SINCE'),
     ('left', 'LPAREN', 'RPAREN','ATOMIC','LBRACK','RBRACK'),
 )
 
 # Error rule for syntax errors
 def p_error(p):
-    global status   
+    global status
     print("Syntax error in input!")
     print("Illegal character '%s'" % p.value[0])
     status = 'syntax_err'
