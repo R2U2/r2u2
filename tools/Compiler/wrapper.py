@@ -58,14 +58,22 @@ def main():
         print('************************************************************')
         subprocess.run(['python3', __AbsolutePath__+'main.py', PT, 'pt'])
     
-    # Call ftas, if the ft.asm file exists
-    if(os.path.isfile(__BinFileDir__+'ft.asm')):
-        print('************************************************************')
-        subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
-    # Call ptas, if the pt.asm file exists
-    if(os.path.isfile(__BinFileDir__+'pt.asm')):
-        print('************************************************************')
-        subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
+    # Check to see if ft.asm exists
+    if(not os.path.isfile(__BinFileDir__+'ft.asm')):
+        # If it doesn't, make a blank assembly that is just an end sequence
+        f = open(__BinFileDir__+'ft.asm','w+')
+        f.write('s0: end sequence')
+        f.close()
+    print('************************************************************')
+    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
+    # Check to see if pt.asm exists
+    if(not os.path.isfile(__BinFileDir__+'pt.asm')):
+        # If it doesn't, make a blank assembly that is just an end sequence
+        f = open(__BinFileDir__+'pt.asm','w+')
+        f.write('s0: end sequence')
+        f.close()
+    print('************************************************************')
+    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
     
     print('************************************************************')
     
