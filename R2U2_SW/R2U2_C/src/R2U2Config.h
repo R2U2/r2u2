@@ -58,6 +58,8 @@ typedef double r2u2_input_data_t;
 //
 #define L_DOT_BUFFER 64
 
+#define N_PT_QUEUES 128
+
 //
 // total size of pt buffer pool
 // Note: For a total number of buffers used of N_BUF
@@ -65,7 +67,7 @@ typedef double r2u2_input_data_t;
 //  N_BUF * L_DOT_BUFFER < N_DOT_BUFFERS_TOTAL
 // This is checked in TL_init.c
 //
-#define N_DOT_BUFFERS_TOTAL 4096
+#define N_DOT_BUFFERS_TOTAL N_PT_QUEUES * L_DOT_BUFFER
 
 //
 // length of each individual synchronization

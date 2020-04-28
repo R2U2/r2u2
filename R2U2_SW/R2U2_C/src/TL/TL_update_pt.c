@@ -69,10 +69,8 @@ int TL_update_pt(FILE* log_file)
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
         // If 'stop' is True, exit the for-loop
-        if (stop)
-            break;
+        if (stop) break;
         // Case statement for determining which opcode is currently in the program counter 'pc'
-        //DEBUG_PRINT("OP code = %d\n",instruction_mem_pt[pc].opcode);
         switch (instruction_mem_pt[pc].opcode) {
         //----------------------------------------------------
         // OP_END
@@ -185,7 +183,8 @@ int TL_update_pt(FILE* log_file)
         case OP_PT_S:
             opnd1 = get_opnd1_pt(pc);
             opnd2 = get_opnd2_pt(pc);
-            results_pt[pc] = opnd2 | (opnd1 & results_pt_prev[pc]);
+            res = opnd2 | (opnd1 & results_pt_prev[pc]);
+            results_pt[pc] = res;
             DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, res);
             break;
 
@@ -202,7 +201,7 @@ int TL_update_pt(FILE* log_file)
         case OP_PT_HJ:
 
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
-
+            print_pt_queue(bq_addr);
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
@@ -232,7 +231,8 @@ int TL_update_pt(FILE* log_file)
             if (dt < 0) {
                 dt = 0;
             }
-            results_pt[pc] = (t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc)));
+            res = (t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc)));
+            results_pt[pc] = res;
 
             lb = get_interval_lb_pt(pc);
             ub = get_interval_ub_pt(pc);
@@ -277,7 +277,8 @@ int TL_update_pt(FILE* log_file)
             if (dt < 0) {
                 dt = 0;
             }
-            results_pt[pc] = !((t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc))));
+            res = !((t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc))));
+            results_pt[pc] = res;
 
             lb = get_interval_lb_pt(pc);
             ub = get_interval_ub_pt(pc);
@@ -332,7 +333,8 @@ int TL_update_pt(FILE* log_file)
             if (dt < 0) {
                 dt = 0;
             }
-            results_pt[pc] = ((t_s > dt) & (t_e < (t_now - get_interval_lb_pt(pc))));
+            res = ((t_s > dt) & (t_e < (t_now - get_interval_lb_pt(pc))));
+            results_pt[pc] = res;
 
             lb = get_interval_lb_pt(pc);
             ub = get_interval_ub_pt(pc);
@@ -360,7 +362,8 @@ int TL_update_pt(FILE* log_file)
             if (dt < 0) {
                 dt = 0;
             }
-            results_pt[pc] = (dt >= results_pt_rising[pc]);
+            res = (dt >= results_pt_rising[pc]);
+            results_pt[pc] = res;
 
             lb = get_interval_lb_pt(pc);
             DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, lb, t_now, res);
@@ -386,7 +389,8 @@ int TL_update_pt(FILE* log_file)
             if (dt < 0) {
                 dt = 0;
             }
-            results_pt[pc] = !(dt >= results_pt_rising[pc]);
+            res = !(dt >= results_pt_rising[pc]);
+            results_pt[pc] = res;
 
             lb = get_interval_lb_pt(pc);
             DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, lb, t_now, res);
@@ -399,15 +403,6 @@ int TL_update_pt(FILE* log_file)
             printf("%d\t[ERR]::PT:: illegal instruction\n", pc);
             r2u2_errno = 1;
             break;
-        }
-
-        //
-        // at startup time (t_now = 0), we must set
-        // the previous results accordingly, so that
-        // complex formulas are initialized correctly
-        //
-        if (t_now == 0) {
-            results_pt_prev[pc] = results_pt[pc];
         }
     }
 
@@ -623,6 +618,7 @@ edge_t opnd2_edge(int pc)
         v = results_pt[op2.value];
         v_p = results_pt_prev[op2.value];
         break;
+
     case not_set:
         v = false;
         v_p = false;

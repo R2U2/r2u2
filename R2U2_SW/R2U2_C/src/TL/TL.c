@@ -58,18 +58,18 @@ int TL_init()
     // initialize queues
     //
 
-    if (N_INSTRUCTIONS * L_DOT_BUFFER > N_DOT_BUFFERS_TOTAL) {
+    if (N_PT_QUEUES * L_DOT_BUFFER > N_DOT_BUFFERS_TOTAL) {
         DEBUG_PRINT("not enough pt-queue space\n");
         r2u2_errno = 1;
         return 1; // TODO: Error codes
     }
 
     // set up pt queues
-    for (i=0; i< N_INSTRUCTIONS;i++){
-         pt_box_queues[i].head = 0;
-         pt_box_queues[i].tail = 0;
-         pt_box_queues[i].n_elts = 0;
-         pt_box_queues[i].queue = pt_box_queue_mem + i * L_DOT_BUFFER;
+    for (i=0; i< N_PT_QUEUES;i++){
+        pt_box_queues[i].head = 0;
+        pt_box_queues[i].tail = 0;
+        pt_box_queues[i].n_elts = 0;
+        pt_box_queues[i].queue = &(pt_box_queue_mem[i * L_DOT_BUFFER]);
      }
 
     // Initialize ft-sync queues
