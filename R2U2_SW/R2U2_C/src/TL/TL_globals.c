@@ -45,8 +45,6 @@ box_queues_pt_t		pt_box_queues;
 sync_queues_ft_t	ft_sync_queues;
 SCQ_t SCQ;
 
-int l_interval_mem_pt = 1;
-
 instruction_mem_t   instruction_mem_pt;
 interval_mem_t  interval_mem_pt;
 

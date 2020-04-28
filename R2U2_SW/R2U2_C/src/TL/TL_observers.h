@@ -166,12 +166,6 @@ typedef interval_t interval_mem_t[N_INSTRUCTIONS];
 typedef addr_SCQ_t addr_SCQ_map_t[N_INSTRUCTIONS];
 
 	//
-	// map memory
-	//
-typedef unsigned char	map_mem_t[N_MAP];
-
-
-	//
 	// PT results vector
 	//
 typedef bool results_pt_t[N_INSTRUCTIONS];
