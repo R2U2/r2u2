@@ -14,7 +14,8 @@ from os import listdir
 from os.path import isfile, join
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__InputDir__ = __AbsolutePath__ + 'inputFiles/'
+__InputDir__     = __AbsolutePath__+'inputFiles/'
+__PlotDir__      = __AbsolutePath__+'inputImages/'
 
 def plotInputs(inputFiles):
     #------------------------------------------------------------------------------------#
@@ -48,7 +49,8 @@ def plotInputs(inputFiles):
             axarr[i].grid()
 
         plt.tight_layout()
-        plt.savefig('inputImages/'+_inputFile+'.png')
+        filename = _inputFile.replace('.csv','')
+        plt.savefig(__PlotDir__+filename+'.png')
         
         plt.close()
 
@@ -64,18 +66,19 @@ except:
     exit()
 
 # See if inputImages directory exists; if not make, items
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-if(not os.path.isdir(__AbsolutePath__+'inputImages')):
-    os.mkdir(__AbsolutePath__+'inputImages')
+
+if(not os.path.isdir(__PlotDir__)):
+    os.mkdir(__PlotDir__)
 
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    shutil.rmtree(__AbsolutePath__+'inputImages')
+    shutil.rmtree()
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
     inputFiles = [f for f in listdir(__InputDir__) if isfile(join(__InputDir__, f))]
     plotInputs(inputFiles)
+    print('Plots are located in the '+__PlotDir__+' directory')
  
 else:
     print("Invalid input arguement")

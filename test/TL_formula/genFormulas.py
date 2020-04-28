@@ -331,6 +331,7 @@ if(sys.argv[1] == '-r'):
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
     makeFormulas()
+    print('Formulas are located in the '+__TLDir__+' directory')
  
 else:
     print("Invalid input arguement")

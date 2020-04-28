@@ -16,7 +16,7 @@ nRow = 31
 nCol = 2
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
+__InputDir__     = __AbsolutePath__+'inputFiles/'
 
 def makeInputs():
     global nRow, nCol
@@ -1668,6 +1668,7 @@ if(sys.argv[1] == '-r'):
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
     makeInputs()
+    print('Inputs are located in the '+__InputDir__+' directory')
  
 else:
     print("Invalid input arguement")

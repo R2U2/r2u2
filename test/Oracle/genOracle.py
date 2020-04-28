@@ -839,6 +839,7 @@ elif(sys.argv[1] == '-m'):
             TimeStamp, Verdict, pcNum = getVerdict(formula,AtomicInput)
             # Save the Oracle output, if it is valid
             saveOracle(pcNum, TimeStamp, Verdict, filename)
+    print('Oracle files are located in the '+__OracleDir__+' directory')
  
 else:
     print("Invalid input arguement")
