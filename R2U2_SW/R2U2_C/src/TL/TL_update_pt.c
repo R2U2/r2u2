@@ -160,7 +160,8 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_PT_Y:
             opnd1 = get_opnd1_prev_pt(pc);
-            results_pt[pc] = opnd1;
+            res = opnd1;
+            results_pt[pc] = res;
             DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, res);
             break;
 
