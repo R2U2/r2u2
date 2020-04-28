@@ -55,15 +55,13 @@ class PROGRAM(AST_node): # PROGRAM is always the top AST node
 
 
 class STATEMENT(AST_node):
-    formula_cnt = 0
-    def __init__(self, ob):
+    def __init__(self, ob, num):
         super().__init__()
         self.type = 'SM'
         self.name = 'STATEMENT'
         self.add(ob)
         self.ob = ob
-        self.formula_num = STATEMENT.formula_cnt
-        STATEMENT.formula_cnt += 1
+        self.formula_num = num
 
     def gen_assembly(self, s):
         substr = 'end '+self.child[0].hook

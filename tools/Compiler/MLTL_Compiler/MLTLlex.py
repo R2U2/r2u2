@@ -67,7 +67,6 @@ t_LPAREN        = r'\('
 t_RPAREN        = r'\)'
 t_LBRACK        = r'\['
 t_RBRACK        = r'\]'
-t_SEMI          = r';'
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)
@@ -82,12 +81,21 @@ def t_ATOMIC(t):
     #     t.value = t.type
     return t
 
+def t_SEMI(t):
+    r';'
+    t.value = t.lexer.lineno
+    return t
+
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
+
 def t_COMMENT(t):
     r'\#.*'
     pass
 
 # A string containing ignored characters (spaces and tabs)
-t_ignore  = ' \t\n'
+t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
