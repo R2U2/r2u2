@@ -265,7 +265,7 @@ f.close()
 
 # Check to see if the '../binary_files' directory exists; if not make, the file
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = 'binary_files/'
+__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
 if(not os.path.isdir(__DirBinaryPath__)):
     os.mkdir(__DirBinaryPath__)
 
