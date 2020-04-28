@@ -227,9 +227,7 @@ int TL_update_pt(FILE* log_file)
             res = (t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc)));
             results_pt[pc] = res;
 
-            lb = get_interval_lb_pt(pc);
-            ub = get_interval_ub_pt(pc);
-            DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, lb, ub, t_now, res);
+            DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
             break;
 
         //----------------------------------------------------
@@ -273,9 +271,7 @@ int TL_update_pt(FILE* log_file)
             res = !((t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc))));
             results_pt[pc] = res;
 
-            lb = get_interval_lb_pt(pc);
-            ub = get_interval_ub_pt(pc);
-            DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, lb, ub, t_now, res);
+            DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
             break;
 
         //----------------------------------------------------
@@ -329,9 +325,7 @@ int TL_update_pt(FILE* log_file)
             res = ((t_s > dt) & (t_e < (t_now - get_interval_lb_pt(pc))));
             results_pt[pc] = res;
 
-            lb = get_interval_lb_pt(pc);
-            ub = get_interval_ub_pt(pc);
-            DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, lb, ub, t_now, res);
+            DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
             break;
 
         //----------------------------------------------------
@@ -358,8 +352,7 @@ int TL_update_pt(FILE* log_file)
             res = (dt >= results_pt_rising[pc]);
             results_pt[pc] = res;
 
-            lb = get_interval_lb_pt(pc);
-            DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, lb, t_now, res);
+            DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
             break;
 
         //----------------------------------------------------
@@ -385,8 +378,7 @@ int TL_update_pt(FILE* log_file)
             res = !(dt >= results_pt_rising[pc]);
             results_pt[pc] = res;
 
-            lb = get_interval_lb_pt(pc);
-            DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, lb, t_now, res);
+            DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
             break;
 
         //----------------------------------------------------
