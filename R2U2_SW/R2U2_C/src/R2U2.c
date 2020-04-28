@@ -23,8 +23,7 @@ int main(int argc, char *argv[]) {
     /* Engine Initialization */
     TL_init();
     // at_checkers_init();
-    getcwd(inbuf, sizeof(inbuf));
-    if(inbuf == NULL) return 1;
+    if (getcwd(inbuf, sizeof(inbuf)) == NULL) return 1;
     chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     chdir(inbuf);
@@ -50,7 +49,7 @@ int main(int argc, char *argv[]) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
         for (size_t atom = 0; atom < strlen(inbuf)/2; ++atom) {
-            if (sscanf(&inbuf[2*atom], "%d", &atomics_vector[atom]) == 0) return 1;
+            if (sscanf(&inbuf[2*atom], "%d", (int *)&atomics_vector[atom]) == 0) return 1;
         }
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);

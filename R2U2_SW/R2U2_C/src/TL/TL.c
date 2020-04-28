@@ -21,9 +21,7 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 int TL_init()
 {
     int i;
-    int j;
     int n_queues_pt;
-    int n_queues_ft;
 
     t_now = 0;
     r2u2_errno = 0;
