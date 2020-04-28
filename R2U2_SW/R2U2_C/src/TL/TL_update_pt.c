@@ -51,7 +51,6 @@ int TL_update_pt(FILE* log_file)
 {
 
     int pc = 0;
-    int dt, lb, ub;
     bool res;
     bool opnd;
     bool opnd1;
@@ -220,11 +219,7 @@ int TL_update_pt(FILE* log_file)
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            dt = t_now - get_interval_lb_pt(pc);
-            if (dt < 0) {
-                dt = 0;
-            }
-            res = (t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc)));
+            res = (t_s + get_interval_lb_pt(pc) <= t_now ) & (t_e + get_interval_lb_pt(pc) >= t_now);
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
@@ -264,11 +259,7 @@ int TL_update_pt(FILE* log_file)
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            dt = t_now - get_interval_ub_pt(pc);
-            if (dt < 0) {
-                dt = 0;
-            }
-            res = !((t_s <= dt) & (t_e >= (t_now - get_interval_lb_pt(pc))));
+            res = !((t_s + get_interval_ub_pt(pc) <= t_now) & (t_e + get_interval_lb_pt(pc) >= t_now));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
@@ -318,11 +309,7 @@ int TL_update_pt(FILE* log_file)
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            dt = t_now - get_interval_ub_pt(pc);
-            if (dt < 0) {
-                dt = 0;
-            }
-            res = ((t_s > dt) & (t_e < (t_now - get_interval_lb_pt(pc))));
+            res = ((t_s + get_interval_ub_pt(pc) > t_now) & (t_e +  get_interval_lb_pt(pc) < t_now));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
@@ -345,11 +332,7 @@ int TL_update_pt(FILE* log_file)
                 }
             }
 
-            dt = t_now - get_interval_lb_pt(pc);
-            if (dt < 0) {
-                dt = 0;
-            }
-            res = (dt >= results_pt_rising[pc]);
+            res = (t_now >= results_pt_rising[pc] + get_interval_lb_pt(pc));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
@@ -371,11 +354,7 @@ int TL_update_pt(FILE* log_file)
                 }
             }
 
-            dt = t_now - get_interval_lb_pt(pc);
-            if (dt < 0) {
-                dt = 0;
-            }
-            res = !(dt >= results_pt_rising[pc]);
+            res = !(t_now >= results_pt_rising[pc] + get_interval_lb_pt(pc));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
