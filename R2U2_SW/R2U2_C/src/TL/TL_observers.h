@@ -200,9 +200,6 @@ extern instruction_mem_t	instruction_mem_pt;
 
 extern addr_SCQ_map_t	addr_SCQ_map_ft;
 
-extern map_mem_t		map_mem_pt;
-extern map_mem_t		map_mem_ft;
-
 extern interval_t		interval_mem_pt[];
 extern int			l_interval_mem_pt;
 

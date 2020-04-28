@@ -104,7 +104,9 @@ int TL_update(FILE* log_file)
 
     r2u2_errno = 0;
 
+    DEBUG_PRINT("\n\tPT Update\n");
     TL_update_pt(log_file);
+    DEBUG_PRINT("\n\tFT Update\n");
     TL_update_ft(log_file);
 
     //
