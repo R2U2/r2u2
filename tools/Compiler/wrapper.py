@@ -54,7 +54,7 @@ def main():
     if(FT != ""):
         print('************************** FT ASM **************************')
         FT_str = ""
-        for i in range(max(FT.keys())):
+        for i in range(max(FT.keys())+1):
             if i in FT:
                 FT_str += FT[i]
             else:
@@ -63,7 +63,7 @@ def main():
     if(PT != ""):
         print('************************** PT ASM **************************')
         PT_str = ""
-        for i in range(max(PT.keys())):
+        for i in range(max(PT.keys())+1):
             if i in PT:
                 PT_str += PT[i]
             else:

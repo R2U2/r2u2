@@ -36,7 +36,7 @@
 typedef enum {
 	OP_START		= 0b01011,
 	OP_END			= 0b01100,
-	OP_END_SEQUENCE		= 0b11111,
+	OP_END_SEQUENCE	= 0b11111,
 	OP_NOP			= 0b11110,
 	OP_NOT			= 0b00011,
 
@@ -45,10 +45,10 @@ typedef enum {
 
 	OP_FT_NOT		= 0b10100,
 	OP_FT_AND		= 0b10101,
-	OP_FT_IMPL	= 0b11011,
+	OP_FT_IMPL		= 0b11011,
 
 	OP_OR			= 0b00101,
-	OP_EQUIVALENT		= 0b00111,
+	OP_EQUIVALENT	= 0b00111,
 
 	// past time operations
 	OP_PT_Y			= 0b01000,

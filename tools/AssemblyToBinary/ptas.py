@@ -137,7 +137,7 @@ for line in f:
     elif op[0] == "end":
         opcode = opcode + OP_END
         opcode = opcode + parseOperand(op[1])
-        opcode = opcode + toBinary(op[2],10)
+        opcode = opcode + "01" + toBinary(op[2],8)
         opcode = opcode + "0000000"
         opcode = opcode + "00000000"
     #--------------------------------------------------------------------------#

@@ -51,7 +51,6 @@ int TL_update_pt(FILE* log_file)
 {
 
     int pc = 0;
-    int stop = 0;
     int dt, lb, ub;
     bool res;
     bool opnd;
@@ -68,8 +67,11 @@ int TL_update_pt(FILE* log_file)
     // Sequentially iterate through the program instructions
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
-        // If 'stop' is True, exit the for-loop
-        if (stop) break;
+        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE) {
+            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+            break;
+        }
+
         // Case statement for determining which opcode is currently in the program counter 'pc'
         switch (instruction_mem_pt[pc].opcode) {
         //----------------------------------------------------
@@ -78,15 +80,7 @@ int TL_update_pt(FILE* log_file)
         case OP_END:
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
             // TODO: Replace pc with formula argument
-            fprintf(log_file, "%d:%d,%s\n", pc, t_now, res ? "T" : "F");
-            break;
-
-        //----------------------------------------------------
-        // OP_END_SEQUENCE
-        //----------------------------------------------------
-        case OP_END_SEQUENCE:
-            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
-            stop = 1;
+            fprintf(log_file, "%d:%d,%s\n", (int)instruction_mem_pt[pc].op2.value, t_now, res ? "T" : "F");
             break;
 
         //----------------------------------------------------
