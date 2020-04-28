@@ -32,7 +32,6 @@ def p_statement(p):
     '''
     statement : expression SEMI
     '''
-    print(p[1])
     p[0] = STATEMENT(p[1])
 
 def p_prop_operators(p):
@@ -40,17 +39,35 @@ def p_prop_operators(p):
     expression  : expression AND expression
                 | NEG expression
                 | expression OR expression
+                | expression EQ expression
+                | expression IMPLY expression
     '''
+    # Negation
     if p[1] == '!':
         p[0] = NEG(p[2])
     # elif p[1] == 'X':
     #     p[0] = GLOBAL(p[2],lb=1,ub=1)
+    # Conjunction (And)
     elif len(p)>2 and p[2] == '&':
         p[0] = AND(p[1],p[3])
+    # Disjunction (OR)
     elif len(p)>2 and p[2] == '|':
-        # p[0] = NEG(AND(NEG(p[1]),NEG(p[3])))
-        p[0] = OR(p[1],p[3])
-    print(p[0])
+        # Syntactic sugar for OR, w/ just AND and NOT
+         p[0] = NEG(AND(NEG(p[1]),NEG(p[3])))
+        #p[0] = OR(p[1],p[3])
+    # Implication
+    elif p[2] == '->':
+        #p[0] = IMPLY(p[1],p[3])
+        # Syntactic sugar for Implies, w/ just AND and NOT
+        # a0 -> a1 = !a0 | a1 = !(a0 & !a1)
+        p[0] = NEG(AND(p[1],NEG(p[3])))
+    # Equivalence
+    elif p[2] == '<->':
+        #p[0] = EQ(p[1],p[3])
+        # Syntactic sugar for Equivalence, w/ just AND and NOT
+        # (a0 -> a1) & (a1 -> a0) = (!a0 | a1) & (!a1 & a0) = !(a0 & !a1) & !(a1 & !a0)
+        p[0] = AND(NEG(AND(p[1],NEG(p[3]))),NEG(AND(p[3],NEG(p[1]))))
+
 
 def p_ftMLTL_operators(p):
     '''
@@ -76,18 +93,19 @@ def p_ftMLTL_operators(p):
     elif p[2] == 'U' and len(p)==9:
         p[0] = UNTIL(p[1],p[8],lb=p[4],ub=p[6])
     elif p[2] == 'R' and len(p)==7:
-        p[0] = RELEASE(p[1],p[6],ub=p[4])
+        #p[0] = RELEASE(p[1],p[6],ub=p[4])
+        # Syntactic Sugar for Release just using Until
+        p[0] = NEG(UNTIL(NEG(p[1]),NEG(p[6]),ub=p[4]))
     elif p[2] == 'R' and len(p)==9:
         p[0] = RELEASE(p[1],p[8],lb=p[4],ub=p[6])
-    print(p[0])
+        # Syntactic Sugar for Release just using Until
+        p[0] = NEG(UNTIL(NEG(p[1]),NEG(p[8]),lb=p[4],ub=p[6]))
 
 def p_ptMLTL_operators(p):
     '''
     expression  : YESTERDAY expression
-                | SINCE expression
-                | SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
-                | expression EQ expression
-                | expression IMPLY expression
+                | expression SINCE expression
+                | expression SINCE LBRACK NUMBER COMMA NUMBER RBRACK expression
                 | ONCE expression
                 | ONCE LBRACK NUMBER RBRACK expression
                 | ONCE LBRACK NUMBER COMMA NUMBER RBRACK expression
@@ -97,11 +115,11 @@ def p_ptMLTL_operators(p):
     '''
     if p[1] == 'Y':
         p[0] = YESTERDAY(p[2])
-    elif p[1] == 'S':
-        if len(p)==3:
-            p[0] = SINCE(p[2])
-        elif len(p)==8:
-            p[0] = SINCE(p[2],lb=p[3],ub=p[5])
+    elif p[2] == 'S':
+        if len(p)==7:
+            p[0] = SINCE(p[1],p[6],ub=p[4])
+        elif len(p)==9:
+            p[0] = SINCE(p[1],p[8],lb=p[4],ub=p[6])
         else:
             raise Exception('Syntax error in type! Cannot find matching format for SINCE')
             status = 'syntax_err'
@@ -129,8 +147,7 @@ def p_ptMLTL_operators(p):
         else:
             raise Exception('Syntax error in type! Cannot find matching format for HISTORICALLY')
             status = 'syntax_err'
-    print(p[0])
-
+        
 def p_paren_token(p):
     '''expression : LPAREN expression RPAREN'''
     p[0] = p[2]

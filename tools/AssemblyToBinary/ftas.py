@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import os
 import sys
 import re
 # usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
@@ -172,90 +172,18 @@ for line in f:
 	else:
 		print("Error in line", i, "(", op, ")")
 		continue
-	#-------------------------------------------------------------------------------#
-	# Past-Time Temporal Operators (NEED TO DO!!!!)
-	#-------------------------------------------------------------------------------#	
-	'''
-	NOTE: Still need to implement past-time! Double-check what is written now.
-		- First line of opcode was from R2U2_SW/R2U2_C/TL/TL_observers.h file
-	# Yesterday
-	elif op[0] == "":
-		opcode = opcode + "01000"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\n"
-	# Historically with single time point (H[t])
-	elif op[0] == "":
-		opcode = opcode + "01010"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + "\n"
-	# Historically with interval (H[t1,t2])
-	elif op[0] == "":
-		opcode = opcode + "10010"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\n"
-	# Once with single time point (O[t])
-	elif op[0] == "":
-		opcode = opcode + "01001"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + "\n"
-	# Once with interval (O[t1,t2])
-	elif op[0] == "":
-		opcode = opcode + "10000"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH)
-	# Since with single time point (S[t])
-	elif op[0] == "01110":
-		opcode = opcode + ""
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + "\n"
-	# Since with interval (S[t1,t2])
-	elif op[0] == "":
-		opcode = opcode + "10011"
-		opcode = opcode + parseOperand(op[1])
-		opcode = opcode + parseOperand(op[2])
-		opcode = opcode + toBinary(timestampAddr, 8)
-		opcode = opcode + toBinary(untilMemAddr, 7)
-		untilMemAddr = untilMemAddr + 1
-		timestampAddr = timestampAddr + 1
-		ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\n"
-	'''
-
 	
 	opcode = opcode + "\n"
 f.close()
 
-writeToFile("tmp.ftm", opcode)
-writeToFile("tmp.fti", ts)
-	
+# Check to see if the '../binary_files' directory exists; if not make, the file
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirBinaryPath__ = __AbsolutePath__+'binary_files/'
+if(not os.path.isdir(__DirBinaryPath__)):
+	os.mkdir(__DirBinaryPath__)
+
+writeToFile(__DirBinaryPath__+'ftm.bin', opcode)
+writeToFile(__DirBinaryPath__+'fti.bin', ts)
+
 #print opcode
 #print ts

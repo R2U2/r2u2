@@ -225,19 +225,18 @@ class GLOBAL(Observer):
         return s
 
 class SINCE(Observer):
-    def __init__(self, left, ub=0, lb=0):
-        super().__init__(left)
+    def __init__(self, left, right, ub, lb=0):
+        super().__init__(left, right)
         self.type = 'SINCE'
-        self.tag = 3
-        self.name = 'G['+str(lb)+','+str(ub)+']'
+        self.tag = 4
+        self.name = 'S['+str(lb)+','+str(ub)+']'
         self.lb, self.ub = lb, ub
-        self.left.pre = self
+        self.left.pre, self.right.pre = self, self
 
     def gen_assembly(self, s):
-        substr = "since "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
+        substr = "since "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s
-
 
 class FUTURE(Observer):
     def __init__(self, left, ub, lb=0):
@@ -275,16 +274,16 @@ class ONCE(Observer):
 
 
 class HISTORICALLY(Observer):
-    def __init__(self, left, right, ub, lb=0):
-        super().__init__(left, right)
+    def __init__(self, left, ub=0, lb=0):
+        super().__init__(left)
         self.type = 'HIS'
         self.tag = 4
         self.name = 'H['+str(lb)+','+str(ub)+']'
         self.lb, self.ub = lb, ub
-        self.left.pre, self.right.pre = self, self
+        self.left.pre = self
 
     def gen_assembly(self, s):
-        substr = "his "+self.left.hook+" "+self.right.hook+" "+str(self.lb)+" "+str(self.ub)
+        substr = "his "+self.left.hook+" "+str(self.lb)+" "+str(self.ub)
         s = super().gen_assembly(s, substr)
         return s
 
