@@ -1,15 +1,10 @@
 #!/usr/bin/python3
 #------------------------------------------------------------------------------------#
-# Author:      Pei Zhang(1st), Matt Cauwels(2nd)
-# Date:        April 12th, 2020
-# File Name:   run.py
-# Description: A Python 3 script used automatically run any version of R2U2, based on
-#              the version specified in the input arguement. Output logs of R2U2 can
-#              be found in the 'results/XXX_version/' directory, where *** is the 
-#              version (c, cpp, vhdl, python). The results directory can be cleaned by
-#              entering the input flag '-r', rather than '-v', and any arguement.
+# Author:      Matt Cauwels
+# Date:        April 29th, 2020
+# File Name:   r2u2prep.py
+# Description: 
 #------------------------------------------------------------------------------------#
-
 import sys
 import os
 import subprocess
@@ -21,13 +16,18 @@ __toolsDir__     = __AbsolutePath__ + '../../tools/'
 __CompilerDir__  = __toolsDir__     + 'Compiler/'
 __BinGenDir__    = __toolsDir__     + 'AssemblyToBinary/'
 __BinFileDir__   = __toolsDir__     + 'binary_files/'
+
 def main():
+
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
         shutil.rmtree(__BinFileDir__)
 
-    #MLTL = "G[1,3](G[2]a0) & G[2]a0 &(a1 U[2] !a0)"
-    MLTL = sys.argv[1]
+    f = sys.argv[1]
+    # If the arguement is a valid file,
+    if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
+        MLTL = open(f,'r').read()
+        print(MLTL)
     FT = {}
     PT = {}
     
