@@ -12,10 +12,9 @@ import shutil
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__toolsDir__     = __AbsolutePath__ + '../../tools/'
-__CompilerDir__  = __toolsDir__     + 'Compiler/'
-__BinGenDir__    = __toolsDir__     + 'AssemblyToBinary/'
-__BinFileDir__   = __toolsDir__     + 'binary_files/'
+__CompilerDir__  = __AbsolutePath__     + 'Compiler/'
+__BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
+__BinFileDir__   = __AbsolutePath__     + 'binary_files/'
 
 def main():
 
@@ -23,11 +22,11 @@ def main():
     if(os.path.isdir(__BinFileDir__)):
         shutil.rmtree(__BinFileDir__)
 
-    f = sys.argv[1]
     # If the arguement is a valid file,
     if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
-        MLTL = open(f,'r').read()
-        print(MLTL)
+        MLTL = open(sys.argv[1],'r').read()
+    else:
+        MLTL = sys.argv[1]
     FT = {}
     PT = {}
     
