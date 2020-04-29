@@ -9,7 +9,7 @@
 void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
 
-    DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
 
     int hd;
 
@@ -37,12 +37,12 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 
     unsigned int nhead;
 
-    DEBUG_PRINT("add(%d,%d)\n", t_s, t_e);
-    DEBUG_PRINT("%x\n", bq);
-    DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    // DEBUG_PRINT("add(%d,%d)\n", t_s, t_e);
+    // DEBUG_PRINT("%x\n", bq);
+    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
 
     if (bq->n_elts >= L_DOT_BUFFER) {
-        DEBUG_PRINT("full\n");
+        // DEBUG_PRINT("full\n");
         //
         // buffer is full
         // don't enter anything
@@ -70,8 +70,8 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
 
-    DEBUG_PRINT("remove-tail\n");
-    DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    // DEBUG_PRINT("remove-tail\n");
+    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
 
     if (!bq->n_elts) {
         //
@@ -99,8 +99,8 @@ int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
 int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
 
-    DEBUG_PRINT("remove-head\n");
-    DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    // DEBUG_PRINT("remove-head\n");
+    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
 
     if (!bq->n_elts) {
         //
@@ -130,7 +130,7 @@ int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
 bool isempty_queue_pt(pt_box_queue_t* bq)
 {
 
-    DEBUG_PRINT("isempty=%d\n", bq->n_elts);
+    // DEBUG_PRINT("isempty=%d\n", bq->n_elts);
     return !(bq->n_elts);
 }
 
@@ -143,7 +143,7 @@ void print_pt_queue(pt_box_queue_t* bq)
 
     i = bq->head;
 
-    printf("t=%d N=%d <", t_now, bq->n_elts);
+    printf("t=%u N=%d <", t_now, bq->n_elts);
     if (!isempty_queue_pt(bq)) {
         do {
             if (i == bq->tail)
@@ -152,7 +152,7 @@ void print_pt_queue(pt_box_queue_t* bq)
             if (i < 0) {
                 i = L_DOT_BUFFER - 1;
             }
-            printf("(%d,%d) ", bq->queue[i].t_s, bq->queue[i].t_e);
+            printf("(%u,%u) ", bq->queue[i].t_s, bq->queue[i].t_e);
         } while (1);
     }
     printf(">\n");

@@ -1,7 +1,10 @@
 #ifndef R2U2_CONFIG_H
 #define R2U2_CONFIG_H
 
+#include <inttypes.h>
+
 typedef double r2u2_input_data_t;
+typedef unsigned int timestamp_t;
 
 // TODO: Clean this up
 /* TL Engine configuration */
