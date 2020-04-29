@@ -29,7 +29,6 @@
 timestamp_t t_now;
 
 int r2u2_errno = 0;
-int max_time_horizon = 0;
 
 atomics_vector_t	atomics_vector;
 atomics_vector_t	atomics_vector_prev;

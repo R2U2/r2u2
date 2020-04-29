@@ -37,8 +37,8 @@ bool get_opnd1_prev_pt(int pc);
 bool get_opnd2_pt(int pc);
 edge_t opnd1_edge(int pc);
 edge_t opnd2_edge(int pc);
-int get_interval_lb_pt(int pc);
-int get_interval_ub_pt(int pc);
+interval_bound_t get_interval_lb_pt(int pc);
+interval_bound_t get_interval_ub_pt(int pc);
 int get_queue_addr_pt(int pc);
 
 //--------------------------------------------------------------------
@@ -604,7 +604,7 @@ edge_t opnd2_edge(int pc)
 //	get the lower bound (or time point) from temporal information
 //	for instruction at pc
 //--------------------------------------------------------------------
-int get_interval_lb_pt(int pc)
+interval_bound_t get_interval_lb_pt(int pc)
 {
 
     int adr = instruction_mem_pt[pc].adr_interval;
@@ -619,7 +619,7 @@ int get_interval_lb_pt(int pc)
 //	get the upper bound from temporal information
 //	for instruction at pc
 //--------------------------------------------------------------------
-int get_interval_ub_pt(int pc)
+interval_bound_t get_interval_ub_pt(int pc)
 {
 
     int adr = instruction_mem_pt[pc].adr_interval;

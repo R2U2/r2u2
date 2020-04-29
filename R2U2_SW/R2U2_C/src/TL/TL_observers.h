@@ -92,7 +92,7 @@ typedef enum {
 //
 typedef struct {
 	operand_type_t	opnd_type;
-	unsigned char	value;
+	uint8_t	value;
 } operand_t;
 
 //
@@ -105,14 +105,14 @@ typedef struct {
 	opcode_t	opcode;
 	operand_t	op1;
 	operand_t	op2;
-	unsigned char	adr_interval;
-	unsigned char	scratch;
+	uint8_t	adr_interval;
+	uint8_t	scratch;
 } instruction_t;
 
 // data structure for address info of SCQ
 typedef struct {
-	unsigned int start_addr;
-	unsigned int end_addr;
+	uint16_t start_addr;
+	uint16_t end_addr;
 }	addr_SCQ_t;
 
 //
@@ -129,9 +129,10 @@ typedef enum {
 // interval memory for intervals (not packed)
 // LB:16 UB:16
 //
+typedef uint16_t interval_bound_t;
 typedef struct {
-	unsigned int	lb;
-	unsigned int	ub;
+	interval_bound_t	lb;
+	interval_bound_t	ub;
 } interval_t;
 
 //
@@ -164,8 +165,7 @@ typedef bool results_pt_t[N_INSTRUCTIONS];
 
 //
 // Async queue array
-//typedef  results_a_ft_t[N_INSTRUCTIONS];
-typedef int results_rising_pt_t[N_INSTRUCTIONS];
+typedef timestamp_t results_rising_pt_t[N_INSTRUCTIONS];
 
 #ifdef __cplusplus
 extern "C" {
@@ -173,10 +173,9 @@ extern "C" {
 //---------------------------------------------
 // externals
 //---------------------------------------------
-extern timestamp_t					t_now;
+extern timestamp_t			t_now;
 
 extern int					r2u2_errno;
-extern int					max_time_horizon;
 
 extern atomics_vector_t		atomics_vector;
 extern atomics_vector_t		atomics_vector_prev;
@@ -193,9 +192,6 @@ extern results_pt_t			results_pt;
 extern results_pt_t			results_pt_prev;
 
 extern results_rising_pt_t 	results_pt_rising;
-
-//async future time synchronization queues
-//TODO to remove extern ft_sync_queue_t	results_a_ft_sync_q;
 
 //---------------------------------------------
 // functions

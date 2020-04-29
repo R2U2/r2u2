@@ -2,8 +2,8 @@
 #define _TL_QUEUE_PT_H_
 
 typedef struct {
-	unsigned int	t_s;
-	unsigned int	t_e;
+	timestamp_t	t_s;
+	timestamp_t	t_e;
 	} elt_queue_t;
 
 typedef struct {
