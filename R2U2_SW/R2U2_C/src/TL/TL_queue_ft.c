@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
+#include "R2U2.h"
 
 #define	TRACE_OPND_FT(X) X
 
@@ -50,6 +51,11 @@ static inline int dec_ptr(int ptr, int size) {
 // add new element to the SCQ 
 void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_ptr) {
 	#ifdef AGGREGATION
+		if ( (scq+*wr_ptr)->v_q == false && (scq+dec_ptr(*wr_ptr, size))->v_q == false) { // case during initialization
+			*(scq+*wr_ptr) = newData;
+			*wr_ptr = inc_ptr(*wr_ptr, size);
+			return;
+		}
 		if((scq+dec_ptr(*wr_ptr, size))->v_q == newData.v_q && \
 			(scq+dec_ptr(*wr_ptr, size))->t_q < newData.t_q) { // assign to previous address
 			*(scq+dec_ptr(*wr_ptr,size)) = newData; 
@@ -64,19 +70,38 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 	#endif
 }
 
+void print_scq(elt_ft_queue_t* const scq, int size) {
+	printf("--------------PRINT SCQ @%d\n", scq);
+	for (int i=0; i<size; i++) {
+		printf("addr: %d, verdict: %d, timstamp: %d\n", i, scq[i].v_q, scq[i].t_q);
+	}
+	printf("---------------END SCQ @%d\n", scq);
+}
+
 
 // *scq points to the curent node info structure
 // size: size of the current SCQ assign to the specific node (addr_end - addr_start + 1)
 // wr_ptr and rd_ptr are relative to addr_start (counting from 0~size-1)
 bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp){
-	bool res = false;
-	if(*rd_ptr==wr_ptr && (int)(scq+*rd_ptr)->t_q >= desired_time_stamp) return false;
-	while(*rd_ptr!=wr_ptr && (scq+*rd_ptr)->t_q < desired_time_stamp) *rd_ptr = inc_ptr(*rd_ptr, size);
-	if (*rd_ptr==wr_ptr) {
-		res = true;
-		*rd_ptr = dec_ptr(*rd_ptr, size);
+	//print_scq(scq, size);
+	DEEP_PRINT("inQueue, size: %d, rd_ptr: %d, wr_ptr: %d, desired_time_stamp: %d\n", size, *rd_ptr, wr_ptr, desired_time_stamp);
+	DEEP_PRINT("inQueue data content: t_q: %d, v_q: %d\n", scq[1].t_q, scq[1].v_q);
+	if ((int)(scq+*rd_ptr)->t_q >= desired_time_stamp) {
+		return false;
+	} else if (*rd_ptr!=wr_ptr){
+		while(*rd_ptr!=wr_ptr && (scq+*rd_ptr)->t_q < desired_time_stamp) {
+			*rd_ptr = inc_ptr(*rd_ptr, size);
+		}
+		if ((scq+*rd_ptr)->t_q < desired_time_stamp) {
+			*rd_ptr = dec_ptr(*rd_ptr, size);
+			return true;
+		} else {
+			return false;
+		}
+	} else { //*rd_ptr==wr_ptr and no result
+		// this is the case when space = 1 or initialization
+		return true;
 	}
-	return res;
 }
 
 // always check isEmpty first before pop();
