@@ -143,7 +143,7 @@ void print_pt_queue(pt_box_queue_t* bq)
 
     i = bq->head;
 
-    printf("t=%d N=%d <", t_now, bq->n_elts);
+    printf("t=%u N=%d <", t_now, bq->n_elts);
     if (!isempty_queue_pt(bq)) {
         do {
             if (i == bq->tail)
@@ -152,7 +152,7 @@ void print_pt_queue(pt_box_queue_t* bq)
             if (i < 0) {
                 i = L_DOT_BUFFER - 1;
             }
-            printf("(%d,%d) ", bq->queue[i].t_s, bq->queue[i].t_e);
+            printf("(%u,%u) ", bq->queue[i].t_s, bq->queue[i].t_e);
         } while (1);
     }
     printf(">\n");

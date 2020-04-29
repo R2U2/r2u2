@@ -62,21 +62,23 @@ int TL_update_pt(FILE* log_file)
     // Sequentially iterate through the program instructions
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
-        // Case statement for determining which opcode is currently in the program counter 'pc'
-        switch (instruction_mem_pt[pc].opcode) {
         //----------------------------------------------------
         // OP_END_SEQUENCE
         //----------------------------------------------------
-        case OP_END_SEQUENCE:
+        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
             DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
             break;
+        }
+
+        // Case statement for determining which opcode is currently in the program counter 'pc'
+        switch (instruction_mem_pt[pc].opcode) {
 
         //----------------------------------------------------
         // OP_END
         //----------------------------------------------------
         case OP_END:
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
-            fprintf(log_file, "%d:%d,%s\n",
+            fprintf(log_file, "%d:%u,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
                     results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
             break;
