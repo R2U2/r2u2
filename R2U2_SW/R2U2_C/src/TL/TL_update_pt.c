@@ -76,8 +76,11 @@ int TL_update_pt(FILE* log_file)
         // OP_END
         //----------------------------------------------------
         case OP_END:
+            (int)instruction_mem_pt[pc].op1.value
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
-            fprintf(log_file, "%d:%d,%s\n", (int)instruction_mem_pt[pc].op2.value, t_now, res ? "T" : "F");
+            fprintf(log_file, "%d:%d,%s\n",
+                    (int)instruction_mem_pt[pc].op2.value,t_now,
+                    (int)instruction_mem_pt[pc].op1.value ? "T" : "F");
             break;
 
         //----------------------------------------------------
@@ -100,7 +103,7 @@ int TL_update_pt(FILE* log_file)
         // OP_AND
         //----------------------------------------------------
         case OP_AND:
-            results_pt[pc] = get_opnd1_pt(pc) & get_opnd2_pt(pc);
+            results_pt[pc] = get_opnd1_pt(pc) && get_opnd2_pt(pc);
             DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
@@ -108,7 +111,7 @@ int TL_update_pt(FILE* log_file)
         // OP_IMPL
         //----------------------------------------------------
         case OP_IMPL:
-            results_pt[pc] = (!get_opnd1_pt(pc)) | get_opnd2_pt(pc);
+            results_pt[pc] = (!get_opnd1_pt(pc)) || get_opnd2_pt(pc);
             DEBUG_PRINT("PC:%d IMPL = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
@@ -116,7 +119,7 @@ int TL_update_pt(FILE* log_file)
         // OP_OR
         //----------------------------------------------------
         case OP_OR:
-            results_pt[pc] = get_opnd1_pt(pc) | get_opnd2_pt(pc);
+            results_pt[pc] = get_opnd1_pt(pc) || get_opnd2_pt(pc);
             DEBUG_PRINT("PC:%d OR = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
@@ -154,7 +157,7 @@ int TL_update_pt(FILE* log_file)
         // OP_PT_S ( P since Q )
         //----------------------------------------------------
         case OP_PT_S:
-            results_pt[pc] = get_opnd2_pt(pc) | (get_opnd1_pt(pc) & results_pt_prev[pc]);
+            results_pt[pc] = get_opnd2_pt(pc) || (get_opnd1_pt(pc) && results_pt_prev[pc]);
             DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
@@ -194,7 +197,7 @@ int TL_update_pt(FILE* log_file)
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            results_pt[pc] = (t_s + get_interval_lb_pt(pc) <= t_now ) & (t_e + get_interval_lb_pt(pc) >= t_now);
+            results_pt[pc] = (t_s + get_interval_lb_pt(pc) <= t_now ) && (t_e + get_interval_lb_pt(pc) >= t_now);
             DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
@@ -229,7 +232,7 @@ int TL_update_pt(FILE* log_file)
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            results_pt[pc] = !(((t_s + get_interval_ub_pt(pc)) <= t_now) & ((t_e + get_interval_lb_pt(pc)) >= t_now));
+            results_pt[pc] = !(((t_s + get_interval_ub_pt(pc)) <= t_now) && ((t_e + get_interval_lb_pt(pc)) >= t_now));
             DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
@@ -273,7 +276,7 @@ int TL_update_pt(FILE* log_file)
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            res = ((t_s + get_interval_ub_pt(pc) > t_now) & (t_e +  get_interval_lb_pt(pc) < t_now));
+            res = ((t_s + get_interval_ub_pt(pc) > t_now) && (t_e +  get_interval_lb_pt(pc) < t_now));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
@@ -504,10 +507,10 @@ edge_t opnd1_edge(int pc)
     }
 
     //JSC 0913 if (v & !v_p){
-    if (v & (!v_p || !t_now)) {
+    if (v && (!v_p || !t_now)) {
         return rising;
     }
-    if (!v & v_p) {
+    if (!v && v_p) {
         return falling;
     }
     return none;
@@ -548,10 +551,10 @@ edge_t opnd2_edge(int pc)
     }
 
     // 0913-- initialization
-    if (v & (!v_p || !t_now)) {
+    if (v && (!v_p || !t_now)) {
         return rising;
     }
-    if (!v & v_p) {
+    if (!v && v_p) {
         return falling;
     }
     return none;
