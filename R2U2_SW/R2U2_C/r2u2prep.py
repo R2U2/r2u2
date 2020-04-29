@@ -1,4 +1,15 @@
-from MLTL_Compiler import *
+#!/usr/bin/python3
+#------------------------------------------------------------------------------------#
+# Author:      Pei Zhang(1st), Matt Cauwels(2nd)
+# Date:        April 12th, 2020
+# File Name:   run.py
+# Description: A Python 3 script used automatically run any version of R2U2, based on
+#              the version specified in the input arguement. Output logs of R2U2 can
+#              be found in the 'results/XXX_version/' directory, where *** is the 
+#              version (c, cpp, vhdl, python). The results directory can be cleaned by
+#              entering the input flag '-r', rather than '-v', and any arguement.
+#------------------------------------------------------------------------------------#
+
 import sys
 import os
 import subprocess
@@ -6,9 +17,10 @@ import shutil
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__CompilerDir__  = __AbsolutePath__
-__BinGenDir__    = __AbsolutePath__ + '../AssemblyToBinary/'
-__BinFileDir__   = __AbsolutePath__ + '../binary_files/'
+__toolsDir__     = __AbsolutePath__ + '../../tools/'
+__CompilerDir__  = __toolsDir__     + 'Compiler/'
+__BinGenDir__    = __toolsDir__     + 'AssemblyToBinary/'
+__BinFileDir__   = __toolsDir__     + 'binary_files/'
 def main():
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
@@ -62,7 +74,7 @@ def main():
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        subprocess.run(['python3', __AbsolutePath__+'main.py', FT_str, 'ft'])
+        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft'])
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -71,7 +83,7 @@ def main():
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', __AbsolutePath__+'main.py', PT_str, 'pt'])
+        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt'])
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
