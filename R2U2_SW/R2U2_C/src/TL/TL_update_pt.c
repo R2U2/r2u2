@@ -49,7 +49,6 @@ int get_queue_addr_pt(int pc);
 //--------------------------------------------------------------------
 int TL_update_pt(FILE* log_file)
 {
-
     int pc = 0;
     bool res;
     edge_t edge;
@@ -76,11 +75,10 @@ int TL_update_pt(FILE* log_file)
         // OP_END
         //----------------------------------------------------
         case OP_END:
-            (int)instruction_mem_pt[pc].op1.value
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
             fprintf(log_file, "%d:%d,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
-                    (int)instruction_mem_pt[pc].op1.value ? "T" : "F");
+                    results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
             break;
 
         //----------------------------------------------------
