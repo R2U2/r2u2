@@ -66,13 +66,15 @@ int TL_update_pt(FILE* log_file)
     // Sequentially iterate through the program instructions
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
-        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE) {
-            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
-            break;
-        }
-
         // Case statement for determining which opcode is currently in the program counter 'pc'
         switch (instruction_mem_pt[pc].opcode) {
+        //----------------------------------------------------
+        // OP_END_SEQUENCE
+        //----------------------------------------------------
+        case OP_END_SEQUENCE:
+            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+            break;
+
         //----------------------------------------------------
         // OP_END
         //----------------------------------------------------
