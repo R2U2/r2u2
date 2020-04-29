@@ -61,15 +61,23 @@ def test_c(formulaFiles,inputFiles):
         formula = open(__TLDir__+_formulaFile,'r').read()
         print(formula)
         # For each formula within 
-        subprocess.run(['python3', __CompilerDir__+'wrapper.py',formula], stdout=subprocess.PIPE)
+        subprocess.run(['python3', __CompilerDir__+'wrapper.py',formula],stdout=subprocess.PIPE)
         form   = _formulaFile.replace('.mltl','')
         trace  = _input.replace('.csv','')
         filename = __OutputDIR__+form+'_'+trace+'.txt'
-        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input])
+        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
         subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
+    # For the last run, which should be a concatenation of all the formulas, copy the name
+    # back to R2U2.log
     subprocess.run(['mv',filename,__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
-    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+'R2U2.log'])
-    #subprocess.run(['rm',__OutputDIR__+'R2U2.log'])
+    # Split the multi-formula run into individual files.
+    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
+    # Move all the newly split files to the results directory.
+    for i in range(1,13):
+        filename = __AbsolutePath__+'R2U2_formula'+str(i)+'.txt'
+        subprocess.run(['mv',filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
+    # Remove the overall R2U2.log file from the results directory
+    subprocess.run(['rm',__OutputDIR__+'R2U2.log'])
 '''
 The main method for this file.
     - Parses the directories for the input traces and the formula files.
