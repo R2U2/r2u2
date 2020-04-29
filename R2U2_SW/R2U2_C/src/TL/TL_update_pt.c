@@ -77,7 +77,7 @@ int TL_update_pt(FILE* log_file)
         // OP_END
         //----------------------------------------------------
         case OP_END:
-            DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, res);
+            DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, results_pt[instruction_mem_pt[pc].op1.value]);
             fprintf(log_file, "%d:%u,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
                     results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
