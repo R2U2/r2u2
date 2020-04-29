@@ -7,7 +7,7 @@ OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/inputs $(SRC_PATH)/binParser
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser
 ifdef R2U2_AT
 	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/prognostics
 endif
@@ -25,7 +25,7 @@ CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
 ifdef R2U2_AT
 	CFLAGS := $(CFLAGS) -DR2U2_AT
 endif
-DBGFLAG := -g -Wall -Wextra -pedantic -DDEBUG
+DBGFLAG := -g -Wall -Wextra -pedantic -Wno-gnu-binary-literal -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 

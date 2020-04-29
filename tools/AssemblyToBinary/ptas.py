@@ -2,7 +2,7 @@
 # Author: Matt Cauwels
 # Date: April 21st, 2020
 # File Name: ptas.py (short for Past-Time Assembler)
-# Description: 
+# Description:
 
 #------------------------------------------------------------------------------#
 #!/usr/bin/python
@@ -49,24 +49,24 @@ def writeToFile(file, content):
     f.write(content)
     f.close
 #------------------------------------------------------------------------------#
-# Method for 
-#------------------------------------------------------------------------------#    
+# Method for
+#------------------------------------------------------------------------------#
 def toBinary(value, width):
     #print(value)
     value = int(value) # parse string to integer first
-    
+
     b = bin(value)[2:]
-    
+
     while len(b) < width:
         b = "0" + b
-            
-    if len(b) > width:    
+
+    if len(b) > width:
         print(value, "Error: does not fit into", width, "bits")
         b = b[0:width]
-        
+
     return b
 #------------------------------------------------------------------------------#
-# 
+#
 #------------------------------------------------------------------------------#
 def parseOperand(op):
     c = ""
@@ -97,7 +97,7 @@ onceMemAddr = 0
 sinceMemAddr = 0
 opcode = ""
 ts = ""
-    
+
 print("Compile past time config")
 
 header=re.compile("s*\d+:")
@@ -112,10 +112,10 @@ for line in f:
     op = line.split()
     if(header.match(op[0])):
         op.remove(op[0])
-    
-    # Uncomment for troubleshooting   
+
+    # Uncomment for troubleshooting
     #print(op)
-    
+
     #--------------------------------------------------------------------------#
     # R2U2 Operations
     #--------------------------------------------------------------------------#
@@ -137,7 +137,7 @@ for line in f:
     elif op[0] == "end":
         opcode = opcode + OP_END
         opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
+        opcode = opcode + "01" + toBinary(op[2],8)
         opcode = opcode + "0000000"
         opcode = opcode + "00000000"
     #--------------------------------------------------------------------------#
@@ -171,7 +171,7 @@ for line in f:
         opcode = opcode + "0000000000"
         opcode = opcode + "0000000"
         opcode = opcode + "00000000"
-    
+
     #--------------------------------------------------------------------------#
     # Past-Time Temporal Operators
     #--------------------------------------------------------------------------#
@@ -259,18 +259,18 @@ for line in f:
         print("Error in line", i, "(", op, ")")
         continue
 
-    
+
     opcode = opcode + "\n"
 f.close()
 
 # Check to see if the '../binary_files' directory exists; if not make, the file
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = 'binary_files/'
-if(not os.path.isdir(__AbsolutePath__+__DirBinaryPath__)):
-    os.mkdir(__AbsolutePath__+__DirBinaryPath__)
+__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
+if(not os.path.isdir(__DirBinaryPath__)):
+    os.mkdir(__DirBinaryPath__)
 
 writeToFile(__DirBinaryPath__+'ptm.bin', opcode)
 writeToFile(__DirBinaryPath__+'pti.bin', ts)
-    
+
 #print opcode
 #print ts

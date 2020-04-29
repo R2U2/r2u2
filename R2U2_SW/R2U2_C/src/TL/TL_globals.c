@@ -8,8 +8,8 @@
 ** $Date:      2016-6-16
 **
 **
-** Purpose:  
-**	global variables for the TL engine 
+** Purpose:
+**	global variables for the TL engine
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **	the global variables: instruction_mem and interval_mem
@@ -26,16 +26,12 @@
 #include "TL_queue_pt.h"
 #include "TL_queue_ft.h"
 
-int t_now;
+timestamp_t t_now;
 
 int r2u2_errno = 0;
-int max_time_horizon = 0;
 
 atomics_vector_t	atomics_vector;
 atomics_vector_t	atomics_vector_prev;
-	
-map_mem_t		map_mem_ft;
-map_mem_t		map_mem_pt;
 
 results_pt_t		results_pt;
 results_pt_t		results_pt_prev;
@@ -47,3 +43,10 @@ box_queues_pt_t		pt_box_queues;
 
 sync_queues_ft_t	ft_sync_queues;
 SCQ_t SCQ;
+
+instruction_mem_t   instruction_mem_pt;
+interval_mem_t  interval_mem_pt;
+
+instruction_mem_t instruction_mem_ft;
+interval_mem_t  interval_mem_ft;
+addr_SCQ_map_t addr_SCQ_map_ft;

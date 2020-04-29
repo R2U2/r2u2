@@ -5,9 +5,19 @@
 from . import MLTLparse
 # from . import Observer
 from .Observer import *
+import os
 
+# Paths for saving files
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
+asmFileName = ""
 class Postgraph():
-    def __init__(self,MLTL,optimize_cse=True,Hp=0):
+    def __init__(self,MLTL,FTorPT, optimize_cse=True, Hp=0):
+        global asmFileName 
+        asmFileName = FTorPT
+        # Check to see if the '../binary_files' directory exists; if not make, the file
+        if(not os.path.isdir(__DirBinaryPath__)):
+            os.mkdir(__DirBinaryPath__)
         # Observer.Observer.line_cnt = 0 # clear var for multiple runs
         AST_node.reset()
         Observer.reset()
@@ -162,6 +172,7 @@ class Postgraph():
             return totsize
 
         def generate_scq_size_file():
+            global asmFileName
             # the scq size range [st_pos,ed_pos)
             s=""
             pos = 0
@@ -172,8 +183,9 @@ class Postgraph():
                 ed_pos = st_pos+n.scq_size
                 pos = ed_pos;
                 s = s+'{0:08b}'.format(st_pos)+'{0:08b}'.format(ed_pos)+'\n'
-            with open("tmp.ftscq","w+") as f:
-                f.write(s)
+            if(asmFileName == "ft"):
+                with open(__DirBinaryPath__+'ftscq.bin',"w+") as f:
+                    f.write(s)
 
         compute_propagation_delay()
         compute_scq_size()
@@ -182,6 +194,7 @@ class Postgraph():
 
     # Generate assembly code
     def gen_assembly(self): 
+        global asmFileName
         stack = self.valid_node_set[:]
         stack.reverse()
         s=""
@@ -195,6 +208,6 @@ class Postgraph():
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
         print(s)
         self.asm = s
-        with open("tmp.ftasm","w+") as f:
+        with open(__DirBinaryPath__ + asmFileName + '.asm',"w+") as f:
             f.write(s)
 
