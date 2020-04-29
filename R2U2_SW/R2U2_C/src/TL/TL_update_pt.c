@@ -52,9 +52,6 @@ int TL_update_pt(FILE* log_file)
 
     int pc = 0;
     bool res;
-    bool opnd;
-    bool opnd1;
-    bool opnd2;
     edge_t edge;
     unsigned int t_s;
     unsigned int t_e;
@@ -87,74 +84,56 @@ int TL_update_pt(FILE* log_file)
         // OP_LOD
         //----------------------------------------------------
         case OP_FT_LOD:
-            opnd = get_opnd1_pt(pc);
-            res = opnd;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = get_opnd1_pt(pc);
+            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_NOT
         //----------------------------------------------------
         case OP_NOT:
-            opnd = get_opnd1_pt(pc);
-            res = !opnd;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = !get_opnd1_pt(pc);
+            DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_AND
         //----------------------------------------------------
         case OP_AND:
-            opnd1 = get_opnd1_pt(pc);
-            opnd2 = get_opnd2_pt(pc);
-            res = opnd1 & opnd2;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = get_opnd1_pt(pc) & get_opnd2_pt(pc);
+            DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_IMPL
         //----------------------------------------------------
         case OP_IMPL:
-            opnd1 = get_opnd1_pt(pc);
-            opnd2 = get_opnd2_pt(pc);
-            res = !opnd1 | opnd2;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d IMPL = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = (!get_opnd1_pt(pc)) | get_opnd2_pt(pc);
+            DEBUG_PRINT("PC:%d IMPL = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_OR
         //----------------------------------------------------
         case OP_OR:
-            opnd1 = get_opnd1_pt(pc);
-            opnd2 = get_opnd2_pt(pc);
-            res = opnd1 | opnd2;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d OR = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = get_opnd1_pt(pc) | get_opnd2_pt(pc);
+            DEBUG_PRINT("PC:%d OR = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_EQUIVALENT
         //----------------------------------------------------
         case OP_EQUIVALENT:
-            opnd1 = get_opnd1_pt(pc);
-            opnd2 = get_opnd2_pt(pc);
-            res = (opnd1 == opnd2);
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d EQ = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = (get_opnd1_pt(pc) == get_opnd2_pt(pc));
+            DEBUG_PRINT("PC:%d EQ = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
         // OP_PT_Y  (yesterday)
         //----------------------------------------------------
         case OP_PT_Y:
-            opnd1 = get_opnd1_prev_pt(pc);
-            res = opnd1;
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = get_opnd1_prev_pt(pc);
+            DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -175,11 +154,8 @@ int TL_update_pt(FILE* log_file)
         // OP_PT_S ( P since Q )
         //----------------------------------------------------
         case OP_PT_S:
-            opnd1 = get_opnd1_pt(pc);
-            opnd2 = get_opnd2_pt(pc);
-            res = opnd2 | (opnd1 & results_pt_prev[pc]);
-            results_pt[pc] = res;
-            DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, res);
+            results_pt[pc] = get_opnd2_pt(pc) | (get_opnd1_pt(pc) & results_pt_prev[pc]);
+            DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -199,7 +175,7 @@ int TL_update_pt(FILE* log_file)
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            if (t_e < t_now - get_interval_lb_pt(pc)) {
+            if (t_e < (t_now - get_interval_lb_pt(pc))) {
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
@@ -207,10 +183,7 @@ int TL_update_pt(FILE* log_file)
             edge = opnd1_edge(pc);
             if (edge == rising) {
                 add_queue_pt(bq_addr, t_now, TL_INF);
-            }
-
-            // for falling edge
-            if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
+            } else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                 // feasibility check
                 //   feasible((t_s,n-1),n,J)
@@ -221,10 +194,8 @@ int TL_update_pt(FILE* log_file)
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            res = (t_s + get_interval_lb_pt(pc) <= t_now ) & (t_e + get_interval_lb_pt(pc) >= t_now);
-            results_pt[pc] = res;
-
-            DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
+            results_pt[pc] = (t_s + get_interval_lb_pt(pc) <= t_now ) & (t_e + get_interval_lb_pt(pc) >= t_now);
+            DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -239,7 +210,7 @@ int TL_update_pt(FILE* log_file)
 
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            if (t_e < t_now - get_interval_lb_pt(pc)) {
+            if (t_e < (t_now - get_interval_lb_pt(pc))) {
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
@@ -247,24 +218,19 @@ int TL_update_pt(FILE* log_file)
             edge = opnd1_edge(pc);
             if ((t_now == 1) || (edge == falling)) {
                 add_queue_pt(bq_addr, t_now, TL_INF);
-            } else {
-                // for rising edge
-                if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
-                    remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                    // feasibility check
-                    //   feasible((t_s,n-1),n,J)
-                    if (((t_now - 1) - t_s) >= (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
-                        add_queue_pt(bq_addr, t_s, t_now - 1);
-                    }
+            } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
+                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
+                // feasibility check
+                //   feasible((t_s,n-1),n,J)
+                if (((t_now - 1) - t_s) >= (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                    add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
-            res = !((t_s + get_interval_ub_pt(pc) <= t_now) & (t_e + get_interval_lb_pt(pc) >= t_now));
-            results_pt[pc] = res;
-
-            DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
+            results_pt[pc] = !(((t_s + get_interval_ub_pt(pc)) <= t_now) & ((t_e + get_interval_lb_pt(pc)) >= t_now));
+            DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -282,16 +248,12 @@ int TL_update_pt(FILE* log_file)
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
-            opnd1 = get_opnd1_pt(pc);
-            if (opnd1) {
+            if (get_opnd1_pt(pc)) {
                 edge = opnd2_edge(pc);
                 // falling egde of p2
                 if (edge == falling) {
                     add_queue_pt(bq_addr, t_now, TL_INF);
-                }
-
-                // for rising edge
-                if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
+                } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
                     // feasibility check
@@ -302,8 +264,8 @@ int TL_update_pt(FILE* log_file)
                 }
             } else { // p1 does not hold
 
-                opnd2 = get_opnd2_pt(pc);
-                if (opnd2) {
+                if (get_opnd2_pt(pc)) {
+                    // TODO: Rechability at t_now = 0?
                     add_queue_pt(bq_addr, 0, t_now - 1);
                 } else {
                     add_queue_pt(bq_addr, 0, TL_INF);
@@ -314,7 +276,7 @@ int TL_update_pt(FILE* log_file)
             res = ((t_s + get_interval_ub_pt(pc) > t_now) & (t_e +  get_interval_lb_pt(pc) < t_now));
             results_pt[pc] = res;
 
-            DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, res);
+            DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -328,16 +290,12 @@ int TL_update_pt(FILE* log_file)
             edge = opnd1_edge(pc);
             if (edge == rising) {
                 results_pt_rising[pc] = t_now;
-            } else {
-                if ((t_now == 1) || edge == falling) {
-                    results_pt_rising[pc] = TL_INF;
-                }
+            } else if ((edge == falling) || (t_now == 1)) {
+                results_pt_rising[pc] = TL_INF;
             }
 
-            res = (t_now >= results_pt_rising[pc] + get_interval_lb_pt(pc));
-            results_pt[pc] = res;
-
-            DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
+            results_pt[pc] = (t_now >= (results_pt_rising[pc] + get_interval_lb_pt(pc)));
+            DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -356,10 +314,8 @@ int TL_update_pt(FILE* log_file)
                 }
             }
 
-            res = !(t_now >= results_pt_rising[pc] + get_interval_lb_pt(pc));
-            results_pt[pc] = res;
-
-            DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, res);
+            results_pt[pc] = !(t_now >= (results_pt_rising[pc] + get_interval_lb_pt(pc)));
+            DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
