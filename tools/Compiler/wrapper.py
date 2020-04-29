@@ -18,7 +18,10 @@ def main():
     MLTL = sys.argv[1]
     FT = {}
     PT = {}
-
+    
+    # Strip out any null (\n) characters from the MLTL string
+    MLTL = MLTL.replace('\n','')
+    
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
         # Ignore lines that are blank
