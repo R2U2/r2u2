@@ -170,23 +170,39 @@ int TL_update_pt(FILE* log_file)
         // Algorithm:  algorithm 7  in [Reinbacher thesis]
         //      box-box-interval
         // 	+ garbage collect
+        // Matt C: In 'Performance Aware HW Runtime Monitors,
+        //         it looks to be Algorithm 3: Observer for
+        //         'invariant previously'
         //----------------------------------------------------
         case OP_PT_HJ:
-
+            // Get the box queue's address
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
-            print_pt_queue(bq_addr);
-            // garbage collection
+            
+            // Print, I'm assuming for troubleshooting?
+            //print_pt_queue(bq_addr);
+            
+            //----- Garbage collection ----- //
+            // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
-
+            // If the end time stamp (t_e) is less than the difference 
+            // between the current time stamp (t_now) and the interval's 
+            // lower bound, remove the head from the queue.
             if (t_e < (t_now - get_interval_lb_pt(pc))) {
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
-            // for rising edge
+            //----- Edge Detection and box queue update -----//
+            // Determine the edge of the operand: either "rising", 
+            // "falling", or "none"
             edge = opnd1_edge(pc);
+            // If it is the rising edge,
             if (edge == rising) {
+                // Add to the box queue that there was an edge at t_now
                 add_queue_pt(bq_addr, t_now, TL_INF);
-            } else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
+            }
+            // If the edge is falling and the box queue is not empty
+            else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
+                // Remove the tail of the box queue
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                 // feasibility check
                 //   feasible((t_s,n-1),n,J)
@@ -194,10 +210,18 @@ int TL_update_pt(FILE* log_file)
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
-
+            
+            // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
+            //print_pt_queue(bq_addr);
 
-            results_pt[pc] = (t_s + get_interval_lb_pt(pc) <= t_now ) && (t_e + get_interval_lb_pt(pc) >= t_now);
+            //----- Calculate the result -----//
+            // If the sum of the start time stamp (t_s) and the lower bound
+            // are less than the current timestamp (t_now), AND the sum of 
+            // the end time stamp (t_e) and the lower bound is greater than 
+            // the current time stamp (t_now), then the result is true; else,
+            // the result is false.
+            results_pt[pc] = (t_s + get_interval_ub_pt(pc) <= t_now ) && (t_e + get_interval_lb_pt(pc) >= t_now);
             DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
