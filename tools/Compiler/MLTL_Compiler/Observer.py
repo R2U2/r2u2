@@ -58,6 +58,7 @@ class STATEMENT(AST_node):
     def __init__(self, ob, num):
         super().__init__()
         self.type = 'SM'
+        self.scq_size = 1
         self.name = 'STATEMENT'
         self.add(ob)
         self.ob = ob
