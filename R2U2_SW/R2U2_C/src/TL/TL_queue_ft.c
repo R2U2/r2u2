@@ -52,7 +52,8 @@ static inline int dec_ptr(int ptr, int size) {
 // add new element to the SCQ
 void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_ptr) {
 	#ifdef AGGREGATION
-		if ( (scq+*wr_ptr)->v_q == false && (scq+dec_ptr(*wr_ptr, size))->v_q == false) { // case during initialization
+		//if ( (scq+*wr_ptr)->v_q == false && (scq+dec_ptr(*wr_ptr, size))->v_q == false) { // case during initialization
+		if ( (scq+*wr_ptr)->t_q == -1 ) { // case during initialization
 			*(scq+*wr_ptr) = newData;
 			*wr_ptr = inc_ptr(*wr_ptr, size);
 			return;
