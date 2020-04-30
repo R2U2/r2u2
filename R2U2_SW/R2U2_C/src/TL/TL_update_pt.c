@@ -300,7 +300,7 @@ int TL_update_pt(FILE* log_file)
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            res = ((t_s + get_interval_ub_pt(pc) > t_now) && (t_e +  get_interval_lb_pt(pc) < t_now));
+            res = ((t_s + get_interval_ub_pt(pc) > t_now) || (t_e +  get_interval_lb_pt(pc) < t_now));
             results_pt[pc] = res;
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
