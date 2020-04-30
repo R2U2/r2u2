@@ -61,7 +61,7 @@ def test_c(formulaFiles,inputFiles):
         formula = open(__TLDir__+_formulaFile,'r').read()
         print(formula)
         # For each formula within 
-        subprocess.run(['python3', __CompilerDir__+'wrapper.py',formula],stdout=subprocess.PIPE)
+        subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
         form   = _formulaFile.replace('.mltl','')
         trace  = _input.replace('.csv','')
         filename = __OutputDIR__+form+'_'+trace+'.txt'

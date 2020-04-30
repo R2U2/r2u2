@@ -1,4 +1,10 @@
-from MLTL_Compiler import *
+#!/usr/bin/python3
+#------------------------------------------------------------------------------------#
+# Author:      Matt Cauwels
+# Date:        April 29th, 2020
+# File Name:   r2u2prep.py
+# Description: 
+#------------------------------------------------------------------------------------#
 import sys
 import os
 import subprocess
@@ -6,16 +12,21 @@ import shutil
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__CompilerDir__  = __AbsolutePath__
-__BinGenDir__    = __AbsolutePath__ + '../AssemblyToBinary/'
-__BinFileDir__   = __AbsolutePath__ + '../binary_files/'
+__CompilerDir__  = __AbsolutePath__     + 'Compiler/'
+__BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
+__BinFileDir__   = __AbsolutePath__     + 'binary_files/'
+
 def main():
+
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
         shutil.rmtree(__BinFileDir__)
 
-    #MLTL = "G[1,3](G[2]a0) & G[2]a0 &(a1 U[2] !a0)"
-    MLTL = sys.argv[1]
+    # If the arguement is a valid file,
+    if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
+        MLTL = open(sys.argv[1],'r').read()
+    else:
+        MLTL = sys.argv[1]
     FT = {}
     PT = {}
     
@@ -62,7 +73,7 @@ def main():
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        subprocess.run(['python3', __AbsolutePath__+'main.py', FT_str, 'ft'])
+        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft'])
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -71,7 +82,7 @@ def main():
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', __AbsolutePath__+'main.py', PT_str, 'pt'])
+        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt'])
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
