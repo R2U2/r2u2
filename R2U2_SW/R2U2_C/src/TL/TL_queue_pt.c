@@ -5,6 +5,7 @@
 #include "TL_queue_pt.h"
 
 /*******************************************************************
+Return the values of t_s and t_e, the two timestamp tuples, at the top of the queue
 *******************************************************************/
 void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
@@ -12,25 +13,29 @@ void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
     // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
 
     int hd;
-
+    
+    // If the queue is empty, return the timestamps as TL_INF
     if (!(bq->n_elts)) {
-        //
-        // queue empty
-        //
         *t_s = TL_INF;
         *t_e = TL_INF;
-    } else {
+    } 
+    // else, 
+    else {
+        // Grab the box queue's top value (one below the head index)
         hd = bq->head - 1;
+        // If the box queue's top value is less than zero,
         if (hd < 0) {
+            // Update hd to 63 (latest index of the ring buffer; see R2U2Config.h for L_DOT_BUFFER's hardcoded value)
             hd = L_DOT_BUFFER - 1;
         }
-
+        // Return t_s and t_e at the top of the queue
         *t_s = bq->queue[hd].t_s;
         *t_e = bq->queue[hd].t_e;
     }
 }
 
 /*******************************************************************
+Pushes a new timestamp tuple and advances the head of the queue
 *******************************************************************/
 int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 {
@@ -66,6 +71,7 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 }
 
 /*******************************************************************
+Pops from the end of the box queue
 *******************************************************************/
 int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
@@ -95,6 +101,7 @@ int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
 }
 
 /*******************************************************************
+Pops from the head of the box queue
 *******************************************************************/
 int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
@@ -126,6 +133,7 @@ int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
 }
 
 /*******************************************************************
+Checks to see if 'n_elts' counter is zero
 *******************************************************************/
 bool isempty_queue_pt(pt_box_queue_t* bq)
 {
@@ -135,6 +143,7 @@ bool isempty_queue_pt(pt_box_queue_t* bq)
 }
 
 /*******************************************************************
+Prints the contents of the queue to the terminal; for debug purposes
 *******************************************************************/
 void print_pt_queue(pt_box_queue_t* bq)
 {
