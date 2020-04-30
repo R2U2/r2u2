@@ -13,7 +13,7 @@ __DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
 asmFileName = ""
 class Postgraph():
     def __init__(self,MLTL,FTorPT, optimize_cse=True, Hp=0):
-        global asmFileName 
+        global asmFileName
         asmFileName = FTorPT
         # Check to see if the '../binary_files' directory exists; if not make, the file
         if(not os.path.isdir(__DirBinaryPath__)):
@@ -117,7 +117,7 @@ class Postgraph():
             visited = set()
             stack = []
             [topologicalSortUtil(node,visited,stack) for node in graph]
-            return stack 
+            return stack
 
         stack = topologicalSort(top,graph)
         return stack # parent to child
@@ -155,10 +155,10 @@ class Postgraph():
         # compute scq size from top down
         def compute_scq_size():
             for n in vstack:
-                if (type(n) != Observer):
+                if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
-                    left, right = n.left, n.right;          
+                    left, right = n.left, n.right;
                     left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
                     right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
 
@@ -193,7 +193,7 @@ class Postgraph():
         return get_total_size()
 
     # Generate assembly code
-    def gen_assembly(self): 
+    def gen_assembly(self):
         global asmFileName
         stack = self.valid_node_set[:]
         stack.reverse()
