@@ -272,7 +272,7 @@ int TL_update_pt(FILE* log_file)
             peek_queue_pt(bq_addr, &t_s, &t_e);
 
             if (t_e < t_now - get_interval_lb_pt(pc)) {
-                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                //remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             if (get_opnd1_pt(pc)) {
