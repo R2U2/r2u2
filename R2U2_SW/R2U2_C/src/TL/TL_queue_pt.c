@@ -9,15 +9,19 @@ Return the values of t_s and t_e, the two timestamp tuples, at the top of the qu
 *******************************************************************/
 void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
-
-    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
-
+    //DEBUG_PRINT("-------- Peak at Box Queue ---------\n");
+    
+    //DEBUG_PRINT("Number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("Head of boxqueue (bq) = %d\n", bq->head);
+    //DEBUG_PRINT("Tail of boxqueue (bq) = %d\n", bq->tail);
     int hd;
     
     // If the queue is empty, return the timestamps as TL_INF
     if (!(bq->n_elts)) {
+        
         *t_s = TL_INF;
         *t_e = TL_INF;
+        //DEBUG_PRINT("Queue is empty\n");
     } 
     // else, 
     else {
@@ -26,12 +30,16 @@ void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
         // If the box queue's top value is less than zero,
         if (hd < 0) {
             // Update hd to 63 (latest index of the ring buffer; see R2U2Config.h for L_DOT_BUFFER's hardcoded value)
+            //DEBUG_PRINT("Buffer underflow, reset head to 63\n");
             hd = L_DOT_BUFFER - 1;
         }
         // Return t_s and t_e at the top of the queue
         *t_s = bq->queue[hd].t_s;
         *t_e = bq->queue[hd].t_e;
     }
+    //DEBUG_PRINT("t_s = %d\n",*t_s);
+    //DEBUG_PRINT("t_e = %d\n",*t_e);
+    //DEBUG_PRINT("------------------------------------\n");
 }
 
 /*******************************************************************
@@ -41,17 +49,16 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 {
 
     unsigned int nhead;
-
-    // DEBUG_PRINT("add(%d,%d)\n", t_s, t_e);
-    // DEBUG_PRINT("%x\n", bq);
-    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    
+    //DEBUG_PRINT("----- Add Element to Box Queue -----\n");
+    //DEBUG_PRINT("Add (%d,%d) to the queue's head\n", t_s, t_e);
+    //DEBUG_PRINT("Prior to Add, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("Prior to Add, head of queue = %d\n",bq->head);
 
     if (bq->n_elts >= L_DOT_BUFFER) {
-        // DEBUG_PRINT("full\n");
-        //
-        // buffer is full
-        // don't enter anything
-        //
+        //DEBUG_PRINT("Queue is full\n");
+        //DEBUG_PRINT("------------------------------------\n");
+        // buffer is full, don't enter anything
         r2u2_errno = 1;
         return 1;
     }
@@ -61,12 +68,16 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
     bq->queue[bq->head].t_e = t_e;
 
     nhead = bq->head + 1;
+    // Check for buffer overflow
     if (nhead == L_DOT_BUFFER) {
+        //DEBUG_PRINT("Buffer overflow, reset head to 0\n");
         nhead = 0;
     }
-
+    
     bq->head = nhead;
-
+    //DEBUG_PRINT("After Add, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("After Add, head of queue = %d\n", bq->head);
+    //DEBUG_PRINT("------------------------------------\n");
     return 0;
 }
 
@@ -76,13 +87,14 @@ Pops from the end of the box queue
 int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
 
-    // DEBUG_PRINT("remove-tail\n");
-    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    //DEBUG_PRINT("----- Remove Tail from Box Queue -----\n");
+    //DEBUG_PRINT("Prior to removing tail, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("Prior to removal, tail of queue = %d\n",bq->tail);
 
     if (!bq->n_elts) {
-        //
+        //DEBUG_PRINT("Queue is empty\n");
+        //DEBUG_PRINT("------------------------------------\n");
         // queue empty
-        //
         *t_s = TL_INF;
         *t_e = TL_INF;
         r2u2_errno = 1;
@@ -97,6 +109,9 @@ int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
         bq->tail = 0;
     }
     bq->n_elts--;
+    //DEBUG_PRINT("After removing tail, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("After removal, tail of queue = %d\n", bq->tail);
+    //DEBUG_PRINT("------------------------------------\n");
     return 0;
 }
 
@@ -106,13 +121,14 @@ Pops from the head of the box queue
 int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 {
 
-    // DEBUG_PRINT("remove-head\n");
-    // DEBUG_PRINT("N_elts=%d\n", bq->n_elts);
+    //DEBUG_PRINT("----- Remove Head from Box Queue -----\n");
+    //DEBUG_PRINT("Prior to removing head, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("Prior to removal, head of queue = %d\n",bq->head);
 
     if (!bq->n_elts) {
-        //
+        //DEBUG_PRINT("Queue is empty\n");
+        //DEBUG_PRINT("------------------------------------\n");
         // queue empty
-        //
         *t_s = TL_INF;
         *t_e = TL_INF;
         r2u2_errno = 1;
@@ -128,7 +144,9 @@ int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
     *t_e = bq->queue[bq->head].t_e;
 
     bq->n_elts--;
-
+    //DEBUG_PRINT("After removing head, number of elements in queue = %d\n", bq->n_elts);
+    //DEBUG_PRINT("After removal, head of queue = %d\n", bq->head);
+    //DEBUG_PRINT("------------------------------------\n");
     return 0;
 }
 
