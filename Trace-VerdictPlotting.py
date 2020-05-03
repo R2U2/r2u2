@@ -8,9 +8,6 @@ verdicts: list of binary true/false values for plotting
 traceverdictplot function plots values and verdicts on subplots with aligned x-axis(time)
 '''
 
-values = [-1, -1, -1, -1, 998, 998, 999, 999, -5, -3, -3, -3, -3, -3, -3, -3]
-verdicts = [0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1]
-
 def traceverdictplot(values,verdicts):
     time = np.arange(0,len(values))
     values = values
@@ -73,4 +70,3 @@ def traceverdictplot(values,verdicts):
         ax3.step(time, verdicts, linewidth = 4)
     #end if
 #end function
-traceverdictplot(values,verdicts)
