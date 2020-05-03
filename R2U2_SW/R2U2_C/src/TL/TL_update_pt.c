@@ -50,10 +50,8 @@ int get_queue_addr_pt(int pc);
 int TL_update_pt(FILE* log_file)
 {
     int pc = 0;
-    bool res;
     edge_t edge;
-    unsigned int t_s;
-    unsigned int t_e;
+    unsigned int t_s, t_e;
     pt_box_queue_t* bq_addr;
 
     // put the current output into the previous one
@@ -270,38 +268,61 @@ int TL_update_pt(FILE* log_file)
 
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-
-            if (t_e < t_now - get_interval_lb_pt(pc)) {
-                //remove_head_queue_pt(bq_addr, &t_s, &t_e);
+            //DEBUG_PRINT("t_now - get_interval_lb_pt(pc) = %u\n",t_now - get_interval_lb_pt(pc));
+            //DEBUG_PRINT("t_e < (t_now - get_interval_lb_pt(pc)) = %d\n",(signed int) t_e < (signed int) (t_now - get_interval_lb_pt(pc)));
+            if ((signed int) t_e < (signed int) (t_now - get_interval_lb_pt(pc))) {
+                //DEBUG_PRINT("***** Garbage Collection *****\n");
+                remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             if (get_opnd1_pt(pc)) {
+                //DEBUG_PRINT("***** Op1 = True *****\n");
                 edge = opnd2_edge(pc);
                 // falling egde of p2
                 if (edge == falling) {
+                    //DEBUG_PRINT("***** Falling Edge of Op2 *****\n");
                     add_queue_pt(bq_addr, t_now, TL_INF);
                 } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
+                    //DEBUG_PRINT("***** Rising Edge of Op2 *****\n");
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
                     // feasibility check
                     //   feasible((t_s,n-1),n,J)
-                    if (((t_now - 1) - t_s) >= (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                    //DEBUG_PRINT("((t_now - 1) - t_s) = %u\n",((t_now - 1) - t_s));
+                    //DEBUG_PRINT("((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)) = %u\n",((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)));
+                    if (((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                       //DEBUG_PRINT("***** Feasibility Check *****\n");
                         add_queue_pt(bq_addr, t_s, t_now - 1);
                     }
                 }
+                peek_queue_pt(bq_addr, &t_s, &t_e);
             } else { // p1 does not hold
-
+                //DEBUG_PRINT("***** Op1 = False *****\n");
                 if (get_opnd2_pt(pc)) {
                     // TODO: Rechability at t_now = 0?
-                    add_queue_pt(bq_addr, 0, t_now - 1);
+                    //DEBUG_PRINT("***** Op2 = True *****\n");
+                    //add_queue_pt(bq_addr, 0, t_now - 1);
+                    t_s = 0;
+                    t_e = t_now - 1;
                 } else {
-                    add_queue_pt(bq_addr, 0, TL_INF);
+                    //DEBUG_PRINT("***** Op2 = False *****\n");
+                    //add_queue_pt(bq_addr, 0, TL_INF);
+                    t_s = 0;
+                    t_e = TL_INF;
+                    
                 }
             }
 
-            peek_queue_pt(bq_addr, &t_s, &t_e);
-            res = ((t_s + get_interval_ub_pt(pc) > t_now) || (t_e +  get_interval_lb_pt(pc) < t_now));
-            results_pt[pc] = res;
+            
+            //DEBUG_PRINT("t_now = %u\n",t_now);
+            
+            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+            
+            //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) > t_now) = %u\n",(t_s + get_interval_ub_pt(pc) > t_now) );
+            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc) < t_now) = %u\n",(t_e +  get_interval_lb_pt(pc) < t_now));
+            
+            results_pt[pc] = ((t_s + get_interval_ub_pt(pc) > t_now)  || (t_e + get_interval_lb_pt(pc) < t_now));
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
