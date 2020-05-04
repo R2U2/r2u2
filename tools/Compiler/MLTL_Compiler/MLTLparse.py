@@ -128,17 +128,20 @@ def p_ptMLTL_operators(p):
             status = 'syntax_err'
     elif p[1] == 'O':
         if len(p)==3:
-            #p[0] = ONCE(p[2])
+            p[0] = ONCE(p[2])
             # Syntactic sugar for Once
-            p[0] = NEG(HISTORICALLY(NEG(p[2])))
+            #p[0] = NEG(HISTORICALLY(NEG(p[2])))
+            #p[0] = SINCE(BOOL('TRUE'),p[2])
         elif len(p)==6:
-            #p[0] = ONCE(p[5],ub=p[3])
+            p[0] = ONCE(p[5],ub=p[3])
             # Syntactic sugar for Once
-            p[0] = NEG(HISTORICALLY(NEG(p[5],ub=p[3])))
+            #p[0] = NEG(HISTORICALLY(NEG(p[5],ub=p[3])))
+            #p[0] = SINCE(BOOL('TRUE'),p[5],ub=p[3])
         elif len(p)==8:
-            #p[0] = ONCE(p[7],lb=p[3],ub=p[5])
+            p[0] = ONCE(p[7],lb=p[3],ub=p[5])
             # Syntactic sugar for Once
-            p[0] = NEG(HISTORICALLY(NEG(p[7]),lb=p[3],ub=p[5]))
+            #p[0] = NEG(HISTORICALLY(NEG(p[7]),lb=p[3],ub=p[5]))
+            #p[0] = SINCE(BOOL('TRUE'),p[7],lb=p[3],ub=p[5])
         else:
             raise Exception('Syntax error in type! Cannot find matching format for ONCE')
             status = 'syntax_err'
