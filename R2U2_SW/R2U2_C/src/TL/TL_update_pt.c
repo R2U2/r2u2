@@ -175,22 +175,22 @@ int TL_update_pt(FILE* log_file)
         case OP_PT_HJ:
             // Get the box queue's address
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
-            
+
             // Print, I'm assuming for troubleshooting?
             //print_pt_queue(bq_addr);
-            
+
             //----- Garbage collection ----- //
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            // If the end time stamp (t_e) is less than the difference 
-            // between the current time stamp (t_now) and the interval's 
+            // If the end time stamp (t_e) is less than the difference
+            // between the current time stamp (t_now) and the interval's
             // lower bound, remove the head from the queue.
             if (t_e < (t_now - get_interval_lb_pt(pc))) {
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             //----- Edge Detection and box queue update -----//
-            // Determine the edge of the operand: either "rising", 
+            // Determine the edge of the operand: either "rising",
             // "falling", or "none"
             edge = opnd1_edge(pc);
             // If it is the rising edge,
@@ -208,15 +208,15 @@ int TL_update_pt(FILE* log_file)
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
-            
+
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
             //print_pt_queue(bq_addr);
 
             //----- Calculate the result -----//
             // If the sum of the start time stamp (t_s) and the lower bound
-            // are less than the current timestamp (t_now), AND the sum of 
-            // the end time stamp (t_e) and the lower bound is greater than 
+            // are less than the current timestamp (t_now), AND the sum of
+            // the end time stamp (t_e) and the lower bound is greater than
             // the current time stamp (t_now), then the result is true; else,
             // the result is false.
             results_pt[pc] = (t_s + get_interval_ub_pt(pc) <= t_now ) && (t_e + get_interval_lb_pt(pc) >= t_now);
@@ -270,7 +270,7 @@ int TL_update_pt(FILE* log_file)
             peek_queue_pt(bq_addr, &t_s, &t_e);
             //DEBUG_PRINT("t_now - get_interval_lb_pt(pc) = %u\n",t_now - get_interval_lb_pt(pc));
             //DEBUG_PRINT("t_e < (t_now - get_interval_lb_pt(pc)) = %d\n",(signed int) t_e < (signed int) (t_now - get_interval_lb_pt(pc)));
-            if ((signed int) t_e < (signed int) (t_now - get_interval_lb_pt(pc))) {
+            if ((t_e + get_interval_lb_pt(pc)) < t_now) {
                 //DEBUG_PRINT("***** Garbage Collection *****\n");
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
@@ -290,7 +290,7 @@ int TL_update_pt(FILE* log_file)
                     //   feasible((t_s,n-1),n,J)
                     //DEBUG_PRINT("((t_now - 1) - t_s) = %u\n",((t_now - 1) - t_s));
                     //DEBUG_PRINT("((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)) = %u\n",((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)));
-                    if (((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                    if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
                        //DEBUG_PRINT("***** Feasibility Check *****\n");
                         add_queue_pt(bq_addr, t_s, t_now - 1);
                     }
@@ -309,19 +309,19 @@ int TL_update_pt(FILE* log_file)
                     //add_queue_pt(bq_addr, 0, TL_INF);
                     t_s = 0;
                     t_e = TL_INF;
-                    
+
                 }
             }
 
-            
+
             //DEBUG_PRINT("t_now = %u\n",t_now);
-            
+
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
             //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
-            
+
             //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) > t_now) = %u\n",(t_s + get_interval_ub_pt(pc) > t_now) );
             //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc) < t_now) = %u\n",(t_e +  get_interval_lb_pt(pc) < t_now));
-            
+
             results_pt[pc] = ((t_s + get_interval_ub_pt(pc) > t_now)  || (t_e + get_interval_lb_pt(pc) < t_now));
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
