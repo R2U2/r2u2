@@ -294,27 +294,22 @@ int TL_update_pt(FILE* log_file)
                        //DEBUG_PRINT("***** Feasibility Check *****\n");
                         add_queue_pt(bq_addr, t_s, t_now - 1);
                     }
-                }
-                peek_queue_pt(bq_addr, &t_s, &t_e);
+                } 
             } else { // p1 does not hold
                 //DEBUG_PRINT("***** Op1 = False *****\n");
                 if (get_opnd2_pt(pc)) {
                     // TODO: Rechability at t_now = 0?
                     //DEBUG_PRINT("***** Op2 = True *****\n");
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                    t_s = 0;
-                    t_e = t_now - 1;
                     add_queue_pt(bq_addr, 0, t_now - 1);
                 } else {
                     //DEBUG_PRINT("***** Op2 = False *****\n");
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                    t_s = 0;
-                    t_e = TL_INF;
                     add_queue_pt(bq_addr, 0, TL_INF);
                 }
             }
-
-
+            
+            peek_queue_pt(bq_addr, &t_s, &t_e);
             //DEBUG_PRINT("t_now = %u\n",t_now);
 
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
