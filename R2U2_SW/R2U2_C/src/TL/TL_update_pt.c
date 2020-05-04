@@ -301,15 +301,16 @@ int TL_update_pt(FILE* log_file)
                 if (get_opnd2_pt(pc)) {
                     // TODO: Rechability at t_now = 0?
                     //DEBUG_PRINT("***** Op2 = True *****\n");
-                    //add_queue_pt(bq_addr, 0, t_now - 1);
+                    remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                     t_s = 0;
                     t_e = t_now - 1;
+                    add_queue_pt(bq_addr, 0, t_now - 1);
                 } else {
                     //DEBUG_PRINT("***** Op2 = False *****\n");
-                    //add_queue_pt(bq_addr, 0, TL_INF);
+                    remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                     t_s = 0;
                     t_e = TL_INF;
-
+                    add_queue_pt(bq_addr, 0, TL_INF);
                 }
             }
 
