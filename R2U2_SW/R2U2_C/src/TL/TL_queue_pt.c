@@ -7,23 +7,23 @@
 /*******************************************************************
 Return the values of t_s and t_e, the two timestamp tuples, at the top of the queue
 *******************************************************************/
-void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
+void peek_queue_pt(pt_box_queue_t* bq, timestamp_t* t_s, timestamp_t* t_e)
 {
     //DEBUG_PRINT("-------- Peak at Box Queue ---------\n");
-    
+
     //DEBUG_PRINT("Number of elements in queue = %d\n", bq->n_elts);
     //DEBUG_PRINT("Head of boxqueue (bq) = %d\n", bq->head);
     //DEBUG_PRINT("Tail of boxqueue (bq) = %d\n", bq->tail);
     int hd;
-    
+
     // If the queue is empty, return the timestamps as TL_INF
     if (!(bq->n_elts)) {
-        
+
         *t_s = TL_INF;
         *t_e = TL_INF;
         //DEBUG_PRINT("Queue is empty\n");
-    } 
-    // else, 
+    }
+    // else,
     else {
         // Grab the box queue's top value (one below the head index)
         hd = bq->head - 1;
@@ -45,11 +45,11 @@ void peek_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
 /*******************************************************************
 Pushes a new timestamp tuple and advances the head of the queue
 *******************************************************************/
-int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
+int add_queue_pt(pt_box_queue_t* bq, timestamp_t t_s, timestamp_t t_e)
 {
 
     unsigned int nhead;
-    
+
     //DEBUG_PRINT("----- Add Element to Box Queue -----\n");
     //DEBUG_PRINT("Add (%d,%d) to the queue's head\n", t_s, t_e);
     //DEBUG_PRINT("Prior to Add, number of elements in queue = %d\n", bq->n_elts);
@@ -73,7 +73,7 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
         //DEBUG_PRINT("Buffer overflow, reset head to 0\n");
         nhead = 0;
     }
-    
+
     bq->head = nhead;
     //DEBUG_PRINT("After Add, number of elements in queue = %d\n", bq->n_elts);
     //DEBUG_PRINT("After Add, head of queue = %d\n", bq->head);
@@ -84,7 +84,7 @@ int add_queue_pt(pt_box_queue_t* bq, unsigned int t_s, unsigned int t_e)
 /*******************************************************************
 Pops from the end of the box queue
 *******************************************************************/
-int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
+int remove_tail_queue_pt(pt_box_queue_t* bq, timestamp_t* t_s, timestamp_t* t_e)
 {
 
     //DEBUG_PRINT("----- Remove Tail from Box Queue -----\n");
@@ -118,7 +118,7 @@ int remove_tail_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_
 /*******************************************************************
 Pops from the head of the box queue
 *******************************************************************/
-int remove_head_queue_pt(pt_box_queue_t* bq, unsigned int* t_s, unsigned int* t_e)
+int remove_head_queue_pt(pt_box_queue_t* bq, timestamp_t* t_s, timestamp_t* t_e)
 {
 
     //DEBUG_PRINT("----- Remove Head from Box Queue -----\n");

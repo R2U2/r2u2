@@ -51,7 +51,7 @@ int TL_update_pt(FILE* log_file)
 {
     int pc = 0;
     edge_t edge;
-    unsigned int t_s, t_e;
+    timestamp_t t_s, t_e;
     pt_box_queue_t* bq_addr;
 
     // put the current output into the previous one
