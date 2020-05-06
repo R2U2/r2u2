@@ -41,7 +41,6 @@ edge_t opnd2_edge(int pc);
 interval_bound_t get_interval_lb_pt(int pc);
 interval_bound_t get_interval_ub_pt(int pc);
 int get_queue_addr_pt(int pc);
-int pt_prev_init();
 
 //--------------------------------------------------------------------
 //	TL_update_pt()
@@ -204,6 +203,7 @@ int TL_update_pt(FILE* log_file)
             // "falling", or "none"
             edge = opnd1_edge(pc);
             // If it is the rising edge,
+            //if ((t_now == 0) || (edge == rising)) {
             if (edge == rising) {
                 //DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 // Add to the box queue that there was an edge at t_now
@@ -283,7 +283,8 @@ int TL_update_pt(FILE* log_file)
 
             // for falling edge
             edge = opnd1_edge(pc);
-            if ((t_now == 1) || (edge == falling)) {
+            //if ((t_now == 1) || (edge == falling)) {
+            if (edge == falling) {
                 //DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 add_queue_pt(bq_addr, t_now, TL_INF);
             } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
@@ -349,6 +350,7 @@ int TL_update_pt(FILE* log_file)
                 //DEBUG_PRINT("***** Op1 = True *****\n");
                 edge = opnd2_edge(pc);
                 // falling egde of p2
+                //if ((t_now == 0) || (edge == falling)) {
                 if (edge == falling) {
                     //DEBUG_PRINT("***** Falling Edge of Op2 *****\n");
                     add_queue_pt(bq_addr, t_now, TL_INF);
@@ -465,162 +467,6 @@ int TL_update_pt(FILE* log_file)
 }
 
 //--------------------------------------------------------------------
-//	pt_prev_init()
-//	Initialize the results_pt_prev 
-//--------------------------------------------------------------------
-int pt_prev_init()
-{
-    int pc = 0;
-
-    // Sequentially iterate through the program counter
-    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
-        //----------------------------------------------------
-        // OP_END_SEQUENCE
-        //----------------------------------------------------
-        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
-            break;
-        }
-
-        // Case statement for determining which opcode is currently in the program counter 'pc'
-        switch (instruction_mem_pt[pc].opcode) {
-
-        //----------------------------------------------------
-        // OP_END
-        //----------------------------------------------------
-        case OP_END:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_LOD
-        //----------------------------------------------------
-        case OP_FT_LOD:
-            results_pt_prev[pc] = false;
-            break;
-
-        //----------------------------------------------------
-        // OP_NOT
-        //----------------------------------------------------
-        case OP_NOT:
-            results_pt_prev[pc] = !results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_AND
-        //----------------------------------------------------
-        case OP_AND:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_pt(pc)] && results_pt_prev[get_opnd2_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_IMPL
-        //----------------------------------------------------
-        case OP_IMPL:
-            results_pt_prev[pc] = (!results_pt_prev[get_opnd1_prev_pt(pc)]) || results_pt_prev[get_opnd2_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_OR
-        //----------------------------------------------------
-        case OP_OR:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)] || results_pt_prev[get_opnd2_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_EQUIVALENT
-        //----------------------------------------------------
-        case OP_EQUIVALENT:
-            results_pt_prev[pc] = (results_pt_prev[get_opnd1_prev_pt(pc)] == results_pt_prev[get_opnd2_prev_pt(pc)]);
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_Y  (yesterday)
-        //----------------------------------------------------
-        case OP_PT_Y:
-            results_pt[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_O  (once)  TODO
-        //----------------------------------------------------
-        case OP_PT_O:
-            printf("%d\tinstruction not implemented\n", pc);
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_H (historically) TODO
-        //----------------------------------------------------
-        case OP_PT_H:
-            printf("%d\tinstruction not implemented\n", pc);
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_S ( P since Q )
-        //----------------------------------------------------
-        case OP_PT_S:
-            results_pt_prev[pc] = results_pt_prev[get_opnd2_prev_pt(pc)] || results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // metric past time operations: intervals
-        //----------------------------------------------------
-        // OP_PT_HJ (historically, interval:  H[t1,t2] P
-        //----------------------------------------------------
-        case OP_PT_HJ:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_OJ (once, interval:  o[t1,t2] P )
-        //----------------------------------------------------
-        case OP_PT_OJ:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_SJ (since, interval:  P1 S[t1,t2] P2
-        //----------------------------------------------------
-        case OP_PT_SJ:
-            results_pt_prev[pc] = results_pt_prev[get_opnd2_prev_pt(pc)] || results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // operators on time points
-        //----------------------------------------------------
-        // OP_PT_HT (historically, time point  H[t] P )
-        //----------------------------------------------------
-        case OP_PT_HT:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OP_PT_OT (once, time point  O[t] P )
-        //----------------------------------------------------
-        case OP_PT_OT:
-            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
-            break;
-
-        //----------------------------------------------------
-        // OTHERS ARE ILLEGAL INSTRUCTIONS
-        //----------------------------------------------------
-        default:
-            printf("%d\t[ERR]::PT:: illegal instruction\n", pc);
-            r2u2_errno = 1;
-            break;
-        }
-    }
-    /*
-    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
-        printf("results_pt_prev[%d] = %d\n",pc,results_pt_prev[pc]);
-        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
-            break;
-        }
-    }
-    */
-    return 0;
-}
-
-//--------------------------------------------------------------------
 //  get_opnd1_pt
 //	get 1st operand from instruction at pc
 //	returns Boolean
@@ -639,12 +485,10 @@ bool get_opnd1_pt(int pc)
 
     case atomic:
         res = atomics_vector[op1.value];
-        //TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op1.value,res);)
         break;
 
     case subformula:
         res = results_pt[op1.value];
-        //TRACE_OPND_PT(printf("opnd: subformula[%d]= %d\n",op1.value,res);)
         break;
 
     case not_set:
@@ -675,12 +519,10 @@ bool get_opnd1_prev_pt(int pc)
 
     case atomic:
         res = atomics_vector_prev[op1.value];
-        //TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op1.value,res);)
         break;
 
     case subformula:
         res = results_pt_prev[op1.value];
-        //TRACE_OPND_PT(printf("opnd: subformula[%d]= %d\n",op1.value,res);)
         break;
 
     case not_set:
@@ -709,12 +551,10 @@ bool get_opnd2_pt(int pc)
 
     case atomic:
         res = atomics_vector[op2.value];
-        //TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op2.value,res);)
         break;
 
     case subformula:
         res = results_pt[op2.value];
-        //TRACE_OPND_PT(printf("opnd: subformula[%d]= %d\n",op2.value,res);)
         break;
 
     case not_set:
@@ -744,12 +584,10 @@ bool get_opnd2_prev_pt(int pc)
 
     case atomic:
         res = atomics_vector_prev[op2.value];
-        //TRACE_OPND_PT(printf("opnd: atomic[%d]= %d\n",op2.value,res);)
         break;
 
     case subformula:
         res = results_pt_prev[op2.value];
-        //TRACE_OPND_PT(printf("opnd: subformula[%d]= %d\n",op2.value,res);)
         break;
 
     case not_set:
@@ -790,13 +628,12 @@ edge_t opnd1_edge(int pc)
         v_p = false;
         break;
     }
-    //JSC 0913 if (v & !v_p){
-    if(v && !v_p){
-    //if (v && (!v_p || !t_now)) {
-    //if (v && (!v_p && !t_now)) {    
+    // At t_now = 0, we need either a rising or falling edge.
+    // v determines the edge
+    if (v && (!v_p || !t_now)) {
         return rising;
     }
-    if (!v && v_p) {
+    if (!v && (v_p || !t_now)) {
         return falling;
     }
     return none;
@@ -835,13 +672,12 @@ edge_t opnd2_edge(int pc)
         v_p = false;
         break;
     }
-    // 0913-- initialization
-    if(v && !v_p){
-    //if (v && (!v_p || !t_now)) {
-    //if (v && (!v_p && !t_now)) {
+    // At t_now = 0, we need either a rising or falling edge.
+    // v determines the edge
+    if (v && (!v_p || !t_now)) {
         return rising;
     }
-    if (!v && v_p) {
+    if (!v && (v_p || !t_now)) {
         return falling;
     }
     return none;

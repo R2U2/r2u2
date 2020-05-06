@@ -46,9 +46,9 @@ int TL_init()
         // results_ft[i].sync_val  = F;
     }
     // Call pt_prev_init() function; check if error code, else pass
-    if(pt_prev_init() == 1){
-        printf("Failed to initialize PT's previous time steps\n");
-    }
+    //if(pt_prev_init() == 1){
+    //    printf("Failed to initialize PT's previous time steps\n");
+    //}
     
     //
     // initialize atomics
