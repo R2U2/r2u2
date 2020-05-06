@@ -472,9 +472,6 @@ int pt_prev_init()
 {
     int pc = 0;
 
-    // put the current output into the previous one
-    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
-
     // Sequentially iterate through the program counter
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
         //----------------------------------------------------
