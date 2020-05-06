@@ -35,11 +35,13 @@
 bool get_opnd1_pt(int pc);
 bool get_opnd1_prev_pt(int pc);
 bool get_opnd2_pt(int pc);
+bool get_opnd2_prev_pt(int pc);
 edge_t opnd1_edge(int pc);
 edge_t opnd2_edge(int pc);
 interval_bound_t get_interval_lb_pt(int pc);
 interval_bound_t get_interval_ub_pt(int pc);
 int get_queue_addr_pt(int pc);
+int pt_prev_init();
 
 //--------------------------------------------------------------------
 //	TL_update_pt()
@@ -53,7 +55,7 @@ int TL_update_pt(FILE* log_file)
     edge_t edge;
     timestamp_t t_s, t_e;
     pt_box_queue_t* bq_addr;
-
+    
     // put the current output into the previous one
     memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
 
@@ -182,10 +184,14 @@ int TL_update_pt(FILE* log_file)
             //----- Garbage collection ----- //
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
+            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            
             // If the end time stamp (t_e) is less than the difference
             // between the current time stamp (t_now) and the interval's
             // lower bound, remove the head from the queue.
-            if (t_e < (t_now - get_interval_lb_pt(pc))) {
+            if ((t_e + get_interval_lb_pt(pc)) < t_now) {
+                //DEBUG_PRINT("***** Garbage Collection *****\n");
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
@@ -195,31 +201,60 @@ int TL_update_pt(FILE* log_file)
             edge = opnd1_edge(pc);
             // If it is the rising edge,
             if (edge == rising) {
+                //DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 // Add to the box queue that there was an edge at t_now
                 add_queue_pt(bq_addr, t_now, TL_INF);
             }
             // If the edge is falling and the box queue is not empty
             else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
+                //DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 // Remove the tail of the box queue
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                // feasibility check
-                //   feasible((t_s,n-1),n,J)
-                if (((t_now - 1) - t_s) >= (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1));
+                if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
+                //DEBUG_PRINT("t_s + get_interval_lb_pt(pc) + 1 = %u\n",t_s + get_interval_lb_pt(pc) + 1);
+                //DEBUG_PRINT("get_interval_ub_pt(pc) + t_now = %u\n",get_interval_ub_pt(pc) + t_now);
+                //DEBUG_PRINT("(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now) = %u\n",(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now));
+                //if ((t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now)) {
+                    //DEBUG_PRINT("***** Feasibility Check *****\n");
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
 
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
+            
             //print_pt_queue(bq_addr);
+            //DEBUG_PRINT("***** Result Calculation *****\n");
+            //DEBUG_PRINT("t_now = %u\n",t_now);
 
+            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+
+            
+            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            if(get_interval_ub_pt(pc) > t_now){
+                //DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+            }else{
+                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+            }
+            
+            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            if(get_interval_lb_pt(pc) > t_now){
+                //DEBUG_PRINT("t_e >= 0 = %u\n",1);
+            }else{
+                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+            }
             //----- Calculate the result -----//
             // If the sum of the start time stamp (t_s) and the lower bound
             // are less than the current timestamp (t_now), AND the sum of
             // the end time stamp (t_e) and the lower bound is greater than
             // the current time stamp (t_now), then the result is true; else,
             // the result is false.
-            results_pt[pc] = (t_s + get_interval_ub_pt(pc) <= t_now ) && (t_e + get_interval_lb_pt(pc) >= t_now);
+            results_pt[pc] = ((get_interval_ub_pt(pc) > t_now)?(t_s <= 0):(t_s + get_interval_ub_pt(pc) <= t_now )) && ((get_interval_lb_pt(pc) > t_now)?(1):(t_e + get_interval_lb_pt(pc) >= t_now)); 
+            
             DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
@@ -232,29 +267,60 @@ int TL_update_pt(FILE* log_file)
         case OP_PT_OJ:
 
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
-
+            
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            if (t_e < (t_now - get_interval_lb_pt(pc))) {
+            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            if ((t_e + get_interval_lb_pt(pc)) < t_now) {
+                //DEBUG_PRINT("***** Garbage Collection *****\n");
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             // for falling edge
             edge = opnd1_edge(pc);
             if ((t_now == 1) || (edge == falling)) {
+                //DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 add_queue_pt(bq_addr, t_now, TL_INF);
             } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
+                //DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                // feasibility check
-                //   feasible((t_s,n-1),n,J)
-                if (((t_now - 1) - t_s) >= (get_interval_ub_pt(pc) - get_interval_lb_pt(pc))) {
+                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1));
+                if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
+                //DEBUG_PRINT("t_s + get_interval_lb_pt(pc) + 1 = %u\n",t_s + get_interval_lb_pt(pc) + 1);
+                //DEBUG_PRINT("get_interval_ub_pt(pc) + t_now = %u\n",get_interval_ub_pt(pc) + t_now);
+                //DEBUG_PRINT("(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now) = %u\n",(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now));
+                //if ((t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now)) {
+                    //DEBUG_PRINT("***** Feasibility Check *****\n");
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
+            
+            //DEBUG_PRINT("***** Result Calculation *****\n");
+            //DEBUG_PRINT("t_now = %u\n",t_now);
 
-            results_pt[pc] = !(((t_s + get_interval_ub_pt(pc)) <= t_now) && ((t_e + get_interval_lb_pt(pc)) >= t_now));
+            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+
+            
+            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            if(get_interval_ub_pt(pc) > t_now){
+                //DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+            }else{
+                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+            }
+            
+            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            if(get_interval_lb_pt(pc) > t_now){
+                //DEBUG_PRINT("t_e >= 0 = %u\n",1);
+            }else{
+                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+            }
+            results_pt[pc] = !(((get_interval_ub_pt(pc) > t_now)?(t_s <= 0):(t_s + get_interval_ub_pt(pc) <= t_now )) && ((get_interval_lb_pt(pc) > t_now)?(1):(t_e + get_interval_lb_pt(pc) >= t_now)));
             DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
@@ -268,8 +334,8 @@ int TL_update_pt(FILE* log_file)
 
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("t_now - get_interval_lb_pt(pc) = %u\n",t_now - get_interval_lb_pt(pc));
-            //DEBUG_PRINT("t_e < (t_now - get_interval_lb_pt(pc)) = %d\n",(signed int) t_e < (signed int) (t_now - get_interval_lb_pt(pc)));
+            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
                 //DEBUG_PRINT("***** Garbage Collection *****\n");
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
@@ -287,11 +353,15 @@ int TL_update_pt(FILE* log_file)
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
                     // feasibility check
-                    //   feasible((t_s,n-1),n,J)
-                    //DEBUG_PRINT("((t_now - 1) - t_s) = %u\n",((t_now - 1) - t_s));
-                    //DEBUG_PRINT("((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)) = %u\n",((t_now - 1) - t_s) >= (unsigned) (get_interval_ub_pt(pc) - get_interval_lb_pt(pc)));
+                    //DEBUG_PRINT("t_now + get_interval_lb_pt(pc) = %u\n",t_now + get_interval_lb_pt(pc));
+                    //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) + 1 = %u\n",t_s + get_interval_ub_pt(pc) + 1);
+                    //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1));
                     if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
-                       //DEBUG_PRINT("***** Feasibility Check *****\n");
+                    //DEBUG_PRINT("t_s + get_interval_lb_pt(pc) + 1 = %u\n",t_s + get_interval_lb_pt(pc) + 1);
+                    //DEBUG_PRINT("get_interval_ub_pt(pc) + t_now = %u\n",get_interval_ub_pt(pc) + t_now);
+                    //DEBUG_PRINT("(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now) = %u\n",(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now));
+                    //if ((t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now)) {
+                        //DEBUG_PRINT("***** Feasibility Check *****\n");
                         add_queue_pt(bq_addr, t_s, t_now - 1);
                     }
                 } 
@@ -310,15 +380,27 @@ int TL_update_pt(FILE* log_file)
             }
             
             peek_queue_pt(bq_addr, &t_s, &t_e);
+            //DEBUG_PRINT("***** Result Calculation *****\n");
             //DEBUG_PRINT("t_now = %u\n",t_now);
 
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
             //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
-            //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) > t_now) = %u\n",(t_s + get_interval_ub_pt(pc) > t_now) );
-            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc) < t_now) = %u\n",(t_e +  get_interval_lb_pt(pc) < t_now));
-
-            results_pt[pc] = ((t_s + get_interval_ub_pt(pc) > t_now)  || (t_e + get_interval_lb_pt(pc) < t_now));
+            
+            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            if(get_interval_ub_pt(pc) > t_now){
+                //DEBUG_PRINT("t_s > 0 = %u\n",t_s > 0);
+            }else{
+                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) > t_now = %u\n",t_s + get_interval_ub_pt(pc) > t_now );
+            }
+            
+            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            if(get_interval_lb_pt(pc) > t_now){
+                //DEBUG_PRINT("t_e < 0 = %u\n",0);
+            }else{
+                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) < t_now = %u\n",t_e + get_interval_lb_pt(pc) < t_now);
+            }
+            results_pt[pc] = ((get_interval_ub_pt(pc) > t_now)?(t_s > 0):(t_s + get_interval_ub_pt(pc) > t_now )) || ((get_interval_lb_pt(pc) > t_now)?(0):(t_e + get_interval_lb_pt(pc) < t_now)); 
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
@@ -372,6 +454,168 @@ int TL_update_pt(FILE* log_file)
         }
     }
 
+    return 0;
+}
+
+//--------------------------------------------------------------------
+//	pt_prev_init()
+//	Initialize the results_pt_prev 
+//--------------------------------------------------------------------
+int pt_prev_init()
+{
+    int pc = 0;
+
+    // put the current output into the previous one
+    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
+
+    // Sequentially iterate through the program counter
+    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
+        //----------------------------------------------------
+        // OP_END_SEQUENCE
+        //----------------------------------------------------
+        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
+            break;
+        }
+
+        // Case statement for determining which opcode is currently in the program counter 'pc'
+        switch (instruction_mem_pt[pc].opcode) {
+
+        //----------------------------------------------------
+        // OP_END
+        //----------------------------------------------------
+        case OP_END:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_LOD
+        //----------------------------------------------------
+        case OP_FT_LOD:
+            results_pt_prev[pc] = false;
+            break;
+
+        //----------------------------------------------------
+        // OP_NOT
+        //----------------------------------------------------
+        case OP_NOT:
+            results_pt_prev[pc] = !results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_AND
+        //----------------------------------------------------
+        case OP_AND:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_pt(pc)] && results_pt_prev[get_opnd2_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_IMPL
+        //----------------------------------------------------
+        case OP_IMPL:
+            results_pt_prev[pc] = (!results_pt_prev[get_opnd1_prev_pt(pc)]) || results_pt_prev[get_opnd2_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_OR
+        //----------------------------------------------------
+        case OP_OR:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)] || results_pt_prev[get_opnd2_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_EQUIVALENT
+        //----------------------------------------------------
+        case OP_EQUIVALENT:
+            results_pt_prev[pc] = (results_pt_prev[get_opnd1_prev_pt(pc)] == results_pt_prev[get_opnd2_prev_pt(pc)]);
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_Y  (yesterday)
+        //----------------------------------------------------
+        case OP_PT_Y:
+            results_pt[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_O  (once)  TODO
+        //----------------------------------------------------
+        case OP_PT_O:
+            printf("%d\tinstruction not implemented\n", pc);
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_H (historically) TODO
+        //----------------------------------------------------
+        case OP_PT_H:
+            printf("%d\tinstruction not implemented\n", pc);
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_S ( P since Q )
+        //----------------------------------------------------
+        case OP_PT_S:
+            results_pt_prev[pc] = results_pt_prev[get_opnd2_prev_pt(pc)] || results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // metric past time operations: intervals
+        //----------------------------------------------------
+        //----------------------------------------------------
+        // OP_PT_HJ (historically, interval:  H[t1,t2] P
+        //----------------------------------------------------
+        case OP_PT_HJ:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_OJ (once, interval:  o[t1,t2] P )
+        //----------------------------------------------------
+        case OP_PT_OJ:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_SJ (since, interval:  P1 S[t1,t2] P2
+        //----------------------------------------------------
+        case OP_PT_SJ:
+            results_pt_prev[pc] = results_pt_prev[get_opnd2_prev_pt(pc)] || results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // operators on time points
+        //----------------------------------------------------
+
+        //----------------------------------------------------
+        // OP_PT_HT (historically, time point  H[t] P )
+        //----------------------------------------------------
+        case OP_PT_HT:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OP_PT_OT (once, time point  O[t] P )
+        //----------------------------------------------------
+        case OP_PT_OT:
+            results_pt_prev[pc] = results_pt_prev[get_opnd1_prev_pt(pc)];
+            break;
+
+        //----------------------------------------------------
+        // OTHERS ARE ILLEGAL INSTRUCTIONS
+        //----------------------------------------------------
+        default:
+            printf("%d\t[ERR]::PT:: illegal instruction\n", pc);
+            r2u2_errno = 1;
+            break;
+        }
+    }
+    /*
+    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
+        printf("results_pt_prev[%d] = %d\n",pc,results_pt_prev[pc]);
+        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
+            break;
+        }
+    }
+    */
     return 0;
 }
 
