@@ -55,10 +55,14 @@ int TL_update_pt(FILE* log_file)
     edge_t edge;
     timestamp_t t_s, t_e;
     pt_box_queue_t* bq_addr;
-    
-    // put the current output into the previous one
-    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
-
+    /*
+    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
+        printf("results_pt_prev[%d] = %d\n",pc,results_pt_prev[pc]);
+        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
+            break;
+        }
+    }
+    */
     // Sequentially iterate through the program instructions
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
@@ -241,7 +245,7 @@ int TL_update_pt(FILE* log_file)
                 //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
             }
             
-            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            ////DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
                 //DEBUG_PRINT("t_e >= 0 = %u\n",1);
             }else{
@@ -453,7 +457,10 @@ int TL_update_pt(FILE* log_file)
             break;
         }
     }
-
+    
+    // put the current output into the previous one
+    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
+    
     return 0;
 }
 
@@ -560,7 +567,6 @@ int pt_prev_init()
         //----------------------------------------------------
         // metric past time operations: intervals
         //----------------------------------------------------
-        //----------------------------------------------------
         // OP_PT_HJ (historically, interval:  H[t1,t2] P
         //----------------------------------------------------
         case OP_PT_HJ:
@@ -583,8 +589,6 @@ int pt_prev_init()
 
         //----------------------------------------------------
         // operators on time points
-        //----------------------------------------------------
-
         //----------------------------------------------------
         // OP_PT_HT (historically, time point  H[t] P )
         //----------------------------------------------------
@@ -769,7 +773,6 @@ edge_t opnd1_edge(int pc)
     bool v;
     bool v_p;
     operand_t op1 = instruction_mem_pt[pc].op1;
-
     switch (op1.opnd_type) {
     case direct:
         v = false;
@@ -790,9 +793,10 @@ edge_t opnd1_edge(int pc)
         v_p = false;
         break;
     }
-
     //JSC 0913 if (v & !v_p){
-    if (v && (!v_p || !t_now)) {
+    if(v && !v_p){
+    //if (v && (!v_p || !t_now)) {
+    //if (v && (!v_p && !t_now)) {    
         return rising;
     }
     if (!v && v_p) {
@@ -834,9 +838,10 @@ edge_t opnd2_edge(int pc)
         v_p = false;
         break;
     }
-
     // 0913-- initialization
-    if (v && (!v_p || !t_now)) {
+    if(v && !v_p){
+    //if (v && (!v_p || !t_now)) {
+    //if (v && (!v_p && !t_now)) {
         return rising;
     }
     if (!v && v_p) {
