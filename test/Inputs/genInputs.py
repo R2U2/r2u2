@@ -1590,7 +1590,7 @@ def makeInputs():
                     Array[i].append(0)
             # The second input
             elif(j == 1):
-                if(((i >= 3) and (i <= 12)) or (i == 13) or ((i >= 15) and (i <= 18)) or ((i >= 21) and (i <= 24)) or ((i >= 26) and (i <= 28)) or (i >= 31)):
+                if(((i >= 3) and (i <= 10)) or (i == 13) or ((i >= 15) and (i <= 18)) or ((i >= 21) and (i <= 24)) or ((i >= 26) and (i <= 28)) or (i >= 31)):
                     Array[i].append(1)
                 else:
                     Array[i].append(0)
