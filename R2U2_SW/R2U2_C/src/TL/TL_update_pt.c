@@ -233,20 +233,21 @@ int TL_update_pt(FILE* log_file)
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
             //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
-            
-            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            /*
+            DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                //DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+                DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
             }else{
-                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
             }
             
-            ////DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                //DEBUG_PRINT("t_e >= 0 = %u\n",1);
+                DEBUG_PRINT("t_e >= 0 = %u\n",1);
             }else{
-                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
             }
+            */
             //----- Calculate the result -----//
             // If the sum of the start time stamp (t_s) and the lower bound
             // are less than the current timestamp (t_now), AND the sum of
@@ -307,20 +308,21 @@ int TL_update_pt(FILE* log_file)
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
             //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
-            
-            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            /*
+            DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                //DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+                DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
             }else{
-                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
             }
             
-            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                //DEBUG_PRINT("t_e >= 0 = %u\n",1);
+                DEBUG_PRINT("t_e >= 0 = %u\n",1);
             }else{
-                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
             }
+            */
             results_pt[pc] = !(((get_interval_ub_pt(pc) > t_now)?(t_s <= 0):(t_s + get_interval_ub_pt(pc) <= t_now )) && ((get_interval_lb_pt(pc) > t_now)?(1):(t_e + get_interval_lb_pt(pc) >= t_now)));
             DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
@@ -388,20 +390,21 @@ int TL_update_pt(FILE* log_file)
             //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
             //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
-            
+            /*
             //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                //DEBUG_PRINT("t_s > 0 = %u\n",t_s > 0);
+                DEBUG_PRINT("t_s > 0 = %u\n",t_s > 0);
             }else{
-                //DEBUG_PRINT("t_s + get_interval_ub_pt(pc) > t_now = %u\n",t_s + get_interval_ub_pt(pc) > t_now );
+                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) > t_now = %u\n",t_s + get_interval_ub_pt(pc) > t_now );
             }
             
-            //DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                //DEBUG_PRINT("t_e < 0 = %u\n",0);
+                DEBUG_PRINT("t_e < 0 = %u\n",0);
             }else{
-                //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) < t_now = %u\n",t_e + get_interval_lb_pt(pc) < t_now);
+                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) < t_now = %u\n",t_e + get_interval_lb_pt(pc) < t_now);
             }
+            */
             results_pt[pc] = ((get_interval_ub_pt(pc) > t_now)?(t_s > 0):(t_s + get_interval_ub_pt(pc) > t_now )) || ((get_interval_lb_pt(pc) > t_now)?(0):(t_e + get_interval_lb_pt(pc) < t_now)); 
 
             DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
