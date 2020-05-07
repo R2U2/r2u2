@@ -223,6 +223,12 @@ def makeFormulas():
     allFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
+    # test0033
+    filename = __TLDir__+'test0033'
+    formula = "a1 & (G[8] a0);"
+    allFormulas.append(formula)
+    writeFormulaFile(formula,filename,'w+')
+    
     # test0034 - Test Case testing multiple conjunctions with intervals
     filename = __TLDir__+'test0034'
     formula = "a1 & F[5,10] a0;"
