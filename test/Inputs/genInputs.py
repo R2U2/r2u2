@@ -1572,6 +1572,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     #filename = 'tacas'
+    nRow = 39
     filename = 'input0052'
     f = open(__InputDir__ + filename + '.csv','w+')
     Array = []
@@ -1583,13 +1584,13 @@ def makeInputs():
         for j in range(0,nCol):
             # The first input
             if(j == 0):
-                if((i >= 11) and (i <= 25)):
+                if((i >= 10) and (i <= 24) or (i >= 31)):
                     Array[i].append(1)
                 else:
                     Array[i].append(0)
             # The second input
             elif(j == 1):
-                if(((i >= 4) and (i <= 11)) or (i == 14) or ((i >= 16) and (i <= 19)) or ((i >= 22) and (i <= 25)) or ((i >= 27) and (i <= 29)) or (i >= 32)):
+                if(((i >= 3) and (i <= 12)) or (i == 13) or ((i >= 15) and (i <= 18)) or ((i >= 21) and (i <= 24)) or ((i >= 26) and (i <= 28)) or (i >= 31)):
                     Array[i].append(1)
                 else:
                     Array[i].append(0)
