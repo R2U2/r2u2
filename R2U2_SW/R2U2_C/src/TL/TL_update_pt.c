@@ -54,14 +54,10 @@ int TL_update_pt(FILE* log_file)
     edge_t edge;
     timestamp_t t_s, t_e;
     pt_box_queue_t* bq_addr;
-    /*
-    for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
-        printf("results_pt_prev[%d] = %d\n",pc,results_pt_prev[pc]);
-        if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
-            break;
-        }
-    }
-    */
+
+    // put the current output into the previous one
+    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
+
     // Sequentially iterate through the program instructions
     for (pc = 0; pc < N_INSTRUCTIONS; pc++) {
 
@@ -459,10 +455,7 @@ int TL_update_pt(FILE* log_file)
             break;
         }
     }
-    
-    // put the current output into the previous one
-    memcpy(results_pt_prev, results_pt, sizeof(results_pt_t));
-    
+
     return 0;
 }
 
