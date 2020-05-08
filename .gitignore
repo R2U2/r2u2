@@ -275,3 +275,6 @@ test/TL_formula/formulaFiles/
 binary_files/
 test/HydraResults.txt
 test/Results.txt
+test/LargeFT.txt
+test/LargePT.txt
+test/OldFtSuiteReport.txt
