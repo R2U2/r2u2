@@ -21,10 +21,10 @@ extern box_queue_mem_pt_t	pt_box_queue_mem;
 extern box_queues_pt_t		pt_box_queues;
 
 
-void peek_queue_pt(pt_box_queue_t *bq, unsigned int *t_s, unsigned int * t_e);
-int add_queue_pt(pt_box_queue_t *bq, unsigned int t_s, unsigned int t_e);
-int remove_tail_queue_pt(pt_box_queue_t *bq, unsigned int *t_s, unsigned int *t_e);
-int remove_head_queue_pt(pt_box_queue_t *bq, unsigned int *t_s, unsigned int *t_e);
+void peek_queue_pt(pt_box_queue_t *bq, timestamp_t *t_s, timestamp_t * t_e);
+int add_queue_pt(pt_box_queue_t *bq, timestamp_t t_s, timestamp_t t_e);
+int remove_tail_queue_pt(pt_box_queue_t *bq, timestamp_t *t_s, timestamp_t *t_e);
+int remove_head_queue_pt(pt_box_queue_t *bq, timestamp_t *t_s, timestamp_t *t_e);
 bool isempty_queue_pt(pt_box_queue_t *bq);
 
 void print_pt_queue(pt_box_queue_t *bq);

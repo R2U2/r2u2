@@ -169,7 +169,7 @@ class Postgraph():
             totsize = 0
             for n in vstack:
                 if (isinstance(n, Observer) or isinstance(n,STATEMENT)):
-                    print(n.name,'  ',n,':  (',n.scq_size,')')
+                    #print(n.name,'  ',n,':  (',n.scq_size,')')
                     totsize += n.scq_size
             return totsize
 

@@ -21,11 +21,12 @@ int main(int argc, char *argv[]) {
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     /* Engine Initialization */
-    TL_init();
+    
     // at_checkers_init();
     if (getcwd(inbuf, sizeof(inbuf)) == NULL) return 1;
     chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
+    TL_init();
     chdir(inbuf);
 
     /* Select file vs stream */
