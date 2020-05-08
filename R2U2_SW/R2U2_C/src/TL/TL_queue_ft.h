@@ -33,7 +33,7 @@
 typedef struct {
 	bool	v_q;			/** stores boolean value from atomic inputs and
 							 ** subformulas corresponding to the timestamp */
-	unsigned int	t_q;	/** timestamp corresponding to the boolean value */
+	int	t_q;	/** timestamp corresponding to the boolean value */
 	} elt_ft_queue_t;
 
 /** @struct ft_sync_queue_t

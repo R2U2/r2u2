@@ -73,11 +73,11 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 }
 
 void print_scq(elt_ft_queue_t* const scq, int size) {
-	printf("--------------PRINT SCQ @%d\n", scq);
+	printf("--------------PRINT SCQ @%p\n", (void *) scq);
 	for (int i=0; i<size; i++) {
 		printf("addr: %d, verdict: %d, timstamp: %d\n", i, scq[i].v_q, scq[i].t_q);
 	}
-	printf("---------------END SCQ @%d\n", scq);
+	printf("---------------END SCQ @%p\n", (void *) scq);
 }
 
 
@@ -101,7 +101,7 @@ bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr,
 			return false;
 		}
 	} else { //*rd_ptr==wr_ptr and no result
-		// this is the case when space = 1 or initialization
+		// this is the case when space = 1 or initialization 
 		return true;
 	}
 }
