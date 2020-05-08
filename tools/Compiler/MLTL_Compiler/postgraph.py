@@ -156,7 +156,8 @@ class Postgraph():
         def compute_scq_size():
             for n in vstack:
                 if (type(n)==STATEMENT):
-                    n.left.scq_size = n.left.wpd-n.left.bpd+1 # special case for child node of END
+                    n.scq_size = 1
+                    n.left.scq_size = n.left.wpd-n.left.bpd+2 # special case for child node of END
                 if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
@@ -167,7 +168,7 @@ class Postgraph():
         def get_total_size():
             totsize = 0
             for n in vstack:
-                if (isinstance(n, Observer)):
+                if (isinstance(n, Observer) or isinstance(n,STATEMENT)):
                     print(n.name,'  ',n,':  (',n.scq_size,')')
                     totsize += n.scq_size
             return totsize
