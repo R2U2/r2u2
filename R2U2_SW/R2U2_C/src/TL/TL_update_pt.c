@@ -183,15 +183,16 @@ int TL_update_pt(FILE* log_file)
             //----- Garbage collection ----- //
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
-            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             
             // If the end time stamp (t_e) is less than the difference
             // between the current time stamp (t_now) and the interval's
             // lower bound, remove the head from the queue.
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
-                //DEBUG_PRINT("***** Garbage Collection *****\n");
-                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                DEBUG_PRINT("***** Garbage Collection *****\n");
+                //remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             //----- Edge Detection and box queue update -----//
@@ -201,24 +202,25 @@ int TL_update_pt(FILE* log_file)
             // If it is the rising edge,
             //if ((t_now == 0) || (edge == rising)) {
             if (edge == rising) {
-                //DEBUG_PRINT("***** Rising Edge of Op *****\n");
+                DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 // Add to the box queue that there was an edge at t_now
                 add_queue_pt(bq_addr, t_now, TL_INF);
             }
             // If the edge is falling and the box queue is not empty
             else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
-                //DEBUG_PRINT("***** Falling Edge of Op *****\n");
+                DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 // Remove the tail of the box queue
-                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
-                //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1));
-                if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
-                //DEBUG_PRINT("t_s + get_interval_lb_pt(pc) + 1 = %u\n",t_s + get_interval_lb_pt(pc) + 1);
-                //DEBUG_PRINT("get_interval_ub_pt(pc) + t_now = %u\n",get_interval_ub_pt(pc) + t_now);
-                //DEBUG_PRINT("(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now) = %u\n",(t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now));
-                //if ((t_s + get_interval_lb_pt(pc) + 1) >= (get_interval_ub_pt(pc) + t_now)) {
-                    //DEBUG_PRINT("***** Feasibility Check *****\n");
+                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                //remove_tail_queue_pt(bq_addr, &t_s, &t_e);
+                DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
+                DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
+                DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
+                DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
+                //if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
+                if(((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1))){
+                    DEBUG_PRINT("***** Feasibility Check *****\n");
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
@@ -227,13 +229,13 @@ int TL_update_pt(FILE* log_file)
             peek_queue_pt(bq_addr, &t_s, &t_e);
             
             //print_pt_queue(bq_addr);
-            //DEBUG_PRINT("***** Result Calculation *****\n");
-            //DEBUG_PRINT("t_now = %u\n",t_now);
+            DEBUG_PRINT("***** Result Calculation *****\n");
+            DEBUG_PRINT("t_now = %u\n",t_now);
 
-            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
-            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+            DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
-            /*
+            
             DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
                 DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
@@ -247,7 +249,7 @@ int TL_update_pt(FILE* log_file)
             }else{
                 DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
             }
-            */
+            
             //----- Calculate the result -----//
             // If the sum of the start time stamp (t_s) and the lower bound
             // are less than the current timestamp (t_now), AND the sum of
@@ -275,7 +277,8 @@ int TL_update_pt(FILE* log_file)
             //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
                 //DEBUG_PRINT("***** Garbage Collection *****\n");
-                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                //remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             // for falling edge
@@ -286,7 +289,8 @@ int TL_update_pt(FILE* log_file)
                 add_queue_pt(bq_addr, t_now, TL_INF);
             } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
                 //DEBUG_PRINT("***** Rising Edge of Op *****\n");
-                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
+                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                //remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                 //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
                 //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
                 //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1));
@@ -341,7 +345,8 @@ int TL_update_pt(FILE* log_file)
             //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
                 //DEBUG_PRINT("***** Garbage Collection *****\n");
-                remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                //remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                remove_tail_queue_pt(bq_addr, &t_s, &t_e);
             }
 
             if (get_opnd1_pt(pc)) {
@@ -354,7 +359,8 @@ int TL_update_pt(FILE* log_file)
                     add_queue_pt(bq_addr, t_now, TL_INF);
                 } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
                     //DEBUG_PRINT("***** Rising Edge of Op2 *****\n");
-                    remove_tail_queue_pt(bq_addr, &t_s, &t_e);
+                    remove_head_queue_pt(bq_addr, &t_s, &t_e);
+                    //remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
                     // feasibility check
                     //DEBUG_PRINT("t_now + get_interval_lb_pt(pc) = %u\n",t_now + get_interval_lb_pt(pc));
