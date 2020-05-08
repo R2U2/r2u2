@@ -157,7 +157,7 @@ Checks to see if 'n_elts' counter is zero
 bool isempty_queue_pt(pt_box_queue_t* bq)
 {
 
-    // //DEBUG_PRINT("isempty=%d\n", bq->n_elts);
+    // DEBUG_PRINT("isempty=%d\n", bq->n_elts);
     return !(bq->n_elts);
 }
 
