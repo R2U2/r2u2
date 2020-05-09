@@ -66,7 +66,7 @@ typedef struct
 */
 typedef ft_sync_queue_t	sync_queues_ft_t[N_SUBFORMULA_SNYC_QUEUES];
 
-typedef elt_ft_queue_t SCQ_t[100]; // Pei: pre assign total size to the SCQ
+typedef elt_ft_queue_t SCQ_t[1024]; // Pei: pre assign total size to the SCQ
 
 /*
 ** This is the array of queues for the subformulas/instructions.

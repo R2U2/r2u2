@@ -157,13 +157,13 @@ class Postgraph():
             for n in vstack:
                 if (type(n)==STATEMENT):
                     n.scq_size = 1
-                    n.left.scq_size = n.left.wpd-n.left.bpd+2 # special case for child node of END
+                    n.left.scq_size = n.left.wpd-n.left.bpd+3 # special case for child node of END
                 if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
                     left, right = n.left, n.right;
-                    left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
-                    right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
+                    left.scq_size = max(right.wpd-left.bpd+3, left.scq_size)
+                    right.scq_size = max(left.wpd-right.bpd+3, right.scq_size)
 
         def get_total_size():
             totsize = 0
@@ -171,6 +171,7 @@ class Postgraph():
                 if (isinstance(n, Observer) or isinstance(n,STATEMENT)):
                     #print(n.name,'  ',n,':  (',n.scq_size,')')
                     totsize += n.scq_size
+            print("Total SCQ entry: ", totsize)
             return totsize
 
         def generate_scq_size_file():
@@ -183,7 +184,7 @@ class Postgraph():
                     st_pos = pos
                     ed_pos = st_pos+n.scq_size
                     pos = ed_pos;
-                    s = s+'{0:08b}'.format(st_pos)+'{0:08b}'.format(ed_pos)+'\n'
+                    s = s+'{0:016b}'.format(st_pos)+'{0:016b}'.format(ed_pos)+'\n'
             if(asmFileName == "ft"):
                 with open(__DirBinaryPath__+'ftscq.bin',"w+") as f:
                     f.write(s)
