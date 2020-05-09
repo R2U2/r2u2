@@ -26,7 +26,8 @@ void peek_queue_pt(pt_box_queue_t* bq, timestamp_t* t_s, timestamp_t* t_e)
     // else,
     else {
         // Grab the box queue's top value (one below the head index)
-        hd = bq->head - 1;
+        //hd = bq->head - 1;
+        hd = bq->tail;
         // If the box queue's top value is less than zero,
         if (hd < 0) {
             // Update hd to 63 (latest index of the ring buffer; see R2U2Config.h for L_DOT_BUFFER's hardcoded value)
