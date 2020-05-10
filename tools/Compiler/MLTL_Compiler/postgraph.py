@@ -155,21 +155,26 @@ class Postgraph():
         # compute scq size from top down
         def compute_scq_size():
             for n in vstack:
-                if (type(n)==STATEMENT):
-                    n.scq_size = 1
-                    n.left.scq_size = n.left.wpd-n.left.bpd+3 # special case for child node of END
+                # if (type(n)==STATEMENT):
+                #     n.scq_size = 1
+                #     n.left.scq_size = n.left.wpd-n.left.bpd+3 # special case for child node of END
                 if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
                     left, right = n.left, n.right;
-                    left.scq_size = max(right.wpd-left.bpd+3, left.scq_size)
-                    right.scq_size = max(left.wpd-right.bpd+3, right.scq_size)
+                    left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
+                    right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
+            for n in vstack: 
+                # added on May 9, 2020: to consider the extra space for potential output in one time stamp
+                if (isinstance(n, Observer)):
+                    n.scq_size += n.wpd-n.bpd+2
+
 
         def get_total_size():
             totsize = 0
             for n in vstack:
                 if (isinstance(n, Observer) or isinstance(n,STATEMENT)):
-                    #print(n.name,'  ',n,':  (',n.scq_size,')')
+                    print(n.name,'  ',n,':  (',n.scq_size,')')
                     totsize += n.scq_size
             print("Total SCQ entry: ", totsize)
             return totsize
