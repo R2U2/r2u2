@@ -33,7 +33,7 @@
 typedef struct {
 	bool	v_q;			/** stores boolean value from atomic inputs and
 							 ** subformulas corresponding to the timestamp */
-	int	t_q;	/** timestamp corresponding to the boolean value */
+	unsigned int	t_q;	/** timestamp corresponding to the boolean value */
 	} elt_ft_queue_t;
 
 /** @struct ft_sync_queue_t
@@ -66,7 +66,7 @@ typedef struct
 */
 typedef ft_sync_queue_t	sync_queues_ft_t[N_SUBFORMULA_SNYC_QUEUES];
 
-typedef elt_ft_queue_t SCQ_t[1024]; // Pei: pre assign total size to the SCQ
+typedef elt_ft_queue_t SCQ_t[L_SCQ_SIZE]; // Pei: pre assign total size to the SCQ
 
 /*
 ** This is the array of queues for the subformulas/instructions.
