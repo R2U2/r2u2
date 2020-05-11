@@ -31,9 +31,10 @@ Note that MLTL formulas are terminated by semicolons (;). Additionally, parenthe
 
     `./r2u2prep [formula or path to a formula file]`
     
-    - **Note**: This script will point the user to the newly made *tools/binary_files* directory, where the binary files are located.
- 
-3. To run R2U2, execute:
+    - This script will point the user to the newly made *tools/binary_files* directory, where the binary files are located.
+    - Note that all mixed past-time and future-time formulas will be ignored, since R2U2 cannot guarantee the correctness of these mixed-type formulas. 
+    
+ 3. To run R2U2, execute:
 
     `./bin/r2u2 tools/binary_files [the path to a time series, Boolean input .csv file]`.
 
