@@ -31,8 +31,8 @@ Note that MLTL formulas are terminated by semicolons (;). Additionally, parenthe
 
     `./r2u2prep [formula or path to a formula file]`
     
-    - This script will point the user to the newly made *tools/binary_files* directory, where the binary files are located.
-    - Note that all mixed past-time and future-time formulas will be ignored, since R2U2 cannot guarantee the correctness of these mixed-type formulas. 
+    - **Note:** This script will point the user to the newly made **tools/binary_files** directory, where the binary files are located.
+    - **Note:** All mixed past-time and future-time formulas will be ignored, since R2U2 cannot guarantee the correctness of these mixed-type formulas. 
     
  3. To run R2U2, execute:
 
