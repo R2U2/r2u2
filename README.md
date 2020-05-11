@@ -7,7 +7,7 @@
 
 # MLTL Formula Syntax
 
-Note that MLTL formulas are terminated by semicolons (;). Additionally, parentheses may be used to explicitly specify operator precidence. Also note that if you are entering formulas directly into the command line, use single quotes (') around the formula. 
+Note that MLTL formulas are terminated by semicolons (;). Additionally, parentheses may be used to explicitly specify operator precidence. Also note that if you are entering formulas directly into the command line, use single quotes (') around the entire formula, or string of formulas. 
 
 | **Expression** | **Syntax**  |
 |----------------|-------------|
