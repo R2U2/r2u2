@@ -104,7 +104,6 @@ int TL_update_ft(FILE *log_file) {
 
             // While the formula is not complete, i.e., the SCQ is non-empty
             while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
-                
                 // Pop the sequence from the SCQ
                 elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
                 // Copy over the sequence from input to res
