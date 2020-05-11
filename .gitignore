@@ -189,6 +189,7 @@ sympy-plots-for-*.tex/
 
 # pythontex
 *.pytxcode
+*.pyc
 pythontex-files-*/
 
 # tcolorbox
@@ -271,3 +272,4 @@ tools/Compiler/MLTL_Compiler/parsetab.py
 tools/binary_files/
 test/
 target/
+tools/Compiler/MLTL_Compiler/__pycache__
