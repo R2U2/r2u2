@@ -17,20 +17,17 @@ This script will point the user to the newly made *tools/binary_files* directory
 
 | **Expression** | **Syntax**  |
 |----------------|-------------|
-| Negation       |    `!E1`    |
-| Conjunction    |  `E1 & E2`  |
-| Disjunction    |  `E1 | E2`  |
-| Implication    |  `E1 -> E2` |
-| Equivalence    | `E1 <-> E2` |
------------------|-------------|
-| Globally       | `G[ti,tf] E1` or `G[tf] E1`|
-| Future         | `F[ti,tf] E1` or `F[tf] E1`|
-| Until          | `E1 U[ti,tf] E2` or `E1 U[tf] E2`|
------------------|-------------|
-| Historically   | `H[ti,tf] E1` or `H[tf] E1`|
-| Once           | `O[ti,tf] E1` or `O[tf] E1`|
-| Since          | `E1 S[ti,tf] E2` or `E1 S[ti,tf] E2`|
------------------|-------------|
-| 
+| Negation       |    `!E1;`    |
+| Conjunction    |  `E1 & E2;`  |
+| Disjunction    |  `E1 | E2;`  |
+| Implication    |  `E1 -> E2;` |
+| Equivalence    | `E1 <-> E2;` |
+| Globally       | `G[ti,tf] E1;` or `G[tf] E1;`|
+| Future         | `F[ti,tf] E1;` or `F[tf] E1;`|
+| Until          | `E1 U[ti,tf] E2;` or `E1 U[tf] E2;`|
+| Historically   | `H[ti,tf] E1;` or `H[tf] E1;`|
+| Once           | `O[ti,tf] E1;` or `O[tf] E1;`|
+| Since          | `E1 S[ti,tf] E2;` or `E1 S[ti,tf] E2;`|
+ 
 3. To run R2U2, execute `./bin/r2u2 tools/binary_files [time series, Boolean input .csv file]`.
     * Note that if an input file is excluded from this command, then R2U2 looks to the command line for Boolean inputs, separated by commas.
