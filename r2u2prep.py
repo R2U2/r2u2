@@ -12,9 +12,9 @@ import shutil
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__CompilerDir__  = __AbsolutePath__     + 'Compiler/'
-__BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
-__BinFileDir__   = __AbsolutePath__     + 'binary_files/'
+__CompilerDir__  = __AbsolutePath__     + 'tools/Compiler/'
+__BinGenDir__    = __AbsolutePath__     + 'tools/AssemblyToBinary/'
+__BinFileDir__   = __AbsolutePath__     + 'tools/binary_files/'
 
 def main():
 
