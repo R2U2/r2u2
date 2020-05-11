@@ -1,0 +1,1466 @@
+s0: load a0
+s1: future s0 16 97
+s2: not s0
+s3: or s1 s2
+s4: not s3
+s5: future s4 45 63
+s6: not s5
+s7: boxdot s6 0 52
+s8: or s0 s0
+s9: boxdot s8 69 100
+s10: boxdot s9 92 100
+s11: or s7 s10
+s12: and s0 s11
+s13: boxdot s2 69 99
+s14: boxdot s0 83 100
+s15: boxdot s14 0 90
+s16: and s0 s15
+s17: and s13 s16
+s18: future s17 47 100
+s19: and s0 s18
+s20: boxdot s19 47 100
+s21: and s0 s20
+s22: not s21
+s23: future s0 4 35
+s24: and s0 s0
+s25: until s2 s0 31 48
+s26: boxdot s0 0 7
+s27: boxdot s26 0 34
+s28: boxdot s0 0 20
+s29: and s0 s28
+s30: future s29 43 84
+s31: future s30 0 93
+s32: future s31 27 55
+s33: or s27 s32
+s34: or s25 s33
+s35: future s34 98 100
+s36: and s24 s35
+s37: and s23 s36
+s38: not s37
+s39: future s0 30 85
+s40: and s39 s0
+s41: and s0 s40
+s42: and s38 s41
+s43: or s22 s42
+s44: not s43
+s45: future s0 92 95
+s46: until s0 s0 0 47
+s47: boxdot s46 23 73
+s48: future s47 0 89
+s49: and s2 s0
+s50: boxdot s0 97 100
+s51: until s50 s0 15 37
+s52: or s2 s51
+s53: or s49 s52
+s54: boxdot s0 93 100
+s55: or s48 s0
+s56: boxdot s0 46 100
+s57: and s55 s56
+s58: or s0 s53
+s59: until s12 s58 35 49
+s60: not s59
+s61: and s60 s24
+s62: future s2 6 38
+s63: until s0 s0 70 70
+s64: and s62 s63
+s65: future s64 36 100
+s66: until s65 s2 58 100
+s67: and s61 s66
+s68: until s8 s0 0 2
+s69: boxdot s68 0 13
+s70: or s0 s69
+s71: future s0 9 20
+s72: future s71 0 54
+s73: until s0 s0 15 100
+s74: and s0 s49
+s75: future s0 0 50
+s76: until s75 s0 54 100
+s77: and s76 s0
+s78: and s74 s77
+s79: or s2 s2
+s80: future s79 90 91
+s81: future s80 54 100
+s82: future s0 99 99
+s83: and s81 s82
+s84: or s83 s0
+s85: until s84 s2 84 100
+s86: not s85
+s87: future s8 47 87
+s88: future s0 58 100
+s89: future s88 84 100
+s90: or s89 s0
+s91: not s90
+s92: boxdot s91 32 53
+s93: not s92
+s94: or s2 s0
+s95: or s2 s94
+s96: and s93 s95
+s97: future s96 16 100
+s98: not s97
+s99: or s98 s94
+s100: not s99
+s101: future s8 99 100
+s102: and s0 s101
+s103: and s8 s102
+s104: future s0 99 100
+s105: or s0 s104
+s106: not s105
+s107: or s103 s106
+s108: future s107 10 80
+s109: and s108 s2
+s110: and s100 s109
+s111: end s110
+s112: boxdot s8 75 88
+s113: not s112
+s114: boxdot s0 18 100
+s115: and s0 s114
+s116: and s113 s115
+s117: future s0 0 92
+s118: or s8 s117
+s119: or s118 s2
+s120: until s8 s119 79 100
+s121: boxdot s0 91 100
+s122: not s121
+s123: or s120 s122
+s124: or s116 s123
+s125: boxdot s124 90 95
+s126: not s125
+s127: not s8
+s128: until s0 s127 0 81
+s129: and s128 s0
+s130: future s2 0 29
+s131: and s130 s0
+s132: or s129 s131
+s133: future s0 0 84
+s134: boxdot s133 90 92
+s135: not s134
+s136: until s132 s135 18 100
+s137: future s2 0 93
+s138: or s0 s137
+s139: and s136 s138
+s140: or s8 s24
+s141: boxdot s140 67 100
+s142: boxdot s141 84 87
+s143: or s126 s142
+s144: boxdot s0 35 100
+s145: and s0 s144
+s146: until s0 s0 100 100
+s147: or s146 s8
+s148: future s147 0 66
+s149: future s148 0 37
+s150: until s0 s2 7 100
+s151: boxdot s2 0 54
+s152: not s24
+s153: not s152
+s154: until s151 s153 79 100
+s155: or s150 s154
+s156: and s0 s155
+s157: until s0 s0 0 50
+s158: boxdot s157 24 75
+s159: or s0 s158
+s160: or s159 s8
+s161: boxdot s160 49 100
+s162: not s161
+s163: or s156 s162
+s164: and s149 s163
+s165: or s145 s164
+s166: future s165 37 100
+s167: end s166
+s168: end s143
+s169: and s0 s2
+s170: or s0 s2
+s171: and s169 s170
+s172: boxdot s171 0 75
+s173: until s45 s0 53 82
+s174: future s0 0 33
+s175: not s174
+s176: or s0 s175
+s177: and s24 s0
+s178: boxdot s0 59 75
+s179: not s178
+s180: or s0 s179
+s181: and s177 s180
+s182: and s176 s181
+s183: or s173 s182
+s184: future s183 2 100
+s185: not s184
+s186: not s185
+s187: not s67
+s188: end s187
+s189: end s186
+s190: boxdot s8 0 19
+s191: future s2 0 33
+s192: boxdot s0 7 100
+s193: until s191 s192 49 100
+s194: future s170 53 100
+s195: or s193 s194
+s196: future s8 0 37
+s197: future s0 0 52
+s198: and s0 s197
+s199: or s198 s0
+s200: and s199 s2
+s201: future s0 0 63
+s202: or s0 s201
+s203: and s200 s202
+s204: boxdot s203 38 100
+s205: not s204
+s206: or s196 s205
+s207: future s206 0 45
+s208: and s195 s207
+s209: or s0 s208
+s210: future s209 21 31
+s211: and s190 s210
+s212: boxdot s0 50 89
+s213: future s212 80 100
+s214: and s213 s2
+s215: or s211 s214
+s216: end s215
+s217: boxdot s0 76 98
+s218: boxdot s217 40 100
+s219: or s0 s218
+s220: or s24 s0
+s221: or s127 s220
+s222: boxdot s24 77 100
+s223: or s221 s222
+s224: boxdot s2 0 13
+s225: future s224 32 81
+s226: until s2 s0 0 45
+s227: and s0 s226
+s228: boxdot s227 45 100
+s229: not s228
+s230: or s225 s229
+s231: or s223 s230
+s232: or s219 s231
+s233: end s232
+s234: until s0 s8 0 41
+s235: end s234
+s236: boxdot s2 0 45
+s237: or s24 s236
+s238: boxdot s0 82 100
+s239: boxdot s238 84 96
+s240: or s239 s0
+s241: future s0 0 53
+s242: or s240 s241
+s243: future s242 74 82
+s244: and s237 s243
+s245: boxdot s0 60 76
+s246: future s0 0 88
+s247: and s246 s0
+s248: not s247
+s249: or s245 s248
+s250: until s0 s249 42 100
+s251: boxdot s250 0 9
+s252: future s0 72 72
+s253: or s251 s252
+s254: not s253
+s255: boxdot s254 0 51
+s256: not s255
+s257: or s244 s256
+s258: end s257
+s259: until s0 s0 89 100
+s260: and s114 s259
+s261: until s0 s0 34 100
+s262: or s261 s170
+s263: or s260 s262
+s264: not s263
+s265: until s0 s264 16 100
+s266: not s2
+s267: or s0 s266
+s268: and s265 s267
+s269: future s268 88 100
+s270: end s269
+s271: boxdot s0 56 100
+s272: and s24 s271
+s273: future s0 72 98
+s274: until s2 s273 53 100
+s275: boxdot s274 0 68
+s276: or s272 s275
+s277: not s276
+s278: or s267 s0
+s279: or s278 s0
+s280: or s277 s279
+s281: not s280
+s282: end s281
+s283: boxdot s0 69 80
+s284: or s8 s283
+s285: and s2 s284
+s286: boxdot s285 0 89
+s287: boxdot s0 39 70
+s288: and s0 s287
+s289: boxdot s288 33 46
+s290: not s289
+s291: or s286 s290
+s292: future s0 55 76
+s293: or s292 s0
+s294: and s2 s293
+s295: until s291 s294 73 100
+s296: end s295
+s297: boxdot s0 0 58
+s298: future s0 42 100
+s299: or s2 s298
+s300: until s299 s2 80 94
+s301: future s300 47 91
+s302: future s301 92 100
+s303: until s177 s302 0 44
+s304: until s297 s303 30 100
+s305: future s304 58 80
+s306: end s305
+s307: boxdot s8 83 98
+s308: and s2 s307
+s309: future s308 81 94
+s310: until s0 s0 0 90
+s311: future s310 42 100
+s312: not s311
+s313: or s94 s312
+s314: until s309 s313 15 100
+s315: future s314 99 99
+s316: future s315 61 80
+s317: or s316 s2
+s318: future s317 0 89
+s319: or s2 s24
+s320: future s2 85 96
+s321: not s320
+s322: or s0 s321
+s323: until s0 s0 17 84
+s324: until s323 s2 24 42
+s325: future s324 0 31
+s326: or s322 s325
+s327: not s326
+s328: or s319 s327
+s329: or s318 s328
+s330: not s329
+s331: future s330 0 89
+s332: end s331
+s333: boxdot s0 22 100
+s334: and s0 s333
+s335: future s0 92 100
+s336: until s335 s0 29 100
+s337: future s0 0 27
+s338: and s0 s337
+s339: or s336 s338
+s340: future s339 42 83
+s341: until s340 s0 66 84
+s342: or s334 s341
+s343: not s342
+s344: future s0 0 35
+s345: future s344 0 69
+s346: and s266 s345
+s347: or s343 s346
+s348: future s0 23 70
+s349: and s348 s0
+s350: and s8 s349
+s351: or s347 s350
+s352: end s351
+s353: boxdot s0 28 100
+s354: or s0 s353
+s355: not s354
+s356: end s355
+s357: future s0 93 98
+s358: and s2 s357
+s359: end s358
+s360: until s0 s8 17 100
+s361: and s0 s127
+s362: future s361 0 32
+s363: not s362
+s364: boxdot s363 0 20
+s365: boxdot s2 75 89
+s366: not s266
+s367: and s365 s366
+s368: future s0 91 100
+s369: or s367 s368
+s370: or s364 s369
+s371: boxdot s370 0 86
+s372: not s371
+s373: boxdot s372 74 99
+s374: and s360 s373
+s375: end s374
+s376: and s0 s8
+s377: boxdot s0 0 21
+s378: future s24 0 12
+s379: or s378 s2
+s380: and s8 s0
+s381: or s379 s380
+s382: not s381
+s383: and s377 s382
+s384: future s0 46 56
+s385: future s0 65 100
+s386: or s384 s385
+s387: or s383 s386
+s388: and s177 s387
+s389: boxdot s388 34 100
+s390: and s376 s389
+s391: boxdot s390 67 95
+s392: not s391
+s393: not s392
+s394: boxdot s393 99 100
+s395: end s394
+s396: future s94 0 92
+s397: until s396 s2 0 76
+s398: not s397
+s399: until s24 s398 47 100
+s400: boxdot s399 0 93
+s401: future s400 81 81
+s402: end s401
+s403: future s0 81 100
+s404: and s0 s403
+s405: until s404 s0 91 100
+s406: boxdot s2 62 66
+s407: not s406
+s408: not s407
+s409: not s408
+s410: and s405 s409
+s411: not s410
+s412: and s411 s0
+s413: not s412
+s414: until s0 s0 0 94
+s415: and s414 s0
+s416: or s413 s415
+s417: boxdot s416 9 100
+s418: not s417
+s419: end s418
+s420: end s376
+s421: future s0 0 51
+s422: boxdot s421 0 78
+s423: future s422 0 1
+s424: or s423 s8
+s425: future s424 31 100
+s426: future s0 23 55
+s427: not s426
+s428: and s24 s427
+s429: boxdot s428 0 50
+s430: boxdot s0 0 98
+s431: not s430
+s432: boxdot s0 36 100
+s433: or s431 s432
+s434: and s429 s433
+s435: until s0 s434 98 100
+s436: not s435
+s437: and s436 s0
+s438: and s425 s437
+s439: end s438
+s440: not s169
+s441: end s440
+s442: and s0 s24
+s443: boxdot s0 47 82
+s444: future s443 0 53
+s445: until s0 s0 87 87
+s446: or s0 s445
+s447: and s446 s2
+s448: and s444 s447
+s449: boxdot s0 1 100
+s450: or s449 s0
+s451: boxdot s0 65 71
+s452: boxdot s451 77 100
+s453: or s2 s452
+s454: and s450 s453
+s455: boxdot s0 31 100
+s456: and s454 s455
+s457: and s448 s456
+s458: or s442 s457
+s459: future s0 79 100
+s460: or s459 s0
+s461: and s8 s460
+s462: boxdot s2 0 56
+s463: boxdot s462 2 55
+s464: and s463 s2
+s465: until s461 s464 82 100
+s466: or s458 s465
+s467: end s466
+s468: future s380 60 83
+s469: boxdot s468 0 98
+s470: boxdot s0 0 66
+s471: or s470 s0
+s472: future s471 32 37
+s473: or s271 s0
+s474: future s473 0 81
+s475: not s474
+s476: future s475 2 100
+s477: and s472 s476
+s478: not s477
+s479: or s469 s478
+s480: not s479
+s481: not s480
+s482: boxdot s481 53 100
+s483: end s482
+s484: until s0 s0 85 85
+s485: or s484 s2
+s486: until s0 s0 0 49
+s487: or s2 s486
+s488: boxdot s487 0 61
+s489: until s485 s488 19 97
+s490: and s24 s2
+s491: future s0 0 95
+s492: and s491 s0
+s493: and s490 s492
+s494: or s0 s493
+s495: future s494 59 100
+s496: or s489 s495
+s497: future s496 2 100
+s498: not s238
+s499: boxdot s498 0 17
+s500: not s499
+s501: or s500 s0
+s502: and s501 s0
+s503: or s497 s502
+s504: end s503
+s505: boxdot s2 0 19
+s506: future s505 0 49
+s507: until s8 s506 76 85
+s508: future s0 0 22
+s509: not s508
+s510: future s509 59 100
+s511: and s510 s0
+s512: or s266 s511
+s513: future s512 15 100
+s514: or s24 s513
+s515: future s514 0 21
+s516: or s0 s515
+s517: and s170 s516
+s518: until s0 s0 36 75
+s519: future s0 78 100
+s520: future s0 86 98
+s521: future s520 29 73
+s522: and s519 s521
+s523: future s522 0 65
+s524: and s518 s523
+s525: future s524 0 90
+s526: and s517 s525
+s527: or s507 s526
+s528: end s527
+s529: or s0 s49
+s530: boxdot s529 89 100
+s531: future s0 23 77
+s532: boxdot s0 16 27
+s533: and s531 s532
+s534: boxdot s0 27 100
+s535: and s533 s534
+s536: boxdot s0 94 97
+s537: or s536 s0
+s538: future s537 0 99
+s539: not s538
+s540: or s0 s539
+s541: future s540 0 21
+s542: boxdot s0 0 90
+s543: until s541 s542 2 22
+s544: or s535 s543
+s545: or s530 s544
+s546: not s545
+s547: end s546
+s548: boxdot s2 96 100
+s549: or s24 s548
+s550: and s0 s549
+s551: not s550
+s552: boxdot s2 21 97
+s553: or s552 s0
+s554: future s553 0 68
+s555: not s94
+s556: boxdot s8 82 85
+s557: and s555 s556
+s558: or s557 s0
+s559: and s554 s558
+s560: or s551 s559
+s561: end s560
+s562: and s127 s2
+s563: future s562 91 98
+s564: future s0 0 25
+s565: or s564 s0
+s566: future s565 0 59
+s567: not s566
+s568: boxdot s567 0 88
+s569: or s568 s0
+s570: future s569 35 100
+s571: boxdot s570 0 97
+s572: and s563 s571
+s573: end s572
+s574: until s2 s24 95 95
+s575: until s574 s70 8 100
+s576: until s575 s87 0 88
+s577: future s576 55 100
+s578: boxdot s577 28 100
+s579: future s0 0 82
+s580: or s578 s579
+s581: future s0 2 100
+s582: not s581
+s583: or s580 s582
+s584: boxdot s583 40 43
+s585: end s584
+s586: end s172
+s587: or s73 s8
+s588: or s587 s78
+s589: boxdot s2 63 100
+s590: boxdot s589 97 98
+s591: and s0 s590
+s592: future s591 0 55
+s593: future s592 28 100
+s594: or s588 s593
+s595: end s594
+s596: boxdot s24 93 95
+s597: and s24 s596
+s598: until s597 s2 0 12
+s599: or s598 s24
+s600: boxdot s0 0 97
+s601: future s600 10 11
+s602: future s0 4 7
+s603: until s601 s602 98 99
+s604: until s0 s603 24 82
+s605: or s599 s604
+s606: future s605 47 100
+s607: future s606 0 76
+s608: not s607
+s609: until s2 s608 79 87
+s610: end s609
+s611: and s2 s266
+s612: or s24 s611
+s613: end s612
+s614: or s2 s271
+s615: until s0 s24 82 90
+s616: or s0 s615
+s617: or s614 s616
+s618: or s0 s24
+s619: boxdot s618 53 86
+s620: not s619
+s621: until s617 s620 11 44
+s622: not s377
+s623: boxdot s622 26 73
+s624: boxdot s623 91 100
+s625: or s2 s624
+s626: or s625 s0
+s627: until s621 s626 28 39
+s628: boxdot s0 98 100
+s629: boxdot s628 33 56
+s630: or s0 s629
+s631: until s0 s0 25 100
+s632: until s631 s0 72 100
+s633: boxdot s632 0 60
+s634: and s630 s633
+s635: until s627 s634 93 100
+s636: end s635
+s637: until s0 s0 0 59
+s638: and s2 s637
+s639: not s638
+s640: boxdot s0 0 46
+s641: or s639 s640
+s642: end s641
+s643: boxdot s2 0 38
+s644: boxdot s643 64 100
+s645: boxdot s644 84 100
+s646: end s645
+s647: and s337 s0
+s648: not s647
+s649: until s0 s0 0 11
+s650: future s649 0 29
+s651: and s0 s650
+s652: or s648 s651
+s653: or s0 s652
+s654: or s24 s653
+s655: future s0 37 75
+s656: boxdot s655 0 44
+s657: future s2 76 76
+s658: until s0 s2 0 65
+s659: or s657 s658
+s660: and s659 s2
+s661: and s656 s660
+s662: future s661 38 100
+s663: until s654 s662 14 100
+s664: and s8 s663
+s665: not s664
+s666: end s665
+s667: until s2 s0 0 70
+s668: not s667
+s669: until s0 s0 33 62
+s670: or s668 s669
+s671: future s2 79 100
+s672: boxdot s671 0 19
+s673: or s670 s672
+s674: boxdot s673 0 47
+s675: not s674
+s676: not s675
+s677: future s0 0 55
+s678: boxdot s0 39 100
+s679: and s677 s678
+s680: future s679 8 19
+s681: future s680 0 41
+s682: future s681 0 59
+s683: future s682 41 54
+s684: and s676 s683
+s685: boxdot s2 0 63
+s686: future s170 16 53
+s687: boxdot s170 0 87
+s688: and s686 s687
+s689: and s685 s688
+s690: until s0 s2 26 65
+s691: boxdot s690 7 100
+s692: and s689 s691
+s693: future s692 0 68
+s694: and s684 s693
+s695: end s694
+s696: future s0 0 85
+s697: or s0 s696
+s698: and s2 s697
+s699: future s2 0 74
+s700: or s699 s0
+s701: future s8 0 32
+s702: not s701
+s703: until s700 s702 78 100
+s704: boxdot s703 33 72
+s705: or s698 s704
+s706: end s705
+s707: boxdot s0 76 83
+s708: boxdot s0 0 70
+s709: or s708 s0
+s710: and s709 s0
+s711: until s707 s710 0 80
+s712: boxdot s0 28 79
+s713: and s0 s712
+s714: boxdot s713 20 30
+s715: boxdot s0 41 100
+s716: or s715 s2
+s717: and s716 s2
+s718: or s714 s717
+s719: and s711 s718
+s720: not s719
+s721: end s720
+s722: future s0 0 17
+s723: boxdot s0 38 67
+s724: or s2 s723
+s725: boxdot s0 0 73
+s726: future s725 15 83
+s727: not s49
+s728: boxdot s140 0 48
+s729: until s727 s728 16 38
+s730: and s726 s729
+s731: or s724 s730
+s732: boxdot s731 0 58
+s733: until s722 s732 52 62
+s734: and s733 s0
+s735: end s734
+s736: boxdot s2 72 76
+s737: not s736
+s738: and s737 s0
+s739: and s738 s0
+s740: future s0 57 67
+s741: boxdot s8 0 9
+s742: future s741 99 100
+s743: boxdot s742 45 96
+s744: boxdot s743 2 55
+s745: until s740 s744 93 94
+s746: until s739 s745 0 16
+s747: boxdot s0 0 4
+s748: future s0 14 96
+s749: or s747 s748
+s750: and s749 s8
+s751: future s750 57 100
+s752: or s24 s751
+s753: boxdot s752 81 90
+s754: and s746 s753
+s755: end s754
+s756: boxdot s0 84 100
+s757: or s0 s756
+s758: until s757 s0 40 77
+s759: not s758
+s760: or s2 s759
+s761: boxdot s220 69 96
+s762: and s760 s761
+s763: future s0 0 5
+s764: boxdot s763 6 82
+s765: boxdot s0 33 71
+s766: boxdot s765 0 23
+s767: or s764 s766
+s768: and s762 s767
+s769: end s768
+s770: boxdot s0 0 17
+s771: boxdot s770 82 100
+s772: future s2 52 85
+s773: and s8 s2
+s774: or s772 s773
+s775: future s774 0 26
+s776: or s771 s775
+s777: end s776
+s778: until s2 s2 0 72
+s779: end s778
+s780: future s0 33 100
+s781: boxdot s780 51 93
+s782: boxdot s0 9 100
+s783: until s2 s782 11 44
+s784: until s781 s783 99 100
+s785: or s8 s784
+s786: and s785 s380
+s787: not s786
+s788: end s787
+s789: until s2 s0 8 65
+s790: boxdot s789 81 100
+s791: and s152 s790
+s792: boxdot s0 0 45
+s793: and s0 s792
+s794: and s793 s0
+s795: not s794
+s796: not s795
+s797: boxdot s796 10 100
+s798: boxdot s266 65 100
+s799: or s797 s798
+s800: boxdot s799 74 92
+s801: boxdot s0 5 52
+s802: future s801 98 100
+s803: and s800 s802
+s804: or s0 s803
+s805: future s0 0 41
+s806: future s0 34 40
+s807: and s805 s806
+s808: or s0 s807
+s809: future s808 0 55
+s810: or s2 s809
+s811: or s804 s810
+s812: or s791 s811
+s813: future s812 20 57
+s814: end s813
+s815: boxdot s0 0 29
+s816: future s815 94 96
+s817: and s0 s816
+s818: and s817 s0
+s819: or s818 s127
+s820: until s0 s0 0 44
+s821: boxdot s820 47 100
+s822: boxdot s821 0 26
+s823: and s0 s170
+s824: future s823 0 25
+s825: future s824 0 89
+s826: and s0 s825
+s827: and s822 s826
+s828: future s0 22 95
+s829: and s828 s0
+s830: or s827 s829
+s831: not s830
+s832: or s819 s831
+s833: end s832
+s834: boxdot s24 0 58
+s835: future s834 3 57
+s836: not s835
+s837: boxdot s79 38 100
+s838: not s837
+s839: or s836 s838
+s840: future s839 0 77
+s841: future s2 0 39
+s842: boxdot s0 0 89
+s843: or s841 s842
+s844: future s843 0 2
+s845: future s844 94 99
+s846: not s845
+s847: and s846 s266
+s848: not s847
+s849: and s840 s848
+s850: future s849 85 88
+s851: not s850
+s852: future s851 81 100
+s853: boxdot s266 0 17
+s854: and s0 s853
+s855: or s854 s24
+s856: until s8 s855 8 100
+s857: boxdot s856 0 68
+s858: boxdot s857 0 65
+s859: until s852 s858 0 62
+s860: end s859
+s861: boxdot s0 0 32
+s862: boxdot s861 6 100
+s863: and s862 s0
+s864: or s8 s863
+s865: not s864
+s866: end s865
+s867: future s0 76 78
+s868: and s0 s867
+s869: future s0 0 16
+s870: boxdot s869 0 4
+s871: not s870
+s872: not s871
+s873: future s872 52 80
+s874: until s868 s873 0 10
+s875: until s874 s8 46 100
+s876: future s0 0 24
+s877: future s2 0 14
+s878: and s876 s877
+s879: boxdot s878 30 38
+s880: until s879 s618 100 100
+s881: future s880 0 15
+s882: and s875 s881
+s883: future s2 95 99
+s884: future s0 61 91
+s885: not s884
+s886: or s883 s885
+s887: and s882 s886
+s888: future s887 0 23
+s889: future s888 92 98
+s890: end s889
+s891: future s0 6 66
+s892: or s891 s0
+s893: boxdot s0 0 3
+s894: until s0 s893 95 100
+s895: future s0 51 100
+s896: until s895 s0 97 99
+s897: boxdot s896 0 0
+s898: and s894 s897
+s899: boxdot s898 59 96
+s900: and s892 s899
+s901: future s0 0 13
+s902: or s2 s901
+s903: or s0 s902
+s904: future s903 15 57
+s905: and s900 s904
+s906: boxdot s905 0 92
+s907: future s906 96 98
+s908: boxdot s2 8 100
+s909: or s907 s908
+s910: future s909 85 85
+s911: future s0 78 82
+s912: boxdot s911 67 100
+s913: boxdot s912 82 98
+s914: and s0 s913
+s915: or s910 s914
+s916: not s915
+s917: until s0 s0 0 34
+s918: and s24 s917
+s919: and s916 s918
+s920: boxdot s919 0 13
+s921: boxdot s920 39 94
+s922: end s921
+s923: until s0 s0 0 31
+s924: or s923 s0
+s925: future s0 0 47
+s926: or s0 s925
+s927: future s0 0 60
+s928: future s927 62 100
+s929: until s926 s928 0 71
+s930: boxdot s929 7 21
+s931: or s930 s2
+s932: and s931 s0
+s933: or s924 s932
+s934: end s933
+s935: boxdot s0 18 66
+s936: and s0 s935
+s937: or s319 s936
+s938: or s937 s2
+s939: future s938 79 90
+s940: end s939
+s941: boxdot s490 0 81
+s942: boxdot s941 0 88
+s943: future s24 0 84
+s944: future s943 0 4
+s945: boxdot s944 40 100
+s946: and s942 s945
+s947: end s946
+s948: future s24 86 89
+s949: and s0 s948
+s950: future s0 60 89
+s951: boxdot s950 49 100
+s952: future s94 74 93
+s953: until s952 s2 19 100
+s954: or s953 s0
+s955: or s0 s954
+s956: and s951 s955
+s957: until s2 s0 30 42
+s958: or s956 s957
+s959: not s958
+s960: or s8 s959
+s961: or s949 s960
+s962: boxdot s961 45 100
+s963: boxdot s962 61 100
+s964: end s963
+s965: boxdot s0 14 100
+s966: future s0 0 86
+s967: or s965 s966
+s968: future s967 39 89
+s969: or s0 s968
+s970: not s969
+s971: future s970 0 18
+s972: end s971
+s973: future s0 82 100
+s974: and s973 s0
+s975: or s974 s0
+s976: and s975 s0
+s977: and s24 s976
+s978: not s977
+s979: until s0 s978 13 37
+s980: end s979
+s981: future s0 0 64
+s982: or s981 s0
+s983: boxdot s0 35 93
+s984: and s2 s983
+s985: until s982 s984 17 55
+s986: boxdot s985 0 42
+s987: or s8 s2
+s988: until s986 s987 10 100
+s989: or s2 s8
+s990: boxdot s0 0 60
+s991: and s989 s990
+s992: not s991
+s993: future s0 0 89
+s994: or s0 s993
+s995: future s0 76 80
+s996: or s2 s995
+s997: and s994 s996
+s998: until s2 s0 97 100
+s999: and s998 s0
+s1000: or s999 s0
+s1001: and s997 s1000
+s1002: and s992 s1001
+s1003: future s1002 38 100
+s1004: and s988 s1003
+s1005: end s1004
+s1006: boxdot s0 87 100
+s1007: not s1006
+s1008: until s1007 s2 44 100
+s1009: boxdot s1008 13 71
+s1010: not s1009
+s1011: boxdot s2 36 100
+s1012: not s1011
+s1013: until s1010 s1012 39 100
+s1014: boxdot s0 62 100
+s1015: or s169 s0
+s1016: future s1015 0 41
+s1017: or s1014 s1016
+s1018: boxdot s0 5 19
+s1019: until s1018 s0 9 68
+s1020: future s266 90 99
+s1021: future s1020 86 91
+s1022: and s1019 s1021
+s1023: and s1017 s1022
+s1024: until s1013 s1023 0 1
+s1025: end s1024
+s1026: boxdot s0 13 100
+s1027: or s0 s1026
+s1028: not s1027
+s1029: and s376 s1028
+s1030: or s170 s1029
+s1031: until s1030 s24 0 32
+s1032: end s1031
+s1033: future s2 84 100
+s1034: boxdot s1033 55 100
+s1035: future s1034 100 100
+s1036: or s1035 s0
+s1037: future s2 0 86
+s1038: and s1037 s2
+s1039: and s1038 s0
+s1040: not s1039
+s1041: boxdot s1040 11 92
+s1042: not s1041
+s1043: or s1042 s0
+s1044: and s2 s1043
+s1045: until s1036 s1044 10 23
+s1046: future s0 0 61
+s1047: and s1046 s0
+s1048: until s1047 s8 16 20
+s1049: or s1048 s0
+s1050: or s170 s1049
+s1051: and s1045 s1050
+s1052: end s1051
+s1053: and s2 s2
+s1054: or s1053 s0
+s1055: or s8 s1054
+s1056: until s1055 s0 94 100
+s1057: future s0 32 84
+s1058: and s0 s1057
+s1059: and s1058 s0
+s1060: or s1059 s2
+s1061: until s1060 s8 77 100
+s1062: future s8 89 100
+s1063: or s0 s8
+s1064: and s1062 s1063
+s1065: and s1061 s1064
+s1066: and s1056 s1065
+s1067: until s0 s0 94 99
+s1068: not s1067
+s1069: until s0 s1068 63 75
+s1070: or s0 s1069
+s1071: or s1066 s1070
+s1072: not s1071
+s1073: future s1072 0 62
+s1074: not s1073
+s1075: end s1074
+s1076: and s2 s24
+s1077: until s0 s0 50 100
+s1078: and s2 s708
+s1079: until s1077 s1078 83 99
+s1080: boxdot s0 59 87
+s1081: until s1079 s1080 39 69
+s1082: boxdot s1081 30 78
+s1083: or s1076 s1082
+s1084: future s1083 91 95
+s1085: and s2 s8
+s1086: and s1084 s1085
+s1087: future s1086 87 94
+s1088: future s1087 24 100
+s1089: boxdot s0 0 35
+s1090: or s1089 s0
+s1091: not s1090
+s1092: until s24 s1091 0 52
+s1093: or s1088 s1092
+s1094: end s1093
+s1095: or s72 s86
+s1096: end s1095
+s1097: end s139
+s1098: or s24 s2
+s1099: or s8 s0
+s1100: future s1099 55 62
+s1101: future s1100 39 100
+s1102: or s1101 s0
+s1103: and s1102 s0
+s1104: or s1098 s1103
+s1105: future s1104 0 61
+s1106: not s1105
+s1107: or s2 s534
+s1108: or s1106 s1107
+s1109: not s1108
+s1110: boxdot s403 52 92
+s1111: or s0 s1110
+s1112: and s1111 s0
+s1113: until s2 s0 37 100
+s1114: and s1113 s0
+s1115: boxdot s1114 0 65
+s1116: until s1112 s1115 45 45
+s1117: future s1116 24 68
+s1118: until s1109 s1117 59 100
+s1119: future s1118 20 100
+s1120: end s1119
+s1121: until s24 s170 0 64
+s1122: and s0 s1121
+s1123: end s1122
+s1124: or s2 s266
+s1125: boxdot s0 75 98
+s1126: until s49 s8 0 90
+s1127: boxdot s1126 11 100
+s1128: and s1125 s1127
+s1129: or s869 s1128
+s1130: or s1129 s0
+s1131: or s1124 s1130
+s1132: until s8 s1131 3 48
+s1133: until s2 s1132 80 93
+s1134: or s1133 s8
+s1135: end s1134
+s1136: until s0 s0 0 61
+s1137: boxdot s0 56 90
+s1138: and s169 s1137
+s1139: and s1138 s0
+s1140: and s1136 s1139
+s1141: or s169 s1140
+s1142: boxdot s442 0 67
+s1143: and s1141 s1142
+s1144: boxdot s1143 57 100
+s1145: not s1144
+s1146: and s2 s1145
+s1147: until s0 s1146 0 84
+s1148: until s0 s24 0 80
+s1149: until s0 s1148 76 82
+s1150: or s1147 s1149
+s1151: end s1150
+s1152: until s0 s0 38 100
+s1153: until s0 s0 0 42
+s1154: future s1153 51 100
+s1155: and s1152 s1154
+s1156: boxdot s1155 0 63
+s1157: future s1156 0 99
+s1158: not s1157
+s1159: until s1158 s0 0 45
+s1160: or s1159 s0
+s1161: end s1160
+s1162: until s2 s0 69 81
+s1163: future s0 30 100
+s1164: or s2 s1163
+s1165: and s1162 s1164
+s1166: future s1165 0 62
+s1167: boxdot s1166 0 19
+s1168: not s1167
+s1169: not s1168
+s1170: boxdot s1169 0 79
+s1171: and s1170 s24
+s1172: not s1171
+s1173: boxdot s0 0 72
+s1174: and s1172 s1173
+s1175: until s0 s0 40 100
+s1176: not s1175
+s1177: or s1174 s1176
+s1178: boxdot s1177 0 16
+s1179: not s1178
+s1180: end s1179
+s1181: until s2 s0 0 79
+s1182: until s0 s0 29 100
+s1183: and s1181 s1182
+s1184: or s298 s266
+s1185: future s1184 21 100
+s1186: or s1183 s1185
+s1187: until s266 s1186 76 96
+s1188: end s1187
+s1189: boxdot s310 39 58
+s1190: and s0 s1189
+s1191: and s1190 s0
+s1192: not s1191
+s1193: until s266 s0 0 12
+s1194: boxdot s0 0 30
+s1195: or s1194 s0
+s1196: not s1195
+s1197: until s0 s1196 94 99
+s1198: and s0 s1197
+s1199: not s1198
+s1200: or s1193 s1199
+s1201: until s1200 s0 0 64
+s1202: not s1201
+s1203: boxdot s989 33 100
+s1204: or s0 s1203
+s1205: and s0 s1204
+s1206: until s1202 s1205 61 98
+s1207: until s0 s0 73 100
+s1208: and s1206 s1207
+s1209: and s1192 s1208
+s1210: end s1209
+s1211: future s94 17 100
+s1212: boxdot s0 87 96
+s1213: and s1211 s1212
+s1214: future s1213 85 100
+s1215: boxdot s0 57 100
+s1216: or s1214 s1215
+s1217: future s0 22 100
+s1218: and s1216 s1217
+s1219: or s2 s1218
+s1220: until s0 s0 96 97
+s1221: or s1219 s1220
+s1222: until s2 s1221 0 64
+s1223: end s1222
+s1224: future s0 29 100
+s1225: or s1224 s192
+s1226: and s8 s1225
+s1227: or s24 s1226
+s1228: future s0 93 100
+s1229: or s24 s1228
+s1230: not s1229
+s1231: until s1227 s1230 26 83
+s1232: and s0 s1231
+s1233: boxdot s0 80 95
+s1234: and s2 s1233
+s1235: until s0 s0 0 78
+s1236: future s1235 75 100
+s1237: or s1234 s1236
+s1238: or s1232 s1237
+s1239: boxdot s1238 82 100
+s1240: end s1239
+s1241: boxdot s0 49 100
+s1242: and s1241 s0
+s1243: until s1242 s94 0 56
+s1244: not s1243
+s1245: end s1244
+s1246: future s169 0 95
+s1247: boxdot s1246 21 43
+s1248: until s0 s2 89 100
+s1249: boxdot s0 77 95
+s1250: or s0 s1249
+s1251: boxdot s1250 54 71
+s1252: or s1251 s0
+s1253: boxdot s1252 55 89
+s1254: or s2 s1253
+s1255: not s1254
+s1256: and s1255 s0
+s1257: boxdot s1256 0 98
+s1258: and s1257 s2
+s1259: and s1248 s1258
+s1260: boxdot s1259 21 34
+s1261: boxdot s1260 0 99
+s1262: or s1247 s1261
+s1263: future s2 62 100
+s1264: until s1263 s0 0 70
+s1265: and s1262 s1264
+s1266: not s1265
+s1267: or s169 s1266
+s1268: not s1267
+s1269: end s1268
+s1270: future s0 71 72
+s1271: not s1270
+s1272: or s0 s1271
+s1273: end s1272
+s1274: boxdot s0 70 100
+s1275: or s1274 s24
+s1276: until s1275 s8 0 84
+s1277: and s0 s1276
+s1278: boxdot s1277 48 56
+s1279: future s1278 25 40
+s1280: not s1279
+s1281: end s1280
+s1282: until s0 s2 0 46
+s1283: and s0 s1282
+s1284: future s0 0 99
+s1285: not s1284
+s1286: or s1285 s0
+s1287: boxdot s1286 1 100
+s1288: and s564 s266
+s1289: not s1288
+s1290: until s1287 s1289 0 88
+s1291: not s1290
+s1292: future s1291 1 35
+s1293: or s24 s1292
+s1294: until s1293 s266 69 99
+s1295: until s1283 s1294 0 21
+s1296: not s1295
+s1297: not s1296
+s1298: not s1297
+s1299: not s1298
+s1300: future s1299 83 87
+s1301: until s8 s2 51 100
+s1302: or s0 s1301
+s1303: or s1300 s1302
+s1304: end s1303
+s1305: until s2 s0 0 17
+s1306: or s1305 s57
+s1307: end s1306
+s1308: end s44
+s1309: until s54 s0 58 71
+s1310: until s0 s0 0 45
+s1311: and s1309 s1310
+s1312: not s1311
+s1313: future s1312 0 16
+s1314: end s1313
+s1315: future s2 60 100
+s1316: future s1315 62 70
+s1317: until s2 s0 57 100
+s1318: until s1317 s2 0 52
+s1319: future s1318 55 77
+s1320: future s1319 45 74
+s1321: future s0 56 100
+s1322: until s1320 s1321 0 74
+s1323: and s1316 s1322
+s1324: future s1323 2 100
+s1325: not s1324
+s1326: future s1325 0 11
+s1327: boxdot s1085 96 100
+s1328: future s1327 63 100
+s1329: boxdot s1328 1 100
+s1330: or s1326 s1329
+s1331: end s1330
+s1332: boxdot s24 17 100
+s1333: future s1332 0 86
+s1334: until s2 s1333 0 38
+s1335: or s0 s1334
+s1336: or s1335 s266
+s1337: boxdot s0 0 62
+s1338: or s1337 s0
+s1339: or s1338 s0
+s1340: and s1339 s519
+s1341: or s1340 s727
+s1342: and s1341 s1011
+s1343: boxdot s1342 0 14
+s1344: or s1336 s1343
+s1345: end s1344
+s1346: boxdot s0 33 100
+s1347: boxdot s0 21 85
+s1348: or s0 s1347
+s1349: until s2 s0 78 90
+s1350: future s0 86 93
+s1351: future s1350 87 99
+s1352: and s1349 s1351
+s1353: or s1348 s1352
+s1354: not s1353
+s1355: or s2 s1354
+s1356: and s1346 s1355
+s1357: end s1356
+s1358: boxdot s0 15 91
+s1359: and s0 s1358
+s1360: or s1359 s220
+s1361: end s1360
+s1362: boxdot s0 0 31
+s1363: and s2 s1362
+s1364: boxdot s1363 91 100
+s1365: future s1364 19 100
+s1366: boxdot s1365 0 46
+s1367: and s1366 s0
+s1368: boxdot s1367 29 100
+s1369: boxdot s2 93 100
+s1370: until s1368 s1369 7 100
+s1371: end s1370
+s1372: boxdot s2 9 67
+s1373: and s177 s1372
+s1374: not s1373
+s1375: end s1374
+s1376: or s24 s266
+s1377: not s1376
+s1378: and s1377 s0
+s1379: until s2 s0 74 97
+s1380: or s1379 s0
+s1381: until s1378 s1380 34 100
+s1382: future s0 81 95
+s1383: until s2 s1382 97 98
+s1384: and s1383 s0
+s1385: or s0 s1384
+s1386: and s1381 s1385
+s1387: boxdot s0 95 100
+s1388: until s0 s1387 44 100
+s1389: boxdot s1388 95 100
+s1390: or s1389 s49
+s1391: boxdot s1390 0 2
+s1392: not s1391
+s1393: boxdot s1392 37 100
+s1394: future s1393 67 73
+s1395: and s1386 s1394
+s1396: not s1395
+s1397: boxdot s1396 24 100
+s1398: not s1397
+s1399: end s1398
+s1400: future s88 67 90
+s1401: and s1400 s169
+s1402: not s1401
+s1403: future s1402 27 49
+s1404: future s0 18 46
+s1405: boxdot s1404 0 75
+s1406: until s1403 s1405 17 100
+s1407: not s1406
+s1408: end s1407
+s1409: boxdot s0 13 77
+s1410: and s1409 s8
+s1411: future s2 0 45
+s1412: boxdot s1411 60 100
+s1413: future s0 18 71
+s1414: or s1412 s1413
+s1415: and s1410 s1414
+s1416: future s1415 0 66
+s1417: not s1416
+s1418: not s1417
+s1419: future s1418 90 100
+s1420: and s0 s1419
+s1421: end s1420
+s1422: end s79
+s1423: future s2 95 100
+s1424: not s1423
+s1425: future s0 63 100
+s1426: and s0 s344
+s1427: and s1425 s1426
+s1428: boxdot s1427 16 21
+s1429: boxdot s2 77 93
+s1430: until s0 s2 0 10
+s1431: until s1429 s1430 94 100
+s1432: not s1431
+s1433: or s1428 s1432
+s1434: or s1424 s1433
+s1435: until s0 s24 25 29
+s1436: boxdot s0 13 41
+s1437: not s1436
+s1438: until s1435 s1437 0 18
+s1439: or s8 s1438
+s1440: or s1434 s1439
+s1441: not s1440
+s1442: not s1441
+s1443: boxdot s1442 0 30
+s1444: end s1443
+s1445: boxdot s0 29 100
+s1446: or s1445 s0
+s1447: future s1446 0 47
+s1448: not s1447
+s1449: or s0 s1448
+s1450: and s1449 s2
+s1451: until s0 s0 0 88
+s1452: and s0 s1451
+s1453: future s1452 68 100
+s1454: future s0 0 48
+s1455: and s1453 s1454
+s1456: boxdot s0 0 63
+s1457: or s8 s1456
+s1458: or s0 s319
+s1459: or s1457 s1458
+s1460: and s1455 s1459
+s1461: or s0 s1460
+s1462: not s1461
+s1463: and s1450 s1462
+s1464: end s1463
+s1465: end sequence
