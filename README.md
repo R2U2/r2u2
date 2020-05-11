@@ -1,11 +1,13 @@
 # R2U2 Dependencies: 
-* Posix environment (Linux, MacOS, Etc.)
-* Python3 (version 3.6 or greater)
-* Python Lex & Yacc (python3 -m pip install —user —upgrade  ply)
-* C99 std compiler (gcc or clang)
-* Make
+- Posix environment (Linux, MacOS, Etc.)
+- Python3 (version 3.6 or greater)
+- Python Lex & Yacc (python3 -m pip install —user —upgrade  ply)
+- C99 std compiler (gcc or clang)
+- Make
 
 # MLTL Formula Syntax
+
+Note that MLTL formulas are terminated by semicolons (;). Additionally, parentheses may be used to explicitly specify operator precidence. Also note that if you are entering formulas directly into the command line, use single quotes (') around the formula. If using double quotes ("), special characters (!, \|, &) will need a backslash (\\) 
 
 | **Expression** | **Syntax**  |
 |----------------|-------------|
@@ -27,10 +29,12 @@
 
 2. To convert formulas to binary files for R2U2, run the *r2u2prep.py* script. Users may select to either to enter formulas manually from the command line or point to a valid *.mltl* file. 
 
-    `./r2u2prep [formula or formula file]`
+    `./r2u2prep [formula or path to a formula file]`
     
-    * Note: This script will point the user to the newly made *tools/binary_files* directory, where the binary files are located.
-
+    - **Note**: This script will point the user to the newly made *tools/binary_files* directory, where the binary files are located.
  
-3. To run R2U2, execute `./bin/r2u2 tools/binary_files [time series, Boolean input .csv file]`.
-    * Note that if an input file is excluded from this command, then R2U2 looks to the command line for Boolean inputs, separated by commas.
+3. To run R2U2, execute:
+
+    `./bin/r2u2 tools/binary_files [the path to a time series, Boolean input .csv file]`.
+
+    - **Note**: If an input file is excluded from this command, then R2U2 looks to the command line for Boolean inputs, separated by commas. Time steps are separated by pressing `Enter`.
