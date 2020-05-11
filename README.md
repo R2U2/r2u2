@@ -40,3 +40,6 @@ Note that MLTL formulas are terminated by semicolons (;). Additionally, parenthe
     `./bin/r2u2 tools/binary_files [the path to a time series, Boolean input .csv file]`.
 
     - **Note**: If an input file is excluded from this command, then R2U2 looks to the command line for Boolean inputs, separated by commas. Time steps are separated by pressing `Enter`.
+
+4. The output to R2U2 is saved in the *R2U2.log* file. For runs of R2U2 with more than one formula, it may be useful to split this file into multiple result files with one formula in each file. In the **tools/** directory, there is a bash script *split_verdicts.sh* which does this. To execute, run `./split_verdicts [R2U2 log file]`.
+    - **Note:** This script names formula files with the notation *[original file name]_formula\#.txt*, where \# is the corresponding formula number, indexed from 1.
