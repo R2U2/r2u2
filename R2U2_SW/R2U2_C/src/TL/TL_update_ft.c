@@ -85,7 +85,7 @@ int TL_update_ft(FILE *log_file) {
 			int op1 = 0, scq_size_rd = 0, input_wr_ptr = 0;
 
             // Declare a new pointer for the SCQ's operand
-            elt_ft_queue_t *scq_seg;
+            elt_ft_queue_t *scq_seg = NULL;
 
             // If the opcode type is a subformula
             if(instruction_mem_ft[pc].op1.opnd_type == subformula) {
@@ -154,7 +154,7 @@ int TL_update_ft(FILE *log_file) {
             int op1=0, scq_size_rd=0, input_wr_ptr=0;
 
             // Declare a new pointer for the SCQ's operand
-            elt_ft_queue_t *scq_seg;
+            elt_ft_queue_t *scq_seg = NULL;
 
             // If the opcode type is a subformula
             if(instruction_mem_ft[pc].op1.opnd_type == subformula) {
@@ -197,7 +197,7 @@ int TL_update_ft(FILE *log_file) {
             int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;
 
             // Declare new pointers for the SCQ's operandds
-            elt_ft_queue_t *scq_seg_1, *scq_seg_2;
+            elt_ft_queue_t *scq_seg_1 = NULL, *scq_seg_2 = NULL;
 
             // If the first operand's opcode is a subformula
             if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
@@ -250,6 +250,7 @@ int TL_update_ft(FILE *log_file) {
                 }
                 // if the second operand's is empty
                 else {
+                    DEEP_PRINT("YYYY\n");
                     elt_ft_queue_t res_1 = pop_cap(pc, 1, scq_seg_1, *rd_ptr_1);
                     if(!res_1.v_q) res = (elt_ft_queue_t){false, res_1.t_q};
                 }
@@ -292,7 +293,7 @@ int TL_update_ft(FILE *log_file) {
         case OP_FT_GJ: {
             DEEP_PRINT("\n");
             int op1=0, scq_size_rd=0, input_wr_ptr=0;
-            elt_ft_queue_t *scq_seg;
+            elt_ft_queue_t *scq_seg = NULL;
             if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
                 op1 = instruction_mem_ft[pc].op1.value;
                 DEEP_PRINT("op1: %d\n", op1);
@@ -357,7 +358,7 @@ int TL_update_ft(FILE *log_file) {
             int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;
 
             // Initialize the scq_sec pointers
-            elt_ft_queue_t *scq_seg_1, *scq_seg_2;
+            elt_ft_queue_t *scq_seg_1 = NULL, *scq_seg_2 = NULL;
 
             // If the first operand's opcode is a subformula
             if(instruction_mem_ft[pc].op1.opnd_type == subformula) {

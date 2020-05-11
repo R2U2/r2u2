@@ -24,7 +24,10 @@ typedef unsigned int timestamp_t;
 // #define L_INSTRUCTION (L_OPC + L_OP + L_OP + L_INTVL + L_SCRATCH)
 
 // for the file .ftscq
-#define L_SCQ_ADDRESS 8
+#define L_SCQ_ADDRESS 16
+
+// Defines the total SCQ SIZE
+#define L_SCQ_SIZE 1024
 
 // #define L_INTVL_TS 16
 #define L_INTERVAL 32
