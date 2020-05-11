@@ -19,7 +19,7 @@ This script will point the user to the newly made *tools/binary_files* directory
 |----------------|-------------|
 | Negation       |    `!E1;`    |
 | Conjunction    |  `E1 & E2;`  |
-| Disjunction    |  `E1 | E2;`  |
+| Disjunction    |  `E1 \| E2;`  |
 | Implication    |  `E1 -> E2;` |
 | Equivalence    | `E1 <-> E2;` |
 | Globally       | `G[ti,tf] E1;` or `G[tf] E1;`|
