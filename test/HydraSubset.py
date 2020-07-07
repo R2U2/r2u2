@@ -17,7 +17,7 @@ Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'TL_formula/formulaHydra/'
-__InputDir__     = __AbsolutePath__+'Inputs/InputFiles/'
+__InputDir__     = __AbsolutePath__+'Inputs/inputFiles/'
 __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __toolsDir__     = __AbsolutePath__+'../tools/'
