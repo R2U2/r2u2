@@ -29,9 +29,9 @@ def r2u2test(args):
     if not os.path.isdir("oracleFiles"):
         subprocess.run(["python3", __OracleDir__+"genOracle.py", "-m"])
 
-    if args.version not in ['c']:
+    if args.version not in ['c', 'cpp', 'python']:
         print("Please enter a valid version of R2U2")
-        print("The valid versions are: 'c'")
+        print("The valid versions are: 'c', 'cpp', 'python'")
         exit()
 
     if args.subset == "Hydra":
