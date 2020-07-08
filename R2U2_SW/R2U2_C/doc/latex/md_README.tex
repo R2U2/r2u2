@@ -1,0 +1,33 @@
+This is the software-\/only version of R2\+U2.
+
+Updated 11.\+04.\+17 from the N\+A\+SA A\+OS Repository (Standalone Version)
+
+R2\+U2 matlab/octave standalone\+:
+
+
+\begin{DoxyEnumerate}
+\item install tools\+: cd tools/\+L\+T\+L$\ast$/src make make install
+\item compile/run formula cd src/\+M\+A\+T\+L\+AB $<$$<$ formula in t1.\+txt $>$$>$
+
+octave
+
+in octave\+: $>$$>$ more off
+
+\% compiles formula and builds R2\+U2 $>$$>$ make\+\_\+r2u2\+\_\+octave(\textquotesingle{}t1\textquotesingle{});
+
+\% run r2u2 on some small data and plot $>$$>$ run\+\_\+t1
+\end{DoxyEnumerate}
+
+2A. for matlab\+: similar wrapper
+
+
+\begin{DoxyEnumerate}
+\item N\+O\+T\+ES\+:
+\end{DoxyEnumerate}
+\begin{DoxyItemize}
+\item The octave/matlab R2\+U2 only accepts {\itshape binary} input values (width=128)
+\item NO signal preprocessing here
+\item make\+\_\+r2u2\+\_\+octave\+: errors during compilation of formulas are shown, but the build-\/process continues (must be fixed)
+\item there are several run$\ast$.m scripts, which plot results. Some of them are also suitable for future time (sync observers). Only output signals are plotted if they are labeled in the input specification.
+\item FT\+: some future time temporal operators are not implemented in this version (sync). Async observers haven\textquotesingle{}t been implemented at all. 
+\end{DoxyItemize}

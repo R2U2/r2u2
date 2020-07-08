@@ -1,0 +1,97 @@
+\hypertarget{TL__queue__ft_8h}{}\section{src/\+T\+L/\+T\+L\+\_\+queue\+\_\+ft.h File Reference}
+\label{TL__queue__ft_8h}\index{src/\+T\+L/\+T\+L\+\_\+queue\+\_\+ft.\+h@{src/\+T\+L/\+T\+L\+\_\+queue\+\_\+ft.\+h}}
+
+
+Routines for the future time queues.  
+
+
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t}
+\begin{DoxyCompactList}\small\item\em defines the tuples stored in the queue \end{DoxyCompactList}\item 
+struct \hyperlink{structft__sync__queue__t}{ft\+\_\+sync\+\_\+queue\+\_\+t}
+\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+typedef \hyperlink{structft__sync__queue__t}{ft\+\_\+sync\+\_\+queue\+\_\+t} \hyperlink{TL__queue__ft_8h_a84d957a4583aac168b7bf2cdb88a12dd}{sync\+\_\+queues\+\_\+ft\+\_\+t}\mbox{[}N\+\_\+\+S\+U\+B\+F\+O\+R\+M\+U\+L\+A\+\_\+\+S\+N\+Y\+C\+\_\+\+Q\+U\+E\+U\+ES\mbox{]}
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_a5ee4d154ce8ba1ee06131932c78ed475}\label{TL__queue__ft_8h_a5ee4d154ce8ba1ee06131932c78ed475}} 
+typedef \hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} {\bfseries S\+C\+Q\+\_\+t}\mbox{[}L\+\_\+\+S\+C\+Q\+\_\+\+S\+I\+ZE\mbox{]}
+\end{DoxyCompactItemize}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_aeece3bfd9c2cbe1a05d33e70f8b80462}\label{TL__queue__ft_8h_aeece3bfd9c2cbe1a05d33e70f8b80462}} 
+\hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} {\bfseries pop} (\hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} $\ast$scq, int rd\+\_\+ptr)
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_aa34846d642c45a6fdd1b0a145fa474db}\label{TL__queue__ft_8h_aa34846d642c45a6fdd1b0a145fa474db}} 
+void {\bfseries add} (\hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} $\ast$const scq, int size, \hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} new\+Data, int $\ast$wr\+\_\+ptr)
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_acfecc8b187587e9510c003a2213ca565}\label{TL__queue__ft_8h_acfecc8b187587e9510c003a2213ca565}} 
+bool {\bfseries is\+Empty} (\hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} $\ast$const scq, int size, const int wr\+\_\+ptr, int $\ast$rd\+\_\+ptr, int desired\+\_\+time\+\_\+stamp)
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_ae2f25d7504de61272a4695a0a9520bfa}\label{TL__queue__ft_8h_ae2f25d7504de61272a4695a0a9520bfa}} 
+void {\bfseries read\+\_\+atomic} (int pc, bool $\ast$v, unsigned int $\ast$t\+\_\+e)
+\end{DoxyCompactItemize}
+\subsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_a53be59b28e2690e601bfd699a8a95428}\label{TL__queue__ft_8h_a53be59b28e2690e601bfd699a8a95428}} 
+\hyperlink{TL__queue__ft_8h_a84d957a4583aac168b7bf2cdb88a12dd}{sync\+\_\+queues\+\_\+ft\+\_\+t} {\bfseries ft\+\_\+sync\+\_\+queues}
+\item 
+\mbox{\Hypertarget{TL__queue__ft_8h_af472b962b4062f7822d0d80ca710aaa2}\label{TL__queue__ft_8h_af472b962b4062f7822d0d80ca710aaa2}} 
+S\+C\+Q\+\_\+t {\bfseries S\+CQ}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Routines for the future time queues. 
+
+definition and data types for the FT queues
+
+=======================================================================================
+
+\begin{DoxyAuthor}{Author}
+Patrick Moosbrugger 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+1 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2016-\/11-\/22
+\end{DoxyDate}
+These Queues are used for the (time) synchronization of the R2\+U2 algorithm of the future time operators. It instantiates and array of circular buffers for every subformula/instruction or every atomic input. The stored tuples represent the signal values within intervals corresponding to their time stamps. Currently, for the subformula/instruction results, the R2\+U2 program (instruction) counter is used to address the correct queue in the array. For the atomic inputs, the index of the input is used to address the correct queue in the array of queues. Accessing the elements of the queue can be achieved using the methods provided in this file.
+
+Modification History\+: \subsubsection*{Date $\vert$ Author $\vert$ Description }
+
+Apr.\+14.\+2019 $\vert$ Pei $\vert$ Clean up the code and rewrite the function. Consistent with the definition of Shared Connection Queue (S\+CQ) \subsection*{Jun.\+20.\+2019 $\vert$ Pei $\vert$ fix a bug when checking if an S\+CQ is empty }
+
+=======================================================================================
+
+\begin{DoxyAuthor}{Author}
+Patrick Moosbrugger 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+1 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2016-\/11-\/22
+\end{DoxyDate}
+These Queues are used for the (time) synchronization of the R2\+U2 algorithm of the future time operators. It instantiates and array of circular buffers for every subformula/instruction or every atomic input. The stored tuples represent the signal values within intervals corresponding to their time stamps. Currently, for the subformula/instruction results, the R2\+U2 program (instruction) counter is used to address the correct queue in the array. For the atomic inputs, the index of the input is used to address the correct queue in the array of queues. Accessing the elements of the queue can be achieved using the methods provided in this file.
+
+Modification History\+: \subsubsection*{Date $\vert$ Author $\vert$ Description }
+
+
+
+
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{TL__queue__ft_8h_a84d957a4583aac168b7bf2cdb88a12dd}\label{TL__queue__ft_8h_a84d957a4583aac168b7bf2cdb88a12dd}} 
+\index{T\+L\+\_\+queue\+\_\+ft.\+h@{T\+L\+\_\+queue\+\_\+ft.\+h}!sync\+\_\+queues\+\_\+ft\+\_\+t@{sync\+\_\+queues\+\_\+ft\+\_\+t}}
+\index{sync\+\_\+queues\+\_\+ft\+\_\+t@{sync\+\_\+queues\+\_\+ft\+\_\+t}!T\+L\+\_\+queue\+\_\+ft.\+h@{T\+L\+\_\+queue\+\_\+ft.\+h}}
+\subsubsection{\texorpdfstring{sync\+\_\+queues\+\_\+ft\+\_\+t}{sync\_queues\_ft\_t}}
+{\footnotesize\ttfamily typedef \hyperlink{structft__sync__queue__t}{ft\+\_\+sync\+\_\+queue\+\_\+t} sync\+\_\+queues\+\_\+ft\+\_\+t\mbox{[}N\+\_\+\+S\+U\+B\+F\+O\+R\+M\+U\+L\+A\+\_\+\+S\+N\+Y\+C\+\_\+\+Q\+U\+E\+U\+ES\mbox{]}}
+
+The type sync\+\_\+queues\+\_\+ft\+\_\+t defines an array of synchronization queues which are used to store results for the subformulas/instrustions. Thus, for every instruction, the program counter is used to address the corresponding circular buffer. within this array of circular buffers. 

@@ -95,3 +95,7 @@ distclean:
 	@rm -rf $(DISTCLEAN_LIST)
 
 print-%  : ; @echo $* = $($*)
+
+#doxygen documentation setup
+doc: ./Doxyfile
+	doxygen ./Doxyfile
