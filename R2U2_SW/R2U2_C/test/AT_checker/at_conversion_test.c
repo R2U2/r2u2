@@ -4,6 +4,7 @@
 
 #define BUFFER_SIZE 256
 #define MAX_TIME 256
+#define MAX_INSTR 256
 
 typedef enum {
 	eq = 0b00,
@@ -21,6 +22,7 @@ typedef struct __attribute__((__packed__)) {
 
 typedef int signals_vector_t[BUFFER_SIZE];
 typedef int atomics_vector_t[BUFFER_SIZE];
+typedef instruction_t instructions_t[MAX_INSTR];
 
 /* forward declaration of test filters */
 void filter_eq_init(int *, int *);
@@ -69,13 +71,25 @@ main(int argc, char *argv[])
 	int num_sigs;
 	signals_vector_t signals_vector;
 	atomics_vector_t atomics_vector;
+	instructions_t instructions;
 
 	/* initialize AT checker */
-	instruction_t instr0;
-	instr0.opcode = lt;
-	instr0.sig_addr = 0;
-	instr0.constant = 5;
-	instr0.atom_addr = 0;
+	uint8_t num_instr = 3;
+
+	instructions[0].opcode = eq;
+	instructions[0].sig_addr = 0;
+	instructions[0].constant = 1;
+	instructions[0].atom_addr = 0;
+
+	instructions[1].opcode = lt;
+	instructions[1].sig_addr = 1;
+	instructions[1].constant = 6;
+	instructions[1].atom_addr = 1;
+	
+	instructions[2].opcode = gt;
+	instructions[2].sig_addr = 2;
+	instructions[2].constant = 4;
+	instructions[2].atom_addr = 2;
 
 	int cur_time;
 	for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
@@ -94,14 +108,20 @@ main(int argc, char *argv[])
 			atomics_vector[atom] = 0;
 		}
 
-		filters[instr0.opcode](&atomics_vector[instr0.atom_addr], 
-							   &signals_vector[instr0.sig_addr], 
-							   instr0.constant);
+		int i;
+		for(i = 0; i < num_instr; i++) {
+			filters[instructions[i].opcode](&atomics_vector[instructions[i].atom_addr], 
+				   						    &signals_vector[instructions[i].sig_addr], 
+										    instructions[i].constant);
+		}
 
 		for(atom = 0; atom < num_sigs; atom++ ) {
-			printf("%d\n", atomics_vector[atom]);
+			printf("%d", atomics_vector[atom]);
+			if(atom != num_sigs-1)
+				printf(",");
 		}
 		
+		printf("\n");
 		//at_checkers_update(&atomics_vector);	
 
 	}
