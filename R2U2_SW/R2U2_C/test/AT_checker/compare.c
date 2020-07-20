@@ -1,0 +1,10 @@
+int compare_int_eq(int a, int b) { return a == b;  }
+int compare_int_lt(int a, int b) { return a < b; }
+int compare_int_leq(int a, int b) { return a <= b; }
+int compare_int_gt(int a, int b) { return a > b; }
+int compare_int_geq(int a, int b) { return a >= b; }
+int compare_double_eq(double a, double b) { return a == b; }
+int compare_double_lt(double a, double b) { return a < b; }
+int compare_double_leq(double a, double b) { return a <= b; }
+int compare_double_gt(double a, double b) { return a > b; }
+int compare_double_geq(double a, double b) { return a >= b; }

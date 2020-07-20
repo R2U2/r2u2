@@ -1,63 +1,120 @@
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "../../src/AT/filter_abs_diff_angle.h"
+#include "../../src/AT/filter_movavg.h"
+#include "../../src/AT/filter_rate.h"
+
+#include "compare.h"
+
 #define BUFFER_SIZE 256
 #define MAX_TIME 256
 #define MAX_INSTR 256
+#define MAX_SIGS 256
+
+#define COMP(X,OP,Y) \
+	((X) OP (Y)) ? 1 : 0
 
 typedef enum {
-	eq = 0b00,
-	lt = 0b01,
-	gt = 0b10
-} opcode_t;
+	eq = 0,
+	lt = 1,
+	leq = 2,
+	gt = 3,
+	geq = 4
+} comp_t;
+
+typedef enum {
+	boolean,
+	integer,
+	floating_point,
+	movavg,
+	diff_angle,
+	rate
+} sigtype_t;
+
+typedef union {
+	int integer;
+	double floating_point;
+} constant_type_t;
 
 /* data structure for AT instructions */
 typedef struct __attribute__((__packed__)) {
-	opcode_t opcode;
+	comp_t comp;
+	sigtype_t sig_type;
 	uint8_t sig_addr;
-	uint8_t constant;
 	uint8_t atom_addr;
+	constant_type_t constant;
 } instruction_t;
 
-typedef int signals_vector_t[BUFFER_SIZE];
-typedef int atomics_vector_t[BUFFER_SIZE];
+typedef char *signals_vector_t[MAX_SIGS];
+typedef uint8_t atomics_vector_t[BUFFER_SIZE];
 typedef instruction_t instructions_t[MAX_INSTR];
 
-/* forward declaration of test filters */
-void filter_eq_init(int *, int *);
-void filter_lt_init(int *, int *);
-void filter_gt_init(int *, int *);
+/* similar to TL_observers? */
+static signals_vector_t signals_vector;
+static atomics_vector_t atomics_vector;
+static instructions_t instructions;
 
-void filter_eq(int *, int *, const uint8_t);
-void filter_lt(int *, int *, const uint8_t);
-void filter_gt(int *, int *, const uint8_t);
+/* filter lookup table */
+void (*filters[])() = {};
 
-void filter_eq_free(int *, int *);
-void filter_lt_free(int *, int *);
-void filter_gt_free(int *, int *);
+/* integer comparison function lookup table */
+int (*compare_int[])(int, int) = {compare_int_eq,
+							      compare_int_lt,
+								  compare_int_leq,
+								  compare_int_gt,
+								  compare_int_geq};
+/* double comparison function lookup table */
+int (*compare_double[])(double, double) = {compare_double_eq,
+										   compare_double_lt,
+										   compare_double_leq,
+										   compare_double_gt,
+										   compare_double_geq};
 
-/* function lookup table */
-void (*filters[])(int *, int *, const uint8_t) = {filter_eq, 
-											  filter_lt, 
-											  filter_gt};
-
-void 
-filter_eq(int *a, int *s, const uint8_t c)
+void
+decode(instruction_t instruction)
 {
-	*a = (*s == c);
-}
+	void *data;
+	switch(instruction.sig_type) {
+		case boolean:
+			data = malloc(sizeof(uint8_t));
+			sscanf(signals_vector[instruction.sig_addr], "%hhd", (uint8_t *)data);
+			atomics_vector[instruction.atom_addr] = *(uint8_t *)data;
+			break;
 
-void 
-filter_lt(int *a, int *s, const uint8_t c)
-{
-	*a = (*s < c);
-}
+		case integer:
+			data = malloc(sizeof(int));
+			sscanf(signals_vector[instruction.sig_addr], "%d", (int *)data);
+			atomics_vector[instruction.atom_addr] = 
+				compare_int[instruction.comp](*(int *)data, instruction.constant.integer); 
+			break;
 
-void 
-filter_gt(int *a, int *s, const uint8_t c)
-{
-	*a = (*s > c);
+		case floating_point:
+			data = malloc(sizeof(double));
+			sscanf(signals_vector[instruction.sig_addr], "%lf", (double *)data);
+			atomics_vector[instruction.atom_addr] = 
+				compare_double[instruction.comp](*(double *)data, instruction.constant.floating_point);
+			break;
+
+		case diff_angle:
+			data = malloc(sizeof(double));
+			sscanf(signals_vector[instruction.sig_addr], "%lf", (double *)data);
+			break;
+		
+		case movavg:
+			data = malloc(sizeof(double));
+			sscanf(signals_vector[instruction.sig_addr], "%lf", (double *)data);
+			break;
+
+		case rate:
+			data = malloc(sizeof(double));
+			sscanf(signals_vector[instruction.sig_addr], "%lf", (double *)data);
+			break;
+	}
+
+	free(data);
 }
 
 int 
@@ -68,61 +125,60 @@ main(int argc, char *argv[])
 		perror("Error opening input file");
 
 	char inbuf[BUFFER_SIZE];
-	int num_sigs;
-	signals_vector_t signals_vector;
-	atomics_vector_t atomics_vector;
-	instructions_t instructions;
 
-	/* initialize AT checker */
-	uint8_t num_instr = 3;
+	/* 
+	 * initialize AT checker 
+	 * could be put in initialization function
+	 */
+	uint8_t num_instr = 4;
 
-	instructions[0].opcode = eq;
+	instructions[0].comp = eq;
+	instructions[0].sig_type = boolean;
 	instructions[0].sig_addr = 0;
-	instructions[0].constant = 1;
 	instructions[0].atom_addr = 0;
 
-	instructions[1].opcode = lt;
+	instructions[1].comp = lt;
+	instructions[1].sig_type = integer;
 	instructions[1].sig_addr = 1;
-	instructions[1].constant = 6;
+	instructions[1].constant.integer = 8;
 	instructions[1].atom_addr = 1;
 	
-	instructions[2].opcode = gt;
+	instructions[2].comp = gt;
+	instructions[2].sig_type = floating_point;
 	instructions[2].sig_addr = 2;
-	instructions[2].constant = 4;
+	instructions[2].constant.floating_point = 175;
 	instructions[2].atom_addr = 2;
 
-	int cur_time;
+	instructions[3].comp = gt;
+	instructions[3].sig_type = floating_point;
+	instructions[3].sig_addr = 3;
+	instructions[3].constant.floating_point = 4;
+	instructions[3].atom_addr = 3;
+	
+	uint8_t cur_time;
 	for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 		
 		if(fgets(inbuf, sizeof(inbuf), input_file) == NULL) 
 			break;
 
-		num_sigs = 0;
+		uint8_t i, num_sigs = 1;
+	
+		/* tokenize each input to a string */
+		signals_vector[0] = strtok(inbuf, ",\n");
+		for(i = 1; (signals_vector[i] = strtok(NULL, ",\n")) != NULL; i++, num_sigs++);
 
-		/* NOTE: input signals have a fixed width of 1 */
-		size_t atom;
-		for(atom = 0; atom < strlen(inbuf)/2; ++atom) {
-			if(!(sscanf(&inbuf[2*atom], "%d", (int *)&signals_vector[atom])))
-				perror("Error reading input");
-			num_sigs++;
-			atomics_vector[atom] = 0;
-		}
-
-		int i;
+		/* decode each instruction */
 		for(i = 0; i < num_instr; i++) {
-			filters[instructions[i].opcode](&atomics_vector[instructions[i].atom_addr], 
-				   						    &signals_vector[instructions[i].sig_addr], 
-										    instructions[i].constant);
+			decode(instructions[i]);
 		}
-
-		for(atom = 0; atom < num_sigs; atom++ ) {
-			printf("%d", atomics_vector[atom]);
-			if(atom != num_sigs-1)
+	
+		for(i = 0; i < num_instr; i++ ) {
+			printf("%d", atomics_vector[i]);
+			if(i != num_sigs-1)
 				printf(",");
 		}
 		
 		printf("\n");
-		//at_checkers_update(&atomics_vector);	
 
 	}
 }
