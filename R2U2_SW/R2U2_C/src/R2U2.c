@@ -16,6 +16,25 @@ int main(int argc, char *argv[]) {
         argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
         fprintf(stdout, "Usage: <path to configuration directory> [path to trace file]\n");
     }
+
+    else if (argc == 2) {
+	fprintf(stdout,"%s Version %d.%d\n",
+	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	fprintf(stdout, "Configuration directory path: %s. Command line input will be used for trace file path.\n", argv[1]);
+    }
+
+    else if (argc == 3) {
+	fprintf(stdout,"%s Version %d.%d\n",
+	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	fprintf(stdout, "Configuration directory path: %s. Trace file path: %s.\n", argv[1], argv[2]);
+    }
+
+    else {
+	fprintf(stdout,"%s Version %d.%d\n",
+	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	fprintf(stdout, "Too many arguments supplied. Configuration directory path: %s. Trace file path: %s. Other arguments will be ignored.\n", argv[1], argv[2]);
+    }
+
     int MAX_TIME = INT_MAX;
     FILE *input_file;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
@@ -31,11 +50,10 @@ int main(int argc, char *argv[]) {
 
     /* Select file vs stream */
     // TODO: Really need some better handeling
-    if (access(argv[2], F_OK) == 0) {
-        input_file = fopen(argv[2], "r");
-        if (input_file == NULL) return 1;
-    } else {
-        input_file = stdin;
+
+    input_file = fopen(argv[2], "r");
+    if (input_file == NULL) {
+	input_file = stdin;
     }
 
     // R2U2 Output File
