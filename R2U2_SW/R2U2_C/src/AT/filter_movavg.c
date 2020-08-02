@@ -34,9 +34,9 @@
 //----------------------------------------------------------------
 //	update moving avg filter with new data "data"
 //----------------------------------------------------------------
-void filter_movavg_update_data(movAvg_t *pMovAvg, int16_t data) {
+void filter_movavg_update_data(movAvg_t *pMovAvg, int32_t data) {
 
-	int16_t old_data;
+	int32_t old_data;
 
 	// only do pop if data RB is full (real average) (inital fill-up)
 	if (pMovAvg->num_of_elements >= pMovAvg->size) {
@@ -49,7 +49,8 @@ void filter_movavg_update_data(movAvg_t *pMovAvg, int16_t data) {
 			pMovAvg->num_of_elements++;
 			old_data = 0;
 		}
-		
+
+
 	//add the new element
 	circBufPush(pMovAvg->pCb, data);
 

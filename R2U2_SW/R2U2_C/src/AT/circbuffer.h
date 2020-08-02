@@ -22,17 +22,17 @@
 
 #include <stdint.h>
 
-#define CIRCBUF_DEF(x,y) int16_t x##_space[y+1]; circBuf_t x = { x##_space, 0, 0, y+1};
+#define CIRCBUF_DEF(x,y) int32_t x##_space[y+1]; circBuf_t x = { x##_space, 0, 0, y+1};
 
 typedef struct
 {
-	int16_t * const buffer;
+	int32_t * buffer;
 	int head;
 	int tail;
-	const int maxLen;
+	int maxLen;
 } circBuf_t;
 
-int circBufPush(circBuf_t *c, int16_t data);
-int circBufPop(circBuf_t *c, int16_t *data);
+int circBufPush(circBuf_t *c, int32_t data);
+int circBufPop(circBuf_t *c, int32_t *data);
 
 #endif
