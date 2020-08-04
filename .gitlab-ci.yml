@@ -7,11 +7,11 @@ stages:
 check-compiler:
   stage: .pre
   script:
-    - gcc --version
+    - "gcc --version"
 
 
 build-c:
   stage: build
   script:
-    - cd R2U2_SW/R2U2_C
-    - make
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
