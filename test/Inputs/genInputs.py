@@ -25,7 +25,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0000'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     
     Array = []
     for i in range(0,nRow):
@@ -41,7 +41,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0001'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     
     Array = []
     for i in range(0,nRow):
@@ -57,7 +57,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0002'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -75,7 +75,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0003'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -93,7 +93,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0004'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -116,7 +116,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0005'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -139,7 +139,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0006'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -162,7 +162,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0007'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -185,7 +185,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0008'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -208,7 +208,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0009'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -231,7 +231,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0010'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -254,7 +254,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0011'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -277,7 +277,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0012'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -305,7 +305,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0013'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -333,7 +333,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0014'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -361,7 +361,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0015'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -389,7 +389,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0016'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -417,7 +417,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0017'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -445,7 +445,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0018'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -473,7 +473,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0019'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -501,7 +501,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0020'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -524,7 +524,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0021'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -553,7 +553,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0022'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     for i in range(0,nRow):
@@ -582,7 +582,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0023'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = False
     for i in range(0,nRow):
@@ -605,7 +605,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0024'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = True
     flip2 = True
@@ -643,7 +643,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0025'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = True
     flip2 = False
@@ -681,7 +681,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0026'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = True
     flip2 = False
@@ -719,7 +719,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0027'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = True
     flip2 = False
@@ -756,7 +756,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0028'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = False
     flip2 = True
@@ -794,7 +794,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0029'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = False
     flip2 = True
@@ -832,7 +832,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0030'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = False
     flip2 = True
@@ -870,7 +870,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0031'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip1 = False
     flip2 = True
@@ -907,7 +907,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0032'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -936,7 +936,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0033'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -965,7 +965,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0034'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     for i in range(0,nRow):
         Array.append([])
@@ -994,7 +994,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0035'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1028,7 +1028,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0036'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1062,7 +1062,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0037'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1096,7 +1096,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0038'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1130,7 +1130,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0039'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1164,7 +1164,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0040'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1198,7 +1198,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0041'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1232,7 +1232,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0042'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 1
@@ -1266,7 +1266,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0043'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1300,7 +1300,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0044'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1334,7 +1334,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0045'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1368,7 +1368,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0046'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1402,7 +1402,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0047'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1436,7 +1436,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0048'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1470,7 +1470,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0049'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1504,7 +1504,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0050'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1538,7 +1538,7 @@ def makeInputs():
     #------------------------------------------------------------------------------------#
     # Create the file
     filename = 'input0051'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1574,7 +1574,7 @@ def makeInputs():
     #filename = 'tacas'
     nRow = 39
     filename = 'input0052'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip = True
     counter = 4
@@ -1607,7 +1607,7 @@ def makeInputs():
     # Create the file
     nRow = 31
     filename = 'input0053'
-    f = open(__InputDir__ + filename + '.csv','w+')
+    f = open(__InputDir__ + filename + '.csv','wb')
     Array = []
     flip0 = True
     flip1 = True
