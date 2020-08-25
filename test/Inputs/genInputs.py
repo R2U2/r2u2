@@ -1649,9 +1649,7 @@ def makeInputs():
 # Main function call
 #------------------------------------------------------------------------------------#
 # If there are no arguements
-try:
-    sys.argv[1]
-except:
+if len(sys.argv) == 1:
     print("ERROR: Missing input arguement")
     print("Use '-h' flag for more information")
     exit()
