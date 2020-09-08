@@ -35,7 +35,7 @@ typedef union {
 typedef struct {
 	comparison_t comp;
 	opcode_t opcode;
-	type_t *sig_addr;
+	uint8_t sig_addr;
 	uint8_t atom_addr;
 	type_t comp_const;
 	filt_data_struct_t filt_data_struct;
