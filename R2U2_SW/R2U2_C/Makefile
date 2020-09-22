@@ -1,5 +1,6 @@
 # tool marcros
 CC := gcc
+R2U2_AT := true
 
 # path marcros
 BIN_PATH := bin
@@ -9,7 +10,7 @@ DBG_PATH := target/debug
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser
 ifdef R2U2_AT
-	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/prognostics
+	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics
 endif
 
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
@@ -29,7 +30,7 @@ DBGFLAG := -g -Wall -Wextra -pedantic -Wno-gnu-binary-literal -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 
-# compile marcros
+# compile macros
 TARGET_NAME := r2u2
 TARGET_RELES := $(BIN_PATH)/$(TARGET_NAME)
 TARGET_DEBUG := $(BIN_PATH)/$(TARGET_NAME)_debug
