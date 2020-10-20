@@ -34,7 +34,6 @@ def p_statement(p):
     '''
     statement : expression SEMI
     '''
-    print(p[1].name)
     p[0] = STATEMENT(p[1], p[2])
 
 def p_prop_operators(p):
