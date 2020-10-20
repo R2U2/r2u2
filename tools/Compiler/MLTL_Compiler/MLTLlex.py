@@ -30,6 +30,8 @@ reserved = {
     'TRUE' : 'TRUE',
     'FALSE' : 'FALSE',
 
+    'rate' : 'FILTER'
+
 }
 
 reserved.update(literal_names)
@@ -48,8 +50,11 @@ tokens = [
     'NEG',
     'IMPLY',
     'EQ',
-    'ATOMIC',#atomic
+    'ATOMIC',
     'SEMI',
+    'ASSIGN',
+    'COND',
+    'SIGNUM'
         ]+ list(set(reserved.values()))
 
 
@@ -61,12 +66,14 @@ t_OR            = r'\|'
 t_NEG           = r'\!'
 t_IMPLY         = r'->'
 t_EQ            = r'<->'
-#t_ATOMIC       = r'([A-Za-z])\w*'
 t_COMMA         = r','
 t_LPAREN        = r'\('
 t_RPAREN        = r'\)'
 t_LBRACK        = r'\['
 t_RBRACK        = r'\]'
+t_ASSIGN        = r':='
+t_COND          = r'[><=]'
+
 def t_NUMBER(t):
     r'\d+'
     t.value = int(t.value)

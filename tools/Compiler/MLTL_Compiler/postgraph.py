@@ -24,6 +24,10 @@ class Postgraph():
         # MLTLparse.cnt2node.clear() # clear var for multiple runs
         # MLTLparse.operator_cnt = 0 # clear var for multiple runs
         MLTLparse.parser.parse(MLTL)
+
+        # check that all used atomics are properly mapped
+        print(MLTLparse.at_instr)
+
         self.asm = ""
         if (MLTLparse.status=='syntax_err'):
             MLTLparse.status='pass'
@@ -164,7 +168,7 @@ class Postgraph():
                     left, right = n.left, n.right;
                     left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
                     right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
-            for n in vstack: 
+            for n in vstack:
                 # added on May 9, 2020: to consider the extra space for potential output in one time stamp
                 if (isinstance(n, Observer)):
                     n.scq_size += n.wpd-n.bpd+2
@@ -217,4 +221,3 @@ class Postgraph():
         self.asm = s
         with open(__DirBinaryPath__ + asmFileName + '.asm',"w+") as f:
             f.write(s)
-

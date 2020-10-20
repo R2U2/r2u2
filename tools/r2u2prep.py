@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-#------------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
 # Date:        April 29th, 2020
 # File Name:   r2u2prep.py
-# Description: 
-#------------------------------------------------------------------------------------#
+# Description:
+#------------------------------------------------------------------------------#
 import sys
 import os
 import subprocess
@@ -27,25 +27,31 @@ def main():
         MLTL = open(sys.argv[1],'r').read()
     else:
         MLTL = sys.argv[1]
+
     FT = {}
     PT = {}
-    
-    # Strip out any null (\n) characters from the MLTL string
-    MLTL = MLTL.replace('\n','')
-    
+
+    # Strip out any null (\n) characters from the MLTL string ???
+    #MLTL = MLTL.replace('\n','') ???
+
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
         # Ignore lines that are blank
         if(line == ""):
             break
-        # Iterate through the line and determine if it is FT or PT
+        # Iterate through the line and determine if it is FT or PT or atomic
         isFT = 0
         isPT = 0
+        isAtom = 0
+
         for p in line:
-            # Determine if the line contains a FT oeprator
-            if((p == 'G') or (p == 'F') or (p == 'U') or (p == 'R')):
+            # Determine if the line is an atomic mapping
+            if(p == ':'):
+                isAtom = isAtom + 1
+            # Determine if the line contains a FT operator
+            elif((p == 'G') or (p == 'F') or (p == 'U') or (p == 'R')):
                 isFT = isFT + 1
-            # Determine if the line contrains a PT operator
+            # Determine if the line contains a PT operator
             elif((p == 'Y') or (p == 'H') or (p == 'O') or (p == 'S')):
                 isPT = isPT + 1
 
@@ -63,6 +69,13 @@ def main():
         elif((isPT == 0) and (isFT >= 0)):
             # Put it in the FT list, for the FT call of postgraph
             FT.update({form_num: line + ';\n'})
+        # Else if the formula is an atomic assignment
+        elif(isAtom > 0):
+            # Only add atomics to the set if a PT/FT formula are present
+            if(len(FT) > 0):
+                FT.update({form_num: line + ';\n'})
+            if(len(PT) > 0):
+                PT.update({form_num: line + ';\n'})
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
     if(len(FT) != 0):
@@ -104,6 +117,6 @@ def main():
     print('************************************************************')
     print('Binary files are located in the '+__BinFileDir__+' directory')
     print('************************************************************')
-    
+
 if __name__ == "__main__":
     main()
