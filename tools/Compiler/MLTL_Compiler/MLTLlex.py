@@ -8,10 +8,16 @@
 import ply.lex as lex
 #import ply.yacc as yacc
 
+atomic_names = []
+
 literal_names = {}
 for literal in ['TRUE', 'FALSE']:
     literal_names.update({getattr(literal, x)() : literal for x in ['upper', 'title', 'lower']})
     # literal_names.update({getattr(literal[0], x)() : literal for x in ['upper', 'lower']})
+
+
+print("Literal Names:")
+print(literal_names)
 
 reserved = {
 # future time
@@ -76,9 +82,14 @@ def t_ATOMIC(t):
     r'([A-Za-z])\w*'
     if t.value in reserved:
         t.type = reserved[t.value]
-    # if t.value in literal_names.keys():
-    #     t.type = literal_names[t.value]
-    #     t.value = t.type
+    else: 
+        if t.value not in atomic_names:
+            print(t.value)
+            atomic_names.append(t.value)
+        
+#    if t.value in literal_names.keys():
+#        t.type = literal_names[t.value]
+#        t.value = t.type
     return t
 
 def t_SEMI(t):
@@ -103,6 +114,8 @@ def t_error(t):
     t.lexer.skip(1)
 
 lexer = lex.lex()
+
+print(atomic_names)
 
 # print of lex token
 # lexer.input("""a0;
