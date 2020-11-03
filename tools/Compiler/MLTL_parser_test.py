@@ -45,3 +45,6 @@ for i in range(len(tracefile)):
 
 
 print(str(counter) + " out of " + str(len(tracefile)) + " statements were parsed successfully")
+
+if counter != 100:
+    raise RuntimeError(str(100-counter) + " tests failed")
