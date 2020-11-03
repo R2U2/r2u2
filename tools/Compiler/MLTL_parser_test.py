@@ -31,7 +31,7 @@ for i in range(len(tracefile)):
 
     # Try to parse the MLTL instructions with the Postgraph function
     try:
-        Postgraph(MLTL=formula,optimize_cse=True)
+        Postgraph(MLTL=formula, FTorPT="FT", optimize_cse=True)
 
     # If an exception is thrown, then the instructions were not valid to the parser
     except Exception as ex: 
