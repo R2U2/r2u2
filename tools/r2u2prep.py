@@ -9,6 +9,7 @@ import sys
 import os
 import subprocess
 import shutil
+import re
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -44,16 +45,15 @@ def main():
         isPT = 0
         isAtom = 0
 
-        for p in line:
-            # Determine if the line is an atomic mapping
-            if(p == ':'):
-                isAtom = isAtom + 1
-            # Determine if the line contains a FT operator
-            elif((p == 'G') or (p == 'F') or (p == 'U') or (p == 'R')):
-                isFT = isFT + 1
-            # Determine if the line contains a PT operator
-            elif((p == 'Y') or (p == 'H') or (p == 'O') or (p == 'S')):
-                isPT = isPT + 1
+        # Determine if the line is an atomic mapping
+        if(re.search(':=', line) != None):
+            isAtom = isAtom + 1
+        # Determine if the line contains a FT operator
+        elif(re.search('[GFUR]', line) != None):
+            isFT = isFT + 1
+        # Determine if the line contains a PT operator
+        elif(re.search('[YHOS]', line) != None):
+            isPT = isPT + 1
 
         # If a formula has both PT and FT, throw an error and exit the program
         if((isPT > 0) and (isFT > 0)):
@@ -76,6 +76,9 @@ def main():
                 FT.update({form_num: line + ';\n'})
             if(len(PT) > 0):
                 PT.update({form_num: line + ';\n'})
+
+    for k, v in FT:
+        print(v)
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
     if(len(FT) != 0):

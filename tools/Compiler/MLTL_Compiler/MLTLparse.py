@@ -195,7 +195,7 @@ precedence = (
 def p_error(p):
     global status
     print("Syntax error in input!")
-    print("Illegal character \'" + str(p.value) + "\'")
+    print("Illegal character \'" + str(p) + "\'")
     status = 'syntax_err'
     # sys.exit()
 
