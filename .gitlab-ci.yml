@@ -15,3 +15,9 @@ build-c:
   script:
     - "cd R2U2_SW/R2U2_C"
     - "make"
+
+test-parser:
+  stage: test
+  script:
+    - "cd tools/Compiler"
+    - "python3 MLTL_parser_test.py"
