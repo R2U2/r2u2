@@ -7,7 +7,8 @@
 #include "R2U2Config.h"
 #include "binParser/parse.h"
 #include "TL/TL_observers.h"
-// #include "AT/at_checkers.h"
+#include "AT/at_checkers.h"
+#include "AT/at_globals.h"
 
 int main(int argc, char *argv[]) {
     // TODO: Better CLI parsing
@@ -21,8 +22,9 @@ int main(int argc, char *argv[]) {
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     /* Engine Initialization */
-    
-    // at_checkers_init();
+
+    at_checkers_init();
+
     if (getcwd(inbuf, sizeof(inbuf)) == NULL) return 1;
     chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
@@ -45,25 +47,43 @@ int main(int argc, char *argv[]) {
     if(log_file == NULL) return 1;
 
     /* Main processing loop */
-    int cur_time = 0;
+    int cur_time = 0, i;
+    char *signal;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-        for (size_t atom = 0; atom < strlen(inbuf)/2; ++atom) {
-            if (sscanf(&inbuf[2*atom], "%d", (int *)&atomics_vector[atom]) == 0) return 1;
-        }
+        
+        for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+            signal = strtok(NULL, ",\n")) {
+    			switch(instructions[i].opcode) {
+    				case OP_BOOL:	sscanf(signal, "%hhu", &signals_vector[i].b);
+    										  break;
+    				case OP_INT:	sscanf(signal, "%d", &signals_vector[i].i);
+    										  break;
+    				case OP_DOUBLE:	sscanf(signal, "%lf", &signals_vector[i].d);
+    										    break;
+    				case OP_ABS_DIFF_ANGLE: sscanf(signal, "%lf", &signals_vector[i].d);
+    										            break;
+    				case OP_MOVAVG:	sscanf(signal, "%d", &signals_vector[i].i);
+    										    break;
+    				case OP_RATE:	sscanf(signal, "%lf", &signals_vector[i].d);
+    										  break;
+    			}
+    		}
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        // at_checkers_update(cur_sigs);
+        at_checkers_update();
 
         /* Temporal Logic Update */
         TL_update(log_file);
 
     }
+
     fclose(log_file);
+
+    at_checkers_free();
 
     return 0;
 }
-

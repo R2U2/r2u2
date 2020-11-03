@@ -44,6 +44,8 @@ typedef struct
  * initially the average of the number of included elements is calculated
  * once the windows size has been reached, the average is calculated over the whole window
  * */
-void filter_movavg_update_data(movAvg_t *pMovAvg, int16_t data);
-float filter_movavg_get(movAvg_t *pMovAvg);
+movAvg_t *filter_movavg_init(uint16_t);
+void filter_movavg_update_data(movAvg_t *, int32_t);
+float filter_movavg_get(movAvg_t *);
+void filter_movavg_free(movAvg_t *);
 #endif

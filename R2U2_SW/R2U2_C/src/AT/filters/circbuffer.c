@@ -23,7 +23,7 @@
 #include "circbuffer.h"
 
 //-----------------------------------------------------------------
-int circBufPush(circBuf_t *c, int16_t data)
+int circBufPush(circBuf_t *c, int32_t data)
 {
     int next = c->head + 1;
     if (next >= c->maxLen)
@@ -39,7 +39,7 @@ int circBufPush(circBuf_t *c, int16_t data)
 }
  
 //-----------------------------------------------------------------
-int circBufPop(circBuf_t *c, int16_t *data)
+int circBufPop(circBuf_t *c, int32_t *data)
 {
     // if the head isn't ahead of the tail, we don't have any characters
     if (c->head == c->tail) {
