@@ -38,6 +38,8 @@ class Postgraph():
             return
         else:
             self.status = 'pass'
+            self.atomic_names = MLTLparse.atomic_names
+            print("Atomic names: " + str(self.atomic_names))
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
         # self.top = self.cnt2node[len(self.cnt2node)-1]

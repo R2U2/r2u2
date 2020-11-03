@@ -13,6 +13,7 @@ for literal in ['TRUE', 'FALSE']:
     literal_names.update({getattr(literal, x)() : literal for x in ['upper', 'title', 'lower']})
     # literal_names.update({getattr(literal[0], x)() : literal for x in ['upper', 'lower']})
 
+
 reserved = {
 # future time
     'G' : 'GLOBAL',
@@ -83,9 +84,10 @@ def t_ATOMIC(t):
     r'([A-Za-z])\w*'
     if t.value in reserved:
         t.type = reserved[t.value]
-    # if t.value in literal_names.keys():
-    #     t.type = literal_names[t.value]
-    #     t.value = t.type
+        
+#    if t.value in literal_names.keys():
+#        t.type = literal_names[t.value]
+#        t.value = t.type
     return t
 
 def t_SEMI(t):
