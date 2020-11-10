@@ -13,7 +13,7 @@ from os.path import isfile, join
 # Paths to input and formula directories (from oracle directory)
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __OracleDir__    = __AbsolutePath__+'oracleFiles/'
-__InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
+__InputDir__     = __AbsolutePath__+'../Inputs/InputFiles/'
 __TLDir__        = __AbsolutePath__+'../TL_Formula/formulaFiles/'
 
 #------------------------------------------------------------------------------------#
