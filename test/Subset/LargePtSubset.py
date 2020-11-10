@@ -1,9 +1,9 @@
 #------------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
-# Date:        May 6th, 2020
-# File Name:   HydraSubset.py
-# Description: A Python 3 script used to automatically run just the tests for large
-#              
+# Date:        November 10th, 2020
+# File Name:   LargePtSubset.py
+# Description: A Python 3 script used to automatically run just the tests for large 
+#              input past-time test subsetss
 #------------------------------------------------------------------------------------#
 import shutil
 import os
@@ -16,12 +16,15 @@ from subprocess import check_output
 Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TestDir__      = __AbsolutePath__+'../R2U2_Test_Suite/LargeTests/'
-__CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
-__ResultDIR__    = __AbsolutePath__+'results/'
-__toolsDir__     = __AbsolutePath__+'../tools/'
+__TLDir__        = __AbsolutePath__+'../TL_Formula/'
+__InputDir__     = __AbsolutePath__+'../Inputs/'
+__CDir__          = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
+__ResultDIR__    = __AbsolutePath__+'../results/'
+__testDir__     = __AbsolutePath__+'../'
+__toolsDir__     = __AbsolutePath__+'../../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
 __BinDir__       = __toolsDir__+'binary_files/'
+
 
 
 # Names of the directories where the results for each version are stored
@@ -47,22 +50,22 @@ def test_c():
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
     # For all formula files within the formulaFiles directory
-    _formulaFile = __TestDir__+'Large_FT_Formula.mltl'
+    _formulaFile = __TLDir__+'LargePtFormula.mltl'
     formula = open(_formulaFile,'r').read()
     print(formula)
     # For each formula within 
     subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
-    filename = 'LargeFT'+'.txt'
-    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__TestDir__+_input],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    filename = 'LargePT'+'.txt'
+    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
     subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
     # Split the multi-formula run into individual files.
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
-    for i in range(1,7):
-        filename = __AbsolutePath__+'LargeFT_formula'+str(i)+'.txt'
-        subprocess.run(['mv',filename,__OutputDIR__+'LargeFT_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
+    for i in range(1,5):
+        filename = __testDir__+'LargePT_formula'+str(i)+'.txt'
+        subprocess.run(['mv',filename,__OutputDIR__+'LargePT_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
     # Remove the overall R2U2.log file from the results directory
-    subprocess.run(['rm',__OutputDIR__+'LargeFT.txt'],stdout=subprocess.PIPE)
+    subprocess.run(['rm',__OutputDIR__+'LargePT.txt'],stdout=subprocess.PIPE)
 '''
 The main method for this file.
     - Parses the directories for the input traces and the formula files.

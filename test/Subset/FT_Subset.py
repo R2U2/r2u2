@@ -1,9 +1,9 @@
 #------------------------------------------------------------------------------------#
-# Author:      Pei Zhang(1st), Matt Cauwels(2nd)
-# Date:        April 12th, 2020
-# File Name:   HydraSubset.py
-# Description: A Python 3 script used to automatically run just the tests given to 
-#               the Hydra team.
+# Author:      Matt Cauwels
+# Date:        November 10th, 2020
+# File Name:   FT_Subset.py
+# Description: A Python 3 script used to automatically run just the tests for a group 
+#              of future-time formulas.
 #------------------------------------------------------------------------------------#
 import shutil
 import os
@@ -16,13 +16,15 @@ from subprocess import check_output
 Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TLDir__        = __AbsolutePath__+'TL_formula/formulaHydra/'
-__InputDir__     = __AbsolutePath__+'Inputs/InputFiles/'
-__CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
-__ResultDIR__    = __AbsolutePath__+'results/'
-__toolsDir__     = __AbsolutePath__+'../tools/'
+__TLDir__        = __AbsolutePath__+'../TL_Formula/'
+__InputDir__     = __AbsolutePath__+'../Inputs/InputFiles/'
+__CDir__          = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
+__ResultDIR__    = __AbsolutePath__+'../results/'
+__testDir__     = __AbsolutePath__+'../'
+__toolsDir__     = __AbsolutePath__+'../../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
 __BinDir__       = __toolsDir__+'binary_files/'
+
 
 
 # Names of the directories where the results for each version are stored
@@ -37,47 +39,33 @@ def parserInfo():
     args = vars(parser.parse_args())
     return args
 
-'''
-Method for listing all the files within a given directory.
-'''
-def list_file():
-    from os import listdir
-    from os.path import isfile, join
-    formulaFiles,inputFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__TLDir__,__InputDir__)]
-    print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
-    return formulaFiles,inputFiles
     
 '''
 Method for testing the C version of R2U2.
 Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
 '''
-def test_c(formulaFiles,inputFiles):
+def test_c():
     __OutputDIR__ = __ResultDIR__+__ResultCDir__
-    _input = 'input0053.csv'
+    _input = 'input0052.csv'
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
     # For all formula files within the formulaFiles directory
-    for _formulaFile in formulaFiles:
-        formula = open(__TLDir__+_formulaFile,'r').read()
-        print(formula)
-        # For each formula within 
-        subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
-        form   = _formulaFile.replace('.mltl','')
-        trace  = _input.replace('.csv','')
-        filename = __OutputDIR__+form+'_'+trace+'.txt'
-        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
-        subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
-    # For the last run, which should be a concatenation of all the formulas, copy the name
-    # back to R2U2.log
-    subprocess.run(['mv',filename,__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
+    _formulaFile = __TLDir__+'FT_Formulas.mltl'
+    formula = open(_formulaFile,'r').read()
+    print(formula)
+    # For each formula within 
+    subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
+    filename = 'R2U2.log'
+    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
+    subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
     # Split the multi-formula run into individual files.
-    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
+    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
-    for i in range(1,13):
-        filename = __AbsolutePath__+'R2U2_formula'+str(i)+'.txt'
+    for i in range(1,14):
+        filename = __testDir__+'R2U2_formula'+str(i)+'.txt'
         subprocess.run(['mv',filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
     # Remove the overall R2U2.log file from the results directory
-    subprocess.run(['rm',__OutputDIR__+'R2U2.log'])
+    #subprocess.run(['rm',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
 '''
 The main method for this file.
     - Parses the directories for the input traces and the formula files.
@@ -95,8 +83,7 @@ def main():
             pass
     # If not, then test the specified version of R2U2
     elif(args['version']):
-        formulaFiles,inputFiles = list_file()
-        test_c(formulaFiles,inputFiles)
+        test_c()
     # Else, throw an error message
     else:
         print('ERROR: Invalid arguement flags or missing input arguement after flag')
