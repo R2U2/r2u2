@@ -14,8 +14,8 @@ from os import listdir
 from os.path import isfile, join
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__InputDir__     = __AbsolutePath__+'inputFiles/'
-__PlotDir__      = __AbsolutePath__+'inputImages/'
+__InputDir__     = __AbsolutePath__+'InputFiles/'
+__PlotDir__      = __AbsolutePath__+'InputImages/'
 
 def plotInputs(inputFiles):
     #------------------------------------------------------------------------------------#
@@ -72,7 +72,7 @@ if(not os.path.isdir(__PlotDir__)):
 
 # for removing the formula files
 if(sys.argv[1] == '-r'):
-    shutil.rmtree()
+    shutil.rmtree(__PlotDir__)
             
 # for generating the formula files
 elif(sys.argv[1] == '-m'):

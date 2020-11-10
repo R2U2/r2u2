@@ -16,7 +16,7 @@ nRow = 31
 nCol = 2
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__InputDir__     = __AbsolutePath__+'inputFiles/'
+__InputDir__     = __AbsolutePath__+'InputFiles/'
 
 def makeInputs():
     global nRow, nCol
