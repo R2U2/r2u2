@@ -11,6 +11,8 @@ import subprocess
 import shutil
 import re
 
+#from AT import *
+
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __CompilerDir__  = __AbsolutePath__     + 'Compiler/'
@@ -31,15 +33,17 @@ def main():
 
     FT = {}
     PT = {}
+    AT = []
 
     # Strip out any null (\n) characters from the MLTL string ???
     #MLTL = MLTL.replace('\n','') ???
 
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
+        line = line.strip('\n ')
         # Ignore lines that are blank
-        if(line == ""):
-            break
+        if(re.fullmatch('\s*', line)):
+            continue
         # Iterate through the line and determine if it is FT or PT or atomic
         isFT = 0
         isPT = 0
@@ -66,19 +70,19 @@ def main():
             # Put it in the PT list, for the PT call of postgraph
             PT.update({form_num: line + ';\n'})
         # Else, if the formula is future-time or just propositional logic,
-        elif((isPT == 0) and (isFT >= 0)):
+        elif((isPT == 0) and (isFT >= 0) and (isAtom == 0)):
             # Put it in the FT list, for the FT call of postgraph
             FT.update({form_num: line + ';\n'})
         # Else if the formula is an atomic assignment
         elif(isAtom > 0):
-            # Only add atomics to the set if a PT/FT formula are present
-            if(len(FT) > 0):
-                FT.update({form_num: line + ';\n'})
-            if(len(PT) > 0):
-                PT.update({form_num: line + ';\n'})
+            # Only add atomics to the set
+            AT.append(line + ';')
 
-    for k, v in FT:
-        print(v)
+    AT_str = ""
+    for line in AT:
+        if(re.fullmatch('\s*', line)):
+            continue
+        AT_str += line
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
     if(len(FT) != 0):
@@ -89,7 +93,8 @@ def main():
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft'])
+        #print(FT_str)
+        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft', AT_str])
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -98,7 +103,11 @@ def main():
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt'])
+        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt', AT_str])
+    # Compile AT instructions
+    if(len(AT) != 0):
+        print('*********************** Compiling AT ***********************')
+        subprocess.run(['python3', __CompilerDir__+'main.py', '', 'at', AT_str])
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
@@ -116,6 +125,8 @@ def main():
         f.close()
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
+    print('************************************************************')
+    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm'])
 
     print('************************************************************')
     print('Binary files are located in the '+__BinFileDir__+' directory')

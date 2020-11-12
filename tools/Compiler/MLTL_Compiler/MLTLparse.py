@@ -12,7 +12,6 @@ from .Observer import *
 import sys
 
 atomic_names = []
-at_instr = {}
 
 __all__ = ['status','parser']
 status = 'pass'
@@ -158,10 +157,6 @@ def p_ptMLTL_operators(p):
         else:
             raise Exception('Syntax error in type! Cannot find matching format for HISTORICALLY')
             status = 'syntax_err'
-
-def p_atomic_assign(p):
-    '''expression : ATOMIC ASSIGN FILTER LPAREN NUMBER RPAREN COND NUMBER'''
-    at_instr.update({p[1]: [p[3], p[5], p[7], p[8]]})
 
 def p_paren_token(p):
     '''expression : LPAREN expression RPAREN'''

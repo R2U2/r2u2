@@ -6,13 +6,14 @@ from . import MLTLparse
 # from . import Observer
 from .Observer import *
 import os
+import re
 
 # Paths for saving files
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
 asmFileName = ""
 class Postgraph():
-    def __init__(self,MLTL,FTorPT, optimize_cse=True, Hp=0):
+    def __init__(self,MLTL,FTorPT,AT, optimize_cse=True, Hp=0):
         global asmFileName
         asmFileName = FTorPT
         # Check to see if the '../binary_files' directory exists; if not make, the file
@@ -26,7 +27,7 @@ class Postgraph():
         MLTLparse.parser.parse(MLTL)
 
         # check that all used atomics are properly mapped
-        print(MLTLparse.at_instr)
+        self.check_atomics(AT.split(';'))
 
         self.asm = ""
         if (MLTLparse.status=='syntax_err'):
@@ -39,7 +40,6 @@ class Postgraph():
         else:
             self.status = 'pass'
             self.atomic_names = MLTLparse.atomic_names
-            print("Atomic names: " + str(self.atomic_names))
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
         # self.top = self.cnt2node[len(self.cnt2node)-1]
@@ -49,6 +49,24 @@ class Postgraph():
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(Hp)
         self.gen_assembly()
+
+    # Check that all atomics are properly mapped
+    def check_atomics(self, input):
+        mapped_atomics = []
+
+        for line in input:
+            if re.fullmatch('\s*', line):
+                break
+            m = re.search('a\d+\s*(?=:=)', line)
+            if m is None:
+                print('Error: invalid atomic name in mapping ' + line)
+                break
+            mapped_atomics.append(m.group().strip())
+
+        for atom in MLTLparse.atomic_names:
+            if atom not in mapped_atomics:
+                print('Error: atomic not mapped, ' + atom)
+                MLTLparse.status = 'syntax_err'
 
     ###############################################################
     # Common subexpression elimination the AST

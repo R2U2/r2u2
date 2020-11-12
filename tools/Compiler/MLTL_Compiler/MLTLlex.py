@@ -31,8 +31,6 @@ reserved = {
     'TRUE' : 'TRUE',
     'FALSE' : 'FALSE',
 
-    'rate' : 'FILTER'
-
 }
 
 reserved.update(literal_names)
@@ -53,9 +51,6 @@ tokens = [
     'EQ',
     'ATOMIC',
     'SEMI',
-    'ASSIGN',
-    'COND',
-    'SIGNUM'
         ]+ list(set(reserved.values()))
 
 
@@ -72,8 +67,6 @@ t_LPAREN        = r'\('
 t_RPAREN        = r'\)'
 t_LBRACK        = r'\['
 t_RBRACK        = r'\]'
-t_ASSIGN        = r':='
-t_COND          = r'[><=]'
 
 def t_NUMBER(t):
     r'\d+'
@@ -84,7 +77,7 @@ def t_ATOMIC(t):
     r'([A-Za-z])\w*'
     if t.value in reserved:
         t.type = reserved[t.value]
-        
+
 #    if t.value in literal_names.keys():
 #        t.type = literal_names[t.value]
 #        t.value = t.type
