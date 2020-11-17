@@ -25,6 +25,9 @@ test-parser:
 test-ft-and-pt-reports:
   stage: test
   script: 
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
+    - "cd ../.."
     - "cd test"
     - "python3 LargeFtSubset.py -r c"
     - "python3 LargeFtSubset.py -v c"
