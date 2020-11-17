@@ -3,7 +3,6 @@ image: "python:3"
 stages:
   - build
   - test
-  - report
 
 check-compiler:
   stage: .pre
@@ -24,8 +23,7 @@ test-parser:
     - "python3 MLTL_parser_test.py"
 
 test-ft-and-pt-reports:
-  stage: report
+  stage: test
   script: 
     - "cd test"
-    - "python3 LargeFtSubset.py -v c"
-    - "python3 LargeFtReport.py"
+    - "python3 LargeFtSubset.py -r"
