@@ -66,3 +66,5 @@ for line in lines:
 for i in range(0,len(ResultsArray)):
     if(ResultsArray[i][1] > 0):
         print('Differences between Oracle and R2U2 for ' + ResultsArray[i][0])
+        raise(RuntimeError("Differences Found in PT Report"))
+
