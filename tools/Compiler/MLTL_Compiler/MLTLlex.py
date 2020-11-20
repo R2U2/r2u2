@@ -83,7 +83,7 @@ def t_ATOMIC(t):
 
 def t_SEMI(t):
     r';'
-    t.value = t.lexer.lineno
+    t.value = t.lexer.lineno-1
     return t
 
 def t_newline(t):
