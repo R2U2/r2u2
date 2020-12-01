@@ -16,12 +16,14 @@ build-c:
   script:
     - "cd R2U2_SW/R2U2_C"
     - "make"
+  needs: ["check-compiler"]
 
 test-parser:
   stage: test
   script:
     - "cd tools/Compiler"
     - "python3 MLTL_parser_test.py"
+  needs: ["build-c"]
 
 test-ft-and-pt-reports:
   stage: test
@@ -36,3 +38,4 @@ test-ft-and-pt-reports:
     - "python3 LargePtSubset.py -r c"
     - "python3 LargePtSubset.py -v c"
     - "python3 LargePtReport.py"
+  needs: ["build-c"]
