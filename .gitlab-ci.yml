@@ -40,6 +40,9 @@ test-ft-report:
 test-pt-report:
   stage: test
   script:
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
+    - "cd ../.."
     - "cd test"
     - "python3 LargePtSubset.py -r c"
     - "python3 LargePtSubset.py -v c"
