@@ -8,6 +8,7 @@ check-compiler:
   stage: .pre
   script:
     - "gcc --version"
+  when: manual
 
 
 build-c:
