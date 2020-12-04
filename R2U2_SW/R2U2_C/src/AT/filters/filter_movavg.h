@@ -19,7 +19,7 @@
 #ifndef _MOVAVERAGE_H_
 #define _MOVAVERAGE_H_
 
-#include "circbuffer.h"
+#include <stdint.h>
 
 /*
  * Author: Patrick Moosbrugger
@@ -30,10 +30,11 @@
 
 typedef struct
 {
-	circBuf_t * pCb;
-	int sum;
+	int32_t *buffer;
+	int32_t sum;
 	double avg;
-	uint16_t num_of_elements;
+  uint16_t head;
+	uint16_t num_elems;
 	uint16_t size;
 } movAvg_t;
 

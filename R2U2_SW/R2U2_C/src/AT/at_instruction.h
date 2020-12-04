@@ -31,7 +31,7 @@ typedef union {
 typedef union {
 	double diff_angle;	/* abs_diff_angle filter */
 	double prev;		/* rate filter */
-	movAvg_t movavg;	/* movavg filter */
+	movAvg_t *movavg;	/* movavg filter */
 } filt_data_struct_t;
 
 typedef struct {

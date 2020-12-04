@@ -6,6 +6,7 @@
 #include "at_globals.h"
 #include "filters/filter_abs_diff_angle.h"
 #include "filters/filter_rate.h"
+#include "filters/filter_movavg.h"
 #include "../TL/TL_observers.h"
 
 void op_abs_diff_angle(at_instruction_t instr)
@@ -27,11 +28,11 @@ void op_movavg(at_instruction_t instr)
 {
 	int32_t signal;
 	sscanf(signals_vector[instr.sig_addr], "%d", &signal);
-	filter_movavg_update_data(&instr.filt_data_struct.movavg, signal);
-	double avg = (double)filter_movavg_get(&instr.filt_data_struct.movavg);
+	filter_movavg_update_data(instr.filt_data_struct.movavg, signal);
+	double avg = (double)filter_movavg_get(instr.filt_data_struct.movavg);
 
 	DEBUG_PRINT("movavg(%d, %hd) = %lf\n",
-		signal, instr.filt_data_struct.movavg.size, avg);
+		signal, instr.filt_data_struct.movavg->size, avg);
 
 	atomics_vector[instr.atom_addr] =
 		compare_double[instr.comp](avg, instr.comp_const.d);

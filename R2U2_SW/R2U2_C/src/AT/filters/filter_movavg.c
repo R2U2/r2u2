@@ -1,4 +1,4 @@
-/*=======================================================================================
+/*=============================================================================
 ** File Name: filter_movavg.c
 **
 ** Title: moving average filter for R2U2/AT
@@ -24,27 +24,21 @@
 **  Date | Author | Description
 **  ---------------------------
 **
-**=====================================================================================*/
+**===========================================================================*/
 
 #include <stdlib.h>
 #include <stdio.h>
 #include "filter_movavg.h"
-#include "circbuffer.h"
 
 movAvg_t *filter_movavg_init(uint16_t filter_size) {
 
-	int32_t *filt_space = (int32_t *) malloc(sizeof(int32_t) * filter_size);
-	circBuf_t *filt_cb = (circBuf_t *) malloc(sizeof(circBuf_t));
-	filt_cb->buffer = filt_space;
-	filt_cb->head = 0;
-	filt_cb->tail = 0;
-	filt_cb->maxLen = filter_size;
-
+	int32_t *filt_buffer = (int32_t *) malloc(sizeof(int32_t) * filter_size);
 	movAvg_t *movavg = (movAvg_t *) malloc(sizeof(movAvg_t));
-	movavg->pCb = filt_cb;
+	movavg->buffer = filt_buffer;
 	movavg->sum = 0;
 	movavg->avg = 0;
-	movavg->num_of_elements = 0;
+	movavg->head = 0;
+	movavg->num_elems = 0;
 	movavg->size = filter_size;
 
 	return movavg;
@@ -54,44 +48,35 @@ movAvg_t *filter_movavg_init(uint16_t filter_size) {
 //----------------------------------------------------------------
 //	update moving avg filter with new data "data"
 //----------------------------------------------------------------
-void filter_movavg_update_data(movAvg_t *pMovAvg, int32_t data) {
+void filter_movavg_update_data(movAvg_t *movavg, int32_t new_data) {
 
 	int32_t old_data;
 
-	// only do pop if data RB is full (real average) (inital fill-up)
-	if (pMovAvg->num_of_elements >= pMovAvg->size) {
-			//do pop
-			circBufPop(pMovAvg->pCb, &old_data);
+	if(movavg->num_elems == movavg->size) {
+		// Buffer is full
+		old_data = movavg->buffer[movavg->head];
+		movavg->sum -= old_data;
+	} else {
+		// Buffer is not full
+		movavg->num_elems++;
+	}
 
+	movavg->buffer[movavg->head] = new_data;
+	movavg->sum += new_data;
 
-		} else {
-			//increase the element counter
-			pMovAvg->num_of_elements++;
-			old_data = 0;
-		}
-
-
-	//add the new element
-	circBufPush(pMovAvg->pCb, data);
-
-	// calculate new sum
-	pMovAvg->sum -= old_data;
-	pMovAvg->sum += data;
-
-	//norm the data and return value
-	pMovAvg->avg = (double) pMovAvg->sum / pMovAvg->num_of_elements;
+	movavg->avg = (double)movavg->sum / (double)movavg->num_elems;
+	movavg->head = (movavg->head + 1) % movavg->size;
 
 }
 
 //----------------------------------------------------------------
 //	get the average value
 //----------------------------------------------------------------
-double filter_movavg_get(movAvg_t *pMovAvg) {
-	return pMovAvg->avg;
+double filter_movavg_get(movAvg_t *movavg) {
+	return movavg->avg;
 }
 
 void filter_movavg_free(movAvg_t *movavg) {
-	free(movavg->pCb->buffer);
-	free(movavg->pCb);
+	free(movavg->buffer);
 	free(movavg);
 }

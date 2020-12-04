@@ -100,7 +100,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 		}
 		case OP_MOVAVG: {
 			inst->comp_const.d = (double) constant;
-			inst->filt_data_struct.movavg = *filter_movavg_init((uint16_t)arg);
+			inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
 			break;
 		}
 		default: {
