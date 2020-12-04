@@ -7,12 +7,12 @@
 ** $Revision: $
 ** $Date:   2015
 **
-** Purpose: 
+** Purpose:
 ** returns a moving average with the window size defined in the
 ** instance of pMovAvg (size) for a stream of data that is
-** forwarded with data to this function 
+** forwarded with data to this function
 ** initially the average of the number of included elements is calculated
-** once the windows size has been reached, 
+** once the windows size has been reached,
 ** the average is calculated over the whole window
 **
 **
@@ -32,7 +32,7 @@
 #include "circbuffer.h"
 
 movAvg_t *filter_movavg_init(uint16_t filter_size) {
-	
+
 	int32_t *filt_space = (int32_t *) malloc(sizeof(int32_t) * filter_size);
 	circBuf_t *filt_cb = (circBuf_t *) malloc(sizeof(circBuf_t));
 	filt_cb->buffer = filt_space;
@@ -50,7 +50,7 @@ movAvg_t *filter_movavg_init(uint16_t filter_size) {
 	return movavg;
 
 }
- 
+
 //----------------------------------------------------------------
 //	update moving avg filter with new data "data"
 //----------------------------------------------------------------
@@ -63,7 +63,7 @@ void filter_movavg_update_data(movAvg_t *pMovAvg, int32_t data) {
 			//do pop
 			circBufPop(pMovAvg->pCb, &old_data);
 
-			
+
 		} else {
 			//increase the element counter
 			pMovAvg->num_of_elements++;
@@ -77,16 +77,16 @@ void filter_movavg_update_data(movAvg_t *pMovAvg, int32_t data) {
 	// calculate new sum
 	pMovAvg->sum -= old_data;
 	pMovAvg->sum += data;
-	
+
 	//norm the data and return value
-	pMovAvg->avg = (float) pMovAvg->sum / pMovAvg->num_of_elements;
+	pMovAvg->avg = (double) pMovAvg->sum / pMovAvg->num_of_elements;
 
 }
 
 //----------------------------------------------------------------
 //	get the average value
 //----------------------------------------------------------------
-float filter_movavg_get(movAvg_t *pMovAvg) {
+double filter_movavg_get(movAvg_t *pMovAvg) {
 	return pMovAvg->avg;
 }
 

@@ -56,4 +56,3 @@ else {
 *prev = x;
 return rate;
 }
-

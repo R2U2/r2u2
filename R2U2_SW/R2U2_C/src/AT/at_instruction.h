@@ -1,14 +1,16 @@
 #ifndef AT_INSTRUCTION_H
 #define AT_INSTRUCTION_H
 
+#include <stdbool.h>
 #include "filters/filter_movavg.h"
 
 typedef enum {
-	GT  = 0b001,
+	EQ  = 0b000,
+	NEQ = 0b001,
 	LT  = 0b010,
-	EQ  = 0b011,
-	GEQ = 0b100,
-	LEQ = 0b101
+	LEQ = 0b011,
+	GT  = 0b100,
+	GEQ = 0b101
 } comparison_t;
 
 typedef enum {
@@ -21,7 +23,7 @@ typedef enum {
 } at_filter_t;
 
 typedef union {
-	uint32_t b;
+	bool b;
 	int32_t i;
 	double d;
 } type_t;
@@ -36,7 +38,6 @@ typedef struct {
 	comparison_t comp;
 	at_filter_t filter;
 	uint8_t sig_addr;
-	double arg;
 	uint8_t atom_addr;
 	type_t comp_const;
 	filt_data_struct_t filt_data_struct;

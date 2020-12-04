@@ -22,7 +22,7 @@ def toBinary(value, width):
 
 	return b
 
-print('Compile atomic checker')
+print('Assemble atomic checker')
 
 f = open(sys.argv[1])
 
@@ -62,19 +62,21 @@ for line in f:
 	binary += toBinary(signal, 8)
 	binary += toBinary(arg, 32)
 
-	if cond == ">":
+	if cond == "==":
+		binary += "000"
+	elif cond == "!=":
 		binary += "001"
 	elif cond == "<":
 		binary += "010"
-	elif cond == "==":
-		binary += "011"
-	elif cond == ">=":
-		binary += "100"
 	elif cond == "<=":
+		binary += "011"
+	elif cond == ">":
+		binary += "100"
+	elif cond == ">=":
 		binary += "101"
 	else:
 		print("Error: conditional operator is not valid in instruction " + line)
-		binary += "000"
+		binary += "111"
 
 	binary += toBinary(const, 32) # Max width is 32 bit constant
 

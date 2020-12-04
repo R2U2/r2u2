@@ -21,6 +21,7 @@ void at_checkers_init()
 void at_checkers_update()
 {
 	uint8_t i;
+	DEBUG_PRINT("\n	AT Update\n");
 	for(i = 0; i < num_instr; i++) {
 		decode[at_instructions[i].filter](at_instructions[i]);
 	}

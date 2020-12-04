@@ -7,7 +7,7 @@
 ** $Revision: $
 ** $Date:   2014
 **
-** Purpose: 
+** Purpose:
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **
@@ -25,14 +25,14 @@
  * Author: Patrick Moosbrugger
  * Usage: instantiate with MOVAVERAGE_DEF(name, size_of_averaging_window)
  */
- 
+
 //#define MOVAVERAGE_DEF(x,y) uint8_t x##_space[y+1]; circBuf_t x##_cb = { x##_space, 0, 0, y+1}; movAvg_t x = {&x##_cb, 0, 0, y};
 
 typedef struct
 {
 	circBuf_t * pCb;
 	int sum;
-	float avg;
+	double avg;
 	uint16_t num_of_elements;
 	uint16_t size;
 } movAvg_t;
@@ -40,12 +40,12 @@ typedef struct
 
 /* returns a moving average with the window size defined in the
  * instance of pMovAvg (size) for a stream of data that is
- * forwarded with *pData to this function 
+ * forwarded with *pData to this function
  * initially the average of the number of included elements is calculated
  * once the windows size has been reached, the average is calculated over the whole window
  * */
 movAvg_t *filter_movavg_init(uint16_t);
 void filter_movavg_update_data(movAvg_t *, int32_t);
-float filter_movavg_get(movAvg_t *);
+double filter_movavg_get(movAvg_t *);
 void filter_movavg_free(movAvg_t *);
 #endif

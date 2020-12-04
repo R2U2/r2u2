@@ -9,6 +9,7 @@ class AT:
     def __init__(self, AT):
         self.status = 'pass'
         self.instructions = {}
+        print('Compile atomic checker')
         self.parse(AT)
         self.gen_assembly()
 
@@ -34,7 +35,7 @@ class AT:
             if type == 'SKIP':
                 pass
             elif type == 'ERROR':
-                print('Syntax error in AT expression: ' + line)
+                print('Syntax error in AT expression ' + line)
             else:
                 tokens.append([type, value])
         return tokens
@@ -47,7 +48,7 @@ class AT:
             tokens = self.tokenize(line)
 
             prev_type = 'BEGIN'
-            arg = '0'
+            arg = 'NULL'
             for tok in tokens:
                 type = tok[0]
                 value = str(tok[1])
@@ -75,10 +76,24 @@ class AT:
                 elif prev_type == 'COND' and type == 'NUMBER':
                     const = value
                 else:
-                    print('Syntax error in AT expression: ' + line)
+                    print('Syntax error in AT expression ' + line)
                     self.status = 'syntax_err'
                     return
                 prev_type = type
+
+            if arg == 'NULL':
+                if filter == 'abs_diff_angle':
+                    print('Error in AT expression ' + line + \
+                        '\nabs_diff_angle filter requires second arg')
+                    self.status = 'syntax_err'
+                    continue # throw out current instr and move on
+                elif filter == 'movavg':
+                    print('Error in AT expression ' + line + \
+                        '\nmovavg filter requires second arg')
+                    self.status = 'syntax_err'
+                    continue # throw out current instr and move on
+                else:
+                    arg = '0'
 
             instr = [filter, signal, arg, cond, const]
 
