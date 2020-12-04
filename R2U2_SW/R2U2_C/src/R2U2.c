@@ -22,13 +22,13 @@ int main(int argc, char *argv[]) {
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     /* Engine Initialization */
-
-    at_checkers_init();
-
     if (getcwd(inbuf, sizeof(inbuf)) == NULL) return 1;
     chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     TL_init();
+    at_checkers_config("at.bin");
+    at_checkers_init();
+
     chdir(inbuf);
 
     /* Select file vs stream */
@@ -52,24 +52,11 @@ int main(int argc, char *argv[]) {
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-        
+
         for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
             signal = strtok(NULL, ",\n")) {
-    			switch(instructions[i].opcode) {
-    				case OP_BOOL:	sscanf(signal, "%hhu", &signals_vector[i].b);
-    										  break;
-    				case OP_INT:	sscanf(signal, "%d", &signals_vector[i].i);
-    										  break;
-    				case OP_DOUBLE:	sscanf(signal, "%lf", &signals_vector[i].d);
-    										    break;
-    				case OP_ABS_DIFF_ANGLE: sscanf(signal, "%lf", &signals_vector[i].d);
-    										            break;
-    				case OP_MOVAVG:	sscanf(signal, "%d", &signals_vector[i].i);
-    										    break;
-    				case OP_RATE:	sscanf(signal, "%lf", &signals_vector[i].d);
-    										  break;
-    			}
-    		}
+              signals_vector[i] = signal;
+          }
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 

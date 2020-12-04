@@ -1,6 +1,6 @@
 from MLTL_Compiler import *
 import sys
-from ATcompiler import *
+from ATcompiler import AT
 
 def main():
     #MLTL = "G[1,3](G[2]a0) & G[2]a0 &(a1 U[2] !a0)"

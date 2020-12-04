@@ -9,68 +9,87 @@ class AT:
     def __init__(self, AT):
         self.status = 'pass'
         self.instructions = {}
-        self.parse_mappings(AT)
+        self.parse(AT)
         self.gen_assembly()
 
-    def parse_mappings(self, input):
-        # use regex to parse atomic mappings, lex/yacc is overkill
+    def tokenize(self, line):
+        filters = ['bool','int','double','rate','abs_diff_angle','movavg']
+        token_spec = [
+            ('ATOM',   r'a\d+'),
+            ('ASSIGN', r':='),
+            ('FILTER', r'|'.join(filters)),
+            ('NUMBER', r'\d+(\.\d*)?'),
+            ('COND',   r'[<>=]=*'),
+            ('LPAREN', r'\('),
+            ('RPAREN', r'\)'),
+            ('COMMA',  r','),
+            ('SKIP',   r'\s+'),
+            ('ERROR',  r'.')
+        ]
+        tok_re = '|'.join('(?P<%s>%s)' % pair for pair in token_spec)
+        tokens = []
+        for tok in re.finditer(tok_re, line):
+            type = tok.lastgroup
+            value = tok.group()
+            if type == 'SKIP':
+                pass
+            elif type == 'ERROR':
+                print('Syntax error in AT expression: ' + line)
+            else:
+                tokens.append([type, value])
+        return tokens
+
+    def parse(self, input):
         for line in input.split(';'):
             if re.fullmatch('\s*', line):
                 break
 
-            filters = ['bool','int','double','rate']
-            instr = []
+            tokens = self.tokenize(line)
 
-            # Construct regex search strings
-            atom_search_str = '\A\s*a\d+\s*(?=:=)'
+            prev_type = 'BEGIN'
+            arg = '0'
+            for tok in tokens:
+                type = tok[0]
+                value = str(tok[1])
+                if type == 'ERROR':
+                    self.status = 'syntax_err'
+                    return
+                if prev_type == 'BEGIN' and type == 'ATOM':
+                    atom = value
+                elif prev_type == 'ATOM' and type == 'ASSIGN':
+                    pass
+                elif prev_type == 'ASSIGN' and type == 'FILTER':
+                    filter = value
+                elif prev_type == 'FILTER' and type == 'LPAREN':
+                    pass
+                elif prev_type == 'LPAREN' and type == 'NUMBER':
+                    signal = value
+                elif prev_type == 'NUMBER' and type == 'COMMA':
+                    pass
+                elif prev_type == 'COMMA' and type == 'NUMBER':
+                    arg = value
+                elif prev_type == 'NUMBER' and type == 'RPAREN':
+                    pass
+                elif prev_type == 'RPAREN' and type == 'COND':
+                    cond = value
+                elif prev_type == 'COND' and type == 'NUMBER':
+                    const = value
+                else:
+                    print('Syntax error in AT expression: ' + line)
+                    self.status = 'syntax_err'
+                    return
+                prev_type = type
 
-            filter_search_str = '(?<=:=)\s*'
-            for f in range(0,len(filters)):
-                filter_search_str += '('+filters[f]+')'
-                if f is not len(filters)-1:
-                    filter_search_str += '|'
+            instr = [filter, signal, arg, cond, const]
 
-            signal_search_str = '(?<=\()\s*\d+\s*(?=\))'
-            cond_search_str = '(?<=\))\s*[<>=]=?\s*'
-            const_search_str = '(?<=[<>=])\s*\d+\s*\Z'
-
-            # Example input:
-            # a43 := rate(56) >= 76;
-            atom = re.search(atom_search_str, line) # a0, a35, etc.
-            filter = re.search(filter_search_str, line) # rate, abs, etc.
-            signal = re.search(signal_search_str, line) # 0, 3, 56, etc.
-            cond = re.search(cond_search_str, line) # ==, >=, >, etc.
-            const = re.search(const_search_str, line) # 0, 3, 56, etc.
-
-            if atom is None:
-                print('Error: invalid atomic name in mapping ' + line)
-            if filter is None:
-                print('Error: invalid filter application in mapping ' + line)
-            if signal is None:
-                print('Error: invalid signal name in mapping ' + line)
-            if cond is None:
-                print('Error: invalid conditional in mapping ' + line)
-            if const is None:
-                print('Error: invalid constant in mapping ' + line)
-            if atom is None or filter is None or signal is None or cond is None or const is None:
-                # report all errors before returing
-                self.status = 'syntax_err'
-                return
-
-            instr.append(filter.group().strip())
-            instr.append(signal.group().strip())
-            instr.append(cond.group().strip())
-            instr.append(const.group().strip())
-
-            self.instructions[atom.group().strip()] = instr
-
+            self.instructions[atom] = instr
 
     def gen_assembly(self):
         s = ''
         for atom, instr in self.instructions.items():
-            s += atom + ' ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' + instr[3] + '\n'
+            s += atom + ' ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
+                + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
 
-        print(s)
         with open(__DirBinaryPath__ + 'at.asm',"w+") as f:
             f.write(s)

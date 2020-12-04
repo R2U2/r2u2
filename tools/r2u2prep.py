@@ -106,7 +106,7 @@ def main():
         subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt', AT_str])
     # Compile AT instructions
     if(len(AT) != 0):
-        print('*********************** Compiling AT ***********************')
+        #print('************************** AT ASM **************************')
         subprocess.run(['python3', __CompilerDir__+'main.py', '', 'at', AT_str])
 
     # Check to see if ft.asm exists

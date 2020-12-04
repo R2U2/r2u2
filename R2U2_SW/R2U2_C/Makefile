@@ -1,6 +1,6 @@
-# tool marcros
+# tool macros
 CC := gcc
-R2U2_AT := true
+R2U2_AT := false
 
 # path marcros
 BIN_PATH := bin
@@ -8,9 +8,9 @@ OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT
 ifdef R2U2_AT
-	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics
+	SRC_DIRS := $(SRC_PATH)/AT $(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics $(SRC_DIRS)
 endif
 
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))

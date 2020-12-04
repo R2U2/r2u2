@@ -1,7 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
+
+#include "at_instruction.h"
+#include "at_globals.h"
+#include "filters/filter_rate.h"
+#include "filters/filter_movavg.h"
 
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
@@ -46,6 +52,62 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
 }
+
+void decode_at_instr(char* s, at_instruction_t* inst)
+{
+	// 1. index to place final atomic value
+	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
+
+	// 2. type of filter to apply to signal
+	inst->filter = string2Int(&s,L_FILT);
+
+	// 3. index of signal to read from signals_vector
+	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
+
+	// 4. argument used for certain filters
+	inst->arg = string2Int(&s,L_CONST);
+
+	// 5. type of comparison operator to apply
+	inst->comp = string2Int(&s,L_COMP);
+
+	// 6. value of constant to compare to filtered signal
+	int constant = string2Int(&s,L_CONST);
+
+	switch(inst->filter) {
+		case OP_BOOL: {
+			inst->comp_const.b = (uint32_t) constant;
+			break;
+		}
+		case OP_INT: {
+			inst->comp_const.i = (int32_t) constant;
+			break;
+		}
+		case OP_DOUBLE: {
+			inst->comp_const.d = (double) constant;
+			break;
+		}
+		case OP_RATE: {
+			inst->comp_const.d = (double) constant;
+			filter_rate_init(&(inst->filt_data_struct.prev));
+			break;
+		}
+		case OP_ABS_DIFF_ANGLE: {
+			inst->comp_const.d = (double )constant;
+			inst->filt_data_struct.diff_angle = inst->arg; // TODO allow user to specify
+			break;
+		}
+		case OP_MOVAVG: {
+			inst->comp_const.d = (double) constant;
+			inst->filt_data_struct.movavg = *filter_movavg_init(inst->arg);
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+
+}
+
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
@@ -134,6 +196,26 @@ void parse_scq_size(char* filename) {
 			(SCQ+(addr_SCQ_map_ft[PC].start_addr))->t_q = -1; // initialize timestamp of the first elelment to -1
 			PC++;
 		}
+		fclose ( file );
+	} else {
+		perror ( filename ); /* why didn't the file open? */
+	}
+}
+//------------------------------------------------------------------------------
+// AT Parser
+//------------------------------------------------------------------------------
+void parse_at(char *filename)
+{
+	int PC = 0;
+	FILE *file = fopen ( filename, "r" );
+	if ( file != NULL ) {
+		char line [MAX_INSTR]; /* or other suitable maximum line size */
+		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
+			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
+			decode_at_instr(line, &at_instructions[PC]);
+			PC++;
+		}
+		num_instr = PC; // set number of AT instructions
 		fclose ( file );
 	} else {
 		perror ( filename ); /* why didn't the file open? */

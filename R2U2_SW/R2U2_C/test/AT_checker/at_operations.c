@@ -16,7 +16,7 @@ void op_abs_diff_angle(instruction_t instr)
 
 void op_movavg(instruction_t instr)
 {
-	filter_movavg_update_data(instr.filt_data_struct.movavg,
+	filter_movavg_update_data(&instr.filt_data_struct.movavg,
 		signals_vector[instr.sig_addr].i);
 	double avg = (double)filter_movavg_get(instr.filt_data_struct.movavg);
 	atomics_vector[instr.atom_addr] =

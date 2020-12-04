@@ -102,4 +102,14 @@ typedef unsigned int timestamp_t;
 //
 // #define N_PATCH_SNYC_QUEUES N_SUBFORMULA_SNYC_QUEUES
 
+//
+// Length of data for AT isntructions
+//
+#define L_ATOMIC_ADDR 8
+#define L_FILT 4
+#define L_SIG_ADDR 8
+#define L_COMP 3
+#define L_CONST 32
+
+
 #endif
