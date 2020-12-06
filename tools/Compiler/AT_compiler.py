@@ -1,3 +1,19 @@
+###############################################################################
+# AT_compiler.py
+#
+# Author: Chris Johannsen
+# Date: 12/6/20
+# Description: Parses and compiles AT instructions. The basic syntax for a
+# valid AT instruction is as follows:
+# ATOMIC := FILTER(SIGNAL,ARG?) COMPARISON_OP CONSTANT;
+# For example:
+# a0 := movavg(5,13) >= 5;
+# This instruction will take the moving average of the signal at index 5 of
+# the input with a buffer/window size of 13 and return whether this moving
+# avergae is greater than or equal to 5. This boolean value is then used by the
+# TL engine of r2u2.
+#
+###############################################################################
 import os
 import re
 
@@ -14,13 +30,15 @@ class AT:
         self.gen_assembly()
 
     def tokenize(self, line):
+        # Take line and return a list of tuples which store each token's
+        # type and value
         filters = ['bool','int','double','rate','abs_diff_angle','movavg']
         token_spec = [
             ('ATOM',   r'a\d+'),
             ('ASSIGN', r':='),
             ('FILTER', r'|'.join(filters)),
             ('NUMBER', r'-?\d+(\.\d*)?'),
-            ('COND',   r'[<>=!]=|[><]'),
+            ('COMP',   r'[<>=!]=|[><]'),
             ('LPAREN', r'\('),
             ('RPAREN', r'\)'),
             ('COMMA',  r','),
@@ -43,7 +61,17 @@ class AT:
             if re.fullmatch('\s*', line):
                 break
 
+            # Tokenize input, store in list
             tokens = self.tokenize(line)
+
+            # Parsing is very basic; AT syntax is not very expressive
+            # Tokens must come in one of two orders:
+            # For filters requiring only a signal parameter:
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> RPAREN ->
+            # COND -> NUMBER
+            # For filters requiring signal and argument parameters:
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> COMMA ->
+            # NUMBER -> RPAREN -> COND -> NUMBER
 
             prev_type = 'BEGIN'
             arg = 'NULL'
@@ -66,18 +94,22 @@ class AT:
                 elif prev_type == 'LPAREN' and type == 'NUMBER':
                     signal = value
                 elif prev_type == 'NUMBER' and type == 'COMMA':
-                    pass
+                    if arg != 'NULL':
+                        print('Syntax error in AT expression ' + line + \
+                            '\Too many args given')
+                        self.status = 'syntax_err'
+                        break
                 elif prev_type == 'COMMA' and type == 'NUMBER':
                     arg = value
                 elif prev_type == 'NUMBER' and type == 'RPAREN':
                     pass
-                elif prev_type == 'RPAREN' and type == 'COND':
-                    cond = value
-                elif prev_type == 'COND' and type == 'NUMBER':
+                elif prev_type == 'RPAREN' and type == 'COMP':
+                    comp = value
+                elif prev_type == 'COMP' and type == 'NUMBER':
                     const = value
                 else:
                     print('Syntax error in AT expression ' + line + \
-                        '\nInvalid character ' + value + ' after ' + prev_type.lower())
+                        '\nInvalid character ' + value + ' after ' + prev_type)
                     self.status = 'syntax_err'
                     break
                 prev_type = type
@@ -85,11 +117,13 @@ class AT:
             if self.status == 'syntax_err':
                 continue
 
+            # Check if arg got assigned for filters which require it
             if arg == 'NULL' and (filter == 'abs_diff_angle' or filter == 'movavg'):
                 print('Error in AT expression ' + line + \
                     ', filter requires second arg')
                 self.status = 'syntax_err'
                 continue # throw out current instr and move on
+            # Check if arg got assigned for filters which do not require it
             elif arg != 'NULL' and (filter != 'abs_diff_angle' and filter != 'movavg'):
                 print('Error in AT expression ' + line + \
                     ', filter has too many arguments')
@@ -98,7 +132,7 @@ class AT:
             elif arg == 'NULL':
                 arg = '0'
 
-            instr = [filter, signal, arg, cond, const]
+            instr = [filter, signal, arg, comp, const]
 
             self.instructions[atom] = instr
 

@@ -85,9 +85,9 @@ void op_error(at_instruction_t *instr)
 }
 
 void (*decode[])(at_instruction_t *) = {op_error,
-																			op_bool,
-																			op_int,
-																			op_double,
-																			op_rate,
-																			op_abs_diff_angle,
-									  									op_movavg};
+																				op_bool,
+																				op_int,
+																				op_double,
+																				op_rate,
+																				op_abs_diff_angle,
+									  										op_movavg};

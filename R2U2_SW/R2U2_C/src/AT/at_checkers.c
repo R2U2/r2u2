@@ -8,17 +8,17 @@
 #include "filters/filter_movavg.h"
 #include "parse.h"
 
-void at_checkers_config(char *f)
+void AT_config(char *f)
 {
 		parse_at(f);
 }
 
-void at_checkers_init()
+void AT_init()
 {
 	return;
 }
 
-void at_checkers_update(uint32_t cur_time)
+void AT_update(uint32_t cur_time)
 {
 	uint8_t i;
 	for(i = 0; i < num_instr; i++) {
@@ -29,7 +29,7 @@ void at_checkers_update(uint32_t cur_time)
 	AT_LOG("\n");
 }
 
-void at_checkers_free()
+void AT_free()
 {
 	uint8_t i;
 	for(i = 0; i < num_instr; i++) {

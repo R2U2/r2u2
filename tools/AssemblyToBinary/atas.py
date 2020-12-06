@@ -10,6 +10,8 @@ def writeToFile(file, content):
 def toBinary(value, width):
 	value = int(value)
 
+	# TODO: Enable AT compiler to handle floating point numbers
+
 	# Handle sign
 	if value < 0:
 		# Convert to 2's complement
@@ -54,7 +56,7 @@ for line in f:
 	filter = instr[1]
 	signal = instr[2]
 	arg    = instr[3]
-	cond   = instr[4]
+	comp   = instr[4]
 	const  = instr[5]
 
 	if atomic is None:
@@ -82,17 +84,17 @@ for line in f:
 	binary += toBinary(signal, 8)
 	binary += toBinary(arg, 32)
 
-	if cond == "==":
+	if comp == "==":
 		binary += "000"
-	elif cond == "!=":
+	elif comp == "!=":
 		binary += "001"
-	elif cond == "<":
+	elif comp == "<":
 		binary += "010"
-	elif cond == "<=":
+	elif comp == "<=":
 		binary += "011"
-	elif cond == ">":
+	elif comp == ">":
 		binary += "100"
-	elif cond == ">=":
+	elif comp == ">=":
 		binary += "101"
 	else:
 		print("Error: conditional operator is not valid in instruction " + line)

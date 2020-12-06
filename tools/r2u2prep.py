@@ -52,13 +52,13 @@ def main():
         isAtom = 0
 
         # Determine if the line is an atomic mapping
-        if(re.search(':=', line) != None):
+        if(re.search(':=', line)):
             isAtom = isAtom + 1
         # Determine if the line contains a FT operator
-        elif(re.search('[GFUR]', line) != None):
+        elif(re.search('[GFUR]', line)):
             isFT = isFT + 1
         # Determine if the line contains a PT operator
-        elif(re.search('[YHOS]', line) != None):
+        elif(re.search('[YHOS]', line)):
             isPT = isPT + 1
 
         # If a formula has both PT and FT, throw an error and exit the program

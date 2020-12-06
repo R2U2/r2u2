@@ -26,8 +26,8 @@ int main(int argc, char *argv[]) {
     chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     TL_init();
-    at_checkers_config("at.bin");
-    at_checkers_init();
+    AT_config("at.bin");
+    AT_init();
 
     chdir(inbuf);
 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        at_checkers_update(cur_time);
+        AT_update(cur_time);
 
         /* Temporal Logic Update */
         TL_update(log_file);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 
     fclose(log_file);
 
-    at_checkers_free();
+    AT_free();
 
     return 0;
 }

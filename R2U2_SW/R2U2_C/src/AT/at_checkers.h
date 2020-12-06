@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-void at_checkers_config();
-void at_checkers_init();
-void at_checkers_update(uint32_t);
-void at_checkers_free();
+void AT_config();
+void AT_init();
+void AT_update(uint32_t);
+void AT_free();
 
 #endif
