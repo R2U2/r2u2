@@ -21,9 +21,7 @@ void at_checkers_init()
 void at_checkers_update(uint32_t cur_time)
 {
 	uint8_t i;
-	AT_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 	for(i = 0; i < num_instr; i++) {
-		AT_DEBUG_PRINT("AT%d:", i);
 		decode[at_instructions[i].filter](at_instructions+i);
 		if(i < num_instr-1)
 			AT_LOG(",");

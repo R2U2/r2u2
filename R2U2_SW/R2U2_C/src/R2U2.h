@@ -16,10 +16,9 @@
 #endif
 
 #ifdef AT_DEBUG
-    #define AT_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
+    // Print to stdout so user can pipe output to file more easily
     #define AT_LOG(...) do{ fprintf( stdout, __VA_ARGS__ ); } while( false )
 #else
-    #define AT_DEBUG_PRINT(...) do{ } while ( false )
     #define AT_LOG(...) do{ } while ( false )
 #endif
 

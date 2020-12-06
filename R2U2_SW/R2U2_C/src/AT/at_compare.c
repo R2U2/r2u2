@@ -1,17 +1,17 @@
 #include "at_compare.h"
 
-bool compare_int_eq(int32_t a, int32_t b)   { AT_DEBUG_PRINT("	%d == %d\n", a, b); return a == b; }
-bool compare_int_neq(int32_t a, int32_t b)  { AT_DEBUG_PRINT("	%d != %d\n", a, b); return a != b; }
-bool compare_int_lt(int32_t a, int32_t b)   { AT_DEBUG_PRINT("	%d < %d\n", a, b); return a <  b; }
-bool compare_int_leq(int32_t a, int32_t b)  { AT_DEBUG_PRINT("	%d <= %d\n", a, b); return a <= b; }
-bool compare_int_gt(int32_t a, int32_t b)   { AT_DEBUG_PRINT("	%d > %d\n", a, b); return a >  b; }
-bool compare_int_geq(int32_t a, int32_t b)  { AT_DEBUG_PRINT("	%d >= %d\n", a, b); return a >= b; }
-bool compare_double_eq(double a, double b)  { AT_DEBUG_PRINT("	%lf == %lf\n", a, b); return a == b; }
-bool compare_double_neq(double a, double b) { AT_DEBUG_PRINT("	%lf != %lf\n", a, b); return a != b; }
-bool compare_double_lt(double a, double b)  { AT_DEBUG_PRINT("	%lf < %lf\n", a, b); return a <  b; }
-bool compare_double_leq(double a, double b) { AT_DEBUG_PRINT("	%lf <= %lf\n", a, b); return a <= b; }
-bool compare_double_gt(double a, double b)  { AT_DEBUG_PRINT("	%lf > %lf\n", a, b); return a >  b; }
-bool compare_double_geq(double a, double b) { AT_DEBUG_PRINT("	%lf >= %lf\n", a, b); return a >= b; }
+bool compare_int_eq(int32_t a, int32_t b)   { return a == b; }
+bool compare_int_neq(int32_t a, int32_t b)  { return a != b; }
+bool compare_int_lt(int32_t a, int32_t b)   { return a <  b; }
+bool compare_int_leq(int32_t a, int32_t b)  { return a <= b; }
+bool compare_int_gt(int32_t a, int32_t b)   { return a >  b; }
+bool compare_int_geq(int32_t a, int32_t b)  { return a >= b; }
+bool compare_double_eq(double a, double b)  { return a == b; }
+bool compare_double_neq(double a, double b) { return a != b; }
+bool compare_double_lt(double a, double b)  { return a <  b; }
+bool compare_double_leq(double a, double b) { return a <= b; }
+bool compare_double_gt(double a, double b)  { return a >  b; }
+bool compare_double_geq(double a, double b) { return a >= b; }
 
 bool (*compare_int[])(int32_t, int32_t) = {compare_int_eq,
 																					 compare_int_neq,
