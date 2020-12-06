@@ -252,28 +252,34 @@ def compare_output(sig_filename, bool_filename):
             if not check_rate(log, sigs[row][4], bools[row][4]):
                 print('RATE: Failed at time step ' + str(row))
             if not check_movavg(log, sigs[row][5], bools[row][5]):
-                print('MOVAVG: Failed at time step ' + str(row))
+                print('MOVAVG: Failed at time step ' + str(row) )
             log.write('\n')
 
 if __name__ == '__main__':
     print('Running AT checker test')
 
-    print('Generating test signal values at ' + sys.argv[1])
-    write_values(sys.argv[1])
+    if not os.path.exists('log'):
+        os.makedirs('log')
+    if not os.path.exists('data'):
+        os.makedirs('data')
 
-    print('Generating test mltl formula file at ' + sys.argv[2])
-    write_formulas(sys.argv[2])
+    print('Generating test signal values at data/' + sys.argv[1])
+    write_values('data/'+sys.argv[1])
+
+    print('Generating test mltl formula file at data/' + sys.argv[2])
+    write_formulas('data/'+sys.argv[2])
 
     print('Running r2u2prep.py using ' + sys.argv[2] + ' and logging output at log/prep.log')
     prep_log = open('log/prep.log', 'w')
     subprocess.run(['python3', __PrepDir__+'r2u2prep.py', \
-        __AbsolutePath__+sys.argv[2]], stdout=prep_log)
+        'data/'+sys.argv[2]], stdout=prep_log)
 
-    print('Running r2u2 and piping boolean output to ' + sys.argv[3] + ' and logging debug output at log/r2u2_debug.log')
+    print('Running r2u2 and piping boolean output to data/' + sys.argv[3] \
+        + ' and logging debug output at log/r2u2_debug.log')
     r2u2_debug_log = open('log/r2u2_debug.log', 'w')
-    bool_log = open(sys.argv[3], 'w')
+    bool_log = open('data/'+sys.argv[3], 'w')
     subprocess.run([__CDir__+'bin/r2u2', __PrepDir__+'binary_files/',\
-        __AbsolutePath__+sys.argv[1]], stderr=r2u2_debug_log, stdout=bool_log)
+        'data/'+sys.argv[1]], stderr=r2u2_debug_log, stdout=bool_log)
 
     print('Checking boolean output and logging at log/' + sys.argv[4])
-    compare_output(sys.argv[1], sys.argv[3])
+    compare_output('data/'+sys.argv[1], 'data/'+sys.argv[3])
