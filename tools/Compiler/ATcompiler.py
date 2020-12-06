@@ -19,8 +19,8 @@ class AT:
             ('ATOM',   r'a\d+'),
             ('ASSIGN', r':='),
             ('FILTER', r'|'.join(filters)),
-            ('NUMBER', r'\d+(\.\d*)?'),
-            ('COND',   r'[<>=]=*'),
+            ('NUMBER', r'-?\d+(\.\d*)?'),
+            ('COND',   r'[<>=!]=|[><]'),
             ('LPAREN', r'\('),
             ('RPAREN', r'\)'),
             ('COMMA',  r','),
@@ -34,8 +34,6 @@ class AT:
             value = tok.group()
             if type == 'SKIP':
                 pass
-            elif type == 'ERROR':
-                print('Syntax error in AT expression ' + line)
             else:
                 tokens.append([type, value])
         return tokens
@@ -53,8 +51,10 @@ class AT:
                 type = tok[0]
                 value = str(tok[1])
                 if type == 'ERROR':
+                    print('Syntax error in AT expression ' + line + \
+                        '\nInvalid character ' + value)
                     self.status = 'syntax_err'
-                    return
+                    break
                 if prev_type == 'BEGIN' and type == 'ATOM':
                     atom = value
                 elif prev_type == 'ATOM' and type == 'ASSIGN':
@@ -76,24 +76,27 @@ class AT:
                 elif prev_type == 'COND' and type == 'NUMBER':
                     const = value
                 else:
-                    print('Syntax error in AT expression ' + line)
+                    print('Syntax error in AT expression ' + line + \
+                        '\nInvalid character ' + value + ' after ' + prev_type.lower())
                     self.status = 'syntax_err'
-                    return
+                    break
                 prev_type = type
 
-            if arg == 'NULL':
-                if filter == 'abs_diff_angle':
-                    print('Error in AT expression ' + line + \
-                        '\nabs_diff_angle filter requires second arg')
-                    self.status = 'syntax_err'
-                    continue # throw out current instr and move on
-                elif filter == 'movavg':
-                    print('Error in AT expression ' + line + \
-                        '\nmovavg filter requires second arg')
-                    self.status = 'syntax_err'
-                    continue # throw out current instr and move on
-                else:
-                    arg = '0'
+            if self.status == 'syntax_err':
+                continue
+
+            if arg == 'NULL' and (filter == 'abs_diff_angle' or filter == 'movavg'):
+                print('Error in AT expression ' + line + \
+                    ', filter requires second arg')
+                self.status = 'syntax_err'
+                continue # throw out current instr and move on
+            elif arg != 'NULL' and (filter != 'abs_diff_angle' and filter != 'movavg'):
+                print('Error in AT expression ' + line + \
+                    ', filter has too many arguments')
+                self.status = 'syntax_err'
+                continue # throw out current instr and move on
+            elif arg == 'NULL':
+                arg = '0'
 
             instr = [filter, signal, arg, cond, const]
 

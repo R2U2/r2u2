@@ -8,16 +8,33 @@ def writeToFile(file, content):
 	f.close
 
 def toBinary(value, width):
-	#print(value)
-	value = int(value) # parse string to integer first
+	value = int(value)
 
-	b = bin(value)[2:]
+	# Handle sign
+	if value < 0:
+		# Convert to 2's complement
+		value += 1
+		b = bin(value)[3:]
 
-	while len(b) < width:
-		b = "0" + b
+		# Flip bits
+		tmp = ''
+		for digit in b:
+			if digit == '0':
+				tmp += '1'
+			else:
+				tmp += '0'
+		b = tmp
+
+		# Pad with 1s
+		while len(b) < width:
+			b = '1' + b
+	else:
+		b = bin(value)[2:]
+		while len(b) < width:
+			b = '0' + b
 
 	if len(b) > width:
-		print(value, "Error: does not fit into", width, "bits")
+		print(value, "Error: does not fit into ", width, " bits")
 		b = b[0:width]
 
 	return b
@@ -28,6 +45,9 @@ f = open(sys.argv[1])
 
 binary = ''
 for line in f:
+	if re.fullmatch('\s*', line):
+		break
+
 	instr = line.split()
 
 	atomic = re.search('\d+', instr[0])

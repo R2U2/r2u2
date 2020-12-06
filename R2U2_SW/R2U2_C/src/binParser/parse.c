@@ -67,7 +67,6 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 
 	// 4. argument used for certain filters
 	int arg = string2Int(&s,L_CONST);
-	printf("\n%d\n", arg);
 
 	// 5. type of comparison operator to apply
 	inst->comp = string2Int(&s,L_COMP);
@@ -90,11 +89,11 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 		}
 		case OP_RATE: {
 			inst->comp_const.d = (double) constant;
-			filter_rate_init((double *)&(inst->filt_data_struct.prev));
+			filter_rate_init(&inst->filt_data_struct.prev);
 			break;
 		}
 		case OP_ABS_DIFF_ANGLE: {
-			inst->comp_const.d = (double)constant;
+			inst->comp_const.d = (double) constant;
 			inst->filt_data_struct.diff_angle = (double) arg;
 			break;
 		}

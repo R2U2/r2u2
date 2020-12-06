@@ -28,6 +28,8 @@ def main():
     # If the arguement is a valid file,
     if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
         MLTL = open(sys.argv[1],'r').read()
+    elif(os.path.isfile(sys.argv[1])):
+        MLTL = open(sys.argv[1],'r').read()
     else:
         MLTL = sys.argv[1]
 
@@ -126,6 +128,12 @@ def main():
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
     print('************************************************************')
+    # Check to see if ft.asm exists
+    if(not os.path.isfile(__BinFileDir__+'at.asm')):
+        # If it doesn't, make a blank assembly
+        f = open(__BinFileDir__+'at.asm','w+')
+        f.write(' ')
+        f.close()
     subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm'])
 
     print('************************************************************')

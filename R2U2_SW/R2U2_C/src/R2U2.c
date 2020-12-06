@@ -46,8 +46,9 @@ int main(int argc, char *argv[]) {
     // TODO: Name after input and output
     if(log_file == NULL) return 1;
 
+
     /* Main processing loop */
-    int cur_time = 0, i;
+    uint32_t cur_time = 0, i;
     char *signal;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
@@ -61,7 +62,7 @@ int main(int argc, char *argv[]) {
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        at_checkers_update();
+        at_checkers_update(cur_time);
 
         /* Temporal Logic Update */
         TL_update(log_file);
