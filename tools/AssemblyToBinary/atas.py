@@ -97,7 +97,7 @@ for line in f:
 	elif comp == ">=":
 		binary += "101"
 	else:
-		print("Error: conditional operator is not valid in instruction " + line)
+		print("Error: comparison operator is not valid in instruction " + line)
 		binary += "111"
 
 	binary += toBinary(const, 32) # Max width is 32 bit constant

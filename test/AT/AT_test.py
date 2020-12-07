@@ -8,7 +8,6 @@ __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __CDir__         = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
 __PrepDir__      = __AbsolutePath__+'../../tools/'
 
-rows = 50
 
 # col0: bool
 # col1: int
@@ -59,11 +58,10 @@ def gen_values():
 
     return values
 
-def write_values(filename):
-    global rows
+def write_values(num_rows, filename):
     with open(filename, 'w', newline='') as f:
         writer = csv.writer(f)
-        for i in range(rows):
+        for i in range(num_rows):
             writer.writerow(gen_values())
 
 ###############################################################################
@@ -234,11 +232,11 @@ def check_movavg(log, sig, bool):
 
     return result
 
-def compare_output(sig_filename, bool_filename):
+def compare_output(testlog_filename, sig_filename, bool_filename):
     sigs = read_values(sig_filename)
     bools = read_values(bool_filename)
 
-    with open('log/'+sys.argv[4], 'w') as log:
+    with open('log/' + testlog_filename, 'w') as log:
         for row in range(len(sigs)):
             log.write('--- Time step ' + str(row) + ' ---\n')
             if not check_bool(log, sigs[row][0], bools[row][0]):
@@ -258,28 +256,46 @@ def compare_output(sig_filename, bool_filename):
 if __name__ == '__main__':
     print('Running AT checker test')
 
+    if not len(sys.argv) == 2:
+        sys.exit('Usage: python AT_test.py num_rows')
+
+    try:
+        num_rows = int(sys.argv[1])
+    except TypeError:
+        print('num_rows must be integer')
+        sys.exit('Usage: python AT_test.py num_rows')
+
     if not os.path.exists('log'):
         os.makedirs('log')
     if not os.path.exists('data'):
         os.makedirs('data')
 
-    print('Generating test signal values at data/' + sys.argv[1])
-    write_values('data/'+sys.argv[1])
+    sig_filename = 'signals.csv'
+    mltl_filename = 'formula.mltl'
+    r2u2prep_filename = 'r2u2prep.log'
+    r2u2debug_filename = 'r2u2debug.log'
+    bool_filename = 'ATout.csv'
+    testlog_filename = 'AT_test.log'
 
-    print('Generating test mltl formula file at data/' + sys.argv[2])
-    write_formulas('data/'+sys.argv[2])
+    print('Generating test signal values at data/' + sig_filename)
+    write_values(num_rows, 'data/' + sig_filename)
 
-    print('Running r2u2prep.py using ' + sys.argv[2] + ' and logging output at log/prep.log')
-    prep_log = open('log/prep.log', 'w')
+    print('Generating test mltl formula file at data/' + mltl_filename)
+    write_formulas('data/' + mltl_filename)
+
+    print('Running r2u2prep.py using ' + mltl_filename + \
+        ' and logging output at log/' + r2u2prep_filename)
+    prep_log = open('log/' + r2u2prep_filename, 'w')
     subprocess.run(['python3', __PrepDir__+'r2u2prep.py', \
-        'data/'+sys.argv[2]], stdout=prep_log)
+        'data/' + mltl_filename], stdout = prep_log)
 
-    print('Running r2u2 and piping boolean output to data/' + sys.argv[3] \
-        + ' and logging debug output at log/r2u2_debug.log')
-    r2u2_debug_log = open('log/r2u2_debug.log', 'w')
-    bool_log = open('data/'+sys.argv[3], 'w')
+    print('Running r2u2 and piping boolean output to data/' + bool_filename \
+        + ' and logging debug output at log/' + r2u2debug_filename)
+    r2u2_debug_log = open('log/' + r2u2debug_filename, 'w')
+    bool_log = open('data/' + bool_filename, 'w')
     subprocess.run([__CDir__+'bin/r2u2', __PrepDir__+'binary_files/',\
-        'data/'+sys.argv[1]], stderr=r2u2_debug_log, stdout=bool_log)
+        'data/' + sig_filename], stderr = r2u2_debug_log, stdout = bool_log)
 
-    print('Checking boolean output and logging at log/' + sys.argv[4])
-    compare_output('data/'+sys.argv[1], 'data/'+sys.argv[3])
+    print('Checking boolean output and logging at log/' + testlog_filename)
+    compare_output(testlog_filename, 'data/' + sig_filename, \
+        'data/' + bool_filename)
