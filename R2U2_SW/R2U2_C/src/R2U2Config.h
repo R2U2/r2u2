@@ -6,8 +6,6 @@
 typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
 
-#define NOFILES
-
 // TODO: Clean this up
 /* TL Engine configuration */
 //

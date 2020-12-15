@@ -8,19 +8,10 @@
 #include "filters/filter_movavg.h"
 #include "parse.h"
 
-/* TODO This should be part of a CLI option */
-#ifdef NOFILES
-#include "at_structs.h"
 void AT_config(char *filename)
 {
-	populate_at();
+		parse_at(filename);
 }
-#else
-void AT_config(char *filename)
-{
-	parse_at(filename);
-}
-#endif
 
 void AT_init()
 {

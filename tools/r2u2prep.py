@@ -134,7 +134,7 @@ def main():
         f = open(__BinFileDir__+'at.asm','w+')
         f.write(' ')
         f.close()
-    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm', 'no-files'])
+    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm'])
 
     print('************************************************************')
     print('Binary files are located in the '+__BinFileDir__+' directory')

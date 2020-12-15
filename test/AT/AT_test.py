@@ -94,7 +94,7 @@ def gen_at_formula(filt):
     elif filt == 'movavg':
         cond[5] = random.choice(avail_cond)
         const[5] = integer()
-        arg[5] = abs(integer())
+        arg[5] = integer()
         return 'movavg(5,' + str(arg[5]) + ') ' + cond[5] + \
             ' ' + str(const[5])
 
@@ -288,14 +288,6 @@ if __name__ == '__main__':
     prep_log = open('log/' + r2u2prep_filename, 'w')
     subprocess.run(['python3', __PrepDir__+'r2u2prep.py', \
         'data/' + mltl_filename], stdout = prep_log)
-    os.rename(__PrepDir__+'binary_files/at_structs.h',__CDir__+'src/AT/at_structs.h')
-    os.rename(__PrepDir__+'binary_files/at_structs.c',__CDir__+'src/AT/at_structs.c')
-
-    print("Compiling C tool")
-    os.chdir(__CDir__)
-    subprocess.run(['make', 'clean'], stdout = subprocess.DEVNULL)
-    subprocess.run(['make'], stdout = subprocess.DEVNULL)
-    os.chdir(__AbsolutePath__)
 
     print('Running r2u2 and piping boolean output to data/' + bool_filename \
         + ' and logging debug output at log/' + r2u2debug_filename)
