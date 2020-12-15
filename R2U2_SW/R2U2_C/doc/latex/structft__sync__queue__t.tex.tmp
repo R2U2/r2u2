@@ -1,0 +1,50 @@
+\hypertarget{structft__sync__queue__t}{}\section{ft\+\_\+sync\+\_\+queue\+\_\+t Struct Reference}
+\label{structft__sync__queue__t}\index{ft\+\_\+sync\+\_\+queue\+\_\+t@{ft\+\_\+sync\+\_\+queue\+\_\+t}}
+
+
+{\ttfamily \#include $<$T\+L\+\_\+queue\+\_\+ft.\+h$>$}
+
+
+
+Collaboration diagram for ft\+\_\+sync\+\_\+queue\+\_\+t\+:
+% FIG 0
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_ae9f19801e4bac917fee4cc84a98395d4}\label{structft__sync__queue__t_ae9f19801e4bac917fee4cc84a98395d4}} 
+int {\bfseries wr\+\_\+ptr}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_ad8bce7e268dfec60e9e5be3fceece18b}\label{structft__sync__queue__t_ad8bce7e268dfec60e9e5be3fceece18b}} 
+int {\bfseries rd\+\_\+ptr}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_a816df3029d998a3c0240e9d629c406cb}\label{structft__sync__queue__t_a816df3029d998a3c0240e9d629c406cb}} 
+int {\bfseries rd\+\_\+ptr2}
+\item 
+int \hyperlink{structft__sync__queue__t_a4911ecb4e56202219470cf391a718ae2}{m\+\_\+edge}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_a3f967f818e29c19a7ca57114f6ed6c3a}\label{structft__sync__queue__t_a3f967f818e29c19a7ca57114f6ed6c3a}} 
+\hyperlink{structelt__ft__queue__t}{elt\+\_\+ft\+\_\+queue\+\_\+t} {\bfseries pre}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_a3cdc4681a9f5081456d59e2491fcd143}\label{structft__sync__queue__t_a3cdc4681a9f5081456d59e2491fcd143}} 
+int {\bfseries pre\+Result}
+\item 
+\mbox{\Hypertarget{structft__sync__queue__t_a7bcb76127add9546168ca5d524c8c491}\label{structft__sync__queue__t_a7bcb76127add9546168ca5d524c8c491}} 
+int {\bfseries desired\+\_\+time\+\_\+stamp}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+This struct manages all info for a single node/instruction 
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structft__sync__queue__t_a4911ecb4e56202219470cf391a718ae2}\label{structft__sync__queue__t_a4911ecb4e56202219470cf391a718ae2}} 
+\index{ft\+\_\+sync\+\_\+queue\+\_\+t@{ft\+\_\+sync\+\_\+queue\+\_\+t}!m\+\_\+edge@{m\+\_\+edge}}
+\index{m\+\_\+edge@{m\+\_\+edge}!ft\+\_\+sync\+\_\+queue\+\_\+t@{ft\+\_\+sync\+\_\+queue\+\_\+t}}
+\subsubsection{\texorpdfstring{m\+\_\+edge}{m\_edge}}
+{\footnotesize\ttfamily int ft\+\_\+sync\+\_\+queue\+\_\+t\+::m\+\_\+edge}
+
+For binary operators, need two read ptr 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/\+T\+L/\hyperlink{TL__queue__ft_8h}{T\+L\+\_\+queue\+\_\+ft.\+h}\end{DoxyCompactItemize}
