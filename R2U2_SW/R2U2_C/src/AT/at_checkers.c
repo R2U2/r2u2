@@ -13,7 +13,7 @@
 #include "at_structs.h"
 void AT_config(char *filename)
 {
-	populate_at_instr();
+	populate_at();
 }
 #else
 void AT_config(char *filename)

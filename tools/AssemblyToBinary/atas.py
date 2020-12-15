@@ -3,6 +3,7 @@ import os
 import re
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirCPath__ = __AbsolutePath__+'../c_files/'
 __DirBinaryPath__ = __AbsolutePath__+'../binary_files/'
 
 def writeToFile(file, content):
@@ -110,17 +111,16 @@ def assemble_binary(f):
 	return binary
 
 def assemble_c(f):
-	prog_text = \
-	"""
-	#include <stdint.h>
-	#include <stdbool.h>
+	prog_text = """
+#include <stdint.h>
+#include <stdbool.h>
 
-	#include "at_instruction.h"
-	#include "at_globals.h"
-	#include "filters/filter_rate.h"
-	#include "filters/filter_movavg.h"
+#include "at_instruction.h"
+#include "at_globals.h"
+#include "filters/filter_rate.h"
+#include "filters/filter_movavg.h"
 
-	void populate_at_instr() {
+void populate_at() {
 	"""
 	num_instr = 0
 	for line in f:
@@ -202,9 +202,9 @@ def assemble_c(f):
 
 header = \
 """
-#ifndef AT_STRUCTS_H
-#define AT_STRUCTS_H
-void populate_at_instr();
+#ifndef AT_H
+#define AT_H
+void populate_at();
 #endif
 """.strip()
 
@@ -213,9 +213,14 @@ if __name__ == '__main__':
 	f = open(sys.argv[1])
 	opt = sys.argv[2]
 	if opt == 'no-files':
+		if(not os.path.isdir(__DirCPath__)):
+			os.mkdir(__DirCPath__)
 		data = assemble_c(f)
-		writeToFile(__DirBinaryPath__+'at_structs.h', header)
-		writeToFile(__DirBinaryPath__+'at_structs.c', data)
+		writeToFile(__DirBinaryPath__+'at.h', header)
+		writeToFile(__DirBinaryPath__+'at.c', data)
 	else:
+		if(not os.path.isdir(__DirBinaryPath__)):
+			os.mkdir(__DirBinaryPath__)
 		data = assemble_binary(f)
 		writeToFile(__DirBinaryPath__+'at.bin', data)
+	f.close()
