@@ -9,7 +9,7 @@ import sys
 import os
 import subprocess
 import shutil
-from Compiler.MLTL_Compiler import *
+import Compiler.MLTL_Compiler
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -76,7 +76,7 @@ def main():
                 FT_str += "\n"
         MLTL = FT_str
         FTorPT = 'ft'
-        postgraph = Postgraph(MLTL, FTorPT, optimize_cse=True)
+        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
         del postgraph
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
@@ -88,7 +88,7 @@ def main():
                 PT_str += "\n"
         MLTL = PT_str
         FTorPT = 'pt'
-        postgraph = Postgraph(MLTL, FTorPT, optimize_cse=True)
+        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
         del postgraph
 
     # Check to see if ft.asm exists
@@ -112,5 +112,8 @@ def main():
     print('Binary files are located in the '+__BinFileDir__+' directory')
     print('************************************************************')
     
+    #'reset' MLTLCompiler by deleting from memory and reimporting
+    del Compiler.MLTL_Compiler
+
 if __name__ == "__main__":
     main()
