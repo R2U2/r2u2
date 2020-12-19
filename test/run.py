@@ -241,13 +241,11 @@ def main():
     # If there is the remove flag, remove all directories and files in the results directory
 	if(args['remove']):
 		print('Removing all R2U2 log files from the results directory')
-		try:
-			shutil.rmtree(__ResultDIR__+__ResultPythonDir__)
-			shutil.rmtree(__ResultDIR__+__ResultCDir__)
-			shutil.rmtree(__ResultDIR__+__ResultCppDir__)
-			shutil.rmtree(__ResultDIR__+__ResultVHDLDir__)
-		except:
-			pass
+		shutil.rmtree(__ResultDIR__+__ResultPythonDir__, ignore_errors=True)
+		shutil.rmtree(__ResultDIR__+__ResultCDir__, ignore_errors=True)
+		shutil.rmtree(__ResultDIR__+__ResultCppDir__, ignore_errors=True)
+		shutil.rmtree(__ResultDIR__+__ResultVHDLDir__, ignore_errors=True)
+
 	# If not, then test the specified version of R2U2
 	elif(args['version']):
 		formulaFiles,inputFiles = list_file()
