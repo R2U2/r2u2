@@ -9,6 +9,7 @@ import sys
 import os
 import subprocess
 import shutil
+from Compiler.MLTL_Compiler import *
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -73,7 +74,10 @@ def main():
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft'])
+        MLTL = FT_str
+        FTorPT = 'ft'
+        postgraph = Postgraph(MLTL, FTorPT, optimize_cse=True)
+        del postgraph
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -82,7 +86,10 @@ def main():
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt'])
+        MLTL = PT_str
+        FTorPT = 'pt'
+        postgraph = Postgraph(MLTL, FTorPT, optimize_cse=True)
+        del postgraph
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
