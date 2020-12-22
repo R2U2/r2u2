@@ -17,9 +17,9 @@ OBJ_DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_
 
 # Search paths and libs
 IDIR=$(SRC_DIRS)
-LIBS := fftw3
-IN_LIBS=$(shell pkg-config --cflags $(LIBS))
-LD_LIBS=$(shell pkg-config --libs $(LIBS)) -lm
+LIBS := 
+IN_LIBS=
+LD_LIBS= -lm
 
 CFLAGS :=-std=c99 $(IDIR:%=-I%) $(IN_LIBS) -DR2U2_STANDALONE
 ifdef R2U2_AT
