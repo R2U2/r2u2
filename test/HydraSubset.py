@@ -59,7 +59,7 @@ def test_c(formulaFiles,inputFiles):
     # For all formula files within the formulaFiles directory
     for _formulaFile in formulaFiles:
         formula = open(__TLDir__+_formulaFile,'r').read()
-        print(formula)
+        # print(formula)
         # For each formula within 
         subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
         form   = _formulaFile.replace('.mltl','')
