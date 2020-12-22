@@ -661,6 +661,11 @@ def getVerdict(_formulaFile, Input):
                 Verdict.append(False)
         pcNum = 2
 
+    # 33.) a1 & (G[8] a0)
+    # elif(_formulaFile == "test0033"):
+    #     for i in range(0,len(Input[1])):
+    #         pass
+
     # 34.) a1 & F[5,10] a0
     elif(_formulaFile == "test0034"):
         LB = 5
