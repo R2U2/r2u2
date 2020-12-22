@@ -126,7 +126,7 @@ def main():
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
+    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH), 'files'])
     print('************************************************************')
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
@@ -134,7 +134,7 @@ def main():
         f = open(__BinFileDir__+'at.asm','w+')
         f.write(' ')
         f.close()
-    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm'])
+    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm','files'])
 
     print('************************************************************')
     print('Binary files are located in the '+__BinFileDir__+' directory')

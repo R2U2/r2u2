@@ -205,13 +205,14 @@ void parse_scq_size(char* filename) {
 //------------------------------------------------------------------------------
 // AT Parser
 //------------------------------------------------------------------------------
+/*
 void parse_at(char *filename)
 {
 	int PC = 0;
 	FILE *file = fopen ( filename, "r" );
 	if ( file != NULL ) {
-		char line [MAX_INSTR]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
+		char line [MAX_INSTR]; // or other suitable maximum line size
+		while ( fgets (line, sizeof(line), file ) != NULL ) {// read a line
 			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
 			decode_at_instr(line, &at_instructions[PC]);
 			PC++;
@@ -219,6 +220,26 @@ void parse_at(char *filename)
 		num_instr = PC; // set number of AT instructions
 		fclose ( file );
 	} else {
-		perror ( filename ); /* why didn't the file open? */
+		perror ( filename ); // why didn't the file open?
 	}
+}
+*/
+void parse_at(char *bin)
+{
+	int PC = 0;
+	char *pch;
+	char line[L_AT_INSTRUCTION];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_AT_INSTRUCTION);
+
+	while ( pch != NULL ) {
+		decode_at_instr(line, &at_instructions[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_AT_INSTRUCTION);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
+	}
+	
+	num_instr = PC; // set number of AT instructions
 }

@@ -8,10 +8,33 @@
 #include "filters/filter_movavg.h"
 #include "parse.h"
 
+#ifdef NOFILES
 void AT_config(char *filename)
 {
-		parse_at(filename);
+		parse_at(at_bin);
 }
+#else
+void AT_config(char *filename)
+{
+	long size;
+	FILE *file = fopen (filename, "r");
+	if ( file != NULL ) {
+		fseek(file, 0, SEEK_END);
+		size = ftell(file);
+		rewind(file);
+
+		char *bin = (char *) malloc(sizeof(char) * size);
+		if(fread(bin, 1, size, file) != size)
+			perror (filename); // error reading from file
+
+		parse_at(bin);
+		fclose (file);
+		free(bin);
+	} else {
+		perror (filename); // why didn't the file open?
+	}
+}
+#endif
 
 void AT_init()
 {
