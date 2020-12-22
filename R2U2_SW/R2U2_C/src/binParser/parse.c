@@ -115,20 +115,20 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_ft(char* filename) {
+void parse_inst_ft(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);
-			// printf("%d\n",instruction_mem_ft[PC].op1.value);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INSTRUCTION];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INSTRUCTION);
+
+	while ( pch != NULL ) {
+		decode_inst(line, &instruction_mem_ft[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INSTRUCTION);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
@@ -153,19 +153,20 @@ void parse_inst_pt(char* bin) {
 //------------------------------------------------------------------------------
 // Future-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_ft(char* filename) {
+void parse_interval_ft(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INTERVAL*2];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INTERVAL*2);
+
+	while ( pch != NULL ) {
+		decode_interval(line, &interval_mem_ft[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INTERVAL*2);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
@@ -174,37 +175,38 @@ void parse_interval_ft(char* filename) {
 void parse_interval_pt(char* bin) {
 	int PC = 0;
 	char *pch;
-	char line[L_INTERVAL];
+	char line[L_INTERVAL*2];
 
 	pch = (char *) memchr(bin, '\n', strlen(bin));
 	if(pch != NULL)
-		memcpy(line, bin, L_INTERVAL);
+		memcpy(line, bin, L_INTERVAL*2);
 
 	while ( pch != NULL ) {
 		decode_interval(line, &interval_mem_pt[PC]);
 		PC++;
-		memcpy(line, pch + 1, L_INTERVAL);
+		memcpy(line, pch + 1, L_INTERVAL*2);
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
 // SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
 //------------------------------------------------------------------------------
-void parse_scq_size(char* filename) {
+void parse_scq_size(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
+	char *pch;
+	char line[L_SCQ_ADDRESS];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_SCQ_ADDRESS);
+
+	while ( pch != NULL ) {
 			decode_scq_size(line, &addr_SCQ_map_ft[PC]);
 			(SCQ+(addr_SCQ_map_ft[PC].start_addr))->t_q = -1; // initialize timestamp of the first elelment to -1
 			PC++;
+			memcpy(line, pch + 1, L_SCQ_ADDRESS);
+			pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
-	}
 }
 
 //------------------------------------------------------------------------------

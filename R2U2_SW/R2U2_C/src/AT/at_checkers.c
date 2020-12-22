@@ -11,7 +11,7 @@
 #ifdef NOFILES
 void AT_config(char *filename)
 {
-	parse_at_bin(at_bin);
+	parse_at(at_bin);
 }
 #else
 void AT_config(char *filename)

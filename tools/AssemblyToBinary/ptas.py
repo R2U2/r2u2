@@ -216,7 +216,7 @@ def assemble(f):
             opcode = opcode + toBinary(onceMemAddr, 7)
             onceMemAddr = onceMemAddr + 1
             timestampAddr = timestampAddr + 1
-            ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
+            ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\\n'
         # Once with interval (O[t])
         elif op[0] == "once_impl":
             opcode = opcode + OP_PT_OT

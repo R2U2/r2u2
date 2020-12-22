@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "R2U2.h"
 #include "TL_observers.h"
@@ -9,26 +10,24 @@
 #ifdef NOFILES
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
-    // TODO: Does this crash on bad bins?
-    // TODO: Weird memory stuff to be checked
     parse_inst_ft(ftm);
     parse_interval_ft(fti);
     parse_scq_size(ftscq);
 
-    parse_inst_pt_bin(ptm_bin);
-    parse_interval_pt_bin(pti_bin);
+    parse_inst_pt(ptm_bin);
+    parse_interval_pt(pti_bin);
 }
 #else
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_inst_ft(ftm);
-    parse_interval_ft(fti);
-    parse_scq_size(ftscq);
+    parse_file(ftm, P_FTM);
+    parse_file(fti, P_FTI);
+    parse_file(ftscq, P_SCQ);
 
-    parse_inst_pt(ptm);
-    parse_interval_pt(pti);
+    parse_file(ptm, P_PTM);
+    parse_file(pti, P_PTI);
 }
 #endif
 
