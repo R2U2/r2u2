@@ -6,6 +6,19 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
+#ifdef NOFILES
+void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+{
+    // TODO: Does this crash on bad bins?
+    // TODO: Weird memory stuff to be checked
+    parse_inst_ft(ftm);
+    parse_interval_ft(fti);
+    parse_scq_size(ftscq);
+
+    parse_inst_pt_bin(ptm_bin);
+    parse_interval_pt_bin(pti_bin);
+}
+#else
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
@@ -17,6 +30,7 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
     parse_inst_pt(ptm);
     parse_interval_pt(pti);
 }
+#endif
 
 int TL_init()
 {
@@ -49,7 +63,7 @@ int TL_init()
     //if(pt_prev_init() == 1){
     //    printf("Failed to initialize PT's previous time steps\n");
     //}
-    
+
     //
     // initialize atomics
     //

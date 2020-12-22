@@ -194,11 +194,11 @@ extern results_pt_t			results_pt_prev;
 extern results_rising_pt_t 	results_pt_rising;
 
 /* For no file handling option */
-extern char *ptm;
-extern char *pti;
-extern char *ftscq;
-extern char *ftm;
-extern char *fti;
+extern char *ptm_bin;
+extern char *pti_bin;
+extern char *ftscq_bin;
+extern char *ftm_bin;
+extern char *fti_bin;
 
 //---------------------------------------------
 // functions
