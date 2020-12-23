@@ -50,9 +50,15 @@ class Postgraph():
         self.queue_size_assign(Hp)
         self.gen_assembly()
 
-    # Check that all atomics are properly mapped
+    # Check that all atomics are mapped_atomics
+    # If any are not, default them to boolean equal to 1
+    # Signal read is equal to value of atomic name
+    # i.e. a5 will read from signal 5
+    # TODO: this is VERY sloppy, since compilation of AT, PT, and FT are
+    # all done separately. Should find better way of doing this.
     def check_atomics(self, input):
         mapped_atomics = []
+        unmapped_atomics = []
 
         for line in input:
             if re.fullmatch('\s*', line):
@@ -65,8 +71,20 @@ class Postgraph():
 
         for atom in MLTLparse.atomic_names:
             if atom not in mapped_atomics:
-                print('Error: atomic not mapped, ' + atom)
-                MLTLparse.status = 'syntax_err'
+                unmapped_atomics.append(atom)
+
+        instructions = ''
+        for atom in unmapped_atomics:
+            num = re.search('\d+', atom).group()
+            instructions += atom + ' bool ' + num + ' 0 == 1\n'
+
+        at_asm = __DirBinaryPath__ + 'at.asm'
+        if os.path.isfile(at_asm):
+            with open(at_asm, 'a') as f:
+                f.write(instructions)
+        else:
+            with open(at_asm, 'w') as f:
+                f.write(instructions)
 
     ###############################################################
     # Common subexpression elimination the AST

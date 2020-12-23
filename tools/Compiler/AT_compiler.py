@@ -143,5 +143,10 @@ class AT:
                 + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
 
-        with open(__DirBinaryPath__ + 'at.asm',"w+") as f:
-            f.write(s)
+        at_asm = __DirBinaryPath__ + 'at.asm'
+        if os.path.isfile(at_asm):
+            with open(at_asm, 'a') as f:
+                f.write(s)
+        else:
+            with open(at_asm, 'w') as f:
+                f.write(s)
