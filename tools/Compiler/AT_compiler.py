@@ -37,8 +37,9 @@ class AT:
             ('ATOM',   r'a\d+'),
             ('ASSIGN', r':='),
             ('FILTER', r'|'.join(filters)),
+            ('SIGNAL', r's\d+'),
             ('NUMBER', r'-?\d+(\.\d*)?'),
-            ('COMP',   r'[<>=!]=|[><]'),
+            ('COND',   r'[<>=!]=|[><]'),
             ('LPAREN', r'\('),
             ('RPAREN', r'\)'),
             ('COMMA',  r','),
@@ -67,11 +68,11 @@ class AT:
             # Parsing is very basic; AT syntax is not very expressive
             # Tokens must come in one of two orders:
             # For filters requiring only a signal parameter:
-            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> RPAREN ->
-            # COND -> NUMBER
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> SIGNAL -> RPAREN ->
+            # COND -> SIGNAL | NUMBER
             # For filters requiring signal and argument parameters:
-            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> COMMA ->
-            # NUMBER -> RPAREN -> COND -> NUMBER
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> SIGNAL -> COMMA ->
+            # NUMBER -> RPAREN -> COND -> SIGNAL | NUMBER
 
             prev_type = 'BEGIN'
             arg = 'NULL'
@@ -91,9 +92,9 @@ class AT:
                     filter = value
                 elif prev_type == 'FILTER' and type == 'LPAREN':
                     pass
-                elif prev_type == 'LPAREN' and type == 'NUMBER':
+                elif prev_type == 'LPAREN' and type == 'SIGNAL':
                     signal = value
-                elif prev_type == 'NUMBER' and type == 'COMMA':
+                elif prev_type == 'SIGNAL' and type == 'COMMA':
                     if arg != 'NULL':
                         print('Syntax error in AT expression ' + line + \
                             '\Too many args given')
@@ -101,12 +102,16 @@ class AT:
                         break
                 elif prev_type == 'COMMA' and type == 'NUMBER':
                     arg = value
+                elif prev_type == 'SIGNAL' and type == 'RPAREN':
+                    pass
                 elif prev_type == 'NUMBER' and type == 'RPAREN':
                     pass
-                elif prev_type == 'RPAREN' and type == 'COMP':
+                elif prev_type == 'RPAREN' and type == 'COND':
+                    cond = value
+                elif prev_type == 'COND' and type == 'NUMBER':
                     comp = value
-                elif prev_type == 'COMP' and type == 'NUMBER':
-                    const = value
+                elif prev_type == 'COND' and type == 'SIGNAL':
+                    comp = value
                 else:
                     print('Syntax error in AT expression ' + line + \
                         '\nInvalid character ' + value + ' after ' + prev_type)
@@ -132,7 +137,7 @@ class AT:
             elif arg == 'NULL':
                 arg = '0'
 
-            instr = [filter, signal, arg, comp, const]
+            instr = [filter, signal, arg, cond, comp]
 
             self.instructions[atom] = instr
 

@@ -52,18 +52,18 @@ for line in f:
 
 	instr = line.split()
 
-	atomic = re.search('\d+', instr[0])
+	atomic = instr[0][1:]
 	filter = instr[1]
-	signal = instr[2]
+	signal = instr[2][1:]
 	arg    = instr[3]
-	comp   = instr[4]
-	const  = instr[5]
+	cond   = instr[4]
+	comp   = instr[5]
 
 	if atomic is None:
 		print("Error: atomic not valid in instruction " + line)
 		binary += "00000000"
 	else:
-		binary += toBinary(atomic.group(), 8)
+		binary += toBinary(atomic, 8)
 
 	if filter == "bool":
 		binary += "0001"
@@ -84,23 +84,29 @@ for line in f:
 	binary += toBinary(signal, 8)
 	binary += toBinary(arg, 32)
 
-	if comp == "==":
+	if cond == "==":
 		binary += "000"
-	elif comp == "!=":
+	elif cond == "!=":
 		binary += "001"
-	elif comp == "<":
+	elif cond == "<":
 		binary += "010"
-	elif comp == "<=":
+	elif cond == "<=":
 		binary += "011"
-	elif comp == ">":
+	elif cond == ">":
 		binary += "100"
-	elif comp == ">=":
+	elif cond == ">=":
 		binary += "101"
 	else:
 		print("Error: comparison operator is not valid in instruction " + line)
 		binary += "111"
 
-	binary += toBinary(const, 32) # Max width is 32 bit constant
+	# Check if comparing to signal value or constant
+	if comp[0] == "s":
+		binary += "1"
+		binary += toBinary(comp[1:], 32) # Max width is 32 bit constant
+	else:
+		binary += "0"
+		binary += toBinary(comp, 32) # Max width is 32 bit constant
 
 	binary += "\n"
 
