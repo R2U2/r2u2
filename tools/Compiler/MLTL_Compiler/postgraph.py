@@ -76,7 +76,7 @@ class Postgraph():
         instructions = ''
         for atom in unmapped_atomics:
             num = re.search('\d+', atom).group()
-            instructions += atom + ' bool ' + num + ' 0 == 1\n'
+            instructions += atom + ' bool s' + num + ' 0 == 1\n'
 
         at_asm = __DirBinaryPath__ + 'at.asm'
         if os.path.isfile(at_asm):

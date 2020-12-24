@@ -81,9 +81,18 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	if(inst->comp_is_sig) {
 		inst->comp.s = (uint8_t) comp;
 		switch(inst->filter) {
-			case OP_RATE: filter_rate_init(&inst->filt_data_struct.prev);	break;
-			case OP_ABS_DIFF_ANGLE:inst->filt_data_struct.diff_angle = (double) arg; break;
-			case OP_MOVAVG: inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg); break;
+			case OP_RATE: {
+				filter_rate_init(&inst->filt_data_struct.prev);
+				break;
+			}
+			case OP_ABS_DIFF_ANGLE: {
+				inst->filt_data_struct.diff_angle = (double) arg;
+				break;
+			}
+			case OP_MOVAVG: {
+				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+				break;
+			}
 			default: break;
 		}
 	} else { // Else store value as constant
