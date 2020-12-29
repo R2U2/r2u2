@@ -69,7 +69,7 @@ for line in f:
 		binary += "0001"
 	elif filter == "int":
 		binary += "0010"
-	elif filter == "double":
+	elif filter == "float":
 		binary += "0011"
 	elif filter == "rate":
 		binary += "0100"

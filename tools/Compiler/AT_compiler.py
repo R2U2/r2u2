@@ -32,7 +32,7 @@ class AT:
     def tokenize(self, line):
         # Take line and return a list of tuples which store each token's
         # type and value
-        filters = ['bool','int','double','rate','abs_diff_angle','movavg']
+        filters = ['bool','int','float','rate','abs_diff_angle','movavg']
         token_spec = [
             ('ATOM',   r'a\d+'),
             ('ASSIGN', r':='),
