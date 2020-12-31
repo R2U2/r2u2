@@ -276,7 +276,7 @@ if __name__ == '__main__':
     if(not os.path.isdir(__DirBinaryPath__)):
         os.mkdir(__DirBinaryPath__)
     opcode, ts = assemble(f)
-    if opt == 'no-files':
+    if opt == 'True':
         prog_text += opcode + "\";\n"
         prog_text += "char *pti_bin = \"" + ts + "\";\n"
         writeToFile(__DirBinaryPath__+'pt.c', prog_text)

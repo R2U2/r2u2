@@ -10,6 +10,7 @@ import os
 import subprocess
 import shutil
 import re
+import argparse
 
 #from AT import *
 
@@ -19,19 +20,19 @@ __CompilerDir__  = __AbsolutePath__     + 'Compiler/'
 __BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
 __BinFileDir__   = __AbsolutePath__     + 'binary_files/'
 
-def main():
+def main(mltl, no_files):
 
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
         shutil.rmtree(__BinFileDir__)
 
     # If the arguement is a valid file,
-    if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
-        MLTL = open(sys.argv[1],'r').read()
-    elif(os.path.isfile(sys.argv[1])):
-        MLTL = open(sys.argv[1],'r').read()
+    if(os.path.isfile(__AbsolutePath__ + mltl)):
+        MLTL = open(mltl,'r').read()
+    elif(os.path.isfile(mltl)):
+        MLTL = open(mltl,'r').read()
     else:
-        MLTL = sys.argv[1]
+        MLTL = mltl
 
     FT = {}
     PT = {}
@@ -118,7 +119,8 @@ def main():
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
+    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
+                    __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(no_files)])
     # Check to see if pt.asm exists
     if(not os.path.isfile(__BinFileDir__+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
@@ -126,7 +128,8 @@ def main():
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH), 'files'])
+    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
+                    str( TIMESTAMP_WIDTH), str(no_files)])
     print('************************************************************')
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
@@ -134,11 +137,19 @@ def main():
         f = open(__BinFileDir__+'at.asm','w+')
         f.write(' ')
         f.close()
-    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm','files'])
+    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm',
+                    str(no_files)])
 
     print('************************************************************')
-    print('Binary files are located in the '+__BinFileDir__+' directory')
+    print('Generated files are located in the '+__BinFileDir__+' directory')
+    if no_files:
+        print('Move generated C files to src/binParser directory')
     print('************************************************************')
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mltl", help="filename where mltl formula are stored or literal mltl formula")
+    parser.add_argument("-f", "--nofiles", help="generate C files in place of binaries",
+                        action="store_true")
+    args = parser.parse_args()
+    main(args.mltl, args.nofiles)

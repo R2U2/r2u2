@@ -119,7 +119,7 @@ if __name__ == '__main__':
 	f = open(sys.argv[1])
 	opt = sys.argv[2]
 	binary = assemble(f)
-	if opt == 'no-files':
+	if opt == 'True':
 		prog_text += binary + "\";"
 		writeToFile(__DirBinaryPath__+'at.c', prog_text)
 	else:
