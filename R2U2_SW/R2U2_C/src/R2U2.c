@@ -31,14 +31,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    uint8_t no_files = 0, c;
-    int MAX_TIME = INT_MAX;
+    uint8_t no_files = 0;
+    int MAX_TIME = INT_MAX, c;
     FILE *input_file;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     while((c = getopt(argc, argv, "t:h")) != -1) {
       switch(c) {
-        case 't':
+        case 't': {
           if (access(optarg, F_OK) == 0) {
             input_file = fopen(optarg, "r");
             if (input_file == NULL) {
@@ -49,17 +49,21 @@ int main(int argc, char *argv[]) {
             input_file = stdin;
           }
           break;
-        case 'h':
+        }
+        case 'h': {
           fprintf(stdout, usage);
           return 1;
-        case '?':
+        }
+        case '?': {
           if(optopt == 't')
             fprintf(stderr, "Option -%c requires an argument\n", optopt);
           else
             fprintf(stderr, "Unknown option %x", optopt);
           return 1;
-        default:
+        }
+        default: {
           return 1; // something went wrong with getopt
+        }
       }
     }
 
@@ -83,7 +87,6 @@ int main(int argc, char *argv[]) {
     log_file = fopen("./R2U2.log", "w+");
     // TODO: Name after input and output
     if(log_file == NULL) return 1;
-
 
     /* Main processing loop */
     uint32_t cur_time = 0, i;
