@@ -52,6 +52,11 @@ def writeToFile(file, content):
     f = open(file, 'w')
     f.write(content)
     f.close
+
+def appendToFile(file, content):
+    f = open(file, 'a')
+    f.write(content)
+    f.close
 #------------------------------------------------------------------------------#
 # Method for
 #------------------------------------------------------------------------------#
@@ -263,11 +268,7 @@ def assemble(f):
 
     return opcode, ts
 
-prog_text = \
-"""
-#include "TL_observers.h"
-char *ptm_bin = "
-""".strip()
+prog_text = "char *ptm_bin = \""
 
 if __name__ == '__main__':
     print("Compile past time config")
@@ -279,7 +280,7 @@ if __name__ == '__main__':
     if opt == 'True':
         prog_text += opcode + "\";\n"
         prog_text += "char *pti_bin = \"" + ts + "\";\n"
-        writeToFile(__DirBinaryPath__+'pt.c', prog_text)
+        appendToFile(__DirBinaryPath__+'config.c', prog_text)
     else:
         writeToFile(__DirBinaryPath__+'ptm.bin', opcode.replace('\\n','\n'))
         writeToFile(__DirBinaryPath__+'pti.bin', ts.replace('\\n','\n'))

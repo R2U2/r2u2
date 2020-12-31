@@ -10,6 +10,11 @@ def writeToFile(file, content):
 	f.write(content)
 	f.close
 
+def appendToFile(file, content):
+	f = open(file, 'a')
+	f.write(content)
+	f.close
+
 def toBinary(value, width):
 	value = int(value)
 
@@ -121,6 +126,6 @@ if __name__ == '__main__':
 	binary = assemble(f)
 	if opt == 'True':
 		prog_text += binary + "\";"
-		writeToFile(__DirBinaryPath__+'at.c', prog_text)
+		appendToFile(__DirBinaryPath__+'config.c', prog_text)
 	else:
 		writeToFile(__DirBinaryPath__+'at.bin', binary.replace('\\n','\n'))

@@ -20,7 +20,7 @@ __CompilerDir__  = __AbsolutePath__     + 'Compiler/'
 __BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
 __BinFileDir__   = __AbsolutePath__     + 'binary_files/'
 
-def main(mltl, no_files):
+def main(mltl, config):
 
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
@@ -120,7 +120,7 @@ def main(mltl, no_files):
         f.close()
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
-                    __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(no_files)])
+                    __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
     # Check to see if pt.asm exists
     if(not os.path.isfile(__BinFileDir__+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
@@ -129,7 +129,7 @@ def main(mltl, no_files):
         f.close()
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
-                    str( TIMESTAMP_WIDTH), str(no_files)])
+                    str( TIMESTAMP_WIDTH), str(config)])
     print('************************************************************')
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
@@ -138,18 +138,18 @@ def main(mltl, no_files):
         f.write(' ')
         f.close()
     subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm',
-                    str(no_files)])
+                    str(config)])
 
     print('************************************************************')
     print('Generated files are located in the '+__BinFileDir__+' directory')
-    if no_files:
-        print('Move generated C files to src/binParser directory')
+    if config:
+        print('Move binary_files/config.c to src/binParser directory')
     print('************************************************************')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mltl", help="filename where mltl formula are stored or literal mltl formula")
-    parser.add_argument("-f", "--nofiles", help="generate C files in place of binaries",
+    parser.add_argument("-c", "--config", help="generate config.c file in place of binaries",
                         action="store_true")
     args = parser.parse_args()
-    main(args.mltl, args.nofiles)
+    main(args.mltl, args.config)
