@@ -7,6 +7,9 @@ typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
 
 // TODO: Clean this up
+
+//#define CONFIG
+
 /* TL Engine configuration */
 //
 // length of registers in bits

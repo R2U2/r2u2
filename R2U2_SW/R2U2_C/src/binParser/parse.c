@@ -246,10 +246,10 @@ void parse_file(char *filename, parser_t p_type)
 			perror (filename); // error reading from file
 
 		switch(p_type){
-			case P_FTI: parse_inst_ft(bin); break;
-			case P_FTM: parse_interval_ft(bin); break;
+			case P_FTM: parse_inst_ft(bin); break;
+			case P_FTI: parse_interval_ft(bin); break;
 			case P_SCQ: parse_scq_size(bin); break;
-			case P_PTM: parse_inst_ft(bin); break;
+			case P_PTM: parse_inst_pt(bin); break;
 			case P_PTI: parse_interval_pt(bin); break;
 			case P_AT:  parse_at(bin); break;
 			default: perror (filename);

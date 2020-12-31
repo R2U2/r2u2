@@ -7,17 +7,7 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
-#ifdef NOFILES
-void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
-{
-    parse_inst_ft(ftm);
-    parse_interval_ft(fti);
-    parse_scq_size(ftscq);
-
-    parse_inst_pt(ptm_bin);
-    parse_interval_pt(pti_bin);
-}
-#else
+#ifndef CONFIG
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
@@ -28,6 +18,17 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 
     parse_file(ptm, P_PTM);
     parse_file(pti, P_PTI);
+}
+#else
+void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+{
+    printf("config\n");
+    parse_inst_ft(ftm_bin);
+    parse_interval_ft(fti_bin);
+    parse_scq_size(ftscq_bin);
+
+    parse_inst_pt(ptm_bin);
+    parse_interval_pt(pti_bin);
 }
 #endif
 
