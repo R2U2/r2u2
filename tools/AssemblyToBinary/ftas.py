@@ -188,18 +188,6 @@ prog_text = \
 char *ftm_bin = "
 """.strip()
 
-alt_prog_text = \
-"""
-#include "TL_observers.h"
-char *ftm_bin = "";
-char *fti_bin = "";
-char *ftscq_bin = "";
-char *ptm_bin = "";
-char *pti_bin = "";
-#include "at_globals.h"
-char *at_bin = "";
-""".strip()
-
 if __name__ == '__main__':
 	print("Compile past time config")
 	f = open(sys.argv[1])
@@ -217,6 +205,5 @@ if __name__ == '__main__':
 		writeToFile(__DirBinaryPath__+'ftm.bin', opcode.replace('\\n','\n'))
 		writeToFile(__DirBinaryPath__+'fti.bin', ts.replace('\\n','\n'))
 		writeToFile(__DirBinaryPath__+'ftscq.bin', scq.replace('\\n','\n'))
-		writeToFile(__DirBinaryPath__+'config.c', alt_prog_text)
 	f.close()
 	s.close()
