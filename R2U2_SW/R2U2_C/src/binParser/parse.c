@@ -72,44 +72,55 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	int arg = string2Int(&s,L_CONST);
 
 	// 5. type of comparison operator to apply
-	inst->comp = string2Int(&s,L_COMP);
+	inst->cond = string2Int(&s,L_COMP);
 
-	// 6. value of constant to compare to filtered signal
-	int constant = string2Int(&s,L_CONST);
+	// 6. is the comparison value a signal?
+	inst->comp_is_sig = string2Int(&s,1);
 
-	switch(inst->filter) {
-		case OP_BOOL: {
-			inst->comp_const.b = (bool) constant;
-			break;
+	// 7. value of constant to compare to filtered signal
+	int comp = string2Int(&s,L_CONST);
+
+	// If comp is a signal, store index of signal in instruction
+	if(inst->comp_is_sig) {
+		inst->comp.s = (uint8_t) comp;
+		switch(inst->filter) {
+			case OP_RATE: {
+				filter_rate_init(&inst->filt_data_struct.prev);
+				break;
+			}
+			case OP_ABS_DIFF_ANGLE: {
+				inst->filt_data_struct.diff_angle = (double) arg;
+				break;
+			}
+			case OP_MOVAVG: {
+				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+				break;
+			}
+			default: break;
 		}
-		case OP_INT: {
-			inst->comp_const.i = (int32_t) constant;
-			break;
-		}
-		case OP_DOUBLE: {
-			inst->comp_const.d = (double) constant;
-			break;
-		}
-		case OP_RATE: {
-			inst->comp_const.d = (double) constant;
-			filter_rate_init(&inst->filt_data_struct.prev);
-			break;
-		}
-		case OP_ABS_DIFF_ANGLE: {
-			inst->comp_const.d = (double) constant;
-			inst->filt_data_struct.diff_angle = (double) arg;
-			break;
-		}
-		case OP_MOVAVG: {
-			inst->comp_const.d = (double) constant;
-			inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
-			break;
-		}
-		default: {
-			break;
+	} else { // Else store value as constant
+		switch(inst->filter) {
+			case OP_BOOL: inst->comp.b = (bool) comp;	break;
+			case OP_INT: inst->comp.i = (int32_t) comp;	break;
+			case OP_DOUBLE: inst->comp.d = (double) comp;	break;
+			case OP_RATE: {
+				inst->comp.d = (double) comp;
+				filter_rate_init(&inst->filt_data_struct.prev);
+				break;
+			}
+			case OP_ABS_DIFF_ANGLE: {
+				inst->comp.d = (double) comp;
+				inst->filt_data_struct.diff_angle = (double) arg;
+				break;
+			}
+			case OP_MOVAVG: {
+				inst->comp.d = (double) comp;
+				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+				break;
+			}
+			default: 	break;
 		}
 	}
-
 }
 
 //------------------------------------------------------------------------------

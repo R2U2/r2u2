@@ -57,9 +57,9 @@ def assemble(f):
 
 		instr = line.split()
 
-		atomic = re.search('\d+', instr[0])
+		atomic = instr[0][1:]
 		filter = instr[1]
-		signal = instr[2]
+		signal = instr[2][1:]
 		arg    = instr[3]
 		comp   = instr[4]
 		const  = instr[5]
