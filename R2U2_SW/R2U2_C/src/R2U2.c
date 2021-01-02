@@ -13,11 +13,11 @@
 #include "AT/at_globals.h"
 
 #ifndef CONFIG
-const char *usage = "Usage: <configuration directory> [-t trace-file] [-h]\n"
+const char *usage = "Usage: r2u2 <configuration directory> [-t trace-file] [-h]\n"
                     "-t trace-file \t csv file with recorded signal values\n"
                     "-h \t\t print this help statement\n";
 #else
-const char *usage = "Usage: [-t trace-file] [-h]\n"
+const char *usage = "Usage: r2u2 [-t trace-file] [-h]\n"
                     "-t trace-file \t csv file with recorded signal values\n"
                     "-h \t\t print this help statement\n";
 #endif
@@ -31,9 +31,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    uint8_t no_files = 0;
     int MAX_TIME = INT_MAX, c;
-    FILE *input_file;
+    FILE *input_file = NULL;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     while((c = getopt(argc, argv, "t:h")) != -1) {
@@ -45,8 +44,6 @@ int main(int argc, char *argv[]) {
               fprintf(stderr, "Invalid trace filename");
               return 1;
             }
-          } else {
-            input_file = stdin;
           }
           break;
         }
@@ -66,6 +63,8 @@ int main(int argc, char *argv[]) {
         }
       }
     }
+
+    if(input_file == NULL) input_file = stdin;
 
     /* Engine Initialization */
     if (getcwd(inbuf, sizeof(inbuf)) == NULL) {

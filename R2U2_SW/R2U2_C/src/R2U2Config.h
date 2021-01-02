@@ -9,6 +9,7 @@ typedef unsigned int timestamp_t;
 // TODO: Clean this up
 
 //#define CONFIG
+#define DEBUG
 
 /* TL Engine configuration */
 //
