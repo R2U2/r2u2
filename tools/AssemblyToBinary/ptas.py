@@ -13,6 +13,10 @@ import re
 #from config import TIMESTAMP_BYTE_extend_byte
 TIMESTAMP_BYTE_extend_byte = int(sys.argv[2])
 TIMESTAMP_WIDTH = 8*TIMESTAMP_BYTE_extend_byte
+
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
+
 #------------------------------------------------------------------------------#
 # Mapping from OP Codes to Variables
 #------------------------------------------------------------------------------#
@@ -46,6 +50,11 @@ OP_PT_OT = "01111"
 #------------------------------------------------------------------------------#
 def writeToFile(file, content):
     f = open(file, 'w')
+    f.write(content)
+    f.close
+
+def appendToFile(file, content):
+    f = open(file, 'a')
     f.write(content)
     f.close
 #------------------------------------------------------------------------------#
@@ -90,187 +99,189 @@ def parseOperand(op):
         c = c + toBinary(int(op[1:]), 8)
     return c
 
-i = 0
-timestampAddr = 0
-hisMemAddr = 0
-onceMemAddr = 0
-sinceMemAddr = 0
-opcode = ""
-ts = ""
+def assemble(f):
+    i = 0
+    timestampAddr = 0
+    hisMemAddr = 0
+    onceMemAddr = 0
+    sinceMemAddr = 0
+    opcode = ""
+    ts = ""
+    header=re.compile("s*\d+:")
 
-print("Compile past time config")
-
-header=re.compile("s*\d+:")
-
-f = open(sys.argv[1])
-
-#------------------------------------------------------------------------------#
-# R2U2 Operations
-#------------------------------------------------------------------------------#
-for line in f:
-    i = i + 1
-    op = line.split()
-    if(header.match(op[0])):
-        op.remove(op[0])
-
-    # Uncomment for troubleshooting
-    #print(op)
-
-    #--------------------------------------------------------------------------#
+    #------------------------------------------------------------------------------#
     # R2U2 Operations
-    #--------------------------------------------------------------------------#
-    # Load Atomic
-    if op[0] == "load_ft" or op[0] == "load":
-        opcode = opcode + OP_FT_LOD
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    # End of Assembly Code
-    elif ((op[0] == "end") and (op[1] == "sequence")):
-        opcode = opcode + OP_END_SEQUENCE
-        opcode = opcode + "01" + toBinary(0,8)
-        opcode = opcode + "0000000000"
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    # End of Formula
-    elif op[0] == "end":
-        opcode = opcode + OP_END
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "01" + toBinary(op[2],8)
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    #--------------------------------------------------------------------------#
-    # Propositional Operators
-    #--------------------------------------------------------------------------#
-    # Conjunction (AND)
-    elif op[0] == "and":
-        opcode = opcode + OP_AND
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + parseOperand(op[2])
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    # Disjunction (OR)
-    elif op[0] == "or":
-        opcode = opcode + OP_OR
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + parseOperand(op[2])
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    # Implies
-    elif op[0] == "impl":
-        opcode = opcode + OP_IMPL
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + parseOperand(op[2])
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
-    # Negation (NOT)
-    elif op[0] == "not":
-        opcode = opcode + OP_NOT
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + "0000000"
-        opcode = opcode + "00000000"
+    #------------------------------------------------------------------------------#
+    for line in f:
+        i = i + 1
+        op = line.split()
+        if(header.match(op[0])):
+            op.remove(op[0])
 
-    #--------------------------------------------------------------------------#
-    # Past-Time Temporal Operators
-    #--------------------------------------------------------------------------#
-    # NOTE: Still need to implement past-time! Double-check what is written now.
-    #    - First line of opcode was from R2U2_SW/R2U2_C/TL/TL_observers.h file
-    # Yesterday
-    elif op[0] == "yesterday":
-        opcode = opcode + OP_PT_Y
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(hisMemAddr, 7)
-        hisMemAddr = hisMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(1, 2*TIMESTAMP_WIDTH) + '\n'
-    # Historically with single time point (H[t1,t2])
-    elif op[0] == "his": #"boxbox-interval":
-        opcode = opcode + OP_PT_HJ
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(hisMemAddr, 7)
-        hisMemAddr = hisMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
-    # Historically with interval (H[t])
-    elif op[0] == "his_impl":
-        opcode = opcode + OP_PT_HT
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(hisMemAddr, 7)
-        hisMemAddr = hisMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
-    # Once with interval (O[t1,t2])
-    elif op[0] == "once": #"diamonddiamond-interval":
-        opcode = opcode + OP_PT_OJ
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(onceMemAddr, 7)
-        onceMemAddr = onceMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
-    # Once with interval (O[t])
-    elif op[0] == "once_impl":
-        opcode = opcode + OP_PT_OT
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + "0000000000"
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(onceMemAddr, 7)
-        onceMemAddr = onceMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
-    # Since with interval (S[t1,t2])
-    elif op[0] == "since":
-        opcode = opcode + OP_PT_SJ
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + parseOperand(op[2])
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(sinceMemAddr, 7)
-        sinceMemAddr = sinceMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\n"
-    # Since with interval (S[t])
-    elif op[0] == "since_impl":
-        opcode = opcode + OP_PT_S
-        opcode = opcode + parseOperand(op[1])
-        opcode = opcode + parseOperand(op[2])
-        opcode = opcode + toBinary(timestampAddr, 8)
-        opcode = opcode + toBinary(sinceMemAddr, 7)
-        sinceMemAddr = sinceMemAddr + 1
-        timestampAddr = timestampAddr + 1
-        ts = ts + toBinary(op[3], 2*TIMESTAMP_WIDTH) + "\n"
-    # Else, it is not a valid operation.
-    elif op[0] == "#":
-        line = ""
-        for i in range(0,len(op)):
-            line = line + op[i] + " "
-        print(line)
-        continue
-    # Else, it is not a valid operation.
+        # Uncomment for troubleshooting
+        #print(op)
+
+        #--------------------------------------------------------------------------#
+        # R2U2 Operations
+        #--------------------------------------------------------------------------#
+        # Load Atomic
+        if op[0] == "load_ft" or op[0] == "load":
+            opcode = opcode + OP_FT_LOD
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        # End of Assembly Code
+        elif ((op[0] == "end") and (op[1] == "sequence")):
+            opcode = opcode + OP_END_SEQUENCE
+            opcode = opcode + "01" + toBinary(0,8)
+            opcode = opcode + "0000000000"
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        # End of Formula
+        elif op[0] == "end":
+            opcode = opcode + OP_END
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "01" + toBinary(op[2],8)
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        #--------------------------------------------------------------------------#
+        # Propositional Operators
+        #-------------------------------------------------------------------------#
+        # Conjunction (AND)
+        elif op[0] == "and":
+            opcode = opcode + OP_AND
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + parseOperand(op[2])
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        # Disjunction (OR)
+        elif op[0] == "or":
+            opcode = opcode + OP_OR
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + parseOperand(op[2])
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        # Implies
+        elif op[0] == "impl":
+            opcode = opcode + OP_IMPL
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + parseOperand(op[2])
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+        # Negation (NOT)
+        elif op[0] == "not":
+            opcode = opcode + OP_NOT
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + "0000000"
+            opcode = opcode + "00000000"
+
+        #--------------------------------------------------------------------------#
+        # Past-Time Temporal Operators
+        #--------------------------------------------------------------------------#
+        # NOTE: Still need to implement past-time! Double-check what is written now.
+        #    - First line of opcode was from R2U2_SW/R2U2_C/TL/TL_observers.h file
+        # Yesterday
+        elif op[0] == "yesterday":
+            opcode = opcode + OP_PT_Y
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(hisMemAddr, 7)
+            hisMemAddr = hisMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(1, 2*TIMESTAMP_WIDTH) + '\\n'
+        # Historically with single time point (H[t1,t2])
+        elif op[0] == "his": #"boxbox-interval":
+            opcode = opcode + OP_PT_HJ
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(hisMemAddr, 7)
+            hisMemAddr = hisMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\\n'
+        # Historically with interval (H[t])
+        elif op[0] == "his_impl":
+            opcode = opcode + OP_PT_HT
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(hisMemAddr, 7)
+            hisMemAddr = hisMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\\n'
+        # Once with interval (O[t1,t2])
+        elif op[0] == "once": #"diamonddiamond-interval":
+            opcode = opcode + OP_PT_OJ
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(onceMemAddr, 7)
+            onceMemAddr = onceMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\\n'
+        # Once with interval (O[t])
+        elif op[0] == "once_impl":
+            opcode = opcode + OP_PT_OT
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + "0000000000"
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(onceMemAddr, 7)
+            onceMemAddr = onceMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\\n'
+        # Since with interval (S[t1,t2])
+        elif op[0] == "since":
+            opcode = opcode + OP_PT_SJ
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + parseOperand(op[2])
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(sinceMemAddr, 7)
+            sinceMemAddr = sinceMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\\n"
+        # Since with interval (S[t])
+        elif op[0] == "since_impl":
+            opcode = opcode + OP_PT_S
+            opcode = opcode + parseOperand(op[1])
+            opcode = opcode + parseOperand(op[2])
+            opcode = opcode + toBinary(timestampAddr, 8)
+            opcode = opcode + toBinary(sinceMemAddr, 7)
+            sinceMemAddr = sinceMemAddr + 1
+            timestampAddr = timestampAddr + 1
+            ts = ts + toBinary(op[3], 2*TIMESTAMP_WIDTH) + "\\n"
+        # Else, it is not a valid operation.
+        elif op[0] == "#":
+            line = ""
+            for i in range(0,len(op)):
+                line = line + op[i] + " "
+            print(line)
+            continue
+        # Else, it is not a valid operation.
+        else:
+            print("Error in line", i, "(", op, ")")
+            continue
+
+        opcode = opcode + "\\n"
+
+    return opcode, ts
+
+prog_text = "char *ptm_bin = \""
+
+if __name__ == '__main__':
+    print("Compile past time config")
+    f = open(sys.argv[1])
+    opt = sys.argv[3]
+    if(not os.path.isdir(__DirBinaryPath__)):
+        os.mkdir(__DirBinaryPath__)
+    opcode, ts = assemble(f)
+    if opt == 'True':
+        prog_text += opcode + "\";\n"
+        prog_text += "char *pti_bin = \"" + ts + "\";\n"
+        appendToFile(__DirBinaryPath__+'config.c', prog_text)
     else:
-        print("Error in line", i, "(", op, ")")
-        continue
-
-
-    opcode = opcode + "\n"
-f.close()
-
-# Check to see if the '../binary_files' directory exists; if not make, the file
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
-if(not os.path.isdir(__DirBinaryPath__)):
-    os.mkdir(__DirBinaryPath__)
-
-writeToFile(__DirBinaryPath__+'ptm.bin', opcode)
-writeToFile(__DirBinaryPath__+'pti.bin', ts)
-
-#print opcode
-#print ts
+        writeToFile(__DirBinaryPath__+'ptm.bin', opcode.replace('\\n','\n'))
+        writeToFile(__DirBinaryPath__+'pti.bin', ts.replace('\\n','\n'))
+    f.close()

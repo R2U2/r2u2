@@ -7,6 +7,9 @@ typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
 
 // TODO: Clean this up
+
+//#define CONFIG
+
 /* TL Engine configuration */
 //
 // length of registers in bits
@@ -21,7 +24,7 @@ typedef unsigned int timestamp_t;
 //
 // length of instruction
 //
-// #define L_INSTRUCTION (L_OPC + L_OP + L_OP + L_INTVL + L_SCRATCH)
+#define L_INSTRUCTION (L_OPC + L_OP + L_OP + L_INTVL + L_SCRATCH)
 
 // for the file .ftscq
 #define L_SCQ_ADDRESS 16
@@ -110,6 +113,7 @@ typedef unsigned int timestamp_t;
 #define L_SIG_ADDR 8
 #define L_COMP 3
 #define L_CONST 32
+#define L_AT_INSTRUCTION (L_ATOMIC_ADDR + L_FILT + L_SIG_ADDR + L_COMP + L_CONST + L_CONST)
 
 
 #endif

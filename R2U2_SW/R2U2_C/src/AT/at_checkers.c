@@ -8,10 +8,17 @@
 #include "filters/filter_movavg.h"
 #include "parse.h"
 
+#ifndef CONFIG
 void AT_config(char *filename)
 {
-		parse_at(filename);
+	parse_file(filename, P_AT);
 }
+#else
+void AT_config(char *filename)
+{
+	parse_at(at_bin);
+}
+#endif
 
 void AT_init()
 {

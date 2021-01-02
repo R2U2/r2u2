@@ -230,10 +230,10 @@ class Postgraph():
                 if ( isinstance(n, Observer) or isinstance(n,STATEMENT)):
                     st_pos = pos
                     ed_pos = st_pos+n.scq_size
-                    pos = ed_pos;
-                    s = s+'{0:016b}'.format(st_pos)+'{0:016b}'.format(ed_pos)+'\n'
+                    pos = ed_pos
+                    s += str(st_pos) + ' ' + str(ed_pos) + '\n'
             if(asmFileName == "ft"):
-                with open(__DirBinaryPath__+'ftscq.bin',"w+") as f:
+                with open(__DirBinaryPath__+'ftscq.asm',"w+") as f:
                     f.write(s)
 
         compute_propagation_delay()

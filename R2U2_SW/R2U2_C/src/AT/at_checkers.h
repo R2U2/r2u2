@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void AT_config();
+void AT_config(char *);
 void AT_init();
 void AT_update(uint32_t);
 void AT_free();

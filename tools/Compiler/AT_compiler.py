@@ -144,7 +144,7 @@ class AT:
     def gen_assembly(self):
         s = ''
         for atom, instr in self.instructions.items():
-            s += atom + ' ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
                 + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
 
