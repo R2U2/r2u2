@@ -57,7 +57,7 @@ def assemble(f):
 
 		instr = line.split()
 
-		atomic = instr[0][1:]
+		atomic = instr[0][1:-1]
 		filter = instr[1]
 		signal = instr[2][1:]
 		arg    = instr[3]
@@ -68,7 +68,7 @@ def assemble(f):
 			print("Error: atomic not valid in instruction " + line)
 			binary += "00000000"
 		else:
-			binary += toBinary(atomic.group(), 8)
+			binary += toBinary(atomic, 8)
 
 		if filter == "bool":
 			binary += "0001"
