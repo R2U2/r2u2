@@ -9,7 +9,7 @@ typedef unsigned int timestamp_t;
 // TODO: Clean this up
 
 //#define CONFIG
-#define DEBUG
+//#define AT_DEBUG
 
 /* TL Engine configuration */
 //
@@ -114,7 +114,7 @@ typedef unsigned int timestamp_t;
 #define L_SIG_ADDR 8
 #define L_COMP 3
 #define L_CONST 32
-#define L_AT_INSTRUCTION (L_ATOMIC_ADDR + L_FILT + L_SIG_ADDR + L_COMP + L_CONST + L_CONST)
+#define L_AT_INSTRUCTION (L_ATOMIC_ADDR + L_FILT + L_SIG_ADDR + L_COMP + L_CONST + L_CONST + 1)
 
 
 #endif
