@@ -63,13 +63,13 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
 
 	// 2. type of filter to apply to signal
-	inst->filter = string2Int(&s,L_FILT);
+	inst->filter = string2Int(&s,L_FILTER);
 
 	// 3. index of signal to read from signals_vector
 	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
 
 	// 4. argument used for certain filters
-	int arg = string2Int(&s,L_CONST);
+	int arg = string2Int(&s,L_NUM);
 
 	// 5. type of comparison operator to apply
 	inst->cond = string2Int(&s,L_COMP);
@@ -78,7 +78,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	inst->comp_is_sig = string2Int(&s,1);
 
 	// 7. value of constant to compare to filtered signal
-	int comp = string2Int(&s,L_CONST);
+	int comp = string2Int(&s,L_NUM);
 
 	// If comp is a signal, store index of signal in instruction
 	if(inst->comp_is_sig) {

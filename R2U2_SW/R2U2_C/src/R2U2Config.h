@@ -2,6 +2,7 @@
 #define R2U2_CONFIG_H
 
 #include <inttypes.h>
+#include <math.h>
 
 typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
@@ -10,6 +11,18 @@ typedef unsigned int timestamp_t;
 
 //#define CONFIG
 //#define AT_DEBUG
+
+//
+// Length of data for AT instructions
+//
+#define L_ATOMIC_ADDR 8
+#define L_SIG_ADDR 8
+#define L_COMP 3
+#define L_FILTER 4
+#define L_NUM 32
+
+#define L_AT_INSTRUCTION \
+  (L_ATOMIC_ADDR + L_FILTER + L_SIG_ADDR + L_COMP + L_NUM + L_NUM + 1)
 
 /* TL Engine configuration */
 //
@@ -105,16 +118,6 @@ typedef unsigned int timestamp_t;
 // TODO Stefan: how large does this have to be in the worst case
 //
 // #define N_PATCH_SNYC_QUEUES N_SUBFORMULA_SNYC_QUEUES
-
-//
-// Length of data for AT isntructions
-//
-#define L_ATOMIC_ADDR 8
-#define L_FILT 4
-#define L_SIG_ADDR 8
-#define L_COMP 3
-#define L_CONST 32
-#define L_AT_INSTRUCTION (L_ATOMIC_ADDR + L_FILT + L_SIG_ADDR + L_COMP + L_CONST + L_CONST + 1)
 
 
 #endif

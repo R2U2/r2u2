@@ -12,74 +12,35 @@
 #include "AT/at_checkers.h"
 #include "AT/at_globals.h"
 
-#ifndef CONFIG
-const char *usage = "Usage: r2u2 <configuration directory> [-t trace-file] [-h]\n"
-                    "-t trace-file \t csv file with recorded signal values\n"
-                    "-h \t\t print this help statement\n";
-#else
-const char *usage = "Usage: r2u2 [-t trace-file] [-h]\n"
-                    "-t trace-file \t csv file with recorded signal values\n"
-                    "-h \t\t print this help statement\n";
-#endif
-
 int main(int argc, char *argv[]) {
-
+    // TODO: Better CLI parsing
     if (argc < 2) {
-        fprintf(stderr,"%s Version %d.%d\n",
-            argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stderr, usage);
-        return 1;
+        fprintf(stdout,"%s Version %d.%d\n",
+        argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+        fprintf(stdout, "Usage: <path to configuration directory> [path to trace file]\n");
     }
-
-    int MAX_TIME = INT_MAX, c;
-    FILE *input_file = NULL;
+    int MAX_TIME = INT_MAX;
+    FILE *input_file;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
-    while((c = getopt(argc, argv, "t:h")) != -1) {
-      switch(c) {
-        case 't': {
-          if (access(optarg, F_OK) == 0) {
-            input_file = fopen(optarg, "r");
-            if (input_file == NULL) {
-              fprintf(stderr, "Invalid trace filename");
-              return 1;
-            }
-          }
-          break;
-        }
-        case 'h': {
-          fprintf(stdout, usage);
-          return 1;
-        }
-        case '?': {
-          if(optopt == 't')
-            fprintf(stderr, "Option -%c requires an argument\n", optopt);
-          else
-            fprintf(stderr, "Unknown option %x", optopt);
-          return 1;
-        }
-        default: {
-          return 1; // something went wrong with getopt
-        }
-      }
-    }
-
-    if(input_file == NULL) input_file = stdin;
-
     /* Engine Initialization */
-    if (getcwd(inbuf, sizeof(inbuf)) == NULL) {
-      fprintf(stderr, "Error retrieving cwd");
-      return 1;
-    }
-    // TODO check that config directory is a valid path
-    chdir(argv[optind]);
 
+    // at_checkers_init();
+    if (getcwd(inbuf, sizeof(inbuf)) == NULL) return 1;
+    chdir(argv[1]);
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     TL_init();
-    AT_config("at.bin");
-    AT_init();
-
     chdir(inbuf);
+
+    /* Select file vs stream */
+    // TODO: Really need some better handeling
+    if (access(argv[2], F_OK) == 0) {
+        input_file = fopen(argv[2], "r");
+        if (input_file == NULL) return 1;
+    } else {
+        input_file = stdin;
+    }
+
 
     // R2U2 Output File
     FILE *log_file;
