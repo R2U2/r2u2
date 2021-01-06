@@ -22,7 +22,6 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 #else
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
-    printf("config\n");
     parse_inst_ft(ftm_bin);
     parse_interval_ft(fti_bin);
     parse_scq_size(ftscq_bin);
