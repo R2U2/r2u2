@@ -24,6 +24,17 @@ typedef unsigned int timestamp_t;
 #define L_AT_INSTRUCTION \
   (L_ATOMIC_ADDR + L_FILTER + L_SIG_ADDR + L_COMP + L_NUM + L_NUM + 1)
 
+//
+// TODO tie this value to L_SIG_ADDR
+// max number of siganls to read in
+//
+#define N_SIGS 256
+
+//
+// max number of AT instructions
+//
+#define N_AT 256
+
 /* TL Engine configuration */
 //
 // length of registers in bits
