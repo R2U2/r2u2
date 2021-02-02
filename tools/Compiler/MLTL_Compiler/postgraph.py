@@ -8,17 +8,14 @@ from .Observer import *
 import os
 import re
 
-# Paths for saving files
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
 asmFileName = ""
 class Postgraph():
-    def __init__(self,MLTL,FTorPT,AT, optimize_cse=True, Hp=0):
-        global asmFileName
-        asmFileName = FTorPT
+    def __init__(self, MLTL, FTorPT, AT, output_path, optimize_cse=True, Hp=0):
+        self.asm_filename = FTorPT
+        self.output_path = output_path
         # Check to see if the '../binary_files' directory exists; if not make, the file
-        if(not os.path.isdir(__DirBinaryPath__)):
-            os.mkdir(__DirBinaryPath__)
+        if(not os.path.isdir(output_path)):
+            os.mkdir(output_path)
         # Observer.Observer.line_cnt = 0 # clear var for multiple runs
         AST_node.reset()
         Observer.reset()
@@ -78,7 +75,7 @@ class Postgraph():
             num = re.search('\d+', atom).group()
             instructions += atom + ' bool s' + num + ' 0 == 1\n'
 
-        at_asm = __DirBinaryPath__ + 'at.asm'
+        at_asm = self.output_path + 'at.asm'
         if os.path.isfile(at_asm):
             with open(at_asm, 'a') as f:
                 f.write(instructions)
@@ -222,7 +219,6 @@ class Postgraph():
             return totsize
 
         def generate_scq_size_file():
-            global asmFileName
             # the scq size range [st_pos,ed_pos)
             s=""
             pos = 0
@@ -232,8 +228,8 @@ class Postgraph():
                     ed_pos = st_pos+n.scq_size
                     pos = ed_pos
                     s += str(st_pos) + ' ' + str(ed_pos) + '\n'
-            if(asmFileName == "ft"):
-                with open(__DirBinaryPath__+'ftscq.asm',"w+") as f:
+            if(self.asm_filename == "ft"):
+                with open(self.output_path+'ftscq.asm',"w+") as f:
                     f.write(s)
 
         compute_propagation_delay()
@@ -243,7 +239,6 @@ class Postgraph():
 
     # Generate assembly code
     def gen_assembly(self):
-        global asmFileName
         stack = self.valid_node_set[:]
         stack.reverse()
         s=""
@@ -257,5 +252,5 @@ class Postgraph():
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
         print(s)
         self.asm = s
-        with open(__DirBinaryPath__ + asmFileName + '.asm',"w+") as f:
+        with open(self.output_path + self.asm_filename + '.asm',"w+") as f:
             f.write(s)
