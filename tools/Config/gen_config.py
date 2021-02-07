@@ -9,24 +9,25 @@ data = {'N_SIGS'     : 256,
         'N_INTERVAL' : 128}
 
 def parse_config(s, data):
-	#list of acceptable variable names
-	configvariables = ['N_SIGS','N_ATOMICS','N_TL','N_AT','N_INTERVAL']
-	#split input text into lines
-	lines = s.split('\n')
-	for line in lines:
-		#check for comment
-		if line[0] == '#':
-			continue
-		#split line into variable name and value
-		v = line.split()
-		varname = v[0]
-		value = v[1]
-		#check variable name and add variable and value to dictionary is acceptable
-		if varname in configvariables:
-			data[varname] = value
-		else:
-			print("Invalid variable name: %s" % (str(varname)))
-	return(data)
+    #list of acceptable variable names
+    configvariables = ['N_SIGS','N_ATOMICS','N_TL','N_AT','N_INTERVAL']
+    #split input text into lines
+    lines = s.split('\n')
+    for line in lines:
+        print(line)
+        #check for comment
+        if line[0] == '#':
+            continue
+        #split line into variable name and value
+        v = line.split()
+        varname = v[0]
+        value = v[1]
+        #check variable name and add variable and value to dictionary is acceptable
+        if varname in data.keys():
+            data[varname] = value
+        else:
+            print("Invalid variable name: %s" % (str(varname)))
+        return(data)
 
 def main():
 
