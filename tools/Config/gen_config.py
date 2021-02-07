@@ -3,7 +3,7 @@ import os
 
 # default config values
 data = {'N_SIGS'     : 256,
-        'N_ATOMICS ' : 256,
+        'N_ATOMICS' : 256,
         'N_TL'       : 256,
         'N_AT'       : 256,
         'N_INTERVAL' : 128}
@@ -12,14 +12,20 @@ def parse_config(s, data):
     #list of acceptable variable names
     configvariables = ['N_SIGS','N_ATOMICS','N_TL','N_AT','N_INTERVAL']
     #split input text into lines
-    lines = s.split('\n')
+    lines = s.splitlines()
     for line in lines:
-        print(line)
-        #check for comment
-        if line[0] == '#':
+        # check for comment and format line
+        comment = line.find('#')
+        if comment >= 0:
+            line = line[0:comment]
+        line = line.strip()
+        if len(line) == 0:
             continue
         #split line into variable name and value
         v = line.split()
+        if not len(v) == 2:
+            print('Invalid format of line: ' + line)
+            continue
         varname = v[0]
         value = v[1]
         #check variable name and add variable and value to dictionary is acceptable
@@ -27,7 +33,7 @@ def parse_config(s, data):
             data[varname] = value
         else:
             print("Invalid variable name: %s" % (str(varname)))
-        return(data)
+    return(data)
 
 def main():
 
