@@ -2,11 +2,23 @@ import sys
 import os
 
 # default config values
-data = {'N_SIGS'     : 256,
-        'N_ATOMICS'  : 256,
-        'N_TL'       : 256,
-        'N_AT'       : 256,
-        'N_INTERVAL' : 128}
+data = {'N_SIGS'       : 256,
+        'N_ATOMICS'    : 256,
+        'N_INSTRUCTIONS' : 256,
+        'N_AT'         : 256,
+        'N_INTERVAL'   : 128,
+        'L_OPC'        : 5,
+        'L_INTVL'      : 8,
+        'L_SCRATCH'    : 7,
+        'L_COMP'       : 3,
+        'L_FILTER'     : 4,
+        'L_NUM'        : 32,
+        'L_INTERVAL'   : 32,
+        'L_SCQ_SIZE'   : 1024,
+        'L_SCQ_ADDR'   : 16,
+        'L_DOT_BUFFER' : 64,
+        'N_PT_QUEUES'  : 128,
+        'TL_INF'       : 32767*32767}
 
 def parse_config(s):
     #split input text into lines
@@ -69,13 +81,17 @@ def main():
     except FileNotFoundError:
         pass
 
+    data['L_ATOMIC_ADDR'] = int.bit_length(int(data['N_ATOMICS']))
+    data['L_SIG_ADDR'] = int.bit_length(int(data['N_SIGS']))
+    data['L_OP'] =  2 + int.bit_length(int(data['N_ATOMICS']))
+
     header = '#ifndef R2U2_CONFIG_H\n' + \
              '#define R2U2_CONFIG_H\n\n'
     for key, val in data.items():
         header += '#define ' + key + ' ' + str(val) + '\n'
     header += '\n#endif'
 
-    with open(sys.argv[2], 'w') as f:
+    with open(sys.argv[3], 'w') as f:
         f.write(header)
 
 if __name__ == '__main__':

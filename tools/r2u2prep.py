@@ -19,14 +19,14 @@ __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 def main(args):
 
-    gen_dir = __AbsolutePath__ + args.output_dir
-    binary_dir = gen_dir + 'binary_files/'
+    binary_dir = args.output_dir + 'binary_files/'
 
-    # Remove generated files directory, if it exists, and start fresh
-    if(os.path.isdir(args.output_dir)):
-        shutil.rmtree(args.output_dir)
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
 
-    os.mkdir(args.output_dir)
+    # Remove binary files directory, if it exists, and start fresh
+    if os.path.isdir(binary_dir):
+        shutil.rmtree(binary_dir)
 
     # If the argument is a valid file,
     #if(os.path.isfile(__AbsolutePath__ + mltl)):
@@ -146,14 +146,16 @@ def main(args):
                     str(args.no_binaries)])
 
     print('************************************************************')
-    if(not os.path.isfile(args.config_file)):
-        pass
-    os.mkdir(args.output_dir+'config_files/')
-    subprocess.run(['python3', args.config_dir+'gen_config.py', args.config_file,
-                    args.output_dir+'config_files/R2U2Config.h'])
+    if not os.path.isdir(args.output_dir+'config_files/'):
+        os.mkdir(args.output_dir+'config_files/')
+    subprocess.run(['python3', args.config_dir+'gen_config.py',
+            args.config_file, args.header_file,
+            args.output_dir+'config_files/R2U2Config.h'])
 
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
+    print('Use '+args.output_dir+'binary_files/ directory as input to r2u2')
+    print('Use '+args.output_dir+'config_files/R2U2Config.h ')
     print('************************************************************')
 
 if __name__ == "__main__":
@@ -161,7 +163,10 @@ if __name__ == "__main__":
     parser.add_argument("mltl",
                         help="file where mltl formula are stored or literal mltl formula")
     parser.add_argument("--config-file", default='r2u2.conf',
-                        help="optional input for configuration file")
+                        help="path to configuration file")
+    parser.add_argument("--header-file",
+                        default='gen_files/config_files/R2U2Config.h',
+                        help="path to configuration header file, uses this file to detect if recompilation is needed")
     parser.add_argument("--output-dir", default='gen_files/',
                         help="location where files will be generated")
     parser.add_argument("--compiler-dir", default='Compiler/',
