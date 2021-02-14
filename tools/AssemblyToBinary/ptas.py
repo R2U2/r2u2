@@ -28,17 +28,17 @@ OP_OR           = "00101"
 OP_IMPL         = "00110"
 OP_EQUIVALENT   = "00111"
 # Unbounded Past-Time Operators
-OP_PT_Y  = "01000"
-OP_PT_O  = "01001"
-OP_PT_H  = "01010"
-OP_PT_S  = "01110"
+OP_PT_YESTERDAY  = "01000"
+OP_PT_ONCE  = "01001"
+OP_PT_HISTORICALLY  = "01010"
+OP_PT_SINCE  = "01110"
 # Explicitly Bounded Past-Time Operators
-OP_PT_HJ = "10010"
-OP_PT_OJ = "10000"
-OP_PT_SJ = "10011"
+OP_PT_HISTORICALLY_INTERVAL = "10010"
+OP_PT_ONCE_INTERVAL = "10000"
+OP_PT_SINCE_INTERVAL = "10011"
 # Implicitly Bounded Past-Time Operators
-OP_PT_HT = "10001"
-OP_PT_OT = "01111"
+OP_PT_HISTORICALLY_TIMEPOINT = "10001"
+OP_PT_ONCE_TIMEPOINT = "01111"
 
 
 #------------------------------------------------------------------------------#
@@ -179,7 +179,7 @@ for line in f:
     #    - First line of opcode was from R2U2_SW/R2U2_C/TL/TL_observers.h file
     # Yesterday
     elif op[0] == "yesterday":
-        opcode = opcode + OP_PT_Y
+        opcode = opcode + OP_PT_YESTERDAY
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -189,7 +189,7 @@ for line in f:
         ts = ts + toBinary(1, 2*TIMESTAMP_WIDTH) + '\n'
     # Historically with single time point (H[t1,t2])
     elif op[0] == "his": #"boxbox-interval":
-        opcode = opcode + OP_PT_HJ
+        opcode = opcode + OP_PT_HISTORICALLY_INTERVAL
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -199,7 +199,7 @@ for line in f:
         ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
     # Historically with interval (H[t])
     elif op[0] == "his_impl":
-        opcode = opcode + OP_PT_HT
+        opcode = opcode + OP_PT_HISTORICALLY_TIMEPOINT
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -209,7 +209,7 @@ for line in f:
         ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
     # Once with interval (O[t1,t2])
     elif op[0] == "once": #"diamonddiamond-interval":
-        opcode = opcode + OP_PT_OJ
+        opcode = opcode + OP_PT_ONCE_INTERVAL
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -219,7 +219,7 @@ for line in f:
         ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + '\n'
     # Once with interval (O[t])
     elif op[0] == "once_impl":
-        opcode = opcode + OP_PT_OT
+        opcode = opcode + OP_PT_ONCE_TIMEPOINT
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + "0000000000"
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -229,7 +229,7 @@ for line in f:
         ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + '\n'
     # Since with interval (S[t1,t2])
     elif op[0] == "since":
-        opcode = opcode + OP_PT_SJ
+        opcode = opcode + OP_PT_SINCE_INTERVAL
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + parseOperand(op[2])
         opcode = opcode + toBinary(timestampAddr, 8)
@@ -239,7 +239,7 @@ for line in f:
         ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\n"
     # Since with interval (S[t])
     elif op[0] == "since_impl":
-        opcode = opcode + OP_PT_S
+        opcode = opcode + OP_PT_SINCE
         opcode = opcode + parseOperand(op[1])
         opcode = opcode + parseOperand(op[2])
         opcode = opcode + toBinary(timestampAddr, 8)

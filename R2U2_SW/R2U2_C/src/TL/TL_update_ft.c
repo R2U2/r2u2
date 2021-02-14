@@ -285,21 +285,21 @@ int TL_update_ft(FILE *log_file) {
 	        //----------------------------------------------------
 	        // OP_FT_FT (enventually, time-point:  F[t]
 	        //----------------------------------------------------
-	        case OP_FT_FT:
+	        case OP_FT_EVENTUALLY_TIMEPOINT:
 		    progress = 1; 
 	            break;
 
 	        //----------------------------------------------------
 	        // OP_FT_GT (globally, time-point:  G[t]
 	        //----------------------------------------------------
-	        case OP_FT_GT:
+	        case OP_FT_GLOBALLY_TIMEPOINT:
 		    progress = 1;
 	            break;
 
 	        //----------------------------------------------------
 	        // OP_FT_GJ (globally, interval:  G[t1,t2])
 	        //----------------------------------------------------
-	        case OP_FT_GJ: {
+	        case OP_FT_GLOBALLY_INTERVAL: {
 	            DEEP_PRINT("\n");
 	            int op1=0, scq_size_rd=0, input_wr_ptr=0;
 	            elt_ft_queue_t *scq_seg = NULL;
@@ -361,7 +361,7 @@ int TL_update_ft(FILE *log_file) {
 	        //----------------------------------------------------
 	        // OP_FT_UJ (until, interval:  U[t1,t2])
 	        //----------------------------------------------------
-	        case OP_FT_UJ:
+	        case OP_FT_UNTIL_INTERVAL:
 	        {
 	            //
 	            int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;

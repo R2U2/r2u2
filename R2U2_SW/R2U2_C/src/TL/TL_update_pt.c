@@ -133,7 +133,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         // OP_PT_Y  (yesterday)
         //----------------------------------------------------
-        case OP_PT_Y:
+        case OP_PT_YESTERDAY:
             results_pt[pc] = get_opnd1_prev_pt(pc);
             DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
@@ -141,21 +141,21 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         // OP_PT_O  (once)  TODO
         //----------------------------------------------------
-        case OP_PT_O:
+        case OP_PT_ONCE:
             printf("%d\tinstruction not implemented\n", pc);
             break;
 
         //----------------------------------------------------
         // OP_PT_H (historically) TODO
         //----------------------------------------------------
-        case OP_PT_H:
+        case OP_PT_HISTORICALLY:
             printf("%d\tinstruction not implemented\n", pc);
             break;
 
         //----------------------------------------------------
         // OP_PT_S ( P since Q )
         //----------------------------------------------------
-        case OP_PT_S:
+        case OP_PT_SINCE:
             results_pt[pc] = get_opnd2_pt(pc) || (get_opnd1_pt(pc) && results_pt_prev[pc]);
             DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
@@ -173,7 +173,7 @@ int TL_update_pt(FILE* log_file)
         //         it looks to be Algorithm 3: Observer for
         //         'invariant previously'
         //----------------------------------------------------
-        case OP_PT_HJ:
+        case OP_PT_HISTORICALLY_INTERVAL:
             // Get the box queue's address
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
 
@@ -267,7 +267,7 @@ int TL_update_pt(FILE* log_file)
         // OJ is implemented as equivalence to
         //   <> = ~[](~phi)
         //----------------------------------------------------
-        case OP_PT_OJ:
+        case OP_PT_ONCE_INTERVAL:
 
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
             
@@ -335,7 +335,7 @@ int TL_update_pt(FILE* log_file)
         // Algorithm:  algorithm 8  in [Reinbacher thesis]
         // 	+ garbage collect
         //----------------------------------------------------
-        case OP_PT_SJ:
+        case OP_PT_SINCE_INTERVAL:
             bq_addr = pt_box_queues + get_queue_addr_pt(pc);
 
             // garbage collection
@@ -423,7 +423,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         // OP_PT_HT (historically, time point  H[t] P )
         //----------------------------------------------------
-        case OP_PT_HT:
+        case OP_PT_HISTORICALLY_TIMEPOINT:
             edge = opnd1_edge(pc);
             if (edge == rising) {
                 results_pt_rising[pc] = t_now;
@@ -441,7 +441,7 @@ int TL_update_pt(FILE* log_file)
         // OJ is implemented as equivalence to
         //   <> = ~[](~phi)
         //----------------------------------------------------
-        case OP_PT_OT:
+        case OP_PT_ONCE_TIMEPOINT:
             edge = opnd1_edge(pc);
             if ((t_now == 1) || (edge == falling)) {
                 results_pt_rising[pc] = t_now;

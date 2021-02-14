@@ -85,10 +85,10 @@ int TL_init()
         ft_sync_queues[i].preResult = 0;
         ft_sync_queues[i].desired_time_stamp = 0;
         switch (instruction_mem_ft[i].opcode) {
-        case OP_FT_GJ:
+        case OP_FT_GLOBALLY_INTERVAL:
             ft_sync_queues[i].pre = (elt_ft_queue_t) { false, -1 };
             break;
-        case OP_FT_UJ:
+        case OP_FT_UNTIL_INTERVAL:
             ft_sync_queues[i].pre = (elt_ft_queue_t) { true, -1 };
             break;
         default:
