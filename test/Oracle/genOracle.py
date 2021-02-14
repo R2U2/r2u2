@@ -662,9 +662,30 @@ def getVerdict(_formulaFile, Input):
         pcNum = 2
 
     # 33.) a1 & (G[8] a0)
-    # elif(_formulaFile == "test0033"):
-    #     for i in range(0,len(Input[1])):
-    #         pass
+    elif(_formulaFile == "test0033"):
+        LB = 0
+        UB = 8
+        Counter = UB
+        for i in range(0,len(Input[0])):
+            # If a0 is True at t = 0
+            if(int(Input[0][i]) == 1):
+                Counter = Counter - 1
+            # Else, a0 is False at t = 0
+            else:
+                Counter = UB
+
+            # If the counter is equal to or below their lower bound,
+            # and a1 is true at this time stamp, G[8] a0 is true 
+            # at the current time stamp. 
+            if((Counter <= LB) and (int(Input[1][i]) == 1)): 
+                TimeStamp.append(i-UB+LB+1)
+                Verdict.append(False)
+            # Or if the counter equals the upper bound, then the 
+            # G[8] a0 is false at the current time stamp. 
+            elif(Counter == UB):
+                TimeStamp.append(i)
+                Verdict.append(True)
+        pcNum = 4
 
     # 34.) a1 & F[5,10] a0
     elif(_formulaFile == "test0034"):
