@@ -2,23 +2,23 @@ import sys
 import os
 
 # default config values
-data = {'N_SIGS'       : 256,
-        'N_ATOMICS'    : 256,
+data = {'N_SIGS'         : 256,
+        'N_ATOMICS'      : 256,
         'N_INSTRUCTIONS' : 256,
-        'N_AT'         : 256,
-        'N_INTERVAL'   : 128,
-        'L_OPC'        : 5,
-        'L_INTVL'      : 8,
-        'L_SCRATCH'    : 7,
-        'L_COMP'       : 3,
-        'L_FILTER'     : 4,
-        'L_NUM'        : 32,
-        'L_INTERVAL'   : 32,
-        'L_SCQ_SIZE'   : 1024,
-        'L_SCQ_ADDR'   : 16,
-        'L_DOT_BUFFER' : 64,
-        'N_PT_QUEUES'  : 128,
-        'TL_INF'       : 32767*32767}
+        'N_AT'           : 256,
+        'N_INTERVAL'     : 128,
+        'L_OPC'          : 5,
+        'L_INTVL'        : 8,
+        'L_SCRATCH'      : 7,
+        'L_COMP'         : 3,
+        'L_FILTER'       : 4,
+        'L_NUM'          : 32,
+        'L_INTERVAL'     : 32,
+        'L_SCQ_SIZE'     : 1024,
+        'L_SCQ_ADDR'     : 16,
+        'L_DOT_BUFFER'   : 64,
+        'N_PT_QUEUES'    : 128,
+        'TL_INF'         : 32767*32767}
 
 def parse_config(s):
     #split input text into lines

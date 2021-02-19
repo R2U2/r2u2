@@ -271,7 +271,7 @@ def assemble(f):
 prog_text = "char *ptm_bin = \""
 
 if __name__ == '__main__':
-    print("Compile past time config")
+    print("Assemble past time")
     f = open(sys.argv[1])
     opt = sys.argv[3]
     if(not os.path.isdir(__DirBinaryPath__)):

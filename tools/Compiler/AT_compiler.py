@@ -25,7 +25,6 @@ class AT:
     def __init__(self, AT):
         self.status = 'pass'
         self.instructions = {}
-        print('Compile atomic checker')
         self.parse(AT)
         self.gen_assembly()
 
@@ -144,10 +143,10 @@ class AT:
     def gen_assembly(self):
         s = ''
         for atom, instr in self.instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' '\
                 + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
-
+        print(s)
         at_asm = __DirBinaryPath__ + 'at.asm'
         if os.path.isfile(at_asm):
             with open(at_asm, 'a') as f:

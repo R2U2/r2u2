@@ -113,30 +113,35 @@ def main(args):
                         AT_str, binary_dir])
     # Compile AT instructions
     if(len(AT) != 0):
-        print('************************************************************')
+        print('************************** AT ASM **************************')
         subprocess.run(['python3', args.compiler_dir+'main.py', '', 'at',
                         AT_str, binary_dir])
-
+    print('************************************************************')
+    if not os.path.isdir(args.output_dir+'config_files/'):
+        os.mkdir(args.output_dir+'config_files/')
+    subprocess.run(['python3', args.config_dir+'gen_config.py',
+                    args.config_file, args.header_file,
+                    args.output_dir+'config_files/R2U2Config.h'])
+    print('************************************************************')
     # Check to see if ft.asm exists
     if(not os.path.isfile(binary_dir+'ft.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
         f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
-    print('************************************************************')
     subprocess.run(['python3', args.assembler_dir+'ftas.py', binary_dir+'ft.asm',
                     binary_dir+'ftscq.asm', str(TIMESTAMP_WIDTH), str(args.no_binaries)])
+    print('************************************************************')
     # Check to see if pt.asm exists
     if(not os.path.isfile(binary_dir+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
         f.close()
-    print('************************************************************')
     subprocess.run(['python3', args.assembler_dir+'ptas.py', binary_dir+'pt.asm',
                     str( TIMESTAMP_WIDTH), str(args.no_binaries)])
     print('************************************************************')
-    # Check to see if ft.asm exists
+    # Check to see if at.asm exists
     if(not os.path.isfile(binary_dir+'at.asm')):
         # If it doesn't, make a blank assembly
         f = open(binary_dir+'at.asm','w+')
@@ -144,14 +149,6 @@ def main(args):
         f.close()
     subprocess.run(['python3', args.assembler_dir+'atas.py', binary_dir+'at.asm',
                     str(args.no_binaries)])
-
-    print('************************************************************')
-    if not os.path.isdir(args.output_dir+'config_files/'):
-        os.mkdir(args.output_dir+'config_files/')
-    subprocess.run(['python3', args.config_dir+'gen_config.py',
-            args.config_file, args.header_file,
-            args.output_dir+'config_files/R2U2Config.h'])
-
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
     print('Use '+args.output_dir+'binary_files/ directory as input to r2u2')
