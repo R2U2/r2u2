@@ -4,16 +4,6 @@ import sys
 import re
 # usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
 #from config import TIMESTAMP_BYTE_extend_byte
-TIMESTAMP_BYTE_extend_byte = int(sys.argv[3])
-TIMESTAMP_WIDTH = 8*TIMESTAMP_BYTE_extend_byte
-
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
-
-def writeToFile(file, content):
-	f = open(file, 'w')
-	f.write(content)
-	f.close
 
 def toBinary(value, width):
 	#print(value)
@@ -52,7 +42,7 @@ def parseOperand(op):
 		c = c + toBinary(int(op[1:]), 8)
 	return c
 
-def assemble(f, s):
+def assemble(f, s, timestamp_width):
 	i = 0
 	timestampAddr = 0
 	boxMemAddr = 0
@@ -65,113 +55,116 @@ def assemble(f, s):
 		op = line.split()
 		if(header.match(op[0])):
 			op.remove(op[0])
-		#-------------------------------------------------------------------------------#
+		#----------------------------------------------------------------------#
 		# R2U2 Operations
-		#-------------------------------------------------------------------------------#
+		#----------------------------------------------------------------------#
 		# Load Atomic
 		if op[0] == "load_ft" or op[0] == "load":
-			opcode = opcode + "11100"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
+			opcode += "11100"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += "0000000"
+			opcode += "00000000"
 		# End of Assembly Code
 		elif ((op[0] == "end") and (op[1] == "sequence")):
-			opcode = opcode + "11111"
-			opcode = opcode + "01" + toBinary(0,8)
-			opcode = opcode + "0000000000"
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
+			opcode += "11111"
+			opcode += "01" + toBinary(0,8)
+			opcode += "0000000000"
+			opcode += "0000000"
+			opcode += "00000000"
 		# End of Formula
 		elif op[0] == "end":
-			opcode = opcode + "01100"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "01" + toBinary(op[2],8)
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
-		#-------------------------------------------------------------------------------#
+			opcode += "01100"
+			opcode += parseOperand(op[1])
+			opcode += "01" + toBinary(op[2],8)
+			opcode += "0000000"
+			opcode += "00000000"
+		#----------------------------------------------------------------------#
 		# Propositional Operators
-		#-------------------------------------------------------------------------------#
+		#----------------------------------------------------------------------#
 		# Conjunction (AND)
 		elif op[0] == "and":
-			opcode = opcode + "10101"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + parseOperand(op[2])
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
+			opcode += "10101"
+			opcode += parseOperand(op[1])
+			opcode += parseOperand(op[2])
+			opcode += "0000000"
+			opcode += "00000000"
 		# Implies
 		elif op[0] == "impl":
-			opcode = opcode + "11011"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + parseOperand(op[2])
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
+			opcode += "11011"
+			opcode += parseOperand(op[1])
+			opcode += parseOperand(op[2])
+			opcode += "0000000"
+			opcode += "00000000"
 		# Negation (NOT)
 		elif op[0] == "not":
-			opcode = opcode + "10100"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + "0000000"
-			opcode = opcode + "00000000"
-		#-------------------------------------------------------------------------------#
+			opcode += "10100"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += "0000000"
+			opcode += "00000000"
+		#----------------------------------------------------------------------#
 		# Future-Time Temporal Operators
-		#-------------------------------------------------------------------------------#
+		#----------------------------------------------------------------------#
 		# Global with single time point (G[t])
 		elif op[0] == "boxbox":
-			opcode = opcode + "10110"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + toBinary(timestampAddr, 8)
-			opcode = opcode + toBinary(boxMemAddr, 7)
+			opcode += "10110"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += toBinary(timestampAddr, 8)
+			opcode += toBinary(boxMemAddr, 7)
 			boxMemAddr = boxMemAddr + 1
 			timestampAddr = timestampAddr + 1
-			ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + "\\n"
+			ts += toBinary(op[2], 2*timestamp_width) + "\\n"
 		# Global with interval (G[t1,t2])
 		elif op[0] == "boxdot":
-			opcode = opcode + "10111"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + toBinary(timestampAddr, 8)
-			opcode = opcode + toBinary(boxMemAddr, 7)
+			opcode += "10111"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += toBinary(timestampAddr, 8)
+			opcode += toBinary(boxMemAddr, 7)
 			boxMemAddr = boxMemAddr + 1
 			timestampAddr = timestampAddr + 1
-			ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + "\\n"
+			ts += toBinary(op[2], timestamp_width) + \
+				toBinary(op[3], timestamp_width) + "\\n"
 		# Eventually with single time point (F[t])
 		elif op[0] == "diamonddiamond":
-			opcode = opcode + "11000"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + toBinary(timestampAddr, 8)
-			opcode = opcode + toBinary(boxMemAddr, 7)
+			opcode += "11000"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += toBinary(timestampAddr, 8)
+			opcode += toBinary(boxMemAddr, 7)
 			boxMemAddr = boxMemAddr + 1
 			timestampAddr = timestampAddr + 1
-			ts = ts + toBinary(op[2], 2*TIMESTAMP_WIDTH) + "\\n"
+			ts += toBinary(op[2], 2*timestamp_width) + "\\n"
 		# Eventually with interval (F[t1,t2])
 		elif op[0] == "diamonddot":
-			opcode = opcode + "11001"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + "0000000000"
-			opcode = opcode + toBinary(timestampAddr, 8)
-			opcode = opcode + toBinary(boxMemAddr, 7)
+			opcode += "11001"
+			opcode += parseOperand(op[1])
+			opcode += "0000000000"
+			opcode += toBinary(timestampAddr, 8)
+			opcode += toBinary(boxMemAddr, 7)
 			boxMemAddr = boxMemAddr + 1
 			timestampAddr = timestampAddr + 1
-			ts = ts + toBinary(op[2], TIMESTAMP_WIDTH) + toBinary(op[3], TIMESTAMP_WIDTH) + "\\n"
+			ts += toBinary(op[2], timestamp_width) + \
+				toBinary(op[3], timestamp_width) + "\\n"
 		# Until with interval (U[t1,t2])
 		elif op[0] == "until":
-			opcode = opcode + "11010"
-			opcode = opcode + parseOperand(op[1])
-			opcode = opcode + parseOperand(op[2])
-			opcode = opcode + toBinary(timestampAddr, 8)
-			opcode = opcode + toBinary(untilMemAddr, 7)
+			opcode += "11010"
+			opcode += parseOperand(op[1])
+			opcode += parseOperand(op[2])
+			opcode += toBinary(timestampAddr, 8)
+			opcode += toBinary(untilMemAddr, 7)
 			untilMemAddr = untilMemAddr + 1
 			timestampAddr = timestampAddr + 1
-			ts = ts + toBinary(op[3], TIMESTAMP_WIDTH) + toBinary(op[4], TIMESTAMP_WIDTH) + "\\n"
+			ts += toBinary(op[3], timestamp_width) + \
+				toBinary(op[4], timestamp_width) + "\\n"
 		# Else, it is not a valid operation.
 		else:
 			print("Error in line", i, "(", op, ")")
 			continue
 
-		opcode = opcode + "\\n"
+		opcode += "\\n"
 
 	scq = ""
 	for line in s:
@@ -188,22 +181,28 @@ prog_text = \
 char *ftm_bin = "
 """.strip()
 
-if __name__ == '__main__':
-	print("Assemble future time")
-	f = open(sys.argv[1])
-	s = open(sys.argv[2])
-	opt = sys.argv[4]
-	if(not os.path.isdir(__DirBinaryPath__)):
-		os.mkdir(__DirBinaryPath__)
-	opcode, ts, scq = assemble(f, s)
-	if opt == 'True':
+def assemble_ft(ftasm, ftscqasm, ts_ext, gen_dir, no_binaries):
+	f = open(ftasm, 'r')
+	s = open(ftscqasm, 'r')
+	timestamp_width = 8 * int(ts_ext)
+	bin_dir = gen_dir+'binary_files/'
+	if(not os.path.isdir(bin_dir)):
+		os.mkdir(bin_dir)
+	opcode, ts, scq = assemble(f, s, timestamp_width)
+	f.close()
+	s.close()
+
+	if no_binaries == 'True':
+		global prog_text
 		prog_text += opcode + "\";\n"
 		prog_text += "char *fti_bin = \"" + ts + "\";\n"
 		prog_text += "char *ftscq_bin = \"" + scq + "\";\n"
-		writeToFile(__DirBinaryPath__+'config.c', prog_text)
+		with open(gen_dir+'config.c', 'w') as c:
+			c.write(prog_text)
 	else:
-		writeToFile(__DirBinaryPath__+'ftm.bin', opcode.replace('\\n','\n'))
-		writeToFile(__DirBinaryPath__+'fti.bin', ts.replace('\\n','\n'))
-		writeToFile(__DirBinaryPath__+'ftscq.bin', scq.replace('\\n','\n'))
-	f.close()
-	s.close()
+		with open(bin_dir+'ftm.bin', 'w') as ftm:
+			ftm.write(opcode.replace('\\n','\n'))
+		with open(bin_dir+'fti.bin', 'w') as fti:
+			fti.write(ts.replace('\\n','\n'))
+		with open(bin_dir+'ftscq.bin', 'w') as ftscq:
+			ftscq.write(scq.replace('\\n','\n'))
