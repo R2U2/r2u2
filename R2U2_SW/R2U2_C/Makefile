@@ -1,18 +1,14 @@
 # tool macros
 CC := gcc
-R2U2_AT := false
 
-# path marcros
+# path macros
 BIN_PATH := bin
 OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT
-ifdef R2U2_AT
-	SRC_DIRS := $(SRC_PATH)/AT $(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics $(SRC_DIRS)
-endif
-
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT \
+	$(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 OBJ_DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 
@@ -50,7 +46,8 @@ DISTCLEAN_LIST := $(OBJ_PATH) \
 				  $(DBG_PATH)
 CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
-			  $(DISTCLEAN_LIST)
+			  $(DISTCLEAN_LIST) \
+				src/binParser/config.c
 
 # default rule
 default: all
@@ -92,7 +89,7 @@ clean:
 
 .PHONY: distclean
 distclean:
-	@echo CLEAN $(CLEAN_LIST)
+	@echo CLEAN $(DISTCLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
 
 print-%  : ; @echo $* = $($*)

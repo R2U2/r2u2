@@ -6,16 +6,15 @@
 #include "at_compare.h"
 #include "at_operations.h"
 
-#define BUFFER_SIZE 256
-#define MAX_INSTR 256
-#define MAX_SIGS 256
-
-typedef char *signals_vector_t[MAX_SIGS];
-typedef at_instruction_t instructions_t[MAX_INSTR];
+typedef char *signals_vector_t[N_SIGS];
+typedef at_instruction_t instructions_t[N_AT];
 
 /* similar to TL_observers? */
 extern signals_vector_t signals_vector;
 extern instructions_t at_instructions;
 extern uint8_t num_instr;
+
+/* For no file handling option */
+extern char *at_bin;
 
 #endif

@@ -3,11 +3,10 @@
 #define R2U2_H
 
 #include <stdio.h>
+#include "R2U2Config.h"
 
 #define R2U2_C_VERSION_MAJOR 1
 #define R2U2_C_VERSION_MINOR 0
-
-#define AT_DEBUG 1
 
 #ifdef DEBUG
     #define DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )

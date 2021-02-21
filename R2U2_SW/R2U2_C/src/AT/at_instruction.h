@@ -11,7 +11,7 @@ typedef enum {
 	LEQ = 0b011,
 	GT  = 0b100,
 	GEQ = 0b101
-} comparison_t;
+} conditional_t;
 
 typedef enum {
 	OP_BOOL           = 0b0001,
@@ -23,6 +23,7 @@ typedef enum {
 } at_filter_t;
 
 typedef union {
+	int8_t s;
 	bool b;
 	int32_t i;
 	double d;
@@ -35,11 +36,12 @@ typedef union {
 } filt_data_struct_t;
 
 typedef struct {
-	comparison_t comp;
+	conditional_t cond;
 	at_filter_t filter;
 	uint8_t sig_addr;
 	uint8_t atom_addr;
-	type_t comp_const;
+	bool comp_is_sig;
+	type_t comp;
 	filt_data_struct_t filt_data_struct;
 } at_instruction_t;
 

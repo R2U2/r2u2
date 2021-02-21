@@ -32,17 +32,19 @@ class AT:
     def tokenize(self, line):
         # Take line and return a list of tuples which store each token's
         # type and value
-        filters = ['bool','int','double','rate','abs_diff_angle','movavg']
+        filters = ['bool','int','float','rate','abs_diff_angle','movavg']
         token_spec = [
             ('ATOM',   r'a\d+'),
             ('ASSIGN', r':='),
             ('FILTER', r'|'.join(filters)),
+            ('SIGNAL', r's\d+'),
             ('NUMBER', r'-?\d+(\.\d*)?'),
-            ('COMP',   r'[<>=!]=|[><]'),
+            ('COND',   r'[<>=!]=|[><]'),
             ('LPAREN', r'\('),
             ('RPAREN', r'\)'),
             ('COMMA',  r','),
             ('SKIP',   r'\s+'),
+            ('COMMENT',r'#'),
             ('ERROR',  r'.')
         ]
         tok_re = '|'.join('(?P<%s>%s)' % pair for pair in token_spec)
@@ -52,6 +54,8 @@ class AT:
             value = tok.group()
             if type == 'SKIP':
                 pass
+            elif type == 'COMMENT':
+                break
             else:
                 tokens.append([type, value])
         return tokens
@@ -67,11 +71,11 @@ class AT:
             # Parsing is very basic; AT syntax is not very expressive
             # Tokens must come in one of two orders:
             # For filters requiring only a signal parameter:
-            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> RPAREN ->
-            # COND -> NUMBER
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> SIGNAL -> RPAREN ->
+            # COND -> SIGNAL | NUMBER
             # For filters requiring signal and argument parameters:
-            # ATOM -> ASSIGN -> FILTER -> LPAREN -> NUMBER -> COMMA ->
-            # NUMBER -> RPAREN -> COND -> NUMBER
+            # ATOM -> ASSIGN -> FILTER -> LPAREN -> SIGNAL -> COMMA ->
+            # NUMBER -> RPAREN -> COND -> SIGNAL | NUMBER
 
             prev_type = 'BEGIN'
             arg = 'NULL'
@@ -91,9 +95,9 @@ class AT:
                     filter = value
                 elif prev_type == 'FILTER' and type == 'LPAREN':
                     pass
-                elif prev_type == 'LPAREN' and type == 'NUMBER':
+                elif prev_type == 'LPAREN' and type == 'SIGNAL':
                     signal = value
-                elif prev_type == 'NUMBER' and type == 'COMMA':
+                elif prev_type == 'SIGNAL' and type == 'COMMA':
                     if arg != 'NULL':
                         print('Syntax error in AT expression ' + line + \
                             '\Too many args given')
@@ -101,12 +105,16 @@ class AT:
                         break
                 elif prev_type == 'COMMA' and type == 'NUMBER':
                     arg = value
+                elif prev_type == 'SIGNAL' and type == 'RPAREN':
+                    pass
                 elif prev_type == 'NUMBER' and type == 'RPAREN':
                     pass
-                elif prev_type == 'RPAREN' and type == 'COMP':
+                elif prev_type == 'RPAREN' and type == 'COND':
+                    cond = value
+                elif prev_type == 'COND' and type == 'NUMBER':
                     comp = value
-                elif prev_type == 'COMP' and type == 'NUMBER':
-                    const = value
+                elif prev_type == 'COND' and type == 'SIGNAL':
+                    comp = value
                 else:
                     print('Syntax error in AT expression ' + line + \
                         '\nInvalid character ' + value + ' after ' + prev_type)
@@ -132,16 +140,21 @@ class AT:
             elif arg == 'NULL':
                 arg = '0'
 
-            instr = [filter, signal, arg, comp, const]
+            instr = [filter, signal, arg, cond, comp]
 
             self.instructions[atom] = instr
 
     def gen_assembly(self):
         s = ''
         for atom, instr in self.instructions.items():
-            s += atom + ' ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
                 + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
 
-        with open(__DirBinaryPath__ + 'at.asm',"w+") as f:
-            f.write(s)
+        at_asm = __DirBinaryPath__ + 'at.asm'
+        if os.path.isfile(at_asm):
+            with open(at_asm, 'a') as f:
+                f.write(s)
+        else:
+            with open(at_asm, 'w') as f:
+                f.write(s)
