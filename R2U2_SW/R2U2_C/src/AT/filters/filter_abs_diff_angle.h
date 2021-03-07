@@ -7,7 +7,7 @@
 ** $Revision: $
 ** $Date:   2014
 **
-** Purpose: 
+** Purpose:
 **
 ** Limitations, Assumptions, External Events, and Notes:
 **
@@ -18,4 +18,3 @@
 **=====================================================================================*/
 
 double abs_diff_angle(double x1, double x2);
-

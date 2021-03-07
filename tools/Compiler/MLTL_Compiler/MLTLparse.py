@@ -11,6 +11,8 @@ from .MLTLlex import tokens
 from .Observer import *
 import sys
 
+atomic_names = []
+
 __all__ = ['status','parser']
 status = 'pass'
 
@@ -163,6 +165,8 @@ def p_paren_token(p):
 def p_atomic_token(p):
     '''expression : ATOMIC'''
     p[0] = ATOM(p[1])
+    if p[1] not in atomic_names:
+        atomic_names.append(p[1])
     # record_operators(p[0])
 
 def p_bool_token(p):
@@ -189,7 +193,7 @@ precedence = (
 def p_error(p):
     global status
     print("Syntax error in input!")
-    print("Illegal character '%s'" % p.value[0])
+    print("Illegal character \'" + str(p) + "\'")
     status = 'syntax_err'
     # sys.exit()
 

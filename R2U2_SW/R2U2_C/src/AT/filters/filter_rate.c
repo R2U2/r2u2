@@ -1,4 +1,4 @@
-/*=======================================================================================
+/*============================================================================
 ** File Name: filter_rate.c
 **
 ** Title: Rate filter for R2U2/AT
@@ -18,7 +18,7 @@
 **  Date | Author | Description
 **  ---------------------------
 **
-**=====================================================================================*/
+**===========================================================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,10 +28,9 @@
 //-----------------------------------------------------------------
 //	initialize
 //-----------------------------------------------------------------
-void filter_rate_init(double *init){
-
-*init = 0;
-
+void filter_rate_init(double *init)
+{
+	*init = 0;
 }
 
 //-----------------------------------------------------------------
@@ -43,17 +42,17 @@ void filter_rate_free(double *buf){}
 //-----------------------------------------------------------------
 //	update rate filter and return current rate
 //-----------------------------------------------------------------
-double filter_rate_update_data(double x, double *prev){
+double filter_rate_update_data(double x, double *prev)
+{
+	double rate;
 
-double rate;
+	if (isinf(*prev)) {
+		rate = 0.0;
+	} else {
+		rate = x - *prev;
+	}
 
-if (isinf(*prev)){
-	rate = 0.0;
-	}
-else {
-	rate = x - *prev;
-	}
-*prev = x;
-return rate;
+	*prev = x;
+
+	return rate;
 }
-

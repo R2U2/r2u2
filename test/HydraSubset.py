@@ -73,7 +73,7 @@ def test_c(formulaFiles,inputFiles):
     # Split the multi-formula run into individual files.
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
-    for i in range(1,13):
+    for i in range(0,12):
         filename = __AbsolutePath__+'R2U2_formula'+str(i)+'.txt'
         subprocess.run(['mv',filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
     # Remove the overall R2U2.log file from the results directory

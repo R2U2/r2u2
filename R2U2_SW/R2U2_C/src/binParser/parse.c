@@ -1,7 +1,17 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "parse.h"
+
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
+
+#include "at_instruction.h"
+#include "at_globals.h"
+#include "filters/filter_rate.h"
+#include "filters/filter_movavg.h"
 
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
@@ -46,96 +56,218 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//2. end address
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
 }
+
+void decode_at_instr(char* s, at_instruction_t* inst)
+{
+	// 1. index to place final atomic value
+	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
+
+	// 2. type of filter to apply to signal
+	inst->filter = string2Int(&s,L_FILTER);
+
+	// 3. index of signal to read from signals_vector
+	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
+
+	// 4. argument used for certain filters
+	int arg = string2Int(&s,L_NUM);
+
+	// 5. type of comparison operator to apply
+	inst->cond = string2Int(&s,L_COMP);
+
+	// 6. is the comparison value a signal?
+	inst->comp_is_sig = string2Int(&s,1);
+
+	// 7. value of constant to compare to filtered signal
+	int comp = string2Int(&s,L_NUM);
+
+	// If comp is a signal, store index of signal in instruction
+	if(inst->comp_is_sig) {
+		inst->comp.s = (uint8_t) comp;
+		switch(inst->filter) {
+			case OP_RATE: {
+				filter_rate_init(&inst->filt_data_struct.prev);
+				break;
+			}
+			case OP_ABS_DIFF_ANGLE: {
+				inst->filt_data_struct.diff_angle = (double) arg;
+				break;
+			}
+			case OP_MOVAVG: {
+				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+				break;
+			}
+			default: break;
+		}
+	} else { // Else store value as constant
+		switch(inst->filter) {
+			case OP_BOOL: inst->comp.b = (bool) comp;	break;
+			case OP_INT: inst->comp.i = (int32_t) comp;	break;
+			case OP_DOUBLE: inst->comp.d = (double) comp;	break;
+			case OP_RATE: {
+				inst->comp.d = (double) comp;
+				filter_rate_init(&inst->filt_data_struct.prev);
+				break;
+			}
+			case OP_ABS_DIFF_ANGLE: {
+				inst->comp.d = (double) comp;
+				inst->filt_data_struct.diff_angle = (double) arg;
+				break;
+			}
+			case OP_MOVAVG: {
+				inst->comp.d = (double) comp;
+				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+				break;
+			}
+			default: 	break;
+		}
+	}
+}
+
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_ft(char* filename) {
+void parse_inst_ft(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_ft[PC]);
-			// printf("%d\n",instruction_mem_ft[PC].op1.value);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INSTRUCTION];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INSTRUCTION);
+
+	while ( pch != NULL ) {
+		decode_inst(line, &instruction_mem_ft[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INSTRUCTION);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
 // Past Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_pt(char* filename) {
+void parse_inst_pt(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_inst(line, &instruction_mem_pt[PC]);
-			// printf("%d\n",instruction_mem_ft[PC].op1.value);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INSTRUCTION];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INSTRUCTION);
+
+	while ( pch != NULL ) {
+		decode_inst(line, &instruction_mem_pt[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INSTRUCTION);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
 // Future-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_ft(char* filename) {
+void parse_interval_ft(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_ft[PC]);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INTERVAL*2];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INTERVAL*2);
+
+	while ( pch != NULL ) {
+		decode_interval(line, &interval_mem_ft[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INTERVAL*2);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
 // Past-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_pt(char* filename) {
+void parse_interval_pt(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
-			decode_interval(line, &interval_mem_pt[PC]);
-			PC++;
-		}
-		fclose ( file );
-	} else {
-		perror ( filename ); /* why didn't the file open? */
+	char *pch;
+	char line[L_INTERVAL*2];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_INTERVAL*2);
+
+	while ( pch != NULL ) {
+		decode_interval(line, &interval_mem_pt[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_INTERVAL*2);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
 //------------------------------------------------------------------------------
 // SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
 //------------------------------------------------------------------------------
-void parse_scq_size(char* filename) {
+void parse_scq_size(char* bin) {
 	int PC = 0;
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL ) {
-		char line [128]; /* or other suitable maximum line size */
-		while ( fgets (line, sizeof(line), file ) != NULL ) {/* read a line */
-			line[strcspn(line,"\n\r")] = 0; //remove ending special symbol
+	char *pch;
+	char line[L_SCQ_ADDRESS];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_SCQ_ADDRESS);
+
+	while ( pch != NULL ) {
 			decode_scq_size(line, &addr_SCQ_map_ft[PC]);
 			(SCQ+(addr_SCQ_map_ft[PC].start_addr))->t_q = -1; // initialize timestamp of the first elelment to -1
 			PC++;
+			memcpy(line, pch + 1, L_SCQ_ADDRESS);
+			pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 		}
-		fclose ( file );
+}
+
+//------------------------------------------------------------------------------
+// AT Parser
+//------------------------------------------------------------------------------
+void parse_at(char *bin)
+{
+	int PC = 0;
+	char *pch;
+	char line[L_AT_INSTRUCTION];
+
+	pch = (char *) memchr(bin, '\n', strlen(bin));
+	if(pch != NULL)
+		memcpy(line, bin, L_AT_INSTRUCTION);
+
+	while ( pch != NULL ) {
+		decode_at_instr(line, &at_instructions[PC]);
+		PC++;
+		memcpy(line, pch + 1, L_AT_INSTRUCTION);
+		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
+	}
+
+	num_instr = PC; // set number of AT instructions
+}
+
+void parse_file(char *filename, parser_t p_type)
+{
+	long size;
+	FILE *file = fopen (filename, "r");
+	if ( file != NULL ) {
+		fseek(file, 0, SEEK_END);
+		size = ftell(file);
+		rewind(file);
+
+		char *bin = (char *) malloc(sizeof(char) * size);
+		if(fread(bin, 1, size, file) != size)
+			perror (filename); // error reading from file
+
+		switch(p_type){
+			case P_FTM: parse_inst_ft(bin); break;
+			case P_FTI: parse_interval_ft(bin); break;
+			case P_SCQ: parse_scq_size(bin); break;
+			case P_PTM: parse_inst_pt(bin); break;
+			case P_PTI: parse_interval_pt(bin); break;
+			case P_AT:  parse_at(bin); break;
+			default: perror (filename);
+		}
+		fclose (file);
+		free(bin);
 	} else {
-		perror ( filename ); /* why didn't the file open? */
+		perror (filename); // why didn't the file open?
 	}
 }

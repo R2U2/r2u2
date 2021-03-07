@@ -1,15 +1,21 @@
 #!/usr/bin/python3
-#------------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
 # Date:        April 29th, 2020
 # File Name:   r2u2prep.py
-# Description: 
-#------------------------------------------------------------------------------------#
+# Description:
+#------------------------------------------------------------------------------#
 import sys
 import os
 import subprocess
 import shutil
 import Compiler.MLTL_Compiler
+from Compiler.AT_compiler import AT
+import re
+import argparse
+
+#from AT import *
+
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -17,38 +23,47 @@ __CompilerDir__  = __AbsolutePath__     + 'Compiler/'
 __BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
 __BinFileDir__   = __AbsolutePath__     + 'binary_files/'
 
-def main():
+def main(mltl, config):
 
     # Remove 'binary_files' directory, if it exists, and start fresh
     if(os.path.isdir(__BinFileDir__)):
         shutil.rmtree(__BinFileDir__)
 
     # If the arguement is a valid file,
-    if(os.path.isfile(__AbsolutePath__ + sys.argv[1])):
-        MLTL = open(sys.argv[1],'r').read()
+    if(os.path.isfile(__AbsolutePath__ + mltl)):
+        MLTL = open(mltl,'r').read()
+    elif(os.path.isfile(mltl)):
+        MLTL = open(mltl,'r').read()
     else:
-        MLTL = sys.argv[1]
+        MLTL = mltl
+
     FT = {}
     PT = {}
-    
-    # Strip out any null (\n) characters from the MLTL string
-    MLTL = MLTL.replace('\n','')
-    
+    AT = []
+
+    # Strip out any null (\n) characters from the MLTL string ???
+    #MLTL = MLTL.replace('\n','') ???
+
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
+        line = line.strip('\n ')
         # Ignore lines that are blank
-        if(line == ""):
-            break
-        # Iterate through the line and determine if it is FT or PT
+        if(re.fullmatch('\s*', line)):
+            continue
+        # Iterate through the line and determine if it is FT or PT or atomic
         isFT = 0
         isPT = 0
-        for p in line:
-            # Determine if the line contains a FT oeprator
-            if((p == 'G') or (p == 'F') or (p == 'U') or (p == 'R')):
-                isFT = isFT + 1
-            # Determine if the line contrains a PT operator
-            elif((p == 'Y') or (p == 'H') or (p == 'O') or (p == 'S')):
-                isPT = isPT + 1
+        isAtom = 0
+
+        # Determine if the line is an atomic mapping
+        if(re.search(':=', line)):
+            isAtom = isAtom + 1
+        # Determine if the line contains a FT operator
+        elif(re.search('[GFUR]', line)):
+            isFT = isFT + 1
+        # Determine if the line contains a PT operator
+        elif(re.search('[YHOS]', line)):
+            isPT = isPT + 1
 
         # If a formula has both PT and FT, throw an error and exit the program
         if((isPT > 0) and (isFT > 0)):
@@ -61,9 +76,19 @@ def main():
             # Put it in the PT list, for the PT call of postgraph
             PT.update({form_num: line + ';\n'})
         # Else, if the formula is future-time or just propositional logic,
-        elif((isPT == 0) and (isFT >= 0)):
+        elif((isPT == 0) and (isFT >= 0) and (isAtom == 0)):
             # Put it in the FT list, for the FT call of postgraph
             FT.update({form_num: line + ';\n'})
+        # Else if the formula is an atomic assignment
+        elif(isAtom > 0):
+            # Only add atomics to the set
+            AT.append(line + ';')
+
+    AT_str = ""
+    for line in AT:
+        if(re.fullmatch('\s*', line)):
+            continue
+        AT_str += line
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
     if(len(FT) != 0):
@@ -75,9 +100,11 @@ def main():
             else:
                 FT_str += "\n"
         MLTL = FT_str
-        FTorPT = 'ft'
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
+        FTorPTorAT = 'ft'
+        #print(FT_str)
+        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPTorAT, AT_str, optimize_cse=True)
         del postgraph
+
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -87,9 +114,14 @@ def main():
             else:
                 PT_str += "\n"
         MLTL = PT_str
-        FTorPT = 'pt'
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
+        FTorPTorAT = 'pt'
+        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPTorAT, AT_str, optimize_cse=True)
         del postgraph
+
+    # Compile AT instructions
+    if(len(AT) != 0):
+        print('************************************************************')
+        subprocess.run(['python3', __CompilerDir__+'main.py', '', 'at', AT_str])
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
@@ -98,7 +130,8 @@ def main():
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
+    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
+                    __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
     # Check to see if pt.asm exists
     if(not os.path.isfile(__BinFileDir__+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
@@ -106,14 +139,31 @@ def main():
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',str( TIMESTAMP_WIDTH)])
+    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
+                    str( TIMESTAMP_WIDTH), str(config)])
+    print('************************************************************')
+    # Check to see if ft.asm exists
+    if(not os.path.isfile(__BinFileDir__+'at.asm')):
+        # If it doesn't, make a blank assembly
+        f = open(__BinFileDir__+'at.asm','w+')
+        f.write(' ')
+        f.close()
+    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm',
+                    str(config)])
 
     print('************************************************************')
-    print('Binary files are located in the '+__BinFileDir__+' directory')
+    print('Generated files are located in the '+__BinFileDir__+' directory')
+    if config:
+        print('Move binary_files/config.c to src/binParser directory')
     print('************************************************************')
-    
+
     #'reset' MLTLCompiler by deleting from memory and reimporting
     del Compiler.MLTL_Compiler
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mltl", help="filename where mltl formula are stored or literal mltl formula")
+    parser.add_argument("-c", "--config", help="generate config.c file in place of binaries",
+                        action="store_true")
+    args = parser.parse_args()
+    main(args.mltl, args.config)
