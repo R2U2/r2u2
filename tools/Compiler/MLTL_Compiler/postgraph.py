@@ -6,13 +6,14 @@ from . import MLTLparse
 # from . import Observer
 from .Observer import *
 import os
+import re
 
 # Paths for saving files
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __DirBinaryPath__ = __AbsolutePath__ + '../../binary_files/'
 asmFileName = ""
 class Postgraph():
-    def __init__(self,MLTL,FTorPT, optimize_cse=True, Hp=0):
+    def __init__(self,MLTL,FTorPT,AT, optimize_cse=True, Hp=0):
         global asmFileName
         asmFileName = FTorPT
         # Check to see if the '../binary_files' directory exists; if not make, the file
@@ -24,6 +25,10 @@ class Postgraph():
         # MLTLparse.cnt2node.clear() # clear var for multiple runs
         # MLTLparse.operator_cnt = 0 # clear var for multiple runs
         MLTLparse.parser.parse(MLTL)
+
+        # check that all used atomics are properly mapped
+        self.check_atomics(AT.split(';'))
+
         self.asm = ""
         if (MLTLparse.status=='syntax_err'):
             MLTLparse.status='pass'
@@ -34,6 +39,7 @@ class Postgraph():
             return
         else:
             self.status = 'pass'
+            self.atomic_names = MLTLparse.atomic_names
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
         # self.top = self.cnt2node[len(self.cnt2node)-1]
@@ -43,6 +49,42 @@ class Postgraph():
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(Hp)
         self.gen_assembly()
+
+    # Check that all atomics are mapped_atomics
+    # If any are not, default them to boolean equal to 1
+    # Signal read is equal to value of atomic name
+    # i.e. a5 will read from signal 5
+    # TODO: this is VERY sloppy, since compilation of AT, PT, and FT are
+    # all done separately. Should find better way of doing this.
+    def check_atomics(self, input):
+        mapped_atomics = []
+        unmapped_atomics = []
+
+        for line in input:
+            if re.fullmatch('\s*', line):
+                break
+            m = re.search('a\d+\s*(?=:=)', line)
+            if m is None:
+                print('Error: invalid atomic name in mapping ' + line)
+                break
+            mapped_atomics.append(m.group().strip())
+
+        for atom in MLTLparse.atomic_names:
+            if atom not in mapped_atomics:
+                unmapped_atomics.append(atom)
+
+        instructions = ''
+        for atom in unmapped_atomics:
+            num = re.search('\d+', atom).group()
+            instructions += atom + ' bool s' + num + ' 0 == 1\n'
+
+        at_asm = __DirBinaryPath__ + 'at.asm'
+        if os.path.isfile(at_asm):
+            with open(at_asm, 'a') as f:
+                f.write(instructions)
+        else:
+            with open(at_asm, 'w') as f:
+                f.write(instructions)
 
     ###############################################################
     # Common subexpression elimination the AST
@@ -165,7 +207,7 @@ class Postgraph():
                     left, right = n.left, n.right;
                     left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
                     right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
-            for n in vstack: 
+            for n in vstack:
                 # added on May 9, 2020: to consider the extra space for potential output in one time stamp
                 if (isinstance(n, Observer)):
                     n.scq_size += n.wpd-n.bpd+2
@@ -189,10 +231,10 @@ class Postgraph():
                 if ( isinstance(n, Observer) or isinstance(n,STATEMENT)):
                     st_pos = pos
                     ed_pos = st_pos+n.scq_size
-                    pos = ed_pos;
-                    s = s+'{0:016b}'.format(st_pos)+'{0:016b}'.format(ed_pos)+'\n'
+                    pos = ed_pos
+                    s += str(st_pos) + ' ' + str(ed_pos) + '\n'
             if(asmFileName == "ft"):
-                with open(__DirBinaryPath__+'ftscq.bin',"w+") as f:
+                with open(__DirBinaryPath__+'ftscq.asm',"w+") as f:
                     f.write(s)
 
         compute_propagation_delay()
@@ -218,4 +260,3 @@ class Postgraph():
         self.asm = s
         with open(__DirBinaryPath__ + asmFileName + '.asm',"w+") as f:
             f.write(s)
-

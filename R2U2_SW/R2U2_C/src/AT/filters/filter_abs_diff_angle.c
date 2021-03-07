@@ -36,7 +36,7 @@
 double abs_diff_angle(double a1, double a2){
   if (a1 < 0) a1 = a1 + 360.0;
   if (a2 < 0) a2 = a2 + 360.0;
-  double d = fabs(a1 - a2);
+  double d = (double)fabs(a1 - a2);
   double c = 360.0 - d;
   double mn = d < c ? d : c;
   return mn;
