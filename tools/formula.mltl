@@ -1,0 +1,6 @@
+G[5,10](a0&a1);
+a0 := rate(s0) > 6; # hello
+# hello
+# a1 := int(s1) < 20;
+a1 := int(s1) < 10;
+# a1 := int(s1) < 20;

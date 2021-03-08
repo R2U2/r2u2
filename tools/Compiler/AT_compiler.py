@@ -44,6 +44,7 @@ class AT:
             ('RPAREN', r'\)'),
             ('COMMA',  r','),
             ('SKIP',   r'\s+'),
+            ('COMMENT',r'#'),
             ('ERROR',  r'.')
         ]
         tok_re = '|'.join('(?P<%s>%s)' % pair for pair in token_spec)
@@ -53,6 +54,8 @@ class AT:
             value = tok.group()
             if type == 'SKIP':
                 pass
+            elif type == 'COMMENT':
+                break
             else:
                 tokens.append([type, value])
         return tokens
