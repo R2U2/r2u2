@@ -26,6 +26,10 @@ class AT:
         self.status = 'pass'
         self.instructions = {}
         print('Compile atomic checker')
+        #determine length of signals vector in binary and issue warning if greater than 8 bits
+        length_binary = bin(len(AT))
+        if (len(str(length_binary))-2) > 8:
+            print("Signal vector exceeds 8 bits. %i bits needed" % (len(str(length_binary))-2))
         self.parse(AT)
         self.gen_assembly()
 
