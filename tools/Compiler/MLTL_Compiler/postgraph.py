@@ -1,9 +1,9 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
 ## Author: Pei Zhang
-# from .MLTLparse import *
-# from .Observer import *
-from . import MLTLparse
-# from . import Observer
+from antlr4 import *
+from .MLTLLexer import MLTLLexer
+from .MLTLParser import MLTLParser
+from .r2u2_MLTLVisitor import Visitor
 from .Observer import *
 import os
 import re
@@ -21,12 +21,17 @@ class Postgraph():
         Observer.reset()
         # MLTLparse.cnt2node.clear() # clear var for multiple runs
         # MLTLparse.operator_cnt = 0 # clear var for multiple runs
-        MLTLparse.parser.parse(MLTL)
+        lexer = MLTLLexer(InputStream(MLTL))
+        stream = CommonTokenStream(lexer)
+        parser = MLTLParser(stream)
+        ast = parser.program()
+        Visitor().visit(ast)
 
         # check that all used atomics are properly mapped
-        self.check_atomics(AT.split(';'))
+        #self.check_atomics(AT.split(';'))
 
         self.asm = ""
+        """
         if (MLTLparse.status=='syntax_err'):
             MLTLparse.status='pass'
             self.status = 'syntax_err'
@@ -37,6 +42,8 @@ class Postgraph():
         else:
             self.status = 'pass'
             self.atomic_names = MLTLparse.atomic_names
+        """
+        self.status = 'pass'
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
         # self.top = self.cnt2node[len(self.cnt2node)-1]
