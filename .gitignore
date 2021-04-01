@@ -278,3 +278,4 @@ test/Results.txt
 test/LargeFT.txt
 test/LargePT.txt
 test/OldFtSuiteReport.txt
+__pycache__/
