@@ -4,7 +4,7 @@ from antlr4 import *
 from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
 from .r2u2_MLTLVisitor import Visitor
-from .Observer import *
+from .AST import *
 import os
 import re
 
@@ -25,24 +25,14 @@ class Postgraph():
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         ast = parser.program()
-        Visitor().visit(ast)
+        visitor = Visitor()
+        visitor.visit(ast)
 
         # check that all used atomics are properly mapped
         #self.check_atomics(AT.split(';'))
 
         self.asm = ""
-        """
-        if (MLTLparse.status=='syntax_err'):
-            MLTLparse.status='pass'
-            self.status = 'syntax_err'
-            self.cnt2node = {}
-            self.valid_node_set = []
-            self.asm = ''
-            return
-        else:
-            self.status = 'pass'
-            self.atomic_names = MLTLparse.atomic_names
-        """
+
         self.status = 'pass'
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
