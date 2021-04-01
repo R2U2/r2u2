@@ -141,7 +141,8 @@ class Postgraph():
         def checkTree(root, graph):
             if(root==None or root.type=='BOOL'):
                 return
-            graph.add(root)
+            if root not in graph:
+                graph.append(root)
             for c in root.child:
                 if c:
                     checkTree(c, graph)
@@ -149,7 +150,7 @@ class Postgraph():
             # graph.add(root)
             # checkTree(root.right, graph)
 
-        graph=set()
+        graph=[]
         checkTree(top,graph)
 
         def topologicalSortUtil(root, visited, stack):

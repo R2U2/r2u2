@@ -1,6 +1,6 @@
-from MLTLVisitor import MLTLVisitor
-from MLTLParser import MLTLParser
-from Observer import *
+from .MLTLVisitor import MLTLVisitor
+from .MLTLParser import MLTLParser
+from .Observer import *
 
 class Visitor(MLTLVisitor):
 
@@ -22,7 +22,7 @@ class Visitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#statement.
     def visitStatement(self, ctx:MLTLParser.StatementContext):
         expr = self.visit(ctx.expr())
-        lineno = 1 # TODO need to find way to do this easily
+        lineno = ctx.start.line
         return STATEMENT(expr, lineno)
 
 
