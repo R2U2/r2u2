@@ -1,6 +1,6 @@
-from .MLTLVisitor import MLTLVisitor
-from .MLTLParser import MLTLParser
-from .Observer import *
+from MLTLVisitor import MLTLVisitor
+from MLTLParser import MLTLParser
+from Observer import *
 
 class Visitor(MLTLVisitor):
 

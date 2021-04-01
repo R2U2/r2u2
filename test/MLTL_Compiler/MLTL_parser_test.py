@@ -25,16 +25,16 @@ for i in range(len(tracefile)):
         # Read the contents of the MLTL file
         formula = file.read().rstrip() + ";"
         print(formula)
-    
+
     # Close the file
     file.close()
 
     # Try to parse the MLTL instructions with the Postgraph function
     try:
-        Postgraph(MLTL=formula,optimize_cse=True)
+        Postgraph(MLTL=formula, FTorPT="ft", AT="", output_path=".", optimize_cse=True)
 
     # If an exception is thrown, then the instructions were not valid to the parser
-    except Exception as ex: 
+    except Exception as ex:
         print("An exception occured in test " + str(i))
         print(ex)
 

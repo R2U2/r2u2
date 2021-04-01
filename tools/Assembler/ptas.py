@@ -183,7 +183,7 @@ def assemble(f, timestamp_width):
             opcode += toBinary(hisMemAddr, 7)
             hisMemAddr = hisMemAddr + 1
             timestampAddr = timestampAddr + 1
-            ts += toBinary(op[2], timestamp_width) + toBinary(op[3], TIMESTAMP_WIDTH) + '\\n'
+            ts += toBinary(op[2], timestamp_width) + toBinary(op[3], timestamp_width) + '\\n'
         # Historically with interval (H[t])
         elif op[0] == "his_impl":
             opcode += OP_PT_HT
@@ -203,7 +203,7 @@ def assemble(f, timestamp_width):
             opcode += toBinary(onceMemAddr, 7)
             onceMemAddr = onceMemAddr + 1
             timestampAddr = timestampAddr + 1
-            ts += toBinary(op[2], timestamp_width) + toBinary(op[3], TIMESTAMP_WIDTH) + '\\n'
+            ts += toBinary(op[2], timestamp_width) + toBinary(op[3], timestamp_width) + '\\n'
         # Once with interval (O[t])
         elif op[0] == "once_impl":
             opcode += OP_PT_OT
@@ -223,7 +223,7 @@ def assemble(f, timestamp_width):
             opcode += toBinary(sinceMemAddr, 7)
             sinceMemAddr = sinceMemAddr + 1
             timestampAddr = timestampAddr + 1
-            ts += toBinary(op[3], timestamp_width) + toBinary(op[4], TIMESTAMP_WIDTH) + "\\n"
+            ts += toBinary(op[3], timestamp_width) + toBinary(op[4], timestamp_width) + "\\n"
         # Since with interval (S[t])
         elif op[0] == "since_impl":
             opcode += OP_PT_S
