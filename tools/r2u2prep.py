@@ -12,6 +12,9 @@ import shutil
 import re
 import argparse
 
+from Compiler import postgraph
+from Compiler import AT_compiler
+
 #from AT import *
 
 TIMESTAMP_WIDTH = 4
@@ -99,8 +102,9 @@ def main(args):
             else:
                 FT_str += "\n"
         #print(FT_str)
-        subprocess.run(['python3',  args.compiler_dir+'main.py', FT_str, 'ft',
-                        AT_str, binary_dir])
+        #subprocess.run(['python3',  args.compiler_dir+'main.py', FT_str, 'ft',
+        #                AT_str, binary_dir])
+        postgraph.Postgraph(FT_str,'ft',AT_str,binary_dir,optimize_cse=True)
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -109,13 +113,13 @@ def main(args):
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', args.compiler_dir+'main.py', PT_str, 'pt',
-                        AT_str, binary_dir])
+        #subprocess.run(['python3', args.compiler_dir+'main.py', PT_str, 'pt',
+        #            AT_str, binary_dir])
+        postgraph.Postgraph(PT_str,'pt',AT_str,binary_dir,optimize_cse=True)
     # Compile AT instructions
     if(len(AT) != 0):
         print('************************** AT ASM **************************')
-        subprocess.run(['python3', args.compiler_dir+'main.py', '', 'at',
-                        AT_str, binary_dir])
+        AT_compiler.AT(AT_str, binary_dir)
 
     print('************************************************************')
     # Check to see if ft.asm exists

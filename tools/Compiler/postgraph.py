@@ -8,6 +8,16 @@ from .AST import *
 import os
 import re
 
+def gen_ast():
+    o = Observer()
+    lexer = MLTLLexer(InputStream(MLTL))
+    stream = CommonTokenStream(lexer)
+    parser = MLTLParser(stream)
+    ast = parser.program()
+    visitor = Visitor()
+    visitor.visit(ast)
+    return
+
 asmFileName = ""
 class Postgraph():
     def __init__(self, MLTL, FTorPT, AT, output_path, optimize_cse=True, Hp=0):
@@ -26,7 +36,8 @@ class Postgraph():
         parser = MLTLParser(stream)
         ast = parser.program()
         visitor = Visitor()
-        visitor.visit(ast)
+        ret = visitor.visit(ast)
+        print(ret)
 
         # check that all used atomics are properly mapped
         #self.check_atomics(AT.split(';'))
@@ -36,6 +47,7 @@ class Postgraph():
         self.status = 'pass'
         # self.cnt2node = MLTLparse.cnt2node
         self.cnt2node = Observer.cnt2node
+        #print(self.cnt2node)
         # self.top = self.cnt2node[len(self.cnt2node)-1]
         self.top = self.cnt2node[0]
         if(optimize_cse):

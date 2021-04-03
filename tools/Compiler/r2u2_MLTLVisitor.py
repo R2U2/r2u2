@@ -8,15 +8,16 @@ class Visitor(MLTLVisitor):
         atomic_names = []
         __all__ = ['status','parser']
         status = 'pass'
-        self.prog = PROGRAM()
 
 
     # Visit a parse tree produced by MLTLParser#program.
     def visitProgram(self, ctx:MLTLParser.ProgramContext):
+        prog = PROGRAM()
         statements = ctx.statement()
         for s in statements:
             ret = self.visit(s)
-            self.prog.add(ret)
+            prog.add(ret)
+        return prog
 
 
     # Visit a parse tree produced by MLTLParser#statement.
