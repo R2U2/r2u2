@@ -279,3 +279,4 @@ test/LargeFT.txt
 test/LargePT.txt
 test/OldFtSuiteReport.txt
 __pycache__/
+gen_files/
