@@ -5,9 +5,9 @@ from .AST import *
 class Visitor(MLTLVisitor):
 
     def __init__(self):
-        atomic_names = []
+        self.atomic_names = []
         __all__ = ['status','parser']
-        status = 'pass'
+        self.status = 'pass'
 
 
     # Visit a parse tree produced by MLTLParser#program.
@@ -152,6 +152,9 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#atom_expr.
     def visitAtom_expr(self, ctx:MLTLParser.Atom_exprContext):
+        identifier = str(ctx.Identifier())
+        if identifier not in self.atomic_names:
+            self.atomic_names.append(identifier)
         return ATOM(str(ctx.Identifier()))
 
     # Visit a parse tree produced by MLTLParser#binding.

@@ -12,10 +12,12 @@ import shutil
 import re
 import argparse
 
-from Compiler import postgraph
+from Compiler import compiler
 from Compiler import AT_compiler
-
-#from AT import *
+from Assembler.config import *
+from Assembler.ptas import assemble_pt
+from Assembler.ftas import assemble_ft
+from Assembler.atas import assemble_at
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -39,9 +41,13 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    FT = {}
-    PT = {}
-    AT = []
+    #FT = {}
+    #PT = {}
+    #AT = []
+
+    FT = ""
+    PT = ""
+    AT = ""
 
     # Strip out any null (\n) characters from the MLTL string ???
     #MLTL = MLTL.replace('\n','') ???
@@ -76,46 +82,17 @@ def main(args):
         # Else, if a formula is just past-time,
         elif((isPT > 0) and (isFT == 0)):
             # Put it in the PT list, for the PT call of postgraph
-            PT.update({form_num: line + ';\n'})
+            PT += line + ';\n'
         # Else, if the formula is future-time or just propositional logic,
         elif((isPT == 0) and (isFT >= 0) and (isAtom == 0)):
             # Put it in the FT list, for the FT call of postgraph
-            FT.update({form_num: line + ';\n'})
+            FT += line + ';\n'
         # Else if the formula is an atomic assignment
         elif(isAtom > 0):
             # Only add atomics to the set
-            AT.append(line + ';')
+            AT += line + ';\n'
 
-    AT_str = ""
-    for line in AT:
-        if(re.fullmatch('\s*', line)):
-            continue
-        AT_str += line
-
-    # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
-    if(len(FT) != 0):
-        print('************************** FT ASM **************************')
-        FT_str = ""
-        for i in range(max(FT.keys())+1):
-            if i in FT:
-                FT_str += FT[i]
-            else:
-                FT_str += "\n"
-        #print(FT_str)
-        #subprocess.run(['python3',  args.compiler_dir+'main.py', FT_str, 'ft',
-        #                AT_str, binary_dir])
-        postgraph.Postgraph(FT_str,'ft',AT_str,binary_dir,optimize_cse=True)
-    if(len(PT) != 0):
-        print('************************** PT ASM **************************')
-        PT_str = ""
-        for i in range(max(PT.keys())+1):
-            if i in PT:
-                PT_str += PT[i]
-            else:
-                PT_str += "\n"
-        #subprocess.run(['python3', args.compiler_dir+'main.py', PT_str, 'pt',
-        #            AT_str, binary_dir])
-        postgraph.Postgraph(PT_str,'pt',AT_str,binary_dir,optimize_cse=True)
+    compiler.Compiler(FT,PT,AT,binary_dir,optimize_cse=True)
     # Compile AT instructions
     if(len(AT) != 0):
         print('************************** AT ASM **************************')
@@ -144,17 +121,17 @@ def main(args):
     if not os.path.isdir(args.output_dir+'config_files/'):
         os.mkdir(args.output_dir+'config_files/')
 
-    subprocess.run(['python3', args.assembler_dir+'main.py',
-                    args.config_file,
-                    args.header_file,
-                    args.output_dir+'config_files/R2U2Config.h',
-                    binary_dir+'pt.asm',
-                    binary_dir+'ft.asm',
-                    binary_dir+'ftscq.asm',
-                    binary_dir+'at.asm',
-                    str(TIMESTAMP_WIDTH),
-                    args.output_dir,
-                    str(args.no_binaries)])
+    print('Generating configuration files')
+    parse_config(args.config_file)
+    check_updates(args.header_file)
+    gen_config(args.output_dir+'config_files/R2U2Config.h')
+
+    assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
+                str(args.no_binaries))
+    assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
+                str(TIMESTAMP_WIDTH), args.output_dir, str(args.no_binaries))
+    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
+
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
     print('Use '+args.output_dir+'binary_files/ as input to r2u2')

@@ -3,65 +3,64 @@
 from antlr4 import *
 from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
-from .r2u2_MLTLVisitor import Visitor
+from .visitor import Visitor
 from .AST import *
 import os
 import re
 
-def gen_ast():
-    o = Observer()
-    lexer = MLTLLexer(InputStream(MLTL))
-    stream = CommonTokenStream(lexer)
-    parser = MLTLParser(stream)
-    ast = parser.program()
-    visitor = Visitor()
-    visitor.visit(ast)
-    return
-
 asmFileName = ""
-class Postgraph():
-    def __init__(self, MLTL, FTorPT, AT, output_path, optimize_cse=True, Hp=0):
-        self.asm_filename = FTorPT
+class Compiler():
+
+    def __init__(self, FT, PT, AT, output_path, optimize_cse=True, Hp=0):
+        self.optimize = optimize_cse
         self.output_path = output_path
-        # Check to see if the '../binary_files' directory exists; if not make, the file
+        self.Hp = Hp
+        self.atomics = []
+        # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
-        # Observer.Observer.line_cnt = 0 # clear var for multiple runs
+
+        if not FT == '':
+            self.compile(FT, 'ft')
+            print('************************** FT ASM **************************')
+            print(self.asm)
+        if not PT == '':
+            self.compile(PT, 'pt')
+            print('************************** PT ASM **************************')
+            print(self.asm)
+
+        self.check_atomics(AT)
+
+
+    def compile(self, mltl, type):
         AST_node.reset()
         Observer.reset()
-        # MLTLparse.cnt2node.clear() # clear var for multiple runs
-        # MLTLparse.operator_cnt = 0 # clear var for multiple runs
-        lexer = MLTLLexer(InputStream(MLTL))
+
+        # Parse the input and generate AST
+        lexer = MLTLLexer(InputStream(mltl))
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
-        ast = parser.program()
+        parse_tree = parser.program()
         visitor = Visitor()
-        ret = visitor.visit(ast)
-        print(ret)
+        ret = visitor.visit(parse_tree)
 
-        # check that all used atomics are properly mapped
-        #self.check_atomics(AT.split(';'))
+        for atom in visitor.atomic_names:
+            self.atomics.append(atom)
 
         self.asm = ""
-
         self.status = 'pass'
-        # self.cnt2node = MLTLparse.cnt2node
-        self.cnt2node = Observer.cnt2node
-        #print(self.cnt2node)
-        # self.top = self.cnt2node[len(self.cnt2node)-1]
-        self.top = self.cnt2node[0]
-        if(optimize_cse):
+        self.ast = AST_node.ast
+        self.top = self.ast[0]
+        if(self.optimize):
             self.optimize_cse()
         self.valid_node_set = self.sort_node()
-        self.queue_size_assign(Hp)
-        self.gen_assembly()
+        self.queue_size_assign(self.Hp)
+        self.gen_assembly(type)
 
     # Check that all atomics are mapped_atomics
     # If any are not, default them to boolean equal to 1
     # Signal read is equal to value of atomic name
     # i.e. a5 will read from signal 5
-    # TODO: this is VERY sloppy, since compilation of AT, PT, and FT are
-    # all done separately. Should find better way of doing this.
     def check_atomics(self, input):
         mapped_atomics = []
         unmapped_atomics = []
@@ -75,7 +74,7 @@ class Postgraph():
                 break
             mapped_atomics.append(m.group().strip())
 
-        for atom in MLTLparse.atomic_names:
+        for atom in self.atomics:
             if atom not in mapped_atomics:
                 unmapped_atomics.append(atom)
 
@@ -96,7 +95,7 @@ class Postgraph():
     # Common subexpression elimination the AST
     def optimize_cse(self):
         # Map preorder traverse to observer node, use '(' and ')' to represent boundry
-        if(len(self.cnt2node)==0):
+        if(len(self.ast)==0):
             return
         def preorder(root,m):
             if(root==None):
@@ -135,10 +134,10 @@ class Postgraph():
     ###############################################################
     # Topological sort the node sequence, the sequence is stored in stack
     def sort_node(self):
-        if(len(self.cnt2node)==0):
+        if(len(self.ast)==0):
             return []
-        # top = self.cnt2node[len(self.cnt2node)-1]
-        top = self.cnt2node[0]
+        # top = self.ast[len(self.ast)-1]
+        top = self.ast[0]
         # collect used node from the tree
         def checkTree(root, graph):
             if(root==None or root.type=='BOOL'):
@@ -238,9 +237,9 @@ class Postgraph():
                     ed_pos = st_pos+n.scq_size
                     pos = ed_pos
                     s += str(st_pos) + ' ' + str(ed_pos) + '\n'
-            if(self.asm_filename == "ft"):
-                with open(self.output_path+'ftscq.asm',"w+") as f:
-                    f.write(s)
+            #if(self.asm_filename == "ft"):
+            with open(self.output_path+'ftscq.asm',"w+") as f:
+                f.write(s)
 
         compute_propagation_delay()
         compute_scq_size()
@@ -248,7 +247,7 @@ class Postgraph():
         return get_total_size()
 
     # Generate assembly code
-    def gen_assembly(self):
+    def gen_assembly(self, filename):
         stack = self.valid_node_set[:]
         stack.reverse()
         s=""
@@ -257,10 +256,8 @@ class Postgraph():
         for node in stack:
             if (not (isinstance(node, Observer) or isinstance(node, STATEMENT))): # statement is used to generate the end command
                 continue
-            #print(node)
             s = node.gen_assembly(s)
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
-        print(s)
         self.asm = s
-        with open(self.output_path + self.asm_filename + '.asm',"w+") as f:
+        with open(self.output_path + filename + '.asm',"w+") as f:
             f.write(s)

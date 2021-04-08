@@ -24,7 +24,7 @@ data = {'N_SIGS'         : 256,
 
 def parse_config(filename):
     try:
-        with open(sys.argv[1], 'r') as f:
+        with open(filename, 'r') as f:
             s = f.read()
     except FileNotFoundError:
         print('Warning: Could not open configuration file, using default values')
@@ -55,7 +55,7 @@ def parse_config(filename):
 
 def check_updates(filename):
     try:
-        with open(sys.argv[2], 'r') as f:
+        with open(filename, 'r') as f:
             s = f.read()
     except FileNotFoundError:
         print('NOTE: R2U2Config.h file has been generated, recompilation is needed')

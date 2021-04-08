@@ -2,7 +2,7 @@ import sys
 import os
 import re
 
-from config import data
+from .config import data
 
 def toBinary(value, width):
 	value = int(value)
