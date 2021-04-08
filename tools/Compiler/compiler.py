@@ -15,24 +15,29 @@ class Compiler():
         self.optimize = optimize_cse
         self.output_path = output_path
         self.Hp = Hp
-        self.atomics = []
+        self.ref_atomics = []
+        self.mapped_atomics = []
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
 
         if not FT == '':
-            self.compile(FT, 'ft')
+            self.mltl_compile(FT, 'ft')
             print('************************** FT ASM **************************')
-            print(self.asm)
+            print(self.ft_asm)
         if not PT == '':
-            self.compile(PT, 'pt')
+            self.mltl_compile(PT, 'pt')
             print('************************** PT ASM **************************')
-            print(self.asm)
+            print(self.pt_asm)
+        if not AT == '':
+            self.at_compile(AT)
+            print('************************** AT ASM **************************')
+            print(self.at_asm)
 
         self.check_atomics(AT)
 
 
-    def compile(self, mltl, type):
+    def mltl_compile(self, mltl, type):
         AST_node.reset()
         Observer.reset()
 
@@ -44,8 +49,8 @@ class Compiler():
         visitor = Visitor()
         ret = visitor.visit(parse_tree)
 
-        for atom in visitor.atomic_names:
-            self.atomics.append(atom)
+        for atom in visitor.ref_atomics:
+            self.ref_atomics.append(atom)
 
         self.asm = ""
         self.status = 'pass'
@@ -55,27 +60,30 @@ class Compiler():
             self.optimize_cse()
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(self.Hp)
-        self.gen_assembly(type)
+        self.mltl_gen_assembly(type)
+
+    def at_compile(self, at):
+        # Parse the input and generate AST
+        lexer = MLTLLexer(InputStream(at))
+        stream = CommonTokenStream(lexer)
+        parser = MLTLParser(stream)
+        parse_tree = parser.program()
+        visitor = Visitor()
+        ret = visitor.visit(parse_tree)
+
+        for atom in visitor.mapped_atomics:
+            self.mapped_atomics.append(atom)
+
+        self.at_gen_assembly(visitor.at_instr)
 
     # Check that all atomics are mapped_atomics
     # If any are not, default them to boolean equal to 1
     # Signal read is equal to value of atomic name
     # i.e. a5 will read from signal 5
     def check_atomics(self, input):
-        mapped_atomics = []
         unmapped_atomics = []
-
-        for line in input:
-            if re.fullmatch('\s*', line):
-                break
-            m = re.search('a\d+\s*(?=:=)', line)
-            if m is None:
-                print('Error: invalid atomic name in mapping ' + line)
-                break
-            mapped_atomics.append(m.group().strip())
-
-        for atom in self.atomics:
-            if atom not in mapped_atomics:
+        for atom in self.ref_atomics:
+            if atom not in self.mapped_atomics:
                 unmapped_atomics.append(atom)
 
         instructions = ''
@@ -247,7 +255,7 @@ class Compiler():
         return get_total_size()
 
     # Generate assembly code
-    def gen_assembly(self, filename):
+    def mltl_gen_assembly(self, type):
         stack = self.valid_node_set[:]
         stack.reverse()
         s=""
@@ -258,6 +266,23 @@ class Compiler():
                 continue
             s = node.gen_assembly(s)
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
-        self.asm = s
-        with open(self.output_path + filename + '.asm',"w+") as f:
+        if type == 'ft':
+            self.ft_asm = s
+        elif type == 'pt':
+            self.pt_asm = s
+        with open(self.output_path + type + '.asm',"w+") as f:
             f.write(s)
+
+    def at_gen_assembly(self, instructions):
+        s = ''
+        for atom, instr in instructions.items():
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' '\
+                + instr[3] + ' ' + instr[4] + '\n'
+        self.at_asm = s[:len(s)-1] # remove last newline
+        at_asm = self.output_path + 'at.asm'
+        if os.path.isfile(at_asm):
+            with open(at_asm, 'a') as f:
+                f.write(s)
+        else:
+            with open(at_asm, 'w') as f:
+                f.write(s)

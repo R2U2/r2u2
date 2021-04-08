@@ -11,7 +11,7 @@ else:
 
 def serializedATN():
     with StringIO() as buf:
-        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\37")
+        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3 ")
         buf.write("\u00aa\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\3\2\7\2\f\n\2\f")
         buf.write("\2\16\2\17\13\2\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3\31")
         buf.write("\n\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
@@ -69,11 +69,11 @@ def serializedATN():
         buf.write("\3\2\2\2\u0093\7\3\2\2\2\u0094\u0092\3\2\2\2\u0095\u0096")
         buf.write("\7\33\2\2\u0096\u0097\7\20\2\2\u0097\u0098\7\21\2\2\u0098")
         buf.write("\u0099\7\f\2\2\u0099\u009a\7\33\2\2\u009a\u009b\7\r\2")
-        buf.write("\2\u009b\u009c\7\22\2\2\u009c\u00a8\7\35\2\2\u009d\u009e")
+        buf.write("\2\u009b\u009c\7\22\2\2\u009c\u00a8\7\36\2\2\u009d\u009e")
         buf.write("\7\33\2\2\u009e\u009f\7\20\2\2\u009f\u00a0\7\21\2\2\u00a0")
         buf.write("\u00a1\7\f\2\2\u00a1\u00a2\7\33\2\2\u00a2\u00a3\7\13\2")
         buf.write("\2\u00a3\u00a4\7\35\2\2\u00a4\u00a5\7\r\2\2\u00a5\u00a6")
-        buf.write("\7\22\2\2\u00a6\u00a8\7\35\2\2\u00a7\u0095\3\2\2\2\u00a7")
+        buf.write("\7\22\2\2\u00a6\u00a8\7\36\2\2\u00a7\u0095\3\2\2\2\u00a7")
         buf.write("\u009d\3\2\2\2\u00a8\t\3\2\2\2\b\r\30X\u0090\u0092\u00a7")
         return buf.getvalue()
 
@@ -99,7 +99,7 @@ class MLTLParser ( Parser ):
                       "<INVALID>", "<INVALID>", "<INVALID>", "Filter", "Conditional", 
                       "GLOBALLY", "FINALLY", "UNTIL", "RELEASE", "YESTERDAY", 
                       "SINCE", "ONCE", "HISTORICALLY", "Identifier", "Letter", 
-                      "Number", "Comment", "WS" ]
+                      "Natural", "Number", "Comment", "WS" ]
 
     RULE_program = 0
     RULE_statement = 1
@@ -135,9 +135,10 @@ class MLTLParser ( Parser ):
     HISTORICALLY=24
     Identifier=25
     Letter=26
-    Number=27
-    Comment=28
-    WS=29
+    Natural=27
+    Number=28
+    Comment=29
+    WS=30
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -333,11 +334,11 @@ class MLTLParser ( Parser ):
 
         def ONCE(self):
             return self.getToken(MLTLParser.ONCE, 0)
-        def Number(self, i:int=None):
+        def Natural(self, i:int=None):
             if i is None:
-                return self.getTokens(MLTLParser.Number)
+                return self.getTokens(MLTLParser.Natural)
             else:
-                return self.getToken(MLTLParser.Number, i)
+                return self.getToken(MLTLParser.Natural, i)
         def HISTORICALLY(self):
             return self.getToken(MLTLParser.HISTORICALLY, 0)
         def SINCE(self):
@@ -391,11 +392,11 @@ class MLTLParser ( Parser ):
 
         def GLOBALLY(self):
             return self.getToken(MLTLParser.GLOBALLY, 0)
-        def Number(self, i:int=None):
+        def Natural(self, i:int=None):
             if i is None:
-                return self.getTokens(MLTLParser.Number)
+                return self.getTokens(MLTLParser.Natural)
             else:
-                return self.getToken(MLTLParser.Number, i)
+                return self.getToken(MLTLParser.Natural, i)
         def expr(self, i:int=None):
             if i is None:
                 return self.getTypedRuleContexts(MLTLParser.ExprContext)
@@ -449,7 +450,7 @@ class MLTLParser ( Parser ):
                 self.state = 28
                 self.match(MLTLParser.T__6)
                 self.state = 29
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 30
                 self.match(MLTLParser.T__7)
                 self.state = 31
@@ -465,11 +466,11 @@ class MLTLParser ( Parser ):
                 self.state = 33
                 self.match(MLTLParser.T__6)
                 self.state = 34
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 35
                 self.match(MLTLParser.T__8)
                 self.state = 36
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 37
                 self.match(MLTLParser.T__7)
                 self.state = 38
@@ -485,7 +486,7 @@ class MLTLParser ( Parser ):
                 self.state = 40
                 self.match(MLTLParser.T__6)
                 self.state = 41
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 42
                 self.match(MLTLParser.T__7)
                 self.state = 43
@@ -501,11 +502,11 @@ class MLTLParser ( Parser ):
                 self.state = 45
                 self.match(MLTLParser.T__6)
                 self.state = 46
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 47
                 self.match(MLTLParser.T__8)
                 self.state = 48
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 49
                 self.match(MLTLParser.T__7)
                 self.state = 50
@@ -531,7 +532,7 @@ class MLTLParser ( Parser ):
                 self.state = 54
                 self.match(MLTLParser.T__6)
                 self.state = 55
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 56
                 self.match(MLTLParser.T__7)
                 self.state = 57
@@ -547,11 +548,11 @@ class MLTLParser ( Parser ):
                 self.state = 59
                 self.match(MLTLParser.T__6)
                 self.state = 60
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 61
                 self.match(MLTLParser.T__8)
                 self.state = 62
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 63
                 self.match(MLTLParser.T__7)
                 self.state = 64
@@ -577,7 +578,7 @@ class MLTLParser ( Parser ):
                 self.state = 68
                 self.match(MLTLParser.T__6)
                 self.state = 69
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 70
                 self.match(MLTLParser.T__7)
                 self.state = 71
@@ -593,11 +594,11 @@ class MLTLParser ( Parser ):
                 self.state = 73
                 self.match(MLTLParser.T__6)
                 self.state = 74
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 75
                 self.match(MLTLParser.T__8)
                 self.state = 76
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 77
                 self.match(MLTLParser.T__7)
                 self.state = 78
@@ -717,7 +718,7 @@ class MLTLParser ( Parser ):
                         self.state = 102
                         self.match(MLTLParser.T__6)
                         self.state = 103
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 104
                         self.match(MLTLParser.T__7)
                         self.state = 105
@@ -736,11 +737,11 @@ class MLTLParser ( Parser ):
                         self.state = 108
                         self.match(MLTLParser.T__6)
                         self.state = 109
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 110
                         self.match(MLTLParser.T__8)
                         self.state = 111
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 112
                         self.match(MLTLParser.T__7)
                         self.state = 113
@@ -759,7 +760,7 @@ class MLTLParser ( Parser ):
                         self.state = 116
                         self.match(MLTLParser.T__6)
                         self.state = 117
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 118
                         self.match(MLTLParser.T__7)
                         self.state = 119
@@ -778,11 +779,11 @@ class MLTLParser ( Parser ):
                         self.state = 122
                         self.match(MLTLParser.T__6)
                         self.state = 123
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 124
                         self.match(MLTLParser.T__8)
                         self.state = 125
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 126
                         self.match(MLTLParser.T__7)
                         self.state = 127
@@ -801,7 +802,7 @@ class MLTLParser ( Parser ):
                         self.state = 130
                         self.match(MLTLParser.T__6)
                         self.state = 131
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 132
                         self.match(MLTLParser.T__7)
                         self.state = 133
@@ -820,11 +821,11 @@ class MLTLParser ( Parser ):
                         self.state = 136
                         self.match(MLTLParser.T__6)
                         self.state = 137
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 138
                         self.match(MLTLParser.T__8)
                         self.state = 139
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.Natural)
                         self.state = 140
                         self.match(MLTLParser.T__7)
                         self.state = 141
@@ -864,11 +865,11 @@ class MLTLParser ( Parser ):
         def Conditional(self):
             return self.getToken(MLTLParser.Conditional, 0)
 
-        def Number(self, i:int=None):
-            if i is None:
-                return self.getTokens(MLTLParser.Number)
-            else:
-                return self.getToken(MLTLParser.Number, i)
+        def Number(self):
+            return self.getToken(MLTLParser.Number, 0)
+
+        def Natural(self):
+            return self.getToken(MLTLParser.Natural, 0)
 
         def getRuleIndex(self):
             return MLTLParser.RULE_binding
@@ -925,7 +926,7 @@ class MLTLParser ( Parser ):
                 self.state = 160
                 self.match(MLTLParser.T__8)
                 self.state = 161
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Natural)
                 self.state = 162
                 self.match(MLTLParser.T__10)
                 self.state = 163

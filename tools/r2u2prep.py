@@ -93,10 +93,6 @@ def main(args):
             AT += line + ';\n'
 
     compiler.Compiler(FT,PT,AT,binary_dir,optimize_cse=True)
-    # Compile AT instructions
-    if(len(AT) != 0):
-        print('************************** AT ASM **************************')
-        AT_compiler.AT(AT_str, binary_dir)
 
     print('************************************************************')
     # Check to see if ft.asm exists

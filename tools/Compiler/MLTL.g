@@ -14,22 +14,22 @@ expr : op='!' expr         # prop_expr
      | expr op='|' expr    # prop_expr
      | expr op='<->' expr  # prop_expr
      | expr op='->' expr   # prop_expr
-     | GLOBALLY '[' Number ']' expr                # ft_expr
-     | GLOBALLY '[' Number ',' Number ']' expr     # ft_expr
-     | FINALLY '[' Number ']' expr                 # ft_expr
-     | FINALLY '[' Number ',' Number ']' expr      # ft_expr
-     | expr UNTIL '[' Number ']' expr              # ft_expr
-     | expr UNTIL '[' Number ',' Number ']' expr   # ft_expr
-     | expr RELEASE '[' Number ']' expr            # ft_expr
-     | expr RELEASE '[' Number ',' Number ']' expr # ft_expr
+     | GLOBALLY '[' Natural ']' expr                # ft_expr
+     | GLOBALLY '[' Natural ',' Natural ']' expr     # ft_expr
+     | FINALLY '[' Natural ']' expr                 # ft_expr
+     | FINALLY '[' Natural ',' Natural ']' expr      # ft_expr
+     | expr UNTIL '[' Natural ']' expr              # ft_expr
+     | expr UNTIL '[' Natural ',' Natural ']' expr   # ft_expr
+     | expr RELEASE '[' Natural ']' expr            # ft_expr
+     | expr RELEASE '[' Natural ',' Natural ']' expr # ft_expr
      | YESTERDAY expr                              # pt_expr
-     | expr SINCE '[' Number ']' expr              # pt_expr
-     | expr SINCE '[' Number ',' Number ']' expr   # pt_expr
-     | ONCE '[' Number ']' expr                    # pt_expr
-     | ONCE '[' Number ',' Number ']' expr         # pt_expr
+     | expr SINCE '[' Natural ']' expr              # pt_expr
+     | expr SINCE '[' Natural ',' Natural ']' expr   # pt_expr
+     | ONCE '[' Natural ']' expr                    # pt_expr
+     | ONCE '[' Natural ',' Natural ']' expr         # pt_expr
      | HISTORICALLY expr                           # pt_expr
-     | HISTORICALLY '[' Number ']' expr            # pt_expr
-     | HISTORICALLY '[' Number ',' Number ']' expr # pt_expr
+     | HISTORICALLY '[' Natural ']' expr            # pt_expr
+     | HISTORICALLY '[' Natural ',' Natural ']' expr # pt_expr
      | '(' expr ')' # parens_expr
      | Identifier   # atom_expr
      | 'TRUE'       # bool_expr
@@ -37,7 +37,7 @@ expr : op='!' expr         # prop_expr
      ;
 
 binding : Identifier ':=' Filter '(' Identifier ')' Conditional Number
-        | Identifier ':=' Filter '(' Identifier ',' Number ')' Conditional Number
+        | Identifier ':=' Filter '(' Identifier ',' Natural ')' Conditional Number
         ;
 
 // Lexical Spec
@@ -63,6 +63,7 @@ HISTORICALLY : 'H' ;
 
 Identifier : [a-zA-Z_] [a-zA-Z0-9_]* ;
 Letter : [a-zA-Z_] ;
-Number :  [0-9]+ ;
+Natural :  [0-9]+ ;
+Number : [+-]? [0-9]+ '.' [0-9]+ ;
 Comment : '#' ~[\r\n]* -> skip;
 WS  :  [ \t\r\n]+ -> skip;
