@@ -61,7 +61,7 @@ class Visitor(MLTLVisitor):
     def visitFt_expr(self, ctx:MLTLParser.Ft_exprContext):
         if ctx.GLOBALLY():
             expr = self.visit(ctx.expr(0))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
                 upper = int(bounds[0].getText())
                 return GLOBAL(expr, ub=upper)
@@ -72,7 +72,7 @@ class Visitor(MLTLVisitor):
 
         elif ctx.FINALLY():
             expr = self.visit(ctx.expr(0))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
                 upper = int(bounds[0].getText())
                 return UNTIL(BOOL('TRUE'), expr, ub=upper)
@@ -84,7 +84,7 @@ class Visitor(MLTLVisitor):
         elif ctx.UNTIL():
             left = self.visit(ctx.expr(0))
             right = self.visit(ctx.expr(1))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
                 upper = int(bounds[0].getText())
                 return UNTIL(left, right, ub=upper)
@@ -96,14 +96,14 @@ class Visitor(MLTLVisitor):
         elif ctx.RELEASE():
             left = self.visit(ctx.expr(0))
             right = self.visit(ctx.expr(1))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
-                upper = int(ctx.Natural(0).getText())
-                return RELEASE(left, right, ub=upper)
+                upper = int(ctx.UnsignedInt(0).getText())
+                return NEG(UNTIL(NEG(left),NEG(right),ub=upper))
             elif len(bounds) == 2:
                 lower = int(bounds[0].getText())
                 upper = int(bounds[1].getText())
-                return RELEASE(left, right, lb=lower, ub=upper)
+                return NEG(UNTIL(NEG(left),NEG(right),lb=lower,ub=upper))
 
     # Visit a parse tree produced by MLTLParser#pt_expr.
     def visitPt_expr(self, ctx:MLTLParser.Pt_exprContext):
@@ -114,7 +114,7 @@ class Visitor(MLTLVisitor):
         elif ctx.SINCE():
             left = self.visit(ctx.expr(0))
             right = self.visit(ctx.expr(1))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
                 upper = int(bounds[0].getText())
                 return SINCE(left, right, ub=upper)
@@ -125,7 +125,7 @@ class Visitor(MLTLVisitor):
 
         elif ctx.ONCE():
             expr = self.visit(ctx.expr(0))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 1:
                 upper = int(bounds[0].getText())
                 return ONCE(expr, ub=upper)
@@ -136,7 +136,7 @@ class Visitor(MLTLVisitor):
 
         elif ctx.HISTORICALLY():
             expr = self.visit(ctx.expr(0))
-            bounds = ctx.Natural()
+            bounds = ctx.UnsignedInt()
             if len(bounds) == 0:
                 return HISTORICALLY(expr)
             if len(bounds) == 1:
@@ -167,8 +167,8 @@ class Visitor(MLTLVisitor):
         atom = ctx.Identifier(0).getText()
         filter = ctx.Filter().getText()
         signal = ctx.Identifier(1).getText()
-        if not ctx.Natural() is None:
-            arg = ctx.Natural().getText()
+        if not ctx.UnsignedInt() is None:
+            arg = ctx.UnsignedInt().getText()
         else:
             arg = '0'
         cond = ctx.Conditional().getText()
