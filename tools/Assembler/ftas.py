@@ -183,12 +183,17 @@ char *ftm_bin = "
 
 def assemble_ft(ftasm, ftscqasm, ts_ext, gen_dir, no_binaries):
 	f = open(ftasm, 'r')
-	s = open(ftscqasm, 'r')
+	if not os.path.isfile(ftscqasm):
+		s = ""
+	else:
+		s = open(ftscqasm, 'r')
 	timestamp_width = 8 * int(ts_ext)
 	bin_dir = gen_dir+'binary_files/'
 	if(not os.path.isdir(bin_dir)):
 		os.mkdir(bin_dir)
+
 	opcode, ts, scq = assemble(f, s, timestamp_width)
+
 	f.close()
 	s.close()
 

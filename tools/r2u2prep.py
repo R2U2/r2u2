@@ -13,7 +13,6 @@ import re
 import argparse
 
 from Compiler import compiler
-from Compiler import AT_compiler
 from Assembler.config import *
 from Assembler.ptas import assemble_pt
 from Assembler.ftas import assemble_ft
@@ -41,16 +40,9 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    #FT = {}
-    #PT = {}
-    #AT = []
-
     FT = ""
     PT = ""
     AT = ""
-
-    # Strip out any null (\n) characters from the MLTL string ???
-    #MLTL = MLTL.replace('\n','') ???
 
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
@@ -75,7 +67,7 @@ def main(args):
 
         # If a formula has both PT and FT, throw an error and exit the program
         if((isPT > 0) and (isFT > 0)):
-            print('************************************************************')
+            print('***********************************************************')
             print('Formula has both past-time and future-time operators.')
             print('R2U2 does not support mixed-time formulas.')
             print('The following formula is invalid: ' + line)
@@ -92,27 +84,45 @@ def main(args):
             # Only add atomics to the set
             AT += line + ';\n'
 
-    compiler.Compiler(FT,PT,AT,binary_dir,optimize_cse=True)
+    mltl_compiler = compiler.Compiler(FT,PT,AT,binary_dir)
 
-    print('************************************************************')
-    # Check to see if ft.asm exists
-    if(not os.path.isfile(binary_dir+'ft.asm')):
-        # If it doesn't, make a blank assembly that is just an end sequence
+    print('************************** FT ASM **************************')
+
+    if not FT == '':
+        mltl_compiler.mltl_compile(FT, 'ft.asm')
+    else:
         f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
-    # Check to see if pt.asm exists
-    if(not os.path.isfile(binary_dir+'pt.asm')):
-        # If it doesn't, make a blank assembly that is just an end sequence
+        print('s0: end sequence')
+
+    if mltl_compiler.status:
+        assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
+                    str(TIMESTAMP_WIDTH), args.output_dir,
+                    str(args.no_binaries))
+
+    print('************************** PT ASM **************************')
+
+    if not PT == '':
+        mltl_compiler.mltl_compile(PT, 'pt.asm')
+    else:
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
         f.close()
-    # Check to see if at.asm exists
-    if(not os.path.isfile(binary_dir+'at.asm')):
-        # If it doesn't, make a blank assembly
-        f = open(binary_dir+'at.asm','w+')
-        f.write(' ')
-        f.close()
+        print('s0: end sequence')
+
+    if mltl_compiler.status:
+        assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
+                    str(args.no_binaries))
+
+    print('************************** AT ASM **************************')
+
+    mltl_compiler.at_compile(AT, 'at.asm')
+
+    if mltl_compiler.status:
+        assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
+
+    print('************************************************************')
 
     if not os.path.isdir(args.output_dir+'config_files/'):
         os.mkdir(args.output_dir+'config_files/')
@@ -121,12 +131,6 @@ def main(args):
     parse_config(args.config_file)
     check_updates(args.header_file)
     gen_config(args.output_dir+'config_files/R2U2Config.h')
-
-    assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
-                str(args.no_binaries))
-    assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
-                str(TIMESTAMP_WIDTH), args.output_dir, str(args.no_binaries))
-    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
 
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
