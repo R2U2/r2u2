@@ -4,11 +4,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "at_globals.h"
+
+#ifdef R2U2_AT_ExtraFilters
 #include "filters/filter_abs_diff_angle.h"
 #include "filters/filter_rate.h"
 #include "filters/filter_movavg.h"
+#endif
+
 #include "../TL/TL_observers.h"
 
+#ifdef R2U2_AT_ExtraFilters
 void op_abs_diff_angle(at_instruction_t *instr)
 {
 	double signal;
@@ -66,6 +71,7 @@ void op_rate(at_instruction_t *instr)
 
 	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
 }
+#endif
 
 void op_bool(at_instruction_t *instr)
 {
@@ -130,6 +136,10 @@ void (*decode[])(at_instruction_t *) = {op_error,
 																				op_bool,
 																				op_int,
 																				op_double,
+#ifdef R2U2_AT_ExtraFilters
 																				op_rate,
 																				op_abs_diff_angle,
-									  										op_movavg};
+									  										op_movavg
+#endif
+};
+
