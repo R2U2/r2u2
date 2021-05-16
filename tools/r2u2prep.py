@@ -9,6 +9,7 @@ import sys
 import os
 import subprocess
 import shutil
+import re
 import Compiler.MLTL_Compiler
 
 TIMESTAMP_WIDTH = 4
@@ -36,9 +37,12 @@ def main():
     
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
+        line = line.strip('\n ')
+        if re.match('^.*#', line):
+            line = re.match('^.*#', line).group()[:-1]
         # Ignore lines that are blank
-        if(line == ""):
-            break
+        if(re.fullmatch('\s*', line)):
+            continue
         # Iterate through the line and determine if it is FT or PT
         isFT = 0
         isPT = 0
@@ -99,6 +103,9 @@ def main():
         f = open(__BinFileDir__+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
+        f = open(__BinFileDir__+'ftscq.bin', 'w+')
+        f.write(' 00000000000000000000000000000011')
+        f.close
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm', str(TIMESTAMP_WIDTH)])
     # Check to see if pt.asm exists
