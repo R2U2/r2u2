@@ -18,6 +18,18 @@ build-c:
     - "make"
   needs: ["check-compiler"]
 
+gen-inputs:
+  stage: build
+  script:
+    - "cd ../.."
+    - "cd test/TL_Formula"
+    - "python3 genFormulas.py -m"
+    - "cd ../Inputs"
+    - "python3 genInputs.py -m"
+    - "cd ../Oracle"
+    - "python3 genOracle.py -m"
+  needs: ["check-compiler"]
+
 test-parser:
   stage: test
   script:
@@ -35,7 +47,7 @@ test-ft-report:
     - "python3 LargeFtSubset.py -r c"
     - "python3 LargeFtSubset.py -v c"
     - "python3 LargeFtReport.py"
-  needs: ["build-c"]
+  needs: ["build-c","gen-inputs"]
 
 test-pt-report:
   stage: test
@@ -47,4 +59,4 @@ test-pt-report:
     - "python3 LargePtSubset.py -r c"
     - "python3 LargePtSubset.py -v c"
     - "python3 LargePtReport.py"
-  needs: ["build-c"]
+  needs: ["build-c","gen-inputs"]
