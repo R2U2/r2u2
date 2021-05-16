@@ -66,26 +66,21 @@ bool isEmpty_cap(int pc, int ObNum, elt_ft_queue_t* const scq, int size, const i
 //--------------------------------------------------------------------
 int TL_update_ft(FILE *log_file) {
 	int pc   = 0;
-	int progress = 0;
+	int total_progress = 0;
+	int loop_progress = 0;
 
-	while (progress < 1) {
-
+	do {
 	    // Sequentially iterate through the program instructions
+	    pc = 0;
+	    loop_progress = 0;
 		for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
-		    if(instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
-	              DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
-		      if (progress == 1) {
-			progress = 0;
-		      }
-		      else {
-		    	break;
-		      }
-	            break;
-	        }
+            if (instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
+                DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+                break; // Break PC for loop
+            }
 
-	        // Case statement for determining which opcode is currently in the program counter 'pc'
-	        switch(instruction_mem_ft[pc].opcode)
-	        {
+                // Case statement for determining which opcode is currently in the program counter 'pc'
+	        switch(instruction_mem_ft[pc].opcode){
 
 			//----------------------------------------------------
 			// OP_END, OP_END_SEQUENCE
@@ -112,20 +107,20 @@ int TL_update_ft(FILE *log_file) {
         	    int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
 
         	    // While the formula is not complete, i.e., the SCQ is non-empty
-        	    while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+        	    if(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
         	        // Pop the sequence from the SCQ
         	        elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
         	        // Copy over the sequence from input to res
         	        elt_ft_queue_t res = {input.v_q,input.t_q};
         	        // Add the new element to the SCQ
         	        add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+					loop_progress += 1;
         	        // Synchronize the queues
         	        ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
         	        DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
         	        fprintf(log_file,"%d:%d,%s\n", (int)instruction_mem_ft[pc].op2.value, res.t_q, res.v_q?"T":"F");
 				}
-				progress = 1;
 				break;
 			}
 
@@ -136,26 +131,28 @@ int TL_update_ft(FILE *log_file) {
         	    bool v;
         	    unsigned int t_e;
 
-        	    // Retrieve the Boolean atomic from the pre-processing layer
-        	    read_atomic(pc, &v, &t_e);
+        	    if (total_progress == 0) // Only run first time through
+        	    {
+	        	    // Retrieve the Boolean atomic from the pre-processing layer
+	        	    read_atomic(pc, &v, &t_e);
 
 
-        	    // Set 'newData' as the newly read atomic
-        	    elt_ft_queue_t newData = {v,t_e};
+	        	    // Set 'newData' as the newly read atomic
+	        	    elt_ft_queue_t newData = {v,t_e};
 
-        	    // Set the SCQ's write pointer
-        	    int scq_size_wr = addr_SCQ_map_ft[pc].end_addr - addr_SCQ_map_ft[pc].start_addr;
+	        	    // Set the SCQ's write pointer
+	        	    int scq_size_wr = addr_SCQ_map_ft[pc].end_addr - addr_SCQ_map_ft[pc].start_addr;
 
-	            // And add asynchrounous results to the shared connection queue
-	            add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, newData, &(ft_sync_queues[pc].wr_ptr));
+		            // And add asynchrounous results to the shared connection queue
+		            add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, newData, &(ft_sync_queues[pc].wr_ptr));
+				    loop_progress += 1;
 
-	            //add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
+		            //add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 
-	            // If the dbg_flag is set, print to log and command line
-	            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
-		    progress = 1;
+		            // If the dbg_flag is set, print to log and command line
+		            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
+        	    }
 	            break;
-
 	        }
 
 	        //----------------------------------------------------
@@ -184,19 +181,19 @@ int TL_update_ft(FILE *log_file) {
 	            int* rd_ptr = &(ft_sync_queues[pc].rd_ptr);
 
 	            // While the formula is not complete, i.e., the SCQ is non-empty
-	            while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+	            if(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 	                // Pop the sequence from the SCQ
 	                elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 	                // Copy over the sequence from input to res
 	                elt_ft_queue_t res = {!input.v_q,input.t_q};
 	                // Add the new element to the SCQ
 	                add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+				    loop_progress += 1;
 	                // Synchronize the queues
 	                ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 	                // The code is generated as 'make debug', print to log and command line
 	                DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
 	            }
-		    progress = 1;
 	            break;
 	        }
 
@@ -243,7 +240,7 @@ int TL_update_ft(FILE *log_file) {
 	            bool isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 	            DEEP_PRINT("isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
 	            // While the formula is not complete, i.e., one of the operands within the SCQ is non-empty
-	            while(!isEmpty_1|| !isEmpty_2) {
+	            if(!isEmpty_1|| !isEmpty_2) {
 	                DEEP_PRINT("in loop: isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
 	                elt_ft_queue_t res = {false,-1};
 	                // If both are still non-empty
@@ -270,37 +267,18 @@ int TL_update_ft(FILE *log_file) {
 	                if(res.t_q != -1) {
 	                    // Add the new element to the SCQ
 	                    add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+	                    loop_progress += 1;
 	                    // Synchronize the queues
 	                    //ft_sync_queues[pc].desired_time_stamp += 1;
 	                    ft_sync_queues[pc].desired_time_stamp = res.t_q+1;
 	                    // The code is generated as 'make debug', print to log and command
 	                    DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
-	                } else break;
-
-	                // Update the loop conditions
-	                isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-	                isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
-	                DEEP_PRINT("endwhile\n");
+	                }
 	            }
 	            DEEP_PRINT("endL rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
 	            DEEP_PRINT("\n\n");
-		    progress = 1;
 	            break;
 	        }
-
-	        //----------------------------------------------------
-	        // OP_FT_FT (enventually, time-point:  F[t]
-	        //----------------------------------------------------
-	        case OP_FT_EVENTUALLY_TIMEPOINT:
-		    progress = 1; 
-	            break;
-
-	        //----------------------------------------------------
-	        // OP_FT_GT (globally, time-point:  G[t]
-	        //----------------------------------------------------
-	        case OP_FT_GLOBALLY_TIMEPOINT:
-		    progress = 1;
-	            break;
 
 	        //----------------------------------------------------
 	        // OP_FT_GJ (globally, interval:  G[t1,t2])
@@ -325,7 +303,7 @@ int TL_update_ft(FILE *log_file) {
 	            int ub = get_interval_ub_ft(pc);
 	            DEEP_PRINT("pc: %d, lb: %d, ub: %d, rd_ptr: %d, \n",pc,lb,ub, *rd_ptr);
 	            //printf("ft_sync_queues[pc].desired_time_stamp: %d\n", ft_sync_queues[pc].desired_time_stamp);
-	            while(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
+	            if(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 	                //printf("not empty, rd_ptr: %d\n", *rd_ptr);
 	                elt_ft_queue_t input = pop_cap(pc, 1, scq_seg, *rd_ptr);
 	                //printf("input.v_q: %d, t_q: %d\n", input.v_q, input.t_q);
@@ -344,6 +322,7 @@ int TL_update_ft(FILE *log_file) {
 	                        elt_ft_queue_t res = (elt_ft_queue_t){true, input.t_q-ub};
 	                        // And add asynchrounous results to the shared connection queue
 	                        add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+	                        loop_progress += 1;
 	                        // The code is generated as 'make debug', print to log and command
 	                        DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                    }
@@ -354,13 +333,12 @@ int TL_update_ft(FILE *log_file) {
 	                    elt_ft_queue_t res = (elt_ft_queue_t){false, input.t_q-lb};
 	                    // And add asynchrounous results to the shared connection queue
 	                    add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+	                    loop_progress += 1;
 	                    // The code is generated as 'make debug', print to log and command
 	                    DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                }
-
 	                ft_sync_queues[pc].pre = input;
 	            }
-		    progress = 1;
 	            break;
 	        }
 
@@ -411,7 +389,7 @@ int TL_update_ft(FILE *log_file) {
 	            bool isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 
 	            // While the formula is not complete, i.e., one of the operands within the SCQ is non-empty
-	            while(!isEmpty_1 && !isEmpty_2) {
+	            if(!isEmpty_1 && !isEmpty_2) {
 	                // Initialize the result as false and with a negative time stamp
 	                elt_ft_queue_t res = (elt_ft_queue_t){false, -1};
 	                // Pop the first operands's verdict and time stamp from its SCQ
@@ -446,6 +424,7 @@ int TL_update_ft(FILE *log_file) {
 	                if((signed)res.t_q >= (signed)ft_sync_queues[pc].preResult) {
 	                    // And add asynchrounous result to the shared connection queue
 	                    add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
+					    loop_progress += 1;
 	                    // Update the previous synch result
 	                    ft_sync_queues[pc].preResult = res.t_q + 1;
 	                    // The code is generated as 'make debug', print to log and command
@@ -453,18 +432,17 @@ int TL_update_ft(FILE *log_file) {
 	                }
 	                // Update the synchronous queues with the second operand
 	                ft_sync_queues[pc].pre = input_2;
-
-	                // Update the loop conditions
-	                isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
-	                isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
 	            }
-		    progress = 1;
 	            break;
 	        }
 
 	        //----------------------------------------------------
 	        // OTHERS ARE ILLEGAL INSTRUCTIONS
 	        //----------------------------------------------------
+	        // OP_FT_FT (enventually, time-point:  F[t]
+	        case OP_FT_EVENTUALLY_TIMEPOINT:
+	        // OP_FT_GT (globally, time-point:  G[t]
+	        case OP_FT_GLOBALLY_TIMEPOINT:
 	        // IMPLIES = !a0 OR a1 == !(a0 AND !a1)
 	        case OP_IMPL:
 	        // Equivalent
@@ -474,12 +452,13 @@ int TL_update_ft(FILE *log_file) {
 	        default:
 	            DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
 	            r2u2_errno = 1;
-		    progress = 1;
 	            break;
-	        }
-	    }
-	    return 0;
-	}
+	        } // End Op Code Switch
+	    } // End PC For Loop
+	    total_progress += loop_progress;
+	    DEBUG_PRINT("Loop Progress: %d\t Total Progress: %d\n", loop_progress, total_progress);
+	} while (loop_progress > 0);
+    return 0;
 }
 //-------------------------------------------------------------------
 //
