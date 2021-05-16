@@ -189,7 +189,7 @@ char *ftm_bin = "
 """.strip()
 
 if __name__ == '__main__':
-	print("Compile past time config")
+	print("Assemble future time config")
 	f = open(sys.argv[1])
 	s = open(sys.argv[2])
 	opt = sys.argv[4]
