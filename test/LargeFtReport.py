@@ -15,7 +15,7 @@ from os.path import isfile, join
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TestDir__      = __AbsolutePath__+'../R2U2_Test_Suite/LargeTests/'
-__OracleDir__    = __TestDir__+'FT_oracle/'
+__OracleDir__    = __TestDir__+'FT_Oracle/'
 __ResultCDir__   = __AbsolutePath__+'results/c_version/'
 
 # Create the Results.txt
@@ -63,6 +63,12 @@ for line in lines:
             ResultsArray[i][1] = ResultsArray[i][1] + 1
 
 
+differences = False
+
 for i in range(0,len(ResultsArray)):
     if(ResultsArray[i][1] > 0):
         print('Differences between Oracle and R2U2 for ' + ResultsArray[i][0])
+        differences = True
+
+if differences == True:
+    raise(RuntimeError("Differences found in FT Report"))

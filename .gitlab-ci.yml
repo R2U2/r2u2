@@ -1,0 +1,50 @@
+image: "python:3"
+
+stages:
+  - build
+  - test
+
+check-compiler:
+  stage: .pre
+  script:
+    - "gcc --version"
+  when: manual
+
+
+build-c:
+  stage: build
+  script:
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
+  needs: ["check-compiler"]
+
+test-parser:
+  stage: test
+  script:
+    - "cd tools/Compiler"
+    - "python3 MLTL_parser_test.py"
+  needs: ["build-c"]
+
+test-ft-report:
+  stage: test
+  script: 
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
+    - "cd ../.."
+    - "cd test"
+    - "python3 LargeFtSubset.py -r c"
+    - "python3 LargeFtSubset.py -v c"
+    - "python3 LargeFtReport.py"
+  needs: ["build-c"]
+
+test-pt-report:
+  stage: test
+  script:
+    - "cd R2U2_SW/R2U2_C"
+    - "make"
+    - "cd ../.."
+    - "cd test"
+    - "python3 LargePtSubset.py -r c"
+    - "python3 LargePtSubset.py -v c"
+    - "python3 LargePtReport.py"
+  needs: ["build-c"]
