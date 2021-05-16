@@ -74,10 +74,11 @@ def main():
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        MLTL = FT_str
-        FTorPT = 'ft'
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
-        del postgraph
+        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft'])
+        # MLTL = FT_str
+        # FTorPT = 'ft'
+        # postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
+        # del postgraph
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -86,10 +87,11 @@ def main():
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        MLTL = PT_str
-        FTorPT = 'pt'
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
-        del postgraph
+        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt'])
+        # MLTL = PT_str
+        # FTorPT = 'pt'
+        # postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPT, optimize_cse=True)
+        # del postgraph
 
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'ft.asm')):
