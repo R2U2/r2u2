@@ -15,7 +15,7 @@ from os.path import isfile, join
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TestDir__      = __AbsolutePath__+'../R2U2_Test_Suite/LargeTests/'
-__OracleDir__    = __TestDir__+'FT_Oracle/'
+__OracleDir__    = __TestDir__+'FT_oracle/'
 __ResultCDir__   = __AbsolutePath__+'results/c_version/'
 
 # Create the Results.txt
