@@ -31,7 +31,7 @@ def plotInputs(inputFiles):
             for line in lines:
                 try:
                     input[i].append(float(line.split(',')[i]))
-                except:
+                except EOFError:
                     pass
         time = []
         for t in range(0,len(input[0])):
@@ -58,9 +58,7 @@ def plotInputs(inputFiles):
 # Main function call
 #------------------------------------------------------------------------------------#
 # If there are no arguements
-try:
-    sys.argv[1]
-except:
+if len(sys.argv) == 1:
     print("ERROR: Missing input arguement")
     print("Use '-h' flag for more information")
     exit()
