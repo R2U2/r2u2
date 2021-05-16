@@ -118,9 +118,6 @@ def assemble(f):
         if(header.match(op[0])):
             op.remove(op[0])
 
-        # Uncomment for troubleshooting
-        #print(op)
-
         #--------------------------------------------------------------------------#
         # R2U2 Operations
         #--------------------------------------------------------------------------#
@@ -253,13 +250,6 @@ def assemble(f):
             timestampAddr = timestampAddr + 1
             ts = ts + toBinary(op[3], 2*TIMESTAMP_WIDTH) + "\n"
         # Else, it is not a valid operation.
-        elif op[0] == "#":
-            line = ""
-        for i in range(0,len(op)):
-            line = line + op[i] + " "
-            print(line)
-            continue
-        # Else, it is not a valid operation.
         else:
             print("Error in line", i, "(", op, ")")
             continue
@@ -271,7 +261,7 @@ def assemble(f):
 prog_text = "char *ptm_bin = \""
 
 if __name__ == '__main__':
-    print("Compile past time config")
+    print("Assemble past time config")
     f = open(sys.argv[1])
     opt = sys.argv[3]
     if(not os.path.isdir(__DirBinaryPath__)):
