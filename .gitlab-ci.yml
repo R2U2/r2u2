@@ -1,62 +1,47 @@
 image: "python:3"
 
+before_script:
+  - "gcc --version"
+  - "python --version"
+  - "pip install ply numpy"
+
 stages:
-  - build
   - test
-
-check-compiler:
-  stage: .pre
-  script:
-    - "gcc --version"
-  when: manual
-
-
-build-c:
-  stage: build
-  script:
-    - "cd R2U2_SW/R2U2_C"
-    - "make"
-  needs: ["check-compiler"]
-
-gen-inputs:
-  stage: build
-  script:
-    - "cd ../.."
-    - "cd test/TL_Formula"
-    - "python3 genFormulas.py -m"
-    - "cd ../Inputs"
-    - "python3 genInputs.py -m"
-    - "cd ../Oracle"
-    - "python3 genOracle.py -m"
-  needs: ["check-compiler"]
 
 test-parser:
   stage: test
   script:
     - "cd tools/Compiler"
     - "python3 MLTL_parser_test.py"
-  needs: ["build-c"]
 
 test-ft-report:
   stage: test
-  script: 
+  script:
     - "cd R2U2_SW/R2U2_C"
     - "make"
-    - "cd ../.."
-    - "cd test"
+    - "cd ../../test/TL_formula/"
+    - "python3 genFormulas.py -m"
+    - "cd ../Inputs"
+    - "python3 genInputs.py -m"
+    - "cd ../Oracle"
+    - "python3 genOracle.py -m"
+    - "cd .."
     - "python3 LargeFtSubset.py -r c"
     - "python3 LargeFtSubset.py -v c"
     - "python3 LargeFtReport.py"
-  needs: ["build-c","gen-inputs"]
 
 test-pt-report:
   stage: test
   script:
     - "cd R2U2_SW/R2U2_C"
     - "make"
-    - "cd ../.."
-    - "cd test"
+    - "cd ../../test/TL_formula/"
+    - "python3 genFormulas.py -m"
+    - "cd ../Inputs"
+    - "python3 genInputs.py -m"
+    - "cd ../Oracle"
+    - "python3 genOracle.py -m"
+    - "cd .."
     - "python3 LargePtSubset.py -r c"
     - "python3 LargePtSubset.py -v c"
     - "python3 LargePtReport.py"
-  needs: ["build-c","gen-inputs"]
