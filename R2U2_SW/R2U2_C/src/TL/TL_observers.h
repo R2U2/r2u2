@@ -51,29 +51,29 @@ typedef enum {
 	OP_EQUIVALENT	= 0b00111,
 
 	// past time operations
-	OP_PT_Y			= 0b01000,
-	OP_PT_O			= 0b01001,
-	OP_PT_H			= 0b01010,
-	OP_PT_S			= 0b01110,
+	OP_PT_YESTERDAY			= 0b01000,
+	OP_PT_ONCE			= 0b01001,
+	OP_PT_HISTORICALLY			= 0b01010,
+	OP_PT_SINCE			= 0b01110,
 
 	// metric past and future time operations
 	// intervals
-	OP_PT_HJ		= 0b10010,
-	OP_PT_OJ		= 0b10000,
-	OP_PT_SJ		= 0b10011,
+	OP_PT_HISTORICALLY_INTERVAL		= 0b10010,
+	OP_PT_ONCE_INTERVAL		= 0b10000,
+	OP_PT_SINCE_INTERVAL		= 0b10011,
 
-	OP_FT_GJ		= 0b10111,
+	OP_FT_GLOBALLY_INTERVAL		= 0b10111,
 	OP_FT_FJ		= 0b11001,
-	OP_FT_UJ		= 0b11010,
+	OP_FT_UNTIL_INTERVAL		= 0b11010,
 	OP_FT_LOD		= 0b11100,
 
 	// metric past and future time operations
 	// end time points
-	OP_PT_HT		= 0b10001,
-	OP_PT_OT		= 0b01111,
+	OP_PT_HISTORICALLY_TIMEPOINT		= 0b10001,
+	OP_PT_ONCE_TIMEPOINT		= 0b01111,
 
-	OP_FT_GT		= 0b10110,
-	OP_FT_FT		= 0b11000
+	OP_FT_GLOBALLY_TIMEPOINT		= 0b10110,
+	OP_FT_EVENTUALLY_TIMEPOINT		= 0b11000
 } opcode_t;
 
 //
