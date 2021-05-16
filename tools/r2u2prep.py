@@ -47,6 +47,8 @@ def main(mltl, config):
     # Split the PT and FT
     for form_num, line in enumerate(MLTL.split(';')):
         line = line.strip('\n ')
+        if re.match('^.*#', line):
+            line = re.match('^.*#', line).group()[:-1]
         # Ignore lines that are blank
         if(re.fullmatch('\s*', line)):
             continue
@@ -89,6 +91,7 @@ def main(mltl, config):
         if(re.fullmatch('\s*', line)):
             continue
         AT_str += line
+    # print(f"AT:\n{AT}\n")
 
     # Call Postgraph for both sets of formulas, Past-Time (PT) and Future-Time (FT)
     if(len(FT) != 0):
@@ -99,10 +102,8 @@ def main(mltl, config):
                 FT_str += FT[i]
             else:
                 FT_str += "\n"
-        MLTL = FT_str
-        FTorPTorAT = 'ft'
-        #print(FT_str)
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPTorAT, AT_str, optimize_cse=True)
+        # print(f"FT:\n{FT}\n")
+        postgraph = Compiler.MLTL_Compiler.Postgraph(FT_str, 'ft', AT_str, optimize_cse=True)
         del postgraph
 
     if(len(PT) != 0):
@@ -113,9 +114,8 @@ def main(mltl, config):
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        MLTL = PT_str
-        FTorPTorAT = 'pt'
-        postgraph = Compiler.MLTL_Compiler.Postgraph(MLTL, FTorPTorAT, AT_str, optimize_cse=True)
+        # print(f"PT:\n{PT}\n")
+        postgraph = Compiler.MLTL_Compiler.Postgraph(PT_str, 'pt', AT_str, optimize_cse=True)
         del postgraph
 
     # Compile AT instructions
@@ -132,6 +132,7 @@ def main(mltl, config):
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
                     __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
+
     # Check to see if pt.asm exists
     if(not os.path.isfile(__BinFileDir__+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
@@ -141,13 +142,14 @@ def main(mltl, config):
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
                     str( TIMESTAMP_WIDTH), str(config)])
-    print('************************************************************')
+
     # Check to see if ft.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
         # If it doesn't, make a blank assembly
         f = open(__BinFileDir__+'at.asm','w+')
         f.write(' ')
         f.close()
+    print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm',
                     str(config)])
 
