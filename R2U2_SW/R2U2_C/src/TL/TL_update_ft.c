@@ -72,8 +72,14 @@ int TL_update_ft(FILE *log_file) {
 
 	    // Sequentially iterate through the program instructions
 		for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
-			if(instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
-	            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+		    if(instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
+	              DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+		      if (progress == 1) {
+			progress = 0;
+		      }
+		      else {
+		    	break;
+		      }
 	            break;
 	        }
 
