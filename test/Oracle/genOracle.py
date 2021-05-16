@@ -14,7 +14,7 @@ from os.path import isfile, join
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __OracleDir__    = __AbsolutePath__+'oracleFiles/'
 __InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
-__TLDir__        = __AbsolutePath__+'../TL_Formula/formulaFiles/'
+__TLDir__        = __AbsolutePath__+'../TL_formula/formulaFiles/'
 
 #------------------------------------------------------------------------------------#
 # Based on the input arguements, read in the input file and return the trace as a 2D 

@@ -50,7 +50,7 @@ def test_c():
     # For all formula files within the formulaFiles directory
     _formulaFile = __TestDir__+'formulas.mltl'
     formula = open(_formulaFile,'r').read()
-    #print(formula)
+    print(formula)
     # For each formula within 
     subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
     filename = 'R2U2.log'

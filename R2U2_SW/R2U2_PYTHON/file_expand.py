@@ -1,7 +1,7 @@
 #file expansion script
 #expands atomic trace format to fill repeated data points
 
-import os,csv
+import os,csv,sys
 
 def expand(file_input):
   #open atomic trace for reading
@@ -69,3 +69,13 @@ def expand(file_input):
     #closes read and write files
     csvfile.close() 
     f.close()
+
+if __name__=="__main__":
+    expand(sys.argv[1])
+
+#user file input request (currently non-functional)
+'''file_in = input("Please input the name of the desired csv file in quotes, without the extension: ")
+file_inx = file_in + ".csv"
+print("Input atomic trace file: " + file_inx)
+'''
+#expand('test_four.csv')
