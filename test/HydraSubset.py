@@ -44,7 +44,7 @@ def list_file():
     from os import listdir
     from os.path import isfile, join
     formulaFiles,inputFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__TLDir__,__InputDir__)]
-    print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
+    # print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
     return formulaFiles,inputFiles
     
 '''
