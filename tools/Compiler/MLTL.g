@@ -7,7 +7,7 @@ program
   ;
 
 statement
-  : expr ';'
+  : (Identifier ':')? expr ';'
   | binding ';'
   ;
 
@@ -96,7 +96,7 @@ Digit
   ;
 
 fragment
-NonzeroDigit 
+NonzeroDigit
   : [1-9]
   ;
 

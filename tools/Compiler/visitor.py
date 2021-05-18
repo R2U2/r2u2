@@ -7,6 +7,8 @@ class Visitor(MLTLVisitor):
     def __init__(self):
         self.ref_atomics = []
         self.mapped_atomics = []
+        self.signals = []
+        self.labels = []
         self.at_instr = {}
         self.status = True
 
@@ -30,6 +32,8 @@ class Visitor(MLTLVisitor):
         if not ctx.expr() is None:
             expr = self.visit(ctx.expr())
             lineno = ctx.start.line
+            if not ctx.Identifier() is None:
+                self.labels.append(ctx.Identifier().getText())
             return STATEMENT(expr, lineno)
         if not ctx.binding() is None:
             binding = self.visit(ctx.binding())
@@ -192,6 +196,9 @@ class Visitor(MLTLVisitor):
 
         self.at_instr[atom] = [filter, signal, arg, cond, comp]
 
-        self.mapped_atomics.append(atom)
+        if not signal in self.signals:
+            self.signals.append(signal)
+        if not atom in self.mapped_atomics:
+            self.mapped_atomics.append(atom)
 
         return self.visitChildren(ctx)

@@ -89,7 +89,7 @@ def main(args):
     print('************************** FT ASM **************************')
 
     if not FT == '':
-        mltl_compiler.mltl_compile(FT, 'ft.asm')
+        mltl_compiler.mltl_compile(FT, 'ft.asm', 'alias.txt')
     else:
         f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
@@ -104,7 +104,7 @@ def main(args):
     print('************************** PT ASM **************************')
 
     if not PT == '':
-        mltl_compiler.mltl_compile(PT, 'pt.asm')
+        mltl_compiler.mltl_compile(PT, 'pt.asm', 'alias.txt')
     else:
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
@@ -117,7 +117,7 @@ def main(args):
 
     print('************************** AT ASM **************************')
 
-    mltl_compiler.at_compile(AT, 'at.asm')
+    mltl_compiler.at_compile(AT, 'at.asm', 'alias.txt')
 
     if mltl_compiler.status:
         assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
@@ -130,7 +130,8 @@ def main(args):
     print('Generating configuration files')
     parse_config(args.config_file)
     check_updates(args.header_file)
-    gen_config(args.output_dir+'config_files/R2U2Config.h')
+    gen_config(args.output_dir+'config_files/R2U2Config.h',
+        mltl_compiler.ref_atomics, mltl_compiler.signals)
 
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
@@ -154,5 +155,7 @@ if __name__ == "__main__":
                         help="location where assembly and configuration programs will be called from")
     parser.add_argument("--no-binaries", action="store_true",
                         help="generate config.c file in place of binaries")
+    parser.add_argument("--no-symbolic-names", action="store_true",
+                        help="restricts use of symbolic names for atomics and signals")
     args = parser.parse_args()
     main(args)

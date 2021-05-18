@@ -1,9 +1,6 @@
 #ifndef R2U2_CONFIG_H
 #define R2U2_CONFIG_H
 
-typedef double r2u2_input_data_t;
-typedef unsigned int timestamp_t;
-
 #define N_SIGS 256
 #define N_ATOMICS 256
 #define N_INSTRUCTIONS 256
@@ -22,11 +19,16 @@ typedef unsigned int timestamp_t;
 #define L_DOT_BUFFER 64
 #define N_PT_QUEUES 128
 #define TL_INF 1073676289
+#define L_ATOMIC 16
+#define L_SIGNAL 16
 #define L_ATOMIC_ADDR 9
 #define L_SIG_ADDR 9
 #define L_INSTRUCTION 40
 #define L_AT_INSTRUCTION 90
 #define N_DOT_BUFFERS_TOTAL 8192
 #define N_SUBFORMULA_SNYC_QUEUES 256
+typedef double r2u2_input_data_t;
+typedef unsigned int timestamp_t;
+typedef char[N_ATOMICS][L_VARIABLE] symbol_table;
 
 #endif

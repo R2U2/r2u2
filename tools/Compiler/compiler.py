@@ -18,6 +18,8 @@ class Compiler():
         self.Hp = Hp
         self.ref_atomics = []
         self.mapped_atomics = []
+        self.signals = []
+        self.labels = []
         self.status = True
         self.echo = echo
         # Check to see if the output directory exists
@@ -35,19 +37,22 @@ class Compiler():
         return visitor
 
 
-    def mltl_compile(self, mltl, filename):
+    def mltl_compile(self, mltl, asm_filename, alias_filename):
         AST_node.reset()
         Observer.reset()
 
         # Parse the input and generate AST
         visitor = self.parse(mltl)
 
-        for atom in visitor.ref_atomics:
-            self.ref_atomics.append(atom)
-
         if not visitor.status:
            self.status = False
            return
+
+        for atom in visitor.ref_atomics:
+            if not atom in self.ref_atomics:
+                self.ref_atomics.append(atom)
+
+        self.labels = visitor.labels
 
         self.asm = ""
         self.ast = AST_node.ast
@@ -56,17 +61,23 @@ class Compiler():
             self.optimize_cse()
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(self.Hp)
-        self.mltl_gen_assembly(filename)
+        self.mltl_gen_assembly(asm_filename)
+        self.gen_alias_file(self.labels, alias_filename)
 
 
-    def at_compile(self, at, filename):
+    def at_compile(self, at, asm_filename, alias_filename):
         # Parse the input and generate AST
         visitor = self.parse(at)
 
         for atom in visitor.mapped_atomics:
             self.mapped_atomics.append(atom)
 
-        self.at_gen_assembly(visitor.at_instr, filename)
+        for signal in visitor.signals:
+            self.signals.append(signal)
+
+        self.at_gen_assembly(visitor.at_instr, asm_filename)
+
+        self.gen_alias_file(self.labels, alias_filename, True)
 
 
     # Common subexpression elimination the AST
@@ -264,4 +275,17 @@ class Compiler():
             print(s)
 
         with open(self.output_path+filename, 'a') as f:
-                f.write(s)
+            f.write(s)
+
+    def gen_alias_file(self, aliases, filename, signals=False):
+        # Extra newline separates formula labels from signal aliases
+        if signals:
+            s = '\n'
+        else:
+            s = ''
+
+        for alias in aliases:
+            s += alias + '\n'
+
+        with open(self.output_path+filename, 'a') as f:
+            f.write(s)

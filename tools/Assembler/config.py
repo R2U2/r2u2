@@ -20,7 +20,9 @@ data = {'N_SIGS'         : 256,
         'L_SCQ_ADDRESS'  : 16,
         'L_DOT_BUFFER'   : 64,
         'N_PT_QUEUES'    : 128,
-        'TL_INF'         : 32767*32767}
+        'TL_INF'         : 32767*32767,
+        'L_ATOMIC'       : 16,
+        'L_SIGNAL'       : 16}
 
 def parse_config(filename):
     try:
@@ -77,7 +79,7 @@ def check_updates(filename):
             print('NOTE: R2U2Config.h file has been updated, recompilation is needed')
             return
 
-def gen_config(filename):
+def gen_config(filename, atomics, signals):
     data['L_ATOMIC_ADDR'] = int.bit_length(int(data['N_ATOMICS']))
     data['L_SIG_ADDR'] = int.bit_length(int(data['N_SIGS']))
     data['L_INSTRUCTION'] = int(data['L_OPC']) + int(data['L_OP']) + \
@@ -92,12 +94,13 @@ def gen_config(filename):
     data['N_SUBFORMULA_SNYC_QUEUES'] = data['N_INSTRUCTIONS']
 
     header = '#ifndef R2U2_CONFIG_H\n' + \
-             '#define R2U2_CONFIG_H\n\n' + \
-             "typedef double r2u2_input_data_t;\n" + \
-             "typedef unsigned int timestamp_t;\n\n"
+             '#define R2U2_CONFIG_H\n\n'
     for key, val in data.items():
         header += '#define ' + key + ' ' + str(val) + '\n'
-    header += '\n#endif'
+    header += 'typedef double r2u2_input_data_t;\n' + \
+              'typedef unsigned int timestamp_t;\n' + \
+              'typedef char[N_ATOMICS][L_VARIABLE] symbol_table;\n' + \
+              '\n#endif'
 
     with open(filename, 'w') as f:
         f.write(header)

@@ -11,70 +11,73 @@ else:
 
 def serializedATN():
     with StringIO() as buf:
-        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\36")
-        buf.write("\u00aa\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\3\2\7\2\f\n\2\f")
-        buf.write("\2\16\2\17\13\2\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\5\3\31")
-        buf.write("\n\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
+        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\37")
+        buf.write("\u00ae\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\3\2\7\2\f\n\2\f")
+        buf.write("\2\16\2\17\13\2\3\2\3\2\3\3\3\3\5\3\25\n\3\3\3\3\3\3\3")
+        buf.write("\3\3\3\3\3\3\5\3\35\n\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
         buf.write("\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4")
         buf.write("\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
         buf.write("\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4")
-        buf.write("\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\5\4Y\n\4\3\4\3\4")
         buf.write("\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
+        buf.write("\4\5\4]\n\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
         buf.write("\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4")
         buf.write("\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
-        buf.write("\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\7\4\u0091")
-        buf.write("\n\4\f\4\16\4\u0094\13\4\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3")
-        buf.write("\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\5\5\u00a8\n")
-        buf.write("\5\3\5\2\3\6\6\2\4\6\b\2\2\2\u00c0\2\r\3\2\2\2\4\30\3")
-        buf.write("\2\2\2\6X\3\2\2\2\b\u00a7\3\2\2\2\n\f\5\4\3\2\13\n\3\2")
-        buf.write("\2\2\f\17\3\2\2\2\r\13\3\2\2\2\r\16\3\2\2\2\16\20\3\2")
-        buf.write("\2\2\17\r\3\2\2\2\20\21\7\2\2\3\21\3\3\2\2\2\22\23\5\6")
-        buf.write("\4\2\23\24\7\3\2\2\24\31\3\2\2\2\25\26\5\b\5\2\26\27\7")
-        buf.write("\3\2\2\27\31\3\2\2\2\30\22\3\2\2\2\30\25\3\2\2\2\31\5")
-        buf.write("\3\2\2\2\32\33\b\4\1\2\33\34\7\4\2\2\34Y\5\6\4\33\35\36")
-        buf.write("\7\23\2\2\36\37\7\t\2\2\37 \7\34\2\2 !\7\n\2\2!Y\5\6\4")
-        buf.write("\26\"#\7\23\2\2#$\7\t\2\2$%\7\34\2\2%&\7\13\2\2&\'\7\34")
-        buf.write("\2\2\'(\7\n\2\2(Y\5\6\4\25)*\7\24\2\2*+\7\t\2\2+,\7\34")
-        buf.write("\2\2,-\7\n\2\2-Y\5\6\4\24./\7\24\2\2/\60\7\t\2\2\60\61")
-        buf.write("\7\34\2\2\61\62\7\13\2\2\62\63\7\34\2\2\63\64\7\n\2\2")
-        buf.write("\64Y\5\6\4\23\65\66\7\27\2\2\66Y\5\6\4\16\678\7\31\2\2")
-        buf.write("89\7\t\2\29:\7\34\2\2:;\7\n\2\2;Y\5\6\4\13<=\7\31\2\2")
-        buf.write("=>\7\t\2\2>?\7\34\2\2?@\7\13\2\2@A\7\34\2\2AB\7\n\2\2")
-        buf.write("BY\5\6\4\nCD\7\32\2\2DY\5\6\4\tEF\7\32\2\2FG\7\t\2\2G")
-        buf.write("H\7\34\2\2HI\7\n\2\2IY\5\6\4\bJK\7\32\2\2KL\7\t\2\2LM")
-        buf.write("\7\34\2\2MN\7\13\2\2NO\7\34\2\2OP\7\n\2\2PY\5\6\4\7QR")
-        buf.write("\7\f\2\2RS\5\6\4\2ST\7\r\2\2TY\3\2\2\2UY\7\33\2\2VY\7")
-        buf.write("\16\2\2WY\7\17\2\2X\32\3\2\2\2X\35\3\2\2\2X\"\3\2\2\2")
-        buf.write("X)\3\2\2\2X.\3\2\2\2X\65\3\2\2\2X\67\3\2\2\2X<\3\2\2\2")
-        buf.write("XC\3\2\2\2XE\3\2\2\2XJ\3\2\2\2XQ\3\2\2\2XU\3\2\2\2XV\3")
-        buf.write("\2\2\2XW\3\2\2\2Y\u0092\3\2\2\2Z[\f\32\2\2[\\\7\5\2\2")
-        buf.write("\\\u0091\5\6\4\33]^\f\31\2\2^_\7\6\2\2_\u0091\5\6\4\32")
-        buf.write("`a\f\30\2\2ab\7\7\2\2b\u0091\5\6\4\31cd\f\27\2\2de\7\b")
-        buf.write("\2\2e\u0091\5\6\4\30fg\f\22\2\2gh\7\25\2\2hi\7\t\2\2i")
-        buf.write("j\7\34\2\2jk\7\n\2\2k\u0091\5\6\4\23lm\f\21\2\2mn\7\25")
-        buf.write("\2\2no\7\t\2\2op\7\34\2\2pq\7\13\2\2qr\7\34\2\2rs\7\n")
-        buf.write("\2\2s\u0091\5\6\4\22tu\f\20\2\2uv\7\26\2\2vw\7\t\2\2w")
-        buf.write("x\7\34\2\2xy\7\n\2\2y\u0091\5\6\4\21z{\f\17\2\2{|\7\26")
-        buf.write("\2\2|}\7\t\2\2}~\7\34\2\2~\177\7\13\2\2\177\u0080\7\34")
-        buf.write("\2\2\u0080\u0081\7\n\2\2\u0081\u0091\5\6\4\20\u0082\u0083")
-        buf.write("\f\r\2\2\u0083\u0084\7\30\2\2\u0084\u0085\7\t\2\2\u0085")
-        buf.write("\u0086\7\34\2\2\u0086\u0087\7\n\2\2\u0087\u0091\5\6\4")
-        buf.write("\16\u0088\u0089\f\f\2\2\u0089\u008a\7\30\2\2\u008a\u008b")
-        buf.write("\7\t\2\2\u008b\u008c\7\34\2\2\u008c\u008d\7\13\2\2\u008d")
-        buf.write("\u008e\7\34\2\2\u008e\u008f\7\n\2\2\u008f\u0091\5\6\4")
-        buf.write("\r\u0090Z\3\2\2\2\u0090]\3\2\2\2\u0090`\3\2\2\2\u0090")
-        buf.write("c\3\2\2\2\u0090f\3\2\2\2\u0090l\3\2\2\2\u0090t\3\2\2\2")
-        buf.write("\u0090z\3\2\2\2\u0090\u0082\3\2\2\2\u0090\u0088\3\2\2")
-        buf.write("\2\u0091\u0094\3\2\2\2\u0092\u0090\3\2\2\2\u0092\u0093")
-        buf.write("\3\2\2\2\u0093\7\3\2\2\2\u0094\u0092\3\2\2\2\u0095\u0096")
-        buf.write("\7\33\2\2\u0096\u0097\7\20\2\2\u0097\u0098\7\21\2\2\u0098")
-        buf.write("\u0099\7\f\2\2\u0099\u009a\7\33\2\2\u009a\u009b\7\r\2")
-        buf.write("\2\u009b\u009c\7\22\2\2\u009c\u00a8\7\34\2\2\u009d\u009e")
-        buf.write("\7\33\2\2\u009e\u009f\7\20\2\2\u009f\u00a0\7\21\2\2\u00a0")
-        buf.write("\u00a1\7\f\2\2\u00a1\u00a2\7\33\2\2\u00a2\u00a3\7\13\2")
-        buf.write("\2\u00a3\u00a4\7\34\2\2\u00a4\u00a5\7\r\2\2\u00a5\u00a6")
-        buf.write("\7\22\2\2\u00a6\u00a8\7\34\2\2\u00a7\u0095\3\2\2\2\u00a7")
-        buf.write("\u009d\3\2\2\2\u00a8\t\3\2\2\2\b\r\30X\u0090\u0092\u00a7")
+        buf.write("\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4")
+        buf.write("\3\4\3\4\3\4\7\4\u0095\n\4\f\4\16\4\u0098\13\4\3\5\3\5")
+        buf.write("\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3\5\3")
+        buf.write("\5\3\5\3\5\5\5\u00ac\n\5\3\5\2\3\6\6\2\4\6\b\2\2\2\u00c5")
+        buf.write("\2\r\3\2\2\2\4\34\3\2\2\2\6\\\3\2\2\2\b\u00ab\3\2\2\2")
+        buf.write("\n\f\5\4\3\2\13\n\3\2\2\2\f\17\3\2\2\2\r\13\3\2\2\2\r")
+        buf.write("\16\3\2\2\2\16\20\3\2\2\2\17\r\3\2\2\2\20\21\7\2\2\3\21")
+        buf.write("\3\3\2\2\2\22\23\7\34\2\2\23\25\7\3\2\2\24\22\3\2\2\2")
+        buf.write("\24\25\3\2\2\2\25\26\3\2\2\2\26\27\5\6\4\2\27\30\7\4\2")
+        buf.write("\2\30\35\3\2\2\2\31\32\5\b\5\2\32\33\7\4\2\2\33\35\3\2")
+        buf.write("\2\2\34\24\3\2\2\2\34\31\3\2\2\2\35\5\3\2\2\2\36\37\b")
+        buf.write("\4\1\2\37 \7\5\2\2 ]\5\6\4\33!\"\7\24\2\2\"#\7\n\2\2#")
+        buf.write("$\7\35\2\2$%\7\13\2\2%]\5\6\4\26&\'\7\24\2\2\'(\7\n\2")
+        buf.write("\2()\7\35\2\2)*\7\f\2\2*+\7\35\2\2+,\7\13\2\2,]\5\6\4")
+        buf.write("\25-.\7\25\2\2./\7\n\2\2/\60\7\35\2\2\60\61\7\13\2\2\61")
+        buf.write("]\5\6\4\24\62\63\7\25\2\2\63\64\7\n\2\2\64\65\7\35\2\2")
+        buf.write("\65\66\7\f\2\2\66\67\7\35\2\2\678\7\13\2\28]\5\6\4\23")
+        buf.write("9:\7\30\2\2:]\5\6\4\16;<\7\32\2\2<=\7\n\2\2=>\7\35\2\2")
+        buf.write(">?\7\13\2\2?]\5\6\4\13@A\7\32\2\2AB\7\n\2\2BC\7\35\2\2")
+        buf.write("CD\7\f\2\2DE\7\35\2\2EF\7\13\2\2F]\5\6\4\nGH\7\33\2\2")
+        buf.write("H]\5\6\4\tIJ\7\33\2\2JK\7\n\2\2KL\7\35\2\2LM\7\13\2\2")
+        buf.write("M]\5\6\4\bNO\7\33\2\2OP\7\n\2\2PQ\7\35\2\2QR\7\f\2\2R")
+        buf.write("S\7\35\2\2ST\7\13\2\2T]\5\6\4\7UV\7\r\2\2VW\5\6\4\2WX")
+        buf.write("\7\16\2\2X]\3\2\2\2Y]\7\34\2\2Z]\7\17\2\2[]\7\20\2\2\\")
+        buf.write("\36\3\2\2\2\\!\3\2\2\2\\&\3\2\2\2\\-\3\2\2\2\\\62\3\2")
+        buf.write("\2\2\\9\3\2\2\2\\;\3\2\2\2\\@\3\2\2\2\\G\3\2\2\2\\I\3")
+        buf.write("\2\2\2\\N\3\2\2\2\\U\3\2\2\2\\Y\3\2\2\2\\Z\3\2\2\2\\[")
+        buf.write("\3\2\2\2]\u0096\3\2\2\2^_\f\32\2\2_`\7\6\2\2`\u0095\5")
+        buf.write("\6\4\33ab\f\31\2\2bc\7\7\2\2c\u0095\5\6\4\32de\f\30\2")
+        buf.write("\2ef\7\b\2\2f\u0095\5\6\4\31gh\f\27\2\2hi\7\t\2\2i\u0095")
+        buf.write("\5\6\4\30jk\f\22\2\2kl\7\26\2\2lm\7\n\2\2mn\7\35\2\2n")
+        buf.write("o\7\13\2\2o\u0095\5\6\4\23pq\f\21\2\2qr\7\26\2\2rs\7\n")
+        buf.write("\2\2st\7\35\2\2tu\7\f\2\2uv\7\35\2\2vw\7\13\2\2w\u0095")
+        buf.write("\5\6\4\22xy\f\20\2\2yz\7\27\2\2z{\7\n\2\2{|\7\35\2\2|")
+        buf.write("}\7\13\2\2}\u0095\5\6\4\21~\177\f\17\2\2\177\u0080\7\27")
+        buf.write("\2\2\u0080\u0081\7\n\2\2\u0081\u0082\7\35\2\2\u0082\u0083")
+        buf.write("\7\f\2\2\u0083\u0084\7\35\2\2\u0084\u0085\7\13\2\2\u0085")
+        buf.write("\u0095\5\6\4\20\u0086\u0087\f\r\2\2\u0087\u0088\7\31\2")
+        buf.write("\2\u0088\u0089\7\n\2\2\u0089\u008a\7\35\2\2\u008a\u008b")
+        buf.write("\7\13\2\2\u008b\u0095\5\6\4\16\u008c\u008d\f\f\2\2\u008d")
+        buf.write("\u008e\7\31\2\2\u008e\u008f\7\n\2\2\u008f\u0090\7\35\2")
+        buf.write("\2\u0090\u0091\7\f\2\2\u0091\u0092\7\35\2\2\u0092\u0093")
+        buf.write("\7\13\2\2\u0093\u0095\5\6\4\r\u0094^\3\2\2\2\u0094a\3")
+        buf.write("\2\2\2\u0094d\3\2\2\2\u0094g\3\2\2\2\u0094j\3\2\2\2\u0094")
+        buf.write("p\3\2\2\2\u0094x\3\2\2\2\u0094~\3\2\2\2\u0094\u0086\3")
+        buf.write("\2\2\2\u0094\u008c\3\2\2\2\u0095\u0098\3\2\2\2\u0096\u0094")
+        buf.write("\3\2\2\2\u0096\u0097\3\2\2\2\u0097\7\3\2\2\2\u0098\u0096")
+        buf.write("\3\2\2\2\u0099\u009a\7\34\2\2\u009a\u009b\7\21\2\2\u009b")
+        buf.write("\u009c\7\22\2\2\u009c\u009d\7\r\2\2\u009d\u009e\7\34\2")
+        buf.write("\2\u009e\u009f\7\16\2\2\u009f\u00a0\7\23\2\2\u00a0\u00ac")
+        buf.write("\7\35\2\2\u00a1\u00a2\7\34\2\2\u00a2\u00a3\7\21\2\2\u00a3")
+        buf.write("\u00a4\7\22\2\2\u00a4\u00a5\7\r\2\2\u00a5\u00a6\7\34\2")
+        buf.write("\2\u00a6\u00a7\7\f\2\2\u00a7\u00a8\7\35\2\2\u00a8\u00a9")
+        buf.write("\7\16\2\2\u00a9\u00aa\7\23\2\2\u00aa\u00ac\7\35\2\2\u00ab")
+        buf.write("\u0099\3\2\2\2\u00ab\u00a1\3\2\2\2\u00ac\t\3\2\2\2\t\r")
+        buf.write("\24\34\\\u0094\u0096\u00ab")
         return buf.getvalue()
 
 
@@ -88,18 +91,18 @@ class MLTLParser ( Parser ):
 
     sharedContextCache = PredictionContextCache()
 
-    literalNames = [ "<INVALID>", "';'", "'!'", "'&'", "'|'", "'<->'", "'->'", 
-                     "'['", "']'", "','", "'('", "')'", "'TRUE'", "'FALSE'", 
-                     "':='", "<INVALID>", "<INVALID>", "'G'", "'F'", "'U'", 
-                     "'R'", "'Y'", "'S'", "'O'", "'H'" ]
+    literalNames = [ "<INVALID>", "':'", "';'", "'!'", "'&'", "'|'", "'<->'", 
+                     "'->'", "'['", "']'", "','", "'('", "')'", "'TRUE'", 
+                     "'FALSE'", "':='", "<INVALID>", "<INVALID>", "'G'", 
+                     "'F'", "'U'", "'R'", "'Y'", "'S'", "'O'", "'H'" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
-                      "<INVALID>", "<INVALID>", "<INVALID>", "Filter", "Conditional", 
-                      "GLOBALLY", "FINALLY", "UNTIL", "RELEASE", "YESTERDAY", 
-                      "SINCE", "ONCE", "HISTORICALLY", "Identifier", "Number", 
-                      "Comment", "WS" ]
+                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+                      "Filter", "Conditional", "GLOBALLY", "FINALLY", "UNTIL", 
+                      "RELEASE", "YESTERDAY", "SINCE", "ONCE", "HISTORICALLY", 
+                      "Identifier", "Number", "Comment", "WS" ]
 
     RULE_program = 0
     RULE_statement = 1
@@ -123,20 +126,21 @@ class MLTLParser ( Parser ):
     T__11=12
     T__12=13
     T__13=14
-    Filter=15
-    Conditional=16
-    GLOBALLY=17
-    FINALLY=18
-    UNTIL=19
-    RELEASE=20
-    YESTERDAY=21
-    SINCE=22
-    ONCE=23
-    HISTORICALLY=24
-    Identifier=25
-    Number=26
-    Comment=27
-    WS=28
+    T__14=15
+    Filter=16
+    Conditional=17
+    GLOBALLY=18
+    FINALLY=19
+    UNTIL=20
+    RELEASE=21
+    YESTERDAY=22
+    SINCE=23
+    ONCE=24
+    HISTORICALLY=25
+    Identifier=26
+    Number=27
+    Comment=28
+    WS=29
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -186,7 +190,7 @@ class MLTLParser ( Parser ):
             self.state = 11
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << MLTLParser.T__1) | (1 << MLTLParser.T__9) | (1 << MLTLParser.T__11) | (1 << MLTLParser.T__12) | (1 << MLTLParser.GLOBALLY) | (1 << MLTLParser.FINALLY) | (1 << MLTLParser.YESTERDAY) | (1 << MLTLParser.ONCE) | (1 << MLTLParser.HISTORICALLY) | (1 << MLTLParser.Identifier))) != 0):
+            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << MLTLParser.T__2) | (1 << MLTLParser.T__10) | (1 << MLTLParser.T__12) | (1 << MLTLParser.T__13) | (1 << MLTLParser.GLOBALLY) | (1 << MLTLParser.FINALLY) | (1 << MLTLParser.YESTERDAY) | (1 << MLTLParser.ONCE) | (1 << MLTLParser.HISTORICALLY) | (1 << MLTLParser.Identifier))) != 0):
                 self.state = 8
                 self.statement()
                 self.state = 13
@@ -215,6 +219,9 @@ class MLTLParser ( Parser ):
             return self.getTypedRuleContext(MLTLParser.ExprContext,0)
 
 
+        def Identifier(self):
+            return self.getToken(MLTLParser.Identifier, 0)
+
         def binding(self):
             return self.getTypedRuleContext(MLTLParser.BindingContext,0)
 
@@ -236,23 +243,33 @@ class MLTLParser ( Parser ):
         localctx = MLTLParser.StatementContext(self, self._ctx, self.state)
         self.enterRule(localctx, 2, self.RULE_statement)
         try:
-            self.state = 22
+            self.state = 26
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,1,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,2,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 16
+                self.state = 18
+                self._errHandler.sync(self)
+                la_ = self._interp.adaptivePredict(self._input,1,self._ctx)
+                if la_ == 1:
+                    self.state = 16
+                    self.match(MLTLParser.Identifier)
+                    self.state = 17
+                    self.match(MLTLParser.T__0)
+
+
+                self.state = 20
                 self.expr(0)
-                self.state = 17
-                self.match(MLTLParser.T__0)
+                self.state = 21
+                self.match(MLTLParser.T__1)
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 19
+                self.state = 23
                 self.binding()
-                self.state = 20
-                self.match(MLTLParser.T__0)
+                self.state = 24
+                self.match(MLTLParser.T__1)
                 pass
 
 
@@ -425,17 +442,17 @@ class MLTLParser ( Parser ):
         self.enterRecursionRule(localctx, 4, self.RULE_expr, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 86
+            self.state = 90
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,2,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,3,self._ctx)
             if la_ == 1:
                 localctx = MLTLParser.Prop_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 25
-                localctx.op = self.match(MLTLParser.T__1)
-                self.state = 26
+                self.state = 29
+                localctx.op = self.match(MLTLParser.T__2)
+                self.state = 30
                 self.expr(25)
                 pass
 
@@ -443,15 +460,15 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Ft_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 27
-                self.match(MLTLParser.GLOBALLY)
-                self.state = 28
-                self.match(MLTLParser.T__6)
-                self.state = 29
-                self.match(MLTLParser.Number)
-                self.state = 30
-                self.match(MLTLParser.T__7)
                 self.state = 31
+                self.match(MLTLParser.GLOBALLY)
+                self.state = 32
+                self.match(MLTLParser.T__7)
+                self.state = 33
+                self.match(MLTLParser.Number)
+                self.state = 34
+                self.match(MLTLParser.T__8)
+                self.state = 35
                 self.expr(20)
                 pass
 
@@ -459,19 +476,19 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Ft_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 32
-                self.match(MLTLParser.GLOBALLY)
-                self.state = 33
-                self.match(MLTLParser.T__6)
-                self.state = 34
-                self.match(MLTLParser.Number)
-                self.state = 35
-                self.match(MLTLParser.T__8)
                 self.state = 36
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.GLOBALLY)
                 self.state = 37
                 self.match(MLTLParser.T__7)
                 self.state = 38
+                self.match(MLTLParser.Number)
+                self.state = 39
+                self.match(MLTLParser.T__9)
+                self.state = 40
+                self.match(MLTLParser.Number)
+                self.state = 41
+                self.match(MLTLParser.T__8)
+                self.state = 42
                 self.expr(19)
                 pass
 
@@ -479,15 +496,15 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Ft_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 39
-                self.match(MLTLParser.FINALLY)
-                self.state = 40
-                self.match(MLTLParser.T__6)
-                self.state = 41
-                self.match(MLTLParser.Number)
-                self.state = 42
-                self.match(MLTLParser.T__7)
                 self.state = 43
+                self.match(MLTLParser.FINALLY)
+                self.state = 44
+                self.match(MLTLParser.T__7)
+                self.state = 45
+                self.match(MLTLParser.Number)
+                self.state = 46
+                self.match(MLTLParser.T__8)
+                self.state = 47
                 self.expr(18)
                 pass
 
@@ -495,19 +512,19 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Ft_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 44
-                self.match(MLTLParser.FINALLY)
-                self.state = 45
-                self.match(MLTLParser.T__6)
-                self.state = 46
-                self.match(MLTLParser.Number)
-                self.state = 47
-                self.match(MLTLParser.T__8)
                 self.state = 48
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.FINALLY)
                 self.state = 49
                 self.match(MLTLParser.T__7)
                 self.state = 50
+                self.match(MLTLParser.Number)
+                self.state = 51
+                self.match(MLTLParser.T__9)
+                self.state = 52
+                self.match(MLTLParser.Number)
+                self.state = 53
+                self.match(MLTLParser.T__8)
+                self.state = 54
                 self.expr(17)
                 pass
 
@@ -515,9 +532,9 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 51
+                self.state = 55
                 self.match(MLTLParser.YESTERDAY)
-                self.state = 52
+                self.state = 56
                 self.expr(12)
                 pass
 
@@ -525,15 +542,15 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 53
-                self.match(MLTLParser.ONCE)
-                self.state = 54
-                self.match(MLTLParser.T__6)
-                self.state = 55
-                self.match(MLTLParser.Number)
-                self.state = 56
-                self.match(MLTLParser.T__7)
                 self.state = 57
+                self.match(MLTLParser.ONCE)
+                self.state = 58
+                self.match(MLTLParser.T__7)
+                self.state = 59
+                self.match(MLTLParser.Number)
+                self.state = 60
+                self.match(MLTLParser.T__8)
+                self.state = 61
                 self.expr(9)
                 pass
 
@@ -541,19 +558,19 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 58
-                self.match(MLTLParser.ONCE)
-                self.state = 59
-                self.match(MLTLParser.T__6)
-                self.state = 60
-                self.match(MLTLParser.Number)
-                self.state = 61
-                self.match(MLTLParser.T__8)
                 self.state = 62
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.ONCE)
                 self.state = 63
                 self.match(MLTLParser.T__7)
                 self.state = 64
+                self.match(MLTLParser.Number)
+                self.state = 65
+                self.match(MLTLParser.T__9)
+                self.state = 66
+                self.match(MLTLParser.Number)
+                self.state = 67
+                self.match(MLTLParser.T__8)
+                self.state = 68
                 self.expr(8)
                 pass
 
@@ -561,9 +578,9 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 65
+                self.state = 69
                 self.match(MLTLParser.HISTORICALLY)
-                self.state = 66
+                self.state = 70
                 self.expr(7)
                 pass
 
@@ -571,15 +588,15 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 67
-                self.match(MLTLParser.HISTORICALLY)
-                self.state = 68
-                self.match(MLTLParser.T__6)
-                self.state = 69
-                self.match(MLTLParser.Number)
-                self.state = 70
-                self.match(MLTLParser.T__7)
                 self.state = 71
+                self.match(MLTLParser.HISTORICALLY)
+                self.state = 72
+                self.match(MLTLParser.T__7)
+                self.state = 73
+                self.match(MLTLParser.Number)
+                self.state = 74
+                self.match(MLTLParser.T__8)
+                self.state = 75
                 self.expr(6)
                 pass
 
@@ -587,19 +604,19 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Pt_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 72
-                self.match(MLTLParser.HISTORICALLY)
-                self.state = 73
-                self.match(MLTLParser.T__6)
-                self.state = 74
-                self.match(MLTLParser.Number)
-                self.state = 75
-                self.match(MLTLParser.T__8)
                 self.state = 76
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.HISTORICALLY)
                 self.state = 77
                 self.match(MLTLParser.T__7)
                 self.state = 78
+                self.match(MLTLParser.Number)
+                self.state = 79
+                self.match(MLTLParser.T__9)
+                self.state = 80
+                self.match(MLTLParser.Number)
+                self.state = 81
+                self.match(MLTLParser.T__8)
+                self.state = 82
                 self.expr(5)
                 pass
 
@@ -607,19 +624,19 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Parens_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 79
-                self.match(MLTLParser.T__9)
-                self.state = 80
-                self.expr(0)
-                self.state = 81
+                self.state = 83
                 self.match(MLTLParser.T__10)
+                self.state = 84
+                self.expr(0)
+                self.state = 85
+                self.match(MLTLParser.T__11)
                 pass
 
             elif la_ == 13:
                 localctx = MLTLParser.Atom_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 83
+                self.state = 87
                 self.match(MLTLParser.Identifier)
                 pass
 
@@ -627,213 +644,213 @@ class MLTLParser ( Parser ):
                 localctx = MLTLParser.Bool_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 84
-                self.match(MLTLParser.T__11)
+                self.state = 88
+                self.match(MLTLParser.T__12)
                 pass
 
             elif la_ == 15:
                 localctx = MLTLParser.Bool_exprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 85
-                self.match(MLTLParser.T__12)
+                self.state = 89
+                self.match(MLTLParser.T__13)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 144
+            self.state = 148
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,4,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 142
+                    self.state = 146
                     self._errHandler.sync(self)
-                    la_ = self._interp.adaptivePredict(self._input,3,self._ctx)
+                    la_ = self._interp.adaptivePredict(self._input,4,self._ctx)
                     if la_ == 1:
                         localctx = MLTLParser.Prop_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 88
+                        self.state = 92
                         if not self.precpred(self._ctx, 24):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 24)")
-                        self.state = 89
-                        localctx.op = self.match(MLTLParser.T__2)
-                        self.state = 90
+                        self.state = 93
+                        localctx.op = self.match(MLTLParser.T__3)
+                        self.state = 94
                         self.expr(25)
                         pass
 
                     elif la_ == 2:
                         localctx = MLTLParser.Prop_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 91
+                        self.state = 95
                         if not self.precpred(self._ctx, 23):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 23)")
-                        self.state = 92
-                        localctx.op = self.match(MLTLParser.T__3)
-                        self.state = 93
+                        self.state = 96
+                        localctx.op = self.match(MLTLParser.T__4)
+                        self.state = 97
                         self.expr(24)
                         pass
 
                     elif la_ == 3:
                         localctx = MLTLParser.Prop_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 94
+                        self.state = 98
                         if not self.precpred(self._ctx, 22):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 22)")
-                        self.state = 95
-                        localctx.op = self.match(MLTLParser.T__4)
-                        self.state = 96
+                        self.state = 99
+                        localctx.op = self.match(MLTLParser.T__5)
+                        self.state = 100
                         self.expr(23)
                         pass
 
                     elif la_ == 4:
                         localctx = MLTLParser.Prop_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 97
+                        self.state = 101
                         if not self.precpred(self._ctx, 21):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 21)")
-                        self.state = 98
-                        localctx.op = self.match(MLTLParser.T__5)
-                        self.state = 99
+                        self.state = 102
+                        localctx.op = self.match(MLTLParser.T__6)
+                        self.state = 103
                         self.expr(22)
                         pass
 
                     elif la_ == 5:
                         localctx = MLTLParser.Ft_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 100
+                        self.state = 104
                         if not self.precpred(self._ctx, 16):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 16)")
-                        self.state = 101
-                        self.match(MLTLParser.UNTIL)
-                        self.state = 102
-                        self.match(MLTLParser.T__6)
-                        self.state = 103
-                        self.match(MLTLParser.Number)
-                        self.state = 104
-                        self.match(MLTLParser.T__7)
                         self.state = 105
+                        self.match(MLTLParser.UNTIL)
+                        self.state = 106
+                        self.match(MLTLParser.T__7)
+                        self.state = 107
+                        self.match(MLTLParser.Number)
+                        self.state = 108
+                        self.match(MLTLParser.T__8)
+                        self.state = 109
                         self.expr(17)
                         pass
 
                     elif la_ == 6:
                         localctx = MLTLParser.Ft_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 106
+                        self.state = 110
                         if not self.precpred(self._ctx, 15):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 15)")
-                        self.state = 107
-                        self.match(MLTLParser.UNTIL)
-                        self.state = 108
-                        self.match(MLTLParser.T__6)
-                        self.state = 109
-                        self.match(MLTLParser.Number)
-                        self.state = 110
-                        self.match(MLTLParser.T__8)
                         self.state = 111
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.UNTIL)
                         self.state = 112
                         self.match(MLTLParser.T__7)
                         self.state = 113
+                        self.match(MLTLParser.Number)
+                        self.state = 114
+                        self.match(MLTLParser.T__9)
+                        self.state = 115
+                        self.match(MLTLParser.Number)
+                        self.state = 116
+                        self.match(MLTLParser.T__8)
+                        self.state = 117
                         self.expr(16)
                         pass
 
                     elif la_ == 7:
                         localctx = MLTLParser.Ft_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 114
+                        self.state = 118
                         if not self.precpred(self._ctx, 14):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 14)")
-                        self.state = 115
-                        self.match(MLTLParser.RELEASE)
-                        self.state = 116
-                        self.match(MLTLParser.T__6)
-                        self.state = 117
-                        self.match(MLTLParser.Number)
-                        self.state = 118
-                        self.match(MLTLParser.T__7)
                         self.state = 119
+                        self.match(MLTLParser.RELEASE)
+                        self.state = 120
+                        self.match(MLTLParser.T__7)
+                        self.state = 121
+                        self.match(MLTLParser.Number)
+                        self.state = 122
+                        self.match(MLTLParser.T__8)
+                        self.state = 123
                         self.expr(15)
                         pass
 
                     elif la_ == 8:
                         localctx = MLTLParser.Ft_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 120
+                        self.state = 124
                         if not self.precpred(self._ctx, 13):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 13)")
-                        self.state = 121
-                        self.match(MLTLParser.RELEASE)
-                        self.state = 122
-                        self.match(MLTLParser.T__6)
-                        self.state = 123
-                        self.match(MLTLParser.Number)
-                        self.state = 124
-                        self.match(MLTLParser.T__8)
                         self.state = 125
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.RELEASE)
                         self.state = 126
                         self.match(MLTLParser.T__7)
                         self.state = 127
+                        self.match(MLTLParser.Number)
+                        self.state = 128
+                        self.match(MLTLParser.T__9)
+                        self.state = 129
+                        self.match(MLTLParser.Number)
+                        self.state = 130
+                        self.match(MLTLParser.T__8)
+                        self.state = 131
                         self.expr(14)
                         pass
 
                     elif la_ == 9:
                         localctx = MLTLParser.Pt_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 128
+                        self.state = 132
                         if not self.precpred(self._ctx, 11):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
-                        self.state = 129
-                        self.match(MLTLParser.SINCE)
-                        self.state = 130
-                        self.match(MLTLParser.T__6)
-                        self.state = 131
-                        self.match(MLTLParser.Number)
-                        self.state = 132
-                        self.match(MLTLParser.T__7)
                         self.state = 133
+                        self.match(MLTLParser.SINCE)
+                        self.state = 134
+                        self.match(MLTLParser.T__7)
+                        self.state = 135
+                        self.match(MLTLParser.Number)
+                        self.state = 136
+                        self.match(MLTLParser.T__8)
+                        self.state = 137
                         self.expr(12)
                         pass
 
                     elif la_ == 10:
                         localctx = MLTLParser.Pt_exprContext(self, MLTLParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 134
+                        self.state = 138
                         if not self.precpred(self._ctx, 10):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
-                        self.state = 135
-                        self.match(MLTLParser.SINCE)
-                        self.state = 136
-                        self.match(MLTLParser.T__6)
-                        self.state = 137
-                        self.match(MLTLParser.Number)
-                        self.state = 138
-                        self.match(MLTLParser.T__8)
                         self.state = 139
-                        self.match(MLTLParser.Number)
+                        self.match(MLTLParser.SINCE)
                         self.state = 140
                         self.match(MLTLParser.T__7)
                         self.state = 141
+                        self.match(MLTLParser.Number)
+                        self.state = 142
+                        self.match(MLTLParser.T__9)
+                        self.state = 143
+                        self.match(MLTLParser.Number)
+                        self.state = 144
+                        self.match(MLTLParser.T__8)
+                        self.state = 145
                         self.expr(11)
                         pass
 
              
-                self.state = 146
+                self.state = 150
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,4,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -886,50 +903,50 @@ class MLTLParser ( Parser ):
         localctx = MLTLParser.BindingContext(self, self._ctx, self.state)
         self.enterRule(localctx, 6, self.RULE_binding)
         try:
-            self.state = 165
+            self.state = 169
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,5,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,6,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 147
-                self.match(MLTLParser.Identifier)
-                self.state = 148
-                self.match(MLTLParser.T__13)
-                self.state = 149
-                self.match(MLTLParser.Filter)
-                self.state = 150
-                self.match(MLTLParser.T__9)
                 self.state = 151
                 self.match(MLTLParser.Identifier)
                 self.state = 152
-                self.match(MLTLParser.T__10)
+                self.match(MLTLParser.T__14)
                 self.state = 153
-                self.match(MLTLParser.Conditional)
+                self.match(MLTLParser.Filter)
                 self.state = 154
+                self.match(MLTLParser.T__10)
+                self.state = 155
+                self.match(MLTLParser.Identifier)
+                self.state = 156
+                self.match(MLTLParser.T__11)
+                self.state = 157
+                self.match(MLTLParser.Conditional)
+                self.state = 158
                 self.match(MLTLParser.Number)
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 155
-                self.match(MLTLParser.Identifier)
-                self.state = 156
-                self.match(MLTLParser.T__13)
-                self.state = 157
-                self.match(MLTLParser.Filter)
-                self.state = 158
-                self.match(MLTLParser.T__9)
                 self.state = 159
                 self.match(MLTLParser.Identifier)
                 self.state = 160
-                self.match(MLTLParser.T__8)
+                self.match(MLTLParser.T__14)
                 self.state = 161
-                self.match(MLTLParser.Number)
+                self.match(MLTLParser.Filter)
                 self.state = 162
                 self.match(MLTLParser.T__10)
                 self.state = 163
-                self.match(MLTLParser.Conditional)
+                self.match(MLTLParser.Identifier)
                 self.state = 164
+                self.match(MLTLParser.T__9)
+                self.state = 165
+                self.match(MLTLParser.Number)
+                self.state = 166
+                self.match(MLTLParser.T__11)
+                self.state = 167
+                self.match(MLTLParser.Conditional)
+                self.state = 168
                 self.match(MLTLParser.Number)
                 pass
 
