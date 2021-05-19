@@ -79,7 +79,7 @@ void op_bool(at_instruction_t *instr)
 			compare_int[instr->cond](signal, comp_sig);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_int[instr->cond](signal, instr->comp.d);
+			compare_int[instr->cond](signal, instr->comp.b);
 	}
 
 	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
