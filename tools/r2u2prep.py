@@ -119,7 +119,7 @@ def main(mltl, config):
         f.write('s0: end sequence')
         f.close()
         f = open(__BinFileDir__+'ftscq.asm', 'w+')
-        #f.write('00000000000000000000000000000011')
+        f.write('0 0')
         f.close()
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
@@ -134,7 +134,7 @@ def main(mltl, config):
     subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
                     str( TIMESTAMP_WIDTH), str(config)])
     print('************************************************************')
-    # Check to see if ft.asm exists
+    # Check to see if at.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
         # If it doesn't, make a blank assembly
         f = open(__BinFileDir__+'at.asm','w+')
