@@ -1,17 +1,14 @@
-# tool marcros
+# tool macros
 CC := gcc
 
-# path marcros
+# path macros
 BIN_PATH := bin
 OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser
-ifdef R2U2_AT
-	SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT $(SRC_PATH)/prognostics
-endif
-
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT \
+	$(SRC_PATH)/AT/filters $(SRC_PATH)/prognostics
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 OBJ_DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 
@@ -29,7 +26,7 @@ DBGFLAG := -g -Wall -Wextra -pedantic -Wno-gnu-binary-literal -DDEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 
-# compile marcros
+# compile macros
 TARGET_NAME := r2u2
 TARGET_RELES := $(BIN_PATH)/$(TARGET_NAME)
 TARGET_DEBUG := $(BIN_PATH)/$(TARGET_NAME)_debug
@@ -49,7 +46,8 @@ DISTCLEAN_LIST := $(OBJ_PATH) \
 				  $(DBG_PATH)
 CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
-			  $(DISTCLEAN_LIST)
+			  $(DISTCLEAN_LIST) \
+				src/binParser/config.c
 
 # default rule
 default: all
@@ -91,7 +89,7 @@ clean:
 
 .PHONY: distclean
 distclean:
-	@echo CLEAN $(CLEAN_LIST)
+	@echo CLEAN $(DISTCLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
 
 print-%  : ; @echo $* = $($*)
