@@ -38,24 +38,24 @@ int main(int argc, char *argv[]) {
     }
 
     else if (argc == 2) {
-	fprintf(stdout,"%s Version %d.%d\n",
-	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-	fprintf(stdout, "Configuration directory path: %s. Command line input will be used for trace file path.\n", argv[1]);
+	     fprintf(stdout,"%s Version %d.%d\n",
+	             argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	     fprintf(stdout, "Configuration directory path: %s. Command line input will be used for trace file path.\n", argv[1]);
     }
 
     else if (argc == 3) {
-	fprintf(stdout,"%s Version %d.%d\n",
-	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-	fprintf(stdout, "Configuration directory path: %s. Trace file path: %s.\n", argv[1], argv[2]);
+	     fprintf(stdout,"%s Version %d.%d\n",
+	             argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	     fprintf(stdout, "Configuration directory path: %s. Trace file path: %s.\n", argv[1], argv[2]);
     }
 
     else {
-	fprintf(stdout,"%s Version %d.%d\n",
-	argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-	fprintf(stdout, "Too many arguments supplied. Configuration directory path: %s. Trace file path: %s. Other arguments will be ignored.\n", argv[1], argv[2]);
+	     fprintf(stdout,"%s Version %d.%d\n",
+	             argv[0], R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
+	     fprintf(stdout, "Too many arguments supplied. Configuration directory path: %s. Trace file path: %s. Other arguments will be ignored.\n", argv[1], argv[2]);
     }
 
-    int MAX_TIME = INT_MAX;
+    int MAX_TIME = INT_MAX, c;
     FILE *input_file;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 

@@ -233,7 +233,7 @@ void parse_at(char *bin)
 	if(pch != NULL)
 		memcpy(line, bin, L_AT_INSTRUCTION);
 
-	while ( pch != NULL ) {
+	while ( pch != NULL && strlen(line) >=  L_AT_INSTRUCTION) {
 		decode_at_instr(line, &at_instructions[PC]);
 		PC++;
 		memcpy(line, pch + 1, L_AT_INSTRUCTION);

@@ -118,9 +118,9 @@ def main(mltl, config):
         f = open(__BinFileDir__+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
-        f = open(__BinFileDir__+'ftscq.bin', 'w+')
-        f.write(' 00000000000000000000000000000011')
-        f.close
+        f = open(__BinFileDir__+'ftscq.asm', 'w+')
+        #f.write('00000000000000000000000000000011')
+        f.close()
     print('************************************************************')
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
                     __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
