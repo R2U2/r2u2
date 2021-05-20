@@ -105,8 +105,8 @@ def toBinary(value, width):
 def assemble(f):
 	binary = ""
 
-	max_at_width = int.bit_length(int(data['N_ATOMICS'])-1)
-	max_sig_width = int.bit_length(int(data['N_SIGS'])-1)
+	max_at_width = int(data['L_ATOMIC_ADDR'])
+	max_sig_width = int(data['L_SIG_ADDR'])
 	max_const_width = int(data['L_NUM'])
 
 	for line in f:
