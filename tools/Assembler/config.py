@@ -79,8 +79,8 @@ def check_updates(filename):
             return
 
 def gen_config(filename):
-    data['L_ATOMIC_ADDR'] = int.bit_length(int(data['N_ATOMICS']))
-    data['L_SIG_ADDR'] = int.bit_length(int(data['N_SIGS']))
+    data['L_ATOMIC_ADDR'] = int.bit_length(int(data['N_ATOMICS'])-1)
+    data['L_SIG_ADDR'] = int.bit_length(int(data['N_SIGS'])-1)
     data['L_INSTRUCTION'] = int(data['L_OPC']) + int(data['L_OP']) + \
                             int(data['L_OP']) + int(data['L_INTVL']) + \
                             int(data['L_SCRATCH'])
