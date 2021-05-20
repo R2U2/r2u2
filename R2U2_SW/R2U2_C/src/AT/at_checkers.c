@@ -11,12 +11,12 @@
 #ifndef CONFIG
 void AT_config(char *filename)
 {
-	parse_file(filename, P_AT);
+	parse_at_file(filename);
 }
 #else
 void AT_config(char *filename)
 {
-	parse_at(at_bin);
+	parse_at_bin(at_bin);
 }
 #endif
 

@@ -12,22 +12,22 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_file(ftm, P_FTM);
-    parse_file(fti, P_FTI);
-    parse_file(ftscq, P_SCQ);
+    parse_inst_ft_file(ftm);
+    parse_interval_ft_file(fti);
+    parse_scq_size_file(ftscq);
 
-    parse_file(ptm, P_PTM);
-    parse_file(pti, P_PTI);
+    parse_inst_pt_file(ptm);
+    parse_interval_pt_file(pti);
 }
 #else
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
-    parse_inst_ft(ftm_bin);
-    parse_interval_ft(fti_bin);
-    parse_scq_size(ftscq_bin);
+    parse_inst_ft_bin(ftm_bin);
+    parse_interval_ft_bin(fti_bin);
+    parse_scq_size_bin(ftscq_bin);
 
-    parse_inst_pt(ptm_bin);
-    parse_interval_pt(pti_bin);
+    parse_inst_pt_bin(ptm_bin);
+    parse_interval_pt_bin(pti_bin);
 }
 #endif
 

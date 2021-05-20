@@ -12,6 +12,8 @@ typedef unsigned int timestamp_t;
 //#define CONFIG
 //#define AT_DEBUG
 
+#define MAX_LINE 128
+
 //
 // Length of data for AT instructions
 //
