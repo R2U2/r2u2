@@ -19,10 +19,13 @@ __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 def main(args):
 
-    binary_dir = args.output_dir + 'binary_files/'
+    output_dir    = __AbsolutePath__ + args.output_dir
+    binary_dir    = __AbsolutePath__ + args.output_dir + 'binary_files/'
+    compiler_dir  = __AbsolutePath__ + args.compiler_dir
+    assembler_dir = __AbsolutePath__ + args.assembler_dir
 
-    if not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
 
     # Remove binary files directory, if it exists, and start fresh
     if os.path.isdir(binary_dir):
@@ -99,7 +102,7 @@ def main(args):
             else:
                 FT_str += "\n"
         #print(FT_str)
-        subprocess.run(['python3',  args.compiler_dir+'main.py', FT_str, 'ft',
+        subprocess.run(['python3',  compiler_dir+'main.py', FT_str, 'ft',
                         AT_str, binary_dir])
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
@@ -109,12 +112,12 @@ def main(args):
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', args.compiler_dir+'main.py', PT_str, 'pt',
+        subprocess.run(['python3', compiler_dir+'main.py', PT_str, 'pt',
                         AT_str, binary_dir])
     # Compile AT instructions
     if(len(AT) != 0):
         print('************************** AT ASM **************************')
-        subprocess.run(['python3', args.compiler_dir+'main.py', '', 'at',
+        subprocess.run(['python3', compiler_dir+'main.py', '', 'at',
                         AT_str, binary_dir])
 
     # Check to see if ft.asm exists
@@ -124,7 +127,7 @@ def main(args):
         f.write('s0: end sequence')
         f.close()
     if(not os.path.isfile(binary_dir+'ftscq.asm')):
-        f = open(__BinFileDir__+'ftscq.asm', 'w+')
+        f = open(binary_dir+'ftscq.asm', 'w+')
         f.write('0 0')
         f.close()
     # Check to see if pt.asm exists
@@ -140,23 +143,23 @@ def main(args):
         f.write(' ')
         f.close()
 
-    if not os.path.isdir(args.output_dir+'config_files/'):
-        os.mkdir(args.output_dir+'config_files/')
+    if not os.path.isdir(output_dir+'config_files/'):
+        os.mkdir(output_dir+'config_files/')
 
-    subprocess.run(['python3', args.assembler_dir+'main.py',
+    subprocess.run(['python3', assembler_dir+'main.py',
                     args.config_file,
                     args.header_file,
-                    args.output_dir+'config_files/R2U2Config.h',
+                    output_dir+'config_files/R2U2Config.h',
                     binary_dir+'pt.asm',
                     binary_dir+'ft.asm',
                     binary_dir+'ftscq.asm',
                     binary_dir+'at.asm',
                     str(TIMESTAMP_WIDTH),
-                    args.output_dir,
+                    output_dir,
                     str(args.no_binaries)])
     print('************************************************************')
-    print('Output files are located in the '+args.output_dir+' directory')
-    print('Use '+args.output_dir+'binary_files/ as input to r2u2')
+    print('Output files are located in the '+output_dir+' directory')
+    print('Use '+output_dir+'binary_files/ as input to r2u2')
     print('************************************************************')
 
 if __name__ == "__main__":

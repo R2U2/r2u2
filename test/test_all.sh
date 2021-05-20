@@ -1,7 +1,7 @@
 #!/bin/sh
 
-python3 TL_Formula/genFormulas.py -r
-python3 TL_Formula/genFormulas.py -m
+python3 TL_formula/genFormulas.py -r
+python3 TL_formula/genFormulas.py -m
 python3 Inputs/genInputs.py -r
 python3 Inputs/genInputs.py -m
 python3 Oracle/genOracle.py -r

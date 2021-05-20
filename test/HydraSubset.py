@@ -2,7 +2,7 @@
 # Author:      Pei Zhang(1st), Matt Cauwels(2nd)
 # Date:        April 12th, 2020
 # File Name:   HydraSubset.py
-# Description: A Python 3 script used to automatically run just the tests given to 
+# Description: A Python 3 script used to automatically run just the tests given to
 #               the Hydra team.
 #------------------------------------------------------------------------------------#
 import shutil
@@ -22,7 +22,7 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __toolsDir__     = __AbsolutePath__+'../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
-__BinDir__       = __toolsDir__+'binary_files/'
+__BinDir__       = __toolsDir__+'gen_files/binary_files/'
 
 
 # Names of the directories where the results for each version are stored
@@ -46,7 +46,7 @@ def list_file():
     formulaFiles,inputFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__TLDir__,__InputDir__)]
     # print('#MLTL file: '+str(len(formulaFiles))+'\n#Input case: '+str(len(inputFiles)))
     return formulaFiles,inputFiles
-    
+
 '''
 Method for testing the C version of R2U2.
 Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
@@ -60,7 +60,7 @@ def test_c(formulaFiles,inputFiles):
     for _formulaFile in formulaFiles:
         formula = open(__TLDir__+_formulaFile,'r').read()
         # print(formula)
-        # For each formula within 
+        # For each formula within
         subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
         form   = _formulaFile.replace('.mltl','')
         trace  = _input.replace('.csv','')
