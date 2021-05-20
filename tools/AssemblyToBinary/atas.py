@@ -19,13 +19,13 @@ def toBinary(value, width):
 	# Try for an integer (Chris)
 	try:
 		value = int(value)
-		
+
 		# Handle sign
 		if value < 0:
 			# Convert to 2's complement
 			value += 1
 			b = bin(value)[3:]
-	
+
 			# Flip bits
 			tmp = ''
 			for digit in b:
@@ -34,7 +34,7 @@ def toBinary(value, width):
 				else:
 					tmp += '0'
 			b = tmp
-	
+
 			# Pad with 1s
 			while len(b) < width:
 				b = '1' + b
@@ -48,13 +48,13 @@ def toBinary(value, width):
 			b = b[0:width]
 
 		return b
-	
+
 	# If not an integer, try float
 	except ValueError:
 		# Sources for Code:
 		# https://www.geeksforgeeks.org/python-program-to-convert-floating-to-binary/
 		# https://www.geeksforgeeks.org/ieee-standard-754-floating-point-numbers/
-		
+
 		# set up constants for widths
 		if(width == 32):
 			bias = 127
@@ -64,16 +64,16 @@ def toBinary(value, width):
 			bias = 1023
 			exp_width = 11
 			mantissa_width = 52
-			
+
 		value = float(value)
-		
+
 		# sign of the float
 		if(value < 0):
 			sign = '1'
 			value = value*-1
 		else:
 			sign = '0'
-			
+
 		# write in base 2 scientific notation
 		exp = 0
 		while(not( 1 <= value and value < 2)):
@@ -83,7 +83,7 @@ def toBinary(value, width):
 			elif(value >= 2):
 				value /= 2
 				exp += 1
-		
+
 		# put exp into binary
 		exp = bin(exp + bias)
 		exp = exp[2:len(exp)]
@@ -93,7 +93,7 @@ def toBinary(value, width):
 		# if too long, take most significant bits
 		if(len(exp) > exp_width):
 			exp = exp[0:exp_width]
-		
+
 		value -= 1
 		#approximate the fraction
 		mantissa = ''
@@ -110,7 +110,7 @@ def toBinary(value, width):
 				w, d = str(value).split('.')
 				mantissa += w
 				value = float(d)
-		
+
 		return sign+exp+mantissa
 
 def assemble(f):
@@ -138,7 +138,7 @@ def assemble(f):
 			binary += "0001"
 		elif filter == "int":
 			binary += "0010"
-		elif filter == "double":
+		elif filter == "float":
 			binary += "0011"
 		elif filter == "rate":
 			binary += "0100"

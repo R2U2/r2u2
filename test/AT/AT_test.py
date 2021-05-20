@@ -11,10 +11,10 @@ __PrepDir__      = __AbsolutePath__+'../../tools/'
 
 # col0: bool
 # col1: int
-# col2: double
+# col2: float
 # col3: abs_diff_angle
 # etc.
-filters = ['bool','int','double','abs_diff_angle','rate','movavg']
+filters = ['bool','int','float','abs_diff_angle','rate','movavg']
 avail_cond = ['<','<=','>','>=']
 cond = ['','','','','','']
 const = [0,0,0,0,0,0]
@@ -26,16 +26,16 @@ rate_tmp = 0.0
 # Generate values
 ###############################################################################
 
-def boolean():
+def gen_boolean():
     return random.randrange(2)
 
-def integer():
+def gen_integer():
     return random.randrange(-10000,10000)
 
-def double():
+def gen_float():
     return random.uniform(-10000,10000)
 
-def angle():
+def gen_angle():
     return random.randrange(-360, 360)
 
 def gen_values():
@@ -44,17 +44,17 @@ def gen_values():
 
     for filt in filters:
         if filt == 'bool':
-            values.append(boolean())
+            values.append(gen_boolean())
         elif filt == 'int':
-            values.append(integer())
-        elif filt == 'double':
-            values.append(double())
+            values.append(gen_integer())
+        elif filt == 'float':
+            values.append(gen_float())
         elif filt == 'abs_diff_angle':
-            values.append(angle())
+            values.append(gen_angle())
         elif filt == 'rate':
-            values.append(double())
+            values.append(gen_float())
         elif filt == 'movavg':
-            values.append(integer())
+            values.append(gen_integer())
 
     return values
 
@@ -71,31 +71,31 @@ def write_values(num_rows, filename):
 def gen_at_formula(filt):
     if filt == 'bool':
         cond[0] = random.choice(['==','!='])
-        const[0] = boolean()
-        return 'bool(0) ' + cond[0] + ' ' + str(const[0])
+        const[0] = gen_boolean()
+        return 'bool(s0) ' + cond[0] + ' ' + str(const[0])
     elif filt == 'int':
         cond[1] = random.choice(avail_cond)
-        const[1] = integer()
-        return 'int(1) ' + cond[1] + ' ' + str(const[1])
-    elif filt == 'double':
+        const[1] = gen_integer()
+        return 'int(s1) ' + cond[1] + ' ' + str(const[1])
+    elif filt == 'float':
         cond[2] = random.choice(avail_cond)
-        const[2] = integer()
-        return 'double(2) ' + cond[2] + ' ' + str(const[2])
+        const[2] = gen_integer()
+        return 'float(s2) ' + cond[2] + ' ' + str(const[2])
     elif filt == 'abs_diff_angle':
         cond[3] = random.choice(avail_cond)
-        const[3] = angle()
-        arg[3] = angle()
-        return 'abs_diff_angle(3,' + str(arg[3]) + ') ' + cond[3] + \
+        const[3] = gen_angle()
+        arg[3] = gen_angle()
+        return 'abs_diff_angle(s3,' + str(arg[3]) + ') ' + cond[3] + \
             ' ' + str(const[3])
     elif filt == 'rate':
         cond[4] = random.choice(avail_cond)
-        const[4] = integer()
-        return 'rate(4) ' + cond[4] + ' ' + str(const[4])
+        const[4] = gen_integer()
+        return 'rate(s4) ' + cond[4] + ' ' + str(const[4])
     elif filt == 'movavg':
         cond[5] = random.choice(avail_cond)
-        const[5] = integer()
-        arg[5] = integer()
-        return 'movavg(5,' + str(arg[5]) + ') ' + cond[5] + \
+        const[5] = gen_integer()
+        arg[5] = gen_integer()
+        return 'movavg(s5,' + str(arg[5]) + ') ' + cond[5] + \
             ' ' + str(const[5])
 
     return ''
@@ -160,13 +160,13 @@ def check_int(log, sig, bool):
 
     return result
 
-def check_double(log, sig, bool):
+def check_float(log, sig, bool):
     sig = float(sig)
     bool = int(bool)
 
     result = compare(sig, bool, const[2], cond[2])
 
-    s = 'DOUBLE: (' + str(sig) + ' ' + cond[2] + ' ' + str(const[2]) + ') == ' + \
+    s = 'float: (' + str(sig) + ' ' + cond[2] + ' ' + str(const[2]) + ') == ' + \
         str(bool) + ' -> ' + str(result) + '\n'
     log.write(s)
 
@@ -243,8 +243,8 @@ def compare_output(testlog_filename, sig_filename, bool_filename):
                 print('BOOL: Failed at time step ' + str(row))
             if not check_int(log, sigs[row][1], bools[row][1]):
                 print('INT: Failed at time step ' + str(row))
-            if not check_double(log, sigs[row][2], bools[row][2]):
-                print('DOUBLE: Failed at time step ' + str(row))
+            if not check_float(log, sigs[row][2], bools[row][2]):
+                print('float: Failed at time step ' + str(row))
             if not check_abs_diff_angle(log, sigs[row][3], bools[row][3]):
                 print('ABS_DIFF_ANGLE: Failed at time step ' + str(row))
             if not check_rate(log, sigs[row][4], bools[row][4]):
