@@ -7,10 +7,11 @@ def main():
     MLTL = sys.argv[1]
     FTorPTorAT = sys.argv[2]
     at = sys.argv[3]
+    bin_dir = sys.argv[4]
     if FTorPTorAT == 'at':
-        AT(at)
+        AT(at, bin_dir)
     else:
-        Postgraph(MLTL,FTorPTorAT,at,optimize_cse=True)
+        Postgraph(MLTL,FTorPTorAT,at,bin_dir,optimize_cse=True)
 
 if __name__ == "__main__":
     main()

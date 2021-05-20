@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #------------------------------------------------------------------------------#
-# Author:      Matt Cauwels
+# Author:      Matt Cauwels, Chris Johannsen
 # Date:        April 29th, 2020
 # File Name:   r2u2prep.py
 # Description:
@@ -16,23 +16,25 @@ import argparse
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__CompilerDir__  = __AbsolutePath__     + 'Compiler/'
-__BinGenDir__    = __AbsolutePath__     + 'AssemblyToBinary/'
-__BinFileDir__   = __AbsolutePath__     + 'binary_files/'
 
-def main(mltl, config):
+def main(args):
 
-    # Remove 'binary_files' directory, if it exists, and start fresh
-    if(os.path.isdir(__BinFileDir__)):
-        shutil.rmtree(__BinFileDir__)
+    binary_dir = args.output_dir + 'binary_files/'
 
-    # If the arguement is a valid file,
-    if(os.path.isfile(__AbsolutePath__ + mltl)):
-        MLTL = open(mltl,'r').read()
-    elif(os.path.isfile(mltl)):
-        MLTL = open(mltl,'r').read()
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
+
+    # Remove binary files directory, if it exists, and start fresh
+    if os.path.isdir(binary_dir):
+        shutil.rmtree(binary_dir)
+
+    # If the argument is a valid file,
+    #if(os.path.isfile(__AbsolutePath__ + mltl)):
+    #    MLTL = open(args.mltl,'r').read()
+    if(os.path.isfile(args.mltl)):
+        MLTL = open(args.mltl,'r').read()
     else:
-        MLTL = mltl
+        MLTL = args.mltl
 
     FT = {}
     PT = {}
@@ -97,7 +99,8 @@ def main(mltl, config):
             else:
                 FT_str += "\n"
         #print(FT_str)
-        subprocess.run(['python3', __CompilerDir__+'main.py', FT_str, 'ft', AT_str])
+        subprocess.run(['python3',  args.compiler_dir+'main.py', FT_str, 'ft',
+                        AT_str, binary_dir])
     if(len(PT) != 0):
         print('************************** PT ASM **************************')
         PT_str = ""
@@ -106,16 +109,19 @@ def main(mltl, config):
                 PT_str += PT[i]
             else:
                 PT_str += "\n"
-        subprocess.run(['python3', __CompilerDir__+'main.py', PT_str, 'pt', AT_str])
+        subprocess.run(['python3', args.compiler_dir+'main.py', PT_str, 'pt',
+                        AT_str, binary_dir])
     # Compile AT instructions
     if(len(AT) != 0):
-        print('************************************************************')
-        subprocess.run(['python3', __CompilerDir__+'main.py', '', 'at', AT_str])
+        print('************************** AT ASM **************************')
+        subprocess.run(['python3', args.compiler_dir+'main.py', '', 'at',
+                        AT_str, binary_dir])
 
+    print('************************************************************')
     # Check to see if ft.asm exists
-    if(not os.path.isfile(__BinFileDir__+'ft.asm')):
+    if(not os.path.isfile(binary_dir+'ft.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
-        f = open(__BinFileDir__+'ft.asm','w+')
+        f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
         f = open(__BinFileDir__+'ftscq.asm', 'w+')
@@ -125,9 +131,9 @@ def main(mltl, config):
     subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
                     __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
     # Check to see if pt.asm exists
-    if(not os.path.isfile(__BinFileDir__+'pt.asm')):
+    if(not os.path.isfile(binary_dir+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
-        f = open(__BinFileDir__+'pt.asm','w+')
+        f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
         f.close()
     print('************************************************************')
@@ -137,22 +143,45 @@ def main(mltl, config):
     # Check to see if at.asm exists
     if(not os.path.isfile(__BinFileDir__+'at.asm')):
         # If it doesn't, make a blank assembly
-        f = open(__BinFileDir__+'at.asm','w+')
+        f = open(binary_dir+'at.asm','w+')
         f.write(' ')
         f.close()
-    subprocess.run(['python3', __BinGenDir__+'atas.py', __BinFileDir__+'at.asm',
-                    str(config)])
 
+    if not os.path.isdir(args.output_dir+'config_files/'):
+        os.mkdir(args.output_dir+'config_files/')
+
+    subprocess.run(['python3', args.assembler_dir+'main.py',
+                    args.config_file,
+                    args.header_file,
+                    args.output_dir+'config_files/R2U2Config.h',
+                    binary_dir+'pt.asm',
+                    binary_dir+'ft.asm',
+                    binary_dir+'ftscq.asm',
+                    binary_dir+'at.asm',
+                    str(TIMESTAMP_WIDTH),
+                    args.output_dir,
+                    str(args.no_binaries)])
     print('************************************************************')
-    print('Generated files are located in the '+__BinFileDir__+' directory')
-    if config:
-        print('Move binary_files/config.c to src/binParser directory')
+    print('Output files are located in the '+args.output_dir+' directory')
+    print('Use '+args.output_dir+'binary_files/ as input to r2u2')
     print('************************************************************')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("mltl", help="filename where mltl formula are stored or literal mltl formula")
-    parser.add_argument("-c", "--config", help="generate config.c file in place of binaries",
-                        action="store_true")
+    parser.add_argument("mltl",
+                        help="file where mltl formula are stored or literal mltl formula")
+    parser.add_argument("--config-file", default='r2u2.conf',
+                        help="path to configuration file")
+    parser.add_argument("--header-file",
+                        default='gen_files/config_files/R2U2Config.h',
+                        help="path to configuration header file, uses this file to detect if recompilation is needed")
+    parser.add_argument("--output-dir", default='gen_files/',
+                        help="location where files will be generated")
+    parser.add_argument("--compiler-dir", default='Compiler/',
+                        help="location where compiler programs will be called from")
+    parser.add_argument("--assembler-dir", default='Assembler/',
+                        help="location where assembly and configuration programs will be called from")
+    parser.add_argument("--no-binaries", action="store_true",
+                        help="generate config.c file in place of binaries")
     args = parser.parse_args()
-    main(args.mltl, args.config)
+    main(args)

@@ -17,17 +17,13 @@
 import os
 import re
 
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__DirBinaryPath__ = __AbsolutePath__ + '../binary_files/'
-
 class AT:
 
-    def __init__(self, AT):
+    def __init__(self, AT, bin_dir):
         self.status = 'pass'
         self.instructions = {}
-        print('Compile atomic checker')
         self.parse(AT)
-        self.gen_assembly()
+        self.gen_assembly(bin_dir)
 
     def tokenize(self, line):
         # Take line and return a list of tuples which store each token's
@@ -144,14 +140,14 @@ class AT:
 
             self.instructions[atom] = instr
 
-    def gen_assembly(self):
+    def gen_assembly(self, bin_dir):
         s = ''
         for atom, instr in self.instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' ' \
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' '\
                 + instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
-
-        at_asm = __DirBinaryPath__ + 'at.asm'
+        print(s)
+        at_asm = bin_dir + 'at.asm'
         if os.path.isfile(at_asm):
             with open(at_asm, 'a') as f:
                 f.write(s)
