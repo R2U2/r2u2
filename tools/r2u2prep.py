@@ -117,31 +117,24 @@ def main(args):
         subprocess.run(['python3', args.compiler_dir+'main.py', '', 'at',
                         AT_str, binary_dir])
 
-    print('************************************************************')
     # Check to see if ft.asm exists
     if(not os.path.isfile(binary_dir+'ft.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
         f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
         f.close()
+    if(not os.path.isfile(binary_dir+'ftscq.asm')):
         f = open(__BinFileDir__+'ftscq.asm', 'w+')
         f.write('0 0')
         f.close()
-    print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ftas.py', __BinFileDir__+'ft.asm',
-                    __BinFileDir__+'ftscq.asm', str(TIMESTAMP_WIDTH), str(config)])
     # Check to see if pt.asm exists
     if(not os.path.isfile(binary_dir+'pt.asm')):
         # If it doesn't, make a blank assembly that is just an end sequence
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
         f.close()
-    print('************************************************************')
-    subprocess.run(['python3', __BinGenDir__+'ptas.py', __BinFileDir__+'pt.asm',
-                    str( TIMESTAMP_WIDTH), str(config)])
-    print('************************************************************')
     # Check to see if at.asm exists
-    if(not os.path.isfile(__BinFileDir__+'at.asm')):
+    if(not os.path.isfile(binary_dir+'at.asm')):
         # If it doesn't, make a blank assembly
         f = open(binary_dir+'at.asm','w+')
         f.write(' ')

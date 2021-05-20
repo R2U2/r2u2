@@ -20,7 +20,8 @@ data = {'N_SIGS'         : 256,
         'L_SCQ_ADDRESS'  : 16,
         'L_DOT_BUFFER'   : 64,
         'N_PT_QUEUES'    : 128,
-        'TL_INF'         : 32767*32767}
+        'TL_INF'         : 32767*32767,
+        'MAX_LINE'       : 128}
 
 def parse_config(filename):
     try:
