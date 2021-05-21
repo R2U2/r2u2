@@ -1,3 +1,4 @@
 SPEC1: G[5]atom&a3;
-H[5]a5;
-atom := float(s5) > 6;
+H[5]unmapped&atom2;
+atom := float(signal) > 6;
+atom2 := int(s4) < 5;

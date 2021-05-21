@@ -96,10 +96,8 @@ def main(args):
         f.close()
         print('s0: end sequence')
 
-    if mltl_compiler.status:
-        assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
-                    str(TIMESTAMP_WIDTH), args.output_dir,
-                    str(args.no_binaries))
+    if not mltl_compiler.status:
+        print('Error compiling FT')
 
     print('************************** PT ASM **************************')
 
@@ -111,16 +109,24 @@ def main(args):
         f.close()
         print('s0: end sequence')
 
-    if mltl_compiler.status:
-        assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
-                    str(args.no_binaries))
+    if not mltl_compiler.status:
+        print('Error compiling PT')
 
     print('************************** AT ASM **************************')
 
     mltl_compiler.at_compile(AT, 'at.asm', 'alias.txt')
 
-    if mltl_compiler.status:
-        assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
+    if not mltl_compiler.status:
+        print('Error compiling AT')
+
+    assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
+                str(TIMESTAMP_WIDTH), args.output_dir,
+                str(args.no_binaries))
+
+    assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
+                str(args.no_binaries))
+
+    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
 
     print('************************************************************')
 

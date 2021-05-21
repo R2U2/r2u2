@@ -4,7 +4,8 @@ from .AST import *
 
 class Visitor(MLTLVisitor):
 
-    def __init__(self):
+    def __init__(self, atomics_index_offset=0):
+        self.atomics_index_offset = atomics_index_offset
         self.ref_atomics = []
         self.mapped_atomics = []
         self.signals = []
@@ -179,7 +180,7 @@ class Visitor(MLTLVisitor):
         identifier = str(ctx.Identifier())
         if identifier not in self.ref_atomics:
             self.ref_atomics.append(identifier)
-        return ATOM(str(ctx.Identifier()))
+        return ATOM('a'+str(self.atomics_index_offset+len(self.ref_atomics)-1))
 
     # Visit a parse tree produced by MLTLParser#binding.
     def visitBinding(self, ctx:MLTLParser.BindingContext):

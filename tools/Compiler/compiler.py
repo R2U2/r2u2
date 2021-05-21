@@ -32,7 +32,7 @@ class Compiler():
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         parse_tree = parser.program()
-        visitor = Visitor()
+        visitor = Visitor(atomics_index_offset=len(self.ref_atomics))
         visitor.visit(parse_tree)
         return visitor
 
@@ -62,7 +62,7 @@ class Compiler():
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(self.Hp)
         self.mltl_gen_assembly(asm_filename)
-        self.gen_alias_file(self.labels, alias_filename)
+        self.gen_alias_file_labels(alias_filename)
 
 
     def at_compile(self, at, asm_filename, alias_filename):
@@ -77,7 +77,7 @@ class Compiler():
 
         self.at_gen_assembly(visitor.at_instr, asm_filename)
 
-        self.gen_alias_file(self.labels, alias_filename, True)
+        self.gen_alias_file_sigs(alias_filename)
 
 
     # Common subexpression elimination the AST
@@ -258,17 +258,34 @@ class Compiler():
     def at_gen_assembly(self, instructions, filename):
         s = ''
         for atom, instr in instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + instr[2] + ' '\
-                + instr[3] + ' ' + instr[4] + '\n'
+            if atom in self.ref_atomics:
+                a = 'a' + str(self.ref_atomics.index(atom))
+                sig = 's' + str(self.signals.index(instr[1]))
+                s += a + ': ' + instr[0] + ' ' + sig + ' ' + instr[2] + \
+                        ' ' + instr[3] + ' ' + instr[4] + '\n'
+            else:
+                print('WARNING: Atom ' + atom + ' not referenced in MLTL, ignoring')
 
-        unmapped_atomics = []
+        # Two possibilities for unmapped atomics:
+        #   1) in the form a\d+: map to signal in index \d+ and treat signal as
+        #   a boolean. NOTE: this signal index is potentially arbitrary
+        #   2) in the form of any valid identifier: assume identifier
+        #   references a signal and map the atom to that signal and treat is as
+        #   a boolean. Add new identifier to self.signals list
         for atom in self.ref_atomics:
             if atom not in self.mapped_atomics:
-                unmapped_atomics.append(atom)
+                # Case 1
+                if not re.search('a\d+', atom) is None:
+                    num = re.search('\d+', atom).group()
+                    s += 'a' + str(self.ref_atomics.index(atom)) + ': bool s' +\
+                            num + ' 0 == 1\n'
+                # Case 2
+                else:
+                    atom_index = str(self.ref_atomics.index(atom))
+                    s += 'a' + atom_index + ': bool s' + str(len(self.signals))\
+                            + ' 0 == 1\n'
+                    self.signals.append(atom)
 
-        for atom in unmapped_atomics:
-            num = re.search('\d+', atom).group()
-            s += atom + ': bool s' + num + ' 0 == 1\n'
         s = s[:len(s)-1] # remove last newline
 
         if self.echo:
@@ -277,15 +294,21 @@ class Compiler():
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
 
-    def gen_alias_file(self, aliases, filename, signals=False):
-        # Extra newline separates formula labels from signal aliases
-        if signals:
-            s = '\n'
-        else:
-            s = ''
+    def gen_alias_file_labels(self, filename):
+        s = ''
 
-        for alias in aliases:
-            s += alias + '\n'
+        for label in self.labels:
+            s += label + '\n'
+
+        with open(self.output_path+filename, 'a') as f:
+            f.write(s)
+
+    def gen_alias_file_sigs(self, filename):
+        # Extra newline separates formula labels from signal aliases
+        s = '\n'
+
+        for i in range(len(self.signals)):
+            s += self.signals[i] + ' ' + str(i) + '\n'
 
         with open(self.output_path+filename, 'a') as f:
             f.write(s)

@@ -29,7 +29,7 @@ def parse_config(filename):
         with open(filename, 'r') as f:
             s = f.read()
     except FileNotFoundError:
-        print('Warning: Could not open configuration file, using default values')
+        print('WARNING: Could not open configuration file, using default values')
         return
     #split input text into lines
     lines = s.splitlines()
