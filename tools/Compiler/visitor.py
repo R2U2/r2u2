@@ -38,7 +38,7 @@ class Visitor(MLTLVisitor):
             lineno = ctx.start.line
             if not ctx.Identifier() is None:
                 self.labels.append(ctx.Identifier().getText())
-            return STATEMENT(expr, lineno)
+            return STATEMENT(expr, lineno-1)
         if not ctx.binding() is None:
             binding = self.visit(ctx.binding())
 
