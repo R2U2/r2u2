@@ -15,7 +15,7 @@ def toBinary(value, width):
 		b = "0" + b
 
 	if len(b) > width:
-		print(value, "Error: does not fit into", width, "bits")
+		print(value, "ERROR: does not fit into", width, "bits")
 		b = b[0:width]
 
 	return b
@@ -37,7 +37,7 @@ def parseOperand(op):
 		elif o == "s":	# subformula
 			c = c + "10"
 		else:
-			print("Error in specifying input type, did you use any weird atomic names?", i)
+			print("ERROR: specifying input type, did you use any weird atomic names?", i)
 
 		c = c + toBinary(int(op[1:]), 8)
 	return c
@@ -161,7 +161,7 @@ def assemble(f, s, timestamp_width):
 				toBinary(op[4], timestamp_width) + "\\n"
 		# Else, it is not a valid operation.
 		else:
-			print("Error in line", i, "(", op, ")")
+			print("ERROR: line ", i, "(", op, ")")
 			continue
 
 		opcode += "\\n"
@@ -182,6 +182,8 @@ char *ftm_bin = "
 """.strip()
 
 def assemble_ft(ftasm, ftscqasm, ts_ext, gen_dir, no_binaries):
+	print('Assembling FT')
+
 	f = open(ftasm, 'r')
 	if not os.path.isfile(ftscqasm):
 		s = ""

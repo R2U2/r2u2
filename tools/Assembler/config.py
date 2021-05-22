@@ -21,8 +21,8 @@ data = {'N_SIGS'         : 256,
         'L_DOT_BUFFER'   : 64,
         'N_PT_QUEUES'    : 128,
         'TL_INF'         : 32767*32767,
-        'L_ATOMIC'       : 16,
-        'L_SIGNAL'       : 16}
+        'L_VARIABLE'     : 8,
+        'N_FORMULAS'     : 64}
 
 def parse_config(filename):
     try:
@@ -99,7 +99,8 @@ def gen_config(filename, atomics, signals):
         header += '#define ' + key + ' ' + str(val) + '\n'
     header += 'typedef double r2u2_input_data_t;\n' + \
               'typedef unsigned int timestamp_t;\n' + \
-              'typedef char[N_ATOMICS][L_VARIABLE] symbol_table;\n' + \
+              'typedef char[N_SIGS*L_VARIABLE] signal_names;\n' + \
+              'typedef char[N_FORMULAS*L_VARIABLE] formula_names;\n' + \
               '\n#endif'
 
     with open(filename, 'w') as f:

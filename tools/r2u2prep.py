@@ -96,9 +96,6 @@ def main(args):
         f.close()
         print('s0: end sequence')
 
-    if not mltl_compiler.status:
-        print('Error compiling FT')
-
     print('************************** PT ASM **************************')
 
     if not PT == '':
@@ -109,15 +106,26 @@ def main(args):
         f.close()
         print('s0: end sequence')
 
-    if not mltl_compiler.status:
-        print('Error compiling PT')
-
     print('************************** AT ASM **************************')
 
     mltl_compiler.at_compile(AT, 'at.asm', 'alias.txt')
 
+    print('************************************************************')
+
     if not mltl_compiler.status:
-        print('Error compiling AT')
+        print('Error in compilation of MLTL or AT')
+        return
+
+    if not os.path.isdir(args.output_dir+'config_files/'):
+        os.mkdir(args.output_dir+'config_files/')
+
+    print('Generating configuration files')
+    parse_config(args.config_file)
+    check_updates(args.header_file)
+    gen_config(args.output_dir+'config_files/R2U2Config.h',
+        mltl_compiler.ref_atomics, mltl_compiler.signals)
+
+    print('************************************************************')
 
     assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
                 str(TIMESTAMP_WIDTH), args.output_dir,
@@ -128,16 +136,6 @@ def main(args):
 
     assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
 
-    print('************************************************************')
-
-    if not os.path.isdir(args.output_dir+'config_files/'):
-        os.mkdir(args.output_dir+'config_files/')
-
-    print('Generating configuration files')
-    parse_config(args.config_file)
-    check_updates(args.header_file)
-    gen_config(args.output_dir+'config_files/R2U2Config.h',
-        mltl_compiler.ref_atomics, mltl_compiler.signals)
 
     print('************************************************************')
     print('Output files are located in the '+args.output_dir+' directory')
