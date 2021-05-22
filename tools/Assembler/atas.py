@@ -2,7 +2,7 @@ import sys
 import os
 import re
 
-from config import data
+from .config import data
 
 def toBinary(value, width):
 	# Try for an integer (Chris)
@@ -123,7 +123,7 @@ def assemble(f):
 		comp   = instr[5]
 
 		if atomic is None:
-			print("Error: atomic not valid in instruction " + line)
+			print("ERROR: atomic not valid in instruction " + line)
 			binary += "00000000"
 		else:
 			binary += toBinary(atomic, max_at_width)
@@ -141,7 +141,7 @@ def assemble(f):
 		elif filter == "movavg":
 			binary += "0110"
 		else:
-			print("Error: filter is not valid in instruction " + line)
+			print("ERROR: filter is not valid in instruction " + line)
 			binary += "0000"
 
 		binary += toBinary(signal, max_sig_width)
@@ -160,7 +160,7 @@ def assemble(f):
 		elif cond == ">=":
 			binary += "101"
 		else:
-			print("Error: comparison operator is not valid in instruction " + line)
+			print("ERROR: comparison operator is not valid in instruction " + line)
 			binary += "111"
 
 		# Check if comparing to signal value or constant
@@ -196,6 +196,7 @@ char *at_bin = "
 """.strip()
 
 def assemble_at(atasm, gen_dir, no_binaries):
+	print('Assembling AT')
 	f = open(atasm, 'r')
 	bin_dir = gen_dir+'binary_files/'
 	if(not os.path.isdir(bin_dir)):

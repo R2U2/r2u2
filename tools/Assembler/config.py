@@ -21,14 +21,16 @@ data = {'N_SIGS'         : 256,
         'L_DOT_BUFFER'   : 64,
         'N_PT_QUEUES'    : 128,
         'TL_INF'         : 32767*32767,
-        'MAX_LINE'       : 128}
+        'MAX_LINE'       : 128,
+        'L_VARIABLE'     : 8,
+        'N_FORMULAS'     : 64}
 
 def parse_config(filename):
     try:
-        with open(sys.argv[1], 'r') as f:
+        with open(filename, 'r') as f:
             s = f.read()
     except FileNotFoundError:
-        print('Warning: Could not open configuration file, using default values')
+        print('WARNING: Could not open configuration file, using default values')
         return
     #split input text into lines
     lines = s.splitlines()
@@ -56,7 +58,7 @@ def parse_config(filename):
 
 def check_updates(filename):
     try:
-        with open(sys.argv[2], 'r') as f:
+        with open(filename, 'r') as f:
             s = f.read()
     except FileNotFoundError:
         print('NOTE: R2U2Config.h file has been generated, recompilation is needed')
@@ -93,12 +95,14 @@ def gen_config(filename):
     data['N_SUBFORMULA_SNYC_QUEUES'] = data['N_INSTRUCTIONS']
 
     header = '#ifndef R2U2_CONFIG_H\n' + \
-             '#define R2U2_CONFIG_H\n\n' + \
-             "typedef double r2u2_input_data_t;\n" + \
-             "typedef unsigned int timestamp_t;\n\n"
+             '#define R2U2_CONFIG_H\n\n'
     for key, val in data.items():
         header += '#define ' + key + ' ' + str(val) + '\n'
-    header += '\n#endif'
+    header += 'typedef double r2u2_input_data_t;\n' + \
+              'typedef unsigned int timestamp_t;\n' + \
+              'typedef char signal_names[N_SIGS*L_VARIABLE];\n' + \
+              'typedef char formula_names[N_FORMULAS*L_VARIABLE];\n' + \
+              '\n#endif'
 
     with open(filename, 'w') as f:
         f.write(header)

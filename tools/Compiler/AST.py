@@ -1,13 +1,13 @@
 ## Description: Double linked observer syntax tree
 ## Author: Pei Zhang
 class AST_node():
-    cnt2node = {}
+    ast = {}
     node_cnt = 0
 
     def __init__(self):
         self.child = []
         self.pre = None
-        AST_node.cnt2node[AST_node.node_cnt] = self
+        AST_node.ast[AST_node.node_cnt] = self
         AST_node.node_cnt += 1
 
     def add(self, node):
@@ -18,8 +18,8 @@ class AST_node():
 
     @staticmethod
     def reset():
-        cnt2node = {}
-        node_cnt = 0
+        AST_node.ast = {}
+        AST_node.node_cnt = 0
 
   # var alias to left and right
     @property

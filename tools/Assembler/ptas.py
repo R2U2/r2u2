@@ -52,7 +52,7 @@ def toBinary(value, width):
         b = "0" + b
 
     if len(b) > width:
-        print(value, "Error: does not fit into", width, "bits")
+        print(value, "ERROR: does not fit into", width, "bits")
         b = b[0:width]
 
     return b
@@ -76,7 +76,7 @@ def parseOperand(op):
         elif o == "s":    # subformula
             c = c + "10"
         else:
-            print("Error in specifying input type, did you use any weird atomic names?", i)
+            print("ERROR: specifying input type, did you use any weird atomic names?", i)
 
         c = c + toBinary(int(op[1:]), 8)
     return c
@@ -243,7 +243,7 @@ def assemble(f, timestamp_width):
             continue
         # Else, it is not a valid operation.
         else:
-            print("Error in line", i, "(", op, ")")
+            print("ERROR: line ", i, "(", op, ")")
             continue
 
         opcode += "\\n"
@@ -253,22 +253,24 @@ def assemble(f, timestamp_width):
 prog_text = "char *ptm_bin = \""
 
 def assemble_pt(ptasm, ts_ext, gen_dir, no_binaries):
-	f = open(ptasm, 'r')
-	timestamp_width = 8 * int(ts_ext)
-	bin_dir = gen_dir+'binary_files/'
-	if(not os.path.isdir(bin_dir)):
-		os.mkdir(bin_dir)
-	opcode, ts = assemble(f, timestamp_width)
-	f.close()
+    print('Assembling PT')
 
-	if no_binaries == 'True':
-		global prog_text
-		prog_text += opcode + "\";\n"
-		prog_text += "char *pti_bin = \"" + ts + "\";\n"
-		with open(gen_dir+'config.c', 'a') as c:
-			c.write(prog_text)
-	else:
-		with open(bin_dir+'ptm.bin', 'w') as ptm:
-			ptm.write(opcode.replace('\\n','\n'))
-		with open(bin_dir+'pti.bin', 'w') as pti:
-			pti.write(ts.replace('\\n','\n'))
+    f = open(ptasm, 'r')
+    timestamp_width = 8 * int(ts_ext)
+    bin_dir = gen_dir+'binary_files/'
+    if(not os.path.isdir(bin_dir)):
+        os.mkdir(bin_dir)
+    opcode, ts = assemble(f, timestamp_width)
+    f.close()
+
+    if no_binaries == 'True':
+        global prog_text
+        prog_text += opcode + "\";\n"
+        prog_text += "char *pti_bin = \"" + ts + "\";\n"
+        with open(gen_dir+'config.c', 'a') as c:
+            c.write(prog_text)
+    else:
+        with open(bin_dir+'ptm.bin', 'w') as ptm:
+            ptm.write(opcode.replace('\\n','\n'))
+        with open(bin_dir+'pti.bin', 'w') as pti:
+            pti.write(ts.replace('\\n','\n'))

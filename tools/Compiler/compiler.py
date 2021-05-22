@@ -1,93 +1,99 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
 ## Author: Pei Zhang
-# from .MLTLparse import *
-# from .Observer import *
-from . import MLTLparse
-# from . import Observer
-from .Observer import *
+from antlr4 import *
+from .MLTLLexer import MLTLLexer
+from .MLTLParser import MLTLParser
+from .visitor import Visitor
+from .AST import *
 import os
 import re
 
 asmFileName = ""
-class Postgraph():
-    def __init__(self, MLTL, FTorPT, AT, output_path, optimize_cse=True, Hp=0):
-        self.asm_filename = FTorPT
+class Compiler():
+
+    def __init__(self, FT, PT, AT, output_path, optimize_cse=True, Hp=0,
+                 echo=True):
+        self.optimize = optimize_cse
         self.output_path = output_path
-        # Check to see if the '../binary_files' directory exists; if not make, the file
+        self.Hp = Hp
+        self.ref_atomics = []
+        self.mapped_atomics = []
+        self.signals = []
+        self.sig_indices = []
+        self.labels = []
+        self.status = True
+        self.echo = echo
+        # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
-        # Observer.Observer.line_cnt = 0 # clear var for multiple runs
+
+
+    def parse(self, input):
+        lexer = MLTLLexer(InputStream(input))
+        stream = CommonTokenStream(lexer)
+        parser = MLTLParser(stream)
+        parse_tree = parser.program()
+        visitor = Visitor(atomics_index_offset=len(self.ref_atomics))
+        visitor.visit(parse_tree)
+        return visitor
+
+
+    def mltl_compile(self, mltl, asm_filename, alias_filename):
         AST_node.reset()
         Observer.reset()
-        # MLTLparse.cnt2node.clear() # clear var for multiple runs
-        # MLTLparse.operator_cnt = 0 # clear var for multiple runs
-        MLTLparse.parser.parse(MLTL)
 
-        # check that all used atomics are properly mapped
-        self.check_atomics(AT.split(';'))
+        # Parse the input and generate AST
+        visitor = self.parse(mltl)
+
+        if not visitor.status:
+            print('ERROR: issue parsing MLTL')
+            self.status = False
+            return
+
+        for atom in visitor.ref_atomics:
+            if not atom in self.ref_atomics:
+                self.ref_atomics.append(atom)
+
+        self.labels = visitor.labels
 
         self.asm = ""
-        if (MLTLparse.status=='syntax_err'):
-            MLTLparse.status='pass'
-            self.status = 'syntax_err'
-            self.cnt2node = {}
-            self.valid_node_set = []
-            self.asm = ''
-            return
-        else:
-            self.status = 'pass'
-            self.atomic_names = MLTLparse.atomic_names
-        # self.cnt2node = MLTLparse.cnt2node
-        self.cnt2node = Observer.cnt2node
-        # self.top = self.cnt2node[len(self.cnt2node)-1]
-        self.top = self.cnt2node[0]
-        if(optimize_cse):
+        self.ast = AST_node.ast
+        self.top = self.ast[0]
+        if(self.optimize):
             self.optimize_cse()
         self.valid_node_set = self.sort_node()
-        self.queue_size_assign(Hp)
-        self.gen_assembly()
+        self.queue_size_assign(self.Hp)
+        self.mltl_gen_assembly(asm_filename)
+        self.gen_alias_file_labels(alias_filename)
 
-    # Check that all atomics are mapped_atomics
-    # If any are not, default them to boolean equal to 1
-    # Signal read is equal to value of atomic name
-    # i.e. a5 will read from signal 5
-    # TODO: this is VERY sloppy, since compilation of AT, PT, and FT are
-    # all done separately. Should find better way of doing this.
-    def check_atomics(self, input):
-        mapped_atomics = []
-        unmapped_atomics = []
 
-        for line in input:
-            if re.fullmatch('\s*', line):
-                break
-            m = re.search('a\d+\s*(?=:=)', line)
-            if m is None:
-                print('Error: invalid atomic name in mapping ' + line)
-                break
-            mapped_atomics.append(m.group().strip())
+    def at_compile(self, at, asm_filename, alias_filename):
+        # Parse the input and generate AST
+        visitor = self.parse(at)
 
-        for atom in MLTLparse.atomic_names:
-            if atom not in mapped_atomics:
-                unmapped_atomics.append(atom)
+        if not visitor.status:
+            print('ERROR: issue parsing AT')
+            self.status = False
+            return
 
-        instructions = ''
-        for atom in unmapped_atomics:
-            num = re.search('\d+', atom).group()
-            instructions += atom + ': bool s' + num + ' 0 == 1\n'
+        for atom in visitor.mapped_atomics:
+            self.mapped_atomics.append(atom)
 
-        at_asm = self.output_path + 'at.asm'
-        if os.path.isfile(at_asm):
-            with open(at_asm, 'a') as f:
-                f.write(instructions)
-        else:
-            with open(at_asm, 'w') as f:
-                f.write(instructions)
+        for signal in visitor.signals:
+            self.signals.append(signal)
 
-    ###############################################################
+        for i in visitor.direct_sig_indices:
+            self.sig_indices.append(i)
+
+        self.at_gen_assembly(visitor.at_instr, asm_filename)
+
+        self.gen_alias_file_sigs(alias_filename)
+
+
     # Common subexpression elimination the AST
     def optimize_cse(self):
         # Map preorder traverse to observer node, use '(' and ')' to represent boundry
-        if(len(self.cnt2node)==0):
+        if(len(self.ast)==0):
             return
         def preorder(root,m):
             if(root==None):
@@ -126,10 +132,10 @@ class Postgraph():
     ###############################################################
     # Topological sort the node sequence, the sequence is stored in stack
     def sort_node(self):
-        if(len(self.cnt2node)==0):
+        if(len(self.ast)==0):
             return []
-        # top = self.cnt2node[len(self.cnt2node)-1]
-        top = self.cnt2node[0]
+        # top = self.ast[len(self.ast)-1]
+        top = self.ast[0]
         # collect used node from the tree
         def checkTree(root, graph):
             if(root==None or root.type=='BOOL'):
@@ -229,17 +235,18 @@ class Postgraph():
                     ed_pos = st_pos+n.scq_size
                     pos = ed_pos
                     s += str(st_pos) + ' ' + str(ed_pos) + '\n'
-            if(self.asm_filename == "ft"):
-                with open(self.output_path+'ftscq.asm',"w+") as f:
-                    f.write(s)
+            #if(self.asm_filename == "ft"):
+            with open(self.output_path+'ftscq.asm',"w+") as f:
+                f.write(s)
 
         compute_propagation_delay()
         compute_scq_size()
         generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
         return get_total_size()
 
+
     # Generate assembly code
-    def gen_assembly(self):
+    def mltl_gen_assembly(self, filename):
         stack = self.valid_node_set[:]
         stack.reverse()
         s=""
@@ -248,10 +255,93 @@ class Postgraph():
         for node in stack:
             if (not (isinstance(node, Observer) or isinstance(node, STATEMENT))): # statement is used to generate the end command
                 continue
-            #print(node)
             s = node.gen_assembly(s)
         s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
-        print(s)
-        self.asm = s
-        with open(self.output_path + self.asm_filename + '.asm',"w+") as f:
+
+        if self.echo:
+            print(s)
+
+        with open(self.output_path+filename, 'w') as f:
+            f.write(s)
+
+
+    def at_gen_assembly(self, instructions, filename):
+        s = ''
+
+        # Unmapped atomics in the form 'a\d+'
+        # Treat as a boolean
+        for atom in self.ref_atomics:
+            if atom not in self.mapped_atomics:
+                if not re.search('a\d+', atom) is None:
+                    # \d+ refers to index of the signal we want to refer
+                    num = re.search('\d+', atom).group()
+                    if not int(num) in self.sig_indices:
+                        self.sig_indices.append(int(num))
+
+                    s += 'a' + str(self.ref_atomics.index(atom)) + ': bool s' +\
+                            num + ' 0 == 1\n'
+                else:
+                    print('ERROR: Atom ' + atom + ' referenced but not mapped')
+                    self.status = False
+
+        # Mapped atomics with signal in form 's\d+'
+        for atom, instr in instructions.items():
+            if atom in self.ref_atomics:
+                if not re.match('s\d+', instr[1]) is None:
+                    # atom name must be in valid assembly form ('a\d+')
+                    a = 'a' + str(self.ref_atomics.index(atom))
+                    # map to associated signal index
+                    sig_index = int(re.search('\d+', instr[1]).group(0))
+
+                    s += a + ': ' + instr[0] + ' s' + str(sig_index) + ' ' + \
+                        instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
+
+        # Mapped atomics with aliased signal name
+        for atom, instr in instructions.items():
+            if atom in self.ref_atomics:
+                if re.match('s\d+', instr[1]) is None:
+                    # atom name must be in valid assembly form ('a\d+')
+                    a = 'a' + str(self.ref_atomics.index(atom))
+
+                    # Assign signal mapping an index not in use by another atomic
+                    self.sig_indices.sort()
+                    min_sig = 0
+                    for sig in self.sig_indices:
+                        if sig != min_sig:
+                            break
+                        else:
+                            min_sig += 1
+                    self.sig_indices.append(min_sig)
+                    sig_index = min_sig
+
+                    s += a + ': ' + instr[0] + ' s' + str(sig_index) + ' ' + \
+                        instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
+            else:
+                print('WARNING: Atom ' + atom + ' not referenced in MLTL, ignoring')
+
+        s = s[:len(s)-1] # remove last newline
+
+        if self.echo:
+            print(s)
+
+        with open(self.output_path+filename, 'a') as f:
+            f.write(s)
+
+    def gen_alias_file_labels(self, filename):
+        s = ''
+
+        for label in self.labels:
+            s += label + '\n'
+
+        with open(self.output_path+filename, 'a') as f:
+            f.write(s)
+
+    def gen_alias_file_sigs(self, filename):
+        # Extra newline separates formula labels from signal aliases
+        s = '\n'
+
+        for i in range(len(self.signals)):
+            s += self.signals[i] + ' ' + str(i) + '\n'
+
+        with open(self.output_path+filename, 'a') as f:
             f.write(s)
