@@ -125,8 +125,7 @@ def main(args):
     print('Generating configuration files')
     parse_config(args.config_file)
     check_updates(args.header_file)
-    gen_config(args.output_dir+'config_files/R2U2Config.h',
-        mltl_compiler.ref_atomics, mltl_compiler.signals)
+    gen_config(args.output_dir+'config_files/R2U2Config.h')
 
     print('************************************************************')
 
