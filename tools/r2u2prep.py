@@ -23,13 +23,10 @@ __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 def main(args):
 
-    output_dir    = __AbsolutePath__ + args.output_dir
-    binary_dir    = __AbsolutePath__ + args.output_dir + 'binary_files/'
-    compiler_dir  = __AbsolutePath__ + args.compiler_dir
-    assembler_dir = __AbsolutePath__ + args.assembler_dir
+    binary_dir = args.output_dir + 'binary_files/'
 
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
 
     # Remove binary files directory, if it exists, and start fresh
     if os.path.isdir(binary_dir):
@@ -119,8 +116,8 @@ def main(args):
         print('Error in compilation of MLTL or AT')
         return
 
-    if not os.path.isdir(output_dir+'config_files/'):
-        os.mkdir(output_dir+'config_files/')
+    if not os.path.isdir(args.output_dir+'config_files/'):
+        os.mkdir(args.output_dir+'config_files/')
 
     print('Generating configuration files')
     parse_config(args.config_file)
@@ -140,24 +137,24 @@ def main(args):
 
 
     print('************************************************************')
-    print('Output files are located in the '+output_dir+' directory')
-    print('Use '+output_dir+'binary_files/ as input to r2u2')
+    print('Output files are located in the '+args.output_dir+' directory')
+    print('Use '+args.output_dir+'binary_files/ as input to r2u2')
     print('************************************************************')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mltl",
                         help="file where mltl formula are stored or literal mltl formula")
-    parser.add_argument("--config-file", default='r2u2.conf',
+    parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
                         help="path to configuration file")
     parser.add_argument("--header-file",
-                        default='gen_files/config_files/R2U2Config.h',
+                        default=__AbsolutePath__+'gen_files/config_files/R2U2Config.h',
                         help="path to configuration header file, uses this file to detect if recompilation is needed")
-    parser.add_argument("--output-dir", default='gen_files/',
+    parser.add_argument("--output-dir", default=__AbsolutePath__+'gen_files/',
                         help="location where files will be generated")
-    parser.add_argument("--compiler-dir", default='Compiler/',
+    parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
                         help="location where compiler programs will be called from")
-    parser.add_argument("--assembler-dir", default='Assembler/',
+    parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
                         help="location where assembly and configuration programs will be called from")
     parser.add_argument("--no-binaries", action="store_true",
                         help="generate config.c file in place of binaries")

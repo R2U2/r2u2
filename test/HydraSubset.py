@@ -22,7 +22,7 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __toolsDir__     = __AbsolutePath__+'../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
-__BinDir__       = 'gen_files/binary_files/'
+__BinDir__       = __toolsDir__+'gen_files/binary_files/'
 
 
 # Names of the directories where the results for each version are stored
@@ -65,7 +65,7 @@ def test_c(formulaFiles,inputFiles):
         form   = _formulaFile.replace('.mltl','')
         trace  = _input.replace('.csv','')
         filename = __OutputDIR__+form+'_'+trace+'.txt'
-        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input])
+        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
         subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
     # For the last run, which should be a concatenation of all the formulas, copy the name
     # back to R2U2.log
