@@ -99,8 +99,8 @@ def gen_config(filename, atomics, signals):
         header += '#define ' + key + ' ' + str(val) + '\n'
     header += 'typedef double r2u2_input_data_t;\n' + \
               'typedef unsigned int timestamp_t;\n' + \
-              'typedef char[N_SIGS*L_VARIABLE] signal_names;\n' + \
-              'typedef char[N_FORMULAS*L_VARIABLE] formula_names;\n' + \
+              'typedef char signal_names[N_SIGS*L_VARIABLE];\n' + \
+              'typedef char formula_names[N_FORMULAS*L_VARIABLE];\n' + \
               '\n#endif'
 
     with open(filename, 'w') as f:

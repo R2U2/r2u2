@@ -29,7 +29,7 @@
 #define N_SUBFORMULA_SNYC_QUEUES 256
 typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
-typedef char[N_SIGS*L_VARIABLE] signal_names;
-typedef char[N_FORMULAS*L_VARIABLE] formula_names;
+typedef char signal_names[N_SIGS*L_VARIABLE];
+typedef char formula_names[N_FORMULAS*L_VARIABLE];
 
 #endif
