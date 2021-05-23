@@ -6,9 +6,8 @@ import re
 
 class Visitor(MLTLVisitor):
 
-    def __init__(self, atomics_index_offset=0):
-        self.atomics_index_offset = atomics_index_offset
-        self.ref_atomics = []
+    def __init__(self, prev_ref_atomics):
+        self.ref_atomics = prev_ref_atomics
         self.mapped_atomics = []
         self.signals = []
         self.direct_sig_indices = []
@@ -181,9 +180,13 @@ class Visitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#atom_expr.
     def visitAtom_expr(self, ctx:MLTLParser.Atom_exprContext):
         identifier = str(ctx.Identifier())
-        if identifier not in self.ref_atomics:
+        if identifier in self.ref_atomics:
+            atom_num = self.ref_atomics.index(identifier)
+            return ATOM('a' + str(atom_num))
+        else:
             self.ref_atomics.append(identifier)
-        return ATOM('a'+str(self.atomics_index_offset+len(self.ref_atomics)-1))
+            return ATOM('a' + str(len(self.ref_atomics) - 1))
+
 
     # Visit a parse tree produced by MLTLParser#binding.
     def visitBinding(self, ctx:MLTLParser.BindingContext):
