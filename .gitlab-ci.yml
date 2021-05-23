@@ -3,16 +3,11 @@ image: "python:3"
 before_script:
   - "gcc --version"
   - "python --version"
-  - "pip install ply numpy"
+  - "pip install antlr4-python3-runtime numpy"
+  - "apt update && apt -y install libfftw3-dev"
 
 stages:
   - test
-
-test-parser:
-  stage: test
-  script:
-    - "cd tools/Compiler"
-    - "python3 MLTL_parser_test.py"
 
 test-ft-report:
   stage: test
