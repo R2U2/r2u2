@@ -94,7 +94,7 @@ def assemble(f, timestamp_width):
     #--------------------------------------------------------------------------#
     # R2U2 Operations
     #--------------------------------------------------------------------------#
-    for line in f:
+    for line in f.splitlines():
         i = i + 1
         op = line.split()
         if(header.match(op[0])):
@@ -255,13 +255,14 @@ prog_text = "char *ptm_bin = \""
 def assemble_pt(ptasm, ts_ext, gen_dir, no_binaries):
     print('Assembling PT')
 
-    f = open(ptasm, 'r')
+    with open(ptasm, 'r') as file:
+        f = file.read()
+
     timestamp_width = 8 * int(ts_ext)
     bin_dir = gen_dir+'binary_files/'
     if(not os.path.isdir(bin_dir)):
         os.mkdir(bin_dir)
     opcode, ts = assemble(f, timestamp_width)
-    f.close()
 
     if no_binaries == 'True':
         global prog_text

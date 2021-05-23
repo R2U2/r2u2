@@ -50,7 +50,7 @@ def assemble(f, s, timestamp_width):
 	opcode = ""
 	ts = ""
 	header=re.compile("s*\d+:")
-	for line in f:
+	for line in f.splitlines():
 		i = i + 1
 		op = line.split()
 		if(header.match(op[0])):
@@ -167,7 +167,7 @@ def assemble(f, s, timestamp_width):
 		opcode += "\\n"
 
 	scq = ""
-	for line in s:
+	for line in s.splitlines():
 		pos = line.split()
 		st_pos = int(pos[0])
 		ed_pos = int(pos[1])
@@ -184,20 +184,18 @@ char *ftm_bin = "
 def assemble_ft(ftasm, ftscqasm, ts_ext, gen_dir, no_binaries):
 	print('Assembling FT')
 
-	f = open(ftasm, 'r')
-	if not os.path.isfile(ftscqasm):
-		s = ""
-	else:
-		s = open(ftscqasm, 'r')
+	with open(ftasm, 'r') as file:
+		f = file.read()
+
+	with open(ftscqasm, 'r') as file:
+			s = file.read()
+
 	timestamp_width = 8 * int(ts_ext)
 	bin_dir = gen_dir+'binary_files/'
 	if(not os.path.isdir(bin_dir)):
 		os.mkdir(bin_dir)
 
 	opcode, ts, scq = assemble(f, s, timestamp_width)
-
-	f.close()
-	s.close()
 
 	if no_binaries == 'True':
 		global prog_text

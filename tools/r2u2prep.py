@@ -97,11 +97,14 @@ def main(args):
         f.write('s0: end sequence')
         f.close()
         print('s0: end sequence')
+        f = open(binary_dir+'ftscq.asm','w+')
+        f.write('0 0')
+        f.close()
 
     print('************************** PT ASM **************************')
 
     if not re.search('\S',PT) is None:
-        mltl_compiler.mltl_compile(PT, 'pt.asm', 'alias.txt')
+        mltl_compiler.mltl_compile(PT, 'pt.asm', 'alias.txt', FT=False)
     else:
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')

@@ -37,7 +37,7 @@ class Compiler():
         return visitor
 
 
-    def mltl_compile(self, mltl, asm_filename, alias_filename):
+    def mltl_compile(self, mltl, asm_filename, alias_filename, FT=True):
         AST_node.reset()
         Observer.reset()
 
@@ -61,7 +61,7 @@ class Compiler():
         if(self.optimize):
             self.optimize_cse()
         self.valid_node_set = self.sort_node()
-        self.queue_size_assign(self.Hp)
+        self.queue_size_assign(self.Hp, asm_filename)
         self.mltl_gen_assembly(asm_filename)
         self.gen_alias_file_labels(alias_filename)
 
@@ -169,7 +169,7 @@ class Compiler():
 
     ###############################################################
     # Assign the size for each queue
-    def queue_size_assign(self,predLen):
+    def queue_size_assign(self,predLen,filename):
         stack = self.valid_node_set # parent to child
         vstack = stack[:] # copy the list
         vstack.reverse() # child to parent
@@ -240,7 +240,8 @@ class Compiler():
 
         compute_propagation_delay()
         compute_scq_size()
-        generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
+        if filename == 'ft.asm':
+            generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
         return get_total_size()
 
 
