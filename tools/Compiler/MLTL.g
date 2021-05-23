@@ -12,27 +12,27 @@ statement
   ;
 
 expr
-  : op='!' expr         # prop_expr
+  : GLOBALLY '[' Number ']' expr                  # ft_expr
+  | GLOBALLY '[' Number ',' Number ']' expr       # ft_expr
+  | FINALLY '[' Number ']' expr                   # ft_expr
+  | FINALLY '[' Number ',' Number ']' expr        # ft_expr
+  | expr UNTIL '[' Number ']' expr                # ft_expr
+  | expr UNTIL '[' Number ',' Number ']' expr     # ft_expr
+  | expr RELEASE '[' Number ']' expr              # ft_expr
+  | expr RELEASE '[' Number ',' Number ']' expr   # ft_expr
+  | YESTERDAY expr                                # pt_expr
+  | expr SINCE '[' Number ']' expr                # pt_expr
+  | expr SINCE '[' Number ',' Number ']' expr     # pt_expr
+  | ONCE '[' Number ']' expr                      # pt_expr
+  | ONCE '[' Number ',' Number ']' expr           # pt_expr
+  | HISTORICALLY expr                             # pt_expr
+  | HISTORICALLY '[' Number ']' expr              # pt_expr
+  | HISTORICALLY '[' Number ',' Number ']' expr   # pt_expr
+  | op='!' expr         # prop_expr
   | expr op='&' expr    # prop_expr
   | expr op='|' expr    # prop_expr
   | expr op='<->' expr  # prop_expr
   | expr op='->' expr   # prop_expr
-  | GLOBALLY '[' Number ']' expr                 # ft_expr
-  | GLOBALLY '[' Number ',' Number ']' expr     # ft_expr
-  | FINALLY '[' Number ']' expr                  # ft_expr
-  | FINALLY '[' Number ',' Number ']' expr      # ft_expr
-  | expr UNTIL '[' Number ']' expr               # ft_expr
-  | expr UNTIL '[' Number ',' Number ']' expr   # ft_expr
-  | expr RELEASE '[' Number ']' expr             # ft_expr
-  | expr RELEASE '[' Number ',' Number ']' expr # ft_expr
-  | YESTERDAY expr                                # pt_expr
-  | expr SINCE '[' Number ']' expr               # pt_expr
-  | expr SINCE '[' Number ',' Number ']' expr   # pt_expr
-  | ONCE '[' Number ']' expr                     # pt_expr
-  | ONCE '[' Number ',' Number ']' expr         # pt_expr
-  | HISTORICALLY expr                             # pt_expr
-  | HISTORICALLY '[' Number ']' expr             # pt_expr
-  | HISTORICALLY '[' Number ',' Number ']' expr # pt_expr
   | '(' expr ')' # parens_expr
   | Identifier   # atom_expr
   | 'TRUE'       # bool_expr

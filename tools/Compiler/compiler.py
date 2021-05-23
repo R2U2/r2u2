@@ -32,6 +32,7 @@ class Compiler():
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         parse_tree = parser.program()
+        print(parse_tree.toStringTree(recog=parser))
         visitor = Visitor(self.ref_atomics)
         visitor.visit(parse_tree)
         return visitor
