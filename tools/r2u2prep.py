@@ -90,7 +90,7 @@ def main(args):
 
     print('************************** FT ASM **************************')
 
-    if re.match('\s',FT) is None:
+    if not re.search('\S',FT) is None:
         mltl_compiler.mltl_compile(FT, 'ft.asm', 'alias.txt')
     else:
         f = open(binary_dir+'ft.asm','w+')
@@ -100,7 +100,7 @@ def main(args):
 
     print('************************** PT ASM **************************')
 
-    if re.match('\s',PT) is None:
+    if not re.search('\S',PT) is None:
         mltl_compiler.mltl_compile(PT, 'pt.asm', 'alias.txt')
     else:
         f = open(binary_dir+'pt.asm','w+')
