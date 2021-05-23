@@ -1,12 +1,11 @@
 #------------------------------------------------------------------------------------#
 # Programmer: Matt Cauwels
-# Date: April 28th, 2020
+# Date: November 10th, 2020
 # Project: R2U2 - Regression Testing
-# File Name: results.py
-# Description: Scan through the results files for all versions of R2U2 and
-#              compare them against one another. Report if any version 
-#              mismatches against the other two. Write the results in a 
-#              Report.txt file
+# File Name: LargePtReport.py
+# Description: Scan through the results files of R2U2 and compare them against one
+#              another. Report if any result mismatches against its oracle. Write the
+#              results in a LargePtResults.txt file
 #------------------------------------------------------------------------------------#
 import subprocess
 import os
@@ -14,12 +13,11 @@ from os import listdir
 from os.path import isfile, join
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TestDir__      = __AbsolutePath__+'../R2U2_Test_Suite/OldFtSuite/'
-__OracleDir__    = __TestDir__+'Oracle/'
-__ResultCDir__   = __AbsolutePath__+'results/c_version/'
+__OracleDir__    = __AbsolutePath__+'../Oracle/LargePtOracle/'
+__ResultCDir__   = __AbsolutePath__+'../results/c_version/'
 
 # Create the Results.txt
-f = open("OldFtSuiteReport.txt",'w')
+f = open("LargePtResults.txt",'w')
 
 # Read in all the results and oracle files
 oracleFiles,resultsFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__OracleDir__,__ResultCDir__)]
@@ -37,7 +35,7 @@ for _oracle in oracleFiles:
 f.close();
 
 # Now read the results file and print which formulas have diffs
-f = open("OldFtSuiteReport.txt",'r').read()
+f = open("LargePtResults.txt",'r').read()
 
 lines = f.split('\n')
 ResultsArray = []
@@ -59,9 +57,11 @@ for line in lines:
             ResultsArray[i].append(0)
         # If the line doesn't start with a comment,
         else:
-            # Then 
+            # Then
             ResultsArray[i][1] = ResultsArray[i][1] + 1
 
+
+differences = False
 
 for i in range(0,len(ResultsArray)):
     if(ResultsArray[i][1] > 0):

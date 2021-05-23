@@ -8,23 +8,23 @@ python3 Oracle/genOracle.py -r
 python3 Oracle/genOracle.py -m
 
 rm -rf results/c_version
-echo "Hydra Subset"
-python3 HydraSubset.py -v c
-python3 HydraReport.py
+echo "FT Subset"
+python3 Subset/FT_Subset.py -v c
+python3 Report/FT_Report.py
+rm -rf results/c_version
 
 rm -rf results/c_version
 echo "Large FT Subset"
-python3 LargeFtSubset.py -v c
-python3 LargeFtReport.py
+python3 Subset/LargeFtSubset.py -v c
+python3 Report/LargeFtReport.py
 
 rm -rf results/c_version
 echo "Large PT Subset"
-python3 LargePtSubset.py -v c
-python3 LargePtReport.py
+python3 Subset/LargePtSubset.py -v c
+python3 Report/LargePtReport.py
 
-rm -rf results/c_version
-echo "Old FT Subset"
-python3 OldFtSuiteSubset.py -v c
-python3 OldFtSuiteReport.py
+echo "FT/PT Subset"
+python3 Subset/FT_PT_Subset.py -v c
+python3 Report/FT_PT_Report.py
 
 rm -rf results/c_version

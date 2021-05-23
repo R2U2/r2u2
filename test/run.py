@@ -20,7 +20,7 @@ Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'TL_formula/formulaFiles/'
-__InputDir__     = __AbsolutePath__+'Inputs/InputFiles/'
+__InputDir__     = __AbsolutePath__+'Inputs/inputFiles/'
 __PythonDir__    = __AbsolutePath__+'../R2U2_SW/R2U2_PYTHON/'
 __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __CPPDIR__       = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'

@@ -1,9 +1,9 @@
 #------------------------------------------------------------------------------------#
 # Author:      Matt Cauwels
-# Date:        May 6th, 2020
-# File Name:   HydraSubset.py
-# Description: A Python 3 script used to automatically run just the tests for large
-#
+# Date:        November 10th, 2020
+# File Name:   FT_Subset.py
+# Description: A Python 3 script used to automatically run just the tests for a group
+#              of future-time formulas.
 #------------------------------------------------------------------------------------#
 import shutil
 import os
@@ -16,13 +16,15 @@ from subprocess import check_output
 Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TestDir__      = __AbsolutePath__+'../R2U2_Test_Suite/OldFtSuite/'
-__InputDir__     = __AbsolutePath__+'Inputs/inputFiles/'
-__CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
-__ResultDIR__    = __AbsolutePath__+'results/'
-__toolsDir__     = __AbsolutePath__+'../tools/'
+__TLDir__        = __AbsolutePath__+'../TL_Formula/'
+__InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
+__CDir__          = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
+__ResultDIR__    = __AbsolutePath__+'../results/'
+__testDir__     = __AbsolutePath__+'../'
+__toolsDir__     = __AbsolutePath__+'../../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
 __BinDir__       = __toolsDir__+'gen_files/binary_files/'
+
 
 
 # Names of the directories where the results for each version are stored
@@ -48,7 +50,7 @@ def test_c():
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
     # For all formula files within the formulaFiles directory
-    _formulaFile = __TestDir__+'formulas.mltl'
+    _formulaFile = __TLDir__+'FT_Formulas.mltl'
     formula = open(_formulaFile,'r').read()
     # print(formula)
     # For each formula within
@@ -60,7 +62,7 @@ def test_c():
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
     for i in range(0,13):
-        filename = __AbsolutePath__+'R2U2_formula'+str(i)+'.txt'
+        filename = __testDir__+'R2U2_formula'+str(i)+'.txt'
         subprocess.run(['mv',filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
     # Remove the overall R2U2.log file from the results directory
     #subprocess.run(['rm',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)

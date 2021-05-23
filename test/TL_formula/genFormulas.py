@@ -15,7 +15,7 @@ import os
 #------------------------------------------------------------------------------------#
 def makeFormulas():
     allFormulas = []
-    HydraAllFormulas = []
+    SubsetFormulas = []
     
     # test0000 - Test Case will output the Negation of the First Input Wave
     filename = __TLDir__+'test0000'
@@ -57,7 +57,7 @@ def makeFormulas():
     filename = __TLDir__+'test0006'
     formula = "G[5,10] (a0);"
     allFormulas.append(formula)
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0007 - Test Case will output the First Input Wave Until an interval an zero interval, the Second Input Wave
@@ -82,7 +82,7 @@ def makeFormulas():
     filename = __TLDir__+'test0010'
     formula = "(a0) U[0,2] (a1);"
     allFormulas.append(formula)
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0011
@@ -117,7 +117,7 @@ def makeFormulas():
     filename = __TLDir__+'test0015'
     formula = "(!a1) & (a0);"
     allFormulas.append(formula)
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0016 - Test Case testing embedding AND operations
@@ -214,7 +214,7 @@ def makeFormulas():
     filename = __TLDir__+'test0031'
     formula = "G[2] a1;"
     allFormulas.append(formula)
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0032 - Test Case testing multiple conjunctions with intervals
@@ -222,18 +222,18 @@ def makeFormulas():
     formula = "(a0 & a1) & (G[3,5] a0);"
     allFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
-
+    '''
     # test0033
     filename = __TLDir__+'test0033'
     formula = "a1 & (G[8] a0);"
     allFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
-    
+    '''
     # test0034 - Test Case testing multiple conjunctions with intervals
     filename = __TLDir__+'test0034'
     formula = "a1 & F[5,10] a0;"
     allFormulas.append(formula)
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
 
     # test0035 - Test Case testing for complete global
@@ -256,54 +256,54 @@ def makeFormulas():
     # test0037 - Test Case testing historical
     filename = __TLDir__+'test0037'
     formula = "H[5,10] a0;"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0038 - Test Case testing since
     filename = __TLDir__+'test0038'
     formula = "(a0) S[0,2] (a1);"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0039 - Test Case testing historical past-time operator with implied lower bound
     filename = __TLDir__+'test0039'
     formula = "H[2] a1;"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0040 - Test Case testing once past-time operator
     filename = __TLDir__+'test0040'
     formula = "a1 & O[5,10]a0;"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0041 - Test Case testing implication propasitional operator
     filename = __TLDir__+'test0041'
     formula = "a1 -> a0;"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0042 - Test Case testing equivalence propasitional operator
     filename = __TLDir__+'test0042'
     formula = "a1 <-> a0;"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0043 - Test Case testing disjunction (or) propasitional operator
     filename = __TLDir__+'test0043'
     formula = "!(a1 | a0);"
-    HydraAllFormulas.append(formula)
+    SubsetFormulas.append(formula)
     writeFormulaFile(formula,filename,'w+')
     
     # test0044 - Test Case testing historical
     filename = __TLDir__+'test0044'
-    for i in range(0,len(HydraAllFormulas)):
+    for i in range(0,len(SubsetFormulas)):
         if(i == 0):
-            writeFormulaFile(HydraAllFormulas[i]+'\n',filename,'w+')
-        elif(i == (len(HydraAllFormulas)-1)):
-            writeFormulaFile(HydraAllFormulas[i],filename,'a+')
+            writeFormulaFile(SubsetFormulas[i]+'\n',filename,'w+')
+        elif(i == (len(SubsetFormulas)-1)):
+            writeFormulaFile(SubsetFormulas[i],filename,'a+')
         else:
-            writeFormulaFile(HydraAllFormulas[i]+'\n',filename,'a+')
+            writeFormulaFile(SubsetFormulas[i]+'\n',filename,'a+')
 
 #------------------------------------------------------------------------------------#
 # Method for writing formula files
