@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "R2U2.h"
 #include "TL_observers.h"
@@ -6,17 +7,29 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
+#ifndef CONFIG
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_inst_ft(ftm);
-    parse_interval_ft(fti);
-    parse_scq_size(ftscq);
+    parse_inst_ft_file(ftm);
+    parse_interval_ft_file(fti);
+    parse_scq_size_file(ftscq);
 
-    parse_inst_pt(ptm);
-    parse_interval_pt(pti);
+    parse_inst_pt_file(ptm);
+    parse_interval_pt_file(pti);
 }
+#else
+void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+{
+    parse_inst_ft_bin(ftm_bin);
+    parse_interval_ft_bin(fti_bin);
+    parse_scq_size_bin(ftscq_bin);
+
+    parse_inst_pt_bin(ptm_bin);
+    parse_interval_pt_bin(pti_bin);
+}
+#endif
 
 int TL_init()
 {
@@ -49,7 +62,7 @@ int TL_init()
     //if(pt_prev_init() == 1){
     //    printf("Failed to initialize PT's previous time steps\n");
     //}
-    
+
     //
     // initialize atomics
     //

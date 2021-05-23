@@ -21,7 +21,7 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __toolsDir__     = __AbsolutePath__+'../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
-__BinDir__       = __toolsDir__+'binary_files/'
+__BinDir__       = __toolsDir__+'gen_files/binary_files/'
 
 
 # Names of the directories where the results for each version are stored

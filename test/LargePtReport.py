@@ -4,8 +4,8 @@
 # Project: R2U2 - Regression Testing
 # File Name: results.py
 # Description: Scan through the results files for all versions of R2U2 and
-#              compare them against one another. Report if any version 
-#              mismatches against the other two. Write the results in a 
+#              compare them against one another. Report if any version
+#              mismatches against the other two. Write the results in a
 #              Report.txt file
 #------------------------------------------------------------------------------------#
 import subprocess
@@ -59,7 +59,7 @@ for line in lines:
             ResultsArray[i].append(0)
         # If the line doesn't start with a comment,
         else:
-            # Then 
+            # Then
             ResultsArray[i][1] = ResultsArray[i][1] + 1
 
 
@@ -68,9 +68,3 @@ differences = False
 for i in range(0,len(ResultsArray)):
     if(ResultsArray[i][1] > 0):
         print('Differences between Oracle and R2U2 for ' + ResultsArray[i][0])
-        differences = True
-
-if differences == True:
-    raise(RuntimeError("Differences found in PT Report"))
-        
-

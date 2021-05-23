@@ -3,7 +3,7 @@
 # Date:        May 6th, 2020
 # File Name:   HydraSubset.py
 # Description: A Python 3 script used to automatically run just the tests for large
-#              
+#
 #------------------------------------------------------------------------------------#
 import shutil
 import os
@@ -22,7 +22,7 @@ __CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __toolsDir__     = __AbsolutePath__+'../tools/'
 __CompilerDir__  = __toolsDir__+'Compiler/'
-__BinDir__       = __toolsDir__+'binary_files/'
+__BinDir__       = __toolsDir__+'gen_files/binary_files/'
 
 
 # Names of the directories where the results for each version are stored
@@ -37,7 +37,7 @@ def parserInfo():
     args = vars(parser.parse_args())
     return args
 
-    
+
 '''
 Method for testing the C version of R2U2.
 Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
@@ -51,7 +51,7 @@ def test_c():
     _formulaFile = __TestDir__+'formulas.mltl'
     formula = open(_formulaFile,'r').read()
     # print(formula)
-    # For each formula within 
+    # For each formula within
     subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
     filename = 'R2U2.log'
     subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
