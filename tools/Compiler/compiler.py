@@ -11,8 +11,7 @@ import re
 asmFileName = ""
 class Compiler():
 
-    def __init__(self, FT, PT, AT, output_path, optimize_cse=True, Hp=0,
-                 echo=True):
+    def __init__(self, output_path, optimize_cse=True, Hp=0, echo=True):
         self.optimize = optimize_cse
         self.output_path = output_path
         self.Hp = Hp

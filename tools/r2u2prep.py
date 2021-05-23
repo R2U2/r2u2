@@ -45,7 +45,7 @@ def main(args):
     AT = ""
 
     # Split the PT and FT
-    for form_num, line in enumerate(MLTL.split(';')):
+    for line in MLTL.split(';'):
         line = line.strip('\n ')
         # Ignore lines that are blank
         if(re.fullmatch('\s*', line)):
@@ -75,16 +75,18 @@ def main(args):
         elif((isPT > 0) and (isFT == 0)):
             # Put it in the PT list, for the PT call of postgraph
             PT += line + ';\n'
+            FT += '\n'
         # Else, if the formula is future-time or just propositional logic,
         elif((isPT == 0) and (isFT >= 0) and (isAtom == 0)):
             # Put it in the FT list, for the FT call of postgraph
             FT += line + ';\n'
+            PT += '\n'
         # Else if the formula is an atomic assignment
         elif(isAtom > 0):
             # Only add atomics to the set
             AT += line + ';\n'
 
-    mltl_compiler = compiler.Compiler(FT,PT,AT,binary_dir)
+    mltl_compiler = compiler.Compiler(binary_dir)
 
     print('************************** FT ASM **************************')
 
