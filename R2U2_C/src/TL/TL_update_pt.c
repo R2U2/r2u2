@@ -346,8 +346,9 @@ int TL_update_pt(FILE* log_file)
                 //DEBUG_PRINT("***** Garbage Collection *****\n");
                 //remove_head_queue_pt(bq_addr, &t_s, &t_e);
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                results_pt[pc] = false;
-                break;
+                // TODO: THese seem like they should need to be here - but don't?
+                // results_pt[pc] = false;
+                // break;
             }
 
             if (get_opnd1_pt(pc)) {
