@@ -280,3 +280,4 @@ test/LargePT.txt
 test/OldFtSuiteReport.txt
 gen_files/
 __pycache__/
+codechecker/

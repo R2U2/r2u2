@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     }
 
     int MAX_TIME = INT_MAX, c;
-    FILE *input_file;
+    FILE *input_file = NULL;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     // Extensible way to loop over CLI options

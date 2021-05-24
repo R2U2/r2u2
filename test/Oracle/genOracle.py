@@ -50,7 +50,7 @@ def readInput(_inputFile):
                     # Append the number to the corresponding list
                     Array[j].append(int(part[j]))
     # If an exception is raised when parsing the input file, ignore it
-    except:
+    except EOFError:
         pass
 
     # Return the Array list
@@ -171,7 +171,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append((not Input[0][i]) and Input[1][i])
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -181,7 +181,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append((Input[0][i] and (not Input[1][i]) and (not Input[0][i+1]) and Input[1][i+1]) or ((not Input[0][i]) and Input[1][i] and (not Input[0][i+1]) and Input[1][i+1]))
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -191,7 +191,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append(((not Input[0][i+5]) and Input[1][i+5] and (not Input[0][i+6]) and Input[1][i+6] and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10])or (Input[0][i+5] and (not Input[1][i+5]) and (not Input[0][i+6]) and Input[1][i+6] and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and (not Input[0][i+7]) and Input[1][i+7] and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and (not Input[0][i+8]) and Input[1][i+8] and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and Input[0][i+8] and (not Input[1][i+8]) and (not Input[0][i+9]) and Input[1][i+9] and (not Input[0][i+10]) and Input[1][i+10]) or (Input[0][i+5] and (not Input[1][i+5]) and Input[0][i+6] and (not Input[1][i+6]) and Input[0][i+7] and (not Input[1][i+7]) and Input[0][i+8] and (not Input[1][i+8]) and Input[0][i+9] and (not Input[1][i+9]) and (not Input[0][i+10]) and Input[1][i+10]))
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -201,7 +201,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append(((not Input[0][i]) and Input[1][i] and (not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i] and (not Input[1][i]) and (not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i] and (not Input[1][i]) and Input[0][i+1] and (not Input[1][i+1]) and (not Input[0][i+2]) and Input[1][i+2]))
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -211,7 +211,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append(((not Input[0][i+1]) and Input[1][i+1] and (not Input[0][i+2]) and Input[1][i+2]) or (Input[0][i+1] and (not Input[1][i+1]) and (not Input[0][i+2]) and Input[1][i+2]))
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -221,7 +221,7 @@ def getVerdict(_formulaFile, Input):
             try:
                 Verdict.append(((not Input[0][i+2]) and Input[1][i+2] and (not Input[0][i+3]) and Input[1][i+3]) or (Input[0][i+2] and (not Input[1][i+2]) and (not Input[0][i+3]) and Input[1][i+3]))
                 TimeStamp.append(i)
-            except:
+            except IndexError:
                 pass
         pcNum = 3
 
@@ -661,7 +661,6 @@ def getVerdict(_formulaFile, Input):
                 Verdict.append(False)
         pcNum = 2
 
-
     # 33.) a1 & (G[8] a0)
     elif(_formulaFile == "test0033"):
         LB = 0
@@ -687,8 +686,7 @@ def getVerdict(_formulaFile, Input):
                 TimeStamp.append(i)
                 Verdict.append(True)
         pcNum = 4
-    
-    
+
     # 34.) a1 & F[5,10] a0
     elif(_formulaFile == "test0034"):
         LB = 5
@@ -832,9 +830,7 @@ def saveOracle(pcNum, TimeStamp, Verdict, filename):
 # Main function call
 #------------------------------------------------------------------------------------#
 # If there are no arguements
-try:
-    sys.argv[1]
-except:
+if len(sys.argv) == 1:
     print("ERROR: Missing input arguement")
     print("Use '-h' flag for more information")
     exit()
