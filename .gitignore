@@ -266,7 +266,7 @@ Lex and Yacc Autogen files:
 *.tab.c
 *.tab.h
 
-R2U2_SW/R2U2_C/bin/
+R2U2_C/bin/
 tools/Compiler/MLTL_Compiler/parsetab.py
 test/Inputs/inputFiles/
 test/Inputs/inputImages/

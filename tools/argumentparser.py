@@ -11,9 +11,9 @@ def r2u2plot(args):
 
 def r2u2trace(args):
     if args.expand_or_minify.lower() == "minify":
-        subprocess.run(["python3", "../R2U2_SW/R2U2_PYTHON/file_minify.py", args.filename])
+        subprocess.run(["python3", "../R2U2_PYTHON/file_minify.py", args.filename])
     elif args.expand_or_minify.lower() == "expand":
-        subprocess.run(["python3", "../R2U2_SW/R2U2_PYTHON/file_expand.py", args.filename])
+        subprocess.run(["python3", "../R2U2_PYTHON/file_expand.py", args.filename])
     else:
         print("Please use the command 'expand' or 'minify' before specifying a file")
 

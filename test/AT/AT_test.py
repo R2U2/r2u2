@@ -5,7 +5,7 @@ import sys
 import subprocess
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__CDir__         = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
+__CDir__         = __AbsolutePath__+'../../R2U2_C/'
 __PrepDir__      = __AbsolutePath__+'../../tools/'
 
 

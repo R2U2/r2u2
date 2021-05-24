@@ -9,7 +9,7 @@ from file_minify import minify
 #is this always included in current working directory?
 dir_in = input("Please input the name of the desired directory in quotes: ")
 
-#currently, dir_in must be in the R2U2_PYTHON directory to be functional
+#currently, dir_in must be a relative path to be functional
 os.chdir(dir_in)
 check = os.getcwd()
 print("The script will use the directory: " + check)

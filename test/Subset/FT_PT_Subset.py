@@ -19,7 +19,7 @@ Paths needed to navigate across the r2u2 directory
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'../TL_formula/formulaSubset/'
 __InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
-__CDir__         = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
+__CDir__         = __AbsolutePath__+'../../R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'../results/'
 __testDir__     = __AbsolutePath__+'../'
 __toolsDir__     = __AbsolutePath__+'../../tools/'
@@ -52,7 +52,7 @@ def list_file():
 
 '''
 Method for testing the C version of R2U2.
-Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
+Note: You must 'make' the R2U2 file within the R2U2_C/ directory prior to running this method!
 '''
 def test_c(formulaFiles,inputFiles):
     __OutputDIR__ = __ResultDIR__+__ResultCDir__

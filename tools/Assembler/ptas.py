@@ -163,7 +163,7 @@ def assemble(f, timestamp_width):
         # Past-Time Temporal Operators
         #----------------------------------------------------------------------#
         # NOTE: Still need to implement past-time! Double-check what is written now.
-        #    - First line of opcode was from R2U2_SW/R2U2_C/TL/TL_observers.h file
+        #    - First line of opcode was from R2U2_C/TL/TL_observers.h file
         # Yesterday
         elif op[0] == "yesterday":
             opcode = opcode + OP_PT_YESTERDAY

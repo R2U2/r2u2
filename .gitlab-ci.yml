@@ -12,9 +12,9 @@ stages:
 ft-test:
   stage: test
   script:
-    - "cd R2U2_SW/R2U2_C"
+    - "cd R2U2_C"
     - "make"
-    - "cd ../../test/TL_formula/"
+    - "cd ../test/TL_formula/"
     - "python3 genFormulas.py -m"
     - "cd ../Inputs"
     - "python3 genInputs.py -m"
@@ -28,9 +28,9 @@ ft-test:
 large-ft-test:
   stage: test
   script:
-    - "cd R2U2_SW/R2U2_C"
+    - "cd R2U2_C"
     - "make"
-    - "cd ../../test/TL_formula/"
+    - "cd ../test/TL_formula/"
     - "python3 genFormulas.py -m"
     - "cd ../Inputs"
     - "python3 genInputs.py -m"
@@ -44,9 +44,9 @@ large-ft-test:
 large-pt-test:
   stage: test
   script:
-    - "cd R2U2_SW/R2U2_C"
+    - "cd R2U2_C"
     - "make"
-    - "cd ../../test/TL_formula/"
+    - "cd ../test/TL_formula/"
     - "python3 genFormulas.py -m"
     - "cd ../Inputs"
     - "python3 genInputs.py -m"
@@ -60,9 +60,9 @@ large-pt-test:
 ft-pt-test:
   stage: test
   script:
-    - "cd R2U2_SW/R2U2_C"
+    - "cd R2U2_C"
     - "make"
-    - "cd ../../test/TL_formula/"
+    - "cd ../test/TL_formula/"
     - "python3 genFormulas.py -m"
     - "cd ../Inputs"
     - "python3 genInputs.py -m"

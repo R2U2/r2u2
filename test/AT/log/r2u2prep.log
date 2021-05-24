@@ -1,0 +1,40 @@
+Compile atomic checker
+Syntax error in AT expression a0 := bool(0) != 1
+Invalid character 0 after LPAREN
+Syntax error in AT expression a1 := int(1) >= -7168
+Invalid character 1 after LPAREN
+Syntax error in AT expression a2 := double(2) >= 5915
+Invalid character d
+Syntax error in AT expression a3 := abs_diff_angle(3,-312) >= 25
+Invalid character 3 after LPAREN
+Syntax error in AT expression a4 := rate(4) >= -6825
+Invalid character 4 after LPAREN
+Syntax error in AT expression a5 := movavg(5,-7956) >= 1916
+Invalid character 5 after LPAREN
+Compile past time config
+Compile past time config
+s0: end sequenceend 
+s0: end sequenceend sequence 
+Error in line 1 ( ['end', 'sequence'] )
+Assemble atomic checker
+************************** FT ASM **************************
+s0: load a0
+s1: end s0 0
+s2: load a1
+s3: end s2 1
+s4: load a2
+s5: end s4 2
+s6: load a3
+s7: end s6 3
+s8: load a4
+s9: end s8 4
+s10: load a5
+s11: end s10 5
+s12: end sequence
+************************************************************
+************************************************************
+************************************************************
+************************************************************
+************************************************************
+Generated files are located in the /Users/bckempa/LTL-AerE/r2u2/tools/binary_files/ directory
+************************************************************

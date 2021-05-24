@@ -5,7 +5,7 @@
 # Description: A Python 3 script used automatically run any version of R2U2, based on
 #              the version specified in the input arguement. Output logs of R2U2 can
 #              be found in the 'results/XXX_version/' directory, where *** is the 
-#              version (c, cpp, vhdl, python). The results directory can be cleaned by
+#              version (c, cpp, vhdl). The results directory can be cleaned by
 #              entering the input flag '-r', rather than '-v', and any arguement.
 #------------------------------------------------------------------------------------#
 import shutil
@@ -21,16 +21,14 @@ Paths needed to navigate across the r2u2 directory
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'TL_formula/formulaFiles/'
 __InputDir__     = __AbsolutePath__+'Inputs/inputFiles/'
-__PythonDir__    = __AbsolutePath__+'../R2U2_SW/R2U2_PYTHON/'
-__CDir__         = __AbsolutePath__+'../R2U2_SW/R2U2_C/'
-__CPPDIR__       = __AbsolutePath__+'../R2U2_SW/R2U2_CPP/'
+__CDir__         = __AbsolutePath__+'../R2U2_C/'
+__CPPDIR__       = __AbsolutePath__+'../R2U2_CPP/'
 __VHDLDIR__      = __AbsolutePath__+'../R2U2_HW/'
 __ResultDIR__    = __AbsolutePath__+'results/'
 __CompilerDir__  = __AbsolutePath__+'../tools/Compiler/'
 __BinGenDir__    = __AbsolutePath__+'../tools/AssemblyToBinary/'
 
 # Names of the directories where the results for each version are stored
-__ResultPythonDir__ = 'python_version/'
 __ResultCDir__      = 'c_version/'
 __ResultCppDir__    = 'cpp_version/'
 __ResultVHDLDir__   = 'vhdl_version/'
@@ -73,23 +71,6 @@ def list_file():
 '''
 
 '''
-def post_python_version_process(file):
-	# Reformat the output file
-	f=open(file,'r')
-	f_temp = open(file+'_tmp','w')
-	# lines =  [i.strip() for i in f]
-	redundent_pc = r'PC:[\d](\s*)(?=(PC:[\d]+|\n))'
-	atomic_value  = r'(?<=LOAD\s)[a-zA-Z0-9]+\s'
-	content = re.sub(atomic_value,"",re.sub(redundent_pc,"",f.read()))
-	f_temp.write(content)
-	f.close()
-	f_temp.close()
-	os.rename(file+'_tmp', file)
-
-
-'''
-
-'''
 def subprocess_cmd(command):
 	process = subprocess.Popen(command,stdout=subprocess.PIPE, shell=True)
 	proc_stdout = process.communicate()[0].strip()
@@ -123,30 +104,8 @@ def gen_assembly(MLTL,timestamp_byte=4,gen_bin=True):
 	return asm
 
 '''
-Method for testing the python version of R2U2.
-'''
-def test_python(formulaFiles,inputFiles):
-	__OutputDIR__ = __ResultDIR__+__ResultPythonDir__
-	if not os.path.exists(__OutputDIR__):
-		os.makedirs(__OutputDIR__)
-	for _formulaFile in formulaFiles:
-		f = open(__TLDir__+_formulaFile,'r')
-		lines =  [i.strip() for i in f]
-		for cnt,formula in enumerate(lines):
-			asm = gen_assembly(formula)
-			for _input in inputFiles:
-				filename = __OutputDIR__+_formulaFile+_input+'.txt'
-				# filename = __OutputDIR__+_formulaFile+'_case'+str(cnt)+'.txt'
-				#print(filename)
-				subprocess.run(["python", __PythonDir__+'MLTL_main.py','-m',asm,'-a',__InputDir__+_input,'-o',filename],stdout=subprocess.PIPE)
-				post_python_version_process(filename)
-		f.close()
-	for tmp in ('tmp.ftasm','tmp.ftscq'):
-		subprocess.run(['rm',tmp], stdout=subprocess.PIPE)
-
-'''
 Method for testing the C version of R2U2.
-Note: You must 'make' the R2U2 file within the R2U2_SW/R2U2_C/ directory prior to running this method!
+Note: You must 'make' the R2U2 file within the R2U2_C directory prior to running this method!
 '''
 def test_c(formulaFiles,inputFiles):
 	__OutputDIR__ = __ResultDIR__+__ResultCDir__
@@ -241,7 +200,6 @@ def main():
     # If there is the remove flag, remove all directories and files in the results directory
 	if(args['remove']):
 		print('Removing all R2U2 log files from the results directory')
-		shutil.rmtree(__ResultDIR__+__ResultPythonDir__, ignore_errors=True)
 		shutil.rmtree(__ResultDIR__+__ResultCDir__, ignore_errors=True)
 		shutil.rmtree(__ResultDIR__+__ResultCppDir__, ignore_errors=True)
 		shutil.rmtree(__ResultDIR__+__ResultVHDLDir__, ignore_errors=True)
@@ -249,8 +207,6 @@ def main():
 	# If not, then test the specified version of R2U2
 	elif(args['version']):
 		formulaFiles,inputFiles = list_file()
-		if(args['version'].lower()=='python'):
-			test_python(formulaFiles,inputFiles)
 		elif(args['version'].lower()=='c'):
 			test_c(formulaFiles,inputFiles)
 		elif(args['version'].lower()=='cpp'):
