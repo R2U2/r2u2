@@ -16,7 +16,7 @@
 
 ### Generate Formula, Input, and Oracle Files: 
 - Navigate to the "test/" directory.
-- Run the command "python3 TL_Formula/genFormulas.py -m"
+- Run the command "python3 TL_formula/genFormulas.py -m"
 - Run the command "python3 Inputs/genInputs.py -m"
 - Run the command "python3 Oracle/genOracle.py -m"
 

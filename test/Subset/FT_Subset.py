@@ -16,7 +16,7 @@ from subprocess import check_output
 Paths needed to navigate across the r2u2 directory
 '''
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
-__TLDir__        = __AbsolutePath__+'../TL_Formula/'
+__TLDir__        = __AbsolutePath__+'../TL_formula/'
 __InputDir__     = __AbsolutePath__+'../Inputs/inputFiles/'
 __CDir__          = __AbsolutePath__+'../../R2U2_SW/R2U2_C/'
 __ResultDIR__    = __AbsolutePath__+'../results/'

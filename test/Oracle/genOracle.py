@@ -845,7 +845,7 @@ if(sys.argv[1] == '-r'):
 
 # for generating the formula files
 elif(sys.argv[1] == '-m'):
-    # Grab all the formulas in the TL_Formula/formulaFiles/ directory and
+    # Grab all the formulas in the TL_formula/formulaFiles/ directory and
     # grab all the inputs in the Inputs/inputFiles/ directory
     formulaFiles,inputFiles = [[f for f in listdir(i) if isfile(join(i, f))] for i in (__TLDir__,__InputDir__)]
     # For each formula file,
