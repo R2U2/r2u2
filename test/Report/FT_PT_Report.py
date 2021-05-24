@@ -60,7 +60,10 @@ for line in lines:
             # Then 
             ResultsArray[i][1] = ResultsArray[i][1] + 1
 
-
+differences = False
 for i in range(0,len(ResultsArray)):
     if(ResultsArray[i][1] > 0):
         print('Differences between Oracle and R2U2 for ' + ResultsArray[i][0])
+
+if differences == True:
+    raise(RuntimeError("Differences found in FT/PT Report"))
