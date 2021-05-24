@@ -272,12 +272,7 @@ test/Inputs/inputFiles/
 test/Inputs/inputImages/
 test/Oracle/oracleFiles/
 test/TL_formula/formulaFiles/
-binary_files/
-test/HydraResults.txt
-test/Results.txt
-test/LargeFT.txt
-test/LargePT.txt
-test/OldFtSuiteReport.txt
+test/*Results.txt
 gen_files/
 __pycache__/
 codechecker/
