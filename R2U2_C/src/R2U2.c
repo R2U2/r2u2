@@ -58,6 +58,15 @@ int main(int argc, char *argv[]) {
     int MAX_TIME = INT_MAX, c;
     FILE *input_file = NULL;
     char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
+    char *signal;
+
+    /* Used by alias reordering */
+    bool alias_order = false;
+    FILE *alias_file = NULL;
+    uintptr_t alias_table[N_SIGS];
+    char aliasname[BUFSIZ]; // LINE_MAX instead? PATH_MAX?
+    char *scan_ptr;
+    uintptr_t col_num, idx;
 
     // Extensible way to loop over CLI options
     while((c = getopt(argc, argv, "h")) != -1) {
@@ -112,8 +121,40 @@ int main(int argc, char *argv[]) {
           return 1;
         }
       }
+      // If using CSV input and alias exists, set alias flag
+      if (access("alias.txt", F_OK) == 0) {
+        alias_file = fopen("alias.txt", "r");
+        if (alias_file != NULL) {
+          fprintf(stderr, "Warn: Using 'alias.txt' signal order");
+          alias_order = true;
+        }
+      }
     } else { // Trace file not specified, use stdin
       input_file = stdin;
+    }
+
+    if (alias_order == true) {
+      // Initialize lookup table
+      for(idx = 0; idx < N_SIGS; idx++){
+        alias_table[idx] = idx;
+      }
+      if((fgets(inbuf, sizeof inbuf, input_file) == NULL) || (inbuf[0] != '#') ){
+        fprintf(stderr, "Can't read input header\n");
+        return 5;
+      }
+      while(fscanf(alias_file, '%s %d', aliasname, &idx) == 2){
+        if((signal = strstr(inbuf, aliasname)) != NULL){
+          col_num = 0;
+          for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){
+            if(*scan_ptr == ',') {col_num += 1;}
+          }
+          alias_table[col_num] = idx;
+        } else {
+          fprintf(stderr, "No matching Column for: %s\n", aliasname);
+          return 6;
+        }
+      }
+
     }
 
     /* R2U2 Output File */
@@ -123,15 +164,26 @@ int main(int argc, char *argv[]) {
 
     /* Main processing loop */
     uint32_t cur_time = 0, i;
-    char *signal;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+        if (cur_time == 0 && inbuf[0] == '#') {
+          /* Skip Header row */
+          if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+        }
 
-        for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
-            signal = strtok(NULL, ",\n")) {
-              signals_vector[i] = signal;
-          }
+        if (alias_order == true) {
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[aliasname[i]] = signal;
+            }
+        } else {
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[i] = signal;
+            }
+        }
+
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
