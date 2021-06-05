@@ -40,8 +40,8 @@ expr
   ;
 
 binding
-  : Identifier ':=' Filter '(' Identifier ')' Conditional Number
-  | Identifier ':=' Filter '(' Identifier ',' Number ')' Conditional Number
+  : Identifier ':=' Filter '(' Identifier ')' Conditional (Number | Identifier)
+  | Identifier ':=' Filter '(' Identifier ',' Number ')' Conditional (Number | Identifier)
   ;
 
 // Lexical Spec

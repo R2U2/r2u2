@@ -9,8 +9,7 @@ class Visitor(MLTLVisitor):
     def __init__(self, prev_ref_atomics):
         self.ref_atomics = prev_ref_atomics
         self.mapped_atomics = []
-        self.signals = []
-        self.direct_sig_indices = []
+        self.signals = {}
         self.labels = []
         self.at_instr = {}
         self.status = True
@@ -190,26 +189,72 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#binding.
     def visitBinding(self, ctx:MLTLParser.BindingContext):
-        atom = ctx.Identifier(0).getText()
-        filter = ctx.Filter().getText()
-        signal = ctx.Identifier(1).getText()
-        if len(ctx.Number()) == 2:
+        # collect all relevant data -- different cases for what tokens we see
+        atom = ctx.Identifier(0).getText()   # atomic identifier
+        filter = ctx.Filter().getText()      # filter to be used
+        signal = ctx.Identifier(1).getText() # signal alias
+        cond = ctx.Conditional().getText()   # conditional operator
+
+        # optional arg is present, comp is signal alias
+        if len(ctx.Identifier()) == 3 and len(ctx.Number()) == 1:
+            arg = ctx.Number(0).getText()
+            comp = ctx.Identifier(2).getText()
+        # optional arg is not present, comp is signal alias
+        elif len(ctx.Identifier()) == 3 and len(ctx.Number()) == 0:
+            arg = 'NA'
+            comp = ctx.Identifier(2).getText()
+        # optional arg is present, comp is a constant
+        elif len(ctx.Identifier()) == 2 and len(ctx.Number()) == 2:
             arg = ctx.Number(0).getText()
             comp = ctx.Number(1).getText()
-        else:
-            arg = '0'
+        # optional arg is not present, comp is a constant
+        elif len(ctx.Identifier()) == 2 and len(ctx.Number()) == 1:
+            arg = 'NA'
             comp = ctx.Number(0).getText()
-        cond = ctx.Conditional().getText()
 
+        # check that filter have required args, warn user if they used an arg
+        # when one was not needed
+        if filter == 'bool' or filter == 'int' or filter == 'float' or filter == 'rate':
+            if arg != 'NA':
+                print('WARNING: using optional argument for filter ' + filter +\
+                    ' when not needed for binding ' + ctx.getText())
+                print('Argument will be ignored')
+            arg = '0'
+        elif (filter == 'movavg' or filter == 'abs_diff_angle') and arg == 'NA':
+            print('ERROR: filter ' + filter + ' requires second argument for    binding ' + ctx.getText())
+            self.status = False
+
+        # append instruction to list of instructions
         self.at_instr[atom] = [filter, signal, arg, cond, comp]
 
-        if not signal in self.signals:
-            self.signals.append(signal)
-        if not atom in self.mapped_atomics:
-            self.mapped_atomics.append(atom)
+        # if comp is signal, record the aliases/direct signal indices
+        if len(ctx.Identifier()) == 3:
+            if re.match('s\d+', comp) and comp not in self.signals:
+                # comp is a direct signal mapping, assign it the corresponding
+                # signal index
+                sig_index = re.search('\d+', comp).group(0)
+                self.signals[comp] = int(sig_index)
+            elif comp not in self.signals:
+                # comp is an alias, initialize in dict so we know we need to
+                # assign it a valid index later
+                self.signals[comp] = -1
 
-        if not re.match('s\d+', signal) is None:
-            sig_index = re.search('\d+', signal).group(0)
-            self.direct_sig_indices.append(int(sig_index))
+        # maintain list of signals in use
+        if signal not in self.signals:
+            if re.match('s\d+', signal):
+                # signal is a direct signal mapping, assign it the
+                # corresponding signal index
+                sig_index = re.search('\d+', signal).group(0)
+                self.signals[signal] = int(sig_index)
+            else:
+                # signal is an alias, initialize in dict so we know we need to
+                # assign it a valid index later
+                self.signals[signal] = -1
+
+        # maintain list of mapped atomics
+        if atom in self.mapped_atomics:
+            print('WARNING: overriding previosuly mapped atomic ' + atom + ' in binding ' + ctx.getText())
+        else:
+            self.mapped_atomics.append(atom)
 
         return self.visitChildren(ctx)

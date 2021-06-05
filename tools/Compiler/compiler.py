@@ -17,8 +17,7 @@ class Compiler():
         self.Hp = Hp
         self.ref_atomics = []
         self.mapped_atomics = []
-        self.signals = []
-        self.sig_indices = []
+        self.signals = {}
         self.labels = []
         self.status = True
         self.echo = echo
@@ -32,7 +31,6 @@ class Compiler():
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         parse_tree = parser.program()
-        print(parse_tree.toStringTree(recog=parser))
         visitor = Visitor(self.ref_atomics)
         visitor.visit(parse_tree)
         return visitor
@@ -51,7 +49,7 @@ class Compiler():
             return
 
         for atom in visitor.ref_atomics:
-            if not atom in self.ref_atomics:
+            if atom not in self.ref_atomics:
                 self.ref_atomics.append(atom)
 
         self.labels = visitor.labels
@@ -76,14 +74,9 @@ class Compiler():
             self.status = False
             return
 
-        for atom in visitor.mapped_atomics:
-            self.mapped_atomics.append(atom)
+        self.mapped_atomics = visitor.mapped_atomics
 
-        for signal in visitor.signals:
-            self.signals.append(signal)
-
-        for i in visitor.direct_sig_indices:
-            self.sig_indices.append(i)
+        self.assign_sig_indices(visitor.signals)
 
         self.at_gen_assembly(visitor.at_instr, asm_filename)
 
@@ -246,6 +239,29 @@ class Compiler():
         return get_total_size()
 
 
+    def assign_sig_indices(self, signals):
+        # init self.signals to signals
+        for sig in list(signals):
+            self.signals[sig] = signals[sig]
+
+        # handle case of unmapped atomics in the form 'a\d+'
+        # these will be mapped to the corresponding signal index in \d+
+        for atom in self.ref_atomics:
+            if atom not in self.mapped_atomics:
+                if re.match('a\d+', atom) and atom not in list(signals):
+                    index = re.search('\d+', atom).group()
+                    self.signals['s'+index] = int(index)
+
+        min_index = 0
+        for sig, index in signals.items():
+            # if index < 0, need to assign it a valid mapping
+            if index < 0:
+                # find min index not in use
+                while min_index in self.signals.values():
+                    min_index += 1
+                self.signals[sig] = min_index
+
+
     # Generate assembly code
     def mltl_gen_assembly(self, filename):
         stack = self.valid_node_set[:]
@@ -273,50 +289,21 @@ class Compiler():
         # Treat as a boolean
         for atom in self.ref_atomics:
             if atom not in self.mapped_atomics:
-                if not re.search('a\d+', atom) is None:
+                if re.match('a\d+', atom):
                     # \d+ refers to index of the signal we want to refer
                     num = re.search('\d+', atom).group()
-                    if not int(num) in self.sig_indices:
-                        self.sig_indices.append(int(num))
-
                     s += 'a' + str(self.ref_atomics.index(atom)) + ': bool s' +\
-                            num + ' 0 == 1\n'
+                        num + ' 0 == 1\n'
                 else:
                     print('ERROR: Atom ' + atom + ' referenced but not mapped')
                     self.status = False
 
-        # Mapped atomics with signal in form 's\d+'
+        # Mapped atomics
         for atom, instr in instructions.items():
             if atom in self.ref_atomics:
-                if not re.match('s\d+', instr[1]) is None:
-                    # atom name must be in valid assembly form ('a\d+')
-                    a = 'a' + str(self.ref_atomics.index(atom))
-                    # map to associated signal index
-                    sig_index = int(re.search('\d+', instr[1]).group(0))
-
-                    s += a + ': ' + instr[0] + ' s' + str(sig_index) + ' ' + \
-                        instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
-
-        # Mapped atomics with aliased signal name
-        for atom, instr in instructions.items():
-            if atom in self.ref_atomics:
-                if re.match('s\d+', instr[1]) is None:
-                    # atom name must be in valid assembly form ('a\d+')
-                    a = 'a' + str(self.ref_atomics.index(atom))
-
-                    # Assign signal mapping an index not in use by another atomic
-                    self.sig_indices.sort()
-                    min_sig = 0
-                    for sig in self.sig_indices:
-                        if sig != min_sig:
-                            break
-                        else:
-                            min_sig += 1
-                    self.sig_indices.append(min_sig)
-                    sig_index = min_sig
-
-                    s += a + ': ' + instr[0] + ' s' + str(sig_index) + ' ' + \
-                        instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
+                a = 'a' + str(self.ref_atomics.index(atom))
+                s += a + ': ' + instr[0] + ' s' + str(self.signals[instr[1]]) +\
+                    ' ' + instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
             else:
                 print('WARNING: Atom ' + atom + ' not referenced in MLTL, ignoring')
 
@@ -341,8 +328,8 @@ class Compiler():
         # Extra newline separates formula labels from signal aliases
         s = '\n'
 
-        for i in range(len(self.signals)):
-            s += self.signals[i] + ' ' + str(i) + '\n'
+        for sig, index in self.signals.items():
+            s += sig + ' ' + str(index) + '\n'
 
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
