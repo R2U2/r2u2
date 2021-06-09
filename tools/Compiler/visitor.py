@@ -10,7 +10,6 @@ class Visitor(MLTLVisitor):
         self.ref_atomics = prev_ref_atomics
         self.mapped_atomics = []
         self.signals = []
-        self.direct_sig_indices = []
         self.labels = []
         self.at_instr = {}
         self.status = True
@@ -205,11 +204,8 @@ class Visitor(MLTLVisitor):
 
         if not signal in self.signals:
             self.signals.append(signal)
+
         if not atom in self.mapped_atomics:
             self.mapped_atomics.append(atom)
-
-        if not re.match('s\d+', signal) is None:
-            sig_index = re.search('\d+', signal).group(0)
-            self.direct_sig_indices.append(int(sig_index))
 
         return self.visitChildren(ctx)

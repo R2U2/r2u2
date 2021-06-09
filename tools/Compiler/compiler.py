@@ -82,9 +82,6 @@ class Compiler():
         for signal in visitor.signals:
             self.signals.append(signal)
 
-        for i in visitor.direct_sig_indices:
-            self.sig_indices.append(i)
-
         self.at_gen_assembly(visitor.at_instr, asm_filename)
 
         self.gen_alias_file_sigs(alias_filename)
@@ -288,7 +285,7 @@ class Compiler():
         # Mapped atomics with signal in form 's\d+'
         for atom, instr in instructions.items():
             if atom in self.ref_atomics:
-                if not re.match('s\d+', instr[1]) is None:
+                if re.match('s\d+', instr[1]):
                     # atom name must be in valid assembly form ('a\d+')
                     a = 'a' + str(self.ref_atomics.index(atom))
                     # map to associated signal index
@@ -300,7 +297,7 @@ class Compiler():
         # Mapped atomics with aliased signal name
         for atom, instr in instructions.items():
             if atom in self.ref_atomics:
-                if re.match('s\d+', instr[1]) is None:
+                if not re.match('s\d+', instr[1]):
                     # atom name must be in valid assembly form ('a\d+')
                     a = 'a' + str(self.ref_atomics.index(atom))
 
