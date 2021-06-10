@@ -40,6 +40,7 @@ def main(args):
     else:
         MLTL = args.mltl
 
+    """
     FT = ""
     PT = ""
     AT = ""
@@ -85,13 +86,14 @@ def main(args):
         elif(isAtom > 0):
             # Only add atomics to the set
             AT += line + ';\n'
+    """
 
-    mltl_compiler = compiler.Compiler(binary_dir)
+    mltl_compiler = compiler.Compiler(binary_dir, MLTL)
 
     print('************************** FT ASM **************************')
 
     if not re.search('\S',FT) is None:
-        mltl_compiler.mltl_compile(FT, 'ft.asm', 'alias.txt')
+        mltl_compiler.compile_ft('ft.asm')
     else:
         f = open(binary_dir+'ft.asm','w+')
         f.write('s0: end sequence')
@@ -104,7 +106,7 @@ def main(args):
     print('************************** PT ASM **************************')
 
     if not re.search('\S',PT) is None:
-        mltl_compiler.mltl_compile(PT, 'pt.asm', 'alias.txt', FT=False)
+        mltl_compiler.compile_pt('pt.asm')
     else:
         f = open(binary_dir+'pt.asm','w+')
         f.write('s0: end sequence')
@@ -113,7 +115,7 @@ def main(args):
 
     print('************************** AT ASM **************************')
 
-    mltl_compiler.at_compile(AT, 'at.asm', 'alias.txt')
+    mltl_compiler.compile_at('at.asm')
 
     print('************************************************************')
 

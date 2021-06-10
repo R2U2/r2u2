@@ -9,6 +9,7 @@ program
 statement
   : (Identifier ':')? expr ';'
   | binding ';'
+  | mapping ';'
   ;
 
 expr
@@ -43,6 +44,9 @@ binding
   : Identifier ':=' Filter '(' Identifier ')' Conditional Number
   | Identifier ':=' Filter '(' Identifier ',' Number ')' Conditional Number
   ;
+
+mapping
+  : Identifier ':=' Number
 
 // Lexical Spec
 

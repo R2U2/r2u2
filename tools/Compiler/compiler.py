@@ -11,17 +11,17 @@ import re
 asmFileName = ""
 class Compiler():
 
-    def __init__(self, output_path, optimize_cse=True, Hp=0, echo=True):
+    def __init__(self, output_path, mltl optimize_cse=True, Hp=0, echo=True):
+        # initialize variables
         self.optimize = optimize_cse
         self.output_path = output_path
         self.Hp = Hp
-        self.ref_atomics = []
-        self.mapped_atomics = []
+        self.atomics = []
         self.signals = []
-        self.sig_indices = []
         self.labels = []
         self.status = True
         self.echo = echo
+        self.mltl
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
@@ -38,24 +38,70 @@ class Compiler():
         return visitor
 
 
-    def mltl_compile(self, mltl, asm_filename, alias_filename, FT=True):
+    def compile_ft(self, asm_filename):
         AST_node.reset()
         Observer.reset()
 
-        # Parse the input and generate AST
-        visitor = self.parse(mltl)
+        ft = ''
+        for line in self.mltl.split(';'):
+            line = line.strip('\n ')
+            # Ignore lines that are blank
+            if(re.fullmatch('\s*', line)):
+                continue
+            if(re.search('[GFUR]',line) and re.search('[YHOS]',line)):
+                # Check if line is mixed FT/PT
+                print('ERROR: mixed time operators used in formula ' + line)
+                print('Ignoring formula')
+                continue
+            if(re.search('[GFUR]',line)):
+                # line is valid FT
+                ft += line + ';\n'
+            if(re.search('[YHOS]',line)):
+                # line is valid pt, need to keep track of line numbers
+                ft += '\n'
 
+        # Parse the input and generate AST
+        visitor = self.parse(ft)
         if not visitor.status:
-            print('ERROR: issue parsing MLTL')
+            print('ERROR: issue parsing FT')
             self.status = False
             return
 
-        for atom in visitor.ref_atomics:
-            if not atom in self.ref_atomics:
-                self.ref_atomics.append(atom)
+        self.gen_assembly(asm_filename)
 
-        self.labels = visitor.labels
+    def compile_pt(self, asm_filename):
+        AST_node.reset()
+        Observer.reset()
 
+        pt = ''
+        for line in self.mltl.split(';'):
+            line = line.strip('\n ')
+            # Ignore lines that are blank
+            if(re.fullmatch('\s*', line)):
+                continue
+            if(re.search('[GFUR]',line) and re.search('[YHOS]',line)):
+                # Check if line is mixed FT/PT
+                print('ERROR: mixed time operators used in formula ' + line)
+                print('Ignoring formula')
+                continue
+            if(re.search('[YHOS]',line)):
+                # line is valid PT
+                pt += line + ';\n'
+            if(re.search('[GFUR]',line)):
+                # line is valid FT, need to keep track of line numbers
+                pt += '\n'
+
+        # Parse the input and generate AST
+        visitor = self.parse(pt)
+        if not visitor.status:
+            print('ERROR: issue parsing FT')
+            self.status = False
+            return
+
+        self.gen_assembly(asm_filename)
+
+
+    def gen_assembly(asm_filename):
         self.asm = ""
         self.ast = AST_node.ast
         self.top = self.ast[0]
@@ -64,7 +110,6 @@ class Compiler():
         self.valid_node_set = self.sort_node()
         self.queue_size_assign(self.Hp, asm_filename)
         self.mltl_gen_assembly(asm_filename)
-        self.gen_alias_file_labels(alias_filename)
 
 
     def at_compile(self, at, asm_filename, alias_filename):
@@ -325,21 +370,13 @@ class Compiler():
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
 
-    def gen_alias_file_labels(self, filename):
+    def gen_alias_file(self, filename):
         s = ''
-
-        for label in self.labels:
-            s += label + '\n'
-
-        with open(self.output_path+filename, 'a') as f:
-            f.write(s)
-
-    def gen_alias_file_sigs(self, filename):
-        # Extra newline separates formula labels from signal aliases
-        s = '\n'
-
-        for i in range(len(self.signals)):
-            s += self.signals[i] + ' ' + str(i) + '\n'
-
+        for label, line_num in self.labels:
+            s += 'l ' + label + ' ' + str(line_num) + '\n'
+        for signal, index in self.signals:
+            s += 's ' + signal + ' ' + str(index) + '\n'
+        for atom, index in self.atomics:
+            s += 'a ' + atom + ' ' + str(index) + '\n'
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
