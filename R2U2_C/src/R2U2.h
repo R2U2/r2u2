@@ -32,18 +32,48 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_Flag
-    /* Flag is an example that doesn't do anything */
-    #define R2U2_Flag EXHIBIT
+#ifndef R2U2_AT_Extra_Filters
+    /* Enables the Rate, Angle difference, and moving average AT filters */
+    #define R2U2_AT_Extra_Filters EXHIBIT
 #endif
 
+#ifndef R2U2_AT_FFTW_Filter
+    /* Enables the discrete Fourier transform filter,
+     * but requires the fftw3 library */
+    #define R2U2_AT_FFTW_Filter INHIBIT
+#endif
+
+#ifndef R2U2_AT_Prognostics
+    /* Enables the prognostics module */
+    #define R2U2_Prognostics INHIBIT
+#endif
+
+#ifndef R2U2_TL_Formula_Names
+    /* Enables named formula verdicts */
+    #define R2U2_TL_Formula_Names INHIBIT
+#endif
+
+#ifndef R2U2_TL_Contract_Status
+    /* Enables printing tri-state reports of assume-guarantee contracts */
+    #define R2U2_TL_Contract_Status INHIBIT
+#endif
+
+#ifndef R2U2_CSV_Header_Mapping
+    /* Enables reordering header imports to match signal vector mapping */
+    #define R2U2_CSV_Header_Mapping INHIBIT
+#endif
+
+
 // TODO: Require a flag for unsupported platform builds?
+/* Platform compatibility enforcement, this will intentionally cause a
+ * pre-processor warning a feature status is changed due to platform
+ */
 #if defined(__linux__)
     // No known feature incompatibilities
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    // Incompatible with....
+    #define R2U2_AT_Extra_Filters EXHIBIT
 #elif defined(_WIN32)
     // No known feature incompatibilities
     // #warning Windows is an unsupported platform
