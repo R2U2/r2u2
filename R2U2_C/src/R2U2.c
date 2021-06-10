@@ -91,6 +91,9 @@ int main(int argc, char *argv[]) {
     #endif
 
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
+    #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status
+    TL_aux_config("alias.txt");
+    #endif
     TL_init();
     AT_config("at.bin");
     AT_init();

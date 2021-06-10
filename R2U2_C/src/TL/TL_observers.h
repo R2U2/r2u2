@@ -205,6 +205,7 @@ extern char *fti_bin;
 // functions
 //---------------------------------------------
 void TL_config(char*, char*, char*, char*, char*);
+void TL_aux_config(char*);
 
 int TL_init();
 
