@@ -30,15 +30,17 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#statement.
     def visitStatement(self, ctx:MLTLParser.StatementContext):
-        if not ctx.expr() is None:
+        if ctx.expr():
             expr = self.visit(ctx.expr())
             label = ctx.Identifier()
             if label and not label.getText() in self.labels:
                 # preprocessing pass
                 self.labels[label.getText()] = ctx.start.line
-            return STATEMENT(expr, lineno-1)
-        if not ctx.binding() is None:
-            binding = self.visit(ctx.binding())
+            return STATEMENT(expr, ctx.start.line-1)
+        if ctx.binding():
+            self.visit(ctx.binding())
+        if ctx.mapping():
+            self.visit(ctx.mapping())
 
 
     # Visit a parse tree produced by MLTLParser#prop_expr.
@@ -181,13 +183,9 @@ class Visitor(MLTLVisitor):
         identifier = ctx.Identifier().getText()
         if not identifier in self.atomics:
             # preprocessing pass
-            # map atomics in the form a\d+, otherwise init to -1
-            if re.match('a\d+',identifier):
-                self.atomics[identifier] = re.search('\d+',identifier).group()
-            else:
-                self.atomics[identifier] = -1
-        else:
-            return ATOM('a' + str(self.atomics[identifier]))
+            self.atomics[identifier] = -2
+
+        return ATOM('a' + str(self.atomics[identifier]))
 
 
     # Visit a parse tree produced by MLTLParser#binding.
@@ -203,17 +201,17 @@ class Visitor(MLTLVisitor):
             comp = ctx.Number(0).getText()
         cond = ctx.Conditional().getText()
 
-        if not atom in self.atomics:
+        if not atom in self.atomics or self.atomics[atom] == -2:
             # preprocessing pass
             self.atomics[atom] = -1
-        else:
-            atom = 'a' + str(self.atomics[identifier])
+
+        atom = 'a' + str(self.atomics[atom])
 
         if not signal in self.signals:
             # preprocessing pass
             self.signals[signal] = -1
-        else:
-            signal = 's' + str(self.signals[signal])
+
+        signal = 's' + str(self.signals[signal])
 
         self.at_instr[atom] = [filter, signal, arg, cond, comp]
 

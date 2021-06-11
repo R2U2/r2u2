@@ -21,6 +21,7 @@ class Compiler():
         self.atomics = {}
         self.signals = {}
         self.labels = {}
+        self.at_instructions = {}
         self.status = True
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
@@ -30,6 +31,8 @@ class Compiler():
 
 
     def parse(self, input):
+        AST_node.reset()
+        Observer.reset()
         lexer = MLTLLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
@@ -52,42 +55,53 @@ class Compiler():
 
         # Assign the unmapped atomics and signals indices
 
-        min_index = 0
-        for atom, index in self.atomics.iteritems():
-            if index > -1:
+        min_idx = 0
+        for atom, index in self.atomics.items():
+            if re.match('a\d+',atom):
+                idx = re.search('\d+',atom).group()
+                self.atomics[atom] = int(idx)
+                self.at_instructions[atom] = ['bool','s'+idx,'0','==','1']
                 continue
-            while min_index in self.atomics.values():
-                min_index += 1
-            self.atomics[atom] = min_index
+            while min_idx in self.atomics.values():
+                min_idx += 1
+            if self.atomics[atom] == -2:
+                print('WARNING: atomic referenced but not binded: ' + atom)
+                self.at_instructions['a'+str(min_idx)] = \
+                    ['bool','s'+str(min_idx),'0','==','1']
+            self.atomics[atom] = min_idx
 
-        min_index = 0
-        for signal, index in self.signals.iteritems():
-            if index > -1:
+        min_idx = 0
+        for signal, index in self.signals.items():
+            if re.match('s\d+',signal):
+                self.signals[signal] = int(re.search('\d+',signal).group())
                 continue
-            while min_index in self.signals.values():
-                min_index += 1
-            self.signals[atom] = min_index
+            if self.signals[signal] == -1:
+                print('WARNING: signal referenced but not mapped: ' + signal)
+                while min_idx in self.signals.values():
+                    min_idx += 1
+                self.signals[signal] = min_idx
 
 
     def compile_ft(self, asm_filename):
-        AST_node.reset()
-        Observer.reset()
+        #AST_node.reset()
+        #Observer.reset()
 
         ft = ''
         for line in self.mltl.split(';'):
             line = line.strip('\n ')
             # Ignore lines that are blank
-            if(re.fullmatch('\s*', line)):
+            if re.fullmatch('\s*', line):
                 continue
-            if(re.search('[GFUR]',line) and re.search('[YHOS]',line)):
+            if re.search('^[^\#]*[GFUR]\[',line) and \
+               re.search('^[^\#]*[YHOS]\[',line):
                 # Check if line is mixed FT/PT
                 print('ERROR: mixed time operators used in formula ' + line)
                 print('Ignoring formula')
                 continue
-            if(re.search('[GFUR]',line)):
+            if re.search('^[^\#]*[GFUR]\[',line):
                 # line is valid FT
                 ft += line + ';\n'
-            if(re.search('[YHOS]',line)):
+            if re.search('^[^\#]*[YHOS]\[',line):
                 # line is valid pt, need to keep track of line numbers
                 ft += '\n'
 
@@ -98,27 +112,36 @@ class Compiler():
             self.status = False
             return
 
-        self.gen_assembly(asm_filename)
+        self.asm = ""
+        self.ast = AST_node.ast
+        self.top = self.ast[0]
+        if(self.optimize):
+            self.optimize_cse()
+        self.valid_node_set = self.sort_node()
+        self.queue_size_assign(self.Hp, asm_filename)
+        self.mltl_gen_assembly(asm_filename)
 
     def compile_pt(self, asm_filename):
-        AST_node.reset()
-        Observer.reset()
+        #AST_node.reset()
+        #Observer.reset()
 
         pt = ''
         for line in self.mltl.split(';'):
             line = line.strip('\n ')
             # Ignore lines that are blank
-            if(re.fullmatch('\s*', line)):
+            if re.fullmatch('\s*', line):
                 continue
-            if(re.search('[GFUR]',line) and re.search('[YHOS]',line)):
+            if re.search('^[^\#]*[GFUR]\[',line) and \
+               re.search('^[^\#]*[YHOS]\[',line):
+                # TODO: fix so we can properly search commented lines
                 # Check if line is mixed FT/PT
                 print('ERROR: mixed time operators used in formula ' + line)
                 print('Ignoring formula')
                 continue
-            if(re.search('[YHOS]',line)):
+            if re.search('^[^\#]*[YHOS]\[',line):
                 # line is valid PT
                 pt += line + ';\n'
-            if(re.search('[GFUR]',line)):
+            if re.search('^[^\#]*[GFUR]\[',line):
                 # line is valid FT, need to keep track of line numbers
                 pt += '\n'
 
@@ -129,10 +152,6 @@ class Compiler():
             self.status = False
             return
 
-        self.gen_assembly(asm_filename)
-
-
-    def gen_assembly(asm_filename):
         self.asm = ""
         self.ast = AST_node.ast
         self.top = self.ast[0]
@@ -143,7 +162,18 @@ class Compiler():
         self.mltl_gen_assembly(asm_filename)
 
 
-    def at_compile(self, at, asm_filename, alias_filename):
+    def compile_at(self, asm_filename):
+        at = ''
+        for line in self.mltl.split(';'):
+            line = line.strip('\n ')
+            # Ignore lines that are blank
+            if re.fullmatch('\s*', line):
+                continue
+            if re.search(':=',self.mltl):
+                at += line + ';\n'
+            else:
+                at += '\n'
+
         # Parse the input and generate AST
         visitor = self.parse(at)
 
@@ -152,7 +182,10 @@ class Compiler():
             self.status = False
             return
 
-        self.at_gen_assembly(visitor.at_instr, asm_filename)
+        for atom, instr in visitor.at_instr.items():
+            self.at_instructions[atom] = instr
+
+        self.at_gen_assembly(asm_filename)
 
 
     # Common subexpression elimination the AST
@@ -331,11 +364,11 @@ class Compiler():
             f.write(s)
 
 
-    def at_gen_assembly(self, instructions, filename):
+    def at_gen_assembly(self, filename):
         s = ''
 
         # Mapped atomics with signal in form 's\d+'
-        for atom, instr in instructions.items():
+        for atom, instr in self.at_instructions.items():
             s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + \
                     instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
 
@@ -349,11 +382,11 @@ class Compiler():
 
     def gen_alias_file(self, filename):
         s = ''
-        for label, num in self.labels:
+        for label, num in self.labels.items():
             s += 'l ' + label + ' ' + str(num) + '\n'
-        for signal, index in self.signals:
+        for signal, index in self.signals.items():
             s += 's ' + signal + ' ' + str(index) + '\n'
-        for atom, index in self.atomics:
+        for atom, index in self.atomics.items():
             s += 'a ' + atom + ' ' + str(index) + '\n'
         with open(self.output_path+filename, 'a') as f:
             f.write(s)

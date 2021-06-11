@@ -92,7 +92,7 @@ def main(args):
 
     print('************************** FT ASM **************************')
 
-    if not re.search('\S',FT) is None:
+    if re.search('[GFUR]',MLTL):
         mltl_compiler.compile_ft('ft.asm')
     else:
         f = open(binary_dir+'ft.asm','w+')
@@ -105,7 +105,7 @@ def main(args):
 
     print('************************** PT ASM **************************')
 
-    if not re.search('\S',PT) is None:
+    if re.search('[YHOS]',MLTL):
         mltl_compiler.compile_pt('pt.asm')
     else:
         f = open(binary_dir+'pt.asm','w+')
@@ -122,6 +122,8 @@ def main(args):
     if not mltl_compiler.status:
         print('Error in compilation of MLTL or AT')
         return
+
+    mltl_compiler.gen_alias_file('alias.txt')
 
     if not os.path.isdir(args.output_dir+'config_files/'):
         os.mkdir(args.output_dir+'config_files/')
