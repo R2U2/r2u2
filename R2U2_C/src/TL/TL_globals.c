@@ -50,3 +50,8 @@ interval_mem_t  interval_mem_pt;
 instruction_mem_t instruction_mem_ft;
 interval_mem_t  interval_mem_ft;
 addr_SCQ_map_t addr_SCQ_map_ft;
+
+#if R2U2_TL_Formula_Names
+aux_str_map_t        aux_str_map = {0};
+aux_str_arena_t      aux_str_arena = {0};
+#endif

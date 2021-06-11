@@ -168,6 +168,11 @@ typedef bool results_pt_t[N_INSTRUCTIONS];
 // Async queue array
 typedef timestamp_t results_rising_pt_t[N_INSTRUCTIONS];
 
+#if R2U2_TL_Formula_Names
+typedef char* aux_str_map_t[N_AUX_STRINGS];
+typedef char aux_str_arena_t[L_AUX_STRINGS];
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -193,6 +198,11 @@ extern results_pt_t			results_pt;
 extern results_pt_t			results_pt_prev;
 
 extern results_rising_pt_t 	results_pt_rising;
+
+#if R2U2_TL_Formula_Names
+extern aux_str_map_t		aux_str_map;
+extern aux_str_arena_t		aux_str_arena;
+#endif
 
 /* For no file handling option */
 extern char *ptm_bin;

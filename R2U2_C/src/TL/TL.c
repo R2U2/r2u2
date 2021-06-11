@@ -36,7 +36,12 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 /* Extended Output Configuration */
 // Keeping this separate from binParser until configuration unification
 void TL_aux_config(char* aux){
-    char type, line[MAX_LINE];
+    char type, *next_ptr, line[MAX_LINE], label[MAX_LINE];
+    size_t num;
+
+    #if R2U2_TL_Formula_Names
+    next_ptr = aux_str_arena;
+    #endif
 
     FILE *file = fopen ( aux, "r" );
     if ( file != NULL ) {
@@ -46,7 +51,13 @@ void TL_aux_config(char* aux){
 
                     #if R2U2_TL_Formula_Names
                         case 'F': {
-                            // sscanf(line, "*%c %s %d", );
+                            sscanf(line, "%*c %s %zu", label, &num);
+                            /* Normally we'd use stpcpy, but it is a POSIX
+                             * not ISO C standard */
+                            strcpy(next_ptr, label);
+                            aux_str_map[num] = next_ptr;
+                            next_ptr += strlen(next_ptr) + 1; // Skip past Null
+                            DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[num], num);
                             break;
                         }
                     #endif
