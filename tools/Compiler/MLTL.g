@@ -47,6 +47,7 @@ binding
 
 mapping
   : Identifier ':=' Number
+  ;
 
 // Lexical Spec
 

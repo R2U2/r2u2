@@ -6,12 +6,10 @@ import re
 
 class Visitor(MLTLVisitor):
 
-    def __init__(self):
-        self.atomics_used = set()
-        self.signals_used = set()
-        self.atomics = {}
-        self.signals = {}
-        self.labels = {}
+    def __init__(self, atomics, signals, labels):
+        self.atomics = atomics
+        self.signals = signals
+        self.labels = labels
         self.at_instr = {}
         self.status = True
 
@@ -34,9 +32,10 @@ class Visitor(MLTLVisitor):
     def visitStatement(self, ctx:MLTLParser.StatementContext):
         if not ctx.expr() is None:
             expr = self.visit(ctx.expr())
-            line_num = ctx.start.line
-            if not ctx.Identifier() is None:
-                self.labels[ctx.Identifier().getText()] = line_num
+            label = ctx.Identifier()
+            if label and not label.getText() in self.labels:
+                # preprocessing pass
+                self.labels[label.getText()] = ctx.start.line
             return STATEMENT(expr, lineno-1)
         if not ctx.binding() is None:
             binding = self.visit(ctx.binding())
@@ -179,13 +178,16 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#atom_expr.
     def visitAtom_expr(self, ctx:MLTLParser.Atom_exprContext):
-        identifier = str(ctx.Identifier())
-        if identifier in self.ref_atomics:
-            atom_num = self.ref_atomics.index(identifier)
-            return ATOM('a' + str(atom_num))
+        identifier = ctx.Identifier().getText()
+        if not identifier in self.atomics:
+            # preprocessing pass
+            # map atomics in the form a\d+, otherwise init to -1
+            if re.match('a\d+',identifier):
+                self.atomics[identifier] = re.search('\d+',identifier).group()
+            else:
+                self.atomics[identifier] = -1
         else:
-            self.ref_atomics.append(identifier)
-            return ATOM('a' + str(len(self.ref_atomics) - 1))
+            return ATOM('a' + str(self.atomics[identifier]))
 
 
     # Visit a parse tree produced by MLTLParser#binding.
@@ -201,6 +203,26 @@ class Visitor(MLTLVisitor):
             comp = ctx.Number(0).getText()
         cond = ctx.Conditional().getText()
 
+        if not atom in self.atomics:
+            # preprocessing pass
+            self.atomics[atom] = -1
+        else:
+            atom = 'a' + str(self.atomics[identifier])
+
+        if not signal in self.signals:
+            # preprocessing pass
+            self.signals[signal] = -1
+        else:
+            signal = 's' + str(self.signals[signal])
+
         self.at_instr[atom] = [filter, signal, arg, cond, comp]
 
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#mapping.
+    def visitMapping(self, ctx:MLTLParser.MappingContext):
+        signal = ctx.Identifier().getText()
+        index = ctx.Number().getText()
+        self.signals[signal] = int(index)
         return self.visitChildren(ctx)

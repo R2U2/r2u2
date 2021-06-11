@@ -54,5 +54,10 @@ class MLTLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by MLTLParser#mapping.
+    def visitMapping(self, ctx:MLTLParser.MappingContext):
+        return self.visitChildren(ctx)
+
+
 
 del MLTLParser
