@@ -36,11 +36,15 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 /* Extended Output Configuration */
 // Keeping this separate from binParser until configuration unification
 void TL_aux_config(char* aux){
-    char type, *next_ptr, line[MAX_LINE], label[MAX_LINE];
-    size_t num;
+    char type, *next_ptr, line[MAX_LINE];
+    size_t f_num, c_num=0;
 
     #if R2U2_TL_Formula_Names
     next_ptr = aux_str_arena;
+    #endif
+
+    #if R2U2_TL_Contract_Status
+    aux_con_map[0] = aux_con_arena;
     #endif
 
     FILE *file = fopen ( aux, "r" );
@@ -51,20 +55,19 @@ void TL_aux_config(char* aux){
 
                     #if R2U2_TL_Formula_Names
                         case 'F': {
-                            sscanf(line, "%*c %s %zu", label, &num);
-                            /* Normally we'd use stpcpy, but it is a POSIX
-                             * not ISO C standard */
-                            strcpy(next_ptr, label);
-                            aux_str_map[num] = next_ptr;
+                            sscanf(line, "%*c %s %zu", next_ptr, &f_num);
+                            aux_str_map[f_num] = next_ptr;
                             next_ptr += strlen(next_ptr) + 1; // Skip past Null
-                            DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[num], num);
+                            DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[f_num], f_num);
                             break;
                         }
                     #endif
 
                     #if R2U2_TL_Contract_Status
-                        case "C": {
-                            // sscanf(line "*%c %d %d", );
+                        case 'C': {
+                            sscanf(line, "%*c %s %zu %zu %zu", aux_con_map[c_num], &aux_con_forms[3*c_num], &aux_con_forms[3*c_num+1], &aux_con_forms[3*c_num+2]);
+                            aux_con_map[c_num+1] = aux_con_map[c_num] + strlen(aux_con_map[c_num]) + 1; // Leave a Null
+                            c_num++;
                             break;
                         }
                     #endif
@@ -79,6 +82,11 @@ void TL_aux_config(char* aux){
                 DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
             }
         }
+
+        #if R2U2_TL_Contract_Status
+        aux_con_max = c_num;
+        #endif
+
         fclose ( file );
     } else {
         perror ( aux ); /* why didn't the file open? */
