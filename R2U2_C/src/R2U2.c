@@ -57,16 +57,15 @@ int main(int argc, char *argv[]) {
 
     int MAX_TIME = INT_MAX, c;
     FILE *input_file = NULL;
-    char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
-    char *signal;
+    char *signal, inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
+    #if R2U2_CSV_Header_Mapping
     /* Used by alias reordering */
-    bool alias_order = false;
     FILE *alias_file = NULL;
-    uintptr_t alias_table[N_SIGS];
-    char aliasname[BUFSIZ]; // LINE_MAX instead? PATH_MAX?
-    char *scan_ptr;
-    uintptr_t col_num, idx;
+    bool alias_order = false;
+    uintptr_t col_num, idx, alias_table[N_SIGS];
+    char *scan_ptr, aliasname[BUFSIZ];
+    #endif
 
     // Extensible way to loop over CLI options
     while((c = getopt(argc, argv, "h")) != -1) {
@@ -121,6 +120,7 @@ int main(int argc, char *argv[]) {
           return 1;
         }
       }
+      #if R2U2_CSV_Header_Mapping
       // If using CSV input and alias exists, set alias flag
       if (access("alias.txt", F_OK) == 0) {
         alias_file = fopen("alias.txt", "r");
@@ -129,10 +129,13 @@ int main(int argc, char *argv[]) {
           alias_order = true;
         }
       }
+      #endif
     } else { // Trace file not specified, use stdin
       input_file = stdin;
     }
 
+    #if R2U2_CSV_Header_Mapping
+    // TODO: unifiy this with aux file load or keep seperate?
     if (alias_order == true) {
       // Initialize lookup table
       for(idx = 0; idx < N_SIGS; idx++){
@@ -154,8 +157,8 @@ int main(int argc, char *argv[]) {
           return 6;
         }
       }
-
     }
+    #endif
 
     /* R2U2 Output File */
     FILE *log_file;
@@ -167,6 +170,8 @@ int main(int argc, char *argv[]) {
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+
+        #if R2U2_CSV_Header_Mapping
         if (cur_time == 0 && inbuf[0] == '#') {
           /* Skip Header row */
           if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
@@ -183,6 +188,12 @@ int main(int argc, char *argv[]) {
                 signals_vector[i] = signal;
             }
         }
+        #else
+        for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+            signal = strtok(NULL, ",\n")) {
+              signals_vector[i] = signal;
+        }
+        #endif
 
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
