@@ -73,7 +73,9 @@
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    #define R2U2_AT_Extra_Filters EXHIBIT
+    #define R2U2_AT_Extra_Filters INHIBIT
+    #define R2U2_AT_FFT_Filter INHIBIT
+    #define R2U2_Prognostics INHIBIT
 #elif defined(_WIN32)
     // No known feature incompatibilities
     // #warning Windows is an unsupported platform
