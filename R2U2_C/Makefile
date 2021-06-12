@@ -11,7 +11,7 @@ DBG_PATH := target/debug
 ifdef R2U2_AT_Prognostics
 # Add prognostics module
 CFLAGS := $(CFLAGS) -DR2U2_AT_Prognostics
-SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/prognostics
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/prognostic_filters
 endif
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT \
