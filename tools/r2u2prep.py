@@ -40,54 +40,6 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    """
-    FT = ""
-    PT = ""
-    AT = ""
-
-    # Split the PT and FT
-    for line in MLTL.split(';'):
-        line = line.strip('\n ')
-        # Ignore lines that are blank
-        if(re.fullmatch('\s*', line)):
-            continue
-        # Iterate through the line and determine if it is FT or PT or atomic
-        isFT = 0
-        isPT = 0
-        isAtom = 0
-
-        # Determine if the line is an atomic mapping
-        if(re.search(':=', line)):
-            isAtom = isAtom + 1
-        # Determine if the line contains a FT operator
-        elif(re.search('[GFUR]', line)):
-            isFT = isFT + 1
-        # Determine if the line contains a PT operator
-        elif(re.search('[YHOS]', line)):
-            isPT = isPT + 1
-
-        # If a formula has both PT and FT, throw an error and exit the program
-        if((isPT > 0) and (isFT > 0)):
-            print('***********************************************************')
-            print('Formula has both past-time and future-time operators.')
-            print('R2U2 does not support mixed-time formulas.')
-            print('The following formula is invalid: ' + line)
-        # Else, if a formula is just past-time,
-        elif((isPT > 0) and (isFT == 0)):
-            # Put it in the PT list, for the PT call of postgraph
-            PT += line + ';\n'
-            FT += '\n'
-        # Else, if the formula is future-time or just propositional logic,
-        elif((isPT == 0) and (isFT >= 0) and (isAtom == 0)):
-            # Put it in the FT list, for the FT call of postgraph
-            FT += line + ';\n'
-            PT += '\n'
-        # Else if the formula is an atomic assignment
-        elif(isAtom > 0):
-            # Only add atomics to the set
-            AT += line + ';\n'
-    """
-
     mltl_compiler = compiler.Compiler(binary_dir, MLTL)
 
     print('************************** FT ASM **************************')

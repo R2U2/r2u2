@@ -383,10 +383,10 @@ class Compiler():
     def gen_alias_file(self, filename):
         s = ''
         for label, num in self.labels.items():
-            s += 'l ' + label + ' ' + str(num) + '\n'
+            s += 'F ' + label + ' ' + str(num) + '\n'
         for signal, index in self.signals.items():
-            s += 's ' + signal + ' ' + str(index) + '\n'
+            s += 'S ' + signal + ' ' + str(index) + '\n'
         for atom, index in self.atomics.items():
-            s += 'a ' + atom + ' ' + str(index) + '\n'
+            s += 'A ' + atom + ' ' + str(index) + '\n'
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
