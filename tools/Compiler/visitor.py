@@ -10,6 +10,7 @@ class Visitor(MLTLVisitor):
         self.atomics = atomics
         self.signals = signals
         self.labels = labels
+        self.contracts = {}
         self.at_instr = {}
         self.status = True
 
@@ -35,11 +36,13 @@ class Visitor(MLTLVisitor):
             label = ctx.Identifier()
             if label and not label.getText() in self.labels:
                 # preprocessing pass
-                self.labels[label.getText()] = ctx.start.line
+                self.labels[label.getText()] = ctx.start.line-1
             return STATEMENT(expr, ctx.start.line-1)
-        if ctx.binding():
+        elif ctx.contract():
+            self.visit(ctx.contract())
+        elif ctx.binding():
             self.visit(ctx.binding())
-        if ctx.mapping():
+        elif ctx.mapping():
             self.visit(ctx.mapping())
 
 
@@ -184,8 +187,16 @@ class Visitor(MLTLVisitor):
         if not identifier in self.atomics:
             # preprocessing pass
             self.atomics[identifier] = -2
-
+        #print(ctx.getText())
         return ATOM('a' + str(self.atomics[identifier]))
+
+
+    # Visit a parse tree produced by MLTLParser#contract.
+    def visitContract(self, ctx:MLTLParser.ContractContext):
+        self.contracts[ctx.Identifier().getText()] = \
+            [ctx.expr(0).getText(), ctx.expr(1).getText()]
+        self.visit(ctx.expr(0))
+        self.visit(ctx.expr(1))
 
 
     # Visit a parse tree produced by MLTLParser#binding.

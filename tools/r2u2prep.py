@@ -44,26 +44,11 @@ def main(args):
 
     print('************************** FT ASM **************************')
 
-    if re.search('[GFUR]',MLTL):
-        mltl_compiler.compile_ft('ft.asm')
-    else:
-        f = open(binary_dir+'ft.asm','w+')
-        f.write('s0: end sequence')
-        f.close()
-        print('s0: end sequence')
-        f = open(binary_dir+'ftscq.asm','w+')
-        f.write('0 0')
-        f.close()
+    mltl_compiler.compile_ft('ft.asm')
 
     print('************************** PT ASM **************************')
 
-    if re.search('[YHOS]',MLTL):
-        mltl_compiler.compile_pt('pt.asm')
-    else:
-        f = open(binary_dir+'pt.asm','w+')
-        f.write('s0: end sequence')
-        f.close()
-        print('s0: end sequence')
+    mltl_compiler.compile_pt('pt.asm')
 
     print('************************** AT ASM **************************')
 

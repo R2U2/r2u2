@@ -8,8 +8,13 @@ program
 
 statement
   : (Identifier ':')? expr ';'
+  | contract ';'
   | binding ';'
   | mapping ';'
+  ;
+
+contract
+  : (Identifier ':')? expr '=>' expr
   ;
 
 expr

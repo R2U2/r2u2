@@ -21,12 +21,13 @@ class Compiler():
         self.atomics = {}
         self.signals = {}
         self.labels = {}
+        self.contracts = {}
         self.at_instructions = {}
         self.status = True
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
-        # make first pass of input to collect/preprocess identifiers
+        # make first pass of input to preprocess identifiers and contracts
         self.preprocess()
 
 
@@ -52,15 +53,37 @@ class Compiler():
         self.atomics = visitor.atomics
         self.signals = visitor.signals
         self.labels = visitor.labels
+        self.contracts = visitor.contracts
 
-        # Assign the unmapped atomics and signals indices
+        # Add formulas for contract handling
+        # TODO: this is very dirty, but works. Problem is with keeping track
+        # of formula numbers for contracts
+        for contract, formulas in self.contracts.items():
+            formula_num = 1
+            for line in self.mltl.split(';'):
+                line = line.strip('\n ')
+                # Ignore lines that are blank and contracts
+                if re.fullmatch('\s*', line) or re.search('=>',line):
+                    continue
+                # Check if line is mixed FT/PT
+                if re.search('^[^\#]*[GFUR]\[',line) or \
+                   re.search('^[^\#]*[YHOS]\[',line):
+                   formula_num += 1
+            self.contracts[contract] = formula_num
+            self.mltl += formulas[0] + ';\n'
+            self.mltl += formulas[0] + '->' + formulas[1] + ';\n'
+            self.mltl += formulas[0] + '&' + formulas[1] + ';\n'
 
-        min_idx = 0
+        # Assign the atomics valid indices
         for atom, index in self.atomics.items():
             if re.match('a\d+',atom):
                 idx = re.search('\d+',atom).group()
                 self.atomics[atom] = int(idx)
                 self.at_instructions[atom] = ['bool','s'+idx,'0','==','1']
+
+        min_idx = 0
+        for atom, index in self.atomics.items():
+            if re.match('a\d+',atom):
                 continue
             while min_idx in self.atomics.values():
                 min_idx += 1
@@ -70,10 +93,14 @@ class Compiler():
                     ['bool','s'+str(min_idx),'0','==','1']
             self.atomics[atom] = min_idx
 
-        min_idx = 0
+        # Assign the signals valid indices
         for signal, index in self.signals.items():
             if re.match('s\d+',signal):
                 self.signals[signal] = int(re.search('\d+',signal).group())
+
+        min_idx = 0
+        for signal, index in self.signals.items():
+            if re.match('s\d+',signal):
                 continue
             if self.signals[signal] == -1:
                 print('WARNING: signal referenced but not mapped: ' + signal)
@@ -83,27 +110,39 @@ class Compiler():
 
 
     def compile_ft(self, asm_filename):
-        #AST_node.reset()
-        #Observer.reset()
+        AST_node.reset()
+        Observer.reset()
 
         ft = ''
         for line in self.mltl.split(';'):
             line = line.strip('\n ')
-            # Ignore lines that are blank
-            if re.fullmatch('\s*', line):
+            # Ignore lines that are blank, contracts, or bindings
+            if re.fullmatch('\s*', line) or re.search('=>',line) or \
+              re.search(':=',line):
                 continue
+            # Check if line is mixed FT/PT
             if re.search('^[^\#]*[GFUR]\[',line) and \
                re.search('^[^\#]*[YHOS]\[',line):
-                # Check if line is mixed FT/PT
                 print('ERROR: mixed time operators used in formula ' + line)
                 print('Ignoring formula')
                 continue
-            if re.search('^[^\#]*[GFUR]\[',line):
-                # line is valid FT
-                ft += line + ';\n'
+            # line is valid pt, need to keep track of line numbers
             if re.search('^[^\#]*[YHOS]\[',line):
-                # line is valid pt, need to keep track of line numbers
                 ft += '\n'
+                continue
+            # line is valid FT or propositional logic
+            ft += line + ';\n'
+
+        # if no FT formulas in file, write empty asm
+        if re.fullmatch('\s*',ft):
+            f = open(self.output_path+'ft.asm','w+')
+            f.write('s0: end sequence')
+            f.close()
+            print('s0: end sequence')
+            f = open(self.output_path+'ftscq.asm','w+')
+            f.write('0 0')
+            f.close()
+            return
 
         # Parse the input and generate AST
         visitor = self.parse(ft)
@@ -122,28 +161,38 @@ class Compiler():
         self.mltl_gen_assembly(asm_filename)
 
     def compile_pt(self, asm_filename):
-        #AST_node.reset()
-        #Observer.reset()
+        AST_node.reset()
+        Observer.reset()
 
         pt = ''
         for line in self.mltl.split(';'):
             line = line.strip('\n ')
-            # Ignore lines that are blank
-            if re.fullmatch('\s*', line):
+            # Ignore lines that are blank, contracts, or bindings
+            if re.fullmatch('\s*', line) or re.search('=>',line) or \
+              re.search(':=',line):
                 continue
+            # Check if line is mixed FT/PT
             if re.search('^[^\#]*[GFUR]\[',line) and \
                re.search('^[^\#]*[YHOS]\[',line):
                 # TODO: fix so we can properly search commented lines
-                # Check if line is mixed FT/PT
                 print('ERROR: mixed time operators used in formula ' + line)
                 print('Ignoring formula')
                 continue
-            if re.search('^[^\#]*[YHOS]\[',line):
-                # line is valid PT
-                pt += line + ';\n'
-            if re.search('^[^\#]*[GFUR]\[',line):
-                # line is valid FT, need to keep track of line numbers
+            # line is valid FT/propositional logic formula, need to keep track
+            # of line numbers
+            if not re.search('^[^\#]*[YHOS]\[',line):
                 pt += '\n'
+                continue
+            # line is valid PT
+            pt += line + ';\n'
+
+        # if no PT formulas in file, write empty asm
+        if re.fullmatch('\s*',pt):
+            f = open(self.output_path+'pt.asm','w+')
+            f.write('s0: end sequence')
+            f.close()
+            print('s0: end sequence')
+            return
 
         # Parse the input and generate AST
         visitor = self.parse(pt)
@@ -366,17 +415,13 @@ class Compiler():
 
     def at_gen_assembly(self, filename):
         s = ''
-
         # Mapped atomics with signal in form 's\d+'
         for atom, instr in self.at_instructions.items():
             s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + \
                     instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
-
         s = s[:len(s)-1] # remove last newline
-
         if self.echo:
             print(s)
-
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
 
@@ -384,6 +429,9 @@ class Compiler():
         s = ''
         for label, num in self.labels.items():
             s += 'F ' + label + ' ' + str(num) + '\n'
+        for contract, formula_num in self.contracts.items():
+            s += 'C ' + contract + ' ' + str(formula_num) + ' ' + \
+                str(formula_num+1) + ' ' + str(formula_num+2) + '\n'
         for signal, index in self.signals.items():
             s += 'S ' + signal + ' ' + str(index) + '\n'
         for atom, index in self.atomics.items():
