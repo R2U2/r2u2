@@ -119,7 +119,49 @@ int TL_update_ft(FILE *log_file) {
         	        ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
         	        DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
+        	        #if R2U2_TL_Formula_Names
+        	        if (aux_str_map[(int)instruction_mem_ft[pc].op2.value] == NULL)
+        	        {
+        	        	/* No formula name - use numbered output format */
+	        	        fprintf(log_file,"%d:%d,%s\n", (int)instruction_mem_ft[pc].op2.value, res.t_q, res.v_q?"T":"F");
+        	        } else {
+        	        	/* Use formula name from aux file */
+	        	        fprintf(log_file,"%s:%d,%s\n", aux_str_map[(int)instruction_mem_ft[pc].op2.value], res.t_q, res.v_q?"T":"F");
+        	        }
+        	        #else
         	        fprintf(log_file,"%d:%d,%s\n", (int)instruction_mem_ft[pc].op2.value, res.t_q, res.v_q?"T":"F");
+        	        #endif
+
+        	        #if R2U2_TL_Contract_Status
+        	        for (int i = 0; i < 3*aux_con_max; ++i) {
+        	        	if ((int)instruction_mem_ft[pc].op2.value == aux_con_forms[i]) {
+        	        		switch(i%3){
+        	        			case 0: {
+        	        				if(!res.v_q){
+        	        					printf("Contract %s inactive at %d\n", aux_con_map[i/3], res.t_q);
+        	        				}
+        	        				break;
+        	        			}
+        	        			case 1: {
+        	        				if(!res.v_q){
+        	        					printf("Contract %s invalid at %d\n", aux_con_map[i/3], res.t_q);
+        	        				}
+        	        				break;
+        	        			}
+        	        			case 2: {
+        	        				if(!res.v_q){
+        	        					printf("Contract %s verified at %d\n", aux_con_map[i/3], res.t_q);
+        	        				}
+        	        				break;
+        	        			}
+        	        		}
+        	        		/* We'd like to stop searching after a contract has been found
+        	        		 * but there could be formula reuse - specifically of assumptions
+        	        		*/
+        	        		// i = 3*aux_con_max;
+        	        	}
+        	        }
+        	        #endif
 				}
 				break;
 			}
