@@ -174,7 +174,6 @@ class Compiler():
             # Check if line is mixed FT/PT
             if re.search('^[^\#]*[GFUR]\[',line) and \
                re.search('^[^\#]*[YHOS]\[',line):
-                # TODO: fix so we can properly search commented lines
                 print('ERROR: mixed time operators used in formula ' + line)
                 print('Ignoring formula')
                 continue
