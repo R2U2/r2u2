@@ -19,6 +19,11 @@ class MLTLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by MLTLParser#contract.
+    def visitContract(self, ctx:MLTLParser.ContractContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by MLTLParser#prop_expr.
     def visitProp_expr(self, ctx:MLTLParser.Prop_exprContext):
         return self.visitChildren(ctx)
@@ -51,6 +56,11 @@ class MLTLVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by MLTLParser#binding.
     def visitBinding(self, ctx:MLTLParser.BindingContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#mapping.
+    def visitMapping(self, ctx:MLTLParser.MappingContext):
         return self.visitChildren(ctx)
 
 

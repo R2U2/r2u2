@@ -8,7 +8,13 @@ program
 
 statement
   : (Identifier ':')? expr ';'
+  | contract ';'
   | binding ';'
+  | mapping ';'
+  ;
+
+contract
+  : (Identifier ':')? expr '=>' expr
   ;
 
 expr
@@ -42,6 +48,10 @@ expr
 binding
   : Identifier ':=' Filter '(' Identifier ')' Conditional Number
   | Identifier ':=' Filter '(' Identifier ',' Number ')' Conditional Number
+  ;
+
+mapping
+  : Identifier ':=' Number
   ;
 
 // Lexical Spec
