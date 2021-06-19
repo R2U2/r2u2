@@ -132,14 +132,13 @@ void op_error(at_instruction_t *instr)
 	printf("Error: invalid opcode\n");
 }
 
-void (*decode[])(at_instruction_t *) = {op_error,
-																				op_bool,
-																				op_int,
-																				op_double,
+void (*decode[])(at_instruction_t*) = { op_error,
+    op_bool,
+    op_int,
+    op_double,
 #ifdef R2U2_AT_ExtraFilters
-																				op_rate,
-																				op_abs_diff_angle,
-									  										op_movavg
+    op_rate,
+    op_abs_diff_angle,
+    op_movavg
 #endif
 };
-
