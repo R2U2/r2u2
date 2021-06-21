@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     if (argc < n_args_req) {
         fprintf(stderr,"R2U2 Version %d.%d\n",
             R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stderr, usage);
+        fprintf(stderr, "%s", usage);
         return 1;
     }
 
@@ -59,19 +59,11 @@ int main(int argc, char *argv[]) {
     FILE *input_file = NULL;
     char *signal, inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
-    #if R2U2_CSV_Header_Mapping
-    /* Used by alias reordering */
-    FILE *alias_file = NULL;
-    bool alias_order = false;
-    uintptr_t col_num, idx, alias_table[N_SIGS];
-    char *scan_ptr, aliasname[BUFSIZ];
-    #endif
-
     // Extensible way to loop over CLI options
     while((c = getopt(argc, argv, "h")) != -1) {
       switch(c) {
         case 'h': {
-          fprintf(stdout, usage);
+          fprintf(stdout, "%s", usage);
           return 1;
         }
         case '?': {
@@ -173,16 +165,18 @@ int main(int argc, char *argv[]) {
 
         #if R2U2_CSV_Header_Mapping
         if (cur_time == 0 && inbuf[0] == '#') {
-          /* Skip Header row */
+          /* Skip Header row, if it exists */
           if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
         }
 
-        if (alias_order == true) {
+        if (header_status == 1) {
+          /* Use CSV header reordering */
           for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
               signal = strtok(NULL, ",\n")) {
                 signals_vector[aliasname[i]] = signal;
             }
         } else {
+          /* Use CSV columns in order given */
           for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
               signal = strtok(NULL, ",\n")) {
                 signals_vector[i] = signal;
