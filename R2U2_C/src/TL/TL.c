@@ -7,7 +7,7 @@
 #include "TL_queue_pt.h"
 #include "parse.h"
 
-#ifndef CONFIG
+#ifndef CONFIG // TODO: Do we need to conditionally compile these?
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     // TODO: Does this crash on bad bins?
@@ -22,14 +22,76 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 #else
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
+    /* Future Time Configuration */
     parse_inst_ft_bin(ftm_bin);
     parse_interval_ft_bin(fti_bin);
     parse_scq_size_bin(ftscq_bin);
 
+    /* Past Time Configuration */
     parse_inst_pt_bin(ptm_bin);
     parse_interval_pt_bin(pti_bin);
 }
 #endif
+
+/* Extended Output Configuration */
+// Keeping this separate from binParser until configuration unification
+void TL_aux_config(char* aux){
+    char type, *next_ptr, line[MAX_LINE];
+    size_t f_num, c_num=0;
+
+    #if R2U2_TL_Formula_Names
+    next_ptr = aux_str_arena;
+    #endif
+
+    #if R2U2_TL_Contract_Status
+    aux_con_map[0] = aux_con_arena;
+    #endif
+
+    FILE *file = fopen ( aux, "r" );
+    if ( file != NULL ) {
+        while ( fgets (line, sizeof(line), file ) != NULL ) { /* read a line */
+            if (sscanf(line, "%c", &type) == 1) {
+                switch(type){
+
+                    #if R2U2_TL_Formula_Names
+                        case 'F': {
+                            sscanf(line, "%*c %s %zu", next_ptr, &f_num);
+                            aux_str_map[f_num] = next_ptr;
+                            next_ptr += strlen(next_ptr) + 1; // Skip past Null
+                            DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[f_num], f_num);
+                            break;
+                        }
+                    #endif
+
+                    #if R2U2_TL_Contract_Status
+                        case 'C': {
+                            sscanf(line, "%*c %s %zu %zu %zu", aux_con_map[c_num], &aux_con_forms[3*c_num], &aux_con_forms[3*c_num+1], &aux_con_forms[3*c_num+2]);
+                            aux_con_map[c_num+1] = aux_con_map[c_num] + strlen(aux_con_map[c_num]) + 1; // Leave a Null
+                            c_num++;
+                            break;
+                        }
+                    #endif
+
+                    default: {
+                        DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
+                        break;
+                    }
+                }
+            } else {
+                // Error? Skip bad line
+                DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
+            }
+        }
+
+        #if R2U2_TL_Contract_Status
+        aux_con_max = c_num;
+        #endif
+
+        fclose ( file );
+    } else {
+        perror ( aux ); /* why didn't the file open? */
+    }
+}
 
 int TL_init()
 {

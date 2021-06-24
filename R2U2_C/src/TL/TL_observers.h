@@ -168,6 +168,18 @@ typedef bool results_pt_t[N_INSTRUCTIONS];
 // Async queue array
 typedef timestamp_t results_rising_pt_t[N_INSTRUCTIONS];
 
+#if R2U2_TL_Formula_Names
+typedef char* aux_str_map_t[N_INSTRUCTIONS];
+typedef char aux_str_arena_t[L_AUX_STRINGS];
+#endif
+
+#if R2U2_TL_Contract_Status
+typedef char* aux_con_map_t[N_INSTRUCTIONS];
+typedef char aux_con_arena_t[L_AUX_STRINGS];
+typedef size_t aux_con_forms_t[N_INSTRUCTIONS];
+typedef size_t aux_con_max_t;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -194,6 +206,18 @@ extern results_pt_t			results_pt_prev;
 
 extern results_rising_pt_t 	results_pt_rising;
 
+#if R2U2_TL_Formula_Names
+extern aux_str_map_t		aux_str_map;
+extern aux_str_arena_t		aux_str_arena;
+#endif
+
+#if R2U2_TL_Contract_Status
+extern aux_con_map_t 		aux_con_map;
+extern aux_con_arena_t 		aux_con_arena;
+extern aux_con_forms_t 		aux_con_forms;
+extern aux_con_max_t		aux_con_max;
+#endif
+
 /* For no file handling option */
 extern char *ptm_bin;
 extern char *pti_bin;
@@ -205,6 +229,7 @@ extern char *fti_bin;
 // functions
 //---------------------------------------------
 void TL_config(char*, char*, char*, char*, char*);
+void TL_aux_config(char*);
 
 int TL_init();
 

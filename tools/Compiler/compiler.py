@@ -59,16 +59,17 @@ class Compiler():
         # TODO: this is very dirty, but works. Problem is with keeping track
         # of formula numbers for contracts
         for contract, formulas in self.contracts.items():
-            formula_num = 1
+            formula_num = 0
             for line in self.mltl.split(';'):
                 line = line.strip('\n ')
-                # Ignore lines that are blank and contracts
-                if re.fullmatch('\s*', line) or re.search('=>',line):
+                # Ignore lines that are blank, contracts, or atomic bindings
+                if re.fullmatch('\s*', line) or re.search('=>',line) or re.search(':=',line):
                     continue
-                # Check if line is mixed FT/PT
-                if re.search('^[^\#]*[GFUR]\[',line) or \
-                   re.search('^[^\#]*[YHOS]\[',line):
-                   formula_num += 1
+                # Check if line is mixed FT/PT - This doesn't count pure propositional
+                # if re.search('^[^\#]*[GFUR]\[',line) or \
+                #    re.search('^[^\#]*[YHOS]\[',line):
+                #    formula_num += 1
+                formula_num += 1
             self.contracts[contract] = formula_num
             self.mltl += formulas[0] + ';\n'
             self.mltl += formulas[0] + '->' + formulas[1] + ';\n'

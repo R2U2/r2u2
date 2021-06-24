@@ -77,9 +77,24 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_END:
             DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, results_pt[instruction_mem_pt[pc].op1.value]);
+            #if R2U2_TL_Formula_Names
+            if (aux_str_map[(int)instruction_mem_pt[pc].op2.value] == NULL)
+            {
+                /* No formula name - use numbered output format */
+                fprintf(log_file, "%d:%u,%s\n",
+                        (int)instruction_mem_pt[pc].op2.value,t_now,
+                        results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            } else {
+                /* Use formula name from aux file */
+                fprintf(log_file, "%s:%u,%s\n",
+                    aux_str_map[(int)instruction_mem_pt[pc].op2.value],t_now,
+                    results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            }
+            #else
             fprintf(log_file, "%d:%u,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
                     results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            #endif
             break;
 
         //----------------------------------------------------

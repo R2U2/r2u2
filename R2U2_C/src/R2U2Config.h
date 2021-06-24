@@ -28,6 +28,8 @@
 #define L_AT_INSTRUCTION 88
 #define N_DOT_BUFFERS_TOTAL 8192
 #define N_SUBFORMULA_SNYC_QUEUES 256
+#define N_AUX_STRINGS 256
+#define L_AUX_STRINGS 4096
 typedef double r2u2_input_data_t;
 typedef unsigned int timestamp_t;
 typedef char signal_names[N_SIGS*L_VARIABLE];

@@ -4,8 +4,11 @@
 
 #include <stdlib.h>
 
+#ifdef R2U2_AT_ExtraFilters
 #include "filters/filter_rate.h"
 #include "filters/filter_movavg.h"
+#endif
+
 #include "parse.h"
 
 #ifndef CONFIG
@@ -44,10 +47,12 @@ void AT_free()
 			case OP_BOOL: break;
 			case OP_INT: break;
 			case OP_DOUBLE: break;
+			#ifdef R2U2_AT_ExtraFilters
 			case OP_RATE: break;
 			case OP_ABS_DIFF_ANGLE: break;
 			case OP_MOVAVG: filter_movavg_free(filter_data_struct.movavg);
 											break;
+			#endif
 			default: break;
 		}
 
