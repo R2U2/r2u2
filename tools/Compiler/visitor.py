@@ -195,7 +195,12 @@ class Visitor(MLTLVisitor):
     def visitContract(self, ctx:MLTLParser.ContractContext):
         label = ctx.Identifier()
         if not label:
-            name = ''
+            cnum = 1
+            while(True):
+                if 'c'+str(cnum) not in self.contracts.keys():
+                    name = 'c'+str(cnum)
+                    break
+                cnum += 1
         else:
             name = label.getText()
         self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText()]
