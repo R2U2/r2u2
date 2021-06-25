@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
           /* Use CSV header reordering */
           for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
               signal = strtok(NULL, ",\n")) {
-                signals_vector[aliasname[i]] = signal;
+                signals_vector[alias_table[i]] = signal;
             }
         } else {
           /* Use CSV columns in order given */
