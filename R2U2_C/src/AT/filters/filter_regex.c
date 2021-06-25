@@ -63,29 +63,3 @@ reti = regexec(RE, s, 0, NULL, 0);
 
 return reti;
 }
-
-#ifdef R2U2_AOS
-//-----------------------------------------------------------------
-//	update regex filter and return current regex for buffer
-//-----------------------------------------------------------------
-int filter_regex_plexil_update_data(regex_t *RE, plexil_r2u2_msgbuf_t mb, char **matches ){
-
-int reti;
-int i;
-
-// pull out matches
-
-reti = 1;
-for (i=0; i<mb.N; i++){
-	reti = regexec(RE, &(mb.plexil_msg[i][0]), 0, NULL, 0);
-	if (!reti)
-			// break on match
-		break;
-	}
-
-
-return reti;
-}
-
-#endif
-

@@ -10,8 +10,11 @@
 
 #include "at_instruction.h"
 #include "at_globals.h"
+
+#ifdef R2U2_AT_ExtraFilters
 #include "filters/filter_rate.h"
 #include "filters/filter_movavg.h"
+#endif
 
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
@@ -84,6 +87,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	if(inst->comp_is_sig) {
 		inst->comp.s = (uint8_t) comp;
 		switch(inst->filter) {
+			#ifdef R2U2_AT_ExtraFilters
 			case OP_RATE: {
 				filter_rate_init(&inst->filt_data_struct.prev);
 				break;
@@ -96,6 +100,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
 				break;
 			}
+			#endif
 			default: break;
 		}
 	} else { // Else store value as constant
@@ -103,6 +108,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 			case OP_BOOL: inst->comp.b = (bool) comp;	break;
 			case OP_INT: inst->comp.i = (int32_t) comp;	break;
 			case OP_DOUBLE: inst->comp.d = (double) comp;	break;
+			#ifdef R2U2_AT_ExtraFilters
 			case OP_RATE: {
 				inst->comp.d = (double) comp;
 				filter_rate_init(&inst->filt_data_struct.prev);
@@ -118,6 +124,7 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
 				break;
 			}
+			#endif
 			default: 	break;
 		}
 	}

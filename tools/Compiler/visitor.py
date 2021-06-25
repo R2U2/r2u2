@@ -193,8 +193,17 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#contract.
     def visitContract(self, ctx:MLTLParser.ContractContext):
-        self.contracts[ctx.Identifier().getText()] = \
-            [ctx.expr(0).getText(), ctx.expr(1).getText()]
+        label = ctx.Identifier()
+        if not label:
+            cnum = 1
+            while(True):
+                if 'c'+str(cnum) not in self.contracts.keys():
+                    name = 'c'+str(cnum)
+                    break
+                cnum += 1
+        else:
+            name = label.getText()
+        self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText()]
         self.visit(ctx.expr(0))
         self.visit(ctx.expr(1))
 
