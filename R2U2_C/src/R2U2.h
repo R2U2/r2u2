@@ -63,6 +63,15 @@
     #define R2U2_CSV_Header_Mapping INHIBIT
 #endif
 
+#ifndef R2U2_DEBUG
+    /* Enables debug printing to stderr */
+    #define R2U2_DEBUG INHIBIT
+#endif
+
+#ifndef R2U2_TRACE
+    /* Enables memory trace printing to stderr */
+    #define R2U2_TRACE INHIBIT
+#endif
 
 // TODO: Require a flag for unsupported platform builds?
 /* Platform compatibility enforcement, this will intentionally cause a
@@ -85,13 +94,13 @@
 // TODO: Make R2U2_DEBUG with levels and add location info
 // e.g.: R2U2_DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, ##args)
 // Good reference: https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c
-#ifdef DEBUG
+#ifdef R2U2_DEBUG
     #define R2U2_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
     #define R2U2_DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
-#ifdef DEEP_DEBUG
+#ifdef R2U2_TRACE
     #define R2U2_TRACE_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
     #define R2U2_TRACE_PRINT(...) do{ } while ( false )
