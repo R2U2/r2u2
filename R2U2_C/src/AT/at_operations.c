@@ -25,7 +25,7 @@ void op_abs_diff_angle(at_instruction_t *instr)
 			compare_double[instr->cond](diff_angle, instr->comp.d);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_movavg(at_instruction_t *instr)
@@ -45,7 +45,7 @@ void op_movavg(at_instruction_t *instr)
 			compare_double[instr->cond](avg, instr->comp.d);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_rate(at_instruction_t *instr)
@@ -64,7 +64,7 @@ void op_rate(at_instruction_t *instr)
 			compare_double[instr->cond](rate, instr->comp.d);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_bool(at_instruction_t *instr)
@@ -82,7 +82,7 @@ void op_bool(at_instruction_t *instr)
 			compare_int[instr->cond](signal, instr->comp.b);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_int(at_instruction_t *instr)
@@ -100,7 +100,7 @@ void op_int(at_instruction_t *instr)
 			compare_int[instr->cond](signal, instr->comp.i);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_double(at_instruction_t *instr)
@@ -118,7 +118,7 @@ void op_double(at_instruction_t *instr)
 			compare_double[instr->cond](signal, instr->comp.d);
 	}
 
-	AT_LOG("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
 void op_error(at_instruction_t *instr)

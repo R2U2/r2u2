@@ -30,9 +30,9 @@ void AT_update(uint32_t cur_time)
 	uint8_t i;
 	for(i = 0; i < num_instr; i++) {
 		decode[at_instructions[i].filter](at_instructions+i);
-		if(i < num_instr-1) AT_LOG(",");
+		if(i < num_instr-1) R2U2_DEBUG_PRINT(",");
 	}
-	AT_LOG("\n");
+	R2U2_DEBUG_PRINT("\n");
 }
 
 void AT_free()
