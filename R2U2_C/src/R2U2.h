@@ -37,10 +37,10 @@
     #define R2U2_AT_Extra_Filters EXHIBIT
 #endif
 
-#ifndef R2U2_AT_FFTW_Filter
+#ifndef R2U2_AT_FFT_Filter
     /* Enables the discrete Fourier transform filter,
      * but requires the fftw3 library */
-    #define R2U2_AT_FFTW_Filter INHIBIT
+    #define R2U2_AT_FFT_Filter INHIBIT
 #endif
 
 #ifndef R2U2_AT_Prognostics
@@ -73,7 +73,9 @@
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    #define R2U2_AT_Extra_Filters EXHIBIT
+    #define R2U2_AT_Extra_Filters INHIBIT
+    #define R2U2_AT_FFT_Filter INHIBIT
+    #define R2U2_Prognostics INHIBIT
 #elif defined(_WIN32)
     // No known feature incompatibilities
     // #warning Windows is an unsupported platform

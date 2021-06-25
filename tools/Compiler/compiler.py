@@ -56,23 +56,25 @@ class Compiler():
         self.contracts = visitor.contracts
 
         # Add formulas for contract handling
-        # TODO: this is very dirty, but works. Problem is with keeping track
-        # of formula numbers for contracts
+        # First count number of formulas which are not in contracts
+        formula_num = 0
+        for line in self.mltl.split(';'):
+            line = line.strip('\n ')
+            # Ignore lines that are blank, contracts, or atomic bindings
+            if re.fullmatch('\s*', line) or re.search('=>',line) or re.search(':=',line):
+                continue
+            # Check if line is mixed FT/PT
+            if re.search('^[^\#]*[GFUR]\[',line) and \
+               re.search('^[^\#]*[YHOS]\[',line):
+                continue
+            formula_num += 1
+
         for contract, formulas in self.contracts.items():
-            formula_num = 1
-            for line in self.mltl.split(';'):
-                line = line.strip('\n ')
-                # Ignore lines that are blank and contracts
-                if re.fullmatch('\s*', line) or re.search('=>',line):
-                    continue
-                # Check if line is mixed FT/PT
-                if re.search('^[^\#]*[GFUR]\[',line) or \
-                   re.search('^[^\#]*[YHOS]\[',line):
-                   formula_num += 1
             self.contracts[contract] = formula_num
             self.mltl += formulas[0] + ';\n'
             self.mltl += formulas[0] + '->' + formulas[1] + ';\n'
             self.mltl += formulas[0] + '&' + formulas[1] + ';\n'
+            formula_num += 3
 
         # Assign the atomics valid indices
         for atom, index in self.atomics.items():

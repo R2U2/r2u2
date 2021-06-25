@@ -22,6 +22,9 @@ const char *usage = "Usage: r2u2 [trace-file] [-h]\n"
                     "-h \t\t print this help statement\n";
 #endif
 
+/* Forward definition of CSV header ordering from aux files */
+int signal_aux_config(char*, FILE*, uintptr_t*);
+
 int main(int argc, char *argv[]) {
 
     #ifndef CONFIG
@@ -33,7 +36,7 @@ int main(int argc, char *argv[]) {
     if (argc < n_args_req) {
         fprintf(stderr,"R2U2 Version %d.%d\n",
             R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR);
-        fprintf(stderr, usage);
+        fprintf(stderr, "%s", usage);
         return 1;
     }
 
@@ -57,13 +60,13 @@ int main(int argc, char *argv[]) {
 
     int MAX_TIME = INT_MAX, c;
     FILE *input_file = NULL;
-    char inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
+    char *signal, inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
     // Extensible way to loop over CLI options
     while((c = getopt(argc, argv, "h")) != -1) {
       switch(c) {
         case 'h': {
-          fprintf(stdout, usage);
+          fprintf(stdout, "%s", usage);
           return 1;
         }
         case '?': {
@@ -104,9 +107,8 @@ int main(int argc, char *argv[]) {
 
     /* Input configuration */
     if(argind < argc) { // The trace file was specified
-      char *trace_filename = argv[argind];
-      if (access(trace_filename, F_OK) == 0) {
-        input_file = fopen(trace_filename, "r");
+      if (access(argv[argind], F_OK) == 0) {
+        input_file = fopen(argv[argind], "r");
         if (input_file == NULL) {
           fprintf(stderr, "Invalid trace filename");
           return 1;
@@ -116,6 +118,13 @@ int main(int argc, char *argv[]) {
       input_file = stdin;
     }
 
+    #if R2U2_CSV_Header_Mapping
+    int header_status = 0;
+    uintptr_t alias_table[N_SIGS];
+    header_status = signal_aux_config("alias.txt", input_file, alias_table);
+    if (header_status > 1) { return header_status; }
+    #endif
+
     /* R2U2 Output File */
     FILE *log_file;
     log_file = fopen("./R2U2.log", "w+");
@@ -123,15 +132,36 @@ int main(int argc, char *argv[]) {
 
     /* Main processing loop */
     uint32_t cur_time = 0, i;
-    char *signal;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
         if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
 
+        #if R2U2_CSV_Header_Mapping
+        if (cur_time == 0 && inbuf[0] == '#') {
+          /* Skip Header row, if it exists */
+          if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+        }
+
+        if (header_status == 1) {
+          /* Use CSV header reordering */
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[alias_table[i]] = signal;
+            }
+        } else {
+          /* Use CSV columns in order given */
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[i] = signal;
+            }
+        }
+        #else
         for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
             signal = strtok(NULL, ",\n")) {
               signals_vector[i] = signal;
-          }
+        }
+        #endif
+
 
         DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
@@ -140,7 +170,6 @@ int main(int argc, char *argv[]) {
 
         /* Temporal Logic Update */
         TL_update(log_file);
-
     }
 
     fclose(log_file);
@@ -148,4 +177,76 @@ int main(int argc, char *argv[]) {
     AT_free();
 
     return 0;
+}
+
+int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
+  /*
+  Load signal mapping from aux file and map CSV
+
+  Return values:
+    Success values
+    0: No column defs found - do not use header mapping
+    1: Column defs loaded successfully, use header mapping
+    -----------------------------------------------------
+    Error values:
+    3: Invalid signal definition
+    4: Aux file exists but can't be opened
+    5: Error reading CSV header
+    6: Missing a column for a listed signal
+  */
+  // TODO: unify this with aux file load or keep separate?
+      // If using CSV input and alias exists, set alias flag
+  // Read aux file for
+  FILE *alias_file = NULL;
+  uintptr_t idx, col_num;
+  char type, *signal, *scan_ptr;
+  char aliasname[BUFSIZ], inbuf[BUFSIZ], line[MAX_LINE]; // LINE_MAX instead? PATH_MAX??
+
+  int alias_order = 0;
+  if (access(aux, F_OK) == 0) {
+    alias_file = fopen(aux, "r");
+    if (alias_file != NULL) {
+
+      /* Put CSV header (from input_file pointer) into inbuf buffer */
+      if((fgets(inbuf, sizeof(inbuf), input_file) == NULL) || (inbuf[0] != '#') ){
+        fprintf(stderr, "Can't read input header\n");
+        return 5;
+      }
+
+      /* Initialize lookup table - default to natural number order */
+      for(idx = 0; idx < N_SIGS; idx++){ alias_table[idx] = idx;}
+
+      while(fgets(line, sizeof(line), alias_file) != NULL) {
+        if(sscanf(line, "%c", &type) == 1 && type == 'S') {
+          /* Found a signal definition, look for matching header */
+          if(scanf(line, "%*c %s %d", aliasname, &idx) == 2){
+            if((signal = strstr(inbuf, aliasname)) != NULL){
+              col_num = 0;
+              for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){
+                /* Walk through header, counting columns
+                 * Slower but lower memory than finding all columns first
+                 */
+                if(*scan_ptr == ',') {col_num += 1;}
+              }
+              alias_table[col_num] = idx;
+            } else {
+              fprintf(stderr, "No matching Column for: %s\n", aliasname);
+              return 6;
+            }
+          } else {
+            /* Invalid signal line */
+            fprintf(stderr, "The signal mapping '%s' is invalid\n", line);
+            return 3;
+          }
+          alias_order = 1; /* Flag that reordering should be used */
+        }
+      }
+      fclose(alias_file);
+
+    } else { /* Cannot open aux file which appears available */
+      perror(aux);
+      return 4;
+    }
+  }
+  return alias_order;
 }

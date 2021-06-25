@@ -149,7 +149,7 @@ int TL_update_ft(FILE *log_file) {
         	        				break;
         	        			}
         	        			case 2: {
-        	        				if(!res.v_q){
+        	        				if(res.v_q){
         	        					printf("Contract %s verified at %d\n", aux_con_map[i/3], res.t_q);
         	        				}
         	        				break;
