@@ -133,7 +133,7 @@ int main(int argc, char *argv[]) {
               signals_vector[i] = signal;
           }
 
-        DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
+        R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
         AT_update(cur_time);

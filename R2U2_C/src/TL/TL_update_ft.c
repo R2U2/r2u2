@@ -75,7 +75,7 @@ int TL_update_ft(FILE *log_file) {
 	    loop_progress = 0;
 		for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
             if (instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
-                DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+                R2U2_DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
                 break; // Break PC for loop
             }
 
@@ -118,7 +118,7 @@ int TL_update_ft(FILE *log_file) {
         	        // Synchronize the queues
         	        ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
-        	        DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
+        	        R2U2_DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
         	        #if R2U2_TL_Formula_Names
         	        if (aux_str_map[(int)instruction_mem_ft[pc].op2.value] == NULL)
         	        {
@@ -192,7 +192,7 @@ int TL_update_ft(FILE *log_file) {
 		            //add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 
 		            // If the dbg_flag is set, print to log and command line
-		            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
+		            R2U2_DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
         	    }
 	            break;
 	        }
@@ -234,7 +234,7 @@ int TL_update_ft(FILE *log_file) {
 	                // Synchronize the queues
 	                ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 	                // The code is generated as 'make debug', print to log and command line
-	                DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
+	                R2U2_DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
 	            }
 	            break;
 	        }
@@ -314,7 +314,7 @@ int TL_update_ft(FILE *log_file) {
 	                    //ft_sync_queues[pc].desired_time_stamp += 1;
 	                    ft_sync_queues[pc].desired_time_stamp = res.t_q+1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
 	                }
 	            }
 	            DEEP_PRINT("endL rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
@@ -366,7 +366,7 @@ int TL_update_ft(FILE *log_file) {
 	                        add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 	                        loop_progress += 1;
 	                        // The code is generated as 'make debug', print to log and command
-	                        DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
+	                        R2U2_DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                    }
 	                }
 	                // If the verdict is false and the time stamp is after the lower bound,
@@ -377,7 +377,7 @@ int TL_update_ft(FILE *log_file) {
 	                    add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 	                    loop_progress += 1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                }
 	                ft_sync_queues[pc].pre = input;
 	            }
@@ -470,7 +470,7 @@ int TL_update_ft(FILE *log_file) {
 	                    // Update the previous synch result
 	                    ft_sync_queues[pc].preResult = res.t_q + 1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
 	                }
 	                // Update the synchronous queues with the second operand
 	                ft_sync_queues[pc].pre = input_2;
@@ -492,13 +492,13 @@ int TL_update_ft(FILE *log_file) {
 	        // OR = !(!a0 AND !a1)
 	        case OP_OR:
 	        default:
-	            DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
+	            R2U2_DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
 	            r2u2_errno = 1;
 	            break;
 	        } // End Op Code Switch
 	    } // End PC For Loop
 	    total_progress += loop_progress;
-	    DEBUG_PRINT("Loop Progress: %d\t Total Progress: %d\n", loop_progress, total_progress);
+	    R2U2_DEBUG_PRINT("Loop Progress: %d\t Total Progress: %d\n", loop_progress, total_progress);
 	} while (loop_progress > 0);
     return 0;
 }

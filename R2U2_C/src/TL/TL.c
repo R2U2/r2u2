@@ -58,7 +58,7 @@ void TL_aux_config(char* aux){
                             sscanf(line, "%*c %s %zu", next_ptr, &f_num);
                             aux_str_map[f_num] = next_ptr;
                             next_ptr += strlen(next_ptr) + 1; // Skip past Null
-                            DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[f_num], f_num);
+                            R2U2_DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[f_num], f_num);
                             break;
                         }
                     #endif
@@ -73,13 +73,13 @@ void TL_aux_config(char* aux){
                     #endif
 
                     default: {
-                        DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
+                        R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
                         break;
                     }
                 }
             } else {
                 // Error? Skip bad line
-                DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
+                R2U2_DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
             }
         }
 
@@ -138,7 +138,7 @@ int TL_init()
     //
 
     if (N_PT_QUEUES * L_DOT_BUFFER > N_DOT_BUFFERS_TOTAL) {
-        DEBUG_PRINT("not enough pt-queue space\n");
+        R2U2_DEBUG_PRINT("not enough pt-queue space\n");
         r2u2_errno = 1;
         return 1; // TODO: Error codes
     }
@@ -179,9 +179,9 @@ int TL_update(FILE* log_file)
 
     r2u2_errno = 0;
 
-    DEBUG_PRINT("\n\tPT Update\n");
+    R2U2_DEBUG_PRINT("\n\tPT Update\n");
     TL_update_pt(log_file);
-    DEBUG_PRINT("\n\tFT Update\n");
+    R2U2_DEBUG_PRINT("\n\tFT Update\n");
     TL_update_ft(log_file);
 
     //
