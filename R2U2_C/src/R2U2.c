@@ -219,7 +219,7 @@ int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
       while(fgets(line, sizeof(line), alias_file) != NULL) {
         if(sscanf(line, "%c", &type) == 1 && type == 'S') {
           /* Found a signal definition, look for matching header */
-          if(scanf(line, "%*c %s %d", aliasname, &idx) == 2){
+          if(sscanf(line, "%*c %s %d", aliasname, &idx) == 2){
             if((signal = strstr(inbuf, aliasname)) != NULL){
               col_num = 0;
               for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){
