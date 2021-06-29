@@ -58,7 +58,8 @@ int main(int argc, char *argv[]) {
 	     fprintf(stdout, "Too many arguments supplied. Configuration directory path: %s. Trace file path: %s. Other arguments will be ignored.\n", argv[1], argv[2]);
     }
 
-    int MAX_TIME = INT_MAX, c;
+    const uint32_t MAX_TIME = UINT32_MAX;
+    int c;
     FILE *input_file = NULL;
     char *signal, inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
@@ -219,7 +220,7 @@ int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
       while(fgets(line, sizeof(line), alias_file) != NULL) {
         if(sscanf(line, "%c", &type) == 1 && type == 'S') {
           /* Found a signal definition, look for matching header */
-          if(sscanf(line, "%*c %s %d", aliasname, &idx) == 2){
+          if(sscanf(line, "%*c %s %ld", aliasname, &idx) == 2){
             if((signal = strstr(inbuf, aliasname)) != NULL){
               col_num = 0;
               for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){
