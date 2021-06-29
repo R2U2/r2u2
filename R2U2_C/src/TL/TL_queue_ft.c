@@ -72,7 +72,7 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 	#endif
 }
 
-void print_scq(elt_ft_queue_t* const scq, int size) {
+static void print_scq(elt_ft_queue_t* const scq, int size) {
 	printf("--------------PRINT SCQ @%p\n", (void *) scq);
 	for (int i=0; i<size; i++) {
 		printf("addr: %d, verdict: %d, timstamp: %d\n", i, scq[i].v_q, scq[i].t_q);

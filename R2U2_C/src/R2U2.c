@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    uint8_t argind = optind;
+    uint8_t argind = (unsigned char) optind;
 
     #ifndef CONFIG // Compilation is using binaries
     // TODO check that config directory is a valid path

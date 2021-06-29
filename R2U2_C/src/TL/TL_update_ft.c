@@ -71,7 +71,6 @@ int TL_update_ft(FILE *log_file) {
 
 	do {
 	    // Sequentially iterate through the program instructions
-	    pc = 0;
 	    loop_progress = 0;
 		for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
             if (instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
@@ -134,7 +133,7 @@ int TL_update_ft(FILE *log_file) {
 
         	        #if R2U2_TL_Contract_Status
         	        for (int i = 0; i < 3*aux_con_max; ++i) {
-        	        	if ((int)instruction_mem_ft[pc].op2.value == aux_con_forms[i]) {
+        	        	if (instruction_mem_ft[pc].op2.value == aux_con_forms[i]) {
         	        		switch(i%3){
         	        			case 0: {
         	        				if(!res.v_q){

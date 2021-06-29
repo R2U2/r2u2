@@ -71,7 +71,11 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
 
 	// 4. argument used for certain filters
+	#ifdef R2U2_AT_ExtraFilters
 	int arg = string2Int(&s,L_NUM);
+	#else
+	string2Int(&s,L_NUM); /* Ignore return if unused, still need to adv ptr */
+	#endif
 
 	// 5. type of comparison operator to apply
 	inst->cond = string2Int(&s,L_COMP);
@@ -100,7 +104,10 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 				break;
 			}
 			#endif
-			default: break;
+			case OP_BOOL:	break;
+			case OP_INT:	break;
+			case OP_DOUBLE:	break;
+			default: 		break;
 		}
 	} else { // Else store value as constant
 		switch(inst->filter) {
@@ -205,7 +212,6 @@ void parse_inst_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_interval_ft_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -241,7 +247,6 @@ void parse_interval_ft_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_interval_pt_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -277,7 +282,6 @@ void parse_interval_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_scq_size_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -316,8 +320,7 @@ void parse_scq_size_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_at_file(char *filename)
 {
-	int PC = 0;
-	char *pch;
+	uint8_t PC = 0;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -336,7 +339,7 @@ void parse_at_file(char *filename)
 }
 void parse_at_bin(char *bin)
 {
-	int PC = 0;
+	uint8_t PC = 0;
 	char *pch;
 	char line[L_AT_INSTRUCTION];
 
