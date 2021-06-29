@@ -17,5 +17,5 @@
 **
 **=====================================================================================*/
 void filter_rate_init(double *init);
-void filter_rate_free(double *buf);
+void filter_rate_free(void);
 double filter_rate_update_data(double x, double *prev);

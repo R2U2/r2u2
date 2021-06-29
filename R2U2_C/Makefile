@@ -8,6 +8,12 @@ SRC_PATH := src
 DBG_PATH := target/debug
 
 # Feature Flags
+ifdef R2U2_AT_Extra_Filters
+# Add prognostics module
+CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+endif
+
 ifdef R2U2_AT_Prognostics
 # Add prognostics module
 CFLAGS := $(CFLAGS) -DR2U2_AT_Prognostics
@@ -21,8 +27,7 @@ SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
 LIBS := $(LIBS) fftw3
 endif
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT \
-	$(SRC_PATH)/AT/filters $(SRC_DIRS)
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT $(SRC_DIRS)
 IDIR=$(SRC_DIRS)
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 OBJ_DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
