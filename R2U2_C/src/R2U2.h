@@ -96,13 +96,13 @@
 // TODO: Make R2U2_DEBUG with levels and add location info
 // e.g.: R2U2_DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, ##args)
 // Good reference: https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c
-#ifdef R2U2_DEBUG
+#if R2U2_DEBUG
     #define R2U2_DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
     #define R2U2_DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
-#ifdef R2U2_TRACE
+#if R2U2_TRACE
     #define R2U2_TRACE_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
     #define R2U2_TRACE_PRINT(...) do{ } while ( false )
