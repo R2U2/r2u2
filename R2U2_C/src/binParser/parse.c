@@ -25,7 +25,7 @@ static inline int string2Int(char** char_vec, int len) {
 	return op;
 }
 
-void decode_inst(char* s, instruction_t* inst) {
+static void decode_inst(char* s, instruction_t* inst) {
 	//1. operant code, 5 bits
 	inst->opcode = string2Int(&s,L_OPC);
 
@@ -44,7 +44,7 @@ void decode_inst(char* s, instruction_t* inst) {
 	inst->scratch = string2Int(&s,L_SCRATCH);
 }
 
-void decode_interval(char* s, interval_t* interval) {
+static void decode_interval(char* s, interval_t* interval) {
 	//1. lower bound, time stamp bits
 	interval->lb = string2Int(&s,L_INTERVAL);
 
@@ -52,7 +52,7 @@ void decode_interval(char* s, interval_t* interval) {
 	interval->ub = string2Int(&s,L_INTERVAL);
 }
 
-void decode_scq_size(char* s, addr_SCQ_t* addr) {
+static void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//1. start address
 	addr->start_addr = string2Int(&s,L_SCQ_ADDRESS);
 
@@ -60,8 +60,7 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
 }
 
-void decode_at_instr(char* s, at_instruction_t* inst)
-{
+static void decode_at_instr(char* s, at_instruction_t* inst) {
 	// 1. index to place final atomic value
 	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
 

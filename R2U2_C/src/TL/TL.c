@@ -58,7 +58,7 @@ void TL_aux_config(char* aux){
                             sscanf(line, "%*c %s %zu", next_ptr, &f_num);
                             aux_str_map[f_num] = next_ptr;
                             next_ptr += strlen(next_ptr) + 1; // Skip past Null
-                            R2U2_DEBUG_PRINT("Saved name '%s' for formula %d\n", aux_str_map[f_num], f_num);
+                            R2U2_DEBUG_PRINT("Saved name '%s' for formula %zu\n", aux_str_map[f_num], f_num);
                             break;
                         }
                     #endif

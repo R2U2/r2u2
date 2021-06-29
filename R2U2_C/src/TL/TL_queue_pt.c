@@ -49,7 +49,7 @@ Pushes a new timestamp tuple and advances the head of the queue
 int add_queue_pt(pt_box_queue_t* bq, timestamp_t t_s, timestamp_t t_e)
 {
 
-    unsigned int nhead;
+    int nhead;
 
     //R2U2_DEBUG_PRINT("----- Add Element to Box Queue -----\n");
     //R2U2_DEBUG_PRINT("Add (%d,%d) to the queue's head\n", t_s, t_e);

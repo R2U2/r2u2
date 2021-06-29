@@ -15,6 +15,7 @@ void op_bool(at_instruction_t *);
 void op_int(at_instruction_t *);
 void op_double(at_instruction_t *);
 
+void op_error(at_instruction_t *);
 extern void (*decode[])(at_instruction_t *);
 
 #endif

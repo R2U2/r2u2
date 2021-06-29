@@ -231,7 +231,7 @@ extern char *fti_bin;
 void TL_config(char*, char*, char*, char*, char*);
 void TL_aux_config(char*);
 
-int TL_init();
+int TL_init(void);
 
 int TL_update(FILE *fp);
 int TL_update_pt(FILE *fp);

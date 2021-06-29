@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
         R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        AT_update(cur_time);
+        AT_update();
 
         /* Temporal Logic Update */
         TL_update(log_file);

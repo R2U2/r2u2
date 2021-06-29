@@ -127,9 +127,8 @@ void op_double(at_instruction_t *instr)
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
 
-void op_error(at_instruction_t *instr)
-{
-	printf("Error: invalid opcode\n");
+void op_error(at_instruction_t *instr) {
+	printf("Error: invalid opcode at addr %p\n", (void *) instr);
 }
 
 void (*decode[])(at_instruction_t*) = { op_error,

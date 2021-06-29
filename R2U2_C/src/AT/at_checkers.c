@@ -23,12 +23,12 @@ void AT_config(char *filename)
 }
 #endif
 
-void AT_init()
+void AT_init(void)
 {
 	return;
 }
 
-void AT_update(uint32_t cur_time)
+void AT_update(void)
 {
 	uint8_t i;
 	for(i = 0; i < num_instr; i++) {
