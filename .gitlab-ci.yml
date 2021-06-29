@@ -4,7 +4,7 @@ before_script:
   - "gcc --version"
   - "python --version"
   - "pip install antlr4-python3-runtime numpy"
-  - "apt update && apt -y install libfftw3-dev"
+  # - "apt update && apt -y install libfftw3-dev"
 
 stages:
   - test
