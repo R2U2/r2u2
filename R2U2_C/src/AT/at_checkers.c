@@ -40,6 +40,7 @@ void AT_update(uint32_t cur_time)
 
 void AT_free()
 {
+	#ifdef R2U2_AT_ExtraFilters
 	uint8_t i;
 	for(i = 0; i < num_instr; i++) {
 		filt_data_struct_t filter_data_struct = at_instructions[i].filt_data_struct;
@@ -47,14 +48,13 @@ void AT_free()
 			case OP_BOOL: break;
 			case OP_INT: break;
 			case OP_DOUBLE: break;
-			#ifdef R2U2_AT_ExtraFilters
 			case OP_RATE: break;
 			case OP_ABS_DIFF_ANGLE: break;
 			case OP_MOVAVG: filter_movavg_free(filter_data_struct.movavg);
 											break;
-			#endif
 			default: break;
 		}
 
 	}
+	#endif
 }
