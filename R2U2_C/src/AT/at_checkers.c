@@ -31,11 +31,14 @@ void AT_init(void)
 void AT_update(void)
 {
 	uint8_t i;
-  R2U2_DEBUG_PRINT("\n\tAT Update\n");
+	R2U2_DEBUG_PRINT("\n\nAT Update\n");
 	for(i = 0; i < num_instr; i++) {
-    R2U2_DEBUG_PRINT("AT: %d\n",i);
+		R2U2_DEBUG_PRINT("\tAT Inst: %d\n", i);
+		R2U2_DEBUG_PRINT("\tSig# %d -> Filt# %d-> Comp# %d -> Atom#: %d\n",
+		                 at_instructions[i].sig_addr, at_instructions[i].filter,
+		                 at_instructions[i].cond, at_instructions[i].filter);
 		decode[at_instructions[i].filter](at_instructions+i);
-    R2U2_DEBUG_PRINT("\n");
+	R2U2_DEBUG_PRINT("\n\n");
 	}
 }
 
