@@ -30,7 +30,7 @@ void AT_init()
 
 void AT_update(uint32_t cur_time)
 {
-	uint8_t i;
+	uint32_t i;
 	for(i = 0; i < num_instr; i++) {
 		decode[at_instructions[i].filter](at_instructions+i);
 		if(i < num_instr-1) AT_LOG(",");
