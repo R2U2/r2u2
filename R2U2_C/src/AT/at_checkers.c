@@ -40,7 +40,7 @@ void AT_update(uint32_t cur_time)
 
 void AT_free()
 {
-	uint8_t i;
+	uint32_t i;
 	for(i = 0; i < num_instr; i++) {
 		filt_data_struct_t filter_data_struct = at_instructions[i].filt_data_struct;
 		switch(at_instructions[i].filter) {
