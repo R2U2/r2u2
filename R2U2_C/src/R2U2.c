@@ -22,6 +22,11 @@ const char *usage = "Usage: r2u2 [trace-file] [-h]\n"
                     "-h \t\t print this help statement\n";
 #endif
 
+#if R2U2_DEBUG
+/* Provides the global debug file pointer used via extern in r2u2.h */
+FILE* r2u2_debug_fptr = NULL;
+#endif
+
 /* Forward definition of CSV header ordering from aux files */
 int signal_aux_config(char*, FILE*, uintptr_t*);
 
@@ -130,6 +135,14 @@ int main(int argc, char *argv[]) {
     FILE *log_file;
     log_file = fopen("./R2U2.log", "w+");
     if(log_file == NULL) return 1;
+
+    /* R2U2 Debug File */
+    #if R2U2_DEBUG
+    r2u2_debug_fptr = stderr;
+    // Set to stderr by default, uncoimment below for file output
+    // r2u2_debug_fptr = fopen("./R2U2_dbg.log", "w+");
+    // if(r2u2_debug_fptr == NULL) return 10;
+    #endif
 
     /* Main processing loop */
     uint32_t cur_time = 0, i;
