@@ -78,6 +78,8 @@ void op_bool(at_instruction_t *instr)
 	bool signal;
 	sscanf(signals_vector[instr->sig_addr], "%hhu", &signal);
 
+  R2U2_DEBUG_PRINT("Signal: %hhu\n", signal);
+
 	if(instr->comp_is_sig) {
 		bool comp_sig;
 		sscanf(signals_vector[instr->comp.s], "%hhu", &comp_sig);
@@ -88,13 +90,15 @@ void op_bool(at_instruction_t *instr)
 			compare_int[instr->cond](signal, instr->comp.b);
 	}
 
-	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("Result: %hhu\n", atomics_vector[instr->atom_addr]);
 }
 
 void op_int(at_instruction_t *instr)
 {
 	int32_t signal;
 	sscanf(signals_vector[instr->sig_addr], "%d", &signal);
+
+  R2U2_DEBUG_PRINT("Signal: %d\n", signal);
 
 	if(instr->comp_is_sig) {
 		int32_t comp_sig;
@@ -106,13 +110,15 @@ void op_int(at_instruction_t *instr)
 			compare_int[instr->cond](signal, instr->comp.i);
 	}
 
-	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("Result: %hhu\n", atomics_vector[instr->atom_addr]);
 }
 
 void op_double(at_instruction_t *instr)
 {
 	double signal;
 	sscanf(signals_vector[instr->sig_addr], "%lf", &signal);
+
+  R2U2_DEBUG_PRINT("Signal: %lf\n", signal);
 
 	if(instr->comp_is_sig) {
 		double comp_sig;
@@ -124,7 +130,7 @@ void op_double(at_instruction_t *instr)
 			compare_double[instr->cond](signal, instr->comp.d);
 	}
 
-	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
+	R2U2_DEBUG_PRINT("Result: %hhu\n", atomics_vector[instr->atom_addr]);
 }
 
 void op_error(at_instruction_t *instr) {

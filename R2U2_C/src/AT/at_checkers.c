@@ -31,11 +31,12 @@ void AT_init(void)
 void AT_update(void)
 {
 	uint8_t i;
+  R2U2_DEBUG_PRINT("\n\tAT Update\n");
 	for(i = 0; i < num_instr; i++) {
+    R2U2_DEBUG_PRINT("AT: %d\n",i);
 		decode[at_instructions[i].filter](at_instructions+i);
-		if(i < num_instr-1) R2U2_DEBUG_PRINT(",");
+    R2U2_DEBUG_PRINT("\n");
 	}
-	R2U2_DEBUG_PRINT("\n");
 }
 
 void AT_free()
