@@ -30,8 +30,8 @@ void AT_init(void)
 
 void AT_update(void)
 {
-	uint8_t i;
 	R2U2_DEBUG_PRINT("\n\nAT Update\n");
+	uint32_t i;
 	for(i = 0; i < num_instr; i++) {
 		R2U2_DEBUG_PRINT("\tAT Inst: %d\n", i);
 		R2U2_DEBUG_PRINT("\tSig# %d -> Filt# %d-> Comp# %d -> Atom#: %d\n",
@@ -45,7 +45,7 @@ void AT_update(void)
 void AT_free()
 {
 	#ifdef R2U2_AT_ExtraFilters
-	uint8_t i;
+	uint32_t i;
 	for(i = 0; i < num_instr; i++) {
 		filt_data_struct_t filter_data_struct = at_instructions[i].filt_data_struct;
 		switch(at_instructions[i].filter) {

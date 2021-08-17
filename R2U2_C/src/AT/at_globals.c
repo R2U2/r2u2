@@ -2,4 +2,4 @@
 
 signals_vector_t signals_vector;
 instructions_t at_instructions;
-uint8_t num_instr = 0;
+uint32_t num_instr = 0;

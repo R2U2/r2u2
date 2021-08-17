@@ -129,7 +129,7 @@ class Compiler():
                 print('Ignoring formula')
                 continue
             # line is valid pt, need to keep track of line numbers
-            if re.search('^[^\#]*[YHOS]\[',line):
+            if re.search('(^|\n)[^\#]*[YHOS]\[',line):
                 ft += '\n'
                 continue
             # line is valid FT or propositional logic
@@ -181,7 +181,7 @@ class Compiler():
                 continue
             # line is valid FT/propositional logic formula, need to keep track
             # of line numbers
-            if not re.search('^[^\#]*[YHOS]\[',line):
+            if not re.search('(^|\n)[^\#]*[YHOS]\[',line):
                 pt += '\n'
                 continue
             # line is valid PT
