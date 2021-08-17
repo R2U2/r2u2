@@ -6,12 +6,11 @@ import re
 
 class Visitor(MLTLVisitor):
 
-    def __init__(self, prev_ref_atomics):
-        self.ref_atomics = prev_ref_atomics
-        self.mapped_atomics = []
-        self.signals = []
-        self.direct_sig_indices = []
-        self.labels = []
+    def __init__(self, atomics, signals, labels):
+        self.atomics = atomics
+        self.signals = signals
+        self.labels = labels
+        self.contracts = {}
         self.at_instr = {}
         self.status = True
 
@@ -32,14 +31,19 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#statement.
     def visitStatement(self, ctx:MLTLParser.StatementContext):
-        if not ctx.expr() is None:
+        if ctx.expr():
             expr = self.visit(ctx.expr())
-            lineno = ctx.start.line
-            if not ctx.Identifier() is None:
-                self.labels.append(ctx.Identifier().getText())
-            return STATEMENT(expr, lineno-1)
-        if not ctx.binding() is None:
-            binding = self.visit(ctx.binding())
+            label = ctx.Identifier()
+            if label and not label.getText() in self.labels:
+                # preprocessing pass
+                self.labels[label.getText()] = ctx.start.line-1
+            return STATEMENT(expr, ctx.start.line-1)
+        elif ctx.contract():
+            self.visit(ctx.contract())
+        elif ctx.binding():
+            self.visit(ctx.binding())
+        elif ctx.mapping():
+            self.visit(ctx.mapping())
 
 
     # Visit a parse tree produced by MLTLParser#prop_expr.
@@ -179,13 +183,29 @@ class Visitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#atom_expr.
     def visitAtom_expr(self, ctx:MLTLParser.Atom_exprContext):
-        identifier = str(ctx.Identifier())
-        if identifier in self.ref_atomics:
-            atom_num = self.ref_atomics.index(identifier)
-            return ATOM('a' + str(atom_num))
+        identifier = ctx.Identifier().getText()
+        if not identifier in self.atomics:
+            # preprocessing pass
+            self.atomics[identifier] = -2
+        #print(ctx.getText())
+        return ATOM('a' + str(self.atomics[identifier]))
+
+
+    # Visit a parse tree produced by MLTLParser#contract.
+    def visitContract(self, ctx:MLTLParser.ContractContext):
+        label = ctx.Identifier()
+        if not label:
+            cnum = 1
+            while(True):
+                if 'c'+str(cnum) not in self.contracts.keys():
+                    name = 'c'+str(cnum)
+                    break
+                cnum += 1
         else:
-            self.ref_atomics.append(identifier)
-            return ATOM('a' + str(len(self.ref_atomics) - 1))
+            name = label.getText()
+        self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText()]
+        self.visit(ctx.expr(0))
+        self.visit(ctx.expr(1))
 
 
     # Visit a parse tree produced by MLTLParser#binding.
@@ -201,15 +221,26 @@ class Visitor(MLTLVisitor):
             comp = ctx.Number(0).getText()
         cond = ctx.Conditional().getText()
 
-        self.at_instr[atom] = [filter, signal, arg, cond, comp]
+        if not atom in self.atomics or self.atomics[atom] == -2:
+            # preprocessing pass
+            self.atomics[atom] = -1
+
+        atom = 'a' + str(self.atomics[atom])
 
         if not signal in self.signals:
-            self.signals.append(signal)
-        if not atom in self.mapped_atomics:
-            self.mapped_atomics.append(atom)
+            # preprocessing pass
+            self.signals[signal] = -1
 
-        if not re.match('s\d+', signal) is None:
-            sig_index = re.search('\d+', signal).group(0)
-            self.direct_sig_indices.append(int(sig_index))
+        signal = 's' + str(self.signals[signal])
 
+        self.at_instr[atom] = [filter, signal, arg, cond, comp]
+
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#mapping.
+    def visitMapping(self, ctx:MLTLParser.MappingContext):
+        signal = ctx.Identifier().getText()
+        index = ctx.Number().getText()
+        self.signals[signal] = int(index)
         return self.visitChildren(ctx)
