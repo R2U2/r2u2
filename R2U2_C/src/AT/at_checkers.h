@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 void AT_config(char *);
-void AT_init();
-void AT_update(uint32_t);
-void AT_free();
+void AT_init(void);
+void AT_update(void);
+void AT_free(void);
 
 #endif

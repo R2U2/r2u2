@@ -22,6 +22,11 @@ const char *usage = "Usage: r2u2 [trace-file] [-h]\n"
                     "-h \t\t print this help statement\n";
 #endif
 
+#if R2U2_DEBUG
+/* Provides the global debug file pointer used via extern in r2u2.h */
+FILE* r2u2_debug_fptr = NULL;
+#endif
+
 /* Forward definition of CSV header ordering from aux files */
 int signal_aux_config(char*, FILE*, uintptr_t*);
 
@@ -58,7 +63,8 @@ int main(int argc, char *argv[]) {
 	     fprintf(stdout, "Too many arguments supplied. Configuration directory path: %s. Trace file path: %s. Other arguments will be ignored.\n", argv[1], argv[2]);
     }
 
-    int MAX_TIME = INT_MAX, c;
+    const uint32_t MAX_TIME = UINT32_MAX;
+    int c;
     FILE *input_file = NULL;
     char *signal, inbuf[BUFSIZ]; // LINE_MAX instead? PATH_MAX??
 
@@ -85,7 +91,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    uint8_t argind = optind;
+    uint8_t argind = (unsigned char) optind;
 
     #ifndef CONFIG // Compilation is using binaries
     // TODO check that config directory is a valid path
@@ -130,6 +136,14 @@ int main(int argc, char *argv[]) {
     log_file = fopen("./R2U2.log", "w+");
     if(log_file == NULL) return 1;
 
+    /* R2U2 Debug File */
+    #if R2U2_DEBUG
+    r2u2_debug_fptr = stderr;
+    // Set to stderr by default, uncoimment below for file output
+    // r2u2_debug_fptr = fopen("./R2U2_dbg.log", "w+");
+    // if(r2u2_debug_fptr == NULL) return 10;
+    #endif
+
     /* Main processing loop */
     uint32_t cur_time = 0, i;
     for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
@@ -163,10 +177,10 @@ int main(int argc, char *argv[]) {
         #endif
 
 
-        DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
+        R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        AT_update(cur_time);
+        AT_update();
 
         /* Temporal Logic Update */
         TL_update(log_file);
@@ -219,7 +233,7 @@ int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
       while(fgets(line, sizeof(line), alias_file) != NULL) {
         if(sscanf(line, "%c", &type) == 1 && type == 'S') {
           /* Found a signal definition, look for matching header */
-          if(scanf(line, "%*c %s %d", aliasname, &idx) == 2){
+          if(sscanf(line, "%*c %s %ld", aliasname, &idx) == 2){
             if((signal = strstr(inbuf, aliasname)) != NULL){
               col_num = 0;
               for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){

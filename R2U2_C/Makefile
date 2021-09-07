@@ -8,6 +8,12 @@ SRC_PATH := src
 DBG_PATH := target/debug
 
 # Feature Flags
+ifdef R2U2_AT_Extra_Filters
+# Add prognostics module
+CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+endif
+
 ifdef R2U2_AT_Prognostics
 # Add prognostics module
 CFLAGS := $(CFLAGS) -DR2U2_AT_Prognostics
@@ -21,8 +27,7 @@ SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
 LIBS := $(LIBS) fftw3
 endif
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT \
-	$(SRC_PATH)/AT/filters $(SRC_DIRS)
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT $(SRC_DIRS)
 IDIR=$(SRC_DIRS)
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 OBJ_DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
@@ -36,7 +41,12 @@ endif
 LD_LIBS := $(LD_LIBS) -lm
 
 CFLAGS :=-std=c99 $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
-DBGFLAG := -g -Wall -Wextra -pedantic -Wno-gnu-binary-literal -DDEBUG
+DBGFLAG := -g -O2 \
+-fdata-sections -ffunction-sections -fno-common \
+-fsanitize=undefined -fsanitize=address\
+-pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlifetime -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
+-Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
+-DR2U2_DEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 

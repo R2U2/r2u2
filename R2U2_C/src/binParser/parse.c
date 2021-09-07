@@ -25,7 +25,7 @@ static inline int string2Int(char** char_vec, int len) {
 	return op;
 }
 
-void decode_inst(char* s, instruction_t* inst) {
+static void decode_inst(char* s, instruction_t* inst) {
 	//1. operant code, 5 bits
 	inst->opcode = string2Int(&s,L_OPC);
 
@@ -44,7 +44,7 @@ void decode_inst(char* s, instruction_t* inst) {
 	inst->scratch = string2Int(&s,L_SCRATCH);
 }
 
-void decode_interval(char* s, interval_t* interval) {
+static void decode_interval(char* s, interval_t* interval) {
 	//1. lower bound, time stamp bits
 	interval->lb = string2Int(&s,L_INTERVAL);
 
@@ -52,7 +52,7 @@ void decode_interval(char* s, interval_t* interval) {
 	interval->ub = string2Int(&s,L_INTERVAL);
 }
 
-void decode_scq_size(char* s, addr_SCQ_t* addr) {
+static void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//1. start address
 	addr->start_addr = string2Int(&s,L_SCQ_ADDRESS);
 
@@ -60,8 +60,7 @@ void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
 }
 
-void decode_at_instr(char* s, at_instruction_t* inst)
-{
+static void decode_at_instr(char* s, at_instruction_t* inst) {
 	// 1. index to place final atomic value
 	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
 
@@ -72,7 +71,11 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
 
 	// 4. argument used for certain filters
+	#ifdef R2U2_AT_ExtraFilters
 	int arg = string2Int(&s,L_NUM);
+	#else
+	string2Int(&s,L_NUM); /* Ignore return if unused, still need to adv ptr */
+	#endif
 
 	// 5. type of comparison operator to apply
 	inst->cond = string2Int(&s,L_COMP);
@@ -101,7 +104,10 @@ void decode_at_instr(char* s, at_instruction_t* inst)
 				break;
 			}
 			#endif
-			default: break;
+			case OP_BOOL:	break;
+			case OP_INT:	break;
+			case OP_DOUBLE:	break;
+			default: 		break;
 		}
 	} else { // Else store value as constant
 		switch(inst->filter) {
@@ -206,7 +212,6 @@ void parse_inst_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_interval_ft_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -242,7 +247,6 @@ void parse_interval_ft_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_interval_pt_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -278,7 +282,6 @@ void parse_interval_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_scq_size_file(char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -317,8 +320,7 @@ void parse_scq_size_bin(char* bin) {
 //------------------------------------------------------------------------------
 void parse_at_file(char *filename)
 {
-	int PC = 0;
-	char *pch;
+	uint8_t PC = 0;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -337,7 +339,7 @@ void parse_at_file(char *filename)
 }
 void parse_at_bin(char *bin)
 {
-	int PC = 0;
+	uint8_t PC = 0;
 	char *pch;
 	char line[L_AT_INSTRUCTION];
 

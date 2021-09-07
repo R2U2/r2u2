@@ -1,5 +1,5 @@
-/*=======================================================================================
-** File Name: filter_regex.c
+/*============================================================================
+** File Name: filter_rate.c
 **
 ** Title: Rate filter for R2U2/AT
 **
@@ -7,7 +7,8 @@
 ** $Revision: $
 ** $Date:   2014
 **
-** Purpose:  Regexp filter for strings
+** Purpose:  Rate filter to estimate d/dt(X) by
+**		(x_t - x_t-1)/delta_T
 **
 ** Functions Defined:
 **
@@ -17,49 +18,41 @@
 **  Date | Author | Description
 **  ---------------------------
 **
-**=====================================================================================*/
+**===========================================================================*/
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <regex.h>
-#include "filter_regex.h"
+#include "filter_rate.h"
 #include <math.h>
 
 //-----------------------------------------------------------------
 //	initialize
 //-----------------------------------------------------------------
-void filter_regex_init(regex_t *RE, char *RS){
-
-int reti;
-
-reti = regcomp(RE, RS, 0);
-
-if (reti){
-//	OS_printf("could not compile RE: %s\n", RS);
-	}
-
+void filter_rate_init(double *init)
+{
+	*init = 0;
 }
 
 //-----------------------------------------------------------------
 //	free memory: NA
 //-----------------------------------------------------------------
-void filter_regex_free(regex_t *RE){
-
-regfree(RE);
-
-}
+void filter_rate_free(void){}
 
 
 //-----------------------------------------------------------------
-//	update regex filter and return current regex
+//	update rate filter and return current rate
 //-----------------------------------------------------------------
-int filter_regex_update_data(regex_t *RE, const char *s, char **matches ){
+double filter_rate_update_data(double x, double *prev)
+{
+	double rate;
 
-int reti;
+	if (isinf(*prev)) {
+		rate = 0.0;
+	} else {
+		rate = x - *prev;
+	}
 
-reti = regexec(RE, s, 0, NULL, 0);
+	*prev = x;
 
-// pull out matches
-
-return reti;
+	return rate;
 }

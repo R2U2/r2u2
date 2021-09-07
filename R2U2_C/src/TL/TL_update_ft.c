@@ -71,11 +71,10 @@ int TL_update_ft(FILE *log_file) {
 
 	do {
 	    // Sequentially iterate through the program instructions
-	    pc = 0;
 	    loop_progress = 0;
 		for(pc = 0; pc < N_INSTRUCTIONS; pc++) {
             if (instruction_mem_ft[pc].opcode == OP_END_SEQUENCE) {
-                DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+                R2U2_DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
                 break; // Break PC for loop
             }
 
@@ -118,7 +117,7 @@ int TL_update_ft(FILE *log_file) {
         	        // Synchronize the queues
         	        ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 
-        	        DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
+        	        R2U2_DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, res.t_q, res.v_q);
         	        #if R2U2_TL_Formula_Names
         	        if (aux_str_map[(int)instruction_mem_ft[pc].op2.value] == NULL)
         	        {
@@ -134,7 +133,7 @@ int TL_update_ft(FILE *log_file) {
 
         	        #if R2U2_TL_Contract_Status
         	        for (int i = 0; i < 3*aux_con_max; ++i) {
-        	        	if ((int)instruction_mem_ft[pc].op2.value == aux_con_forms[i]) {
+        	        	if (instruction_mem_ft[pc].op2.value == aux_con_forms[i]) {
         	        		switch(i%3){
         	        			case 0: {
         	        				if(!res.v_q){
@@ -192,7 +191,7 @@ int TL_update_ft(FILE *log_file) {
 		            //add_and_aggregate_queue_ft(&ft_sync_queues[pc], v, t_e);
 
 		            // If the dbg_flag is set, print to log and command line
-		            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
+		            R2U2_DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_e, v);
         	    }
 	            break;
 	        }
@@ -234,7 +233,7 @@ int TL_update_ft(FILE *log_file) {
 	                // Synchronize the queues
 	                ft_sync_queues[pc].desired_time_stamp = input.t_q+1;
 	                // The code is generated as 'make debug', print to log and command line
-	                DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
+	                R2U2_DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, res.t_q, res.v_q);
 	            }
 	            break;
 	        }
@@ -244,7 +243,7 @@ int TL_update_ft(FILE *log_file) {
 	        //----------------------------------------------------
 
 	        case OP_FT_AND: {
-	            DEEP_PRINT("\n\n--AND--\n");
+	            R2U2_TRACE_PRINT("\n\n--AND--\n");
 	            int op1=0, op2=0, scq_size_rd_1=0, scq_size_rd_2=0, input_wr_ptr_1=0, input_wr_ptr_2=0;
 
 	            // Declare new pointers for the SCQ's operandds
@@ -276,14 +275,14 @@ int TL_update_ft(FILE *log_file) {
 	            int scq_size_wr = addr_SCQ_map_ft[pc].end_addr-addr_SCQ_map_ft[pc].start_addr;
 	            int* rd_ptr_1 = &(ft_sync_queues[pc].rd_ptr);
 	            int* rd_ptr_2 = &(ft_sync_queues[pc].rd_ptr2);
-	            DEEP_PRINT("rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
+	            R2U2_TRACE_PRINT("rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
 	            // Initialize the loop conditions
 	            bool isEmpty_1 = isEmpty_cap(pc, 1, scq_seg_1, scq_size_rd_1, input_wr_ptr_1, rd_ptr_1, ft_sync_queues[pc].desired_time_stamp);
 	            bool isEmpty_2 = isEmpty_cap(pc, 2, scq_seg_2, scq_size_rd_2, input_wr_ptr_2, rd_ptr_2, ft_sync_queues[pc].desired_time_stamp);
-	            DEEP_PRINT("isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
+	            R2U2_TRACE_PRINT("isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
 	            // While the formula is not complete, i.e., one of the operands within the SCQ is non-empty
 	            if(!isEmpty_1|| !isEmpty_2) {
-	                DEEP_PRINT("in loop: isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
+	                R2U2_TRACE_PRINT("in loop: isEmpty_1: %d, isEmpty_2: %d\n", isEmpty_1, isEmpty_2);
 	                elt_ft_queue_t res = {false,-1};
 	                // If both are still non-empty
 	                if(!isEmpty_1 && !isEmpty_2) {
@@ -301,7 +300,7 @@ int TL_update_ft(FILE *log_file) {
 	                }
 	                // if the second operand's is empty
 	                else {
-	                    DEEP_PRINT("YYYY\n");
+	                    R2U2_TRACE_PRINT("YYYY\n");
 	                    elt_ft_queue_t res_1 = pop_cap(pc, 1, scq_seg_1, *rd_ptr_1);
 	                    if(!res_1.v_q) res = (elt_ft_queue_t){false, res_1.t_q};
 	                }
@@ -314,11 +313,11 @@ int TL_update_ft(FILE *log_file) {
 	                    //ft_sync_queues[pc].desired_time_stamp += 1;
 	                    ft_sync_queues[pc].desired_time_stamp = res.t_q+1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, res.t_q, res.v_q);
 	                }
 	            }
-	            DEEP_PRINT("endL rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
-	            DEEP_PRINT("\n\n");
+	            R2U2_TRACE_PRINT("endL rd_ptr_1: %d, rd_ptr_2: %d\n", *rd_ptr_1, *rd_ptr_2);
+	            R2U2_TRACE_PRINT("\n\n");
 	            break;
 	        }
 
@@ -326,15 +325,15 @@ int TL_update_ft(FILE *log_file) {
 	        // OP_FT_GJ (globally, interval:  G[t1,t2])
 	        //----------------------------------------------------
 	        case OP_FT_GLOBALLY_INTERVAL: {
-	            DEEP_PRINT("\n");
+	            R2U2_TRACE_PRINT("\n");
 	            int op1=0, scq_size_rd=0, input_wr_ptr=0;
 	            elt_ft_queue_t *scq_seg = NULL;
 	            if(instruction_mem_ft[pc].op1.opnd_type==subformula) {
 	                op1 = instruction_mem_ft[pc].op1.value;
-	                DEEP_PRINT("op1: %d\n", op1);
+	                R2U2_TRACE_PRINT("op1: %d\n", op1);
 	                scq_size_rd = addr_SCQ_map_ft[op1].end_addr-addr_SCQ_map_ft[op1].start_addr;
 	                scq_seg = &SCQ[addr_SCQ_map_ft[op1].start_addr];
-	                DEEP_PRINT("start_addr: %d\n",addr_SCQ_map_ft[op1].start_addr);
+	                R2U2_TRACE_PRINT("start_addr: %d\n",addr_SCQ_map_ft[op1].start_addr);
 	                input_wr_ptr = ft_sync_queues[op1].wr_ptr;
 	            }
 
@@ -343,7 +342,7 @@ int TL_update_ft(FILE *log_file) {
 
 	            int lb = get_interval_lb_ft(pc);
 	            int ub = get_interval_ub_ft(pc);
-	            DEEP_PRINT("pc: %d, lb: %d, ub: %d, rd_ptr: %d, \n",pc,lb,ub, *rd_ptr);
+	            R2U2_TRACE_PRINT("pc: %d, lb: %d, ub: %d, rd_ptr: %d, \n",pc,lb,ub, *rd_ptr);
 	            //printf("ft_sync_queues[pc].desired_time_stamp: %d\n", ft_sync_queues[pc].desired_time_stamp);
 	            if(!isEmpty_cap(pc, 1, scq_seg, scq_size_rd, input_wr_ptr, rd_ptr, ft_sync_queues[pc].desired_time_stamp)) {
 	                //printf("not empty, rd_ptr: %d\n", *rd_ptr);
@@ -366,7 +365,7 @@ int TL_update_ft(FILE *log_file) {
 	                        add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 	                        loop_progress += 1;
 	                        // The code is generated as 'make debug', print to log and command
-	                        DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
+	                        R2U2_DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                    }
 	                }
 	                // If the verdict is false and the time stamp is after the lower bound,
@@ -377,7 +376,7 @@ int TL_update_ft(FILE *log_file) {
 	                    add(&SCQ[addr_SCQ_map_ft[pc].start_addr], scq_size_wr, res, &(ft_sync_queues[pc].wr_ptr));
 	                    loop_progress += 1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d G[%d,%d] = (%d,%d)\n",pc,lb,ub,res.t_q,res.v_q);
 	                }
 	                ft_sync_queues[pc].pre = input;
 	            }
@@ -470,7 +469,7 @@ int TL_update_ft(FILE *log_file) {
 	                    // Update the previous synch result
 	                    ft_sync_queues[pc].preResult = res.t_q + 1;
 	                    // The code is generated as 'make debug', print to log and command
-	                    DEBUG_PRINT("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
+	                    R2U2_DEBUG_PRINT("PC:%d U[%d,%d] = (%d,%d)\n", pc, lb, ub,res.t_q,res.v_q);
 	                }
 	                // Update the synchronous queues with the second operand
 	                ft_sync_queues[pc].pre = input_2;
@@ -492,13 +491,13 @@ int TL_update_ft(FILE *log_file) {
 	        // OR = !(!a0 AND !a1)
 	        case OP_OR:
 	        default:
-	            DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
+	            R2U2_DEBUG_PRINT("%d\t[ERR]::FT:: illegal instruction\n",pc);
 	            r2u2_errno = 1;
 	            break;
 	        } // End Op Code Switch
 	    } // End PC For Loop
 	    total_progress += loop_progress;
-	    DEBUG_PRINT("Loop Progress: %d\t Total Progress: %d\n", loop_progress, total_progress);
+	    R2U2_DEBUG_PRINT("Loop Progress: %d\t Total Progress: %d\n", loop_progress, total_progress);
 	} while (loop_progress > 0);
     return 0;
 }
