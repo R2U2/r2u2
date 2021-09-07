@@ -167,15 +167,16 @@ def assemble(f):
 		if comp[0] == "s":
 			binary += "1"
 			binary += toBinary(comp[1:], max_const_width)
+			comp_width = int.bit_length(int(comp[1:]))
 		else:
 			binary += "0"
 			binary += toBinary(comp, max_const_width)
+			comp_width = int.bit_length(int(comp))
 
 		binary += "\\n"
 
 		# Give warning if specs do not fit in desired configuration
 		arg_width = int.bit_length(int(arg))
-		comp_width = int.bit_length(int(comp))
 		if int(atomic) > int(data['N_ATOMICS']):
 			print('WARNING: Atomic index larger than maximum in line ' + line)
 		if int(signal) > int(data['N_SIGS']):

@@ -101,14 +101,16 @@ class Compiler():
                 self.signals[signal] = int(re.search('\d+',signal).group())
 
         min_idx = 0
-        for signal, index in self.signals.items():
+        for signal, index in self.signals.copy().items():
             if re.match('s\d+',signal):
                 continue
             if self.signals[signal] == -1:
-                print('WARNING: signal referenced but not mapped: ' + signal)
+                if not re.match('s-1',signal):
+                    print('WARNING: signal referenced but not mapped: ' + signal)
                 while min_idx in self.signals.values():
                     min_idx += 1
-                self.signals[signal] = min_idx
+                del self.signals[signal]
+                self.signals['s'+str(min_idx)] = min_idx
 
 
     def compile_ft(self, asm_filename):
@@ -392,6 +394,29 @@ class Compiler():
         if filename == 'ft.asm':
             generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
         return get_total_size()
+
+
+    def assign_sig_indices(self, signals):
+        # init self.signals to signals
+        for sig in list(signals):
+            self.signals[sig] = signals[sig]
+
+        # handle case of unmapped atomics in the form 'a\d+'
+        # these will be mapped to the corresponding signal index in \d+
+        for atom in self.ref_atomics:
+            if atom not in self.mapped_atomics:
+                if re.match('a\d+', atom) and atom not in list(signals):
+                    index = re.search('\d+', atom).group()
+                    self.signals['s'+index] = int(index)
+
+        min_index = 0
+        for sig, index in signals.items():
+            # if index < 0, need to assign it a valid mapping
+            if index < 0:
+                # find min index not in use
+                while min_index in self.signals.values():
+                    min_index += 1
+                self.signals[sig] = min_index
 
 
     # Generate assembly code
