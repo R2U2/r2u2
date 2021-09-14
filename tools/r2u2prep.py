@@ -42,6 +42,8 @@ def main(args):
 
     mltl_compiler = compiler.Compiler(binary_dir, MLTL)
 
+    return
+
     print('************************** FT ASM **************************')
 
     mltl_compiler.compile_ft('ft.asm')
