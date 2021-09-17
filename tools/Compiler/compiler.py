@@ -52,6 +52,7 @@ class Compiler():
 
         print(visitor.ref_atomics)
         print(visitor.bound_atomics)
+        print(visitor.supp_bindings)
         print(visitor.ref_signals)
         print(visitor.mapped_signals)
         print(visitor.formula_labels)
