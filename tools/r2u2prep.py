@@ -13,7 +13,7 @@ import re
 import argparse
 
 from Compiler import compiler
-from Assembler.config import *
+from Assembler.config import parse_config, check_updates, gen_config
 from Assembler.ptas import assemble_pt
 from Assembler.ftas import assemble_ft
 from Assembler.atas import assemble_at

@@ -1,12 +1,13 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
-## Author: Pei Zhang
-from antlr4 import *
+## Author: Pei Zhang, Chris Johannsen
+import os
+
+from antlr4 import InputStream, CommonTokenStream
+
+from .AST import AST_node, Observer, STATEMENT
 from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
 from .PreprocessVisitor import PreprocessVisitor
-from .AST import *
-import os
-import re
 
 asmFileName = ""
 class Compiler():
@@ -23,6 +24,9 @@ class Compiler():
         self.labels = {}
         self.contracts = {}
         self.at_instructions = {}
+        self.ast = []
+        self.top = AST_node()
+        self.valid_node_set = []
         self.status = True
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
@@ -191,7 +195,7 @@ class Compiler():
                 if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
-                    left, right = n.left, n.right;
+                    left, right = n.left, n.right
                     left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
                     right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
             for n in vstack:
@@ -228,29 +232,6 @@ class Compiler():
         if filename == 'ft.asm':
             generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
         return get_total_size()
-
-
-    def assign_sig_indices(self, signals):
-        # init self.signals to signals
-        for sig in list(signals):
-            self.signals[sig] = signals[sig]
-
-        # handle case of unmapped atomics in the form 'a\d+'
-        # these will be mapped to the corresponding signal index in \d+
-        for atom in self.ref_atomics:
-            if atom not in self.mapped_atomics:
-                if re.match('a\d+', atom) and atom not in list(signals):
-                    index = re.search('\d+', atom).group()
-                    self.signals['s'+index] = int(index)
-
-        min_index = 0
-        for sig, index in signals.items():
-            # if index < 0, need to assign it a valid mapping
-            if index < 0:
-                # find min index not in use
-                while min_index in self.signals.values():
-                    min_index += 1
-                self.signals[sig] = min_index
 
 
     # Generate assembly code
