@@ -65,11 +65,27 @@ SRC := $(foreach x, $(SRC_DIRS), $(wildcard $(addprefix $(x)/*,.c*)))
 OBJ_RELES := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 
+# Testing
+TST_SRC_PATH := test
+TST_LIB_PATH := $(TST_SRC_PATH)/munit
+TST_OBJ_PATH := target/$(TST_SRC_PATH)
+TST_BIN_PATH := $(BIN_PATH)/$(TST_SRC_PATH)
+
+TSTFLAGS :=  $(CFLAGS) -I$(TST_LIB_PATH)
+TSTOBJFLAGS := $(TSTFLAGS) -c
+
+TST := $(wildcard $(TST_SRC_PATH)/test_*.c)
+OBJ_TEST := $(addprefix $(TST_OBJ_PATH)/, $(addsuffix .o, $(basename $(subst $(TST_SRC_PATH)/,,$(TST)))))
+OBJ_NO_MAIN :=  $(filter-out target/release/R2U2.o,$(OBJ_RELES)) # TODO: This is the worst hack in here, please remove
+TARGET_TEST := $(addprefix $(TST_BIN_PATH)/,$(basename $(subst $(TST_SRC_PATH)/,,$(TST))))
+
 # clean files list
 DISTCLEAN_LIST := $(OBJ_PATH) \
-				  $(DBG_PATH)
+				  $(DBG_PATH) \
+				  $(TST_OBJ_PATH)
 CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
+			  $(TARGET_TEST) \
 			  $(DISTCLEAN_LIST) \
 				src/binParser/config.c
 
@@ -89,6 +105,15 @@ $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
 $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
+$(TST_BIN_PATH)/%: $(TST_OBJ_PATH)/%.o $(TST_OBJ_PATH)/test_lib.o $(OBJ_NO_MAIN) | $(TST_BIN_PATH)
+	$(CC) $(CFLAGS)  -o $@ $? $(LDFLAGS)
+
+$(TST_OBJ_PATH)/%.o: $(TST_SRC_PATH)/%.c* | $(TST_OBJ_PATH)
+	$(CC) $(TSTOBJFLAGS) -o $@ $<
+
+$(TST_OBJ_PATH)/test_lib.o: | $(TST_OBJ_PATH)
+	$(CC) $(TSTOBJFLAGS) -o $@ $(TST_LIB_PATH)/munit.c
+
 # Path rules
 $(BIN_PATH):
 	mkdir -p $(BIN_PATH)
@@ -99,12 +124,22 @@ $(OBJ_PATH):
 $(DBG_PATH):
 	mkdir -p $(OBJ_DBG_DIRS)
 
+$(TST_BIN_PATH):
+	mkdir -p $(TST_BIN_PATH)
+
+$(TST_OBJ_PATH):
+	mkdir -p $(TST_OBJ_PATH)
+
 # phony rules
 .PHONY: all
 all: $(TARGET_RELES)
 
 .PHONY: debug
 debug: $(TARGET_DEBUG)
+
+.PHONY: test
+test: $(TARGET_TEST)
+	$(foreach TEST_BIN,$(TARGET_TEST),./$(TEST_BIN))
 
 .PHONY: clean
 clean:
