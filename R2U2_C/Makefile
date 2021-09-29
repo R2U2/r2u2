@@ -116,7 +116,16 @@ distclean:
 	@echo CLEAN $(DISTCLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
 
+# Variable debug printer
+# Call as `make print-VARIABLE`
+# From: https://www.cmcrossroads.com/article/printing-value-makefile-variable
 print-%  : ; @echo $* = $($*)
+
+# List all concrete targets
+# From: https://stackoverflow.com/a/26339924
+.PHONY: list
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
 #doxygen documentation setup
 doc: ./Doxyfile
