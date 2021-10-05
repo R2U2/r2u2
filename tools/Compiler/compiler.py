@@ -9,7 +9,10 @@ from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
 from .PreprocessVisitor import PreprocessVisitor
 
-asmFileName = ""
+# TODO 
+# make this list more easily expandable i.e. by some command line mechanism
+valid_filters = ['bool','int','float','rate','movavg','abs-diff-angle','exactly-one-of']
+
 class Compiler():
 
     def __init__(self, output_path, mltl, optimize_cse=True, Hp=0, echo=True):
@@ -31,8 +34,6 @@ class Compiler():
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
-        # make first pass of input to preprocess identifiers and contracts
-        self.preprocess()
 
 
     def parse(self, visitor, input):
@@ -42,7 +43,7 @@ class Compiler():
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         parse_tree = parser.program()
-        print(parse_tree.toStringTree(recog=parser))
+        #print(parse_tree.toStringTree(recog=parser))
         visitor.visit(parse_tree)
 
 
@@ -54,14 +55,20 @@ class Compiler():
             self.status = False
             return
 
-        print(visitor.ref_atomics)
         print(visitor.bound_atomics)
+        print(visitor.named_atomics)
+        print(visitor.filter_args)
         print(visitor.supp_bindings)
-        print(visitor.ref_signals)
+        print(visitor.literal_signals)
+        print(visitor.named_signals)
         print(visitor.mapped_signals)
         print(visitor.formula_labels)
         print(visitor.num_ft)
         print(visitor.num_pt)
+        print('-----FT------')
+        print(visitor.ft)
+        print('-----PT------')
+        print(visitor.pt)
 
 
 

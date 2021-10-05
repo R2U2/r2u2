@@ -41,6 +41,7 @@ def main(args):
         MLTL = args.mltl
 
     mltl_compiler = compiler.Compiler(binary_dir, MLTL)
+    mltl_compiler.preprocess()
 
     return
 

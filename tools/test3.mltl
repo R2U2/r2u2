@@ -1,8 +1,14 @@
 SPEC1: G[5](a1&a3);
-H[5](unmapped&atom2);
-G[5](H[5](atom6));
+H[5](atom2);
 atom3;
-atom := float(signal) > 6;
-atom2 := int(s4) < 5;
-atom3 := bool(s6) == s7;
-signal := 5;
+
+G[0,5] #a4
+a5;
+
+atom = float(signal) > 6;
+atom2 = int(s4) < 5;
+atom3 = exactly-one-of(s) == 1;
+
+signal = 5;
+
+s = {atom};

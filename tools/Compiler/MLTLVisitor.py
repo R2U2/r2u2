@@ -64,8 +64,28 @@ class MLTLVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by MLTLParser#setAssignment.
+    def visitSetAssignment(self, ctx:MLTLParser.SetAssignmentContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#filterArgument.
+    def visitFilterArgument(self, ctx:MLTLParser.FilterArgumentContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by MLTLParser#formulaIdentifier.
     def visitFormulaIdentifier(self, ctx:MLTLParser.FormulaIdentifierContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#setIdentifier.
+    def visitSetIdentifier(self, ctx:MLTLParser.SetIdentifierContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by MLTLParser#filterIdentifier.
+    def visitFilterIdentifier(self, ctx:MLTLParser.FilterIdentifierContext):
         return self.visitChildren(ctx)
 
 

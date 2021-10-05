@@ -11,6 +11,7 @@ statement
   | contract
   | binding
   | mapping
+  | setAssignment
   ;
 
 contract
@@ -28,34 +29,36 @@ expr
   | expr op='<->' expr  # PropExpr
   | expr op='->' expr   # PropExpr
   | '(' expr ')'        # ParensExpr
-  | atomicIdentifier     # AtomExpr
+  | atomicIdentifier    # AtomExpr
   | 'TRUE'       # BoolExpr
   | 'FALSE'      # BoolExpr
   ;
 
 binding
-  : atomicIdentifier ':=' Filter '(' signalIdentifier ')' Conditional (Number | signalIdentifier)
-  | atomicIdentifier ':=' Filter '(' signalIdentifier ',' Number ')' Conditional (Number | signalIdentifier)
+  : atomicIdentifier '=' filterIdentifier '(' filterArgument (',' filterArgument)* ')' Conditional (Number | signalIdentifier)
   ;
 
 mapping
-  : signalIdentifier ':=' Number
+  : signalIdentifier '=' Number
+  ;
+
+setAssignment
+  : setIdentifier '=' '{' atomicIdentifier (',' atomicIdentifier)* '}'
+  ;
+
+filterArgument
+  : LiteralSignalIdentifier
+  | Identifier
+  | Number
   ;
 
 formulaIdentifier : Identifier;
+setIdentifier : Identifier;
+filterIdentifier : Identifier;
 atomicIdentifier : LiteralAtomicIdentifier | Identifier;
 signalIdentifier : LiteralSignalIdentifier | Identifier;
 
 // Lexical Spec
-
-Filter
-  : 'bool'
-  | 'int'
-  | 'float'
-  | 'rate'
-  | 'movavg'
-  | 'abs_diff_angle'
-  ;
 
 Conditional : [!=><] '='? ;
 
@@ -75,7 +78,6 @@ BinaryTemporalOp
 
 LiteralAtomicIdentifier : 'a' Digit+;
 LiteralSignalIdentifier : 's' Digit+;
-
 
 Identifier
   : Letter (Letter | Digit)*
@@ -114,7 +116,7 @@ NonzeroDigit
 
 fragment
 Letter
-  : [a-zA-Z_]
+  : [a-zA-Z_\-]
   ;
 
 Comment : '#' ~[\r\n]* -> skip;
