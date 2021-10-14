@@ -45,20 +45,31 @@ class PreprocessVisitor(MLTLVisitor):
     def visitProgram(self, ctx:MLTLParser.ProgramContext):
         self.visitChildren(ctx)
 
-        # resolve atomics -- any referenced, unbound atomic must be bound to some
-        # default boolean value
+        # resolve atomics -- any referenced, unbound, literal atomic must be bound 
+        # to some default boolean value
         for atomic in self.literal_atomics:
             if atomic not in self.bound_atomics:
                 idx = re.search('\d+',atomic).group()
                 self.supp_bindings.add('a'+idx+' := bool(s'+idx+') == 1;')
 
-        # error if there are  any named, unbound atomics
+        # error if there are any named, unbound atomics
         for atomic in self.named_atomics:
             if atomic not in self.bound_atomics:
                 print('ERROR: atomic referenced but not bound \''+atomic+'\'')
                 self.status = False
 
-        # resolve signals
+        # resolve signals -- any referenced, unmapped, literal signal must be bound 
+        # to some default signal value
+        for signal in self.literal_signals:
+            if signal not in self.mapped_signals:
+                idx = re.search('\d+',signal).group()
+                self.supp_mappings.add('')
+
+        # error if there are any named, unmapped signals
+        for signal in self.named_signals:
+            if signal not in self.mapped_signals:
+                print('ERROR: signal referenced but not mapped \''+signal+'\'')
+                self.status = False
 
         # error if any used filter args are undefined (excluding literals)
         for arg in self.filter_args:
@@ -75,23 +86,17 @@ class PreprocessVisitor(MLTLVisitor):
 
         # handle expressions -- keep track of formula numbers, reset 
         # whether expr is of type FT/PT, and split up FT/PT formulas
-        # PROBLEM: cannot consistently keep track of line numbers with comments
-        # what's the spec on formula numbering exactly?
-        if self.status:
-            if ctx.expr():
-                if self.is_pt:
-                    self.num_pt += 1
-                    self.is_pt = False
-                    self.pt += ctx.getText()+'\n'
-                    self.ft += '\n'
-                else:
-                    self.num_ft += 1
-                    self.is_ft = False
-                    self.pt += '\n'
-                    self.ft += ctx.getText()+'\n'
-            else:
-                self.pt += '\n'
+        if self.status and ctx.expr():
+            if self.is_pt:
+                self.num_pt += 1
+                self.is_pt = False
+                self.pt += ctx.getText()+'\n'
                 self.ft += '\n'
+            else:
+                self.num_ft += 1
+                self.is_ft = False
+                self.pt += '\n'
+                self.ft += ctx.getText()+'\n'
         
 
 

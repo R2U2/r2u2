@@ -12,7 +12,7 @@ import shutil
 import re
 import argparse
 
-from Compiler import compiler
+from Compiler import Compiler
 from Assembler.config import parse_config, check_updates, gen_config
 from Assembler.ptas import assemble_pt
 from Assembler.ftas import assemble_ft
