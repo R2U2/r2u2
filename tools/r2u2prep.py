@@ -40,22 +40,22 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    mltl_compiler = compiler.Compiler(binary_dir, MLTL)
-    mltl_compiler.preprocess()
+    mltl_compiler = Compiler.Compiler(binary_dir, MLTL)
+    [ft,pt,at] = mltl_compiler.preprocess()
 
     return
 
     print('************************** FT ASM **************************')
 
-    mltl_compiler.compile_ft('ft.asm')
+    mltl_compiler.compile(ft,'ft.asm')
 
     print('************************** PT ASM **************************')
 
-    mltl_compiler.compile_pt('pt.asm')
+    mltl_compiler.compile(pt,'pt.asm')
 
     print('************************** AT ASM **************************')
 
-    mltl_compiler.compile_at('at.asm')
+    mltl_compiler.compile(at,'at.asm')
 
     print('************************************************************')
 

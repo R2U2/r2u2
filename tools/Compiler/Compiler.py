@@ -8,6 +8,7 @@ from .AST import AST_node, Observer, STATEMENT
 from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
 from .PreprocessVisitor import PreprocessVisitor
+from .FTVisitor import FTVisitor
 
 # TODO 
 # make this list more easily expandable i.e. by some command line mechanism
@@ -55,6 +56,7 @@ class Compiler():
             self.status = False
             return
 
+        """
         print(visitor.bound_atomics)
         print(visitor.named_atomics)
         print(visitor.filter_args)
@@ -63,26 +65,25 @@ class Compiler():
         print(visitor.named_signals)
         print(visitor.mapped_signals)
         print(visitor.formula_labels)
-        print(visitor.num_ft)
-        print(visitor.num_pt)
+        print(visitor.atomics)
         print('-----FT------')
         print(visitor.ft)
         print('-----PT------')
         print(visitor.pt)
+        print('-----AT------')
+        print(visitor.at)
+        """
 
+        print(visitor.ft)
+        ft_visitor = FTVisitor(visitor.atomics)
+        self.parse(ft_visitor, visitor.ft)
 
+        return [visitor.ft, visitor.pt, visitor.at]
 
-    def compile_ft(self, asm_filename):
+    def compile(self, input, asm_filename):
         AST_node.reset()
         Observer.reset()
 
-    def compile_pt(self, asm_filename):
-        AST_node.reset()
-        Observer.reset()
-
-
-    def compile_at(self, asm_filename):
-        return
 
 
     # Common subexpression elimination the AST

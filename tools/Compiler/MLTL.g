@@ -3,7 +3,7 @@ grammar MLTL;
 // Grammar Rules
 
 program
-  : (statement ';')* EOF
+  : (statement? ';')* EOF
   ;
 
 statement

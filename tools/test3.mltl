@@ -2,8 +2,7 @@ SPEC1: G[5](a1&a3);
 H[5](atom2);
 atom3;
 
-G[0,5] #a4
-a5;
+G[0,5] a5;
 
 atom = float(signal) > 6;
 atom2 = int(s4) < 5;

@@ -1,6 +1,5 @@
 from .MLTLVisitor import MLTLVisitor
 from .MLTLParser import MLTLParser
-from .AST import *
 
 import re # I hate to do this...
 
@@ -25,7 +24,7 @@ class PreprocessVisitor(MLTLVisitor):
         self.named_signals = set()
         self.mapped_signals = set()
         self.def_sets = set()
-        self.supp_mappings = []
+        self.supp_mappings = set()
         self.formula_labels = []
         self.contracts = {}
         self.num_ft = 0
@@ -34,6 +33,7 @@ class PreprocessVisitor(MLTLVisitor):
         self.is_pt = False # track if expr is part of PT expr
         self.ft = ''
         self.pt = ''
+        self.at = ''
         self.status = True
 
 
@@ -47,16 +47,24 @@ class PreprocessVisitor(MLTLVisitor):
 
         # resolve atomics -- any referenced, unbound, literal atomic must be bound 
         # to some default boolean value
+        # assign atomic index referenced in value
         for atomic in self.literal_atomics:
+            idx = re.search('\d+',atomic).group()
             if atomic not in self.bound_atomics:
-                idx = re.search('\d+',atomic).group()
                 self.supp_bindings.add('a'+idx+' := bool(s'+idx+') == 1;')
+            self.atomics[atomic] = idx
 
         # error if there are any named, unbound atomics
+        # assign atomic a valid index
+        idx = -1
         for atomic in self.named_atomics:
             if atomic not in self.bound_atomics:
-                print('ERROR: atomic referenced but not bound \''+atomic+'\'')
+                print('ERROR: named atomic referenced but not bound \''+atomic+'\'')
                 self.status = False
+            idx += 1
+            while 'a'+str(idx) in self.atomics.keys():
+                idx += 1
+            self.atomics[atomic] = idx
 
         # resolve signals -- any referenced, unmapped, literal signal must be bound 
         # to some default signal value
@@ -68,7 +76,7 @@ class PreprocessVisitor(MLTLVisitor):
         # error if there are any named, unmapped signals
         for signal in self.named_signals:
             if signal not in self.mapped_signals:
-                print('ERROR: signal referenced but not mapped \''+signal+'\'')
+                print('ERROR: named signal referenced but not mapped \''+signal+'\'')
                 self.status = False
 
         # error if any used filter args are undefined (excluding literals)
@@ -90,14 +98,16 @@ class PreprocessVisitor(MLTLVisitor):
             if self.is_pt:
                 self.num_pt += 1
                 self.is_pt = False
-                self.pt += ctx.getText()+'\n'
-                self.ft += '\n'
+                self.pt += ctx.getText()+';\n'
+                self.ft += ';\n'
             else:
                 self.num_ft += 1
                 self.is_ft = False
-                self.pt += '\n'
-                self.ft += ctx.getText()+'\n'
-        
+                self.pt += ';\n'
+                self.ft += ctx.getText()+';\n'
+        elif self.status:
+            # maintain list of AT instructions
+            self.at += ctx.getText()+'\n'
 
 
     # Visit a parse tree produced by MLTLParser#contract.
@@ -112,6 +122,9 @@ class PreprocessVisitor(MLTLVisitor):
                 cnum += 1
         else:
             name = label.getText()
+
+        self.visit(ctx.expr(0))
+        self.visit(ctx.expr(1))
         
         self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText()]
 
