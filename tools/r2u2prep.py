@@ -41,21 +41,19 @@ def main(args):
         MLTL = args.mltl
 
     mltl_compiler = Compiler.Compiler(binary_dir, MLTL)
-    [ft,pt,at] = mltl_compiler.preprocess()
-
-    return
+    mltl_compiler.preprocess()
 
     print('************************** FT ASM **************************')
 
-    mltl_compiler.compile(ft,'ft.asm')
+    mltl_compiler.compile_ft('ft.asm')
 
     print('************************** PT ASM **************************')
 
-    mltl_compiler.compile(pt,'pt.asm')
+    mltl_compiler.compile_pt('pt.asm')
 
     print('************************** AT ASM **************************')
 
-    mltl_compiler.compile(at,'at.asm')
+    mltl_compiler.compile_at('at.asm')
 
     print('************************************************************')
 
@@ -82,7 +80,7 @@ def main(args):
     assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
                 str(args.no_binaries))
 
-    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
+    #assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
 
 
     print('************************************************************')

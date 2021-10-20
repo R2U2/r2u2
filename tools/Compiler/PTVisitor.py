@@ -4,14 +4,28 @@ from .AST import *
 
 class PTVisitor(MLTLVisitor):
 
+
+    def __init__(self, atomics):
+        self.atomics = atomics
+
+
     # Visit a parse tree produced by MLTLParser#program.
     def visitProgram(self, ctx:MLTLParser.ProgramContext):
-        return self.visitChildren(ctx)
+        prog = PROGRAM()
+        statements = ctx.statement()
+        for s in statements:
+            ret = self.visit(s)
+            prog.add(ret)
+        return prog
 
 
     # Visit a parse tree produced by MLTLParser#statement.
     def visitStatement(self, ctx:MLTLParser.StatementContext):
-        return self.visitChildren(ctx)
+        if ctx.expr():
+            expr = self.visit(ctx.expr())
+            return STATEMENT(expr, ctx.start.line-1)
+        else:
+            print('ERROR: parsing error for satement '+ctx.getText())
 
 
     # Visit a parse tree produced by MLTLParser#PropExpr.
@@ -19,7 +33,7 @@ class PTVisitor(MLTLVisitor):
         op = ctx.op.text
 
         if op == '!':
-            val = self.visit(ctx.expr(0))
+            val = self.visit(ctx.expr())
             return NEG(val)
         elif op == '&':
             left = self.visit(ctx.expr(0))
@@ -41,9 +55,10 @@ class PTVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#UnaryTemporalExpr.
     def visitUnaryTemporalExpr(self, ctx:MLTLParser.UnaryTemporalExprContext):
+        op = ctx.UnaryTemporalOp().getText()
         try:
-            if ctx.ONCE():
-                expr = self.visit(ctx.expr(0))
+            if op == 'O':
+                expr = self.visit(ctx.expr())
                 bounds = ctx.Number()
                 if len(bounds) == 1:
                     upper = int(bounds[0].getText())
@@ -52,8 +67,8 @@ class PTVisitor(MLTLVisitor):
                     lower = int(bounds[0].getText())
                     upper = int(bounds[1].getText())
                     return ONCE(expr, lb=lower, ub=upper)
-            elif ctx.HISTORICALLY():
-                expr = self.visit(ctx.expr(0))
+            elif op == 'H':
+                expr = self.visit(ctx.expr())
                 bounds = ctx.Number()
                 if len(bounds) == 0:
                     return HISTORICALLY(expr)
@@ -64,7 +79,7 @@ class PTVisitor(MLTLVisitor):
                     lower = int(bounds[0].getText())
                     upper = int(bounds[1].getText())
                     return HISTORICALLY(expr, lb=lower, ub=upper)
-            elif ctx.YESTERDAY():
+            elif op == 'Y':
                 expr = self.visit(ctx.expr(0))
                 return YESTERDAY(expr)
         except ValueError:
@@ -75,8 +90,9 @@ class PTVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#BinaryTemporalExpr.
     def visitBinaryTemporalExpr(self, ctx:MLTLParser.BinaryTemporalExprContext):
+        op = ctx.BinaryTemporalOp().getText()
         try:
-            if ctx.SINCE():
+            if op == 'S':
                 left = self.visit(ctx.expr(0))
                 right = self.visit(ctx.expr(1))
                 bounds = ctx.Number()
@@ -105,7 +121,8 @@ class PTVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#AtomExpr.
     def visitAtomExpr(self, ctx:MLTLParser.AtomExprContext):
-        return self.visitChildren(ctx)
+        identifier = ctx.atomicIdentifier().getText()
+        return ATOM('a' + str(self.atomics[identifier]))
 
     # Visit a parse tree produced by MLTLParser#formulaIdentifier.
     def visitFormulaIdentifier(self, ctx:MLTLParser.FormulaIdentifierContext):

@@ -20,12 +20,12 @@ class PreprocessVisitor(MLTLVisitor):
         self.bound_atomics = set()
         self.supp_bindings = set()
         self.filter_args = set()
+        self.signals = {}
         self.literal_signals = set()
         self.named_signals = set()
         self.mapped_signals = set()
         self.def_sets = set()
-        self.supp_mappings = set()
-        self.formula_labels = []
+        self.formula_labels = {}
         self.contracts = {}
         self.num_ft = 0
         self.num_pt = 0
@@ -69,15 +69,31 @@ class PreprocessVisitor(MLTLVisitor):
         # resolve signals -- any referenced, unmapped, literal signal must be bound 
         # to some default signal value
         for signal in self.literal_signals:
-            if signal not in self.mapped_signals:
-                idx = re.search('\d+',signal).group()
-                self.supp_mappings.add('')
+            idx = re.search('\d+',signal).group()
+            self.signals[signal] = idx
 
         # error if there are any named, unmapped signals
+        idx = -1
         for signal in self.named_signals:
             if signal not in self.mapped_signals:
                 print('ERROR: named signal referenced but not mapped \''+signal+'\'')
                 self.status = False
+            idx += 1
+            while 'a'+str(idx) in self.signals.keys():
+                idx += 1
+            self.signals[signal] = idx
+
+        # configure contract formulas
+        for name, expr in self.contracts.items():
+            if expr[2]: # is_ft == true
+                self.ft += expr[0]+';\n'
+                self.ft += expr[1]+';\n'
+                self.ft += '('+expr[0]+')&('+expr[1]+');\n'
+                #self.contract_formula_nums[name] = 
+            else: # is_pt == true
+                self.pt += expr[0]+';\n'
+                self.pt += expr[1]+';\n'
+                self.pt += '('+expr[0]+')&('+expr[1]+');\n'
 
         # error if any used filter args are undefined (excluding literals)
         for arg in self.filter_args:
@@ -107,12 +123,12 @@ class PreprocessVisitor(MLTLVisitor):
                 self.ft += ctx.getText()+';\n'
         elif self.status:
             # maintain list of AT instructions
-            self.at += ctx.getText()+'\n'
+            self.at += ctx.getText()+';\n'
 
 
     # Visit a parse tree produced by MLTLParser#contract.
     def visitContract(self, ctx:MLTLParser.ContractContext):
-        label = ctx.Identifier()
+        label = ctx.formulaIdentifier()
         if not label:
             cnum = 1
             while(True):
@@ -125,8 +141,9 @@ class PreprocessVisitor(MLTLVisitor):
 
         self.visit(ctx.expr(0))
         self.visit(ctx.expr(1))
+        is_ft = (self.is_ft or (not self.is_ft and not self.is_pt))
         
-        self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText()]
+        self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText(), is_ft]
 
 
     # Visit a parse tree produced by MLTLParser#PropExpr.
@@ -232,7 +249,7 @@ class PreprocessVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#formulaIdentifier.
     def visitFormulaIdentifier(self, ctx:MLTLParser.FormulaIdentifierContext):
-        self.visitChildren(ctx)
+        self.formula_labels[ctx.getText()] = ctx.start.line-1
 
 
     # Visit a parse tree produced by MLTLParser#setIdentifier.

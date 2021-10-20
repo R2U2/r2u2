@@ -9,12 +9,21 @@ class FTVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#program.
     def visitProgram(self, ctx:MLTLParser.ProgramContext):
-        return self.visitChildren(ctx)
+        prog = PROGRAM()
+        statements = ctx.statement()
+        for s in statements:
+            ret = self.visit(s)
+            prog.add(ret)
+        return prog
 
 
     # Visit a parse tree produced by MLTLParser#statement.
     def visitStatement(self, ctx:MLTLParser.StatementContext):
-        return self.visitChildren(ctx)
+        if ctx.expr():
+            expr = self.visit(ctx.expr())
+            return STATEMENT(expr, ctx.start.line-1)
+        else:
+            print('ERROR: parsing error for satement '+ctx.getText())
 
 
     # Visit a parse tree produced by MLTLParser#PropExpr.
@@ -22,7 +31,7 @@ class FTVisitor(MLTLVisitor):
         op = ctx.op.text
 
         if op == '!':
-            val = self.visit(ctx.expr(0))
+            val = self.visit(ctx.expr())
             return NEG(val)
         elif op == '&':
             left = self.visit(ctx.expr(0))

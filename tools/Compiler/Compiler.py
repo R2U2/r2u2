@@ -9,6 +9,8 @@ from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
 from .PreprocessVisitor import PreprocessVisitor
 from .FTVisitor import FTVisitor
+from .PTVisitor import PTVisitor
+from .ATVisitor import ATVisitor
 
 # TODO 
 # make this list more easily expandable i.e. by some command line mechanism
@@ -25,7 +27,7 @@ class Compiler():
         self.echo = echo
         self.atomics = {}
         self.signals = {}
-        self.labels = {}
+        self.formula_labels = {}
         self.contracts = {}
         self.at_instructions = {}
         self.ast = []
@@ -38,8 +40,6 @@ class Compiler():
 
 
     def parse(self, visitor, input):
-        AST_node.reset()
-        Observer.reset()
         lexer = MLTLLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
@@ -48,6 +48,8 @@ class Compiler():
         visitor.visit(parse_tree)
 
 
+    # preprocess pass of input
+    # resolves names, contracts, etc. and splits input into FT/PT/AT
     def preprocess(self):
         visitor = PreprocessVisitor()
         self.parse(visitor, self.mltl)
@@ -56,34 +58,47 @@ class Compiler():
             self.status = False
             return
 
-        """
-        print(visitor.bound_atomics)
-        print(visitor.named_atomics)
-        print(visitor.filter_args)
-        print(visitor.supp_bindings)
-        print(visitor.literal_signals)
-        print(visitor.named_signals)
-        print(visitor.mapped_signals)
-        print(visitor.formula_labels)
-        print(visitor.atomics)
-        print('-----FT------')
-        print(visitor.ft)
-        print('-----PT------')
-        print(visitor.pt)
-        print('-----AT------')
-        print(visitor.at)
-        """
+        self.atomics = visitor.atomics
+        self.signals = visitor.signals
+        self.formula_labels = visitor.formula_labels
+        self.contracts = visitor.contracts
+        self.ft = visitor.ft
+        self.pt = visitor.pt
+        self.at = visitor.at
 
-        print(visitor.ft)
-        ft_visitor = FTVisitor(visitor.atomics)
-        self.parse(ft_visitor, visitor.ft)
 
-        return [visitor.ft, visitor.pt, visitor.at]
-
-    def compile(self, input, asm_filename):
+    def compile(self, visitor, input, asm_filename):
         AST_node.reset()
         Observer.reset()
 
+        self.parse(visitor, input)
+
+        self.asm = ""
+        self.ast = AST_node.ast
+        self.top = self.ast[0]
+        if(self.optimize):
+            self.optimize_cse()
+        self.valid_node_set = self.sort_node()
+        self.queue_size_assign(self.Hp, asm_filename)
+        self.mltl_gen_assembly(asm_filename)
+
+
+    def compile_ft(self, asm_filename):
+        self.compile(FTVisitor(self.atomics),self.ft,asm_filename)
+
+
+    def compile_pt(self, asm_filename):
+        self.compile(PTVisitor(self.atomics),self.pt,asm_filename)
+
+
+    def compile_at(self, asm_filename):
+        visitor = ATVisitor(valid_filters)
+        self.parse(visitor, self.at)
+
+        for atom, instr in visitor.at_instr.items():
+            self.at_instructions[atom] = instr
+
+        self.at_gen_assembly(asm_filename)
 
 
     # Common subexpression elimination the AST
@@ -266,17 +281,20 @@ class Compiler():
         s = ''
         # Mapped atomics with signal in form 's\d+'
         for atom, instr in self.at_instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + \
-                    instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
+            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' '
+            for arg in instr[2]:
+                s += arg + ' '
+            s += instr[3] + ' ' + instr[4] + '\n'
         s = s[:len(s)-1] # remove last newline
         if self.echo:
             print(s)
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
 
+
     def gen_alias_file(self, filename):
         s = ''
-        for label, num in self.labels.items():
+        for label, num in self.formula_labels.items():
             s += 'F ' + label + ' ' + str(num) + '\n'
         for contract, formula_num in self.contracts.items():
             s += 'C ' + contract + ' ' + str(formula_num) + ' ' + \
