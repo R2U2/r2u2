@@ -123,6 +123,7 @@ class PTVisitor(MLTLVisitor):
     def visitAtomExpr(self, ctx:MLTLParser.AtomExprContext):
         identifier = ctx.atomicIdentifier().getText()
         return ATOM('a' + str(self.atomics[identifier]))
+        
 
     # Visit a parse tree produced by MLTLParser#formulaIdentifier.
     def visitFormulaIdentifier(self, ctx:MLTLParser.FormulaIdentifierContext):

@@ -3,9 +3,13 @@ from .MLTLParser import MLTLParser
 
 class ATVisitor(MLTLVisitor):
 
-    def __init__(self, filters):
+    def __init__(self, atomics, signals, filters, def_sets):
+        self.atomics = atomics
+        self.signals = signals
         self.filters = filters
+        self.def_sets  = def_sets
         self.at_instr = {}
+
     
     # Visit a parse tree produced by MLTLParser#program.
     def visitProgram(self, ctx:MLTLParser.ProgramContext):
@@ -19,18 +23,12 @@ class ATVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#binding.
     def visitBinding(self, ctx:MLTLParser.BindingContext):
-        atom = ctx.atomicIdentifier().getText()
+        atomIdent = ctx.atomicIdentifier().getText()
+        atom = self.atomics[atomIdent]
 
         filter = ctx.filterIdentifier().getText()
         if filter not in self.filters:
-            print('ERROR: using unkown AT filter in binding ' + ctx.getText())
-
-        signal = ctx.filterArgument(0).getText()
-
-        args = []
-        i = 1
-        while ctx.filterArgument(i):
-            args.append(ctx.filterArgument(i).getText())
+            print('ERROR: using unknown AT filter in binding ' + ctx.getText())
 
         cond = ctx.Conditional().getText()
 
@@ -38,45 +36,27 @@ class ATVisitor(MLTLVisitor):
         if ctx.Number():
             comp = ctx.Number().getText()
         else:
-            comp = ctx.signalIdentifier().getText()
+            compIdent = ctx.signalIdentifier().getText()
+            comp = 's'+str(self.signals[compIdent])
 
-        self.at_instr[atom] = [filter, signal, args, cond, comp]
+        args = []
+        for arg in ctx.filterArgument():
+            argIdent = arg.getText()
+            if argIdent in self.atomics.keys(): 
+                # arg is an atomic, resolve
+                args.append('a'+str(self.atomics[argIdent]))
+            elif argIdent in self.signals.keys():
+                # arg is an signal, resolve
+                args.append('s'+str(self.signals[argIdent]))
+            elif argIdent in self.def_sets.keys():
+                # arg is a set, resolve
+                args.append('r'+str(self.def_sets[argIdent][0]))
+            else:
+                # else arg is a const
+                args.append(argIdent)
 
-        return self.visitChildren(ctx)
+        self.at_instr[atom] = [filter, cond, comp, args]
 
-
-    # Visit a parse tree produced by MLTLParser#mapping.
-    def visitMapping(self, ctx:MLTLParser.MappingContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#setAssignment.
-    def visitSetAssignment(self, ctx:MLTLParser.SetAssignmentContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#filterArgument.
-    def visitFilterArgument(self, ctx:MLTLParser.FilterArgumentContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#setIdentifier.
-    def visitSetIdentifier(self, ctx:MLTLParser.SetIdentifierContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#filterIdentifier.
-    def visitFilterIdentifier(self, ctx:MLTLParser.FilterIdentifierContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#atomicIdentifier.
-    def visitAtomicIdentifier(self, ctx:MLTLParser.AtomicIdentifierContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by MLTLParser#signalIdentifier.
-    def visitSignalIdentifier(self, ctx:MLTLParser.SignalIdentifierContext):
         return self.visitChildren(ctx)
 
 

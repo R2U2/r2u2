@@ -12,16 +12,14 @@ from .FTVisitor import FTVisitor
 from .PTVisitor import PTVisitor
 from .ATVisitor import ATVisitor
 
-# TODO 
-# make this list more easily expandable i.e. by some command line mechanism
-valid_filters = ['bool','int','float','rate','movavg','abs-diff-angle','exactly-one-of']
 
 class Compiler():
 
-    def __init__(self, output_path, mltl, optimize_cse=True, Hp=0, echo=True):
+    def __init__(self, output_path, mltl, valid_filters, optimize_cse=True, Hp=0, echo=True):
         # initialize variables
         self.output_path = output_path
         self.mltl = mltl
+        self.valid_filters = valid_filters
         self.optimize = optimize_cse
         self.Hp = Hp
         self.echo = echo
@@ -63,6 +61,7 @@ class Compiler():
         self.formula_labels = visitor.formula_labels
         self.contracts = visitor.contract_formula_nums
         self.def_sets = visitor.def_sets
+
         self.ft = visitor.ft
         self.pt = visitor.pt
         self.at = visitor.at
@@ -93,7 +92,7 @@ class Compiler():
 
 
     def compile_at(self, asm_filename):
-        visitor = ATVisitor(valid_filters)
+        visitor = ATVisitor(self.atomics, self.signals, self.valid_filters, self.def_sets)
         self.parse(visitor, self.at)
 
         for atom, instr in visitor.at_instr.items():
@@ -282,10 +281,11 @@ class Compiler():
         s = ''
         # Mapped atomics with signal in form 's\d+'
         for atom, instr in self.at_instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' '
-            for arg in instr[2]:
-                s += arg + ' '
-            s += instr[3] + ' ' + instr[4] + '\n'
+            s += 'a' + str(atom) + ': ' + str(instr[0]) + ' ' + str(instr[1]) + \
+                ' ' + str(instr[2]) + ' '
+            for arg in instr[3]:
+                s += str(arg) + ' '
+            s += '\n'
         s = s[:len(s)-1] # remove last newline
         if self.echo:
             print(s)
@@ -305,8 +305,8 @@ class Compiler():
         for atom, index in self.atomics.items():
             s += 'A ' + atom + ' ' + str(index) + '\n'
         for set_name, atomics in self.def_sets.items():
-            s += 'R ' + set_name + ' '
-            for atom in atomics:
-                s += atom + ' '
+            s += 'R ' + set_name + ' ' + str(atomics[0])  +  ' '
+            for atom in atomics[1]:
+                s += str(atom) + ' '
         with open(self.output_path+filename, 'a') as f:
             f.write(s)

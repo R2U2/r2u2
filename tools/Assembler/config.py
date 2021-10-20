@@ -54,6 +54,7 @@ def parse_config(filename):
             data[varname] = value
         else:
             print("Error: Invalid variable name %s" % (str(varname)))
+
     return(data)
 
 def check_updates(filename):

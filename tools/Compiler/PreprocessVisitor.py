@@ -18,7 +18,6 @@ class PreprocessVisitor(MLTLVisitor):
         self.literal_atomics = set()
         self.named_atomics = set()
         self.bound_atomics = set()
-        self.supp_bindings = set()
         self.filter_args = set()
         self.signals = {}
         self.literal_signals = set()
@@ -52,7 +51,7 @@ class PreprocessVisitor(MLTLVisitor):
         for atomic in self.literal_atomics:
             idx = re.search('\d+',atomic).group()
             if atomic not in self.bound_atomics:
-                self.supp_bindings.add('a'+idx+' := bool(s'+idx+') == 1;')
+                self.at += 'a'+idx+'=bool(s'+idx+')==1;\n'
             self.atomics[atomic] = idx
 
         # error if there are any named, unbound atomics
@@ -80,7 +79,7 @@ class PreprocessVisitor(MLTLVisitor):
                 print('ERROR: named signal referenced but not mapped \''+signal+'\'')
                 self.status = False
             idx += 1
-            while 'a'+str(idx) in self.signals.keys():
+            while 's'+str(idx) in self.signals.keys():
                 idx += 1
             self.signals[signal] = idx
 
@@ -110,7 +109,13 @@ class PreprocessVisitor(MLTLVisitor):
                 print('ERROR: filter argument undefined \'' + arg + '\'')
                 self.status = False
 
-        return
+        # resolve atomics in defined sets
+        for setIdent in self.def_sets.keys():
+            atomics = self.def_sets[setIdent][1]
+            for atom, idx in self.atomics.items():
+                if atom in atomics:
+                    atomics.remove(atom)
+                    atomics.append('a'+str(idx))
 
 
     # Visit a parse tree produced by MLTLParser#statement.
@@ -130,7 +135,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.is_ft = False
                 self.pt += ';\n'
                 self.ft += ctx.getText()+';\n'
-        elif self.status:
+        elif self.status and ctx.binding():
             # maintain list of AT instructions
             self.at += ctx.getText()+';\n'
 
@@ -248,7 +253,7 @@ class PreprocessVisitor(MLTLVisitor):
         atomicIdents = ctx.atomicIdentifier()
         for atom in atomicIdents:
             atomics.append(atom.getText())
-        self.def_sets[setIdent] = atomics
+        self.def_sets[setIdent] = [len(self.def_sets),atomics]
 
         self.visitChildren(ctx)
 
