@@ -80,7 +80,7 @@ def main(args):
     assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
                 str(args.no_binaries))
 
-    #assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
+    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
 
 
     print('************************************************************')

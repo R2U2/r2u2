@@ -115,6 +115,7 @@ def assemble(f):
 
 		instr = line.split()
 
+		# TODO this needs to be able to handle variable number args
 		atomic = instr[0][1:-1]
 		filter = instr[1]
 		signal = instr[2][1:]
