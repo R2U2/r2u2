@@ -24,9 +24,10 @@ class PreprocessVisitor(MLTLVisitor):
         self.literal_signals = set()
         self.named_signals = set()
         self.mapped_signals = set()
-        self.def_sets = set()
+        self.def_sets = {}
         self.formula_labels = {}
         self.contracts = {}
+        self.contract_formula_nums = {}
         self.num_ft = 0
         self.num_pt = 0
         self.is_ft = False # track if expr is part of FT expr
@@ -84,16 +85,24 @@ class PreprocessVisitor(MLTLVisitor):
             self.signals[signal] = idx
 
         # configure contract formulas
+        # append antecedent, consquent, and their conjunction to FT/PT
         for name, expr in self.contracts.items():
             if expr[2]: # is_ft == true
                 self.ft += expr[0]+';\n'
                 self.ft += expr[1]+';\n'
                 self.ft += '('+expr[0]+')&('+expr[1]+');\n'
-                #self.contract_formula_nums[name] = 
+                self.pt += ';\n;\n;\n'
+                # keep track of formula numbers
+                ft_len = len(self.ft.splitlines())
+                self.contract_formula_nums[name] = ft_len-2
             else: # is_pt == true
                 self.pt += expr[0]+';\n'
                 self.pt += expr[1]+';\n'
                 self.pt += '('+expr[0]+')&('+expr[1]+');\n'
+                self.ft += ';\n;\n;\n'
+                # keep track of formula numbers
+                pt_len = len(self.pt.splitlines())
+                self.contract_formula_nums[name] = pt_len-2
 
         # error if any used filter args are undefined (excluding literals)
         for arg in self.filter_args:
@@ -142,6 +151,9 @@ class PreprocessVisitor(MLTLVisitor):
         self.visit(ctx.expr(0))
         self.visit(ctx.expr(1))
         is_ft = (self.is_ft or (not self.is_ft and not self.is_pt))
+
+        self.is_ft = False
+        self.is_pt = False
         
         self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText(), is_ft]
 
@@ -229,9 +241,14 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#setAssignment.
     def visitSetAssignment(self, ctx:MLTLParser.SetAssignmentContext):
         setIdent = ctx.setIdentifier().getText()
-        if setIdent in self.def_sets:
+        if setIdent in self.def_sets.keys():
             print('WARNING: set already defined \'' + setIdent + '\', redefining')
-        self.mapped_signals.add(setIdent)
+
+        atomics = []
+        atomicIdents = ctx.atomicIdentifier()
+        for atom in atomicIdents:
+            atomics.append(atom.getText())
+        self.def_sets[setIdent] = atomics
 
         self.visitChildren(ctx)
 

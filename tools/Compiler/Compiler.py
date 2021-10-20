@@ -61,7 +61,8 @@ class Compiler():
         self.atomics = visitor.atomics
         self.signals = visitor.signals
         self.formula_labels = visitor.formula_labels
-        self.contracts = visitor.contracts
+        self.contracts = visitor.contract_formula_nums
+        self.def_sets = visitor.def_sets
         self.ft = visitor.ft
         self.pt = visitor.pt
         self.at = visitor.at
@@ -303,5 +304,9 @@ class Compiler():
             s += 'S ' + signal + ' ' + str(index) + '\n'
         for atom, index in self.atomics.items():
             s += 'A ' + atom + ' ' + str(index) + '\n'
+        for set_name, atomics in self.def_sets.items():
+            s += 'R ' + set_name + ' '
+            for atom in atomics:
+                s += atom + ' '
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
