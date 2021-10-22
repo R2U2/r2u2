@@ -139,7 +139,8 @@ debug: $(TARGET_DEBUG)
 
 .PHONY: test
 test: $(TARGET_TEST)
-	$(foreach TEST_BIN,$(TARGET_TEST),./$(TEST_BIN))
+	# find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;
+	$(foreach TEST_BIN,$(TARGET_TEST),./$(TEST_BIN) &&) true
 
 .PHONY: clean
 clean:
