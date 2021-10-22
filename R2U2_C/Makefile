@@ -71,6 +71,7 @@ TST_SRC_PATH := test
 TST_LIB_PATH := $(TST_SRC_PATH)/munit
 TST_OBJ_PATH := target/$(TST_SRC_PATH)
 TST_BIN_PATH := $(BIN_PATH)/$(TST_SRC_PATH)
+TST_RPT_PATH := report
 
 TSTFLAGS :=  $(CFLAGS) $(DBGFLAG) -I$(TST_LIB_PATH)
 TSTOBJFLAGS := $(TSTFLAGS) -c
@@ -88,6 +89,7 @@ DISTCLEAN_LIST := $(OBJ_PATH) \
 CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
 			  $(TARGET_TEST) \
+			  $(TST_RPT_PATH) \
 			  $(DISTCLEAN_LIST) \
 				src/binParser/config.c
 
@@ -132,6 +134,14 @@ $(TST_BIN_PATH):
 $(TST_OBJ_PATH):
 	mkdir -p $(TST_OBJ_PATH)
 
+$(TST_RPT_PATH):
+	mkdir -p $(TST_RPT_PATH)
+
+# Shell functions
+run_all_tests = (find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;)
+coverage_proc = (find $(DBG_PATH) -name "*.gcno" -exec gcov -b -l -p -c {} \; && mv *.gcov $(TST_RPT_PATH))
+coverage_html = (gcovr -g -k -r $(SRC_PATH) $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
+
 # phony rules
 .PHONY: all
 all: $(TARGET_RELES)
@@ -142,10 +152,16 @@ debug: $(TARGET_DEBUG)
 .PHONY: test
 test: $(TARGET_TEST)
 
+.PHONY: coverage
+coverage: $(TARGET_TEST) | $(TST_RPT_PATH)
+	$(call coverage_proc)
+	$(call coverage_html)
+
 .PHONY: check
-check: $(TARGET_TEST)
-	# find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;
-	$(foreach TEST_BIN,$(TARGET_TEST),./$(TEST_BIN) &&) true
+check: $(TARGET_TEST) | $(TST_RPT_PATH)
+	$(call run_all_tests)
+	$(call coverage_proc)
+	$(call coverage_html)
 
 .PHONY: clean
 clean:
