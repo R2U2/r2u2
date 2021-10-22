@@ -1,7 +1,10 @@
 #include "munit/munit.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include "../src/TL/TL_observers.h"
 #include "../src/TL/TL_queue_ft.h"
+
+FILE* r2u2_debug_fptr = NULL;
 
 static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
     
@@ -216,5 +219,6 @@ static const MunitSuite suite = {
 };
 
 int main(int argc, const char* argv[]) {
+    r2u2_debug_fptr = stderr;
     return munit_suite_main(&suite, NULL, argc, argv);
 }

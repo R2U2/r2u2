@@ -71,12 +71,12 @@ TST_LIB_PATH := $(TST_SRC_PATH)/munit
 TST_OBJ_PATH := target/$(TST_SRC_PATH)
 TST_BIN_PATH := $(BIN_PATH)/$(TST_SRC_PATH)
 
-TSTFLAGS :=  $(CFLAGS) -I$(TST_LIB_PATH)
+TSTFLAGS :=  $(CFLAGS) $(DBGFLAG) -I$(TST_LIB_PATH)
 TSTOBJFLAGS := $(TSTFLAGS) -c
 
 TST := $(wildcard $(TST_SRC_PATH)/test_*.c)
 OBJ_TEST := $(addprefix $(TST_OBJ_PATH)/, $(addsuffix .o, $(basename $(subst $(TST_SRC_PATH)/,,$(TST)))))
-OBJ_NO_MAIN :=  $(filter-out target/release/R2U2.o,$(OBJ_RELES)) # TODO: This is the worst hack in here, please remove
+OBJ_NO_MAIN :=  $(filter-out $(DBG_PATH)/R2U2.o,$(OBJ_DEBUG)) # TODO: This is the worst hack in here, please remove
 TARGET_TEST := $(addprefix $(TST_BIN_PATH)/,$(basename $(subst $(TST_SRC_PATH)/,,$(TST))))
 
 # clean files list
@@ -106,7 +106,7 @@ $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
 $(TST_BIN_PATH)/%: $(TST_OBJ_PATH)/%.o $(TST_OBJ_PATH)/test_lib.o $(OBJ_NO_MAIN) | $(TST_BIN_PATH)
-	$(CC) $(CFLAGS)  -o $@ $? $(LDFLAGS)
+	$(CC) $(TSTFLAGS)  -o $@ $? $(LDFLAGS)
 
 $(TST_OBJ_PATH)/%.o: $(TST_SRC_PATH)/%.c* | $(TST_OBJ_PATH)
 	$(CC) $(TSTOBJFLAGS) -o $@ $<

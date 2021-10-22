@@ -1,5 +1,9 @@
+#include <stdio.h>
+
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit/munit.h"
+
+FILE* r2u2_debug_fptr = NULL;
 
 /* Test Suite Layout
 **
@@ -181,5 +185,6 @@ static const MunitSuite at_operations_suite = {
 };
 
 int main (int argc, const char* argv[]) {
+  r2u2_debug_fptr = stderr;
   return munit_suite_main(&at_operations_suite, NULL, argc, argv);
 }
