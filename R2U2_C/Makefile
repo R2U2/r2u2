@@ -41,11 +41,12 @@ endif
 LD_LIBS := $(LD_LIBS) -lm
 
 CFLAGS :=-std=c99 $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
-DBGFLAG := -g -O2 \
+DBGFLAG := -g -O0 \
 -fdata-sections -ffunction-sections -fno-common \
 -fsanitize=undefined -fsanitize=address\
 -pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlifetime -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
+--coverage\
 -DR2U2_DEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
@@ -73,6 +74,7 @@ TST_BIN_PATH := $(BIN_PATH)/$(TST_SRC_PATH)
 
 TSTFLAGS :=  $(CFLAGS) $(DBGFLAG) -I$(TST_LIB_PATH)
 TSTOBJFLAGS := $(TSTFLAGS) -c
+TSTLNKFLAGS := $(LDFLAGS) --coverage
 
 TST := $(wildcard $(TST_SRC_PATH)/test_*.c)
 OBJ_TEST := $(addprefix $(TST_OBJ_PATH)/, $(addsuffix .o, $(basename $(subst $(TST_SRC_PATH)/,,$(TST)))))
@@ -106,7 +108,7 @@ $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
 $(TST_BIN_PATH)/%: $(TST_OBJ_PATH)/%.o $(TST_OBJ_PATH)/test_lib.o $(OBJ_NO_MAIN) | $(TST_BIN_PATH)
-	$(CC) $(TSTFLAGS)  -o $@ $? $(LDFLAGS)
+	$(CC) $(TSTFLAGS)  -o $@ $? $(TSTLNKFLAGS)
 
 $(TST_OBJ_PATH)/%.o: $(TST_SRC_PATH)/%.c* | $(TST_OBJ_PATH)
 	$(CC) $(TSTOBJFLAGS) -o $@ $<
@@ -139,6 +141,9 @@ debug: $(TARGET_DEBUG)
 
 .PHONY: test
 test: $(TARGET_TEST)
+
+.PHONY: check
+check: $(TARGET_TEST)
 	# find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;
 	$(foreach TEST_BIN,$(TARGET_TEST),./$(TEST_BIN) &&) true
 
