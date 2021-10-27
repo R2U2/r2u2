@@ -63,3 +63,7 @@ aux_con_forms_t      aux_con_forms = {0};
 aux_con_max_t        aux_con_max = 0;
 #endif
 
+#if R2U2_AT_Signal_Sets
+aux_signal_set_map_t    aux_signal_set_map = {0};
+aux_signal_set_arena_t  aux_signal_set_arena = {0};
+#endif
