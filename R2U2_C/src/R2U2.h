@@ -48,6 +48,11 @@
     #define R2U2_Prognostics INHIBIT
 #endif
 
+#ifndef R2U2_AT_Signal_Sets
+    /* Enables set aggregation filters */
+    #define R2U2_AT_Signal_Sets INHIBIT
+#endif
+
 #ifndef R2U2_TL_Formula_Names
     /* Enables named formula verdicts */
     #define R2U2_TL_Formula_Names INHIBIT
