@@ -305,8 +305,28 @@ class Compiler():
         for atom, index in self.atomics.items():
             s += 'A ' + atom + ' ' + str(index) + '\n'
         for set_name, atomics in self.def_sets.items():
-            s += 'R ' + set_name + ' ' + str(atomics[0])  +  ' '
-            for atom in atomics[1]:
-                s += str(atom) + ' '
+            # Convert list of atomics in the set to their indicies.
+            #
+            # Here the list of atomics is in "a#" notation, but we want the
+            # index, doing a lookup in the atomics dictionary is guaranteed to
+            # be correct even in the pathological case of a# not being signal #
+            # however, aliased signals will be listed by their given name, not
+            # number. We get the best of both worlds at the cost of an extra
+            # search by using the dictionary "get" method which is a key lookup
+            # with optional default value.
+            #
+            # For example, if we have a bound atomic called "atom" which gets
+            # assigned signal number 3 in preprocessing, the def_sets will list
+            # "a3" as being a member of the set while the atomics dictionary
+            # will have am entry for 'atom: 3' but not 'a: 3' so the
+            # comprehension become atomics.get('a3', 3) which returns the
+            # 2nd argument as a default and is correctly resolved to 3
+            #
+            # If we have a strong guarantee that the a# can never be incorrect
+            # this can be replaced with just the string operation atom[1:]
+            # alternatively we can list both names in the atomic dict during
+            # preprocessing.
+            atoms = [str(self.atomics.get(atom, atom[1:])) for atom in atomics[1]]
+            s += 'R ' + set_name + ' ' + str(atomics[0]) + ' ' + ' '.join(atoms) + '\n'
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
