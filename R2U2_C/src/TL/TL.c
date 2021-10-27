@@ -37,7 +37,9 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 // Keeping this separate from binParser until configuration unification
 void TL_aux_config(char* aux){
     char type, *next_ptr, line[MAX_LINE];
-    size_t f_num, c_num=0;
+    int indx;
+    size_t f_num, r_num=0, c_num=0;
+    FILE *stream;
 
     #if R2U2_TL_Formula_Names
     next_ptr = aux_str_arena;
@@ -45,6 +47,10 @@ void TL_aux_config(char* aux){
 
     #if R2U2_TL_Contract_Status
     aux_con_map[0] = aux_con_arena;
+    #endif
+
+    #if R2U2_AT_Signal_Sets
+    aux_signal_set_map[0] = aux_signal_set_arena;
     #endif
 
     FILE *file = fopen ( aux, "r" );
@@ -68,6 +74,39 @@ void TL_aux_config(char* aux){
                             sscanf(line, "%*c %s %zu %zu %zu", aux_con_map[c_num], &aux_con_forms[3*c_num], &aux_con_forms[3*c_num+1], &aux_con_forms[3*c_num+2]);
                             aux_con_map[c_num+1] = aux_con_map[c_num] + strlen(aux_con_map[c_num]) + 1; // Leave a Null
                             c_num++;
+                            break;
+                        }
+                    #endif
+
+                    #if R2U2_AT_Signal_Sets
+                        case 'R': {
+                            stream = fmemopen(line, strlen(line), "r");
+                            printf("\n\nSignal Set:\n\tInput: %s", line);
+                            fscanf(stream, "%*c %*s %u", &indx);
+                            printf("\tIndex: %d\n", indx);
+                            aux_signal_set_map[indx] = &(aux_signal_set_arena[r_num]);
+                            printf("\tArena start: (%p)\n",aux_signal_set_arena);
+                            printf("\tArena offset: %d (%p)\n", r_num, &aux_signal_set_arena[r_num]);
+                            printf("\tArena Value: %d\n", aux_signal_set_arena[r_num]);
+                            printf("\tMap start: (%p)\n", &aux_signal_set_map);
+                            printf("\tMap offset: %d (%p)\n", indx, &(aux_signal_set_map[indx]));
+                            printf("\tMap Value: (%p)\n", aux_signal_set_map[indx]);
+                            printf("\tMap Deref: %d\n", *(aux_signal_set_map[indx]));
+                            *(aux_signal_set_map[indx]) = 0;
+                            r_num++; /* Index of next empty spot in array */
+                            printf("\tScanning members:\n");
+                            while(fscanf(stream, " %d", &(aux_signal_set_arena[r_num])) == 1){
+                                printf("\t\tGot member: %d\n", aux_signal_set_arena[r_num]);
+                                (*aux_signal_set_map[indx])++;
+                                r_num++;
+                            }
+                            printf("\tNumber of members: %d\n", *aux_signal_set_map[indx]);
+                            printf("\tMembers:\n\t\t");
+                            for (int i = 1; i <= *aux_signal_set_map[indx]; ++i) {
+                                printf("%d, ", *(aux_signal_set_map[indx]+i));
+                            }
+                            printf("\n");
+                            printf("\tStored Values\n\t\tthis set: %d\n\t\tall sets: %zu\n", *aux_signal_set_map[indx], r_num);
                             break;
                         }
                     #endif
