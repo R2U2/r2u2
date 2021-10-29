@@ -9,9 +9,15 @@ DBG_PATH := target/debug
 
 # Feature Flags
 ifdef R2U2_AT_Extra_Filters
-# Add prognostics module
+# Add Extra Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+endif
+
+ifdef R2U2_AT_Signal_Sets
+# Add Signal Sets Filters
+CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
 endif
 
 ifdef R2U2_AT_Prognostics

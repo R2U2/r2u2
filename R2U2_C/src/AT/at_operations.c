@@ -12,7 +12,7 @@
 #endif
 
 #ifdef R2U2_AT_Signal_Sets
-#include "extra_filters/filter_exactly_one_of.h"
+#include "signal_set_filters/filter_exactly_one_of.h"
 #endif
 
 #include "../TL/TL_observers.h"
@@ -173,11 +173,14 @@ void (*decode[])(at_instruction_t*) = { op_error,
     op_rate,
     op_abs_diff_angle,
     op_movavg
-    op_exactly_one_of,
 #else
     op_error,
     op_error,
     op_error,
+#endif
+#ifdef R2U2_AT_Signal_Sets
+    op_exactly_one_of,
+#else
     op_error,
 #endif
 };
