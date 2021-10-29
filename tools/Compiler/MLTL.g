@@ -116,7 +116,7 @@ NonzeroDigit
 
 fragment
 Letter
-  : [a-zA-Z_\-]
+  : [a-zA-Z_]
   ;
 
 Comment : '#' ~[\r\n]* -> skip;
