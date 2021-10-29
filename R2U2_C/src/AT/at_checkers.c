@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 #ifdef R2U2_AT_ExtraFilters
-#include "filters/filter_rate.h"
-#include "filters/filter_movavg.h"
+#include "extra_filters/filter_rate.h"
+#include "extra_filters/filter_movavg.h"
 #endif
 
 #include "parse.h"
