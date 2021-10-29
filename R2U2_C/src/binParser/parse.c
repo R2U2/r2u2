@@ -127,7 +127,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 			break;
 		}
 		#endif
-		#ifdef R2U2_AT_Signal_Sets
+		#if R2U2_AT_Signal_Sets
 		case OP_EXACTLY_ONE_OF:
 		{
 			// set_addr is stored in instr.set_addr

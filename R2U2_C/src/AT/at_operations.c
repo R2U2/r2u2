@@ -11,7 +11,7 @@
 #include "extra_filters/filter_movavg.h"
 #endif
 
-#ifdef R2U2_AT_Signal_Sets
+#if R2U2_AT_Signal_Sets
 #include "signal_set_filters/filter_exactly_one_of.h"
 #endif
 
@@ -77,7 +77,7 @@ void op_rate(at_instruction_t *instr)
 }
 #endif
 
-#ifdef R2U2_AT_Signal_Sets
+#if R2U2_AT_Signal_Sets
 void op_exactly_one_of(at_instruction_t *instr)
 {
 	size_t i, len = *aux_signal_set_map[instr->sig_addr]; // sig_addr = set_addr
@@ -178,7 +178,7 @@ void (*decode[])(at_instruction_t*) = { op_error,
     op_error,
     op_error,
 #endif
-#ifdef R2U2_AT_Signal_Sets
+#if R2U2_AT_Signal_Sets
     op_exactly_one_of,
 #else
     op_error,

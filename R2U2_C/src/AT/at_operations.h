@@ -11,7 +11,7 @@ void op_movavg(at_instruction_t *);
 void op_rate(at_instruction_t *);
 #endif
 
-#ifdef R2U2_AT_Signal_Sets
+#if R2U2_AT_Signal_Sets
 void op_exactly_one_of(at_instruction_t *);
 #endif
 
