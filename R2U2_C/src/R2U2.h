@@ -2,6 +2,9 @@
 #ifndef R2U2_H
 #define R2U2_H
 
+/* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
+#define _POSIX_C_SOURCE 200112L
+
 #include <stdio.h>
 #include "R2U2Config.h"
 
