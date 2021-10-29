@@ -1,5 +1,9 @@
 # filters.py
 # Functions here define how to parse arguments for filters
+#
+# Filters must return a consistent length string so that AT instructions
+# remain a consistent length
+#
 # To add a filter add the name of the filter to the parse_filters dict and
 # then define a function which takes the 'arg' list argument and returns a
 # binary string of the result
@@ -7,6 +11,8 @@
 from .config import data
 from .util import toBinary
 
+max_sig_width = int.bit_length(int(data['N_SIGS'])-1)
+max_set_width = int.bit_length(int(data['N_SETS'])-1)
 max_const_width = int(data['L_NUM'])
 
 # we use underscores in front of filter names to avoid conflicts with keywords
@@ -17,107 +23,88 @@ def _null(args):
 
 
 def _bool(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
+    binary += toBinary(sig[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
 
     return binary
 
 
 def _int(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
+    binary += toBinary(sig[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
 
     return binary
 
 
 def _float(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
+    binary += toBinary(sig[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
 
     return binary
 
 
 def _abs_diff_angle(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
     const = args[1]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
-
+    binary += toBinary(sig, max_sig_width)
     binary += toBinary(const, max_const_width)
 
     return binary
 
 
 def _rate(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
+    binary += toBinary(sig[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
 
     return binary
 
 
 def _movavg(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     sig = args[0]
     const = args[1]
 
-    if sig[0] == 's':
-        binary += '1'
-        binary += toBinary(sig[1:], max_const_width)
-    else:
-        binary += '0'
-        binary += toBinary(sig, max_const_width)
-
+    binary += toBinary(sig, max_sig_width)
     binary += toBinary(const, max_const_width)
 
     return binary
 
 
 def _exactly_one_of(args):
+    global max_sig_width
     global max_const_width
     binary = ''
     setIdent = args[0]
 
-    binary += toBinary(setIdent[1:], max_const_width)
+    # TODO use max_set_width -- bin length must be consistent however
+    binary += toBinary(setIdent[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
 
     return binary
 
