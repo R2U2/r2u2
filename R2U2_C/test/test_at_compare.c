@@ -3,14 +3,11 @@
 #include "../src/AT/at_compare.h"
 /* Test Suite Layout
 **
-** This file creates the `test_at_operations` test executable  which runs tests
-** for `at_operations.c` which are contained in `at_operations_suite`
+** This file creates the `test_at_compare` test executable  which runs tests
+** for `at_compare.c` which are contained in `at_compare_suite`
 **
-** To organize the tests, the `at_operations_suite` contains a list of
-** sub-suites, `function_suites`, one per function of `at_operations.c`
-**
-** New tests should be added to the per-function test-suites such as
-** `op_rate_tests` which will propagated automatically.
+** To organize the tests, the `at_compare_suite` contains a list of
+** sub-suites, `function_suites`, one per function of `at_compare.c`
 **
 */
 
