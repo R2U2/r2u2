@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #ifdef R2U2_AT_ExtraFilters
-#include "filters/filter_movavg.h"
+#include "extra_filters/filter_movavg.h"
 #endif
 
 typedef enum {
@@ -23,7 +23,8 @@ typedef enum {
 	#ifdef R2U2_AT_ExtraFilters
 	OP_RATE           = 0b0100,
 	OP_ABS_DIFF_ANGLE = 0b0101,
-	OP_MOVAVG         = 0b0110
+	OP_MOVAVG         = 0b0110,
+	OP_EXACTLY_ONE_OF = 0b0111 // NOTE: sig_addr stores set_addr
 	#endif
 } at_filter_t;
 

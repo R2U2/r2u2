@@ -34,10 +34,10 @@ def assemble(f):
 			binary += toBinary(atomic, max_at_width)
 
 		if filt in filters:
-			binary += toBinary(filters.index(filt), int.bit_length(len(filters)))
+			binary += toBinary(filters.index(filt), data['L_FILTER'])
 		else:
 			print("ERROR: filter is not valid in instruction " + line)
-			binary += toBinary(0, int.bit_length(len(filters)))
+			binary += toBinary(0, data['L_FILTER'])
 
 		if cond == "==":
 			binary += "000"

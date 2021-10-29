@@ -6,9 +6,10 @@
 #include "at_globals.h"
 
 #ifdef R2U2_AT_ExtraFilters
-#include "filters/filter_abs_diff_angle.h"
-#include "filters/filter_rate.h"
-#include "filters/filter_movavg.h"
+#include "extra_filters/filter_abs_diff_angle.h"
+#include "extra_filters/filter_rate.h"
+#include "extra_filters/filter_movavg.h"
+#include "extra_filters/filter_exactly_one_of.h"
 #endif
 
 #include "../TL/TL_observers.h"
@@ -70,6 +71,28 @@ void op_rate(at_instruction_t *instr)
 	}
 
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
+}
+
+void op_exactly_one_of(at_instruction_t *instr)
+{
+	size_t i, len = *aux_signal_set_map[instr->sig_addr]; // sig_addr = set_addr
+	bool set[N_ATOMICS];
+	for(i = 1; i < len; i++) {
+		set[i] = atomics_vector[aux_signal_set_arena[i]];
+	}
+	bool res = filter_exactly_one_of(set,len);
+
+	if(instr->comp_is_sig) {
+		bool comp_sig;
+		sscanf(signals_vector[instr->comp.s], "%hhu", &comp_sig);
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, comp_sig);
+	} else {
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, instr->comp.b);
+	}
+
+	R2U2_DEBUG_PRINT("\tResult: %hhu\n", atomics_vector[instr->atom_addr]);
 }
 #endif
 
@@ -145,9 +168,11 @@ void (*decode[])(at_instruction_t*) = { op_error,
     op_rate,
     op_abs_diff_angle,
     op_movavg
+    op_exactly_one_of,
 #else
     op_error,
     op_error,
-    op_error
+    op_error,
+    op_error,
 #endif
 };

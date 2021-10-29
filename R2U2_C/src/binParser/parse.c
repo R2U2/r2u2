@@ -12,8 +12,8 @@
 #include "at_globals.h"
 
 #ifdef R2U2_AT_ExtraFilters
-#include "filters/filter_rate.h"
-#include "filters/filter_movavg.h"
+#include "extra_filters/filter_rate.h"
+#include "extra_filters/filter_movavg.h"
 #endif
 
 static inline int string2Int(char** char_vec, int len) {
@@ -67,72 +67,74 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 	// 2. type of filter to apply to signal
 	inst->filter = string2Int(&s,L_FILTER);
 
-	// 3. index of signal to read from signals_vector
-	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
-
-	// 4. argument used for certain filters
-	#ifdef R2U2_AT_ExtraFilters
-	int arg = string2Int(&s,L_NUM);
-	#else
-	string2Int(&s,L_NUM); /* Ignore return if unused, still need to adv ptr */
-	#endif
-
-	// 5. type of comparison operator to apply
+	// 3. type of comparison operator to apply
 	inst->cond = string2Int(&s,L_COMP);
 
-	// 6. is the comparison value a signal?
+	// 4. is the comparison value a signal?
 	inst->comp_is_sig = string2Int(&s,1);
 
-	// 7. value of constant to compare to filtered signal
+	// 5. value of constant/signal to compare to filtered signal
 	int comp = string2Int(&s,L_NUM);
 
-	// If comp is a signal, store index of signal in instruction
-	if(inst->comp_is_sig) {
+	// 6. signal we're considering
+	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
+
+	// 7. extra filter argument
+	int arg = string2Int(&s,L_NUM);
+
+	if(inst->comp_is_sig)
 		inst->comp.s = (uint8_t) comp;
-		switch(inst->filter) {
-			#ifdef R2U2_AT_ExtraFilters
-			case OP_RATE: {
-				filter_rate_init(&inst->filt_data_struct.prev);
-				break;
-			}
-			case OP_ABS_DIFF_ANGLE: {
-				inst->filt_data_struct.diff_angle = (double) arg;
-				break;
-			}
-			case OP_MOVAVG: {
-				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
-				break;
-			}
-			#endif
-			case OP_BOOL:	break;
-			case OP_INT:	break;
-			case OP_DOUBLE:	break;
-			default: 		break;
+
+	switch(inst->filter) {		
+		case OP_BOOL:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
 		}
-	} else { // Else store value as constant
-		switch(inst->filter) {
-			case OP_BOOL: inst->comp.b = (bool) comp;	break;
-			case OP_INT: inst->comp.i = (int32_t) comp;	break;
-			case OP_DOUBLE: inst->comp.d = (double) comp;	break;
-			#ifdef R2U2_AT_ExtraFilters
-			case OP_RATE: {
-				inst->comp.d = (double) comp;
-				filter_rate_init(&inst->filt_data_struct.prev);
-				break;
-			}
-			case OP_ABS_DIFF_ANGLE: {
-				inst->comp.d = (double) comp;
-				inst->filt_data_struct.diff_angle = (double) arg;
-				break;
-			}
-			case OP_MOVAVG: {
-				inst->comp.d = (double) comp;
-				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
-				break;
-			}
-			#endif
-			default: 	break;
+		case OP_INT:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.i = (int32_t) comp;
+			break;
 		}
+		case OP_DOUBLE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			break;
+		}
+		#ifdef R2U2_AT_ExtraFilters
+		case OP_RATE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			filter_rate_init(&inst->filt_data_struct.prev);
+			break;
+		}
+		case OP_ABS_DIFF_ANGLE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.diff_angle = (double) arg;
+			break;
+		}
+		case OP_MOVAVG:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+			break;
+		}
+		case OP_EXACTLY_ONE_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
+		#endif
+		default: break;
 	}
 }
 
