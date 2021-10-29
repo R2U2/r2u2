@@ -31,7 +31,7 @@ class FTVisitor(MLTLVisitor):
         op = ctx.op.text
 
         if op == '!':
-            val = self.visit(ctx.expr())
+            val = self.visit(ctx.expr(0))
             return NEG(val)
         elif op == '&':
             left = self.visit(ctx.expr(0))
@@ -83,7 +83,7 @@ class FTVisitor(MLTLVisitor):
 
     # Visit a parse tree produced by MLTLParser#BinaryTemporalExpr.
     def visitBinaryTemporalExpr(self, ctx:MLTLParser.BinaryTemporalExprContext):
-        op = ctx.UnaryTemporalOp().getText()
+        op = ctx.BinaryTemporalOp().getText()
         try:
             if op == 'U':
                     left = self.visit(ctx.expr(0))
