@@ -74,7 +74,8 @@ static void* test_setup(const MunitParameter params[], void* user_data)
 
 static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
     
-    elt_ft_queue_t newData = {true, 12};
+    elt_ft_queue_t newData = {true, 2};
+    elt_ft_queue_t newData2 = {true, 3};
 
 	// Set the SCQ's write pointer
 	int scq_size_wr = addr_SCQ_map_ft[0].end_addr - addr_SCQ_map_ft[0].start_addr;
@@ -84,10 +85,28 @@ static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
 
     int* rd_ptr = &(ft_sync_queues[0].rd_ptr);
     elt_ft_queue_t value = pop(&SCQ[addr_SCQ_map_ft[0].start_addr],*rd_ptr);
-    munit_assert_int(12, ==, value.t_q);
+    munit_assert_int(2, ==, value.t_q);
 
+    add(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, newData2, &(ft_sync_queues[0].wr_ptr));
+    value = pop(&SCQ[addr_SCQ_map_ft[0].start_addr],*rd_ptr);
+    munit_assert_int(3, ==, value.t_q);
 
     return MUNIT_OK;
+}
+
+static MunitResult queue_ft_isEmpty(const MunitParameter params[], void* data) {
+    
+    elt_ft_queue_t newData = {true, 2};
+    int scq_size_wr = addr_SCQ_map_ft[0].end_addr - addr_SCQ_map_ft[0].start_addr;
+    add(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, newData, &(ft_sync_queues[0].wr_ptr));
+
+    int* rd_ptr = &(ft_sync_queues[0].rd_ptr);
+    bool boolIsEmpty = isEmpty(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, NULL, rd_ptr, 1);
+
+    munit_assert_false(boolIsEmpty);
+
+    return MUNIT_OK;
+
 }
 
 static MunitResult end_sequence_operator (const MunitParameter params[], void* data) {
@@ -228,6 +247,14 @@ MunitTest tests[] = {
     {
         "/queue_ft_add",
         queue_ft_add,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/queue_ft_isEmpty",
+        queue_ft_isEmpty,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
