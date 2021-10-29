@@ -1,7 +1,76 @@
 #include "munit/munit.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include "../src/TL/TL_observers.h"
 #include "../src/TL/TL_queue_ft.h"
+
+FILE* r2u2_debug_fptr = NULL;
+
+static void* test_setup(const MunitParameter params[], void* user_data)
+{
+    int i;
+
+    t_now = 0;
+    r2u2_errno = 0;
+
+    //
+    // reset execution engine (TBD)
+    // initialize input and output vectors
+    // and local memories
+    //
+    for (i=0; i<N_INSTRUCTIONS;i++){
+        //
+        // initialize PT results
+        //
+        results_pt[i]= false;
+        results_pt_prev[i]= false;
+        results_pt_rising[i] = TL_INF;
+        //
+        // initialize FT results
+        //
+        // results_ft[i].async_val = false;
+        // results_ft[i].async_val = false;
+        // initialize to false due to edge detection
+        // results_ft[i].sync_val  = F;
+    }
+    // Call pt_prev_init() function; check if error code, else pass
+    //if(pt_prev_init() == 1){
+    //    printf("Failed to initialize PT's previous time steps\n");
+    //}
+
+    //
+    // initialize atomics
+    //
+    for (i = 0; i < N_ATOMICS; i++) {
+        atomics_vector[i] = false;
+        atomics_vector_prev[i] = false;
+    }
+
+    // Initialize ft-sync queues
+    for (i = 0; i < N_SUBFORMULA_SNYC_QUEUES; i++) {
+        ft_sync_queues[i].wr_ptr = 0;
+        ft_sync_queues[i].rd_ptr = 0;
+        ft_sync_queues[i].rd_ptr2 = 0;
+        ft_sync_queues[i].m_edge = 0;
+        ft_sync_queues[i].preResult = 0;
+        ft_sync_queues[i].desired_time_stamp = 0;
+        switch (instruction_mem_ft[i].opcode) {
+        case OP_FT_GLOBALLY_INTERVAL:
+            ft_sync_queues[i].pre = (elt_ft_queue_t) { false, -1 };
+            break;
+        case OP_FT_UNTIL_INTERVAL:
+            ft_sync_queues[i].pre = (elt_ft_queue_t) { true, -1 };
+            break;
+        default:
+            ft_sync_queues[i].pre = (elt_ft_queue_t) { true, 0 };
+        }
+    }
+
+    for(int count = 0; count < 10; count++){
+        addr_SCQ_map_ft[count].start_addr = count*10;
+        addr_SCQ_map_ft[count].end_addr = 9 + count*10;
+    }
+}
 
 static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
     
@@ -34,18 +103,18 @@ static MunitResult end_sequence_operator (const MunitParameter params[], void* d
     return MUNIT_OK;
 }
 
-static MunitResult end_operator (const MunitParameter params[], void* data) {
+// static MunitResult end_operator (const MunitParameter params[], void* data) {
     
-    //TL_config("/home/r2u2/r2u2/R2U2_C/src/binParser", NULL, NULL, NULL, NULL);
+//     //TL_config("/home/r2u2/r2u2/R2U2_C/src/binParser", NULL, NULL, NULL, NULL);
 
-    instruction_mem_ft[0].opcode = OP_END;
+//     instruction_mem_ft[0].opcode = OP_END;
 
-    TL_update_ft(NULL);
+//     TL_update_ft(NULL);
 
-    munit_assert_int(0, ==, r2u2_errno);
+//     munit_assert_int(0, ==, r2u2_errno);
 
-    return MUNIT_OK;
-}
+//     return MUNIT_OK;
+// }
 
 static MunitResult op_lod (const MunitParameter params[], void* data) {
 
@@ -159,7 +228,7 @@ MunitTest tests[] = {
     {
         "/queue_ft_add",
         queue_ft_add,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
@@ -167,7 +236,7 @@ MunitTest tests[] = {
     {
         "/end_sequence_operator",
         end_sequence_operator,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
@@ -175,7 +244,7 @@ MunitTest tests[] = {
     {
         "/op_lod",
         op_lod,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
@@ -183,7 +252,7 @@ MunitTest tests[] = {
     {
         "/op_not",
         op_not,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         unary_bool_params
@@ -191,7 +260,7 @@ MunitTest tests[] = {
     {
         "/op_and",
         op_and,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         binary_bool_params
@@ -199,7 +268,7 @@ MunitTest tests[] = {
     {
         "/op_illegal",
         op_illegal,
-        NULL,
+        test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
@@ -216,5 +285,6 @@ static const MunitSuite suite = {
 };
 
 int main(int argc, const char* argv[]) {
+    r2u2_debug_fptr = stderr;
     return munit_suite_main(&suite, NULL, argc, argv);
 }
