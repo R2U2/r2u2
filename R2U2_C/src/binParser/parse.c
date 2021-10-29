@@ -126,6 +126,8 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 			inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
 			break;
 		}
+		#endif
+		#ifdef R2U2_AT_Signal_Sets
 		case OP_EXACTLY_ONE_OF:
 		{
 			// set_addr is stored in instr.set_addr

@@ -9,6 +9,9 @@
 #include "extra_filters/filter_abs_diff_angle.h"
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
+#endif
+
+#ifdef R2U2_AT_Signal_Sets
 #include "extra_filters/filter_exactly_one_of.h"
 #endif
 
@@ -72,7 +75,9 @@ void op_rate(at_instruction_t *instr)
 
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
 }
+#endif
 
+#ifdef R2U2_AT_Signal_Sets
 void op_exactly_one_of(at_instruction_t *instr)
 {
 	size_t i, len = *aux_signal_set_map[instr->sig_addr]; // sig_addr = set_addr

@@ -24,7 +24,9 @@ typedef enum {
 	OP_RATE           = 0b0100,
 	OP_ABS_DIFF_ANGLE = 0b0101,
 	OP_MOVAVG         = 0b0110,
-	OP_EXACTLY_ONE_OF = 0b0111 // NOTE: sig_addr stores set_addr
+	#endif
+	#ifdef R2U2_AT_Signal_Sets
+	OP_EXACTLY_ONE_OF = 0b0111, // NOTE: sig_addr stores set_addr
 	#endif
 } at_filter_t;
 
