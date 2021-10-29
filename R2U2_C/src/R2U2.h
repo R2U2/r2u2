@@ -2,6 +2,11 @@
 #ifndef R2U2_H
 #define R2U2_H
 
+/* Compiler version check */
+#if (__STDC_VERSION__ < 199409L)
+    #error R2U2 requires C99 or higher
+#endif
+
 /* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
 #define _POSIX_C_SOURCE 200112L
 
@@ -11,11 +16,6 @@
 #define R2U2_C_VERSION_MAJOR 2
 #define R2U2_C_VERSION_MINOR 0
 #define R2U2_C_VERSION_PATCH 0
-
-/* Compiler version check */
-#if (__STDC_VERSION__ < 199409L)
-    #error R2U2 requires C99 or higher
-#endif
 
 /* Target and feature flags */
 /* Conditional compilation in R2U2:

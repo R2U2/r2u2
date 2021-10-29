@@ -145,5 +145,9 @@ void (*decode[])(at_instruction_t*) = { op_error,
     op_rate,
     op_abs_diff_angle,
     op_movavg
+#else
+    op_error,
+    op_error,
+    op_error
 #endif
 };
