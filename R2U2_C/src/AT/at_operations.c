@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "at_globals.h"
 
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
 #include "extra_filters/filter_abs_diff_angle.h"
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
@@ -17,7 +17,7 @@
 
 #include "../TL/TL_observers.h"
 
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
 void op_abs_diff_angle(at_instruction_t *instr)
 {
 	double signal;
@@ -162,14 +162,14 @@ void op_double(at_instruction_t *instr)
 }
 
 void op_error(at_instruction_t *instr) {
-	printf("Error: invalid opcode at addr %p\n", (void *) instr);
+	printf("Error: invalid opcode %d at addr %p\n", instr->filter, (void *) instr);
 }
 
 void (*decode[])(at_instruction_t*) = { op_error,
     op_bool,
     op_int,
     op_double,
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
     op_rate,
     op_abs_diff_angle,
     op_movavg

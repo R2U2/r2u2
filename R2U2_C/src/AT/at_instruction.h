@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
 #include "extra_filters/filter_movavg.h"
 #endif
 
@@ -20,7 +20,7 @@ typedef enum {
 	OP_BOOL           = 0b0001,
 	OP_INT            = 0b0010,
 	OP_DOUBLE         = 0b0011,
-	#ifdef R2U2_AT_ExtraFilters
+	#if R2U2_AT_ExtraFilters
 	OP_RATE           = 0b0100,
 	OP_ABS_DIFF_ANGLE = 0b0101,
 	OP_MOVAVG         = 0b0110,
@@ -38,7 +38,7 @@ typedef union {
 } type_t;
 
 
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
 typedef union {
 	double diff_angle;	/* abs_diff_angle filter */
 	double prev;				/* rate filter */
@@ -55,7 +55,7 @@ typedef struct {
 	bool comp_is_sig;
 	type_t comp;
 
-#ifdef R2U2_AT_ExtraFilters
+#if R2U2_AT_ExtraFilters
 	filt_data_struct_t filt_data_struct;
 #endif
 } at_instruction_t;

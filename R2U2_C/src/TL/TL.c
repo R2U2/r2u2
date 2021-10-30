@@ -23,13 +23,13 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 {
     /* Future Time Configuration */
-    parse_inst_ft_bin(ftm_bin);
-    parse_interval_ft_bin(fti_bin);
-    parse_scq_size_bin(ftscq_bin);
+    parse_inst_ft_bin(ftm);
+    parse_interval_ft_bin(fti);
+    parse_scq_size_bin(ftscq);
 
     /* Past Time Configuration */
-    parse_inst_pt_bin(ptm_bin);
-    parse_interval_pt_bin(pti_bin);
+    parse_inst_pt_bin(ptm);
+    parse_interval_pt_bin(pti);
 }
 #endif
 
