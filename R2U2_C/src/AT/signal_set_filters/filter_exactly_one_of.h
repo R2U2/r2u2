@@ -7,6 +7,6 @@
 
 #include "R2U2Config.h"
 
-bool filter_exactly_one_of(bool *set, size_t len);
+bool filter_exactly_one_of(bool *set, uint8_t len);
 
 #endif

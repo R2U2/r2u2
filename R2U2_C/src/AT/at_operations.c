@@ -84,9 +84,9 @@ void op_exactly_one_of(at_instruction_t *instr)
 	bool set[N_ATOMICS];
 
 	for(i = 1; i <= *aux_signal_set_map[set_addr]; i++) {
-		set[i] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
+		set[i-1] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
 	}
-	bool res = filter_exactly_one_of(set,*aux_signal_set_map[set_addr]);
+	bool res = filter_exactly_one_of(set,*(aux_signal_set_map[set_addr]));
 
 	if(instr->comp_is_sig) {
 		bool comp_sig;
