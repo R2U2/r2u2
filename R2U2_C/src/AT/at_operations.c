@@ -80,12 +80,13 @@ void op_rate(at_instruction_t *instr)
 #if R2U2_AT_Signal_Sets
 void op_exactly_one_of(at_instruction_t *instr)
 {
-	size_t i, len = *aux_signal_set_map[instr->sig_addr]; // sig_addr = set_addr
+	uint8_t i, set_addr = instr->sig_addr;
 	bool set[N_ATOMICS];
-	for(i = 1; i < len; i++) {
-		set[i] = atomics_vector[aux_signal_set_arena[i]];
+
+	for(i = 1; i <= *aux_signal_set_map[set_addr]; i++) {
+		set[i] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
 	}
-	bool res = filter_exactly_one_of(set,len);
+	bool res = filter_exactly_one_of(set,*aux_signal_set_map[set_addr]);
 
 	if(instr->comp_is_sig) {
 		bool comp_sig;
