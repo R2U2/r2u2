@@ -279,13 +279,27 @@ class Compiler():
 
     def at_gen_assembly(self, filename):
         s = ''
-        # Mapped atomics with signal in form 's\d+'
+        set_instr = {}
         for atom, instr in self.at_instructions.items():
+            # TODO need more robust way to order these
+            if instr[0] == 'exactly_one_of':
+                set_instr[atom] = instr
+                continue
+
             s += 'a' + str(atom) + ': ' + str(instr[0]) + ' ' + str(instr[1]) + \
                 ' ' + str(instr[2]) + ' '
             for arg in instr[3]:
                 s += str(arg) + ' '
             s += '\n'
+
+        # Put set AT instructions last since they depend on other atomic values
+        for atom, instr in set_instr.items():
+            s += 'a' + str(atom) + ': ' + str(instr[0]) + ' ' + str(instr[1]) + \
+                ' ' + str(instr[2]) + ' '
+            for arg in instr[3]:
+                s += str(arg) + ' '
+            s += '\n'
+
         s = s[:len(s)-1] # remove last newline
         if self.echo:
             print(s)
