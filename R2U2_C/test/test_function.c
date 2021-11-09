@@ -76,6 +76,7 @@ static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
     
     elt_ft_queue_t newData = {true, 2};
     elt_ft_queue_t newData2 = {true, 3};
+    elt_ft_queue_t newData3 = {false, 4};
 
 	// Set the SCQ's write pointer
 	int scq_size_wr = addr_SCQ_map_ft[0].end_addr - addr_SCQ_map_ft[0].start_addr;
@@ -91,6 +92,15 @@ static MunitResult queue_ft_add (const MunitParameter params[], void* data) {
     value = pop(&SCQ[addr_SCQ_map_ft[0].start_addr],*rd_ptr);
     munit_assert_int(3, ==, value.t_q);
 
+    (&SCQ[addr_SCQ_map_ft[0].start_addr]+ft_sync_queues[0].wr_ptr)->t_q = -1;
+    add(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, newData3, &(ft_sync_queues[0].wr_ptr));
+    isEmpty(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, ft_sync_queues[0].wr_ptr, rd_ptr, 4);
+    value = pop(&SCQ[addr_SCQ_map_ft[0].start_addr],*rd_ptr);
+    munit_assert_int(4, ==, value.t_q);
+
+
+    
+
     return MUNIT_OK;
 }
 
@@ -105,9 +115,14 @@ static MunitResult queue_ft_isEmpty(const MunitParameter params[], void* data) {
 
     munit_assert_false(boolIsEmpty);
 
+    *rd_ptr = ft_sync_queues[0].wr_ptr;
+    boolIsEmpty = isEmpty(&SCQ[addr_SCQ_map_ft[0].start_addr], scq_size_wr, ft_sync_queues[0].wr_ptr, rd_ptr, 10);
+    munit_assert_true(boolIsEmpty);
+
     return MUNIT_OK;
 
 }
+
 
 static MunitResult end_sequence_operator (const MunitParameter params[], void* data) {
     
@@ -181,6 +196,28 @@ static MunitResult op_not (const MunitParameter params[], void* data) {
     return MUNIT_OK;
 }
 
+static MunitResult op_globally (const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[1].op1.opnd_type = subformula;
+    instruction_mem_ft[1].op1.value = 0;
+    instruction_mem_ft[1].adr_interval = 0;
+    instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[1].ub = 1;
+
+    TL_update_ft(NULL);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
 static MunitResult op_and (const MunitParameter params[], void* data) {
 
     TL_init();
@@ -207,6 +244,32 @@ static MunitResult op_and (const MunitParameter params[], void* data) {
     elt_ft_queue_t value = pop(&SCQ[addr_SCQ_map_ft[2].start_addr],*rd_ptr);
     printf("Expected %d, Got %d", expected_verdict, value.v_q);
     munit_assert_int(expected_verdict, ==, value.v_q);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_until (const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_UNTIL_INTERVAL;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].op2.opnd_type = subformula;
+    instruction_mem_ft[2].op2.value = 1;
+    instruction_mem_ft[2].adr_interval = 0;
+    instruction_mem_ft[3].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[1].ub = 1;
+
+    TL_update_ft(NULL);
 
     munit_assert_int(0, ==, r2u2_errno);
 
@@ -285,12 +348,28 @@ MunitTest tests[] = {
         unary_bool_params
     },
     {
+        "/op_globally",
+        op_globally,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
         "/op_and",
         op_and,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         binary_bool_params
+    },
+    {
+        "/op_until",
+        op_until,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
     },
     {
         "/op_illegal",
