@@ -38,7 +38,7 @@ bool compare_int_geq(int32_t a, int32_t b)
 
 bool compare_double_eq(double a, double b)
 {
-  R2U2_DEBUG_PRINT("\t\tDub Compare: %lf <== %lf = %hhu \n", a, b, (a == b));
+  R2U2_DEBUG_PRINT("\t\tDub Compare: %lf == %lf = %hhu \n", a, b, (a == b));
   return a == b;
 }
 

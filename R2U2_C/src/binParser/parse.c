@@ -11,7 +11,7 @@
 #include "at_instruction.h"
 #include "at_globals.h"
 
-#ifdef R2U2_AT_ExtraFilters
+#ifdef R2U2_AT_Extra_Filters
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
 #endif

@@ -17,7 +17,7 @@
 
 #include "../TL/TL_observers.h"
 
-#if R2U2_AT_ExtraFilters
+#if R2U2_AT_Extra_Filters
 void op_abs_diff_angle(at_instruction_t *instr)
 {
 	double signal;
@@ -170,10 +170,10 @@ void (*decode[])(at_instruction_t*) = { op_error,
     op_bool,
     op_int,
     op_double,
-#if R2U2_AT_ExtraFilters
+#if R2U2_AT_Extra_Filters
     op_rate,
     op_abs_diff_angle,
-    op_movavg
+    op_movavg,
 #else
     op_error,
     op_error,
