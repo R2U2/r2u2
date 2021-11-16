@@ -21,8 +21,8 @@ typedef enum {
 	OP_INT            = 0b0010,
 	OP_DOUBLE         = 0b0011,
 	#if R2U2_AT_Extra_Filters
-	OP_ABS_DIFF_ANGLE = 0b0100,
-	OP_RATE           = 0b0101,
+	OP_RATE           = 0b0100,
+	OP_ABS_DIFF_ANGLE = 0b0101,
 	OP_MOVAVG         = 0b0110,
 	#endif
 	#if R2U2_AT_Signal_Sets

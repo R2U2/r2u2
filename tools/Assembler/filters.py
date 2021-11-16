@@ -58,6 +58,18 @@ def _float(args):
     return binary
 
 
+def _rate(args):
+    global max_sig_width
+    global max_const_width
+    binary = ''
+    sig = args[0]
+
+    binary += toBinary(sig[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
+
+    return binary
+
+
 def _abs_diff_angle(args):
     global max_sig_width
     global max_const_width
@@ -67,18 +79,6 @@ def _abs_diff_angle(args):
 
     binary += toBinary(sig, max_sig_width)
     binary += toBinary(const, max_const_width)
-
-    return binary
-
-
-def _rate(args):
-    global max_sig_width
-    global max_const_width
-    binary = ''
-    sig = args[0]
-
-    binary += toBinary(sig[1:], max_sig_width)
-    binary += toBinary(0, max_const_width)
 
     return binary
 
@@ -114,8 +114,8 @@ parse_filters = {
     1: _bool,
     2: _int,
     3: _float,
-    4: _abs_diff_angle,
-    5: _rate,
+    4: _rate,
+    5: _abs_diff_angle,
     6: _movavg,
     7: _exactly_one_of
 }

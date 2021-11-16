@@ -61,7 +61,11 @@ void op_rate(at_instruction_t *instr)
 {
 	double signal;
 	sscanf(signals_vector[instr->sig_addr], "%lf", &signal);
-	double rate = filter_rate_update_data(signal, &instr->filt_data_struct.prev);
+	printf("signal: %lf\n",signal);
+	printf("prev: %lf\n",instr->filt_data_struct.prev);
+	double rate = 0.0;
+	rate = filter_rate_update_data(signal, &instr->filt_data_struct.prev);
+	printf("rate: %lf\n",rate);
 
 	if(instr->comp_is_sig) {
 		double comp_sig;

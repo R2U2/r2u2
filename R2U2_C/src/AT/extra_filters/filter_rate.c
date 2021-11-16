@@ -26,33 +26,19 @@
 #include <math.h>
 
 //-----------------------------------------------------------------
-//	initialize
-//-----------------------------------------------------------------
-void filter_rate_init(double *init)
-{
-	*init = 0;
-}
-
-//-----------------------------------------------------------------
-//	free memory: NA
-//-----------------------------------------------------------------
-void filter_rate_free(void){}
-
-
-//-----------------------------------------------------------------
 //	update rate filter and return current rate
 //-----------------------------------------------------------------
 double filter_rate_update_data(double x, double *prev)
 {
 	double rate;
 
-	if (isinf(*prev)) {
-		rate = 0.0;
-	} else {
-		rate = x - *prev;
-	}
+	printf("prev: %lf, cur: %lf\n",*prev,x);
 
+	rate = x - *prev;
 	*prev = x;
+
+	printf("new prev: %lf\n",*prev);
+	printf("rate: %lf\n",rate);
 
 	return rate;
 }
