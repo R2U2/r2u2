@@ -31,38 +31,38 @@ static void decode_inst(char* s, instruction_t* inst) {
 
 	//2. op1, 10 bits. First 2 bit is the input type
 	inst->op1.opnd_type = string2Int(&s,2);
-	inst->op1.value = string2Int(&s,L_OP-2);
+	inst->op1.value = (uint8_t)string2Int(&s,L_OP-2);
 
 	//3. op2, 10 bits. First 2 bit is the input type
 	inst->op2.opnd_type = string2Int(&s,2);
-	inst->op2.value = string2Int(&s,L_OP-2);
+	inst->op2.value = (uint8_t)string2Int(&s,L_OP-2);
 
 	//4. time stamp  address, 8 bits
-	inst->adr_interval = string2Int(&s,L_INTVL);
+	inst->adr_interval = (uint8_t)string2Int(&s,L_INTVL);
 
 	//5. scratch? 7 bits (seems for Bayesian network)
-	inst->scratch = string2Int(&s,L_SCRATCH);
+	inst->scratch = (uint8_t)string2Int(&s,L_SCRATCH);
 }
 
 static void decode_interval(char* s, interval_t* interval) {
 	//1. lower bound, time stamp bits
-	interval->lb = string2Int(&s,L_INTERVAL);
+	interval->lb = (interval_bound_t)string2Int(&s,L_INTERVAL);
 
 	//2. upper bound, time stamp bits
-	interval->ub = string2Int(&s,L_INTERVAL);
+	interval->ub = (interval_bound_t)string2Int(&s,L_INTERVAL);
 }
 
 static void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//1. start address
-	addr->start_addr = string2Int(&s,L_SCQ_ADDRESS);
+	addr->start_addr = (uint16_t)string2Int(&s,L_SCQ_ADDRESS);
 
 	//2. end address
-	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
+	addr->end_addr = (uint16_t)string2Int(&s,L_SCQ_ADDRESS);
 }
 
 static void decode_at_instr(char* s, at_instruction_t* inst) {
 	// 1. index to place final atomic value
-	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
+	inst->atom_addr = (uint8_t)string2Int(&s,L_ATOMIC_ADDR);
 
 	// 2. type of filter to apply to signal
 	inst->filter = string2Int(&s,L_FILTER);
@@ -77,7 +77,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 	int comp = string2Int(&s,L_NUM);
 
 	// 6. signal we're considering
-	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
+	inst->sig_addr = (uint8_t)string2Int(&s,L_SIG_ADDR);
 
 	// 7. extra filter argument
 	int arg = string2Int(&s,L_NUM);
@@ -143,7 +143,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_ft_file(char* filename) {
+void parse_inst_ft_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -160,7 +160,7 @@ void parse_inst_ft_file(char* filename) {
 	}
 
 }
-void parse_inst_ft_bin(char* bin) {
+void parse_inst_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INSTRUCTION];
@@ -179,7 +179,7 @@ void parse_inst_ft_bin(char* bin) {
 //------------------------------------------------------------------------------
 // Past Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_pt_file(char* filename) {
+void parse_inst_pt_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -195,7 +195,7 @@ void parse_inst_pt_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_inst_pt_bin(char* bin) {
+void parse_inst_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INSTRUCTION];
@@ -214,7 +214,7 @@ void parse_inst_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 // Future-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_ft_file(char* filename) {
+void parse_interval_ft_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -230,7 +230,7 @@ void parse_interval_ft_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_interval_ft_bin(char* bin) {
+void parse_interval_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INTERVAL*2];
@@ -249,7 +249,7 @@ void parse_interval_ft_bin(char* bin) {
 //------------------------------------------------------------------------------
 // Past-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_pt_file(char* filename) {
+void parse_interval_pt_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -265,7 +265,7 @@ void parse_interval_pt_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_interval_pt_bin(char* bin) {
+void parse_interval_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INTERVAL*2];
@@ -284,7 +284,7 @@ void parse_interval_pt_bin(char* bin) {
 //------------------------------------------------------------------------------
 // SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
 //------------------------------------------------------------------------------
-void parse_scq_size_file(char* filename) {
+void parse_scq_size_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -301,7 +301,7 @@ void parse_scq_size_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_scq_size_bin(char* bin) {
+void parse_scq_size_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_SCQ_ADDRESS];
@@ -322,7 +322,7 @@ void parse_scq_size_bin(char* bin) {
 //------------------------------------------------------------------------------
 // AT Parser
 //------------------------------------------------------------------------------
-void parse_at_file(char *filename)
+void parse_at_file(const char *filename)
 {
 	uint8_t PC = 0;
 	char line[MAX_LINE];
@@ -341,7 +341,7 @@ void parse_at_file(char *filename)
 
 	num_instr = PC; // set number of AT instructions
 }
-void parse_at_bin(char *bin)
+void parse_at_bin(const char *bin)
 {
 	uint8_t PC = 0;
 	char *pch;

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "R2U2.h"
+
 #include "at_instruction.h"
 
 #ifdef R2U2_AT_Extra_Filters

@@ -12,18 +12,21 @@ ifdef R2U2_AT_Extra_Filters
 # Add Extra Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+$(info    R2U2 Extra Filters Enabled)
 endif
 
 ifdef R2U2_AT_Signal_Sets
 # Add Signal Sets Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
+$(info    R2U2 Signal Sets Enabled)
 endif
 
 ifdef R2U2_AT_Prognostics
 # Add prognostics module
 CFLAGS := $(CFLAGS) -DR2U2_AT_Prognostics
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/prognostic_filter
+$(info    R2U2 Prognostics Enabled)
 endif
 
 ifdef R2U2_AT_FFT_Filter
@@ -31,6 +34,7 @@ ifdef R2U2_AT_FFT_Filter
 CFLAGS := $(CFLAGS) -DR2U2_AT_FFT_Filter
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
 LIBS := $(LIBS) fftw3
+$(info    R2U2 FFT Filter Enabled)
 endif
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT $(SRC_DIRS)

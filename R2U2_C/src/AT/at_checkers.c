@@ -12,12 +12,12 @@
 #include "parse.h"
 
 #ifndef CONFIG
-void AT_config(char *filename)
+void AT_config(const char *filename)
 {
 	parse_at_file(filename);
 }
 #else
-void AT_config(char *filename)
+void AT_config(const char *filename)
 {
 	parse_at_bin(at_bin);
 }

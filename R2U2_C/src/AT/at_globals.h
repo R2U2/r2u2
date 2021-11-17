@@ -2,6 +2,9 @@
 #define AT_GLOBALS_H
 
 #include <stdint.h>
+
+#include "R2U2.h"
+
 #include "at_instruction.h"
 #include "at_compare.h"
 #include "at_operations.h"

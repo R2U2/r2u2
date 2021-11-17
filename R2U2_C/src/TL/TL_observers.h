@@ -240,8 +240,8 @@ extern char *fti_bin;
 //---------------------------------------------
 // functions
 //---------------------------------------------
-void TL_config(char*, char*, char*, char*, char*);
-void TL_aux_config(char*);
+void TL_config(const char*, const char*, const char*, const char*, const char*);
+void TL_aux_config(const char*);
 
 int TL_init(void);
 

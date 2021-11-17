@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "at_globals.h"
 
-#if R2U2_AT_ExtraFilters
+#if R2U2_AT_Extra_Filters
 #include "extra_filters/filter_abs_diff_angle.h"
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"

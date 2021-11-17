@@ -6,6 +6,7 @@
 #define N_INSTRUCTIONS 256
 #define N_AT 256
 #define N_INTERVAL 128
+#define N_SETS 0
 #define L_OPC 5
 #define L_OP 10
 #define L_INTVL 8
@@ -24,6 +25,7 @@
 #define N_FORMULAS 64
 #define L_ATOMIC_ADDR 8
 #define L_SIG_ADDR 8
+#define L_SET_ADDR 1
 #define L_INSTRUCTION 40
 #define L_AT_INSTRUCTION 88
 #define N_DOT_BUFFERS_TOTAL 8192

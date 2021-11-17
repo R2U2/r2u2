@@ -8,7 +8,7 @@
 #include "parse.h"
 
 #ifndef CONFIG // TODO: Do we need to conditionally compile these?
-void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
@@ -20,7 +20,7 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
     parse_interval_pt_file(pti);
 }
 #else
-void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     /* Future Time Configuration */
     parse_inst_ft_bin(ftm);
@@ -35,21 +35,24 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
 
 /* Extended Output Configuration */
 // Keeping this separate from binParser until configuration unification
-void TL_aux_config(char* aux){
-    char type, *next_ptr, line[MAX_LINE];
-    int indx;
-    size_t f_num, r_num=0, c_num=0;
-    FILE *stream;
+void TL_aux_config(const char* aux){
+    char type, line[MAX_LINE];
 
     #if R2U2_TL_Formula_Names
+    char *next_ptr;
+    size_t f_num;
     next_ptr = aux_str_arena;
     #endif
 
     #if R2U2_TL_Contract_Status
+    size_t c_num=0;
     aux_con_map[0] = aux_con_arena;
     #endif
 
     #if R2U2_AT_Signal_Sets
+    int indx;
+    size_t r_num=0;
+    FILE *stream;
     aux_signal_set_map[0] = aux_signal_set_arena;
     #endif
 
