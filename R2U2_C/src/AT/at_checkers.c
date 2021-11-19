@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-#ifdef R2U2_AT_Extra_Filters
+#if R2U2_AT_Extra_Filters
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
 #endif
@@ -44,7 +44,7 @@ void AT_update(void)
 
 void AT_free()
 {
-	#ifdef R2U2_AT_Extra_Filters
+	#if R2U2_AT_Extra_Filters
 	uint32_t i;
 	for(i = 0; i < num_instr; i++) {
 		filt_data_struct_t filter_data_struct = at_instructions[i].filt_data_struct;
