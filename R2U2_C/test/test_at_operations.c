@@ -1,84 +1,118 @@
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit/munit.h"
+#include "../src/AT/at_operations.h"
 
-/* Test Suite Layout
-**
-** This file creates the `test_at_operations` test executable  which runs tests
-** for `at_operations.c` which are contained in `at_operations_suite`
-**
-** To organize the tests, the `at_operations_suite` contains a list of
-** sub-suites, `function_suites`, one per function of `at_operations.c`
-**
-** New tests should be added to the per-function test-suites such as
-** `op_rate_tests` which will propagated automatically.
-**
-*/
+/* op_bool test1 */
+static MunitResult op_bool_test1(const MunitParameter params[], void* user_data) {
 
-/* Stand-in test */
-static MunitResult my_test(const MunitParameter params[], void* user_data) {
+  at_instruction_t inst = [
+    .cond = EQ, 
+    .filer = OP_BOOL,
+    .sig_addr = 0,
+    .atom_addr = 1,
+    .comp_is_sig = FALSE,
+    .comp = 0
+  ];
 
-  assert_int(1, ==, 1);
+  signals_vector[instr.sig_addr] = "0"
+
+  op_double(&inst)
+
+  assert_int(atomic_vector[instr.atom_addr], ==, 1)
 
   return MUNIT_OK;
 }
 
-/* Tests for op_abs_diff_angle */
+/* op_int test */
+static MunitResult op_int_test(const MunitParameter params[], void* user_data) {
 
-MunitTest op_abs_diff_angle_tests[] = {
-  {
-    "/my-test", /* name */
-    my_test, /* test */
-    NULL, /* setup */
-    NULL, /* tear_down */
-    MUNIT_TEST_OPTION_NONE, /* options */
-    NULL /* parameters */
-  },
-  /* Mark the end of the array with an entry where the test
-   * function is NULL */
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
-};
+  at_instruction_t inst = [
+    .cond = EQ, 
+    .filer = OP_INT,
+    .sig_addr = 0,
+    .atom_addr = 1,
+    .comp_is_sig = FALSE,
+    .comp = 2
+  ];
 
+  signals_vector[instr.sig_addr] = "2"
 
-/* Tests for op_movavg */
+  op_double(&inst)
 
-MunitTest op_movavg_tests[] = {
-  {
-    "/my-test", /* name */
-    my_test, /* test */
-    NULL, /* setup */
-    NULL, /* tear_down */
-    MUNIT_TEST_OPTION_NONE, /* options */
-    NULL /* parameters */
-  },
-  /* Mark the end of the array with an entry where the test
-   * function is NULL */
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
-};
+  assert_int(atomic_vector[instr.atom_addr], ==, 1)
 
+  return MUNIT_OK;
+}
 
-/* Tests for op_rate */
+/* op_double test */
+static MunitResult op_double_test(const MunitParameter params[], void* user_data) {
 
-MunitTest op_rate_tests[] = {
-  {
-    "/my-test", /* name */
-    my_test, /* test */
-    NULL, /* setup */
-    NULL, /* tear_down */
-    MUNIT_TEST_OPTION_NONE, /* options */
-    NULL /* parameters */
-  },
-  /* Mark the end of the array with an entry where the test
-   * function is NULL */
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
-};
+  at_instruction_t inst = [
+    .cond = EQ, 
+    .filer = OP_DOUBLE,
+    .sig_addr = 0,
+    .atom_addr = 1,
+    .comp_is_sig = FALSE,
+    .comp = 7
+  ];
 
+  signals_vector[instr.sig_addr] = "1234"
+
+  op_double(&inst)
+
+  assert_int(atomic_vector[instr.atom_addr], ==, 1)
+
+  return MUNIT_OK;
+}
+
+/* op_error test */
+static MunitResult op_error_test(const MunitParameter params[], void* user_data) {
+
+  at_instruction_t inst = [
+    .cond = EQ, 
+    .filer = OP_DOUBLE,
+    .sig_addr = 0,
+    .atom_addr = 1,
+    .comp_is_sig = FALSE,
+    .comp = 7
+  ];
+
+  signals_vector[instr.sig_addr] = "1234"
+
+  op_double(&inst)
+
+  assert_int(atomic_vector[instr.atom_addr], ==, 1)
+
+  return MUNIT_OK;
+}
+
+/* decode test */
+static MunitResult decode_test(const MunitParameter params[], void* user_data) {
+
+  at_instruction_t inst = [
+    .cond = EQ, 
+    .filer = OP_DOUBLE,
+    .sig_addr = 0,
+    .atom_addr = 1,
+    .comp_is_sig = FALSE,
+    .comp = 7
+  ];
+
+  signals_vector[instr.sig_addr] = "1.2"
+
+  op_double(&inst)
+
+  assert_int(atomic_vector[instr.atom_addr], ==, 1)
+
+  return MUNIT_OK;
+}
 
 /* Tests for op_bool */
 
 MunitTest op_bool_tests[] = {
   {
-    "/my-test", /* name */
-    my_test, /* test */
+    "/op_bool_test1", /* name */
+    op_bool_test1, /* test */
     NULL, /* setup */
     NULL, /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */
@@ -94,8 +128,8 @@ MunitTest op_bool_tests[] = {
 
 MunitTest op_int_tests[] = {
   {
-    "/my-test", /* name */
-    my_test, /* test */
+    "/op_int_test", /* name */
+    op_int_test, /* test */
     NULL, /* setup */
     NULL, /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */
@@ -111,8 +145,8 @@ MunitTest op_int_tests[] = {
 
 MunitTest op_double_tests[] = {
   {
-    "/my-test", /* name */
-    my_test, /* test */
+    "/op_double_test", /* name */
+    op_double_test, /* test */
     NULL, /* setup */
     NULL, /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */
@@ -128,8 +162,8 @@ MunitTest op_double_tests[] = {
 
 MunitTest op_error_tests[] = {
   {
-    "/my-test", /* name */
-    my_test, /* test */
+    "/op_error_test", /* name */
+    op_error_test, /* test */
     NULL, /* setup */
     NULL, /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */
@@ -145,8 +179,8 @@ MunitTest op_error_tests[] = {
 
 MunitTest decode_tests[] = {
   {
-    "/my-test", /* name */
-    my_test, /* test */
+    "/decode_test", /* name */
+    decode_test, /* test */
     NULL, /* setup */
     NULL, /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */
@@ -161,9 +195,6 @@ MunitTest decode_tests[] = {
 /* Test runner setup */
 
 static const MunitSuite function_suites[] = {
-  { "/op_abs_diff_angle", op_abs_diff_angle_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
-  { "/op_movavg", op_movavg_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
-  { "/op_rate", op_rate_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
   { "/op_bool", op_bool_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
   { "/op_int", op_int_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
   { "/op_double", op_double_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
@@ -173,7 +204,7 @@ static const MunitSuite function_suites[] = {
 };
 
 static const MunitSuite at_operations_suite = {
-  "at_operations-tests", /* name */
+  "at_operations_tests", /* name */
   NULL, /* tests */
   function_suites, /* suites */
   1, /* iterations */
