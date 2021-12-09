@@ -368,6 +368,29 @@ static MunitResult test_tl_update (const MunitParameter params[], void* data) {
 
 }
 
+static MunitResult test_tl_init (const MunitParameter params[], void* data) {
+    
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[2].opcode = OP_FT_UNTIL_INTERVAL;
+
+    TL_init();
+
+    munit_assert_int(true, ==, ft_sync_queues[0].pre.v_q);
+    munit_assert_int(0, ==, ft_sync_queues[0].pre.t_q);
+
+    munit_assert_int(false, ==, ft_sync_queues[1].pre.v_q);
+    munit_assert_int(-1, ==, ft_sync_queues[1].pre.t_q);
+
+    munit_assert_int(true, ==, ft_sync_queues[2].pre.v_q);
+    munit_assert_int(-1, ==, ft_sync_queues[2].pre.t_q);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+
+}
+
 static char* bool1_params[] = {
     "0", "1", NULL
 };
@@ -479,6 +502,14 @@ MunitTest tests[] = {
     {
         "/test_tl_update",
         test_tl_update,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/test_tl_init",
+        test_tl_init,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
