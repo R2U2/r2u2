@@ -137,18 +137,18 @@ static MunitResult end_sequence_operator (const MunitParameter params[], void* d
     return MUNIT_OK;
 }
 
-// static MunitResult end_operator (const MunitParameter params[], void* data) {
+static MunitResult end_operator (const MunitParameter params[], void* data) {
     
-//     //TL_config("/home/r2u2/r2u2/R2U2_C/src/binParser", NULL, NULL, NULL, NULL);
+    //TL_config("/home/r2u2/r2u2/R2U2_C/src/binParser", NULL, NULL, NULL, NULL);
 
-//     instruction_mem_ft[0].opcode = OP_END;
+    instruction_mem_ft[0].opcode = OP_END;
 
-//     TL_update_ft(NULL);
+    TL_update_ft(NULL);
 
-//     munit_assert_int(0, ==, r2u2_errno);
+    munit_assert_int(0, ==, r2u2_errno);
 
-//     return MUNIT_OK;
-// }
+    return MUNIT_OK;
+}
 
 static MunitResult op_lod (const MunitParameter params[], void* data) {
 
@@ -265,9 +265,15 @@ static MunitResult op_until (const MunitParameter params[], void* data) {
     instruction_mem_ft[2].op2.value = 1;
     instruction_mem_ft[2].adr_interval = 0;
     instruction_mem_ft[3].opcode = OP_END_SEQUENCE;
+    
 
     interval_mem_ft[0].lb = 0;
     interval_mem_ft[1].ub = 1;
+
+    TL_update_ft(NULL);
+
+    atomics_vector[0] = true;
+    atomics_vector[1] = true;
 
     TL_update_ft(NULL);
 
@@ -285,6 +291,81 @@ static MunitResult op_illegal (const MunitParameter params[], void* data) {
     munit_assert_int(1, ==, r2u2_errno);
 
     return MUNIT_OK;
+}
+
+static MunitResult op_end (const MunitParameter params[], void* data) {
+    
+    FILE *f;
+    f = fopen("log.txt", "w");
+
+    TL_init();
+
+    atomics_vector[0] = true;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_END;
+    instruction_mem_ft[1].op1.opnd_type = subformula;
+    instruction_mem_ft[1].op1.value = 0;
+    instruction_mem_ft[1].op2.opnd_type = subformula;
+    instruction_mem_ft[1].op2.value = 0;
+    instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
+
+
+    TL_update_ft(f);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+
+}
+
+static MunitResult test_tl_config (const MunitParameter params[], void* data) {
+    
+    TL_config("./test/test_ftm.bin", "./test/test_fti.bin", "./test/test_ftscq.bin", NULL, NULL);
+
+    atomics_vector[0] = true;
+    atomics_vector[1] = true;
+
+    TL_update_ft(NULL);
+
+    int* rd_ptr = &(ft_sync_queues[1].rd_ptr);
+    elt_ft_queue_t value = pop(&SCQ[addr_SCQ_map_ft[1].start_addr],*rd_ptr);
+    munit_assert_int(true, ==, value.v_q);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+
+}
+
+static MunitResult test_tl_update (const MunitParameter params[], void* data) {
+    
+    instruction_mem_pt[0].opcode = OP_END_SEQUENCE;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_AND;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].op2.opnd_type = subformula;
+    instruction_mem_ft[2].op2.value = 1;
+    instruction_mem_ft[3].opcode = OP_END_SEQUENCE;
+
+    atomics_vector[0] = false;
+    atomics_vector[1] = true;
+
+    TL_update(NULL);
+
+    munit_assert_int(false, ==, atomics_vector_prev[0]);
+    munit_assert_int(true, ==, atomics_vector_prev[1]);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+
 }
 
 static char* bool1_params[] = {
@@ -374,6 +455,30 @@ MunitTest tests[] = {
     {
         "/op_illegal",
         op_illegal,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/op_end",
+        op_end,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/test_tl_config",
+        test_tl_config,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/test_tl_update",
+        test_tl_update,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
