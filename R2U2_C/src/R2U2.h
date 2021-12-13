@@ -37,7 +37,7 @@
 
 #ifndef R2U2_AT_Extra_Filters
     /* Enables the Rate, Angle difference, and moving average AT filters */
-    #define R2U2_AT_Extra_Filters EXHIBIT
+    #define R2U2_AT_Extra_Filters INHIBIT
 #endif
 
 #ifndef R2U2_AT_FFT_Filter
