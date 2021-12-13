@@ -32,13 +32,8 @@ double filter_rate_update_data(double x, double *prev)
 {
 	double rate;
 
-	printf("prev: %lf, cur: %lf\n",*prev,x);
-
 	rate = x - *prev;
 	*prev = x;
-
-	printf("new prev: %lf\n",*prev);
-	printf("rate: %lf\n",rate);
 
 	return rate;
 }
