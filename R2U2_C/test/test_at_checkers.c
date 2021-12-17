@@ -27,10 +27,26 @@ static MunitResult at_config_call(const MunitParameter params[], void* user_data
     return MUNIT_OK;
 }
 
+static MunitResult at_config_parse(const MunitParameter params[], void* user_data){
+    /* AT_config delegates to parse.c, just test API */
+
+    AT_config("./test/data/at.bin");
+
+    return MUNIT_OK;
+}
+
 MunitTest at_config_tests[] = {
   {
     "/callable",            /* name */
     at_config_call,         /* test */
+    NULL,                   /* setup */
+    NULL,                   /* tear_down */
+    MUNIT_TEST_OPTION_NONE, /* options */
+    NULL                    /* parameters */
+  },
+  {
+    "/parse",            /* name */
+    at_config_parse,         /* test */
     NULL,                   /* setup */
     NULL,                   /* tear_down */
     MUNIT_TEST_OPTION_NONE, /* options */

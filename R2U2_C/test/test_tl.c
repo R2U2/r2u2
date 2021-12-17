@@ -87,10 +87,17 @@ static void* test_setup(const MunitParameter params[], void* user_data)
     }
 }
 
-static MunitResult test_tl_config (const MunitParameter params[], void* data) {
+static MunitResult test_tl_config_call (const MunitParameter params[], void* data) {
+
+    TL_config(NULL, NULL, NULL, NULL, NULL);
+
+    return MUNIT_OK;
+}
+
+static MunitResult tl_config_parse (const MunitParameter params[], void* data) {
 
     // TODO: Assumes testing working dir, fix this when we unify bin parser
-    TL_config("./test/data/ftm.bin", "./test/data/fti.bin", "./test/data/ftscq.bin", NULL, NULL);
+    TL_config("./test/data/ftm.bin", "./test/data/fti.bin", "./test/data/ftscq.bin", "./test/data/ptm.bin", "./test/data/pti.bin");
 
     atomics_vector[0] = true;
     atomics_vector[1] = true;
@@ -104,7 +111,6 @@ static MunitResult test_tl_config (const MunitParameter params[], void* data) {
     munit_assert_int(0, ==, r2u2_errno);
 
     return MUNIT_OK;
-
 }
 
 static MunitResult test_tl_update (const MunitParameter params[], void* data) {
@@ -160,11 +166,18 @@ static MunitResult test_tl_init (const MunitParameter params[], void* data) {
 }
 
 /* Test runner setup */
-
 static const MunitTest function_tests[] = {
     {
-        "/tl_config",
-        test_tl_config,
+        "/tl_config_call",
+        test_tl_config_call,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/tl_config_parse",
+        tl_config_parse,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
