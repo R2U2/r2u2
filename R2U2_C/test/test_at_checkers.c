@@ -144,5 +144,6 @@ static const MunitSuite at_checkers_suite = {
 };
 
 int main (int argc, const char* argv[]) {
+  r2u2_debug_fptr = stderr;
   return munit_suite_main(&at_checkers_suite, NULL, argc, argv);
 }

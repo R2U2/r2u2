@@ -19,7 +19,7 @@
 # these rules might exclude image files for figures etc.
 # *.ps
 # *.eps
-# *.pdf
+*.pdf
 
 ## Generated if empty string is given at "Please type another file name for output:"
 .pdf
@@ -267,6 +267,8 @@ Lex and Yacc Autogen files:
 *.tab.h
 
 R2U2_C/bin/
+R2U2_C/doc/
+R2U2_C/report/
 tools/Compiler/MLTL_Compiler/parsetab.py
 test/Inputs/inputFiles/
 test/Inputs/inputImages/
