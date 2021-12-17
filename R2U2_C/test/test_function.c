@@ -491,30 +491,30 @@ MunitTest tests[] = {
         MUNIT_TEST_OPTION_NONE,
         NULL
     },
-    {
-        "/test_tl_config",
-        test_tl_config,
-        test_setup,
-        NULL,
-        MUNIT_TEST_OPTION_NONE,
-        NULL
-    },
-    {
-        "/test_tl_update",
-        test_tl_update,
-        test_setup,
-        NULL,
-        MUNIT_TEST_OPTION_NONE,
-        NULL
-    },
-    {
-        "/test_tl_init",
-        test_tl_init,
-        test_setup,
-        NULL,
-        MUNIT_TEST_OPTION_NONE,
-        NULL
-    },
+    // {
+    //     "/test_tl_config",
+    //     test_tl_config,
+    //     test_setup,
+    //     NULL,
+    //     MUNIT_TEST_OPTION_NONE,
+    //     NULL
+    // },
+    // {
+    //     "/test_tl_update",
+    //     test_tl_update,
+    //     test_setup,
+    //     NULL,
+    //     MUNIT_TEST_OPTION_NONE,
+    //     NULL
+    // },
+    // {
+    //     "/test_tl_init",
+    //     test_tl_init,
+    //     test_setup,
+    //     NULL,
+    //     MUNIT_TEST_OPTION_NONE,
+    //     NULL
+    // },
     {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
 };
 
