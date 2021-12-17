@@ -150,7 +150,7 @@ $(TST_RPT_PATH):
 # Shell functions
 run_all_tests = (find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;)
 coverage_proc = (find $(DBG_PATH) -name "*.gcno" -exec gcov -b -l -p -c {} \; && mv *.gcov $(TST_RPT_PATH))
-coverage_html = (gcovr -g -k -r $(SRC_PATH) $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
+coverage_html = (gcovr -g -k -r $(SRC_PATH) -e '.*_pt\.c' $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
 
 # phony rules
 .PHONY: all
