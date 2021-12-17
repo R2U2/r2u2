@@ -1,6 +1,9 @@
-#include "munit/munit.h"
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+#define MUNIT_ENABLE_ASSERT_ALIASES
+#include "munit/munit.h"
+
 #include "../src/TL/TL_observers.h"
 #include "../src/TL/TL_queue_ft.h"
 
@@ -356,7 +359,7 @@ MunitTest tests[] = {
 };
 
 static const MunitSuite suite = {
-    "/tests",
+    "/tl_update_ft",
     tests,
     NULL,
     1,
