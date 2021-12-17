@@ -7,6 +7,9 @@
 #include "../src/TL/TL_observers.h"
 #include "../src/TL/TL_queue_ft.h"
 
+elt_ft_queue_t pop_cap(int pc, int obNum, elt_ft_queue_t* scq, int rd_ptr);
+bool isEmpty_cap(int pc, int ObNum, elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp);
+
 FILE* r2u2_debug_fptr = NULL;
 
 static void* test_setup(const MunitParameter params[], void* user_data)
@@ -160,7 +163,82 @@ static MunitResult op_globally (const MunitParameter params[], void* data) {
     instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
 
     interval_mem_ft[0].lb = 0;
-    interval_mem_ft[1].ub = 1;
+    interval_mem_ft[0].ub = 1;
+
+    TL_update_ft(NULL);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_globally_true(const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    atomics_vector[0] = true;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[1].op1.opnd_type = subformula;
+    instruction_mem_ft[1].op1.value = 0;
+    instruction_mem_ft[1].adr_interval = 0;
+    instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 0;
+
+    TL_update_ft(NULL);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_globally_rising_edge(const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[1].op1.opnd_type = subformula;
+    instruction_mem_ft[1].op1.value = 0;
+    instruction_mem_ft[1].adr_interval = 0;
+    instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 1;
+
+    atomics_vector[0] = false;
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    t_now++;
+    atomics_vector[0] = true;
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_globally_true_too_early(const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    atomics_vector[0] = true;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[1].op1.opnd_type = subformula;
+    instruction_mem_ft[1].op1.value = 0;
+    instruction_mem_ft[1].adr_interval = 0;
+    instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 1;
+    interval_mem_ft[0].ub = 1;
 
     TL_update_ft(NULL);
 
@@ -201,6 +279,86 @@ static MunitResult op_and (const MunitParameter params[], void* data) {
     return MUNIT_OK;
 }
 
+static MunitResult op_and_op_1_empty (const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].adr_interval = 0;
+    instruction_mem_ft[3].opcode = OP_FT_AND;
+    instruction_mem_ft[3].op1.opnd_type = subformula;
+    instruction_mem_ft[3].op1.value = 2;
+    instruction_mem_ft[3].op2.opnd_type = subformula;
+    instruction_mem_ft[3].op2.value = 1;
+    instruction_mem_ft[4].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 1;
+
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    atomics_vector[0] = true;
+    atomics_vector[1] = true;
+    t_now++;
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    // TOOD: Expecte Empty Queue
+    // int* rd_ptr = &(ft_sync_queues[2].rd_ptr);
+    // elt_ft_queue_t value = pop(&SCQ[addr_SCQ_map_ft[2].start_addr],*rd_ptr);
+    // printf("Expected %d, Got %d", expected_verdict, value.v_q);
+    // munit_assert_int(expected_verdict, ==, value.v_q);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_and_op_2_empty (const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_GLOBALLY_INTERVAL;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].adr_interval = 0;
+    instruction_mem_ft[3].opcode = OP_FT_AND;
+    instruction_mem_ft[3].op1.opnd_type = subformula;
+    instruction_mem_ft[3].op1.value = 0;
+    instruction_mem_ft[3].op2.opnd_type = subformula;
+    instruction_mem_ft[3].op2.value = 2;
+    instruction_mem_ft[4].opcode = OP_END_SEQUENCE;
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 1;
+
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    atomics_vector[0] = true;
+    atomics_vector[1] = true;
+    t_now++;
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+
+    // TOOD: Expecte Empty Queue
+    // int* rd_ptr = &(ft_sync_queues[2].rd_ptr);
+    // elt_ft_queue_t value = pop(&SCQ[addr_SCQ_map_ft[2].start_addr],*rd_ptr);
+    // printf("Expected %d, Got %d", expected_verdict, value.v_q);
+    // munit_assert_int(expected_verdict, ==, value.v_q);
+
+    return MUNIT_OK;
+}
+
 static MunitResult op_until (const MunitParameter params[], void* data) {
 
     TL_init();
@@ -219,7 +377,42 @@ static MunitResult op_until (const MunitParameter params[], void* data) {
     
 
     interval_mem_ft[0].lb = 0;
-    interval_mem_ft[1].ub = 1;
+    interval_mem_ft[0].ub = 1;
+
+    TL_update_ft(NULL);
+
+    atomics_vector[0] = true;
+    atomics_vector[1] = true;
+    t_now++;
+
+    TL_update_ft(NULL);
+
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_until_trivial_true(const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    atomics_vector[1] = true;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_UNTIL_INTERVAL;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].op2.opnd_type = subformula;
+    instruction_mem_ft[2].op2.value = 1;
+    instruction_mem_ft[2].adr_interval = 0;
+    instruction_mem_ft[3].opcode = OP_END_SEQUENCE;
+
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 1;
 
     TL_update_ft(NULL);
 
@@ -228,6 +421,38 @@ static MunitResult op_until (const MunitParameter params[], void* data) {
 
     TL_update_ft(NULL);
 
+    munit_assert_int(0, ==, r2u2_errno);
+
+    return MUNIT_OK;
+}
+
+static MunitResult op_until_time_out(const MunitParameter params[], void* data) {
+
+    TL_init();
+
+    atomics_vector[0] = true;
+
+    instruction_mem_ft[0].opcode = OP_FT_LOD;
+    instruction_mem_ft[0].op1.value = 0;
+    instruction_mem_ft[1].opcode = OP_FT_LOD;
+    instruction_mem_ft[1].op1.value = 1;
+    instruction_mem_ft[2].opcode = OP_FT_UNTIL_INTERVAL;
+    instruction_mem_ft[2].op1.opnd_type = subformula;
+    instruction_mem_ft[2].op1.value = 0;
+    instruction_mem_ft[2].op2.opnd_type = subformula;
+    instruction_mem_ft[2].op2.value = 1;
+    instruction_mem_ft[2].adr_interval = 0;
+    instruction_mem_ft[3].opcode = OP_END_SEQUENCE;
+
+
+    interval_mem_ft[0].lb = 0;
+    interval_mem_ft[0].ub = 0;
+
+    TL_update_ft(NULL);
+    munit_assert_int(0, ==, r2u2_errno);
+    t_now++;
+
+    TL_update_ft(NULL);
     munit_assert_int(0, ==, r2u2_errno);
 
     return MUNIT_OK;
@@ -245,9 +470,6 @@ static MunitResult op_illegal (const MunitParameter params[], void* data) {
 }
 
 static MunitResult op_end (const MunitParameter params[], void* data) {
-    
-    FILE *f;
-    f = fopen("log.txt", "w");
 
     TL_init();
 
@@ -263,12 +485,74 @@ static MunitResult op_end (const MunitParameter params[], void* data) {
     instruction_mem_ft[2].opcode = OP_END_SEQUENCE;
 
 
-    TL_update_ft(f);
+    TL_update_ft(stderr);
 
     munit_assert_int(0, ==, r2u2_errno);
 
     return MUNIT_OK;
 
+}
+
+static MunitResult isEmpty_cap_bad_obNum(const MunitParameter params[], void* data) {
+
+    assert_true(isEmpty_cap(0, 3, NULL, 0, 0, NULL, 0));
+
+    return MUNIT_OK;
+}
+
+static MunitResult isEmpty_cap_not_set(const MunitParameter params[], void* data) {
+    instruction_mem_ft[0].op1.opnd_type = not_set;
+    instruction_mem_ft[0].op1.value = 0;
+    assert_true(isEmpty_cap(0, 1, NULL, 0, 0, NULL, 0));
+
+    return MUNIT_OK;
+}
+
+static MunitResult isEmpty_cap_atomic(const MunitParameter params[], void* data) {
+    instruction_mem_ft[0].op1.opnd_type = atomic;
+    instruction_mem_ft[0].op1.value = 0;
+    assert_false(isEmpty_cap(0, 1, NULL, 0, 0, NULL, 0));
+
+    return MUNIT_OK;
+}
+
+static MunitResult isEmpty_cap_illegal(const MunitParameter params[], void* data) {
+    instruction_mem_ft[0].op1.opnd_type = 7;
+    instruction_mem_ft[0].op1.value = 0;
+    assert_true(isEmpty_cap(0, 1, NULL, 0, 0, NULL, 0));
+
+    return MUNIT_OK;
+}
+
+static MunitResult pop_cap_bad_obNum(const MunitParameter params[], void* data) {
+    elt_ft_queue_t res = pop_cap(0, 3, NULL, 0);
+    elt_ft_queue_t tst = {false, -1};
+
+    assert_memory_equal(sizeof(elt_ft_queue_t), &res, &tst);
+
+    return MUNIT_OK;
+}
+
+static MunitResult pop_cap_direct(const MunitParameter params[], void* data) {
+    instruction_mem_ft[0].op1.opnd_type = direct;
+    instruction_mem_ft[0].op1.value = 0;
+    elt_ft_queue_t res = pop_cap(0, 1, NULL, 0);
+    elt_ft_queue_t tst = {0, 0};
+
+    assert_memory_equal(sizeof(elt_ft_queue_t), &res, &tst);
+
+    return MUNIT_OK;
+}
+
+static MunitResult pop_cap_illegal(const MunitParameter params[], void* data) {
+    instruction_mem_ft[0].op1.opnd_type = 7;
+    instruction_mem_ft[0].op1.value = 0;
+    elt_ft_queue_t res = pop_cap(0, 1, NULL, 0);
+    elt_ft_queue_t tst = {false, -1};
+
+    assert_memory_equal(sizeof(elt_ft_queue_t), &res, &tst);
+
+    return MUNIT_OK;
 }
 
 static char* bool1_params[] = {
@@ -290,33 +574,45 @@ static MunitParameterEnum binary_bool_params[] = {
     {NULL, NULL}
 };
 
-MunitTest tests[] = {
+MunitTest end_sequence_operator_tests[] = {
     {
-        "/end_sequence_operator",
+        "/loop_break",
         end_sequence_operator,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
     },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest load_operator_tests[] = {
     {
-        "/op_lod",
+        "/read_atom",
         op_lod,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
     },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest not_operator_tests[] = {
     {
-        "/op_not",
+        "/bools",
         op_not,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         unary_bool_params
     },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest globally_operator_tests[] = {
     {
-        "/op_globally",
+        "/false_0-1",
         op_globally,
         test_setup,
         NULL,
@@ -324,7 +620,35 @@ MunitTest tests[] = {
         NULL
     },
     {
-        "/op_and",
+        "/true",
+        op_globally_true,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/rising_edge",
+        op_globally_rising_edge,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/true_too_early",
+        op_globally_true_too_early,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest and_operator_tests[] = {
+    {
+        "/bools",
         op_and,
         test_setup,
         NULL,
@@ -332,7 +656,27 @@ MunitTest tests[] = {
         binary_bool_params
     },
     {
-        "/op_until",
+        "/op_1_empty",
+        op_and_op_1_empty,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/op_2_empty",
+        op_and_op_2_empty,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest until_operator_tests[] = {
+    {
+        "/false_0-1",
         op_until,
         test_setup,
         NULL,
@@ -340,15 +684,39 @@ MunitTest tests[] = {
         NULL
     },
     {
-        "/op_illegal",
-        op_illegal,
+        "/trivial_true",
+        op_until_trivial_true,
         test_setup,
         NULL,
         MUNIT_TEST_OPTION_NONE,
         NULL
     },
     {
-        "/op_end",
+        "/time_out",
+        op_until_time_out,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest illegal_operator_tests[] = {
+    {
+        "/crash",
+        op_illegal,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest end_operator_tests[] = {
+    {
+        "/load_subformula",
         op_end,
         test_setup,
         NULL,
@@ -358,10 +726,107 @@ MunitTest tests[] = {
     {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
 };
 
+static const MunitSuite TL_update_ft_operator_suites[] = {
+  { "/end_sequence_operator", end_sequence_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/load_operator", load_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/not_operator", not_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/globally_operator", globally_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/and_operator", and_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/until_operator", until_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/illegal_operator", illegal_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/end_operator", end_operator_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
+};
+
+MunitTest pop_cap_tests[] = {
+    {
+        "/bad_obNum",
+        pop_cap_bad_obNum,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/direct",
+        pop_cap_direct,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/illegal",
+        pop_cap_illegal,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+MunitTest isEmpty_cap_tests[] = {
+    {
+        "/bad_obNum",
+        isEmpty_cap_bad_obNum,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/not_set",
+        isEmpty_cap_not_set,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/atomic",
+        isEmpty_cap_atomic,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {
+        "/illegal",
+        isEmpty_cap_illegal,
+        test_setup,
+        NULL,
+        MUNIT_TEST_OPTION_NONE,
+        NULL
+    },
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+};
+
+// MunitTest read_atomic_tests[] = {
+//     {
+//         "/op_end",
+//         op_end,
+//         test_setup,
+//         NULL,
+//         MUNIT_TEST_OPTION_NONE,
+//         NULL
+//     },
+//     {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}
+// };
+
+/* Test runner setup */
+static const MunitSuite function_suites[] = {
+  { "/pop_cap", pop_cap_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/isEmpty_cap", isEmpty_cap_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { "/tl_update_ft", NULL, TL_update_ft_operator_suites, 1, MUNIT_SUITE_OPTION_NONE },
+  // { "/read_atomic", read_atomic_tests, NULL, 1, MUNIT_SUITE_OPTION_NONE },
+  { NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
+};
+
 static const MunitSuite suite = {
     "/tl_update_ft",
-    tests,
     NULL,
+    function_suites,
     1,
     MUNIT_SUITE_OPTION_NONE
 };
