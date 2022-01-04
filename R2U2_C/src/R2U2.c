@@ -95,8 +95,9 @@ int main(int argc, char *argv[]) {
 
     #ifndef CONFIG // Compilation is using binaries
     // TODO check that config directory is a valid path
-    chdir(argv[argind]);
+    char *bin_dir = argv[argind];
     argind++;
+    chdir(bin_dir);
     #endif
 
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
@@ -125,10 +126,12 @@ int main(int argc, char *argv[]) {
     }
 
     #if R2U2_CSV_Header_Mapping
+    chdir(bin_dir);
     int header_status = 0;
     uintptr_t alias_table[N_SIGS];
     header_status = signal_aux_config("alias.txt", input_file, alias_table);
     if (header_status > 1) { return header_status; }
+    chdir(inbuf);
     #endif
 
     /* R2U2 Output File */
