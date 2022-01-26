@@ -77,7 +77,7 @@ def _abs_diff_angle(args):
     sig = args[0]
     const = args[1]
 
-    binary += toBinary(sig, max_sig_width)
+    binary += toBinary(sig[1:], max_sig_width)
     binary += toBinary(const, max_const_width)
 
     return binary
@@ -90,7 +90,7 @@ def _movavg(args):
     sig = args[0]
     const = args[1]
 
-    binary += toBinary(sig, max_sig_width)
+    binary += toBinary(sig[1:], max_sig_width)
     binary += toBinary(const, max_const_width)
 
     return binary
