@@ -15,6 +15,22 @@ SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
 $(info    R2U2 Extra Filters Enabled)
 endif
 
+ifdef R2U2_TL_Formula_Names
+CFLAGS := $(CFLAGS) -DR2U2_TL_Formula_Names
+$(info    R2U2 Formula Naming Enabled)
+endif
+
+ifdef R2U2_TL_Contract_Status
+CFLAGS := $(CFLAGS) -DR2U2_TL_Contract_Status
+$(info    R2U2 AG Contract Status Enabled)
+endif
+
+ifdef R2U2_CSV_Header_Mapping
+CFLAGS := $(CFLAGS) -DR2U2_CSV_Header_Mapping
+$(info    R2U2 CSV Header Mapping Enabled)
+endif
+
+
 ifdef R2U2_AT_Signal_Sets
 # Add Signal Sets Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
