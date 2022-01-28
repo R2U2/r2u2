@@ -93,7 +93,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.pt += ';\n;\n;\n'
                 # keep track of formula numbers
                 ft_len = len(self.ft.splitlines())
-                self.contract_formula_nums[name] = ft_len-2
+                self.contract_formula_nums[name] = ft_len-3
             else: # is_pt == true
                 self.pt += expr[0]+';\n'
                 self.pt += expr[1]+';\n'
@@ -101,7 +101,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.ft += ';\n;\n;\n'
                 # keep track of formula numbers
                 pt_len = len(self.pt.splitlines())
-                self.contract_formula_nums[name] = pt_len-2
+                self.contract_formula_nums[name] = pt_len-3
 
         # error if any used filter args are undefined (excluding literals)
         #for arg in self.filter_args:

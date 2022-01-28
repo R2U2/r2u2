@@ -30,7 +30,6 @@ CFLAGS := $(CFLAGS) -DR2U2_CSV_Header_Mapping
 $(info    R2U2 CSV Header Mapping Enabled)
 endif
 
-
 ifdef R2U2_AT_Signal_Sets
 # Add Signal Sets Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
@@ -67,11 +66,12 @@ endif
 LD_LIBS := $(LD_LIBS) -lm
 
 CFLAGS :=-std=c99 $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
-DBGFLAG := -g -O2 \
+DBGFLAG := -g -O0 \
 -fdata-sections -ffunction-sections -fno-common \
 -fsanitize=undefined -fsanitize=address\
 -pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
+--coverage\
 -DR2U2_DEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
@@ -91,11 +91,30 @@ SRC := $(foreach x, $(SRC_DIRS), $(wildcard $(addprefix $(x)/*,.c*)))
 OBJ_RELES := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 OBJ_DEBUG := $(addprefix $(DBG_PATH)/, $(addsuffix .o, $(basename $(subst src/,,$(SRC)))))
 
+# Testing
+TST_SRC_PATH := test
+TST_LIB_PATH := $(TST_SRC_PATH)/munit
+TST_OBJ_PATH := target/$(TST_SRC_PATH)
+TST_BIN_PATH := $(BIN_PATH)/$(TST_SRC_PATH)
+TST_RPT_PATH := report
+
+TSTFLAGS :=  $(CFLAGS) $(DBGFLAG) -I$(TST_LIB_PATH)
+TSTOBJFLAGS := $(TSTFLAGS) -c
+TSTLNKFLAGS := $(LDFLAGS) --coverage
+
+TST := $(wildcard $(TST_SRC_PATH)/test_*.c)
+OBJ_TEST := $(addprefix $(TST_OBJ_PATH)/, $(addsuffix .o, $(basename $(subst $(TST_SRC_PATH)/,,$(TST)))))
+OBJ_NO_MAIN :=  $(filter-out $(DBG_PATH)/R2U2.o,$(OBJ_DEBUG)) # TODO: This is the worst hack in here, please remove
+TARGET_TEST := $(addprefix $(TST_BIN_PATH)/,$(basename $(subst $(TST_SRC_PATH)/,,$(TST))))
+
 # clean files list
 DISTCLEAN_LIST := $(OBJ_PATH) \
-				  $(DBG_PATH)
+				  $(DBG_PATH) \
+				  $(TST_OBJ_PATH)
 CLEAN_LIST := $(TARGET_RELES) \
 			  $(TARGET_DEBUG) \
+			  $(TARGET_TEST) \
+			  $(TST_RPT_PATH) \
 			  $(DISTCLEAN_LIST) \
 				src/binParser/config.c
 
@@ -115,6 +134,15 @@ $(TARGET_DEBUG): $(OBJ_DEBUG) | $(DBG_PATH)
 $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
 
+$(TST_BIN_PATH)/%: $(TST_OBJ_PATH)/%.o $(TST_OBJ_PATH)/test_lib.o $(OBJ_NO_MAIN) | $(TST_BIN_PATH)
+	$(CC) $(TSTFLAGS)  -o $@ $? $(TSTLNKFLAGS)
+
+$(TST_OBJ_PATH)/%.o: $(TST_SRC_PATH)/%.c* | $(TST_OBJ_PATH)
+	$(CC) $(TSTOBJFLAGS) -o $@ $<
+
+$(TST_OBJ_PATH)/test_lib.o: | $(TST_OBJ_PATH)
+	$(CC) $(TSTOBJFLAGS) -o $@ $(TST_LIB_PATH)/munit.c
+
 # Path rules
 $(BIN_PATH):
 	mkdir -p $(BIN_PATH)
@@ -125,12 +153,40 @@ $(OBJ_PATH):
 $(DBG_PATH):
 	mkdir -p $(OBJ_DBG_DIRS)
 
+$(TST_BIN_PATH):
+	mkdir -p $(TST_BIN_PATH)
+
+$(TST_OBJ_PATH):
+	mkdir -p $(TST_OBJ_PATH)
+
+$(TST_RPT_PATH):
+	mkdir -p $(TST_RPT_PATH)
+
+# Shell functions
+run_all_tests = (find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;)
+coverage_proc = (find $(DBG_PATH) -name "*.gcno" -exec gcov -b -l -p -c {} \; && mv *.gcov $(TST_RPT_PATH))
+coverage_html = (gcovr -g -k -r $(SRC_PATH) -e '.*_pt\.c' $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
+
 # phony rules
 .PHONY: all
 all: $(TARGET_RELES)
 
 .PHONY: debug
 debug: $(TARGET_DEBUG)
+
+.PHONY: test
+test: $(TARGET_TEST)
+
+.PHONY: coverage
+coverage: $(TARGET_TEST) | $(TST_RPT_PATH)
+	$(call coverage_proc)
+	$(call coverage_html)
+
+.PHONY: check
+check: $(TARGET_TEST) | $(TST_RPT_PATH)
+	$(call run_all_tests)
+	$(call coverage_proc)
+	$(call coverage_html)
 
 .PHONY: clean
 clean:
@@ -142,7 +198,16 @@ distclean:
 	@echo CLEAN $(DISTCLEAN_LIST)
 	@rm -rf $(DISTCLEAN_LIST)
 
+# Variable debug printer
+# Call as `make print-VARIABLE`
+# From: https://www.cmcrossroads.com/article/printing-value-makefile-variable
 print-%  : ; @echo $* = $($*)
+
+# List all concrete targets
+# From: https://stackoverflow.com/a/26339924
+.PHONY: list
+list:
+	@LC_ALL=C $(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
 #doxygen documentation setup
 doc: ./Doxyfile

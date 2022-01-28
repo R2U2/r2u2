@@ -143,6 +143,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_inst_ft_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
@@ -160,6 +161,7 @@ void parse_inst_ft_file(const char* filename) {
 	}
 
 }
+#else
 void parse_inst_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
@@ -176,9 +178,11 @@ void parse_inst_ft_bin(const char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Past Time Instruction Parser
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_inst_pt_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
@@ -195,6 +199,7 @@ void parse_inst_pt_file(const char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
+#else
 void parse_inst_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
@@ -211,9 +216,11 @@ void parse_inst_pt_bin(const char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Future-Time Interval Parser
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_interval_ft_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
@@ -230,6 +237,7 @@ void parse_interval_ft_file(const char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
+#else
 void parse_interval_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
@@ -246,9 +254,11 @@ void parse_interval_ft_bin(const char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Past-Time Interval Parser
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_interval_pt_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
@@ -265,6 +275,7 @@ void parse_interval_pt_file(const char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
+#else
 void parse_interval_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
@@ -281,9 +292,11 @@ void parse_interval_pt_bin(const char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_scq_size_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
@@ -301,6 +314,7 @@ void parse_scq_size_file(const char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
+#else
 void parse_scq_size_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
@@ -318,10 +332,11 @@ void parse_scq_size_bin(const char* bin) {
 			pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 		}
 }
-
+#endif
 //------------------------------------------------------------------------------
 // AT Parser
 //------------------------------------------------------------------------------
+#ifndef CONFIG
 void parse_at_file(const char *filename)
 {
 	uint8_t PC = 0;
@@ -341,6 +356,7 @@ void parse_at_file(const char *filename)
 
 	num_instr = PC; // set number of AT instructions
 }
+#else
 void parse_at_bin(const char *bin)
 {
 	uint8_t PC = 0;
@@ -360,3 +376,4 @@ void parse_at_bin(const char *bin)
 
 	num_instr = PC; // set number of AT instructions
 }
+#endif

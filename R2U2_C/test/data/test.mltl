@@ -1,0 +1,12 @@
+a0 & a1;
+(a0) U[1,2] (a1);
+
+H[0] a0;
+
+atom = float(signal) > 5;
+atom2 = int(s4) < 5;
+atom3 = float(signal) > signal;
+atom4 = int(s4) < signal;
+atom5 = rate(s0) < 3;
+
+signal = 5;
