@@ -1,7 +1,7 @@
 from .MLTLVisitor import MLTLVisitor
 from .MLTLParser import MLTLParser
 
-import re # I hate to do this...
+import re
 
 class PreprocessVisitor(MLTLVisitor):
     """
@@ -88,7 +88,7 @@ class PreprocessVisitor(MLTLVisitor):
         for name, expr in self.contracts.items():
             if expr[2]: # is_ft == true
                 self.ft += expr[0]+';\n'
-                self.ft += expr[1]+';\n'
+                self.ft += expr[0]+'->'+expr[1]+';\n'
                 self.ft += '('+expr[0]+')&('+expr[1]+');\n'
                 self.pt += ';\n;\n;\n'
                 # keep track of formula numbers
@@ -96,7 +96,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = ft_len-3
             else: # is_pt == true
                 self.pt += expr[0]+';\n'
-                self.pt += expr[1]+';\n'
+                self.ft += expr[0]+'->'+expr[1]+';\n'
                 self.pt += '('+expr[0]+')&('+expr[1]+');\n'
                 self.ft += ';\n;\n;\n'
                 # keep track of formula numbers
