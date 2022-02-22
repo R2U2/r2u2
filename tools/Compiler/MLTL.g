@@ -47,7 +47,7 @@ setAssignment
   ;
 
 filterArgument
-  : LiteralSignalIdentifier
+  : signalIdentifier
   | Identifier
   | Number
   ;
