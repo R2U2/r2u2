@@ -51,9 +51,10 @@ def _float(args):
     global max_const_width
     binary = ''
     sig = args[0]
+    epsilon = args[1]
 
     binary += toBinary(sig[1:], max_sig_width)
-    binary += toBinary(0, max_const_width)
+    binary += toBinary(epsilon, max_const_width)
 
     return binary
 
