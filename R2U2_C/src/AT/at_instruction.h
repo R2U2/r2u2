@@ -38,13 +38,16 @@ typedef union {
 } type_t;
 
 
-#if R2U2_AT_Extra_Filters
+
 typedef union {
+	double epsilon;		/* epsilon value for float comparsions */
+	#if R2U2_AT_Extra_Filters
 	double diff_angle;	/* abs_diff_angle filter */
 	double prev;				/* rate filter */
 	movAvg_t *movavg;		/* movavg filter */
+	#endif
 } filt_data_struct_t;
-#endif
+
 
 
 typedef struct {
@@ -54,10 +57,7 @@ typedef struct {
 	uint8_t atom_addr;
 	bool comp_is_sig;
 	type_t comp;
-
-#if R2U2_AT_Extra_Filters
 	filt_data_struct_t filt_data_struct;
-#endif
 } at_instruction_t;
 
 #endif

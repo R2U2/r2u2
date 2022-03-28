@@ -102,6 +102,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 		{
 			if(!inst->comp_is_sig)
 				inst->comp.d = (double) comp;
+				inst->filt_data_struct.epsilon = 0.5;
 			break;
 		}
 		#if R2U2_AT_Extra_Filters

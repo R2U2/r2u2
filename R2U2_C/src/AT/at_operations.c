@@ -28,10 +28,10 @@ void op_abs_diff_angle(at_instruction_t *instr)
 		double comp_sig;
 		sscanf(signals_vector[instr->comp.s], "%lf", &comp_sig);
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](diff_angle, comp_sig);
+			compare_double[instr->cond](diff_angle, comp_sig, instr->filt_data_struct.epsilon);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](diff_angle, instr->comp.d);
+			compare_double[instr->cond](diff_angle, instr->comp.d, instr->filt_data_struct.epsilon);
 	}
 
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
@@ -48,10 +48,10 @@ void op_movavg(at_instruction_t *instr)
 		double comp_sig;
 		sscanf(signals_vector[instr->comp.s], "%lf", &comp_sig);
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](avg, comp_sig);
+			compare_double[instr->cond](avg, comp_sig, instr->filt_data_struct.epsilon);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](avg, instr->comp.d);
+			compare_double[instr->cond](avg, instr->comp.d, instr->filt_data_struct.epsilon);
 	}
 
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
@@ -67,10 +67,10 @@ void op_rate(at_instruction_t *instr)
 		double comp_sig;
 		sscanf(signals_vector[instr->comp.s], "%lf", &comp_sig);
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](rate, comp_sig);
+			compare_double[instr->cond](rate, comp_sig, instr->filt_data_struct.epsilon);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](rate, instr->comp.d);
+			compare_double[instr->cond](rate, instr->comp.d, instr->filt_data_struct.epsilon);
 	}
 
 	R2U2_DEBUG_PRINT("%hhu", atomics_vector[instr->atom_addr]);
@@ -153,10 +153,10 @@ void op_double(at_instruction_t *instr)
 		double comp_sig;
 		sscanf(signals_vector[instr->comp.s], "%lf", &comp_sig);
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](signal, comp_sig);
+			compare_double[instr->cond](signal, comp_sig, instr->filt_data_struct.epsilon);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](signal, instr->comp.d);
+			compare_double[instr->cond](signal, instr->comp.d, instr->filt_data_struct.epsilon);
 	}
 
 	R2U2_DEBUG_PRINT("\tResult: %hhu\n", atomics_vector[instr->atom_addr]);
