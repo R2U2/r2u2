@@ -48,25 +48,25 @@ bool compare_double_neq(double a, double b, double epsilon)
   R2U2_DEBUG_PRINT("\t\tDub Compare: | %lf - %lf | > %lf \n", a, b, epsilon);
   return fabs(a-b) > epsilon;
 }
-bool compare_double_lt(double a, double b)
+bool compare_double_lt(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf < %lf = %d \n", a, b, (a < b));
   return a < b;
 }
 
-bool compare_double_leq(double a, double b)
+bool compare_double_leq(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf <= %lf = %d \n", a, b, (a <= b));
   return a <= b;
 }
 
-bool compare_double_gt(double a, double b)
+bool compare_double_gt(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf > %lf = %d \n", a, b, (a > b));
   return a > b;
 }
 
-bool compare_double_geq(double a, double b)
+bool compare_double_geq(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf >= %lf = %d \n", a, b, (a >= b));
   return a >= b;
