@@ -13,6 +13,8 @@
 
 #if R2U2_AT_Signal_Sets
 #include "signal_set_filters/filter_exactly_one_of.h"
+#include "signal_set_filters/filter_none_of.h"
+#include "signal_set_filters/filter_all_of.h"
 #endif
 
 #include "../TL/TL_observers.h"
@@ -87,6 +89,54 @@ void op_exactly_one_of(at_instruction_t *instr)
 		set[i-1] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
 	}
 	bool res = filter_exactly_one_of(set,*(aux_signal_set_map[set_addr]));
+
+	if(instr->comp_is_sig) {
+		bool comp_sig;
+		sscanf(signals_vector[instr->comp.s], "%hhu", &comp_sig);
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, comp_sig);
+	} else {
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, instr->comp.b);
+	}
+
+	R2U2_DEBUG_PRINT("\tResult: %hhu\n", atomics_vector[instr->atom_addr]);
+}
+
+
+void op_none_of(at_instruction_t *instr)
+{
+	uint8_t i, set_addr = instr->sig_addr;
+	bool set[N_ATOMICS];
+
+	for(i = 1; i <= *aux_signal_set_map[set_addr]; i++) {
+		set[i-1] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
+	}
+	bool res = filter_none_of(set,*(aux_signal_set_map[set_addr]));
+
+	if(instr->comp_is_sig) {
+		bool comp_sig;
+		sscanf(signals_vector[instr->comp.s], "%hhu", &comp_sig);
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, comp_sig);
+	} else {
+		atomics_vector[instr->atom_addr] =
+			compare_int[instr->cond](res, instr->comp.b);
+	}
+
+	R2U2_DEBUG_PRINT("\tResult: %hhu\n", atomics_vector[instr->atom_addr]);
+}
+
+
+void op_all_of(at_instruction_t *instr)
+{
+	uint8_t i, set_addr = instr->sig_addr;
+	bool set[N_ATOMICS];
+
+	for(i = 1; i <= *aux_signal_set_map[set_addr]; i++) {
+		set[i-1] = atomics_vector[*(aux_signal_set_map[set_addr]+i)];
+	}
+	bool res = filter_all_of(set,*(aux_signal_set_map[set_addr]));
 
 	if(instr->comp_is_sig) {
 		bool comp_sig;
@@ -181,6 +231,8 @@ void (*decode[])(at_instruction_t*) = { op_error,
 #endif
 #if R2U2_AT_Signal_Sets
     op_exactly_one_of,
+	op_none_of,
+	op_all_of,
 #else
     op_error,
 #endif

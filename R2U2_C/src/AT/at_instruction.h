@@ -27,6 +27,8 @@ typedef enum {
 	#endif
 	#if R2U2_AT_Signal_Sets
 	OP_EXACTLY_ONE_OF = 0b0111, // NOTE: sig_addr stores set_addr
+	OP_NONE_OF        = 0b1000,
+	OP_ALL_OF         = 0b1001
 	#endif
 } at_filter_t;
 

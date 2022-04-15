@@ -7,7 +7,7 @@
 typedef enum {
 	P_FTI = 0b000,
 	P_FTM = 0b001,
-  P_SCQ = 0b010,
+  	P_SCQ = 0b010,
 	P_PTM = 0b011,
 	P_PTI = 0b100,
 	P_AT  = 0b101
