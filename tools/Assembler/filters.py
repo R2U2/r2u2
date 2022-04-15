@@ -109,6 +109,32 @@ def _exactly_one_of(args):
     return binary
 
 
+def _none_of(args):
+    global max_sig_width
+    global max_const_width
+    binary = ''
+    setIdent = args[0]
+
+    # TODO use max_set_width -- bin length must be consistent however
+    binary += toBinary(setIdent[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
+
+    return binary
+
+
+def _all_of(args):
+    global max_sig_width
+    global max_const_width
+    binary = ''
+    setIdent = args[0]
+
+    # TODO use max_set_width -- bin length must be consistent however
+    binary += toBinary(setIdent[1:], max_sig_width)
+    binary += toBinary(0, max_const_width)
+
+    return binary
+
+
 parse_filters = {
     0: _null,
     1: _bool,
@@ -117,8 +143,11 @@ parse_filters = {
     4: _rate,
     5: _abs_diff_angle,
     6: _movavg,
-    7: _exactly_one_of
+    7: _exactly_one_of,
+    8: _none_of,
+    9: _all_of
 }
+
 
 
 def valid_filters():

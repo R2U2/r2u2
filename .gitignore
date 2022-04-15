@@ -261,6 +261,9 @@ TSWLatexianTemp*
 # OS cache files
 .DS_Store
 
+# VSCode config
+.vscode/
+
 Lex and Yacc Autogen files:
 *.yy.c
 *.tab.c

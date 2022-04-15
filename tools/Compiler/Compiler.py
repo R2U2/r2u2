@@ -282,7 +282,7 @@ class Compiler():
         set_instr = {}
         for atom, instr in self.at_instructions.items():
             # TODO need more robust way to order these
-            if instr[0] == 'exactly_one_of':
+            if instr[0] == 'exactly_one_of' or instr[0] == 'none_of' or instr[0] == 'all_of':
                 set_instr[atom] = instr
                 continue
 
