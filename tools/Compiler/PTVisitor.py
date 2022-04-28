@@ -33,7 +33,7 @@ class PTVisitor(MLTLVisitor):
         op = ctx.op.text
 
         if op == '!':
-            val = self.visit(ctx.expr())
+            val = self.visit(ctx.expr(0))
             return NEG(val)
         elif op == '&':
             left = self.visit(ctx.expr(0))

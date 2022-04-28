@@ -1,7 +1,7 @@
 from .MLTLVisitor import MLTLVisitor
 from .MLTLParser import MLTLParser
 
-import re # I hate to do this...
+import re
 
 class PreprocessVisitor(MLTLVisitor):
     """
@@ -88,7 +88,7 @@ class PreprocessVisitor(MLTLVisitor):
         for name, expr in self.contracts.items():
             if expr[2]: # is_ft == true
                 self.ft += expr[0]+';\n'
-                self.ft += expr[1]+';\n'
+                self.ft += expr[0]+'->'+expr[1]+';\n'
                 self.ft += '('+expr[0]+')&('+expr[1]+');\n'
                 self.pt += ';\n;\n;\n'
                 # keep track of formula numbers
@@ -96,7 +96,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = ft_len-3
             else: # is_pt == true
                 self.pt += expr[0]+';\n'
-                self.pt += expr[1]+';\n'
+                self.pt += expr[0]+'->'+expr[1]+';\n'
                 self.pt += '('+expr[0]+')&('+expr[1]+');\n'
                 self.ft += ';\n;\n;\n'
                 # keep track of formula numbers
@@ -104,10 +104,10 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = pt_len-3
 
         # error if any used filter args are undefined (excluding literals)
-        for arg in self.filter_args:
-            if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
-                print('ERROR: filter argument undefined \'' + arg + '\'')
-                self.status = False
+        #for arg in self.filter_args:
+        #    if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
+        #        print('ERROR: filter argument undefined \'' + arg + '\'')
+        #        self.status = False
 
         # resolve atomics in defined sets
         for setIdent in self.def_sets.keys():
@@ -124,20 +124,21 @@ class PreprocessVisitor(MLTLVisitor):
 
         # handle expressions -- keep track of formula numbers, reset 
         # whether expr is of type FT/PT, and split up FT/PT formulas
-        if self.status and ctx.expr():
+        if self.status and (ctx.expr()):
             if self.is_pt:
                 self.num_pt += 1
-                self.is_pt = False
                 self.pt += ctx.getText()+';\n'
                 self.ft += ';\n'
             else:
                 self.num_ft += 1
-                self.is_ft = False
                 self.pt += ';\n'
                 self.ft += ctx.getText()+';\n'
         elif self.status and ctx.binding():
             # maintain list of AT instructions
             self.at += ctx.getText()+';\n'
+
+        self.is_ft = False
+        self.is_pt = False
 
 
     # Visit a parse tree produced by MLTLParser#contract.
@@ -156,9 +157,6 @@ class PreprocessVisitor(MLTLVisitor):
         self.visit(ctx.expr(0))
         self.visit(ctx.expr(1))
         is_ft = (self.is_ft or (not self.is_ft and not self.is_pt))
-
-        self.is_ft = False
-        self.is_pt = False
         
         self.contracts[name] = [ctx.expr(0).getText(), ctx.expr(1).getText(), is_ft]
 
@@ -261,10 +259,6 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#filterArgument.
     def visitFilterArgument(self, ctx:MLTLParser.FilterArgumentContext):
         self.filter_args.add(ctx.getText())
-
-        # since this token is not a signalIdentifier, need to manually handle this case
-        if ctx.LiteralSignalIdentifier():
-            self.literal_signals.add(ctx.LiteralSignalIdentifier().getText())
 
         self.visitChildren(ctx)
 

@@ -1,4 +1,4 @@
-# Generated from MLTL.g by ANTLR 4.9.2
+# Generated from MLTL.g by ANTLR 4.9.3
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -12,7 +12,7 @@ else:
 def serializedATN():
     with StringIO() as buf:
         buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\35")
-        buf.write("\u00a3\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
+        buf.write("\u00a6\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
         buf.write("\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16")
         buf.write("\t\16\3\2\5\2\36\n\2\3\2\7\2!\n\2\f\2\16\2$\13\2\3\2\3")
         buf.write("\2\3\3\3\3\3\3\5\3+\n\3\3\3\3\3\3\3\3\3\3\3\5\3\62\n\3")
@@ -24,13 +24,13 @@ def serializedATN():
         buf.write("\3\6\3\6\3\6\3\6\3\6\3\6\7\6{\n\6\f\6\16\6~\13\6\3\6\3")
         buf.write("\6\3\6\3\6\5\6\u0084\n\6\3\7\3\7\3\7\3\7\3\b\3\b\3\b\3")
         buf.write("\b\3\b\3\b\7\b\u0090\n\b\f\b\16\b\u0093\13\b\3\b\3\b\3")
-        buf.write("\t\3\t\3\n\3\n\3\13\3\13\3\f\3\f\3\r\3\r\3\16\3\16\3\16")
-        buf.write("\2\3\b\17\2\4\6\b\n\f\16\20\22\24\26\30\32\2\5\3\2\31")
-        buf.write("\33\4\2\30\30\32\32\3\2\31\32\2\u00ac\2\"\3\2\2\2\4\61")
-        buf.write("\3\2\2\2\6\66\3\2\2\2\bR\3\2\2\2\ns\3\2\2\2\f\u0085\3")
-        buf.write("\2\2\2\16\u0089\3\2\2\2\20\u0096\3\2\2\2\22\u0098\3\2")
-        buf.write("\2\2\24\u009a\3\2\2\2\26\u009c\3\2\2\2\30\u009e\3\2\2")
-        buf.write("\2\32\u00a0\3\2\2\2\34\36\5\4\3\2\35\34\3\2\2\2\35\36")
+        buf.write("\t\3\t\3\t\5\t\u009a\n\t\3\n\3\n\3\13\3\13\3\f\3\f\3\r")
+        buf.write("\3\r\3\16\3\16\3\16\2\3\b\17\2\4\6\b\n\f\16\20\22\24\26")
+        buf.write("\30\32\2\4\4\2\30\30\32\32\3\2\31\32\2\u00b1\2\"\3\2\2")
+        buf.write("\2\4\61\3\2\2\2\6\66\3\2\2\2\bR\3\2\2\2\ns\3\2\2\2\f\u0085")
+        buf.write("\3\2\2\2\16\u0089\3\2\2\2\20\u0099\3\2\2\2\22\u009b\3")
+        buf.write("\2\2\2\24\u009d\3\2\2\2\26\u009f\3\2\2\2\30\u00a1\3\2")
+        buf.write("\2\2\32\u00a3\3\2\2\2\34\36\5\4\3\2\35\34\3\2\2\2\35\36")
         buf.write("\3\2\2\2\36\37\3\2\2\2\37!\7\3\2\2 \35\3\2\2\2!$\3\2\2")
         buf.write("\2\" \3\2\2\2\"#\3\2\2\2#%\3\2\2\2$\"\3\2\2\2%&\7\2\2")
         buf.write("\3&\3\3\2\2\2\'(\5\22\n\2()\7\4\2\2)+\3\2\2\2*\'\3\2\2")
@@ -64,11 +64,13 @@ def serializedATN():
         buf.write("\5\30\r\2\u008f\u008d\3\2\2\2\u0090\u0093\3\2\2\2\u0091")
         buf.write("\u008f\3\2\2\2\u0091\u0092\3\2\2\2\u0092\u0094\3\2\2\2")
         buf.write("\u0093\u0091\3\2\2\2\u0094\u0095\7\24\2\2\u0095\17\3\2")
-        buf.write("\2\2\u0096\u0097\t\2\2\2\u0097\21\3\2\2\2\u0098\u0099")
-        buf.write("\7\32\2\2\u0099\23\3\2\2\2\u009a\u009b\7\32\2\2\u009b")
-        buf.write("\25\3\2\2\2\u009c\u009d\7\32\2\2\u009d\27\3\2\2\2\u009e")
-        buf.write("\u009f\t\3\2\2\u009f\31\3\2\2\2\u00a0\u00a1\t\4\2\2\u00a1")
-        buf.write("\33\3\2\2\2\r\35\"*\61\66Rnp|\u0083\u0091")
+        buf.write("\2\2\u0096\u009a\5\32\16\2\u0097\u009a\7\32\2\2\u0098")
+        buf.write("\u009a\7\33\2\2\u0099\u0096\3\2\2\2\u0099\u0097\3\2\2")
+        buf.write("\2\u0099\u0098\3\2\2\2\u009a\21\3\2\2\2\u009b\u009c\7")
+        buf.write("\32\2\2\u009c\23\3\2\2\2\u009d\u009e\7\32\2\2\u009e\25")
+        buf.write("\3\2\2\2\u009f\u00a0\7\32\2\2\u00a0\27\3\2\2\2\u00a1\u00a2")
+        buf.write("\t\2\2\2\u00a2\31\3\2\2\2\u00a3\u00a4\t\3\2\2\u00a4\33")
+        buf.write("\3\2\2\2\16\35\"*\61\66Rnp|\u0083\u0091\u0099")
         return buf.getvalue()
 
 
@@ -145,7 +147,7 @@ class MLTLParser ( Parser ):
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.9.2")
+        self.checkVersion("4.9.3")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
@@ -954,8 +956,9 @@ class MLTLParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def LiteralSignalIdentifier(self):
-            return self.getToken(MLTLParser.LiteralSignalIdentifier, 0)
+        def signalIdentifier(self):
+            return self.getTypedRuleContext(MLTLParser.SignalIdentifierContext,0)
+
 
         def Identifier(self):
             return self.getToken(MLTLParser.Identifier, 0)
@@ -979,16 +982,29 @@ class MLTLParser ( Parser ):
 
         localctx = MLTLParser.FilterArgumentContext(self, self._ctx, self.state)
         self.enterRule(localctx, 14, self.RULE_filterArgument)
-        self._la = 0 # Token type
         try:
-            self.enterOuterAlt(localctx, 1)
-            self.state = 148
-            _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << MLTLParser.LiteralSignalIdentifier) | (1 << MLTLParser.Identifier) | (1 << MLTLParser.Number))) != 0)):
-                self._errHandler.recoverInline(self)
-            else:
-                self._errHandler.reportMatch(self)
-                self.consume()
+            self.state = 151
+            self._errHandler.sync(self)
+            la_ = self._interp.adaptivePredict(self._input,11,self._ctx)
+            if la_ == 1:
+                self.enterOuterAlt(localctx, 1)
+                self.state = 148
+                self.signalIdentifier()
+                pass
+
+            elif la_ == 2:
+                self.enterOuterAlt(localctx, 2)
+                self.state = 149
+                self.match(MLTLParser.Identifier)
+                pass
+
+            elif la_ == 3:
+                self.enterOuterAlt(localctx, 3)
+                self.state = 150
+                self.match(MLTLParser.Number)
+                pass
+
+
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)
@@ -1026,7 +1042,7 @@ class MLTLParser ( Parser ):
         self.enterRule(localctx, 16, self.RULE_formulaIdentifier)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 150
+            self.state = 153
             self.match(MLTLParser.Identifier)
         except RecognitionException as re:
             localctx.exception = re
@@ -1065,7 +1081,7 @@ class MLTLParser ( Parser ):
         self.enterRule(localctx, 18, self.RULE_setIdentifier)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 152
+            self.state = 155
             self.match(MLTLParser.Identifier)
         except RecognitionException as re:
             localctx.exception = re
@@ -1104,7 +1120,7 @@ class MLTLParser ( Parser ):
         self.enterRule(localctx, 20, self.RULE_filterIdentifier)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 154
+            self.state = 157
             self.match(MLTLParser.Identifier)
         except RecognitionException as re:
             localctx.exception = re
@@ -1147,7 +1163,7 @@ class MLTLParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 156
+            self.state = 159
             _la = self._input.LA(1)
             if not(_la==MLTLParser.LiteralAtomicIdentifier or _la==MLTLParser.Identifier):
                 self._errHandler.recoverInline(self)
@@ -1195,7 +1211,7 @@ class MLTLParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 158
+            self.state = 161
             _la = self._input.LA(1)
             if not(_la==MLTLParser.LiteralSignalIdentifier or _la==MLTLParser.Identifier):
                 self._errHandler.recoverInline(self)

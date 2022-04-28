@@ -86,16 +86,16 @@ class FTVisitor(MLTLVisitor):
         op = ctx.BinaryTemporalOp().getText()
         try:
             if op == 'U':
-                    left = self.visit(ctx.expr(0))
-                    right = self.visit(ctx.expr(1))
-                    bounds = ctx.Number()
-                    if len(bounds) == 1:
-                        upper = int(bounds[0].getText())
-                        return UNTIL(left, right, ub=upper)
-                    elif len(bounds) == 2:
-                        lower = int(bounds[0].getText())
-                        upper = int(bounds[1].getText())
-                        return UNTIL(left, right, lb=lower, ub=upper)
+                left = self.visit(ctx.expr(0))
+                right = self.visit(ctx.expr(1))
+                bounds = ctx.Number()
+                if len(bounds) == 1:
+                    upper = int(bounds[0].getText())
+                    return UNTIL(left, right, ub=upper)
+                elif len(bounds) == 2:
+                    lower = int(bounds[0].getText())
+                    upper = int(bounds[1].getText())
+                    return UNTIL(left, right, lb=lower, ub=upper)
             elif op == 'R':
                 left = self.visit(ctx.expr(0))
                 right = self.visit(ctx.expr(1))
