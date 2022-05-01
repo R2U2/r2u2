@@ -16,6 +16,8 @@
 #include "extra_filters/filter_movavg.h"
 #endif
 
+// TODO: Why is this limited to int? It could be grater
+// Also, this should be typed punned
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
 	for(int i=0;i<len;i++) {

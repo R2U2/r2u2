@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <float.h>
 #include "at_globals.h"
 
 #if R2U2_AT_Extra_Filters
@@ -156,7 +157,7 @@ void op_double(at_instruction_t *instr)
 			compare_double[instr->cond](signal, comp_sig, instr->filt_data_struct.epsilon);
 	} else {
 		atomics_vector[instr->atom_addr] =
-			compare_double[instr->cond](signal, instr->comp.d, instr->filt_data_struct.epsilon);
+			compare_double[instr->cond](signal, instr->comp.d, DBL_EPSILON);
 	}
 
 	R2U2_DEBUG_PRINT("\tResult: %hhu\n", atomics_vector[instr->atom_addr]);
