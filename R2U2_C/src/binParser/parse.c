@@ -16,6 +16,8 @@
 #include "extra_filters/filter_movavg.h"
 #endif
 
+// TODO: Why is this limited to int? It could be grater
+// Also, this should be typed punned
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
 	for(int i=0;i<len;i++) {
@@ -102,6 +104,7 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 		{
 			if(!inst->comp_is_sig)
 				inst->comp.d = (double) comp;
+			inst->filt_data_struct.epsilon = arg;
 			break;
 		}
 		#if R2U2_AT_Extra_Filters

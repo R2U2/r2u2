@@ -1,4 +1,5 @@
 #include "at_compare.h"
+#include <math.h>
 
 bool compare_int_eq(int32_t a, int32_t b)
 {
@@ -36,36 +37,36 @@ bool compare_int_geq(int32_t a, int32_t b)
   return a >= b;
 }
 
-bool compare_double_eq(double a, double b)
+bool compare_double_eq(double a, double b, double epsilon)
 {
-  R2U2_DEBUG_PRINT("\t\tDub Compare: %lf == %lf = %d \n", a, b, (a == b));
-  return a == b;
+  R2U2_DEBUG_PRINT("\t\tDub Compare: | %lf - %lf | < %lf \n", a, b, epsilon);
+  return fabs(a-b) < epsilon;
 }
 
-bool compare_double_neq(double a, double b)
+bool compare_double_neq(double a, double b, double epsilon)
 {
-  R2U2_DEBUG_PRINT("\t\tDub Compare: %lf != %lf = %d \n", a, b, (a != b));
-  return a != b;
+  R2U2_DEBUG_PRINT("\t\tDub Compare: | %lf - %lf | > %lf \n", a, b, epsilon);
+  return fabs(a-b) > epsilon;
 }
-bool compare_double_lt(double a, double b)
+bool compare_double_lt(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf < %lf = %d \n", a, b, (a < b));
   return a < b;
 }
 
-bool compare_double_leq(double a, double b)
+bool compare_double_leq(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf <= %lf = %d \n", a, b, (a <= b));
   return a <= b;
 }
 
-bool compare_double_gt(double a, double b)
+bool compare_double_gt(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf > %lf = %d \n", a, b, (a > b));
   return a > b;
 }
 
-bool compare_double_geq(double a, double b)
+bool compare_double_geq(double a, double b, double epsilon)
 {
   R2U2_DEBUG_PRINT("\t\tDub Compare: %lf >= %lf = %d \n", a, b, (a >= b));
   return a >= b;
@@ -78,7 +79,7 @@ bool (*compare_int[])(int32_t, int32_t) = { compare_int_eq,
     compare_int_gt,
     compare_int_geq };
 
-bool (*compare_double[])(double, double) = { compare_double_eq,
+bool (*compare_double[])(double, double, double) = { compare_double_eq,
     compare_double_neq,
     compare_double_lt,
     compare_double_leq,
