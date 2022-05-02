@@ -1,4 +1,4 @@
-
+#include "R2U2.h"
 #include "filter_exactly_one_of.h"
 
 bool filter_exactly_one_of(bool *set, uint8_t len)

@@ -1,9 +1,10 @@
 #ifndef AT_COMPARE_H
 #define AT_COMPARE_H
 
+#include "R2U2.h"
+
 #include <stdint.h>
 #include <stdbool.h>
-#include "../R2U2.h"
 
 bool compare_int_eq(int32_t a, int32_t b);
 bool compare_int_neq(int32_t a, int32_t b);

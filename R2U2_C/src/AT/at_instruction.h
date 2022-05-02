@@ -1,6 +1,8 @@
 #ifndef AT_INSTRUCTION_H
 #define AT_INSTRUCTION_H
 
+#include "R2U2.h"
+
 #include <stdbool.h>
 
 #if R2U2_AT_Extra_Filters

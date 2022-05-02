@@ -19,6 +19,8 @@
 #ifndef _MOVAVERAGE_H_
 #define _MOVAVERAGE_H_
 
+#include "R2U2.h"
+
 #include <stdint.h>
 
 /*

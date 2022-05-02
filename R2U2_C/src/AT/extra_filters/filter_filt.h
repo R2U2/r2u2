@@ -17,6 +17,8 @@
 **
 **=====================================================================================*/
 
+#include "R2U2.h"
+
 void filter_filt_init(int N, double **buf);
 
 void filter_filt_free(double *buf);

@@ -1,6 +1,8 @@
 #ifndef _TL_QUEUE_PT_H_
 #define _TL_QUEUE_PT_H_
 
+#include "R2U2.h"
+
 typedef struct {
 	timestamp_t	t_s;
 	timestamp_t	t_e;

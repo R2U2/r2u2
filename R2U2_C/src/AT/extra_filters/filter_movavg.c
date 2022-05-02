@@ -26,6 +26,8 @@
 **
 **===========================================================================*/
 
+#include "R2U2.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "filter_movavg.h"

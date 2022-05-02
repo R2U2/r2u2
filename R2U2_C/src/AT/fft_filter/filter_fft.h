@@ -19,6 +19,8 @@
 
 #ifdef FFT_FILTER
 
+#include "R2U2.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fftw3.h>

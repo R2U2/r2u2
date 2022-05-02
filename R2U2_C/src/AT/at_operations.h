@@ -1,9 +1,9 @@
 #ifndef OPERATIONS_H
 #define OPERATIONS_H
 
-#include <stdint.h>
-
 #include "R2U2.h"
+
+#include <stdint.h>
 
 #include "at_instruction.h"
 

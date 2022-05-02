@@ -1,3 +1,5 @@
+#include "R2U2.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -5,8 +7,6 @@
 #include <limits.h>
 #include <string.h>
 
-#include "R2U2.h"
-#include "R2U2Config.h"
 #include "binParser/parse.h"
 #include "TL/TL_observers.h"
 #include "AT/at_checkers.h"

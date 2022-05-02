@@ -24,11 +24,12 @@
 **	Apr.14.2019 | Pei | Clean up the code and rewrite the function. Consistent with the definition of Shared Connection Queue (SCQ)
 **  Jun.20.2019 | Pei | fix a bug when checking if an SCQ is empty
 **=====================================================================================*/
+
+#include "R2U2.h"
+
 #include <stdio.h>
 #include "TL_observers.h"
-#include "R2U2.h"
 #include "TL_queue_ft.h"
-#include "R2U2.h"
 
 #define	TRACE_OPND_FT(X) X
 

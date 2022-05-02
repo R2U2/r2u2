@@ -26,11 +26,12 @@
 #ifndef TL_OBSERVERS_H
 #define TL_OBSERVERS_H
 
+#include "R2U2.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "R2U2.h"
 //
 // 5 bit opcodes
 //
