@@ -15,6 +15,8 @@ void op_rate(at_instruction_t *);
 
 #if R2U2_AT_Signal_Sets
 void op_exactly_one_of(at_instruction_t *);
+void op_none_of(at_instruction_t *);
+void op_all_of(at_instruction_t *);
 #endif
 
 void op_bool(at_instruction_t *);

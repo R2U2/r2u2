@@ -139,6 +139,20 @@ static void decode_at_instr(char* s, at_instruction_t* inst) {
 				inst->comp.b = (bool) comp;
 			break;
 		}
+		case OP_NONE_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
+		case OP_ALL_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
 		#endif
 		default: break;
 	}
