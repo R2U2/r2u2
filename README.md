@@ -1,7 +1,7 @@
 # R2U2 Dependencies:
 - Posix environment (Linux, MacOS, Etc.)
 - Python3 (version 3.6 or greater)
-- Python Lex & Yacc (`python3 -m pip install —user —upgrade  antlr4-python3-runtime `)
+- Python antlr4 runtime (`python3 -m pip install —user —upgrade  antlr4-python3-runtime `)
 - C99 std compiler (gcc or clang)
 - Make
 
