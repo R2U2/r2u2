@@ -73,15 +73,10 @@ class PreprocessVisitor(MLTLVisitor):
             self.signals[signal] = idx
 
         # error if there are any named, unmapped signals
-        idx = -1
         for signal in self.named_signals:
             if signal not in self.mapped_signals:
                 print('ERROR: named signal referenced but not mapped \''+signal+'\'')
                 self.status = False
-            idx += 1
-            while 's'+str(idx) in self.signals.keys():
-                idx += 1
-            self.signals[signal] = idx
 
         # configure contract formulas
         # append antecedent, consquent, and their conjunction to FT/PT
@@ -234,9 +229,13 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#mapping.
     def visitMapping(self, ctx:MLTLParser.MappingContext):
         sigIdent = ctx.signalIdentifier().getText()
+        idx = ctx.Number().getText()
+
         if sigIdent in self.mapped_signals:
             print('WARNING: signal already mapped \'' + sigIdent + '\', remapping')
+
         self.mapped_signals.add(sigIdent)
+        self.signals[sigIdent] = idx
 
         self.visitChildren(ctx)
 
@@ -259,7 +258,6 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#filterArgument.
     def visitFilterArgument(self, ctx:MLTLParser.FilterArgumentContext):
         self.filter_args.add(ctx.getText())
-
         self.visitChildren(ctx)
 
 
