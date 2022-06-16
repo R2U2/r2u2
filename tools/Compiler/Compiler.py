@@ -54,7 +54,6 @@ class Compiler():
 
         if visitor.status == False:
             self.status = False
-            return
 
         self.atomics = visitor.atomics
         self.signals = visitor.signals

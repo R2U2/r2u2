@@ -99,10 +99,10 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = pt_len-3
 
         # error if any used filter args are undefined (excluding literals)
-        #for arg in self.filter_args:
-        #    if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
-        #        print('ERROR: filter argument undefined \'' + arg + '\'')
-        #        self.status = False
+        for arg in self.filter_args:
+           if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
+               print('ERROR: filter argument undefined \'' + arg + '\'')
+               self.status = False
 
         # resolve atomics in defined sets
         for setIdent in self.def_sets.keys():
