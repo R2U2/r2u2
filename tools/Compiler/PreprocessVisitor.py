@@ -233,6 +233,10 @@ class PreprocessVisitor(MLTLVisitor):
 
         if sigIdent in self.mapped_signals:
             print('WARNING: signal already mapped \'' + sigIdent + '\', remapping')
+        
+        for i in self.signals.values():
+            if idx == i:
+                print('WARNING: signal index '+i+' mapped to twice')
 
         self.mapped_signals.add(sigIdent)
         self.signals[sigIdent] = idx
