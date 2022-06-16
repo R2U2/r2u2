@@ -229,17 +229,26 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#mapping.
     def visitMapping(self, ctx:MLTLParser.MappingContext):
         sigIdent = ctx.signalIdentifier().getText()
-        idx = ctx.Number().getText()
+        sigIdx = ctx.Number().getText()
+
+        try:
+            idx = int(sigIdx)
+            if idx < 0:
+                print('WARNING: signal \''+sigIdent+'\' mapped to negative index '+sigIdx+', skipping')
+                return
+        except:
+            print('WARNING: signal \''+sigIdent+'\' mapped to non-integer value '+sigIdx+', skipping')
+            return
 
         if sigIdent in self.mapped_signals:
-            print('WARNING: signal already mapped \'' + sigIdent + '\', remapping')
+            print('WARNING: signal \''+sigIdent+'\' already mapped \'' + sigIdent + '\', remapping')
         
         for i in self.signals.values():
-            if idx == i:
-                print('WARNING: signal index '+i+' mapped to twice')
+            if sigIdx == i:
+                print('WARNING: signal \''+sigIdent+'\' index '+i+' mapped to twice')
 
         self.mapped_signals.add(sigIdent)
-        self.signals[sigIdent] = idx
+        self.signals[sigIdent] = sigIdx
 
         self.visitChildren(ctx)
 
