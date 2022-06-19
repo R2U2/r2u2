@@ -120,4 +120,4 @@ Letter
   ;
 
 Comment : '#' ~[\r\n]* -> skip;
-WS  :  [ \t\r\n]+ -> skip;
+WS  :  [ \t\r\n]+ -> channel(HIDDEN);
