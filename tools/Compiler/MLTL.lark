@@ -11,20 +11,20 @@ var_block: VAR_KW var_list
 var_list: (IDENTIFIER ":" type ";")+ 
 
 type: BASE_TYPE
-    | SET_KW set-param
+    | SET_KW set_param
 
 set_param: "<" BASE_TYPE ">"
          | "⟨" BASE_TYPE "⟩"
 
 def_block: DEF_KW def_list
-def_list: (IDENTIFIER "=" (atomic_expr | set_list) ";")+
+def_list: (IDENTIFIER "=" expr ";")+
 
-set_list: "{" IDENTIFIER? "}"
-        | "{" IDENTIFIER ("," IDENTIFIER)+ "}"
-        | EMPTY_SET
+// set_list: "{" IDENTIFIER? "}"
+//         | "{" IDENTIFIER ("," IDENTIFIER)+ "}"
+//         | EMPTY_SET
 
-spec_block: SPEC_KW spec-list
-spec_list: (spec_label? spec_expr ";")+
+spec_block: SPEC_KW spec_list
+spec_list: (spec_label? expr ";")+
 spec_label: IDENTIFIER ":"
 
 order_block: ORDER_KW order_list
@@ -32,12 +32,28 @@ order_list: IDENTIFIER ("," IDENTIFIER)* ";"
 
 
 
-atomic_expr: atomic_expr COMP_OP atomic_expr
+expr: GLOBALLY interval expr     -> globally
+    | FUTURE interval expr       -> future
+    | expr UNTIL interval expr   -> until
+    | expr RELEASE interval expr -> release
+    | NOT expr
+    | expr AND expr
+    | expr OR expr
+    | expr IMPLIES expr
+    | expr IFF expr
+    | IDENTIFIER
+    | TRUE
+    | FALSE
 
-
+interval: "[" INT ("," INT)? "]"
 
 
 //// Lexical Spec
+
+// Types
+BASE_TYPE: "bool"
+         | "int"
+         | "float"
 
 // Propositional logic ops/literals
 NOT: "!" | "¬" 
@@ -65,9 +81,6 @@ SQRT: "SQRT" | "√"
 PM: "+-" | "±"
 
 // Temporal ops
-UN_TEMP_OP: GLOBALLY | FUTURE | SINCE | ONCE
-BIN_TEMP_OP: UNTIL | RELEASE | HISTORICALLY
-
 GLOBALLY: "G" | "𝓖" | "□"
 FUTURE: "F" | "𝓕" | "⋄" | "♢"
 SINCE: "S" | "𝓢"
@@ -98,10 +111,12 @@ VAR_KW: "VAR"
 DEF_KW: "DEF"
 SPEC_KW: "SPEC"
 ORDER_KW: "ORDER"
+SET_KW: "SET"
 
 IDENTIFIER: CNAME
           | "Α".."ω"
 
+%import common.INT
 %import common.CNAME
 %import common.SH_COMMENT
 %import common.WS
