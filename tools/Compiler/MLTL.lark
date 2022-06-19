@@ -7,48 +7,44 @@ block: var_block
      | spec_block
      | order_block
 
-var_block: VAR_KW var_list
+var_block: KW_VAR var_list
 var_list: (IDENTIFIER ":" type ";")+ 
 
 type: BASE_TYPE
-    | SET_KW set_param
+    | KW_SET set_param
 
 set_param: "<" BASE_TYPE ">"
          | "⟨" BASE_TYPE "⟩"
 
-def_block: DEF_KW def_list
+def_block: KW_DEF def_list
 def_list: (IDENTIFIER "=" expr ";")+
 
-// set_list: "{" IDENTIFIER? "}"
-//         | "{" IDENTIFIER ("," IDENTIFIER)+ "}"
-//         | EMPTY_SET
-
-spec_block: SPEC_KW spec_list
+spec_block: KW_SPEC spec_list
 spec_list: (spec_label? expr ";")+
 spec_label: IDENTIFIER ":"
 
-order_block: ORDER_KW order_list
+order_block: KW_ORDER order_list
 order_list: IDENTIFIER ("," IDENTIFIER)* ";"
 
-
-
-expr: NOT expr
-    | expr AND expr
-    | expr OR expr
-    | expr IMPLIES expr
-    | expr IFF expr
-    | GLOBALLY interval expr
-    | FUTURE interval expr
-    | expr UNTIL interval expr 
-    | expr RELEASE interval expr
+expr: expr "?" expr ":" expr
+    | expr LOG_OR expr
+    | expr LOG_AND expr
+    | expr BW_OR expr
+    | expr BW_XOR expr
+    | expr BW_AND expr
+    | expr REL_OP expr
+    | expr ARITH_ADD_OP expr
+    | expr ARITH_MUL_OP expr
+    | expr TL_BIN_OP interval expr
+    | UNARY_OP expr 
+    | TL_UNARY_OP interval expr 
     | IDENTIFIER "(" expr ")"
     | "(" expr ")"
+    | NUMBER
+    | LOG_LIT
     | IDENTIFIER
-    | TRUE
-    | FALSE
 
 interval: "[" INT ("," INT)? "]"
-
 
 //// Lexical Spec
 
@@ -57,67 +53,91 @@ BASE_TYPE: "bool"
          | "int"
          | "float"
 
+// Op groups for precedence
+UNARY_OP: LOG_NEG | BW_NEG 
+TL_UNARY_OP: TL_GLOBALLY | TL_FUTURE | TL_SINCE | TL_ONCE 
+TL_BIN_OP: TL_UNTIL | TL_RELEASE | TL_HISTORICALLY
+REL_OP: REL_EQ | REL_NEQ | REL_GT 
+      | REL_GTE | REL_LT | REL_LTE
+ARITH_ADD_OP: ARITH_ADD | ARITH_SUB
+ARITH_MUL_OP: ARITH_MUL | ARITH_DIV | ARITH_MOD
+
 // Propositional logic ops/literals
-NOT: "!" | "¬" 
-AND: "&&" | "∨"
-OR: "||" | "∧"
-IMPLIES: "->" | "→"
-IFF: "<->" | "↔" 
-TRUE: "TRUE" | "⊤"
-FALSE: "FALSE" | "⊥"
+LOG_NEG: "!" | "¬" 
+LOG_AND: "&&" | "∨"
+LOG_OR: "||" | "∧"
+LOG_XOR: "XOR" | "⊕"
+LOG_IMPL: "->" | "→"
+LOG_IFF: "<->" | "↔" 
+LOG_LIT: TRUE | FALSE
+TRUE: "TRUE" | "true" | "⊤"
+FALSE: "FALSE" | "false" | "⊥"
 
-// Comparison ops
-EQ: "=="
-NEQ: "!=" | "≠"
-GT: ">"
-GTE: ">=" | "≥"
-LT: "<"
-LTE: "<=" | "≤" 
+// Bitwise ops
+BW_NEG: "~"
+BW_AND: "&"
+BW_OR: "|"
+BW_XOR: "^"
 
-// General ops
-ADD: "+"
-SUB: "-"
-MUL: "*" | "×" | "•" | "⋅"
-DIV: "/" | "÷"
-SQRT: "SQRT" | "√"
-PM: "+-" | "±"
+// Relational ops
+REL_EQ: "=="
+REL_NEQ: "!=" | "≠"
+REL_GT: ">"
+REL_GTE: ">=" | "≥"
+REL_LT: "<"
+REL_LTE: "<=" | "≤" 
+
+// Arithmetic ops
+ARITH_ADD: "+"
+ARITH_SUB: "-"
+ARITH_MUL: "*" | "•" | "⋅"
+ARITH_DIV: "/" | "÷"
+ARITH_MOD: "MOD" | "%"
+ARITH_POW: "**"
+ARITH_SQRT: "SQRT" | "√"
+ARITH_PM: "+-" | "±"
 
 // Temporal ops
-GLOBALLY: "G" | "𝓖" | "□"
-FUTURE: "F" | "𝓕" | "⋄" | "♢"
-SINCE: "S" | "𝓢"
-ONCE: "O" | "𝓞"
-UNTIL: "U" | "𝓤"
-RELEASE: "R" | "𝓡"
-HISTORICALLY: "H" | "𝓗"
+TL_GLOBALLY: "G" | "𝓖" | "□"
+TL_FUTURE: "F" | "𝓕" | "⋄" | "♢"
+TL_NEXT: "X" | "○"
+TL_SINCE: "S" | "𝓢"
+TL_ONCE: "O" | "𝓞"
+TL_UNTIL: "U" | "𝓤"
+TL_RELEASE: "R" | "𝓡"
+TL_HISTORICALLY: "H" | "𝓗"
 
 // First-order -- not used
-FORALL: "FORALL" | "∀"
-EXISTS: "EXISTS" | "∃"
+FO_FORALL: "FORALL" | "∀"
+FO_EXISTS: "EXISTS" | "∃"
 
-// Set-wise operators
-EMPTY_SET: "∅"
-MEMBER: "IN" | "∈"
-SUBSET: "SUBSET" | "⊂"
-SUBSETEQ: "SUBSETEQ" | "⊆"
-SUPSET: "SUPSET" | "⊂"
-SUPSETEQ: "SUPSETEQ" | "⊇"
-SUM: "SUM" | "∑"
-PROD: "PROD" | "∏"
-SETUNION: "SETUNION" | "⋃"
-SETINTERSECTION: "SETINTERSECTION" | "⋂"
-SETAND: "SETAND" | "⋀"
-SETOR: "SETOR" | "⋁"
+// Set-wise ops -- not used
+SW_EMPTY_SET: "∅"
+SW_MEMBER: "IN" | "∈"
+SW_SUBSET: "SUBSET" | "⊂"
+SW_SUBSETEQ: "SUBSETEQ" | "⊆"
+SW_SUPSET: "SUPSET" | "⊂"
+SW_SUPSETEQ: "SUPSETEQ" | "⊇"
+SW_SUM: "SUM" | "∑"
+SW_PROD: "PROD" | "∏"
+SW_UNION: "SETUNION" | "⋃"
+SW_INTERSECTION: "SETINTERSECTION" | "⋂"
+SW_AND: "SETAND" | "⋀"
+SW_OR: "SETOR" | "⋁"
+SW_CTPROD: "CTPROD" | "×" 
 
-VAR_KW: "VAR"
-DEF_KW: "DEF"
-SPEC_KW: "SPEC"
-ORDER_KW: "ORDER"
-SET_KW: "SET"
+// Keywords
+KW_VAR: "VAR"
+KW_DEF: "DEF"
+KW_SPEC: "SPEC"
+KW_ORDER: "ORDER"
+KW_SET: "SET"
 
-IDENTIFIER: CNAME
+// Identifiers
+IDENTIFIER: CNAME ("₁".."ₓ")?
           | "Α".."ω"
 
+%import common.NUMBER
 %import common.INT
 %import common.CNAME
 %import common.SH_COMMENT
