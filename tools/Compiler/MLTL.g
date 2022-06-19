@@ -3,64 +3,90 @@ grammar MLTL;
 // Grammar Rules
 
 program
-  : (statement? ';')* EOF
+  : block* EOF
   ;
 
-statement
-  : (formulaIdentifier ':')? expr
-  | contract
-  | binding
-  | mapping
-  | setAssignment
+block
+  : var_block
+  | def_block
+  | spec_block
+  | order_block
   ;
 
-contract
-  : (formulaIdentifier ':')? expr '=>' expr
+var_block
+  : VAR_KW var_statement+
   ;
 
-expr
-  : UnaryTemporalOp '[' Number ']' expr                   # UnaryTemporalExpr
-  | UnaryTemporalOp '[' Number ',' Number ']' expr        # UnaryTemporalExpr
-  | expr BinaryTemporalOp '[' Number ']' expr             # BinaryTemporalExpr
-  | expr BinaryTemporalOp '[' Number ',' Number ']' expr  # BinaryTemporalExpr
-  | op='!' expr         # PropExpr
-  | expr op='&' expr    # PropExpr
-  | expr op='|' expr    # PropExpr
-  | expr op='<->' expr  # PropExpr
-  | expr op='->' expr   # PropExpr
-  | '(' expr ')'        # ParensExpr
-  | atomicIdentifier    # AtomExpr
-  | 'TRUE'       # BoolExpr
-  | 'FALSE'      # BoolExpr
+var_statement
+  : Identifier (',' Identifier)* ':' type ';'
   ;
 
-binding
-  : atomicIdentifier '=' filterIdentifier '(' filterArgument (',' filterArgument)* ')' Conditional (Number | signalIdentifier)
+def_block
+  : DEF_KW def_statement+
   ;
 
-mapping
-  : signalIdentifier '=' Number
+def_statement
+  : Identifier '=' expr ';'
   ;
 
-setAssignment
-  : setIdentifier '=' '{' atomicIdentifier (',' atomicIdentifier)* '}'
+spec_block
+  : SPEC_KW spec_statement
   ;
 
-filterArgument
-  : LiteralSignalIdentifier
-  | Identifier
-  | Number
+spec_statement
+  : (Identifier ':')? boolean_expr ';'
   ;
 
-formulaIdentifier : Identifier;
-setIdentifier : Identifier;
-filterIdentifier : Identifier;
-atomicIdentifier : LiteralAtomicIdentifier | Identifier;
-signalIdentifier : LiteralSignalIdentifier | Identifier;
+order_block
+  : ORDER_KW Identifier (',' Identifier)* ';'
+  ;
+
+// contract
+//   : (formulaIdentifier ':')? expr '=>' expr
+//   ;
+
+boolean_expr
+  : UnaryTemporalOp '[' Integer ']' boolean_expr                   # UnaryTemporalExpr
+  | UnaryTemporalOp '[' Integer ',' Integer ']' boolean_expr       # UnaryTemporalExpr
+  | boolean_expr BinaryTemporalOp '[' Integer ']' boolean_expr             # BinaryTemporalExpr
+  | boolean_expr BinaryTemporalOp '[' Integer ',' Integer ']' boolean_expr # BinaryTemporalExpr
+  | op='!' boolean_expr         # PropExpr
+  | boolean_expr op='&' boolean_expr    # PropExpr
+  | boolean_expr op='|' boolean_expr    # PropExpr
+  | boolean_expr op='<->' boolean_expr  # PropExpr
+  | boolean_expr op='->' boolean_expr   # PropExpr
+  | '(' boolean_expr ')'        # ParensExpr
+  | Identifier    # AtomExpr
+  | TRUE_KW       # BoolExpr
+  | FALSE_KW      # BoolExpr
+  ;
+
+type
+  : BaseType
+  | SET_KW '<' BaseType '>'
+  ;
+
 
 // Lexical Spec
 
 Conditional : [!=><] '='? ;
+
+BaseType
+  : BOOL_KW
+  | INT_KW
+  | FLOAT_KW
+  ;
+
+VAR_KW : 'VAR';
+DEF_KW : 'DEF';
+SPEC_KW : 'SPEC';
+ORDER_KW : 'ORDER';
+BOOL_KW : 'bool';
+INT_KW : 'int';
+FLOAT_KW : 'float';
+SET_KW : 'set';
+TRUE_KW : 'TRUE';
+FALSE_KW : 'FALSE';
 
 UnaryTemporalOp
   : 'G'
@@ -76,7 +102,7 @@ BinaryTemporalOp
   | 'S'
   ;
 
-LiteralAtomicIdentifier : 'a' Digit+;
+LiteralIdentifier : 'a' Digit+;
 LiteralSignalIdentifier : 's' Digit+;
 
 Identifier
@@ -88,13 +114,11 @@ Number
   | Float
   ;
 
-fragment
 Integer
   : Sign? NonzeroDigit Digit*
   | '0'
   ;
 
-fragment
 Float
   : Sign? Digit+ '.' Digit+
   ;

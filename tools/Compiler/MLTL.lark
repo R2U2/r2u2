@@ -1,0 +1,110 @@
+//// Parser Rules
+
+program: block*
+
+block: var_block
+     | def_block
+     | spec_block
+     | order_block
+
+var_block: VAR_KW var_list
+var_list: (IDENTIFIER ":" type ";")+ 
+
+type: BASE_TYPE
+    | SET_KW set-param
+
+set_param: "<" BASE_TYPE ">"
+         | "⟨" BASE_TYPE "⟩"
+
+def_block: DEF_KW def_list
+def_list: (IDENTIFIER "=" (atomic_expr | set_list) ";")+
+
+set_list: "{" IDENTIFIER? "}"
+        | "{" IDENTIFIER ("," IDENTIFIER)+ "}"
+        | EMPTY_SET
+
+spec_block: SPEC_KW spec-list
+spec_list: (spec_label? spec_expr ";")+
+spec_label: IDENTIFIER ":"
+
+order_block: ORDER_KW order_list
+order_list: IDENTIFIER ("," IDENTIFIER)* ";"
+
+
+
+atomic_expr: atomic_expr COMP_OP atomic_expr
+
+
+
+
+//// Lexical Spec
+
+// Propositional logic ops/literals
+NOT: "!" | "¬" 
+AND: "&&" | "∨"
+OR: "||" | "∧"
+IMPLIES: "->" | "→"
+IFF: "<->" | "↔" 
+TRUE: "TRUE" | "⊤"
+FALSE: "FALSE" | "⊥"
+
+// Comparison ops
+EQ: "=="
+NEQ: "!=" | "≠"
+GT: ">"
+GTE: ">=" | "≥"
+LT: "<"
+LTE: "<=" | "≤" 
+
+// General ops
+ADD: "+"
+SUB: "-"
+MUL: "*" | "×" | "•" | "⋅"
+DIV: "/" | "÷"
+SQRT: "SQRT" | "√"
+PM: "+-" | "±"
+
+// Temporal ops
+UN_TEMP_OP: GLOBALLY | FUTURE | SINCE | ONCE
+BIN_TEMP_OP: UNTIL | RELEASE | HISTORICALLY
+
+GLOBALLY: "G" | "𝓖" | "□"
+FUTURE: "F" | "𝓕" | "⋄" | "♢"
+SINCE: "S" | "𝓢"
+ONCE: "O" | "𝓞"
+UNTIL: "U" | "𝓤"
+RELEASE: "R" | "𝓡"
+HISTORICALLY: "H" | "𝓗"
+
+// First-order -- not used
+FORALL: "FORALL" | "∀"
+EXISTS: "EXISTS" | "∃"
+
+// Set-wise operators
+EMPTY_SET: "∅"
+MEMBER: "IN" | "∈"
+SUBSET: "SUBSET" | "⊂"
+SUBSETEQ: "SUBSETEQ" | "⊆"
+SUPSET: "SUPSET" | "⊂"
+SUPSETEQ: "SUPSETEQ" | "⊇"
+SUM: "SUM" | "∑"
+PROD: "PROD" | "∏"
+SETUNION: "SETUNION" | "⋃"
+SETINTERSECTION: "SETINTERSECTION" | "⋂"
+SETAND: "SETAND" | "⋀"
+SETOR: "SETOR" | "⋁"
+
+VAR_KW: "VAR"
+DEF_KW: "DEF"
+SPEC_KW: "SPEC"
+ORDER_KW: "ORDER"
+
+IDENTIFIER: CNAME
+          | "Α".."ω"
+
+%import common.CNAME
+%import common.SH_COMMENT
+%import common.WS
+
+%ignore SH_COMMENT
+%ignore WS
