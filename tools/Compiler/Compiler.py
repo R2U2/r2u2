@@ -3,15 +3,9 @@
 import os
 
 from antlr4 import InputStream, CommonTokenStream
+from lark import Lark
 
 from .AST import AST_node, Observer, STATEMENT
-from .MLTLLexer import MLTLLexer
-from .MLTLParser import MLTLParser
-from .PreprocessVisitor import PreprocessVisitor
-from .FTVisitor import FTVisitor
-from .PTVisitor import PTVisitor
-from .ATVisitor import ATVisitor
-
 
 class Compiler():
 
@@ -37,41 +31,20 @@ class Compiler():
             os.mkdir(output_path)
 
 
-    def parse(self, visitor, input):
-        lexer = MLTLLexer(InputStream(input))
-        stream = CommonTokenStream(lexer)
-        parser = MLTLParser(stream)
-        parse_tree = parser.program()
-        #print(parse_tree.toStringTree(recog=parser))
-        visitor.visit(parse_tree)
+    def parse(self, input):
+        parser = Lark.open("MLTL.lark", rel_to=__file__, start="program")
 
 
-    # preprocess pass of input
-    # resolves names, contracts, etc. and splits input into FT/PT/AT
+
     def preprocess(self):
-        visitor = PreprocessVisitor()
-        self.parse(visitor, self.mltl)
-
-        if visitor.status == False:
-            self.status = False
-            return
-
-        self.atomics = visitor.atomics
-        self.signals = visitor.signals
-        self.formula_labels = visitor.formula_labels
-        self.contracts = visitor.contract_formula_nums
-        self.def_sets = visitor.def_sets
-
-        self.ft = visitor.ft
-        self.pt = visitor.pt
-        self.at = visitor.at
+        pass
 
 
-    def compile(self, visitor, input, asm_filename):
+    def compile(self, input, asm_filename):
         AST_node.reset()
         Observer.reset()
 
-        self.parse(visitor, input)
+        self.parse(input)
 
         self.asm = ""
         self.ast = AST_node.ast
