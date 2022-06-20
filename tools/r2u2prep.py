@@ -12,11 +12,12 @@ import shutil
 import re
 import argparse
 
-from Compiler import compiler
-from Assembler.config import *
+from Compiler import Compiler
+from Assembler.config import parse_config, check_updates, gen_config
 from Assembler.ptas import assemble_pt
 from Assembler.ftas import assemble_ft
 from Assembler.atas import assemble_at
+from Assembler.filters import valid_filters
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -40,7 +41,8 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    mltl_compiler = compiler.Compiler(binary_dir, MLTL)
+    mltl_compiler = Compiler.Compiler(binary_dir, MLTL, valid_filters())
+    mltl_compiler.preprocess()
 
     print('************************** FT ASM **************************')
 

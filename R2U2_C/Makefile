@@ -9,15 +9,39 @@ DBG_PATH := target/debug
 
 # Feature Flags
 ifdef R2U2_AT_Extra_Filters
-# Add prognostics module
+# Add Extra Filters
 CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+$(info    R2U2 Extra Filters Enabled)
+endif
+
+ifdef R2U2_TL_Formula_Names
+CFLAGS := $(CFLAGS) -DR2U2_TL_Formula_Names
+$(info    R2U2 Formula Naming Enabled)
+endif
+
+ifdef R2U2_TL_Contract_Status
+CFLAGS := $(CFLAGS) -DR2U2_TL_Contract_Status
+$(info    R2U2 AG Contract Status Enabled)
+endif
+
+ifdef R2U2_CSV_Header_Mapping
+CFLAGS := $(CFLAGS) -DR2U2_CSV_Header_Mapping
+$(info    R2U2 CSV Header Mapping Enabled)
+endif
+
+ifdef R2U2_AT_Signal_Sets
+# Add Signal Sets Filters
+CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
+$(info    R2U2 Signal Sets Enabled)
 endif
 
 ifdef R2U2_AT_Prognostics
 # Add prognostics module
 CFLAGS := $(CFLAGS) -DR2U2_AT_Prognostics
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/prognostic_filter
+$(info    R2U2 Prognostics Enabled)
 endif
 
 ifdef R2U2_AT_FFT_Filter
@@ -25,6 +49,7 @@ ifdef R2U2_AT_FFT_Filter
 CFLAGS := $(CFLAGS) -DR2U2_AT_FFT_Filter
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
 LIBS := $(LIBS) fftw3
+$(info    R2U2 FFT Filter Enabled)
 endif
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/binParser $(SRC_PATH)/AT $(SRC_DIRS)
@@ -40,11 +65,11 @@ LD_LIBS=$(shell pkg-config --libs $(LIBS))
 endif
 LD_LIBS := $(LD_LIBS) -lm
 
-CFLAGS :=-std=c99 $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
+CFLAGS :=-std=c99 -D_POSIX_C_SOURCE=200112L $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
 DBGFLAG := -g -O0 \
 -fdata-sections -ffunction-sections -fno-common \
 -fsanitize=undefined -fsanitize=address\
--pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlifetime -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
+-pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
 --coverage\
 -DR2U2_DEBUG
@@ -140,7 +165,7 @@ $(TST_RPT_PATH):
 # Shell functions
 run_all_tests = (find ./bin/test -maxdepth 1 -type f -name 'test_*' -exec {} \;)
 coverage_proc = (find $(DBG_PATH) -name "*.gcno" -exec gcov -b -l -p -c {} \; && mv *.gcov $(TST_RPT_PATH))
-coverage_html = (gcovr -g -k -r $(SRC_PATH) $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
+coverage_html = (gcovr -g -k -r $(SRC_PATH) -e '.*_pt\.c' $(TST_RPT_PATH) --html --html-details -o $(TST_RPT_PATH)/index.html)
 
 # phony rules
 .PHONY: all

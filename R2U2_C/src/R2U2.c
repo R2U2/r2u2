@@ -1,3 +1,5 @@
+#include "R2U2.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -5,8 +7,6 @@
 #include <limits.h>
 #include <string.h>
 
-#include "R2U2.h"
-#include "R2U2Config.h"
 #include "binParser/parse.h"
 #include "TL/TL_observers.h"
 #include "AT/at_checkers.h"
@@ -95,12 +95,13 @@ int main(int argc, char *argv[]) {
 
     #ifndef CONFIG // Compilation is using binaries
     // TODO check that config directory is a valid path
-    chdir(argv[argind]);
+    char *bin_dir = argv[argind];
     argind++;
+    chdir(bin_dir);
     #endif
 
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
-    #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status
+    #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status || R2U2_AT_Signal_Sets
     TL_aux_config("alias.txt");
     #endif
     TL_init();
@@ -125,10 +126,12 @@ int main(int argc, char *argv[]) {
     }
 
     #if R2U2_CSV_Header_Mapping
+    chdir(bin_dir);
     int header_status = 0;
     uintptr_t alias_table[N_SIGS];
     header_status = signal_aux_config("alias.txt", input_file, alias_table);
     if (header_status > 1) { return header_status; }
+    chdir(inbuf);
     #endif
 
     /* R2U2 Output File */
@@ -209,21 +212,20 @@ int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
     6: Missing a column for a listed signal
   */
   // TODO: unify this with aux file load or keep separate?
-      // If using CSV input and alias exists, set alias flag
-  // Read aux file for
   FILE *alias_file = NULL;
   uintptr_t idx, col_num;
   char type, *signal, *scan_ptr;
-  char aliasname[BUFSIZ], inbuf[BUFSIZ], line[MAX_LINE]; // LINE_MAX instead? PATH_MAX??
+  char aliasname[BUFSIZ], inbuf[BUFSIZ], hdrbuf[BUFSIZ], line[MAX_LINE]; // LINE_MAX instead? PATH_MAX??
 
   int alias_order = 0;
+  fprintf(stderr, "Remapping input signals...\n");
   if (access(aux, F_OK) == 0) {
     alias_file = fopen(aux, "r");
     if (alias_file != NULL) {
 
       /* Put CSV header (from input_file pointer) into inbuf buffer */
       if((fgets(inbuf, sizeof(inbuf), input_file) == NULL) || (inbuf[0] != '#') ){
-        fprintf(stderr, "Can't read input header\n");
+        fprintf(stderr, "\tCan't read input header\n");
         return 5;
       }
 
@@ -234,22 +236,26 @@ int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
         if(sscanf(line, "%c", &type) == 1 && type == 'S') {
           /* Found a signal definition, look for matching header */
           if(sscanf(line, "%*c %s %ld", aliasname, &idx) == 2){
-            if((signal = strstr(inbuf, aliasname)) != NULL){
-              col_num = 0;
-              for(scan_ptr=inbuf;scan_ptr != signal;scan_ptr++){
-                /* Walk through header, counting columns
-                 * Slower but lower memory than finding all columns first
-                 */
-                if(*scan_ptr == ',') {col_num += 1;}
+            strcpy(hdrbuf, inbuf+1); /* strtok nulls delims, strip # in copy */
+            col_num = 0;
+            signal = strtok(hdrbuf, ",\n");
+            while(signal != NULL){
+              if(strcmp(signal, aliasname) == 0){
+                fprintf(stderr, "\tFound signal %s in input column %lu\n", aliasname, col_num);
+                alias_table[col_num] = idx;
+                break;
+              } else {
+                signal = strtok(NULL, ",\n");
+                col_num += 1;
               }
-              alias_table[col_num] = idx;
-            } else {
-              fprintf(stderr, "No matching Column for: %s\n", aliasname);
+            }
+            if(signal == NULL){
+              fprintf(stderr, "\tNo matching Column for: %s\n", aliasname);
               return 6;
             }
           } else {
             /* Invalid signal line */
-            fprintf(stderr, "The signal mapping '%s' is invalid\n", line);
+            fprintf(stderr, "\tThe signal mapping '%s' is invalid\n", line);
             return 3;
           }
           alias_order = 1; /* Flag that reordering should be used */

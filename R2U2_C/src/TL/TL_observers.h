@@ -26,11 +26,12 @@
 #ifndef TL_OBSERVERS_H
 #define TL_OBSERVERS_H
 
+#include "R2U2.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "R2U2Config.h"
 //
 // 5 bit opcodes
 //
@@ -180,6 +181,13 @@ typedef size_t aux_con_forms_t[N_INSTRUCTIONS];
 typedef size_t aux_con_max_t;
 #endif
 
+#if R2U2_AT_Signal_Sets
+typedef uint8_t* aux_signal_set_map_t[N_ATOMICS];
+typedef uint8_t aux_signal_set_arena_t[N_ATOMICS];
+/* TODO: If you have many sets that repeat atomics, this might not be enough */
+/* TODO: parameterize type based on insturciton operand type above */
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -218,6 +226,11 @@ extern aux_con_forms_t 		aux_con_forms;
 extern aux_con_max_t		aux_con_max;
 #endif
 
+#if R2U2_AT_Signal_Sets
+extern aux_signal_set_map_t 	aux_signal_set_map;
+extern aux_signal_set_arena_t 	aux_signal_set_arena;
+#endif
+
 /* For no file handling option */
 extern char *ptm_bin;
 extern char *pti_bin;
@@ -228,8 +241,8 @@ extern char *fti_bin;
 //---------------------------------------------
 // functions
 //---------------------------------------------
-void TL_config(char*, char*, char*, char*, char*);
-void TL_aux_config(char*);
+void TL_config(const char*, const char*, const char*, const char*, const char*);
+void TL_aux_config(const char*);
 
 int TL_init(void);
 

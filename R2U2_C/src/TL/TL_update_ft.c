@@ -28,11 +28,11 @@
 ** Apr.05.2020 | Matt | Updated print statements for standard & debug modes
 **=====================================================================================*/
 
+#include "R2U2.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "R2U2.h"
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 
@@ -534,83 +534,62 @@ int get_interval_ub_ft(int pc){
 //
 //-------------------------------------------------------------------
 bool isEmpty_cap(int pc, int obNum, elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp) {
-    // If unitary operator
-    if(obNum==1) {
-        switch(instruction_mem_ft[pc].op1.opnd_type) {
-            case atomic:
-                return false;
-            case subformula:
-                return isEmpty(scq, size, wr_ptr, rd_ptr, desired_time_stamp);
-            case direct:
-                return false;
-            case not_set:
-                return true;
-            default:
-                printf("operand Error\n");
-        }
-    }
-    // If binary operator
-    else if(obNum==2) {
-        switch(instruction_mem_ft[pc].op2.opnd_type)
-        {
-            case atomic:
-                return false;
-            case subformula:
-                return isEmpty(scq, size, wr_ptr, rd_ptr, desired_time_stamp);
-            case direct:
-                return false;
-            case not_set:
-                return true;
-            default:
-                printf("operand Error\n");
-        }
-    }
-    else {
-        printf("obNum Error\n");
-    }
-    return true;
+
+	/* Get correct operand */
+	operand_t *op = NULL;
+	if(obNum==1) {
+		op = &(instruction_mem_ft[pc].op1);
+	} else if (obNum==2) {
+		op = &(instruction_mem_ft[pc].op2);
+	} else {
+		R2U2_DEBUG_PRINT("obNum Error\n");
+		return true;
+	}
+
+	/* Operand value by type */
+	switch(op->opnd_type){
+		case subformula:
+			return isEmpty(scq, size, wr_ptr, rd_ptr, desired_time_stamp);
+		case not_set:
+			// TODO: Does anything use this behavior?
+			return true;
+		case atomic:
+		case direct:
+			return false;
+		default: // Inlcuding atomic and not set
+			R2U2_DEBUG_PRINT("Operand Error");
+			return true;
+	}
+
+	/* UNREACHABLE */
 }
 
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------
 elt_ft_queue_t pop_cap(int pc, int obNum, elt_ft_queue_t* scq, int rd_ptr) {
-    // If unary operator
-    if(obNum==1) {
-        switch(instruction_mem_ft[pc].op1.opnd_type)
-        {
-            case atomic:// return anything you want
-                break;
-            case subformula:
-                //printf("pop: rd_ptr: %d, v_q: %d\n", rd_ptr, scq[rd_ptr].v_q);
-                return pop(scq, rd_ptr);
-            case direct:
-                return (elt_ft_queue_t){instruction_mem_ft[pc].op1.value, t_now};
-            case not_set:// return anything you want
-                break;
-            default:
-                printf("operand Error\n");
-        }
-    }
-    // If binary operator
-    else if(obNum==2) {
-        switch(instruction_mem_ft[pc].op2.opnd_type)
-        {
-            case atomic:// return anything you want
-                break;
-            case subformula:
-                return pop(scq, rd_ptr);
-            case direct:
-                return (elt_ft_queue_t){instruction_mem_ft[pc].op2.value, t_now};
-            case not_set:// return anything you want
-                break;
-            default:
-                printf("operand Error\n");
-        }
-    }
-    else{
-        printf("obNum Error\n");
-    }
-    return (elt_ft_queue_t){false, -1};
-}
 
+	/* Get correct operand */
+	operand_t *op = NULL;
+	if(obNum==1) {
+		op = &(instruction_mem_ft[pc].op1);
+	} else if (obNum==2) {
+		op = &(instruction_mem_ft[pc].op2);
+	} else {
+		R2U2_DEBUG_PRINT("obNum Error\n");
+		return (elt_ft_queue_t){false, -1};
+	}
+
+	/* Operand value by type */
+	switch(op->opnd_type){
+		case subformula:
+			return pop(scq, rd_ptr);
+		case direct:
+			return (elt_ft_queue_t){op->value, t_now};
+		default: // Inlcuding atomic and not set
+			R2U2_DEBUG_PRINT("Operand Error");
+			return (elt_ft_queue_t){false, -1};
+	}
+
+	/* UNREACHABLE */
+}

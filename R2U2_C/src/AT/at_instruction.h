@@ -1,10 +1,12 @@
 #ifndef AT_INSTRUCTION_H
 #define AT_INSTRUCTION_H
 
+#include "R2U2.h"
+
 #include <stdbool.h>
 
-#ifdef R2U2_AT_ExtraFilters
-#include "filters/filter_movavg.h"
+#if R2U2_AT_Extra_Filters
+#include "extra_filters/filter_movavg.h"
 #endif
 
 typedef enum {
@@ -20,10 +22,15 @@ typedef enum {
 	OP_BOOL           = 0b0001,
 	OP_INT            = 0b0010,
 	OP_DOUBLE         = 0b0011,
-	#ifdef R2U2_AT_ExtraFilters
+	#if R2U2_AT_Extra_Filters
 	OP_RATE           = 0b0100,
 	OP_ABS_DIFF_ANGLE = 0b0101,
-	OP_MOVAVG         = 0b0110
+	OP_MOVAVG         = 0b0110,
+	#endif
+	#if R2U2_AT_Signal_Sets
+	OP_EXACTLY_ONE_OF = 0b0111, // NOTE: sig_addr stores set_addr
+	OP_NONE_OF        = 0b1000,
+	OP_ALL_OF         = 0b1001
 	#endif
 } at_filter_t;
 
@@ -35,13 +42,16 @@ typedef union {
 } type_t;
 
 
-#ifdef R2U2_AT_ExtraFilters
+
 typedef union {
+	double epsilon;		/* epsilon value for float comparsions */
+	#if R2U2_AT_Extra_Filters
 	double diff_angle;	/* abs_diff_angle filter */
 	double prev;				/* rate filter */
 	movAvg_t *movavg;		/* movavg filter */
+	#endif
 } filt_data_struct_t;
-#endif
+
 
 
 typedef struct {
@@ -51,10 +61,7 @@ typedef struct {
 	uint8_t atom_addr;
 	bool comp_is_sig;
 	type_t comp;
-
-#ifdef R2U2_AT_ExtraFilters
 	filt_data_struct_t filt_data_struct;
-#endif
 } at_instruction_t;
 
 #endif

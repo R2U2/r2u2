@@ -1,6 +1,12 @@
+#include <stdio.h>
+
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit/munit.h"
+
 #include "../src/AT/at_compare.h"
+
+FILE* r2u2_debug_fptr = NULL;
+
 /* Test Suite Layout
 **
 ** This file creates the `test_at_compare` test executable  which runs tests
@@ -501,5 +507,6 @@ static const MunitSuite at_compare_suite = {
 };
 
 int main (int argc, const char* argv[]) {
+  r2u2_debug_fptr = stderr;
   return munit_suite_main(&at_compare_suite, NULL, argc, argv);
 }

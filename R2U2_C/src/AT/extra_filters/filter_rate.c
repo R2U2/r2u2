@@ -20,24 +20,12 @@
 **
 **===========================================================================*/
 
+#include "R2U2.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "filter_rate.h"
 #include <math.h>
-
-//-----------------------------------------------------------------
-//	initialize
-//-----------------------------------------------------------------
-void filter_rate_init(double *init)
-{
-	*init = 0;
-}
-
-//-----------------------------------------------------------------
-//	free memory: NA
-//-----------------------------------------------------------------
-void filter_rate_free(void){}
-
 
 //-----------------------------------------------------------------
 //	update rate filter and return current rate
@@ -46,12 +34,7 @@ double filter_rate_update_data(double x, double *prev)
 {
 	double rate;
 
-	if (isinf(*prev)) {
-		rate = 0.0;
-	} else {
-		rate = x - *prev;
-	}
-
+	rate = x - *prev;
 	*prev = x;
 
 	return rate;

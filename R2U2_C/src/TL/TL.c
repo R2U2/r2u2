@@ -1,14 +1,15 @@
+#include "R2U2.h"
+
 #include <string.h>
 #include <stdio.h>
 
-#include "R2U2.h"
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 #include "TL_queue_pt.h"
 #include "parse.h"
 
 #ifndef CONFIG // TODO: Do we need to conditionally compile these?
-void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
@@ -20,78 +21,18 @@ void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
     parse_interval_pt_file(pti);
 }
 #else
-void TL_config(char* ftm, char* fti, char* ftscq, char* ptm, char* pti)
+void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     /* Future Time Configuration */
-    parse_inst_ft_bin(ftm_bin);
-    parse_interval_ft_bin(fti_bin);
-    parse_scq_size_bin(ftscq_bin);
+    parse_inst_ft_bin(ftm);
+    parse_interval_ft_bin(fti);
+    parse_scq_size_bin(ftscq);
 
     /* Past Time Configuration */
-    parse_inst_pt_bin(ptm_bin);
-    parse_interval_pt_bin(pti_bin);
+    parse_inst_pt_bin(ptm);
+    parse_interval_pt_bin(pti);
 }
 #endif
-
-/* Extended Output Configuration */
-// Keeping this separate from binParser until configuration unification
-void TL_aux_config(char* aux){
-    char type, *next_ptr, line[MAX_LINE];
-    size_t f_num, c_num=0;
-
-    #if R2U2_TL_Formula_Names
-    next_ptr = aux_str_arena;
-    #endif
-
-    #if R2U2_TL_Contract_Status
-    aux_con_map[0] = aux_con_arena;
-    #endif
-
-    FILE *file = fopen ( aux, "r" );
-    if ( file != NULL ) {
-        while ( fgets (line, sizeof(line), file ) != NULL ) { /* read a line */
-            if (sscanf(line, "%c", &type) == 1) {
-                switch(type){
-
-                    #if R2U2_TL_Formula_Names
-                        case 'F': {
-                            sscanf(line, "%*c %s %zu", next_ptr, &f_num);
-                            aux_str_map[f_num] = next_ptr;
-                            next_ptr += strlen(next_ptr) + 1; // Skip past Null
-                            R2U2_DEBUG_PRINT("Saved name '%s' for formula %zu\n", aux_str_map[f_num], f_num);
-                            break;
-                        }
-                    #endif
-
-                    #if R2U2_TL_Contract_Status
-                        case 'C': {
-                            sscanf(line, "%*c %s %zu %zu %zu", aux_con_map[c_num], &aux_con_forms[3*c_num], &aux_con_forms[3*c_num+1], &aux_con_forms[3*c_num+2]);
-                            aux_con_map[c_num+1] = aux_con_map[c_num] + strlen(aux_con_map[c_num]) + 1; // Leave a Null
-                            c_num++;
-                            break;
-                        }
-                    #endif
-
-                    default: {
-                        R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
-                        break;
-                    }
-                }
-            } else {
-                // Error? Skip bad line
-                R2U2_DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
-            }
-        }
-
-        #if R2U2_TL_Contract_Status
-        aux_con_max = c_num;
-        #endif
-
-        fclose ( file );
-    } else {
-        perror ( aux ); /* why didn't the file open? */
-    }
-}
 
 int TL_init()
 {
@@ -202,3 +143,110 @@ int TL_update(FILE* log_file)
 
     return 0;
 }
+
+/* Extended Output Configuration
+ * Keeping this separate from binParser until configuration unification
+ *
+ * LCOV_EXCL_START
+ * Coverage Exclusion Reason: Offline features only
+ */
+void TL_aux_config(const char* aux){
+    char type, line[MAX_LINE];
+
+    #if R2U2_TL_Formula_Names
+    char *next_ptr;
+    size_t f_num;
+    next_ptr = aux_str_arena;
+    #endif
+
+    #if R2U2_TL_Contract_Status
+    size_t c_num=0;
+    aux_con_map[0] = aux_con_arena;
+    #endif
+
+    #if R2U2_AT_Signal_Sets
+    int indx;
+    size_t r_num=0;
+    FILE *stream;
+    aux_signal_set_map[0] = aux_signal_set_arena;
+    #endif
+
+    FILE *file = fopen ( aux, "r" );
+    if ( file != NULL ) {
+        while ( fgets (line, sizeof(line), file ) != NULL ) { /* read a line */
+            if (sscanf(line, "%c", &type) == 1) {
+                switch(type){
+
+                    #if R2U2_TL_Formula_Names
+                        case 'F': {
+                            sscanf(line, "%*c %s %zu", next_ptr, &f_num);
+                            aux_str_map[f_num] = next_ptr;
+                            next_ptr += strlen(next_ptr) + 1; // Skip past Null
+                            R2U2_DEBUG_PRINT("Saved name '%s' for formula %zu\n", aux_str_map[f_num], f_num);
+                            break;
+                        }
+                    #endif
+
+                    #if R2U2_TL_Contract_Status
+                        case 'C': {
+                            sscanf(line, "%*c %s %zu %zu %zu", aux_con_map[c_num], &aux_con_forms[3*c_num], &aux_con_forms[3*c_num+1], &aux_con_forms[3*c_num+2]);
+                            aux_con_map[c_num+1] = aux_con_map[c_num] + strlen(aux_con_map[c_num]) + 1; // Leave a Null
+                            c_num++;
+                            break;
+                        }
+                    #endif
+
+                    #if R2U2_AT_Signal_Sets
+                        case 'R': {
+                            stream = fmemopen(line, strlen(line), "r");
+                            R2U2_TRACE_PRINT("\n\nSignal Set:\n\tInput: %s", line);
+                            fscanf(stream, "%*c %*s %u", &indx);
+                            R2U2_TRACE_PRINT("\tIndex: %d\n", indx);
+                            aux_signal_set_map[indx] = &(aux_signal_set_arena[r_num]);
+                            R2U2_TRACE_PRINT("\tArena start: (%p)\n",aux_signal_set_arena);
+                            R2U2_TRACE_PRINT("\tArena offset: %d (%p)\n", r_num, &aux_signal_set_arena[r_num]);
+                            R2U2_TRACE_PRINT("\tArena Value: %d\n", aux_signal_set_arena[r_num]);
+                            R2U2_TRACE_PRINT("\tMap start: (%p)\n", &aux_signal_set_map);
+                            R2U2_TRACE_PRINT("\tMap offset: %d (%p)\n", indx, &(aux_signal_set_map[indx]));
+                            R2U2_TRACE_PRINT("\tMap Value: (%p)\n", aux_signal_set_map[indx]);
+                            R2U2_TRACE_PRINT("\tMap Deref: %d\n", *(aux_signal_set_map[indx]));
+                            *(aux_signal_set_map[indx]) = 0;
+                            r_num++; /* Index of next empty spot in array */
+                            R2U2_TRACE_PRINT("\tScanning members:\n");
+                            while(fscanf(stream, " %d", &(aux_signal_set_arena[r_num])) == 1){
+                                R2U2_TRACE_PRINT("\t\tGot member: %d\n", aux_signal_set_arena[r_num]);
+                                (*aux_signal_set_map[indx])++;
+                                r_num++;
+                            }
+                            R2U2_TRACE_PRINT("\tNumber of members: %d\n", *aux_signal_set_map[indx]);
+                            R2U2_TRACE_PRINT("\tMembers:\n\t\t");
+                            for (int i = 1; i <= *aux_signal_set_map[indx]; ++i) {
+                                R2U2_TRACE_PRINT("%d, ", *(aux_signal_set_map[indx]+i));
+                            }
+                            R2U2_TRACE_PRINT("\n");
+                            R2U2_TRACE_PRINT("\tStored Values\n\t\tthis set: %d\n\t\tall sets: %zu\n", *aux_signal_set_map[indx], r_num);
+                            break;
+                        }
+                    #endif
+
+                    default: {
+                        R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
+                        break;
+                    }
+                }
+            } else {
+                // Error? Skip bad line
+                R2U2_DEBUG_PRINT("Aux: Skipping bad line in aux file\n");
+            }
+        }
+
+        #if R2U2_TL_Contract_Status
+        aux_con_max = c_num;
+        #endif
+
+        fclose ( file );
+    } else {
+        perror ( aux ); /* why didn't the file open? */
+    }
+}
+/* LCOV_EXCL_STOP */

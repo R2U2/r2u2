@@ -27,6 +27,7 @@
 **=====================================================================================*/
 
 #include "R2U2.h"
+
 #include "TL_observers.h"
 #include "TL_queue_pt.h"
 #include <stdio.h>
@@ -94,6 +95,36 @@ int TL_update_pt(FILE* log_file)
             fprintf(log_file, "%d:%u,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
                     results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            #endif
+            #if R2U2_TL_Contract_Status
+            for (int i = 0; i < 3*aux_con_max; ++i) {
+                if (instruction_mem_pt[pc].op2.value == aux_con_forms[i]) {
+                    switch(i%3){
+                        case 0: {
+                            if(!results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s inactive at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                        case 1: {
+                            if(!results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s invalid at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                        case 2: {
+                            if(results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s verified at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                    }
+                    /* We'd like to stop searching after a contract has been found
+                     * but there could be formula reuse - specifically of assumptions
+                    */
+                    // i = 3*aux_con_max;
+                }
+            }
             #endif
             break;
 

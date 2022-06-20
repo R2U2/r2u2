@@ -1,238 +1,98 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
-## Author: Pei Zhang
-from antlr4 import *
+## Author: Pei Zhang, Chris Johannsen
+import os
+
+from antlr4 import InputStream, CommonTokenStream
+
+from .AST import AST_node, Observer, STATEMENT
 from .MLTLLexer import MLTLLexer
 from .MLTLParser import MLTLParser
-from .visitor import Visitor
-from .AST import *
-import os
-import re
+from .PreprocessVisitor import PreprocessVisitor
+from .FTVisitor import FTVisitor
+from .PTVisitor import PTVisitor
+from .ATVisitor import ATVisitor
 
-asmFileName = ""
+
 class Compiler():
 
-    def __init__(self, output_path, mltl, optimize_cse=True, Hp=0, echo=True):
+    def __init__(self, output_path, mltl, valid_filters, optimize_cse=True, Hp=0, echo=True):
         # initialize variables
         self.output_path = output_path
         self.mltl = mltl
+        self.valid_filters = valid_filters
         self.optimize = optimize_cse
         self.Hp = Hp
         self.echo = echo
         self.atomics = {}
         self.signals = {}
-        self.labels = {}
+        self.formula_labels = {}
         self.contracts = {}
         self.at_instructions = {}
+        self.ast = []
+        self.top = AST_node()
+        self.valid_node_set = []
         self.status = True
         # Check to see if the output directory exists
         if(not os.path.isdir(output_path)):
             os.mkdir(output_path)
-        # make first pass of input to preprocess identifiers and contracts
-        self.preprocess()
 
 
-    def parse(self, input):
-        AST_node.reset()
-        Observer.reset()
+    def parse(self, visitor, input):
         lexer = MLTLLexer(InputStream(input))
         stream = CommonTokenStream(lexer)
         parser = MLTLParser(stream)
         parse_tree = parser.program()
         #print(parse_tree.toStringTree(recog=parser))
-        visitor = Visitor(self.atomics, self.signals, self.labels)
         visitor.visit(parse_tree)
-        return visitor
 
 
+    # preprocess pass of input
+    # resolves names, contracts, etc. and splits input into FT/PT/AT
     def preprocess(self):
-        visitor = self.parse(self.mltl)
-        if not visitor.status:
-            print('ERROR: issue parsing MLTL')
+        visitor = PreprocessVisitor()
+        self.parse(visitor, self.mltl)
+
+        if visitor.status == False:
             self.status = False
-            return
+
         self.atomics = visitor.atomics
         self.signals = visitor.signals
-        self.labels = visitor.labels
-        self.contracts = visitor.contracts
+        self.formula_labels = visitor.formula_labels
+        self.contracts = visitor.contract_formula_nums
+        self.def_sets = visitor.def_sets
 
-        # Add formulas for contract handling
-        # First count number of formulas which are not in contracts
-        formula_num = 0
-        for line in self.mltl.split(';'):
-            line = line.strip('\n ')
-            # Ignore lines that are blank, contracts, or atomic bindings
-            if re.fullmatch('\s*', line) or re.search('=>',line) or re.search(':=',line):
-                continue
-            # Check if line is mixed FT/PT
-            if re.search('^[^\#]*[GFUR]\[',line) and \
-               re.search('^[^\#]*[YHOS]\[',line):
-                continue
-            formula_num += 1
+        self.ft = visitor.ft
+        self.pt = visitor.pt
+        self.at = visitor.at
 
-        for contract, formulas in self.contracts.items():
-            self.contracts[contract] = formula_num
-            self.mltl += formulas[0] + ';\n'
-            self.mltl += formulas[0] + '->' + formulas[1] + ';\n'
-            self.mltl += formulas[0] + '&' + formulas[1] + ';\n'
-            formula_num += 3
 
-        # Assign the atomics valid indices
-        for atom, index in self.atomics.items():
-            if re.match('a\d+',atom):
-                idx = re.search('\d+',atom).group()
-                self.atomics[atom] = int(idx)
-                self.at_instructions[atom] = ['bool','s'+idx,'0','==','1']
+    def compile(self, visitor, input, asm_filename):
+        AST_node.reset()
+        Observer.reset()
 
-        min_idx = 0
-        for atom, index in self.atomics.items():
-            if re.match('a\d+',atom):
-                continue
-            while min_idx in self.atomics.values():
-                min_idx += 1
-            if self.atomics[atom] == -2:
-                print('WARNING: atomic referenced but not binded: ' + atom)
-                self.at_instructions['a'+str(min_idx)] = \
-                    ['bool','s'+str(min_idx),'0','==','1']
-            self.atomics[atom] = min_idx
+        self.parse(visitor, input)
 
-        # Assign the signals valid indices
-        for signal, index in self.signals.items():
-            if re.match('s\d+',signal):
-                self.signals[signal] = int(re.search('\d+',signal).group())
-
-        min_idx = 0
-        for signal, index in self.signals.copy().items():
-            if re.match('s\d+',signal):
-                continue
-            if self.signals[signal] == -1:
-                if not re.match('s-1',signal):
-                    print('WARNING: signal referenced but not mapped: ' + signal)
-                while min_idx in self.signals.values():
-                    min_idx += 1
-                del self.signals[signal]
-                self.signals['s'+str(min_idx)] = min_idx
+        self.asm = ""
+        self.ast = AST_node.ast
+        self.top = self.ast[0]
+        if(self.optimize):
+            self.optimize_cse()
+        self.valid_node_set = self.sort_node()
+        self.queue_size_assign(self.Hp, asm_filename)
+        self.mltl_gen_assembly(asm_filename)
 
 
     def compile_ft(self, asm_filename):
-        AST_node.reset()
-        Observer.reset()
+        self.compile(FTVisitor(self.atomics),self.ft,asm_filename)
 
-        ft = ''
-        for line in self.mltl.split(';'):
-            line = line.strip('\n ')
-            # Ignore lines that are blank, contracts, or bindings
-            if re.fullmatch('\s*', line) or re.search('=>',line) or \
-              re.search(':=',line):
-                continue
-            # Check if line is mixed FT/PT
-            if re.search('^[^\#]*[GFUR]\[',line) and \
-               re.search('^[^\#]*[YHOS]\[',line):
-                print('ERROR: mixed time operators used in formula ' + line)
-                print('Ignoring formula')
-                continue
-            # line is valid pt, need to keep track of line numbers
-            if re.search('(^|\n)[^\#]*[YHOS]\[',line):
-                ft += '\n'
-                continue
-            # line is valid FT or propositional logic
-            ft += line + ';\n'
-
-        # if no FT formulas in file, write empty asm
-        if re.fullmatch('\s*',ft):
-            f = open(self.output_path+'ft.asm','w+')
-            f.write('s0: end sequence')
-            f.close()
-            print('s0: end sequence')
-            f = open(self.output_path+'ftscq.asm','w+')
-            f.write('0 0')
-            f.close()
-            return
-
-        # Parse the input and generate AST
-        visitor = self.parse(ft)
-        if not visitor.status:
-            print('ERROR: issue parsing FT')
-            self.status = False
-            return
-
-        self.asm = ""
-        self.ast = AST_node.ast
-        self.top = self.ast[0]
-        if(self.optimize):
-            self.optimize_cse()
-        self.valid_node_set = self.sort_node()
-        self.queue_size_assign(self.Hp, asm_filename)
-        self.mltl_gen_assembly(asm_filename)
 
     def compile_pt(self, asm_filename):
-        AST_node.reset()
-        Observer.reset()
-
-        pt = ''
-        for line in self.mltl.split(';'):
-            line = line.strip('\n ')
-            # Ignore lines that are blank, contracts, or bindings
-            if re.fullmatch('\s*', line) or re.search('=>',line) or \
-              re.search(':=',line):
-                continue
-            # Check if line is mixed FT/PT
-            if re.search('^[^\#]*[GFUR]\[',line) and \
-               re.search('^[^\#]*[YHOS]\[',line):
-                print('ERROR: mixed time operators used in formula ' + line)
-                print('Ignoring formula')
-                continue
-            # line is valid FT/propositional logic formula, need to keep track
-            # of line numbers
-            if not re.search('(^|\n)[^\#]*[YHOS]\[',line):
-                pt += '\n'
-                continue
-            # line is valid PT
-            pt += line + ';\n'
-
-        # if no PT formulas in file, write empty asm
-        if re.fullmatch('\s*',pt):
-            f = open(self.output_path+'pt.asm','w+')
-            f.write('s0: end sequence')
-            f.close()
-            print('s0: end sequence')
-            return
-
-        # Parse the input and generate AST
-        visitor = self.parse(pt)
-        if not visitor.status:
-            print('ERROR: issue parsing FT')
-            self.status = False
-            return
-
-        self.asm = ""
-        self.ast = AST_node.ast
-        self.top = self.ast[0]
-        if(self.optimize):
-            self.optimize_cse()
-        self.valid_node_set = self.sort_node()
-        self.queue_size_assign(self.Hp, asm_filename)
-        self.mltl_gen_assembly(asm_filename)
+        self.compile(PTVisitor(self.atomics),self.pt,asm_filename)
 
 
     def compile_at(self, asm_filename):
-        at = ''
-        for line in self.mltl.split(';'):
-            line = line.strip('\n ')
-            # Ignore lines that are blank
-            if re.fullmatch('\s*', line):
-                continue
-            if re.search(':=',self.mltl):
-                at += line + ';\n'
-            else:
-                at += '\n'
-
-        # Parse the input and generate AST
-        visitor = self.parse(at)
-
-        if not visitor.status:
-            print('ERROR: issue parsing AT')
-            self.status = False
-            return
+        visitor = ATVisitor(self.atomics, self.signals, self.valid_filters, self.def_sets)
+        self.parse(visitor, self.at)
 
         for atom, instr in visitor.at_instr.items():
             self.at_instructions[atom] = instr
@@ -357,7 +217,7 @@ class Compiler():
                 if (not isinstance(n, Observer)):
                     continue
                 if(n.left and n.right):
-                    left, right = n.left, n.right;
+                    left, right = n.left, n.right
                     left.scq_size = max(right.wpd-left.bpd+1, left.scq_size)
                     right.scq_size = max(left.wpd-right.bpd+1, right.scq_size)
             for n in vstack:
@@ -396,29 +256,6 @@ class Compiler():
         return get_total_size()
 
 
-    def assign_sig_indices(self, signals):
-        # init self.signals to signals
-        for sig in list(signals):
-            self.signals[sig] = signals[sig]
-
-        # handle case of unmapped atomics in the form 'a\d+'
-        # these will be mapped to the corresponding signal index in \d+
-        for atom in self.ref_atomics:
-            if atom not in self.mapped_atomics:
-                if re.match('a\d+', atom) and atom not in list(signals):
-                    index = re.search('\d+', atom).group()
-                    self.signals['s'+index] = int(index)
-
-        min_index = 0
-        for sig, index in signals.items():
-            # if index < 0, need to assign it a valid mapping
-            if index < 0:
-                # find min index not in use
-                while min_index in self.signals.values():
-                    min_index += 1
-                self.signals[sig] = min_index
-
-
     # Generate assembly code
     def mltl_gen_assembly(self, filename):
         stack = self.valid_node_set[:]
@@ -441,19 +278,37 @@ class Compiler():
 
     def at_gen_assembly(self, filename):
         s = ''
-        # Mapped atomics with signal in form 's\d+'
+        set_instr = {}
         for atom, instr in self.at_instructions.items():
-            s += atom + ': ' + instr[0] + ' ' + instr[1] + ' ' + \
-                    instr[2] + ' ' + instr[3] + ' ' + instr[4] + '\n'
+            # TODO need more robust way to order these
+            if instr[0] == 'exactly_one_of' or instr[0] == 'none_of' or instr[0] == 'all_of':
+                set_instr[atom] = instr
+                continue
+
+            s += 'a' + str(atom) + ': ' + str(instr[0]) + ' ' + str(instr[1]) + \
+                ' ' + str(instr[2]) + ' '
+            for arg in instr[3]:
+                s += str(arg) + ' '
+            s += '\n'
+
+        # Put set AT instructions last since they depend on other atomic values
+        for atom, instr in set_instr.items():
+            s += 'a' + str(atom) + ': ' + str(instr[0]) + ' ' + str(instr[1]) + \
+                ' ' + str(instr[2]) + ' '
+            for arg in instr[3]:
+                s += str(arg) + ' '
+            s += '\n'
+
         s = s[:len(s)-1] # remove last newline
         if self.echo:
             print(s)
         with open(self.output_path+filename, 'a') as f:
             f.write(s)
 
+
     def gen_alias_file(self, filename):
         s = ''
-        for label, num in self.labels.items():
+        for label, num in self.formula_labels.items():
             s += 'F ' + label + ' ' + str(num) + '\n'
         for contract, formula_num in self.contracts.items():
             s += 'C ' + contract + ' ' + str(formula_num) + ' ' + \
@@ -462,5 +317,29 @@ class Compiler():
             s += 'S ' + signal + ' ' + str(index) + '\n'
         for atom, index in self.atomics.items():
             s += 'A ' + atom + ' ' + str(index) + '\n'
+        for set_name, atomics in self.def_sets.items():
+            # Convert list of atomics in the set to their indicies.
+            #
+            # Here the list of atomics is in "a#" notation, but we want the
+            # index, doing a lookup in the atomics dictionary is guaranteed to
+            # be correct even in the pathological case of a# not being signal #
+            # however, aliased signals will be listed by their given name, not
+            # number. We get the best of both worlds at the cost of an extra
+            # search by using the dictionary "get" method which is a key lookup
+            # with optional default value.
+            #
+            # For example, if we have a bound atomic called "atom" which gets
+            # assigned signal number 3 in preprocessing, the def_sets will list
+            # "a3" as being a member of the set while the atomics dictionary
+            # will have am entry for 'atom: 3' but not 'a: 3' so the
+            # comprehension become atomics.get('a3', 3) which returns the
+            # 2nd argument as a default and is correctly resolved to 3
+            #
+            # If we have a strong guarantee that the a# can never be incorrect
+            # this can be replaced with just the string operation atom[1:]
+            # alternatively we can list both names in the atomic dict during
+            # preprocessing.
+            atoms = [str(self.atomics.get(atom, atom[1:])) for atom in atomics[1]]
+            s += 'R ' + set_name + ' ' + str(atomics[0]) + ' ' + ' '.join(atoms) + '\n'
         with open(self.output_path+filename, 'a') as f:
             f.write(s)

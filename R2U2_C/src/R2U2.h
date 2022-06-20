@@ -2,17 +2,20 @@
 #ifndef R2U2_H
 #define R2U2_H
 
-#include <stdio.h>
-#include "R2U2Config.h"
-
-#define R2U2_C_VERSION_MAJOR 2
-#define R2U2_C_VERSION_MINOR 0
-#define R2U2_C_VERSION_PATCH 0
-
 /* Compiler version check */
 #if (__STDC_VERSION__ < 199409L)
     #error R2U2 requires C99 or higher
 #endif
+
+/* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
+#define _POSIX_C_SOURCE 200112L
+
+#include <stdio.h>
+#include "R2U2Config.h"
+
+#define R2U2_C_VERSION_MAJOR 2
+#define R2U2_C_VERSION_MINOR 1
+#define R2U2_C_VERSION_PATCH 0
 
 /* Target and feature flags */
 /* Conditional compilation in R2U2:
@@ -34,7 +37,7 @@
 
 #ifndef R2U2_AT_Extra_Filters
     /* Enables the Rate, Angle difference, and moving average AT filters */
-    #define R2U2_AT_Extra_Filters EXHIBIT
+    #define R2U2_AT_Extra_Filters INHIBIT
 #endif
 
 #ifndef R2U2_AT_FFT_Filter
@@ -46,6 +49,11 @@
 #ifndef R2U2_AT_Prognostics
     /* Enables the prognostics module */
     #define R2U2_Prognostics INHIBIT
+#endif
+
+#ifndef R2U2_AT_Signal_Sets
+    /* Enables set aggregation filters */
+    #define R2U2_AT_Signal_Sets INHIBIT
 #endif
 
 #ifndef R2U2_TL_Formula_Names

@@ -1,7 +1,7 @@
 # R2U2 Dependencies:
 - Posix environment (Linux, MacOS, Etc.)
 - Python3 (version 3.6 or greater)
-- Python Lex & Yacc (`python3 -m pip install —user —upgrade  antlr4-python3-runtime `)
+- Python antlr4 runtime (`python3 -m pip install —user —upgrade  antlr4-python3-runtime `)
 - C99 std compiler (gcc or clang)
 - Make
 
@@ -49,7 +49,7 @@ Formula files contain one or more lines of temporal formulas: one per line and e
 Following the temporal formulas in the formula files, atomic checker expressions may be included to .
 The full syntax of an AT checker expression is:
 
-`ATOM := FILTER(SIGNAL,[CONSTANT]) CONDITIONAL CONSTANT|SIGNAL;` where  
+`ATOM = FILTER(SIGNAL,[CONSTANT]) CONDITIONAL CONSTANT|SIGNAL;` where  
 **ATOM** is a name appearing in the temporal logic formulas above.  
 **FILTER** is a filter to apply to a stream of data (signal) from the set in the table below.  
 **SIGNAL** is in the form 'sN' where N is a natural number in the set [0,255] corresponding to the desired index in the input data stream.  
@@ -68,8 +68,8 @@ The full syntax of an AT checker expression is:
 In the filter syntax, `s` is a **SIGNAL** and `c` is a **CONSTANT**.
 
 ### Examples
-`a5 := abs_diff_angle(s3,105) < 50;` checks if the absolute difference between the data of signal 3 and the value 105 when treated as angles is below 50.  
-`a43 := int(s32) == s33;` checks that the values of signals 32 and 33 are in agreement when treated as integers.
+`a5 = abs_diff_angle(s3,105) < 50;` checks if the absolute difference between the data of signal 3 and the value 105 when treated as angles is below 50.  
+`a43 = int(s32) == s33;` checks that the values of signals 32 and 33 are in agreement when treated as integers.
 
 As a default case, atoms of the format 'a#' where '#' is an integer will be interpreted as the boolean value of the '#-th' column without needing to be declared. See the input trace section for an example.
 

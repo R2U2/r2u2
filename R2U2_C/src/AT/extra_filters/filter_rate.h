@@ -16,6 +16,6 @@
 **  ---------------------------
 **
 **=====================================================================================*/
-void filter_rate_init(double *init);
-void filter_rate_free(void);
+#include "R2U2.h"
+
 double filter_rate_update_data(double x, double *prev);

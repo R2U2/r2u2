@@ -7,6 +7,7 @@ data = {'N_SIGS'         : 256,
         'N_INSTRUCTIONS' : 256,
         'N_AT'           : 256,
         'N_INTERVAL'     : 128,
+        'N_SETS'         : 0,
         'L_OPC'          : 5,
         'L_OP'           : 10,
         'L_INTVL'        : 8,
@@ -54,6 +55,7 @@ def parse_config(filename):
             data[varname] = value
         else:
             print("Error: Invalid variable name %s" % (str(varname)))
+
     return(data)
 
 def check_updates(filename):
@@ -83,6 +85,7 @@ def check_updates(filename):
 def gen_config(filename):
     data['L_ATOMIC_ADDR'] = int.bit_length(int(data['N_ATOMICS'])-1)
     data['L_SIG_ADDR'] = int.bit_length(int(data['N_SIGS'])-1)
+    data['L_SET_ADDR'] = int.bit_length(int(data['N_SETS'])-1)
     data['L_INSTRUCTION'] = int(data['L_OPC']) + int(data['L_OP']) + \
                             int(data['L_OP']) + int(data['L_INTVL']) + \
                             int(data['L_SCRATCH'])
