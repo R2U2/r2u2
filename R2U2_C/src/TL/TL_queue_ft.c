@@ -24,11 +24,12 @@
 **	Apr.14.2019 | Pei | Clean up the code and rewrite the function. Consistent with the definition of Shared Connection Queue (SCQ)
 **  Jun.20.2019 | Pei | fix a bug when checking if an SCQ is empty
 **=====================================================================================*/
+
+#include "R2U2.h"
+
 #include <stdio.h>
 #include "TL_observers.h"
-#include "R2U2.h"
 #include "TL_queue_ft.h"
-#include "R2U2.h"
 
 #define	TRACE_OPND_FT(X) X
 
@@ -72,7 +73,7 @@ void add(elt_ft_queue_t* const scq, int size, elt_ft_queue_t newData, int* wr_pt
 	#endif
 }
 
-void print_scq(elt_ft_queue_t* const scq, int size) {
+static void print_scq(elt_ft_queue_t* const scq, int size) {
 	printf("--------------PRINT SCQ @%p\n", (void *) scq);
 	for (int i=0; i<size; i++) {
 		printf("addr: %d, verdict: %d, timstamp: %d\n", i, scq[i].v_q, scq[i].t_q);
@@ -86,8 +87,8 @@ void print_scq(elt_ft_queue_t* const scq, int size) {
 // wr_ptr and rd_ptr are relative to addr_start (counting from 0~size-1)
 bool isEmpty(elt_ft_queue_t* const scq, int size, const int wr_ptr, int* rd_ptr, int desired_time_stamp){
 	//print_scq(scq, size);
-	DEEP_PRINT("inQueue, size: %d, rd_ptr: %d, wr_ptr: %d, desired_time_stamp: %d\n", size, *rd_ptr, wr_ptr, desired_time_stamp);
-	DEEP_PRINT("inQueue data content: t_q: %d, v_q: %d\n", scq[1].t_q, scq[1].v_q);
+	R2U2_TRACE_PRINT("inQueue, size: %d, rd_ptr: %d, wr_ptr: %d, desired_time_stamp: %d\n", size, *rd_ptr, wr_ptr, desired_time_stamp);
+	R2U2_TRACE_PRINT("inQueue data content: t_q: %d, v_q: %d\n", scq[1].t_q, scq[1].v_q);
 	if ((int)(scq+*rd_ptr)->t_q >= desired_time_stamp) {
 		return false;
 	} else if (*rd_ptr!=wr_ptr){

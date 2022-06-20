@@ -19,7 +19,7 @@
 # these rules might exclude image files for figures etc.
 # *.ps
 # *.eps
-# *.pdf
+*.pdf
 
 ## Generated if empty string is given at "Please type another file name for output:"
 .pdf
@@ -261,13 +261,16 @@ TSWLatexianTemp*
 # OS cache files
 .DS_Store
 
-Lex and Yacc Autogen files:
-*.yy.c
-*.tab.c
-*.tab.h
+# VSCode config
+.vscode/
+
+# Input test files
+*.csv
+*.mltl
 
 R2U2_C/bin/
-tools/Compiler/MLTL_Compiler/parsetab.py
+R2U2_C/doc/
+R2U2_C/report/
 test/Inputs/inputFiles/
 test/Inputs/inputImages/
 test/Oracle/oracleFiles/

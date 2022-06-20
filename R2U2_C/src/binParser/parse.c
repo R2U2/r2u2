@@ -1,18 +1,24 @@
+#include "R2U2.h"
+#include "parse.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
-
-#include "parse.h"
 
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 
 #include "at_instruction.h"
 #include "at_globals.h"
-#include "filters/filter_rate.h"
-#include "filters/filter_movavg.h"
 
+#if R2U2_AT_Extra_Filters
+#include "extra_filters/filter_rate.h"
+#include "extra_filters/filter_movavg.h"
+#endif
+
+// TODO: Why is this limited to int? It could be grater
+// Also, this should be typed punned
 static inline int string2Int(char** char_vec, int len) {
 	int op = 0;
 	for(int i=0;i<len;i++) {
@@ -22,111 +28,141 @@ static inline int string2Int(char** char_vec, int len) {
 	return op;
 }
 
-void decode_inst(char* s, instruction_t* inst) {
+static void decode_inst(char* s, instruction_t* inst) {
 	//1. operant code, 5 bits
 	inst->opcode = string2Int(&s,L_OPC);
 
 	//2. op1, 10 bits. First 2 bit is the input type
 	inst->op1.opnd_type = string2Int(&s,2);
-	inst->op1.value = string2Int(&s,L_OP-2);
+	inst->op1.value = (uint8_t)string2Int(&s,L_OP-2);
 
 	//3. op2, 10 bits. First 2 bit is the input type
 	inst->op2.opnd_type = string2Int(&s,2);
-	inst->op2.value = string2Int(&s,L_OP-2);
+	inst->op2.value = (uint8_t)string2Int(&s,L_OP-2);
 
 	//4. time stamp  address, 8 bits
-	inst->adr_interval = string2Int(&s,L_INTVL);
+	inst->adr_interval = (uint8_t)string2Int(&s,L_INTVL);
 
 	//5. scratch? 7 bits (seems for Bayesian network)
-	inst->scratch = string2Int(&s,L_SCRATCH);
+	inst->scratch = (uint8_t)string2Int(&s,L_SCRATCH);
 }
 
-void decode_interval(char* s, interval_t* interval) {
+static void decode_interval(char* s, interval_t* interval) {
 	//1. lower bound, time stamp bits
-	interval->lb = string2Int(&s,L_INTERVAL);
+	interval->lb = (interval_bound_t)string2Int(&s,L_INTERVAL);
 
 	//2. upper bound, time stamp bits
-	interval->ub = string2Int(&s,L_INTERVAL);
+	interval->ub = (interval_bound_t)string2Int(&s,L_INTERVAL);
 }
 
-void decode_scq_size(char* s, addr_SCQ_t* addr) {
+static void decode_scq_size(char* s, addr_SCQ_t* addr) {
 	//1. start address
-	addr->start_addr = string2Int(&s,L_SCQ_ADDRESS);
+	addr->start_addr = (uint16_t)string2Int(&s,L_SCQ_ADDRESS);
 
 	//2. end address
-	addr->end_addr = string2Int(&s,L_SCQ_ADDRESS);
+	addr->end_addr = (uint16_t)string2Int(&s,L_SCQ_ADDRESS);
 }
 
-void decode_at_instr(char* s, at_instruction_t* inst)
-{
+static void decode_at_instr(char* s, at_instruction_t* inst) {
 	// 1. index to place final atomic value
-	inst->atom_addr = string2Int(&s,L_ATOMIC_ADDR);
+	inst->atom_addr = (uint8_t)string2Int(&s,L_ATOMIC_ADDR);
 
 	// 2. type of filter to apply to signal
 	inst->filter = string2Int(&s,L_FILTER);
 
-	// 3. index of signal to read from signals_vector
-	inst->sig_addr = string2Int(&s,L_SIG_ADDR);
-
-	// 4. argument used for certain filters
-	int arg = string2Int(&s,L_NUM);
-
-	// 5. type of comparison operator to apply
+	// 3. type of comparison operator to apply
 	inst->cond = string2Int(&s,L_COMP);
 
-	// 6. is the comparison value a signal?
+	// 4. is the comparison value a signal?
 	inst->comp_is_sig = string2Int(&s,1);
 
-	// 7. value of constant to compare to filtered signal
+	// 5. value of constant/signal to compare to filtered signal
 	int comp = string2Int(&s,L_NUM);
 
-	// If comp is a signal, store index of signal in instruction
-	if(inst->comp_is_sig) {
+	// 6. signal we're considering
+	inst->sig_addr = (uint8_t)string2Int(&s,L_SIG_ADDR);
+
+	// 7. extra filter argument
+	int arg = string2Int(&s,L_NUM);
+
+	if(inst->comp_is_sig)
 		inst->comp.s = (uint8_t) comp;
-		switch(inst->filter) {
-			case OP_RATE: {
-				filter_rate_init(&inst->filt_data_struct.prev);
-				break;
-			}
-			case OP_ABS_DIFF_ANGLE: {
-				inst->filt_data_struct.diff_angle = (double) arg;
-				break;
-			}
-			case OP_MOVAVG: {
-				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
-				break;
-			}
-			default: break;
+
+	switch(inst->filter) {		
+		case OP_BOOL:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
 		}
-	} else { // Else store value as constant
-		switch(inst->filter) {
-			case OP_BOOL: inst->comp.b = (bool) comp;	break;
-			case OP_INT: inst->comp.i = (int32_t) comp;	break;
-			case OP_DOUBLE: inst->comp.d = (double) comp;	break;
-			case OP_RATE: {
-				inst->comp.d = (double) comp;
-				filter_rate_init(&inst->filt_data_struct.prev);
-				break;
-			}
-			case OP_ABS_DIFF_ANGLE: {
-				inst->comp.d = (double) comp;
-				inst->filt_data_struct.diff_angle = (double) arg;
-				break;
-			}
-			case OP_MOVAVG: {
-				inst->comp.d = (double) comp;
-				inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
-				break;
-			}
-			default: 	break;
+		case OP_INT:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.i = (int32_t) comp;
+			break;
 		}
+		case OP_DOUBLE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.epsilon = arg;
+			break;
+		}
+		#if R2U2_AT_Extra_Filters
+		case OP_RATE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.prev = 0;
+			break;
+		}
+		case OP_ABS_DIFF_ANGLE:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.diff_angle = (double) arg;
+			break;
+		}
+		case OP_MOVAVG:
+		{
+			if(!inst->comp_is_sig)
+				inst->comp.d = (double) comp;
+			inst->filt_data_struct.movavg = filter_movavg_init((uint16_t)arg);
+			break;
+		}
+		#endif
+		#if R2U2_AT_Signal_Sets
+		case OP_EXACTLY_ONE_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
+		case OP_NONE_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
+		case OP_ALL_OF:
+		{
+			// set_addr is stored in instr.set_addr
+			if(!inst->comp_is_sig)
+				inst->comp.b = (bool) comp;
+			break;
+		}
+		#endif
+		default: break;
 	}
 }
 
 //------------------------------------------------------------------------------
 // Future Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_ft_file(char* filename) {
+#ifndef CONFIG
+void parse_inst_ft_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -143,7 +179,8 @@ void parse_inst_ft_file(char* filename) {
 	}
 
 }
-void parse_inst_ft_bin(char* bin) {
+#else
+void parse_inst_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INSTRUCTION];
@@ -159,10 +196,12 @@ void parse_inst_ft_bin(char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Past Time Instruction Parser
 //------------------------------------------------------------------------------
-void parse_inst_pt_file(char* filename) {
+#ifndef CONFIG
+void parse_inst_pt_file(const char* filename) {
 	int PC = 0;
 	char line[MAX_LINE];
 
@@ -178,7 +217,8 @@ void parse_inst_pt_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_inst_pt_bin(char* bin) {
+#else
+void parse_inst_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INSTRUCTION];
@@ -194,12 +234,13 @@ void parse_inst_pt_bin(char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Future-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_ft_file(char* filename) {
+#ifndef CONFIG
+void parse_interval_ft_file(const char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -214,7 +255,8 @@ void parse_interval_ft_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_interval_ft_bin(char* bin) {
+#else
+void parse_interval_ft_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INTERVAL*2];
@@ -230,12 +272,13 @@ void parse_interval_ft_bin(char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // Past-Time Interval Parser
 //------------------------------------------------------------------------------
-void parse_interval_pt_file(char* filename) {
+#ifndef CONFIG
+void parse_interval_pt_file(const char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -250,7 +293,8 @@ void parse_interval_pt_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_interval_pt_bin(char* bin) {
+#else
+void parse_interval_pt_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_INTERVAL*2];
@@ -266,12 +310,13 @@ void parse_interval_pt_bin(char* bin) {
 		pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 	}
 }
+#endif
 //------------------------------------------------------------------------------
 // SCQ Parser (only Future-Time; Past-Time doesn't use SCQs)
 //------------------------------------------------------------------------------
-void parse_scq_size_file(char* filename) {
+#ifndef CONFIG
+void parse_scq_size_file(const char* filename) {
 	int PC = 0;
-	char *pch;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -287,7 +332,8 @@ void parse_scq_size_file(char* filename) {
 		perror ( filename ); /* why didn't the file open? */
 	}
 }
-void parse_scq_size_bin(char* bin) {
+#else
+void parse_scq_size_bin(const char* bin) {
 	int PC = 0;
 	char *pch;
 	char line[L_SCQ_ADDRESS];
@@ -304,14 +350,14 @@ void parse_scq_size_bin(char* bin) {
 			pch = (char *) memchr(pch + 1, '\n', strlen(pch));
 		}
 }
-
+#endif
 //------------------------------------------------------------------------------
 // AT Parser
 //------------------------------------------------------------------------------
-void parse_at_file(char *filename)
+#ifndef CONFIG
+void parse_at_file(const char *filename)
 {
-	int PC = 0;
-	char *pch;
+	uint8_t PC = 0;
 	char line[MAX_LINE];
 
 	FILE *file = fopen ( filename, "r" );
@@ -328,9 +374,10 @@ void parse_at_file(char *filename)
 
 	num_instr = PC; // set number of AT instructions
 }
-void parse_at_bin(char *bin)
+#else
+void parse_at_bin(const char *bin)
 {
-	int PC = 0;
+	uint8_t PC = 0;
 	char *pch;
 	char line[L_AT_INSTRUCTION];
 
@@ -347,3 +394,4 @@ void parse_at_bin(char *bin)
 
 	num_instr = PC; // set number of AT instructions
 }
+#endif

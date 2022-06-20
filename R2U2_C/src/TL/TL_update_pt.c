@@ -27,6 +27,7 @@
 **=====================================================================================*/
 
 #include "R2U2.h"
+
 #include "TL_observers.h"
 #include "TL_queue_pt.h"
 #include <stdio.h>
@@ -65,7 +66,7 @@ int TL_update_pt(FILE* log_file)
         // OP_END_SEQUENCE
         //----------------------------------------------------
         if (instruction_mem_pt[pc].opcode == OP_END_SEQUENCE){
-            DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
+            R2U2_DEBUG_PRINT("PC:%d END_SEQUENCE\n", pc);
             break;
         }
 
@@ -76,10 +77,55 @@ int TL_update_pt(FILE* log_file)
         // OP_END
         //----------------------------------------------------
         case OP_END:
-            DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, results_pt[instruction_mem_pt[pc].op1.value]);
+            R2U2_DEBUG_PRINT("PC:%d END = (%d,%d)\n", pc, t_now, results_pt[instruction_mem_pt[pc].op1.value]);
+            #if R2U2_TL_Formula_Names
+            if (aux_str_map[(int)instruction_mem_pt[pc].op2.value] == NULL)
+            {
+                /* No formula name - use numbered output format */
+                fprintf(log_file, "%d:%u,%s\n",
+                        (int)instruction_mem_pt[pc].op2.value,t_now,
+                        results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            } else {
+                /* Use formula name from aux file */
+                fprintf(log_file, "%s:%u,%s\n",
+                    aux_str_map[(int)instruction_mem_pt[pc].op2.value],t_now,
+                    results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            }
+            #else
             fprintf(log_file, "%d:%u,%s\n",
                     (int)instruction_mem_pt[pc].op2.value,t_now,
                     results_pt[instruction_mem_pt[pc].op1.value] ? "T" : "F");
+            #endif
+            #if R2U2_TL_Contract_Status
+            for (int i = 0; i < 3*aux_con_max; ++i) {
+                if (instruction_mem_pt[pc].op2.value == aux_con_forms[i]) {
+                    switch(i%3){
+                        case 0: {
+                            if(!results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s inactive at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                        case 1: {
+                            if(!results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s invalid at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                        case 2: {
+                            if(results_pt[instruction_mem_pt[pc].op1.value]){
+                                printf("Contract %s verified at %d\n", aux_con_map[i/3], t_now);
+                            }
+                            break;
+                        }
+                    }
+                    /* We'd like to stop searching after a contract has been found
+                     * but there could be formula reuse - specifically of assumptions
+                    */
+                    // i = 3*aux_con_max;
+                }
+            }
+            #endif
             break;
 
         //----------------------------------------------------
@@ -87,7 +133,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_FT_LOD:
             results_pt[pc] = get_opnd1_pt(pc);
-            DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d LOAD = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -95,7 +141,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_NOT:
             results_pt[pc] = !get_opnd1_pt(pc);
-            DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d NOT = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -103,7 +149,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_AND:
             results_pt[pc] = get_opnd1_pt(pc) && get_opnd2_pt(pc);
-            DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d AND = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -111,7 +157,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_IMPL:
             results_pt[pc] = (!get_opnd1_pt(pc)) || get_opnd2_pt(pc);
-            DEBUG_PRINT("PC:%d IMPL = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d IMPL = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -119,7 +165,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_OR:
             results_pt[pc] = get_opnd1_pt(pc) || get_opnd2_pt(pc);
-            DEBUG_PRINT("PC:%d OR = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d OR = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -127,7 +173,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_EQUIVALENT:
             results_pt[pc] = (get_opnd1_pt(pc) == get_opnd2_pt(pc));
-            DEBUG_PRINT("PC:%d EQ = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d EQ = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -135,7 +181,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_PT_YESTERDAY:
             results_pt[pc] = get_opnd1_prev_pt(pc);
-            DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d Y = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -157,7 +203,7 @@ int TL_update_pt(FILE* log_file)
         //----------------------------------------------------
         case OP_PT_SINCE:
             results_pt[pc] = get_opnd2_pt(pc) || (get_opnd1_pt(pc) && results_pt_prev[pc]);
-            DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d S = (%d,%d)\n", pc, t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -183,14 +229,14 @@ int TL_update_pt(FILE* log_file)
             //----- Garbage collection ----- //
             // Look into the queue and get the timestamps
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
-            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            //R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             
             // If the end time stamp (t_e) is less than the difference
             // between the current time stamp (t_now) and the interval's
             // lower bound, remove the head from the queue.
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
-                //DEBUG_PRINT("***** Garbage Collection *****\n");
+                //R2U2_DEBUG_PRINT("***** Garbage Collection *****\n");
                 //remove_head_queue_pt(bq_addr, &t_s, &t_e);
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
             }
@@ -202,25 +248,25 @@ int TL_update_pt(FILE* log_file)
             // If it is the rising edge,
             //if ((t_now == 0) || (edge == rising)) {
             if (edge == rising) {
-                //DEBUG_PRINT("***** Rising Edge of Op *****\n");
+                //R2U2_DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 // Add to the box queue that there was an edge at t_now
                 add_queue_pt(bq_addr, t_now, TL_INF);
             }
             // If the edge is falling and the box queue is not empty
             else if ((edge == falling) && !isempty_queue_pt(bq_addr)) {
-                //DEBUG_PRINT("***** Falling Edge of Op *****\n");
+                //R2U2_DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 // Remove the tail of the box queue
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
                 //remove_tail_queue_pt(bq_addr, &t_s, &t_e);
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
-                //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
-                //DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
-                //DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
-                //DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
+                //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                //R2U2_DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
+                //R2U2_DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
+                //R2U2_DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
+                //R2U2_DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
                 //if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
                 if(((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1))){
-                    //DEBUG_PRINT("***** Feasibility Check *****\n");
+                    //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
@@ -229,25 +275,25 @@ int TL_update_pt(FILE* log_file)
             peek_queue_pt(bq_addr, &t_s, &t_e);
             
             //print_pt_queue(bq_addr);
-            //DEBUG_PRINT("***** Result Calculation *****\n");
-            //DEBUG_PRINT("t_now = %u\n",t_now);
+            //R2U2_DEBUG_PRINT("***** Result Calculation *****\n");
+            //R2U2_DEBUG_PRINT("t_now = %u\n",t_now);
 
-            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
-            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
             /*
-            DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+                R2U2_DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
             }else{
-                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+                R2U2_DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
             }
             
-            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                DEBUG_PRINT("t_e >= 0 = %u\n",1);
+                R2U2_DEBUG_PRINT("t_e >= 0 = %u\n",1);
             }else{
-                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+                R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
             }
             */
             //----- Calculate the result -----//
@@ -258,7 +304,7 @@ int TL_update_pt(FILE* log_file)
             // the result is false.
             results_pt[pc] = ((get_interval_ub_pt(pc) > t_now)?(t_s <= 0):(t_s + get_interval_ub_pt(pc) <= t_now )) && ((get_interval_lb_pt(pc) > t_now)?(1):(t_e + get_interval_lb_pt(pc) >= t_now)); 
             
-            DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d H[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -273,10 +319,10 @@ int TL_update_pt(FILE* log_file)
             
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
-            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            //R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
-                //DEBUG_PRINT("***** Garbage Collection *****\n");
+                //R2U2_DEBUG_PRINT("***** Garbage Collection *****\n");
                 //remove_head_queue_pt(bq_addr, &t_s, &t_e);
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
             }
@@ -285,49 +331,49 @@ int TL_update_pt(FILE* log_file)
             edge = opnd1_edge(pc);
             //if ((t_now == 1) || (edge == falling)) {
             if (edge == falling) {
-                //DEBUG_PRINT("***** Falling Edge of Op *****\n");
+                //R2U2_DEBUG_PRINT("***** Falling Edge of Op *****\n");
                 add_queue_pt(bq_addr, t_now, TL_INF);
             } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
-                //DEBUG_PRINT("***** Rising Edge of Op *****\n");
+                //R2U2_DEBUG_PRINT("***** Rising Edge of Op *****\n");
                 remove_head_queue_pt(bq_addr, &t_s, &t_e);
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
-                //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
-                //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
-                //DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
-                //DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
-                //DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
+                //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                //R2U2_DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
+                //R2U2_DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
+                //R2U2_DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
+                //R2U2_DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
                 //if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
                 if(((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1))){
-                    //DEBUG_PRINT("***** Feasibility Check *****\n");
+                    //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
                     add_queue_pt(bq_addr, t_s, t_now - 1);
                 }
             }
 
             peek_queue_pt(bq_addr, &t_s, &t_e);
             
-            //DEBUG_PRINT("***** Result Calculation *****\n");
-            //DEBUG_PRINT("t_now = %u\n",t_now);
+            //R2U2_DEBUG_PRINT("***** Result Calculation *****\n");
+            //R2U2_DEBUG_PRINT("t_now = %u\n",t_now);
 
-            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
-            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
             /*
-            DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
+                R2U2_DEBUG_PRINT("t_s <= 0 = %u\n",t_s <= 0);
             }else{
-                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
+                R2U2_DEBUG_PRINT("t_s + get_interval_ub_pt(pc) <= t_now = %u\n",t_s + get_interval_ub_pt(pc) <= t_now );
             }
             
-            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                DEBUG_PRINT("t_e >= 0 = %u\n",1);
+                R2U2_DEBUG_PRINT("t_e >= 0 = %u\n",1);
             }else{
-                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
+                R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) >= t_now = %u\n",t_e + get_interval_lb_pt(pc) >= t_now);
             }
             */
             results_pt[pc] = !(((get_interval_ub_pt(pc) > t_now)?(t_s <= 0):(t_s + get_interval_ub_pt(pc) <= t_now )) && ((get_interval_lb_pt(pc) > t_now)?(1):(t_e + get_interval_lb_pt(pc) >= t_now)));
-            DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d O[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -340,10 +386,10 @@ int TL_update_pt(FILE* log_file)
 
             // garbage collection
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
-            //DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
+            //R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) = %u\n",t_e + get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("(t_e + get_interval_lb_pt(pc)) < t_now = %d\n",(t_e + get_interval_lb_pt(pc)) < t_now);
             if ((t_e + get_interval_lb_pt(pc)) < t_now) {
-                //DEBUG_PRINT("***** Garbage Collection *****\n");
+                //R2U2_DEBUG_PRINT("***** Garbage Collection *****\n");
                 //remove_head_queue_pt(bq_addr, &t_s, &t_e);
                 remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                 // TODO: THese seem like they should need to be here - but don't?
@@ -352,69 +398,69 @@ int TL_update_pt(FILE* log_file)
             }
 
             if (get_opnd1_pt(pc)) {
-                //DEBUG_PRINT("***** Op1 = True *****\n");
+                //R2U2_DEBUG_PRINT("***** Op1 = True *****\n");
                 edge = opnd2_edge(pc);
                 // falling egde of p2
                 //if ((t_now == 0) || (edge == falling)) {
                 if (edge == falling) {
-                    //DEBUG_PRINT("***** Falling Edge of Op2 *****\n");
+                    //R2U2_DEBUG_PRINT("***** Falling Edge of Op2 *****\n");
                     add_queue_pt(bq_addr, t_now, TL_INF);
                 } else if ((edge == rising) && !isempty_queue_pt(bq_addr)) {
-                    //DEBUG_PRINT("***** Rising Edge of Op2 *****\n");
+                    //R2U2_DEBUG_PRINT("***** Rising Edge of Op2 *****\n");
                     remove_head_queue_pt(bq_addr, &t_s, &t_e);
                     //remove_tail_queue_pt(bq_addr, &t_s, &t_e);
 
-                    //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
-                    //DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
-                    //DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
-                    //DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
-                    //DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
-                    //DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
+                    //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) = %u\n",(t_now + get_interval_lb_pt(pc)));
+                    //R2U2_DEBUG_PRINT("(t_s + get_interval_ub_pt(pc) + 1) = %u\n",(t_s + get_interval_ub_pt(pc) + 1));
+                    //R2U2_DEBUG_PRINT("(t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)));
+                    //R2U2_DEBUG_PRINT("(t_now == 0) = %u\n",(t_now == 0));
+                    //R2U2_DEBUG_PRINT("(get_interval_lb_pt(pc) >= 1) = %u\n",(get_interval_lb_pt(pc) >= 1));
+                    //R2U2_DEBUG_PRINT("((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)) = %u\n",((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1)));
                     //if ((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) {
                     if(((t_now + get_interval_lb_pt(pc)) >= (t_s + get_interval_ub_pt(pc) + 1)) && ((t_now == 0) || (get_interval_lb_pt(pc) >= 1))){
-                        //DEBUG_PRINT("***** Feasibility Check *****\n");
+                        //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
                         add_queue_pt(bq_addr, t_s, t_now - 1);
                     }
                 } 
             } else { // p1 does not hold
-                //DEBUG_PRINT("***** Op1 = False *****\n");
+                //R2U2_DEBUG_PRINT("***** Op1 = False *****\n");
                 if (get_opnd2_pt(pc)) {
                     // TODO: Rechability at t_now = 0?
-                    //DEBUG_PRINT("***** Op2 = True *****\n");
+                    //R2U2_DEBUG_PRINT("***** Op2 = True *****\n");
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                     add_queue_pt(bq_addr, 0, t_now - 1);
                 } else {
-                    //DEBUG_PRINT("***** Op2 = False *****\n");
+                    //R2U2_DEBUG_PRINT("***** Op2 = False *****\n");
                     remove_tail_queue_pt(bq_addr, &t_s, &t_e);
                     add_queue_pt(bq_addr, 0, TL_INF);
                 }
             }
             
             peek_queue_pt(bq_addr, &t_s, &t_e);
-            //DEBUG_PRINT("***** Result Calculation *****\n");
-            //DEBUG_PRINT("t_now = %u\n",t_now);
+            //R2U2_DEBUG_PRINT("***** Result Calculation *****\n");
+            //R2U2_DEBUG_PRINT("t_now = %u\n",t_now);
 
-            //DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
-            //DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) = %u\n",get_interval_ub_pt(pc));
+            //R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) = %u\n",get_interval_lb_pt(pc));
 
             /*
-            //DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
+            //R2U2_DEBUG_PRINT("get_interval_ub_pt(pc) > t_now = %u\n",get_interval_ub_pt(pc) > t_now);
             if(get_interval_ub_pt(pc) > t_now){
-                DEBUG_PRINT("t_s > 0 = %u\n",t_s > 0);
+                R2U2_DEBUG_PRINT("t_s > 0 = %u\n",t_s > 0);
             }else{
-                DEBUG_PRINT("t_s + get_interval_ub_pt(pc) > t_now = %u\n",t_s + get_interval_ub_pt(pc) > t_now );
+                R2U2_DEBUG_PRINT("t_s + get_interval_ub_pt(pc) > t_now = %u\n",t_s + get_interval_ub_pt(pc) > t_now );
             }
             
-            DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
+            R2U2_DEBUG_PRINT("get_interval_lb_pt(pc) > t_now = %u\n",get_interval_lb_pt(pc) > t_now);
             if(get_interval_lb_pt(pc) > t_now){
-                DEBUG_PRINT("t_e < 0 = %u\n",0);
+                R2U2_DEBUG_PRINT("t_e < 0 = %u\n",0);
             }else{
-                DEBUG_PRINT("t_e + get_interval_lb_pt(pc) < t_now = %u\n",t_e + get_interval_lb_pt(pc) < t_now);
+                R2U2_DEBUG_PRINT("t_e + get_interval_lb_pt(pc) < t_now = %u\n",t_e + get_interval_lb_pt(pc) < t_now);
             }
             */
             results_pt[pc] = ((get_interval_ub_pt(pc) > t_now)?(t_s > 0):(t_s + get_interval_ub_pt(pc) > t_now )) || ((get_interval_lb_pt(pc) > t_now)?(0):(t_e + get_interval_lb_pt(pc) < t_now)); 
 
-            DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d S[%d,%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), get_interval_ub_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -433,7 +479,7 @@ int TL_update_pt(FILE* log_file)
             }
 
             results_pt[pc] = (t_now >= (results_pt_rising[pc] + get_interval_lb_pt(pc)));
-            DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d H[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------
@@ -453,7 +499,7 @@ int TL_update_pt(FILE* log_file)
             }
 
             results_pt[pc] = !(t_now >= (results_pt_rising[pc] + get_interval_lb_pt(pc)));
-            DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
+            R2U2_DEBUG_PRINT("PC:%d O[%d] = (%d,%d)\n", pc, get_interval_lb_pt(pc), t_now, results_pt[pc]);
             break;
 
         //----------------------------------------------------

@@ -1,0 +1,9 @@
+Contract1: (a29) => F[1,4](a30 & a26 & a27 & a28);
+Contract2: (a29) => F[1,52](a30 & a26 & a27 & a28);
+Contract3: (a30) => (a26 & a27 & a28);
+a26 := int(ucAllAppsSelfTestedFlag) == 1;
+a27 := int(ucAllAppsEnabledFlag) == 1;
+a28 := int(vsmActingState) == 1;
+a29 := int(vsmCurrState) == 3;
+a30 := int(vsmCurrState) == 5;
+

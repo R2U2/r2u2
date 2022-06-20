@@ -22,6 +22,8 @@
 **
 **=====================================================================================*/
 
+#include "R2U2.h"
+
 #include "TL_observers.h"
 #include "TL_queue_pt.h"
 #include "TL_queue_ft.h"
@@ -50,3 +52,20 @@ interval_mem_t  interval_mem_pt;
 instruction_mem_t instruction_mem_ft;
 interval_mem_t  interval_mem_ft;
 addr_SCQ_map_t addr_SCQ_map_ft;
+
+#if R2U2_TL_Formula_Names
+aux_str_map_t        aux_str_map = {0};
+aux_str_arena_t      aux_str_arena = {0};
+#endif
+
+#if R2U2_TL_Contract_Status
+aux_con_map_t        aux_con_map = {0};
+aux_con_arena_t      aux_con_arena = {0};
+aux_con_forms_t      aux_con_forms = {0};
+aux_con_max_t        aux_con_max = 0;
+#endif
+
+#if R2U2_AT_Signal_Sets
+aux_signal_set_map_t    aux_signal_set_map = {0};
+aux_signal_set_arena_t  aux_signal_set_arena = {0};
+#endif
