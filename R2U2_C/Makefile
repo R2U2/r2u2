@@ -32,7 +32,7 @@ endif
 
 ifdef R2U2_AT_Signal_Sets
 # Add Signal Sets Filters
-CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets #-D_GNU_SOURCE
+CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets
 SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
 $(info    R2U2 Signal Sets Enabled)
 endif
@@ -65,14 +65,14 @@ LD_LIBS=$(shell pkg-config --libs $(LIBS))
 endif
 LD_LIBS := $(LD_LIBS) -lm
 
-CFLAGS :=-std=c99 -D_POSIX_C_SOURCE=200809L $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
+CFLAGS :=-std=c99 -D_POSIX_C_SOURCE=200112L $(CFLAGS) $(IDIR:%=-I%) $(IN_LIBS)
 DBGFLAG := -g -O0 \
 -fdata-sections -ffunction-sections -fno-common \
 -fsanitize=undefined -fsanitize=address\
 -pedantic -Waggregate-return -Wall -Wbad-function-cast -Wcast-align -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wdisabled-optimization -Wdouble-promotion -Wduplicated-branches -Wduplicated-cond -Wextra -Wfloat-equal -Wformat-nonliteral -Wformat-security -Wformat-truncation -Wformat-y2k -Wformat=2 -Wimplicit -Wimport -Winit-self -Winline -Winvalid-pch -Wlogical-op -Wlong-long -Wmisleading-indentation -Wmissing-declarations -Wmissing-field-initializers -Wmissing-format-attribute -Wmissing-include-dirs -Wmissing-noreturn -Wmissing-prototypes -Wnested-externs -Wnoexcept -Wnon-virtual-dtor -Wnull-dereference -Wodr -Wold-style-cast -Woverloaded-virtual -Wpacked -Wpedantic -Wpointer-arith -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstack-protector -Wstrict-aliasing=2 -Wstrict-null-sentinel -Wstrict-overflow=5 -Wstrict-prototypes -Wswitch-default -Wundef -Wundef -Wunreachable-code -Wunused -Wunused-parameter -Wuseless-cast -Wvariadic-macros -Wwrite-strings -Wzero-as-null-pointer-constant -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
 --coverage\
--DR2U2_DEBUG -DR2U2_TRACE
+-DR2U2_DEBUG
 CCOBJFLAG := $(CFLAGS) -c
 LDFLAGS := $(LD_LIBS)
 

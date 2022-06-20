@@ -264,15 +264,13 @@ TSWLatexianTemp*
 # VSCode config
 .vscode/
 
-Lex and Yacc Autogen files:
-*.yy.c
-*.tab.c
-*.tab.h
+# Input test files
+*.csv
+*.mltl
 
 R2U2_C/bin/
 R2U2_C/doc/
 R2U2_C/report/
-tools/Compiler/MLTL_Compiler/parsetab.py
 test/Inputs/inputFiles/
 test/Inputs/inputImages/
 test/Oracle/oracleFiles/
