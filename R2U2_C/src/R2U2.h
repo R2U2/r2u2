@@ -7,6 +7,9 @@
     #error R2U2 requires C99 or higher
 #endif
 
+/* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
+#define _POSIX_C_SOURCE 200112L
+
 #include <stdio.h>
 #include "R2U2Config.h"
 
