@@ -73,15 +73,10 @@ class PreprocessVisitor(MLTLVisitor):
             self.signals[signal] = idx
 
         # error if there are any named, unmapped signals
-        idx = -1
         for signal in self.named_signals:
             if signal not in self.mapped_signals:
                 print('ERROR: named signal referenced but not mapped \''+signal+'\'')
                 self.status = False
-            idx += 1
-            while 's'+str(idx) in self.signals.keys():
-                idx += 1
-            self.signals[signal] = idx
 
         # configure contract formulas
         # append antecedent, consquent, and their conjunction to FT/PT
@@ -104,10 +99,10 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = pt_len-3
 
         # error if any used filter args are undefined (excluding literals)
-        #for arg in self.filter_args:
-        #    if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
-        #        print('ERROR: filter argument undefined \'' + arg + '\'')
-        #        self.status = False
+        for arg in self.filter_args:
+           if not (arg in self.def_sets or arg in self.mapped_signals or arg in self.literal_signals):
+               print('ERROR: filter argument undefined \'' + arg + '\'')
+               self.status = False
 
         # resolve atomics in defined sets
         for setIdent in self.def_sets.keys():
@@ -234,9 +229,26 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#mapping.
     def visitMapping(self, ctx:MLTLParser.MappingContext):
         sigIdent = ctx.signalIdentifier().getText()
+        sigIdx = ctx.Number().getText()
+
+        try:
+            idx = int(sigIdx)
+            if idx < 0:
+                print('WARNING: signal \''+sigIdent+'\' mapped to negative index '+sigIdx+', skipping')
+                return
+        except:
+            print('WARNING: signal \''+sigIdent+'\' mapped to non-integer value '+sigIdx+', skipping')
+            return
+
         if sigIdent in self.mapped_signals:
-            print('WARNING: signal already mapped \'' + sigIdent + '\', remapping')
+            print('WARNING: signal \''+sigIdent+'\' already mapped \'' + sigIdent + '\', remapping')
+        
+        for i in self.signals.values():
+            if sigIdx == i:
+                print('WARNING: signal \''+sigIdent+'\' index '+i+' mapped to twice')
+
         self.mapped_signals.add(sigIdent)
+        self.signals[sigIdent] = sigIdx
 
         self.visitChildren(ctx)
 
@@ -259,6 +271,10 @@ class PreprocessVisitor(MLTLVisitor):
     # Visit a parse tree produced by MLTLParser#filterArgument.
     def visitFilterArgument(self, ctx:MLTLParser.FilterArgumentContext):
         self.filter_args.add(ctx.getText())
+
+        # handle literal signals
+        if ctx.LiteralSignalIdentifier():
+            self.literal_signals.add(ctx.LiteralSignalIdentifier().getText())
 
         self.visitChildren(ctx)
 
