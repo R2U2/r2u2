@@ -88,7 +88,7 @@ class PreprocessVisitor(MLTLVisitor):
         for name, expr in self.contracts.items():
             if expr[2]: # is_ft == true
                 self.ft += expr[0]+';\n'
-                self.ft += expr[0]+'->'+expr[1]+';\n'
+                self.ft += '('+expr[0]+'->'+expr[1]+');\n'
                 self.ft += '('+expr[0]+')&('+expr[1]+');\n'
                 self.pt += ';\n;\n;\n'
                 # keep track of formula numbers
@@ -96,7 +96,7 @@ class PreprocessVisitor(MLTLVisitor):
                 self.contract_formula_nums[name] = ft_len-3
             else: # is_pt == true
                 self.pt += expr[0]+';\n'
-                self.pt += expr[0]+'->'+expr[1]+';\n'
+                self.pt += '('+expr[0]+')->('+expr[1]+');\n'
                 self.pt += '('+expr[0]+')&('+expr[1]+');\n'
                 self.ft += ';\n;\n;\n'
                 # keep track of formula numbers
@@ -127,15 +127,15 @@ class PreprocessVisitor(MLTLVisitor):
         if self.status and (ctx.expr()):
             if self.is_pt:
                 self.num_pt += 1
-                self.pt += ctx.getText()+';\n'
+                self.pt += ctx.parser.getInputStream().getText(ctx.start, ctx.stop)+';\n'
                 self.ft += ';\n'
             else:
                 self.num_ft += 1
                 self.pt += ';\n'
-                self.ft += ctx.getText()+';\n'
+                self.ft += ctx.parser.getInputStream().getText(ctx.start, ctx.stop)+';\n'
         elif self.status and ctx.binding():
             # maintain list of AT instructions
-            self.at += ctx.getText()+';\n'
+            self.at += ctx.parser.getInputStream().getText(ctx.start, ctx.stop)+';\n'
 
         self.is_ft = False
         self.is_pt = False
