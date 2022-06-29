@@ -264,7 +264,10 @@ TSWLatexianTemp*
 # VSCode config
 .vscode/
 
-Lex and Yacc Autogen files:
+# pyright config
+pyrightconfig.json
+
+# Lex and Yacc Autogen files:
 *.yy.c
 *.tab.c
 *.tab.h
