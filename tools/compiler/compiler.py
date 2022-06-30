@@ -3,6 +3,7 @@
 import os
 
 from antlr4 import InputStream, CommonTokenStream
+from .ast import *
 
 from .parser.C2POLexer import C2POLexer
 from .parser.C2POParser import C2POParser
@@ -36,19 +37,21 @@ class Compiler():
         v = Visitor()
         v.visit(parse_tree)
 
-        print(v.prog.__repr__)
-
-
-    def type_check(self):
-        pass
+        return v.prog
 
 
     # def preprocess(self):
     #     pass
 
 
+    
+
+
     def compile(self, input, asm_filename):
-        self.parse(input)
+        a = self.parse(input)
+        print(a)
+        print(gen_assembly(a))
+        print(a)
 
 
     # Common subexpression elimination the AST
@@ -89,45 +92,6 @@ class Compiler():
     # # TODO: logically optimize the AST, e.g., a0&a0->a0; a0&!a0=FALSE
     # def optimize_logic(self):
     #     pass
-
-    # ###############################################################
-    # # Topological sort the node sequence, the sequence is stored in stack
-    # def sort_node(self):
-    #     if(len(self.ast)==0):
-    #         return []
-    #     # top = self.ast[len(self.ast)-1]
-    #     top = self.ast[0]
-    #     # collect used node from the tree
-    #     def checkTree(root, graph):
-    #         if(root==None or root.type=='BOOL'):
-    #             return
-    #         if root not in graph:
-    #             graph.append(root)
-    #         for c in root.child:
-    #             if c:
-    #                 checkTree(c, graph)
-    #         # checkTree(root.left, graph)
-    #         # graph.add(root)
-    #         # checkTree(root.right, graph)
-
-    #     graph=[]
-    #     checkTree(top,graph)
-
-    #     def topologicalSortUtil(root, visited, stack):
-    #         if(root!=None and root.type!='BOOL' and root not in visited):
-    #             visited.add(root)
-    #             # [topologicalSortUtil(i,visited,stack) for i in(root.left, root.right)]
-    #             [topologicalSortUtil(i,visited,stack) for i in root.child]
-    #             stack.insert(0,root)
-
-    #     def topologicalSort(root, graph):
-    #         visited = set()
-    #         stack = []
-    #         [topologicalSortUtil(node,visited,stack) for node in graph]
-    #         return stack
-
-    #     stack = topologicalSort(top,graph)
-    #     return stack # parent to child
 
     # ###############################################################
     # # Assign the size for each queue
@@ -205,26 +169,6 @@ class Compiler():
     #     if filename == 'ft.asm':
     #         generate_scq_size_file() # run this function if you want to generate c SCQ configuration file
     #     return get_total_size()
-
-
-    # # Generate assembly code
-    # def mltl_gen_assembly(self, filename):
-    #     stack = self.valid_node_set[:]
-    #     stack.reverse()
-    #     s=""
-    #     if(len(stack)==0):
-    #         return s
-    #     for node in stack:
-    #         if (not (isinstance(node, Observer) or isinstance(node, STATEMENT))): # statement is used to generate the end command
-    #             continue
-    #         s = node.gen_assembly(s)
-    #     s = s+'s'+str(Observer.line_cnt)+': end sequence' # append the end command
-
-    #     if self.echo:
-    #         print(s)
-
-    #     with open(self.output_path+filename, 'w') as f:
-    #         f.write(s)
 
 
     # def at_gen_assembly(self, filename):

@@ -7,7 +7,8 @@ from .ast import *
 
 class Visitor(C2POVisitor):
     vars: dict[str,Type] = {}
-    # var_order: dict[Var,int]
+    defs: dict[str,EXPR] = {}
+    order: dict[str,int] = {}
     prog: PROGRAM
 
     # Visit a parse tree produced by C2POParser#start.
@@ -36,7 +37,17 @@ class Visitor(C2POVisitor):
     
     # Visit a parse tree produced by C2POParser#order_list.
     def visitOrder_list(self, ctx:C2POParser.Order_listContext):
-        return self.visitChildren(ctx)
+        var_list: list[str] = list(self.vars)
+        s_num: int = 0
+        id: TerminalNode
+        for id in ctx.IDENTIFIER():
+            if not id.getText() in var_list:
+                s_num += 1 # error?
+            elif id.getText() == '_':
+                s_num += 1
+            else:
+                self.order[id.getText()] = s_num
+                s_num += 1
 
 
     # Visit a parse tree produced by C2POParser#type.
@@ -44,11 +55,11 @@ class Visitor(C2POVisitor):
         text = ctx.getText()
 
         if text == 'bool':
-            return Type._BOOL
+            return Type.BOOL
         elif text == 'int':
-            return Type._INT
+            return Type.INT
         elif text == 'float':
-            return Type._FLOAT
+            return Type.FLOAT
         # elif ctx.KW_SET:
         #     return Type._SET
 
@@ -67,7 +78,9 @@ class Visitor(C2POVisitor):
 
     # Visit a parse tree produced by C2POParser#def_list.
     def visitDef_list(self, ctx:C2POParser.Def_listContext):
-        return self.visitChildren(ctx)
+        var: str = ctx.IDENTIFIER().getText()
+        expr: EXPR = self.visit(ctx.expr())
+        self.defs[var] = expr
 
 
     # Visit a parse tree produced by C2POParser#spec_block.
@@ -83,17 +96,28 @@ class Visitor(C2POVisitor):
             if s.IDENTIFIER():
                 spec_label = s.IDENTIFIER().getText()
             else:
-                spec_label = ""
+                spec_label = "s"+str(spec_num)
 
             spec_dict[(spec_num, spec_label)] = spec
             spec_num += 1
 
-        self.prog = PROGRAM(1, self.vars, spec_dict)
+        self.prog = PROGRAM(lineno=1, vars=self.vars, specs=spec_dict, order=self.order)
 
 
     # Visit a parse tree produced by C2POParser#spec.
     def visitSpec(self, ctx:C2POParser.SpecContext) -> SPEC:
-        return self.visit(ctx.expr())
+        lineno: int = ctx.start.line
+        expr: EXPR = self.visit(ctx.expr())
+        label: str = ''
+
+        # if spec has a label, can be referred to in other specs
+        # else, cannot be referred to later, do not store
+        if ctx.IDENTIFIER(): 
+            label = ctx.IDENTIFIER().getText()
+            self.defs[label] = expr
+
+        return SPEC(lineno=lineno, child=expr, name=label)
+
 
 
     # Visit a parse tree produced by C2POParser#LitExpr.
@@ -104,13 +128,14 @@ class Visitor(C2POVisitor):
             return ctx.log_lit().visit()
         elif ctx.IDENTIFIER():
             name: str = ctx.IDENTIFIER().getText()
-            return VAR(lineno, self.vars[name], name)
+            if name in list(self.defs):
+                return self.defs[name]
+            else:
+                return VAR(lineno=lineno, _type=self.vars[name], name=name)
         elif ctx.INT():
-            # TODO handle possible exception
-            return INT(lineno, Type._INT, int(ctx.INT().getText()))
+            return INT(lineno=lineno, val=int(ctx.INT().getText()))
         elif ctx.FLOAT():
-            # TODO handle possible exception
-            return FLOAT(lineno, Type._FLOAT, int(ctx.FLOAT().getText()))
+            return FLOAT(lineno=lineno, val=float(ctx.FLOAT().getText()))
         else:
             raise RuntimeError
 
@@ -120,9 +145,9 @@ class Visitor(C2POVisitor):
         lineno: int = ctx.start.line
 
         if ctx.TRUE():
-            return BOOL(lineno, Type._BOOL, True)
+            return BOOL(lineno=lineno, val=True)
         elif ctx.FALSE():
-            return BOOL(lineno, Type._BOOL, False)
+            return BOOL(lineno=lineno, val=False)
         else:
             raise RuntimeError
 
@@ -137,15 +162,15 @@ class Visitor(C2POVisitor):
         lineno: int = ctx.start.line
         lhs: EXPR = self.visit(ctx.expr(0))
         rhs: EXPR = self.visit(ctx.expr(1))
-        bounds: tuple[int,int] = self.visit(ctx.interval())
+        bounds: Interval = self.visit(ctx.interval())
 
         if ctx.tl_bin_op():
             if ctx.tl_bin_op().TL_UNTIL():
-                return TL_UNTIL(lineno, Type._NONE, lhs, rhs, bounds)
+                return TL_UNTIL(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
             elif ctx.tl_bin_op().TL_RELEASE():
-                return TL_RELEASE(lineno, Type._NONE, lhs, rhs, bounds)
+                return TL_RELEASE(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
             elif ctx.tl_bin_op().TL_SINCE():
-                return TL_SINCE(lineno, Type._NONE, lhs, rhs, bounds)
+                return TL_SINCE(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
             else:
                 raise RuntimeError
         else:
@@ -159,14 +184,14 @@ class Visitor(C2POVisitor):
         rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
-            return LOG_OR(lineno, Type._NONE, lhs, rhs)
+            return LOG_OR(lineno=lineno, lhs=lhs, rhs=rhs)
         elif ctx.LOG_AND():
-            return LOG_AND(lineno, Type._NONE, lhs, rhs)
+            return LOG_AND(lineno=lineno, lhs=lhs, rhs=rhs)
         elif ctx.LOG_XOR():
-            return LOG_AND(lineno, Type._NONE, LOG_OR(lineno, Type._NONE, lhs, rhs), 
-                                               LOG_NEG(lineno, Type._NONE, LOG_AND(lineno, Type._NONE, rhs,lhs)))
+            return LOG_AND(lineno=lineno, lhs=LOG_OR(lineno=lineno, lhs=lhs, rhs=rhs), 
+                                          rhs=LOG_NEG(lineno=lineno, operand=LOG_AND(lineno=lineno, lhs=lhs, rhs=rhs)))
         elif ctx.LOG_IMPL():
-            return LOG_OR(lineno, Type._NONE, LOG_NEG(lineno, Type._NONE, lhs), rhs)
+            return LOG_OR(lineno=lineno, lhs=LOG_NEG(lineno=lineno, operand=lhs), rhs=rhs)
         else:
             raise RuntimeError
 
@@ -179,25 +204,25 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#RelExpr.
     def visitRelExpr(self, ctx:C2POParser.RelExprContext) -> EXPR:
         lineno: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: LIT = self.visit(ctx.expr(0))
+        rhs: LIT = self.visit(ctx.expr(1))
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
-                return REL_EQ(lineno, Type._NONE, lhs, rhs)
+                return REL_EQ(lineno=lineno, lhs=lhs, rhs=rhs)
             elif ctx.rel_eq_op().REL_NEQ:
-                return REL_NEQ(lineno, Type._NONE, lhs, rhs)
+                return REL_NEQ(lineno=lineno, lhs=lhs, rhs=rhs)
             else:
                 raise RuntimeError
         elif ctx.rel_ineq_op():
             if ctx.rel_ineq_op().REL_GT():
-                return REL_GT(lineno, Type._NONE, lhs, rhs)
+                return REL_GT(lineno=lineno, lhs=lhs, rhs=rhs)
             elif ctx.rel_ineq_op().REL_LT():
-                return REL_LT(lineno, Type._NONE, lhs, rhs)
+                return REL_LT(lineno=lineno, lhs=lhs, rhs=rhs)
             elif ctx.rel_ineq_op().REL_GTE():
-                return REL_GTE(lineno, Type._NONE, lhs, rhs)
+                return REL_GTE(lineno=lineno, lhs=lhs, rhs=rhs)
             elif ctx.rel_ineq_op().REL_LTE():
-                return REL_LTE(lineno, Type._NONE, lhs, rhs)
+                return REL_LTE(lineno=lineno, lhs=lhs, rhs=rhs)
             else:
                 raise RuntimeError
         else:
@@ -218,17 +243,17 @@ class Visitor(C2POVisitor):
     def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext):
         lineno: int = ctx.start.line
         operand: EXPR = self.visit(ctx.expr())
-        bounds: tuple[int,int] = self.visit(ctx.interval())
+        bounds: Interval = self.visit(ctx.interval())
 
         if ctx.tl_unary_op():
             if ctx.tl_unary_op().TL_GLOBAL():
-                return TL_GLOBAL(lineno, Type._NONE, operand, bounds)
+                return TL_GLOBAL(lineno=lineno, operand=operand, interval=bounds)
             elif ctx.tl_unary_op().TL_FUTURE():
-                return TL_FUTURE(lineno, Type._NONE, operand, bounds)
+                return TL_FUTURE(lineno=lineno, operand=operand, interval=bounds)
             elif ctx.tl_unary_op().TL_HISTORICAL():
-                return TL_HISTORICAL(lineno, Type._NONE, operand, bounds)
+                return TL_HISTORICAL(lineno=lineno, operand=operand, interval=bounds)
             elif ctx.tl_unary_op().TL_ONCE():
-                return TL_ONCE(lineno, Type._NONE, operand, bounds)
+                return TL_ONCE(lineno=lineno, operand=operand, interval=bounds)
             else:
                 raise RuntimeError
         else:
@@ -242,9 +267,9 @@ class Visitor(C2POVisitor):
 
         if ctx.unary_op():
             if ctx.unary_op().LOG_NEG():
-                return LOG_NEG(lineno, Type._NONE, operand)
+                return LOG_NEG(lineno=lineno, operand=operand)
             elif ctx.unary_op().ARITH_NEG():
-                return ARITH_NEG(lineno, Type._NONE, operand)
+                return ARITH_NEG(lineno=lineno, operand=operand)
             else:
                 raise RuntimeError
         else:
@@ -259,7 +284,9 @@ class Visitor(C2POVisitor):
         # default configurations to choose from, also custom
         # e.g., no functions, only rel ops, rel ops and addition, etc.
         # each configuration will have its own canonical opcode definition
-        return self.visitChildren(ctx)
+
+        print("Functions not implemented.")
+        raise RuntimeError
 
 
     # Visit a parse tree produced by C2POParser#TernaryExpr.
@@ -273,16 +300,16 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#interval.
-    def visitInterval(self, ctx:C2POParser.IntervalContext) -> tuple[int,int]:
+    def visitInterval(self, ctx:C2POParser.IntervalContext) -> Interval:
         bounds = ctx.INT()
 
         if len(bounds) == 1:
             u: int = int(bounds[0].getText())
-            return (0,u)
+            return Interval(lb=0,ub=u)
         elif len(bounds) == 2:
             l: int = int(bounds[0].getText())
             u: int = int(bounds[1].getText())
-            return (l,u)
+            return Interval(lb=l,ub=u)
         else:
             raise RuntimeError
 
