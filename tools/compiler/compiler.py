@@ -30,15 +30,19 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
     for c in a.children:
         preorder(c,func)
 
-
+### TODO Question:
+### only reference to subformulas appears supported in the c version
+### -- why not only support this? do we forsee supporting direct
+### atomic/immediate loads?
 def assign_nid(a: AST) -> None:
     n = 0
 
     def assign_nid_util(a: AST) -> None:
         nonlocal n
 
+        # if a is const, skip
         if isinstance(a,CONST):
-            a.id = a.name
+            a.id = a.name[0]
             return
         
         # assign nid to nodes we have not seen

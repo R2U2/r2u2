@@ -22,9 +22,9 @@ def toBinary(value, width):
 
 def parseOperand(op):
 	c = ''
-	if(op=='True'):
+	if(op=='T'):
 		c = c + '01'+toBinary(1, 8)
-	elif(op=='False'):
+	elif(op=='F'):
 		c = c + '01'+toBinary(0, 8)
 	else:
 		o = op[0]
