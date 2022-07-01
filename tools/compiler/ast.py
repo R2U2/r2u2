@@ -9,6 +9,13 @@ class Type(Enum):
     INT = 2
     FLOAT = 3
 
+
+class FormulaType(Enum):
+    PROP = 0
+    FT = 1
+    PT = 2
+
+
 def to_str(t: Type) -> str:
     if t == Type.BOOL:
         return 'bool'
@@ -34,6 +41,7 @@ class AST():
         self.name: str = ''
         self.bpd: int = 0
         self.wpd: int = 0
+        self.formula_type = FormulaType.PROP
         self._type: Type = Type.NONE
         self.children: list[AST] = []
 
@@ -133,7 +141,13 @@ class ATOM(LIT):
         return super().asm() + 'load ' + self.name + '\n'
 
 
-class LOG_BIN_OP(EXPR):
+class LOG_OP(EXPR):
+
+    def __init__(self, c: list[AST]) -> None:
+        super().__init__(c)
+
+
+class LOG_BIN_OP(LOG_OP):
 
     def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
         super().__init__([lhs, rhs])
@@ -142,6 +156,17 @@ class LOG_BIN_OP(EXPR):
 
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+
+
+class LOG_UNARY_OP(LOG_OP):
+
+    def __init__(self, o: EXPR):
+        super().__init__([o])
+        self.bpd = o.bpd
+        self.wpd = o.wpd
+
+    def __str__(self) -> str:
+        return f'{self.name!s}({self.children[0]!s})'
 
 
 class REL_OP(EXPR):
@@ -171,11 +196,29 @@ class REL_OP(EXPR):
         return 'a' + str(a) + ': ' + to_str(self.children[0]._type) + ' ' + self.name + ' ' + a2 + ' ' + a1 + '\n'
 
 
-class TL_BIN_OP(EXPR):
+class TL_OP(EXPR):
+
+    def __init__(self, c: list[AST], l: int, u: int) -> None:
+        super().__init__(c)
+        self.interval = Interval(lb=l,ub=u)
+
+
+class TL_FT_OP(TL_OP):
+
+    def __init__(self, c: list[AST], l: int, u: int) -> None:
+        super().__init__(c, l, u)
+
+
+class TL_PT_OP(TL_OP):
+
+    def __init__(self, c: list[AST], l: int, u: int) -> None:
+        super().__init__(c, l, u)
+
+
+class TL_FT_BIN_OP(TL_FT_OP):
 
     def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__([lhs, rhs])
-        self.interval = Interval(lb=l,ub=u)
+        super().__init__([lhs, rhs], l, u)
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
@@ -183,21 +226,33 @@ class TL_BIN_OP(EXPR):
         return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
 
-class LOG_UNARY_OP(EXPR):
-
-    def __init__(self, o: EXPR):
-        super().__init__([o])
-        self.bpd = o.bpd
-        self.wpd = o.wpd
-
-    def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]!s})'
-
-
-class TL_UNARY_OP(EXPR):
+class TL_FT_UNARY_OP(TL_FT_OP):
 
     def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__([o])
+        super().__init__([o], l, u)
+        self.interval = Interval(lb=l,ub=u)
+        self.bpd = o.bpd + self.interval.lb
+        self.wpd = o.wpd + self.interval.ub
+
+    def __str__(self) -> str:
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
+
+
+class TL_PT_BIN_OP(TL_PT_OP):
+
+    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__([lhs, rhs], l, u)
+        self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
+        self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
+
+    def __str__(self) -> str:
+        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
+
+
+class TL_PT_UNARY_OP(TL_PT_OP):
+
+    def __init__(self, o: EXPR, l: int, u: int) -> None:
+        super().__init__([o], l, u)
         self.interval = Interval(lb=l,ub=u)
         self.bpd = o.bpd + self.interval.lb
         self.wpd = o.wpd + self.interval.ub
@@ -309,7 +364,7 @@ class REL_LTE(REL_OP):
         return super().__str__()
 
 
-class TL_UNTIL(TL_BIN_OP):
+class TL_UNTIL(TL_FT_BIN_OP):
 
     def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
         super().__init__(lhs, rhs, l, u)
@@ -325,7 +380,7 @@ class TL_UNTIL(TL_BIN_OP):
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
-class TL_RELEASE(TL_BIN_OP):
+class TL_RELEASE(TL_FT_BIN_OP):
 
     def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
         super().__init__(lhs, rhs, l, u)
@@ -341,7 +396,7 @@ class TL_RELEASE(TL_BIN_OP):
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
-class TL_SINCE(TL_BIN_OP):
+class TL_SINCE(TL_PT_BIN_OP):
 
     def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
         super().__init__(lhs, rhs, l, u)
@@ -371,7 +426,7 @@ class LOG_NEG(LOG_UNARY_OP):
         return super().asm() + 'not ' + operand.id
 
 
-class TL_GLOBAL(TL_UNARY_OP):
+class TL_GLOBAL(TL_FT_UNARY_OP):
 
     def __init__(self, o: EXPR, l: int, u: int) -> None:
         super().__init__(o, l, u)
@@ -386,7 +441,7 @@ class TL_GLOBAL(TL_UNARY_OP):
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
-class TL_FUTURE(TL_UNARY_OP):
+class TL_FUTURE(TL_FT_UNARY_OP):
 
     def __init__(self, o: EXPR, l: int, u: int) -> None:
         super().__init__(o, l, u)
@@ -401,7 +456,7 @@ class TL_FUTURE(TL_UNARY_OP):
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
-class TL_HISTORICAL(TL_UNARY_OP):
+class TL_HISTORICAL(TL_PT_UNARY_OP):
 
     def __init__(self, o: EXPR, l: int, u: int) -> None:
         super().__init__(o, l, u)
@@ -416,7 +471,7 @@ class TL_HISTORICAL(TL_UNARY_OP):
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
-class TL_ONCE(TL_UNARY_OP):
+class TL_ONCE(TL_PT_UNARY_OP):
     pass
 
 

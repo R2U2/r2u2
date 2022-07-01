@@ -1,8 +1,6 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
 ## Author: Chris Johannsen
 import os
-import shutil
-import argparse
 
 from antlr4 import InputStream, CommonTokenStream
 
@@ -76,6 +74,23 @@ def type_check(a: AST) -> bool:
 
     def type_check_util(a: AST) -> None: # TODO error messages
         nonlocal status
+        c: AST
+
+        # enforce no mixed-time formulas
+        if isinstance(a,TL_FT_OP):
+            for c in a.children:
+                status = status and c.formula_type != FormulaType.PT
+            a.formula_type = FormulaType.FT
+        elif isinstance(a,TL_PT_OP):
+            for c in a.children:
+                status = status and c.formula_type != FormulaType.FT
+            a.formula_type = FormulaType.PT
+        else:
+            # not a TL op, propagate formula type from children
+            for c in a.children:
+                if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
+                    a.formula_type = c.formula_type
+
 
         if isinstance(a,LIT) or isinstance(a,PROGRAM):
             pass
@@ -87,38 +102,17 @@ def type_check(a: AST) -> bool:
             # both operands must be literals of same type
             lhs = a.children[0]
             rhs = a.children[1]
-            if not isinstance(lhs,LIT) and isinstance(rhs,LIT):
-                status = False
-            if not lhs._type == rhs._type:
-                status = False
+            status = status and isinstance(lhs,LIT) and isinstance(rhs,LIT)
+            status = status and lhs._type == rhs._type
             a._type = Type.BOOL
-        elif isinstance(a,TERNARY_OP):
-            arg1 = a.children[0]
-            arg2 = a.children[1]
-            arg3 = a.children[2]
-            status = status and arg1._type == arg2._type == arg3._type
+        elif isinstance(a,LOG_OP):
+            for c in a.children:
+                status = status and c._type == Type.BOOL
             a._type = Type.BOOL
-        elif isinstance(a,TL_BIN_OP):
-            lhs = a.children[0]
-            rhs = a.children[1]
-            status = status and lhs._type == Type.BOOL
-            status = status and rhs._type == Type.BOOL
+        elif isinstance(a,TL_OP):
+            for c in a.children:
+                status = status and c._type == Type.BOOL
             status = status and a.interval.lb <= a.interval.ub
-            a._type = Type.BOOL
-        elif isinstance(a,TL_UNARY_OP):
-            operand = a.children[0]
-            status = status and operand._type == Type.BOOL
-            status = status and a.interval.lb <= a.interval.ub
-            a._type = Type.BOOL
-        elif isinstance(a,LOG_BIN_OP):
-            lhs = a.children[0]
-            rhs = a.children[1]
-            status = status and lhs._type == Type.BOOL
-            status = status and rhs._type == Type.BOOL
-            a._type = Type.BOOL
-        elif isinstance(a,LOG_UNARY_OP):
-            operand = a.children[0]
-            status = status and operand._type == Type.BOOL
             a._type = Type.BOOL
         else:
             status = False
@@ -235,7 +229,8 @@ def gen_scq_assembly(a: AST) -> str:
 
 def gen_assembly(a: PROGRAM) -> list[str]:
     if not type_check(a):
-        return ['','n0: end sequence','n0: end sequence']
+        print('failed type check')
+        return ['','n0: end sequence','n0: end sequence','']
 
     assign_sid(a)
     optimize_cse(a)
