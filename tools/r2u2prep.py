@@ -12,7 +12,7 @@ import shutil
 import re
 import argparse
 
-from compiler.compiler import Compiler
+from compiler.compiler import compile
 
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
@@ -36,13 +36,14 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    mltl_compiler = Compiler(args.output_dir, MLTL)
+    compile(MLTL, args.output_dir)
+
+    return
     # mltl_compiler.preprocess()
 
     print('************************** FT ASM **************************')
 
     mltl_compiler.compile()
-    return
 
     print('************************** PT ASM **************************')
 
