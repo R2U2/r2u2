@@ -14,11 +14,6 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#block.
-    def visitBlock(self, ctx:C2POParser.BlockContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by C2POParser#var_block.
     def visitVar_block(self, ctx:C2POParser.Var_blockContext):
         return self.visitChildren(ctx)

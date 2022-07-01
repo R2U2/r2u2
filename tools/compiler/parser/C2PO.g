@@ -7,12 +7,7 @@
 
 grammar C2PO;
 
-start: block*;
-
-block: var_block
-     | def_block
-     | spec_block
-     ;
+start: (var_block | def_block | spec_block)* ;
 
 var_block: KW_VAR var_list+ order_list ;
 var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;

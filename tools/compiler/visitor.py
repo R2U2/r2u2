@@ -6,19 +6,26 @@ from .parser.C2POParser import C2POParser
 from .ast import *
 
 class Visitor(C2POVisitor):
-    vars: dict[str,Type] = {}
-    defs: dict[str,EXPR] = {}
-    order: dict[str,int] = {}
-    prog: PROGRAM
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.vars: dict[str,Type] = {}
+        self.defs: dict[str,EXPR] = {}
+        self.order: dict[str,int] = {}
+        self.spec_num: int = 0
+        
 
     # Visit a parse tree produced by C2POParser#start.
-    def visitStart(self, ctx:C2POParser.StartContext) -> None:
-        return self.visitChildren(ctx)
+    def visitStart(self, ctx:C2POParser.StartContext) -> list[PROGRAM]:
+        for v in ctx.var_block():
+            self.visit(v)
+        for d in ctx.def_block():
+            self.visit(d)
 
-
-    # Visit a parse tree produced by C2POParser#block.
-    def visitBlock(self, ctx:C2POParser.BlockContext) -> None:
-        return self.visitChildren(ctx)
+        ret: list[PROGRAM] = []
+        for s in ctx.spec_block():
+            ret.append(self.visit(s))
+        return ret
 
 
     # Visit a parse tree produced by C2POParser#var_block.
@@ -38,16 +45,16 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#order_list.
     def visitOrder_list(self, ctx:C2POParser.Order_listContext):
         var_list: list[str] = list(self.vars)
-        s_num: int = 0
+        sid: int = 0
         id: TerminalNode
         for id in ctx.IDENTIFIER():
             if not id.getText() in var_list:
-                s_num += 1 # error?
+                sid += 1 # error?
             elif id.getText() == '_':
-                s_num += 1
+                sid += 1
             else:
-                self.order[id.getText()] = s_num
-                s_num += 1
+                self.order[id.getText()] = sid
+                sid += 1
 
 
     # Visit a parse tree produced by C2POParser#type.
@@ -84,11 +91,12 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#spec_block.
-    def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> None:
+    def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> PROGRAM:
         spec: SPEC
         spec_label: str
-        spec_num: int = 0
         spec_dict: dict[tuple[int,str],SPEC] = {}
+
+        self.spec_num = 0
 
         for s in ctx.spec():
             spec = self.visit(s)
@@ -96,12 +104,12 @@ class Visitor(C2POVisitor):
             if s.IDENTIFIER():
                 spec_label = s.IDENTIFIER().getText()
             else:
-                spec_label = "s"+str(spec_num)
+                spec_label = "s"+str(self.spec_num)
 
-            spec_dict[(spec_num, spec_label)] = spec
-            spec_num += 1
+            spec_dict[(self.spec_num, spec_label)] = spec
+            self.spec_num += 1
 
-        self.prog = PROGRAM(lineno=1, vars=self.vars, specs=spec_dict, order=self.order)
+        return PROGRAM(spec_dict,self.order)
 
 
     # Visit a parse tree produced by C2POParser#spec.
@@ -116,7 +124,7 @@ class Visitor(C2POVisitor):
             label = ctx.IDENTIFIER().getText()
             self.defs[label] = expr
 
-        return SPEC(lineno=lineno, child=expr, name=label)
+        return SPEC(label, self.spec_num, expr)
 
 
 
@@ -131,11 +139,11 @@ class Visitor(C2POVisitor):
             if name in list(self.defs):
                 return self.defs[name]
             else:
-                return VAR(lineno=lineno, _type=self.vars[name], name=name)
+                return VAR(name, self.vars[name])
         elif ctx.INT():
-            return INT(lineno=lineno, val=int(ctx.INT().getText()))
+            return INT(int(ctx.INT().getText()))
         elif ctx.FLOAT():
-            return FLOAT(lineno=lineno, val=float(ctx.FLOAT().getText()))
+            return FLOAT(float(ctx.FLOAT().getText()))
         else:
             raise RuntimeError
 
@@ -145,9 +153,9 @@ class Visitor(C2POVisitor):
         lineno: int = ctx.start.line
 
         if ctx.TRUE():
-            return BOOL(lineno=lineno, val=True)
+            return BOOL(True)
         elif ctx.FALSE():
-            return BOOL(lineno=lineno, val=False)
+            return BOOL(False)
         else:
             raise RuntimeError
 
@@ -166,11 +174,11 @@ class Visitor(C2POVisitor):
 
         if ctx.tl_bin_op():
             if ctx.tl_bin_op().TL_UNTIL():
-                return TL_UNTIL(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
+                return TL_UNTIL(lhs, rhs, bounds.lb, bounds.ub)
             elif ctx.tl_bin_op().TL_RELEASE():
-                return TL_RELEASE(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
+                return LOG_NEG(TL_RELEASE(LOG_NEG(lhs), LOG_NEG(rhs), bounds.lb, bounds.ub))
             elif ctx.tl_bin_op().TL_SINCE():
-                return TL_SINCE(lineno=lineno, lhs=lhs, rhs=rhs, interval=bounds)
+                return TL_SINCE(lhs, rhs, bounds.lb, bounds.ub)
             else:
                 raise RuntimeError
         else:
@@ -184,14 +192,13 @@ class Visitor(C2POVisitor):
         rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
-            return LOG_OR(lineno=lineno, lhs=lhs, rhs=rhs)
+            return LOG_NEG(LOG_AND(LOG_NEG(lhs), LOG_NEG(rhs)))
         elif ctx.LOG_AND():
-            return LOG_AND(lineno=lineno, lhs=lhs, rhs=rhs)
+            return LOG_AND(lhs, rhs)
         elif ctx.LOG_XOR():
-            return LOG_AND(lineno=lineno, lhs=LOG_OR(lineno=lineno, lhs=lhs, rhs=rhs), 
-                                          rhs=LOG_NEG(lineno=lineno, operand=LOG_AND(lineno=lineno, lhs=lhs, rhs=rhs)))
+            return LOG_AND(LOG_NEG(LOG_AND(LOG_NEG(lhs), LOG_NEG(rhs))), LOG_NEG(LOG_AND(lhs, rhs)))
         elif ctx.LOG_IMPL():
-            return LOG_OR(lineno=lineno, lhs=LOG_NEG(lineno=lineno, operand=lhs), rhs=rhs)
+            return LOG_NEG(LOG_AND(lhs, LOG_NEG(rhs)))
         else:
             raise RuntimeError
 
@@ -209,20 +216,20 @@ class Visitor(C2POVisitor):
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
-                return REL_EQ(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_EQ(lhs, rhs)
             elif ctx.rel_eq_op().REL_NEQ:
-                return REL_NEQ(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_NEQ(lhs, rhs)
             else:
                 raise RuntimeError
         elif ctx.rel_ineq_op():
             if ctx.rel_ineq_op().REL_GT():
-                return REL_GT(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_GT(lhs, rhs)
             elif ctx.rel_ineq_op().REL_LT():
-                return REL_LT(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_LT(lhs, rhs)
             elif ctx.rel_ineq_op().REL_GTE():
-                return REL_GTE(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_GTE(lhs, rhs)
             elif ctx.rel_ineq_op().REL_LTE():
-                return REL_LTE(lineno=lineno, lhs=lhs, rhs=rhs)
+                return REL_LTE(lhs, rhs)
             else:
                 raise RuntimeError
         else:
@@ -247,13 +254,13 @@ class Visitor(C2POVisitor):
 
         if ctx.tl_unary_op():
             if ctx.tl_unary_op().TL_GLOBAL():
-                return TL_GLOBAL(lineno=lineno, operand=operand, interval=bounds)
+                return TL_GLOBAL(operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_FUTURE():
-                return TL_FUTURE(lineno=lineno, operand=operand, interval=bounds)
+                return TL_UNTIL(BOOL(True), operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_HISTORICAL():
-                return TL_HISTORICAL(lineno=lineno, operand=operand, interval=bounds)
+                return TL_HISTORICAL(operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_ONCE():
-                return TL_ONCE(lineno=lineno, operand=operand, interval=bounds)
+                return TL_ONCE(operand, bounds.lb, bounds.ub)
             else:
                 raise RuntimeError
         else:
@@ -265,13 +272,8 @@ class Visitor(C2POVisitor):
         lineno: int = ctx.start.line
         operand: EXPR = self.visit(ctx.expr())
 
-        if ctx.unary_op():
-            if ctx.unary_op().LOG_NEG():
-                return LOG_NEG(lineno=lineno, operand=operand)
-            elif ctx.unary_op().ARITH_NEG():
-                return ARITH_NEG(lineno=lineno, operand=operand)
-            else:
-                raise RuntimeError
+        if ctx.unary_op().LOG_NEG():
+            return LOG_NEG(operand)
         else:
             raise RuntimeError
 

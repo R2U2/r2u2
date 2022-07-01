@@ -52,7 +52,7 @@ def parse_config(filename):
         value = v[1]
         #check variable name and add variable and value to dictionary is acceptable
         if varname in data.keys():
-            data[varname] = value
+            data[varname] = int(value)
         else:
             print("Error: Invalid variable name %s" % (str(varname)))
 

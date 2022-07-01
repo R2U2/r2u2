@@ -39,6 +39,9 @@ def toBinary(value, width):
 		# https://www.geeksforgeeks.org/ieee-standard-754-floating-point-numbers/
 
 		# set up constants for widths
+		bias = 0
+		exp_width = 0
+		mantissa_width = 0
 		if(width == 32):
 			bias = 127
 			exp_width = 8
@@ -82,7 +85,7 @@ def toBinary(value, width):
 		mantissa = ''
 		for val in range(0, mantissa_width):
 			if(str(value) == '0'):
-				mantissa += 0
+				mantissa += '0'
 			elif(str(value) == '1'):
 				mantissa += '1'
 				value = 0
