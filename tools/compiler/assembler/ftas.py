@@ -2,6 +2,10 @@
 import os
 import sys
 import re
+from logging import getLogger
+
+logger = getLogger('c2po_logger')
+
 # usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
 #from config import TIMESTAMP_BYTE_extend_byte
 
@@ -182,7 +186,7 @@ char *ftm_bin = "
 '''.strip()
 
 def assemble_ft(ftasm, ftscqasm, ts_ext, gen_dir, no_binaries):
-	print('Assembling FT')
+	logger.info(f' Assembling FT\n\tWritten to {gen_dir}/binary_files/ft.bin')
 
 	with open(ftasm, 'r') as file:
 		f = file.read()

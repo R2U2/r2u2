@@ -44,8 +44,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#def_list.
-    def visitDef_list(self, ctx:C2POParser.Def_listContext):
+    # Visit a parse tree produced by C2POParser#def.
+    def visitDef(self, ctx:C2POParser.DefContext):
         return self.visitChildren(ctx)
 
 

@@ -2,6 +2,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, NamedTuple, cast
+from logging import getLogger
+
+from .util import *
+
+logger = getLogger(logger_name)
 
 class Type(Enum):
     NONE = 0
@@ -34,7 +39,8 @@ class Interval(NamedTuple):
 
 class AST():
 
-    def __init__(self, c: list[AST]) -> None:
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        self.ln: int = ln
         self.nid: int = -1
         self.id: str = str(self.nid)
         self.scq_size: int = -1
@@ -55,28 +61,28 @@ class AST():
 
 class EXPR(AST):
 
-    def __init__(self, c: list[AST]) -> None:
-        super().__init__(c)
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
 
 
 class LIT(EXPR):  
 
-    def __init__(self) -> None:
-        super().__init__([])
+    def __init__(self, ln: int) -> None:
+        super().__init__(ln,[])
 
 
 class CONST(LIT):
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, ln: int) -> None:
+        super().__init__(ln)
         self.bpd: int = 0
         self.wpd: int = 0
 
 
 class BOOL(CONST):
     
-    def __init__(self, v: bool) -> None:
-        super().__init__()
+    def __init__(self, ln: int, v: bool) -> None:
+        super().__init__(ln)
         self._type = Type.BOOL
         self.val: bool = v
         self.name = str(v)
@@ -87,8 +93,8 @@ class BOOL(CONST):
 
 class INT(CONST):
     
-    def __init__(self, v: int) -> None:
-        super().__init__()
+    def __init__(self, ln: int, v: int) -> None:
+        super().__init__(ln)
         self._type = Type.INT
         self.val: int = v
         self.name = str(v)
@@ -99,8 +105,8 @@ class INT(CONST):
 
 class FLOAT(CONST):
     
-    def __init__(self, v: float) -> None:
-        super().__init__()
+    def __init__(self, ln: int, v: float) -> None:
+        super().__init__(ln)
         self._type = Type.FLOAT
         self.val: float = v
         self.name = str(v)
@@ -111,8 +117,8 @@ class FLOAT(CONST):
 
 class VAR(LIT):
     
-    def __init__(self, n: str, t: Type) -> None:
-        super().__init__()
+    def __init__(self, ln: int, n: str, t: Type) -> None:
+        super().__init__(ln,)
         self.name: str = n
         self._type: Type = t
         self.sid = -1
@@ -126,8 +132,8 @@ class VAR(LIT):
 
 class ATOM(LIT):
     
-    def __init__(self, n: str, a: int) -> None:
-        super().__init__()
+    def __init__(self, ln: int, n: str, a: int) -> None:
+        super().__init__(ln,)
         self._type: Type = Type.BOOL
         self.bpd: int = 0
         self.wpd: int = 0
@@ -143,14 +149,14 @@ class ATOM(LIT):
 
 class LOG_OP(EXPR):
 
-    def __init__(self, c: list[AST]) -> None:
-        super().__init__(c)
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
 
 
 class LOG_BIN_OP(LOG_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__([lhs, rhs])
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln,[lhs, rhs])
         self.bpd = min(lhs.bpd, rhs.bpd)
         self.wpd = max(lhs.wpd, rhs.wpd)
 
@@ -160,8 +166,8 @@ class LOG_BIN_OP(LOG_OP):
 
 class LOG_UNARY_OP(LOG_OP):
 
-    def __init__(self, o: EXPR):
-        super().__init__([o])
+    def __init__(self, ln: int, o: EXPR):
+        super().__init__(ln,[o])
         self.bpd = o.bpd
         self.wpd = o.wpd
 
@@ -171,8 +177,8 @@ class LOG_UNARY_OP(LOG_OP):
 
 class REL_OP(EXPR):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__([lhs, rhs])
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
@@ -198,27 +204,27 @@ class REL_OP(EXPR):
 
 class TL_OP(EXPR):
 
-    def __init__(self, c: list[AST], l: int, u: int) -> None:
-        super().__init__(c)
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln,c)
         self.interval = Interval(lb=l,ub=u)
 
 
 class TL_FT_OP(TL_OP):
 
-    def __init__(self, c: list[AST], l: int, u: int) -> None:
-        super().__init__(c, l, u)
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln,c,l,u)
 
 
 class TL_PT_OP(TL_OP):
 
-    def __init__(self, c: list[AST], l: int, u: int) -> None:
-        super().__init__(c, l, u)
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln,c,l,u)
 
 
 class TL_FT_BIN_OP(TL_FT_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__([lhs, rhs], l, u)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__(ln,[lhs,rhs],l,u)
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
@@ -228,8 +234,8 @@ class TL_FT_BIN_OP(TL_FT_OP):
 
 class TL_FT_UNARY_OP(TL_FT_OP):
 
-    def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__([o], l, u)
+    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
         self.bpd = o.bpd + self.interval.lb
         self.wpd = o.wpd + self.interval.ub
@@ -240,8 +246,8 @@ class TL_FT_UNARY_OP(TL_FT_OP):
 
 class TL_PT_BIN_OP(TL_PT_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__([lhs, rhs], l, u)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, [lhs, rhs], l, u)
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
@@ -251,8 +257,8 @@ class TL_PT_BIN_OP(TL_PT_OP):
 
 class TL_PT_UNARY_OP(TL_PT_OP):
 
-    def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__([o], l, u)
+    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
         self.bpd = o.bpd + self.interval.lb
         self.wpd = o.wpd + self.interval.ub
@@ -263,8 +269,8 @@ class TL_PT_UNARY_OP(TL_PT_OP):
 
 class TERNARY_OP(EXPR):
 
-    def __init__(self, arg1: EXPR , arg2: EXPR, arg3: EXPR) -> None:
-        super().__init__([arg1,arg2,arg3])
+    def __init__(self, ln: int, arg1: EXPR , arg2: EXPR, arg3: EXPR) -> None:
+        super().__init__(ln, [arg1,arg2,arg3])
         self.name: str = 'ite'
 
     def __str__(self) -> str:
@@ -276,8 +282,8 @@ class TERNARY_OP(EXPR):
 
 class LOG_OR(LOG_BIN_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '||'
 
     def __str__(self) -> str:
@@ -291,8 +297,8 @@ class LOG_OR(LOG_BIN_OP):
 
 class LOG_AND(LOG_BIN_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '||'
 
     def __str__(self) -> str:
@@ -306,8 +312,8 @@ class LOG_AND(LOG_BIN_OP):
 
 class REL_EQ(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '=='
 
     def __str__(self) -> str:
@@ -316,8 +322,8 @@ class REL_EQ(REL_OP):
 
 class REL_NEQ(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '!='
 
     def __str__(self) -> str:
@@ -326,8 +332,8 @@ class REL_NEQ(REL_OP):
 
 class REL_GT(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '>'
 
     def __str__(self) -> str:
@@ -336,8 +342,8 @@ class REL_GT(REL_OP):
 
 class REL_LT(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '<'
 
     def __str__(self) -> str:
@@ -346,8 +352,8 @@ class REL_LT(REL_OP):
 
 class REL_GTE(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '>='
 
     def __str__(self) -> str:
@@ -356,8 +362,8 @@ class REL_GTE(REL_OP):
 
 class REL_LTE(REL_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR) -> None:
-        super().__init__(lhs, rhs)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+        super().__init__(ln, lhs, rhs)
         self.name: str = '<='
 
     def __str__(self) -> str:
@@ -366,8 +372,8 @@ class REL_LTE(REL_OP):
 
 class TL_UNTIL(TL_FT_BIN_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__(lhs, rhs, l, u)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'U'
 
     def __str__(self) -> str:
@@ -382,8 +388,8 @@ class TL_UNTIL(TL_FT_BIN_OP):
 
 class TL_RELEASE(TL_FT_BIN_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__(lhs, rhs, l, u)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'R'
 
     def __str__(self) -> str:
@@ -398,8 +404,8 @@ class TL_RELEASE(TL_FT_BIN_OP):
 
 class TL_SINCE(TL_PT_BIN_OP):
 
-    def __init__(self, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
-        super().__init__(lhs, rhs, l, u)
+    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'S'
 
     def __str__(self) -> str:
@@ -414,8 +420,8 @@ class TL_SINCE(TL_PT_BIN_OP):
 
 class LOG_NEG(LOG_UNARY_OP):
 
-    def __init__(self, o: EXPR):
-        super().__init__(o)
+    def __init__(self, ln: int, o: EXPR):
+        super().__init__(ln, o)
         self.name: str = '!'
 
     def __str__(self) -> str:
@@ -428,8 +434,8 @@ class LOG_NEG(LOG_UNARY_OP):
 
 class TL_GLOBAL(TL_FT_UNARY_OP):
 
-    def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__(o, l, u)
+    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
         self.name: str = 'G'
 
     def __str__(self) -> str:
@@ -443,8 +449,8 @@ class TL_GLOBAL(TL_FT_UNARY_OP):
 
 class TL_FUTURE(TL_FT_UNARY_OP):
 
-    def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__(o, l, u)
+    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
         self.name: str = 'F'
 
     def __str__(self) -> str:
@@ -458,8 +464,8 @@ class TL_FUTURE(TL_FT_UNARY_OP):
 
 class TL_HISTORICAL(TL_PT_UNARY_OP):
 
-    def __init__(self, o: EXPR, l: int, u: int) -> None:
-        super().__init__(o, l, u)
+    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
         self.name: str = 'H'
 
     def __str__(self) -> str:
@@ -477,8 +483,8 @@ class TL_ONCE(TL_PT_UNARY_OP):
 
 class SPEC(AST):
     
-    def __init__(self, lbl: str, f: int, e: EXPR) -> None:
-        super().__init__([e])
+    def __init__(self, ln: int, lbl: str, f: int, e: EXPR) -> None:
+        super().__init__(ln, [e])
         self.name: str = lbl
         self.fnum = f
 
@@ -492,8 +498,8 @@ class SPEC(AST):
 
 class PROGRAM(AST):
 
-    def __init__(self, s: dict[tuple[int,str],SPEC], o: dict[str,int]) -> None:
-        super().__init__(list(s.values()))
+    def __init__(self, ln: int, s: dict[int,SPEC], o: dict[str,int]) -> None:
+        super().__init__(ln, list(s.values()))
         self.order = o
 
     def __str__(self) -> str:

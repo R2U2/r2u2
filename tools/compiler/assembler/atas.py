@@ -1,10 +1,13 @@
 import sys
 import os
 import re
+from logging import getLogger
 
 from .config import data
 from .util import toBinary
 from .filters import parse_filter, valid_filters
+
+logger = getLogger('c2po_logger')
 
 def assemble(f):
 
@@ -93,7 +96,8 @@ char *at_bin = "
 
 
 def assemble_at(atasm, gen_dir, no_binaries):
-	print('Assembling AT')
+	logger.info(f' Assembling AT\n\tWritten to {gen_dir}/binary_files/at.bin')
+	
 	f = open(atasm, 'r')
 	bin_dir = gen_dir+'binary_files/'
 	if(not os.path.isdir(bin_dir)):

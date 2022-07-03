@@ -141,7 +141,7 @@ class C2POParser ( Parser ):
     RULE_type = 4
     RULE_set_param = 5
     RULE_def_block = 6
-    RULE_def_list = 7
+    RULE_def = 7
     RULE_spec_block = 8
     RULE_spec = 9
     RULE_expr = 10
@@ -157,7 +157,7 @@ class C2POParser ( Parser ):
     RULE_arith_mul_op = 20
 
     ruleNames =  [ "start", "var_block", "var_list", "order_list", "type", 
-                   "set_param", "def_block", "def_list", "spec_block", "spec", 
+                   "set_param", "def_block", "def", "spec_block", "spec", 
                    "expr", "set_expr", "interval", "log_lit", "unary_op", 
                    "tl_unary_op", "tl_bin_op", "rel_eq_op", "rel_ineq_op", 
                    "arith_add_op", "arith_mul_op" ]
@@ -659,11 +659,11 @@ class C2POParser ( Parser ):
         def KW_DEF(self):
             return self.getToken(C2POParser.KW_DEF, 0)
 
-        def def_list(self, i:int=None):
+        def def_(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(C2POParser.Def_listContext)
+                return self.getTypedRuleContexts(C2POParser.DefContext)
             else:
-                return self.getTypedRuleContext(C2POParser.Def_listContext,i)
+                return self.getTypedRuleContext(C2POParser.DefContext,i)
 
 
         def getRuleIndex(self):
@@ -692,7 +692,7 @@ class C2POParser ( Parser ):
             _la = self._input.LA(1)
             while True:
                 self.state = 96
-                self.def_list()
+                self.def_()
                 self.state = 99 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
@@ -708,7 +708,7 @@ class C2POParser ( Parser ):
         return localctx
 
 
-    class Def_listContext(ParserRuleContext):
+    class DefContext(ParserRuleContext):
         __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
@@ -723,21 +723,21 @@ class C2POParser ( Parser ):
 
 
         def getRuleIndex(self):
-            return C2POParser.RULE_def_list
+            return C2POParser.RULE_def
 
         def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitDef_list" ):
-                return visitor.visitDef_list(self)
+            if hasattr( visitor, "visitDef" ):
+                return visitor.visitDef(self)
             else:
                 return visitor.visitChildren(self)
 
 
 
 
-    def def_list(self):
+    def def_(self):
 
-        localctx = C2POParser.Def_listContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 14, self.RULE_def_list)
+        localctx = C2POParser.DefContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 14, self.RULE_def)
         try:
             self.enterOuterAlt(localctx, 1)
             self.state = 101

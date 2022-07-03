@@ -21,8 +21,8 @@ set_param: '⟨' BASE_TYPE '⟩'
          | REL_LT BASE_TYPE REL_GT
          ;
 
-def_block: KW_DEF def_list+ ;
-def_list: IDENTIFIER '=' expr ';' ;
+def_block: KW_DEF def+ ;
+def: IDENTIFIER '=' expr ';' ;
 
 spec_block: KW_SPEC spec+ ;
 spec: (IDENTIFIER ':')? expr ';' ;

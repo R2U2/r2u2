@@ -158,7 +158,7 @@ order_list
 type
 set_param
 def_block
-def_list
+def
 spec_block
 spec
 expr

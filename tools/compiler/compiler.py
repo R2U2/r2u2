@@ -1,7 +1,7 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
 ## Author: Chris Johannsen
 import os
-
+from logging import getLogger
 from antlr4 import InputStream, CommonTokenStream
 
 from .ast import *
@@ -11,9 +11,11 @@ from .visitor import Visitor
 from .assembler.atas import assemble_at
 from .assembler.ftas import assemble_ft
 from .assembler.ptas import assemble_pt
+from .util import *
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
+logger = getLogger(logger_name)
 
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
     c: AST
@@ -27,6 +29,7 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
     c: AST
     for c in a.children:
         preorder(c,func)
+
 
 ### TODO Question:
 ### only reference to subformulas appears supported in the c version
@@ -53,8 +56,8 @@ def assign_nid(a: AST) -> None:
     postorder(a,assign_nid_util)
 
 
-def assign_sid(a: PROGRAM) -> None:
-    order: dict[str,int] = a.order
+def assign_sid(prog: PROGRAM) -> None:
+    order: dict[str,int] = prog.order
 
     def assign_sid_util(a: AST) -> None:
         nonlocal order
@@ -64,12 +67,12 @@ def assign_sid(a: PROGRAM) -> None:
             if b.name in list(order):
                 b.sid = order[b.name]
             else:
-                raise RuntimeError('Referenced signal not defined')
+                logger.error('%d: Signal \'%s\' referenced but not defined in Order', b.name)
 
-    postorder(a,assign_sid_util)
+    postorder(prog,assign_sid_util)
 
 
-def type_check(a: AST) -> bool:
+def type_check(prog: AST) -> bool:
     status: bool = True
 
     def type_check_util(a: AST) -> None: # TODO error messages
@@ -79,11 +82,15 @@ def type_check(a: AST) -> bool:
         # enforce no mixed-time formulas
         if isinstance(a,TL_FT_OP):
             for c in a.children:
-                status = status and c.formula_type != FormulaType.PT
+                if c.formula_type == FormulaType.PT:
+                    status = False
+                    logger.error('%d: Mixed-time (sub)formula detected\n\t%s', a.ln, a)
             a.formula_type = FormulaType.FT
         elif isinstance(a,TL_PT_OP):
             for c in a.children:
-                status = status and c.formula_type != FormulaType.FT
+                if c.formula_type == FormulaType.FT:
+                    status = False
+                    logger.error('%d: Mixed-time (sub)formula detected\n\t%s', a.ln, a)
             a.formula_type = FormulaType.PT
         else:
             # not a TL op, propagate formula type from children
@@ -96,32 +103,47 @@ def type_check(a: AST) -> bool:
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
+
             if not child._type == Type.BOOL:
                 status = False
+                logger.error('%d: Specification must be of boolean type\n\t%s', a.ln, a)
         elif isinstance(a,REL_OP):
             # both operands must be literals of same type
             lhs = a.children[0]
             rhs = a.children[1]
-            status = status and isinstance(lhs,LIT) and isinstance(rhs,LIT)
-            status = status and lhs._type == rhs._type
+
+            if not isinstance(lhs,LIT) or not isinstance(rhs,LIT):
+                status = False
+                logger.error('%d: Operands for relation operator must be literals\n\t%s', a.ln, a)
+
+            if lhs._type != rhs._type:
+                status = False
+                logger.error('%d: Operands for relation operator must be of same type\n\t%s', a.ln, a)
+
             a._type = Type.BOOL
         elif isinstance(a,LOG_OP):
             for c in a.children:
-                status = status and c._type == Type.BOOL
+                if c._type != Type.BOOL:
+                    status = False
+                    logger.error('%d: Operands for logical operator must be of boolean type\n\t%s', a.ln, a)
+
             a._type = Type.BOOL
         elif isinstance(a,TL_OP):
             for c in a.children:
-                status = status and c._type == Type.BOOL
+                if c._type != Type.BOOL:
+                    status = False
+                    logger.error('%d: Operands for TL operator must be of boolean type\n\t%s', a.ln, a)
+
             status = status and a.interval.lb <= a.interval.ub
             a._type = Type.BOOL
         else:
             status = False
 
-    postorder(a,type_check_util)
+    postorder(prog,type_check_util)
     return status
 
 
-def optimize_cse(a: PROGRAM) -> None:
+def optimize_cse(prog: PROGRAM) -> None:
     S: dict[str,AST] = {}
     
     def optimize_cse(a: AST) -> None:
@@ -137,15 +159,16 @@ def optimize_cse(a: PROGRAM) -> None:
             else:
                 S[i] = a.children[c]
             
-    postorder(a,optimize_cse)
+    postorder(prog,optimize_cse)
 
 
-def gen_atomic_asm(a: PROGRAM) -> str:
-    if not type_check(a):
-        return ''
+def gen_atomic_asm(prog: PROGRAM) -> str:
+    if not type_check(prog):
+        logger.error(' Failed type check')
+        exit()
 
     s: str = ''
-    visited: dict[int,ATOM] = {}
+    visited: dict[int,AST] = {}
     a_num: int = 0
 
     def gen_atomic_asm_util(a: AST) -> None:
@@ -165,27 +188,24 @@ def gen_atomic_asm(a: PROGRAM) -> str:
                 if i in list(visited):
                     a.children[c] = visited[i]
                 else:
-                    tmp = cast(REL_OP,child)
-                    s += tmp.asm(a_num)
-                    visited[i] = ATOM('a'+str(a_num),a_num)
-                    a.children[c] = visited[i]
+                    s += child.asm(a_num)
+                    a.children[c] = ATOM(child.ln, 'a'+str(a_num), a_num)
+                    visited[i] = a.children[c]
                     a_num += 1
             elif isinstance(child,VAR): 
                 if i in list(visited):
                     a.children[c] = visited[i]
                 else:
-                    tmp = cast(VAR,child)
-                    s += tmp.asm(a_num)
-                    tmp = ATOM('a'+str(a_num),a_num)
-                    visited[i] = tmp
-                    a.children[c] = tmp
+                    s += child.asm(a_num)
+                    a.children[c] = ATOM(child.ln, 'a'+str(a_num), a_num)
+                    visited[i] = a.children[c]
                     a_num += 1
 
-    preorder(a,gen_atomic_asm_util)
+    preorder(prog,gen_atomic_asm_util)
     return s
 
 
-def compute_scq_size(a: AST) -> None:
+def compute_scq_size(prog: PROGRAM) -> None:
     
     def compute_scq_size_util(a: AST) -> None:
         if isinstance(a, PROGRAM):
@@ -202,14 +222,14 @@ def compute_scq_size(a: AST) -> None:
         for c in a.children:
             c.scq_size = max(wpd-c.bpd,0)+3 # +3 b/c of some bug -- ask Brian
 
-    preorder(a,compute_scq_size_util)
+    preorder(prog,compute_scq_size_util)
 
 
-def gen_scq_assembly(a: AST) -> str:
+def gen_scq_assembly(prog: PROGRAM) -> str:
     s: str = ''
     pos: int = 0
 
-    compute_scq_size(a)
+    compute_scq_size(prog)
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal s
@@ -223,21 +243,21 @@ def gen_scq_assembly(a: AST) -> str:
         pos = end_pos
         s += str(start_pos) + ' ' + str(end_pos) + '\n'
 
-    postorder(a,gen_scq_assembly_util)
+    postorder(prog,gen_scq_assembly_util)
     return s
 
 
-def gen_assembly(a: PROGRAM) -> list[str]:
-    if not type_check(a):
-        print('failed type check')
-        return ['','n0: end sequence','n0: end sequence','']
+def gen_assembly(prog: PROGRAM) -> list[str]:
+    if not type_check(prog):
+        logger.error(' Failed type check')
+        exit()
 
-    assign_sid(a)
-    optimize_cse(a)
+    assign_sid(prog)
+    optimize_cse(prog)
 
-    atomic_asm: str = gen_atomic_asm(a)
+    atomic_asm: str = gen_atomic_asm(prog)
 
-    assign_nid(a)
+    assign_nid(prog)
 
     visited: list[int] = []
     ft_asm: str = ''
@@ -247,7 +267,8 @@ def gen_assembly(a: PROGRAM) -> list[str]:
         nonlocal visited
 
         if isinstance(a, VAR) or isinstance(a, REL_OP):
-            raise RuntimeError('Atomics not resolved; call \'gen_atomic_eval\' before \'gen_assembly\'')
+            logger.error('%d: Atomics not resolved; was \'gen_atomic_eval\' called?', a.ln)
+            return
 
         if isinstance(a,CONST):
             return
@@ -256,9 +277,9 @@ def gen_assembly(a: PROGRAM) -> list[str]:
             ft_asm += a.asm()
             visited.append(a.nid)
 
-    postorder(a,gen_assembly_util)
+    postorder(prog,gen_assembly_util)
 
-    scq_asm = gen_scq_assembly(a)
+    scq_asm = gen_scq_assembly(prog)
 
     return [atomic_asm,ft_asm,'n0: end sequence',scq_asm]
 
@@ -289,6 +310,5 @@ def compile(input, output_path) -> None:
         f.write(ftscq_asm)
 
     assemble_at(output_path+'at.asm',output_path,'False')
-
     assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
     assemble_pt(output_path+'pt.asm','4',output_path,'False')

@@ -9,8 +9,13 @@
 import os
 import sys
 import re
+from logging import getLogger
+
 # usage: python ftas.py [assembly file name] [TIMESTAMP_BYTE_extend_byte]
 #from config import TIMESTAMP_BYTE_extend_byte
+
+logger = getLogger('c2po_logger')
+
 
 #------------------------------------------------------------------------------#
 # Mapping from OP Codes to Variables
@@ -253,7 +258,7 @@ def assemble(f, timestamp_width):
 prog_text = 'char *ptm_bin = "'
 
 def assemble_pt(ptasm, ts_ext, gen_dir, no_binaries):
-    print('Assembling PT')
+    logger.info(f' Assembling PT\n\tWritten to {gen_dir}/binary_files/pt.bin')
 
     with open(ptasm, 'r') as file:
         f = file.read()
