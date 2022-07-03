@@ -158,7 +158,7 @@ class Visitor(C2POVisitor):
             elif name in list(self.vars):
                 return VAR(ln, name, self.vars[name])
             else:
-                logger.error('%d: Variable \'%s\' referenced but not declared', ln, name)
+                logger.error('%d: Variable \'%s\' undeclared', ln, name)
                 return EXPR(ln, [])
         elif ctx.INT():
             return INT(ln, int(ctx.INT().getText()))
@@ -184,7 +184,6 @@ class Visitor(C2POVisitor):
 
     # Visit a parse tree produced by C2POParser#ParensExpr.
     def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> EXPR:
-        ln: int = ctx.start.line
         return self.visit(ctx.expr())
 
 

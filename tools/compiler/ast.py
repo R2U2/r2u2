@@ -459,7 +459,7 @@ class LOG_NEG(LOG_UNARY_OP):
 
     def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'not ' + operand.id
+        return super().asm() + 'not ' + operand.id + '\n'
 
 
 class TL_GLOBAL(TL_FT_UNARY_OP):
@@ -503,12 +503,23 @@ class TL_HISTORICAL(TL_PT_UNARY_OP):
 
     def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'his n' + operand.id + ' ' + \
+        return super().asm() + 'his ' + operand.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
 class TL_ONCE(TL_PT_UNARY_OP):
-    pass
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
+        self.name: str = 'O'
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def asm(self) -> str:
+        operand: AST = self.children[0]
+        return super().asm() + 'once ' + operand.id + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
 class SPEC(AST):
@@ -523,7 +534,7 @@ class SPEC(AST):
 
     def asm(self) -> str:
         top: AST = self.children[0]
-        return super().asm() + 'end ' + top.id + ' ' + str(self.fnum) + '\n'
+        return super().asm() + 'end ' + top.id + ' f' + str(self.fnum) + '\n'
 
 
 class PROGRAM(AST):

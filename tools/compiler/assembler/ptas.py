@@ -129,7 +129,7 @@ def assemble(f, timestamp_width):
         elif op[0] == 'end':
             opcode += OP_END
             opcode += parseOperand(op[1])
-            opcode += '01' + toBinary(op[2],8)
+            opcode += '01' + toBinary(op[2][1:],8)
             opcode += '0000000'
             opcode += '00000000'
         #----------------------------------------------------------------------#

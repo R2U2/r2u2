@@ -2,7 +2,7 @@ import logging
 
 logger_name: str = 'c2po_logger'
 
-class colors:
+class Color:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -18,11 +18,11 @@ class CustomFormatter(logging.Formatter):
     format_str = '%(levelname)s'
 
     FORMATS = {
-        logging.DEBUG: colors.BOLD + colors.OKBLUE + format_str + colors.ENDC + ':%(message)s',
-        logging.INFO: colors.BOLD + colors.OKCYAN + format_str + colors.ENDC + ':%(message)s',
-        logging.WARNING: colors.BOLD + colors.WARNING + format_str + colors.ENDC + ':%(message)s',
-        logging.ERROR: colors.BOLD + colors.FAIL + format_str + colors.ENDC + ':%(message)s',
-        logging.CRITICAL: colors.BOLD + colors.FAIL + format_str + colors.ENDC + ':%(message)s',
+        logging.DEBUG: Color.BOLD + Color.OKBLUE + format_str + Color.ENDC + ':%(message)s',
+        logging.INFO: Color.BOLD + Color.OKCYAN + format_str + Color.ENDC + ':%(message)s',
+        logging.WARNING: Color.BOLD + Color.WARNING + format_str + Color.ENDC + ':%(message)s',
+        logging.ERROR: Color.BOLD + Color.FAIL + format_str + Color.ENDC + ':%(message)s',
+        logging.CRITICAL: Color.BOLD + Color.FAIL + format_str + Color.ENDC + ':%(message)s',
     }
 
     def format(self, record):

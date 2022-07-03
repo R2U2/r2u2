@@ -1,6 +1,7 @@
 ## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
 ## Author: Chris Johannsen
 import os
+import re
 from logging import getLogger
 from antlr4 import InputStream, CommonTokenStream
 
@@ -305,6 +306,9 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
             visited.append(a.nid)
 
     postorder(prog,gen_assembly_util)
+
+    logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
+        re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
     
     scq_asm = gen_scq_assembly(prog)
 
@@ -344,13 +348,13 @@ def compile(input: str, output_path: str, extops: bool) -> None:
 
     with open(output_path+'at.asm','w') as f:
         f.write(atomic_asm)
+        assemble_at(output_path+'at.asm',output_path,'False')
     with open(output_path+'ft.asm','w') as f:
         f.write(ft_asm)
+        assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
     with open(output_path+'pt.asm','w') as f:
         f.write(pt_asm)
+        assemble_pt(output_path+'pt.asm','4',output_path,'False')
     with open(output_path+'ftscq.asm','w') as f:
         f.write(ftscq_asm)
 
-    assemble_at(output_path+'at.asm',output_path,'False')
-    assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
-    assemble_pt(output_path+'pt.asm','4',output_path,'False')
