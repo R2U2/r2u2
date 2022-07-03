@@ -212,9 +212,6 @@ def gen_atomic_asm(prog: PROGRAM) -> str:
             child = a.children[c]
             i = id(child)
 
-            if isinstance(a,REL_OP):
-                return
-
             if isinstance(child,REL_OP):
                 if i in list(visited):
                     a.children[c] = visited[i]
@@ -233,7 +230,7 @@ def gen_atomic_asm(prog: PROGRAM) -> str:
                     a_num += 1
 
     preorder(prog,gen_atomic_asm_util)
-    return s
+    return s[:-1] # remove final newline
 
 
 def compute_scq_size(prog: PROGRAM) -> None:
@@ -346,6 +343,8 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
                 re.sub('\n','\n\t',re.sub('^','\t',at_asm)))
         logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
             re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
+        logger.info(Color.HEADER+' PT Assembly'+Color.ENDC+':\n'+ \
+            re.sub('\n','\n\t',re.sub('^','\t',pt_asm)))
 
     # write assembly and assemble all files into binaries
     with open(output_path+'at.asm','w') as f:

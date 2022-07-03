@@ -36,7 +36,7 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    compile(MLTL, args.output_dir, False, False)
+    compile(MLTL, args.output_dir, False, args.quiet)
 
     return
     # mltl_compiler.preprocess()
@@ -91,6 +91,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mltl",
                         help="file where mltl formula are stored or literal mltl formula")
+    parser.add_argument("-q","--quiet", action="store_true",
+                        help="enable to disable output")
     parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
                         help="path to configuration file")
     parser.add_argument("--header-file",
@@ -104,7 +106,5 @@ if __name__ == "__main__":
                         help="location where assembly and configuration programs will be called from")
     parser.add_argument("--no-binaries", action="store_true",
                         help="generate config.c file in place of binaries")
-    parser.add_argument("--no-symbolic-names", action="store_true",
-                        help="restricts use of symbolic names for atomics and signals")
     args = parser.parse_args()
     main(args)
