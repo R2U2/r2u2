@@ -107,7 +107,7 @@ def type_check(prog: AST) -> bool:
 
             if not child._type == Type.BOOL:
                 status = False
-                logger.error('%d: Specification must be of boolean type\n\t%s', a.ln, a)
+                logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', a.ln, to_str(child._type), a)
         elif isinstance(a,REL_OP):
             # both operands must be literals of same type
             lhs = a.children[0]
@@ -115,25 +115,25 @@ def type_check(prog: AST) -> bool:
 
             if not isinstance(lhs,LIT) or not isinstance(rhs,LIT):
                 status = False
-                logger.error('%d: Operands for relation operator must be literals\n\t%s', a.ln, a)
+                logger.error('%d: Invalid operands for %s, must be literals (found \'%s\' and \'%s\')\n\t%s', a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
 
             if lhs._type != rhs._type:
                 status = False
-                logger.error('%d: Operands for relation operator must be of same type\n\t%s', a.ln, a)
+                logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
 
             a._type = Type.BOOL
         elif isinstance(a,LOG_OP):
             for c in a.children:
                 if c._type != Type.BOOL:
                     status = False
-                    logger.error('%d: Operands for logical operator must be of boolean type\n\t%s', a.ln, a)
+                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', a.ln, a.name, to_str(c._type), c, a)
 
             a._type = Type.BOOL
         elif isinstance(a,TL_OP):
             for c in a.children:
                 if c._type != Type.BOOL:
                     status = False
-                    logger.error('%d: Operands for TL operator must be of boolean type\n\t%s', a.ln, a)
+                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', a.ln, a.name, to_str(c._type), c, a)
 
             status = status and a.interval.lb <= a.interval.ub
             a._type = Type.BOOL
@@ -198,10 +198,6 @@ def optimize_cse(prog: PROGRAM) -> None:
 
 
 def gen_atomic_asm(prog: PROGRAM) -> str:
-    if not type_check(prog):
-        logger.error(' Failed type check')
-        exit()
-
     s: str = ''
     visited: dict[int,AST] = {}
     a_num: int = 0
@@ -306,9 +302,6 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
             visited.append(a.nid)
 
     postorder(prog,gen_assembly_util)
-
-    logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
-        re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
     
     scq_asm = gen_scq_assembly(prog)
 
@@ -324,7 +317,7 @@ def parse(input) -> list[PROGRAM]:
     return v.visit(parse_tree)
 
 
-def compile(input: str, output_path: str, extops: bool) -> None:
+def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
@@ -344,10 +337,19 @@ def compile(input: str, output_path: str, extops: bool) -> None:
     optimize_cse(progs[0])
 
     # generate assembly
-    atomic_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
+    at_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
 
+    # print asm if 'quiet' option not enabled
+    # uses re.sub to get nice tabs
+    if not quiet:
+        logger.info(Color.HEADER+' AT Assembly'+Color.ENDC+':\n'+ \
+                re.sub('\n','\n\t',re.sub('^','\t',at_asm)))
+        logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
+            re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
+
+    # write assembly and assemble all files into binaries
     with open(output_path+'at.asm','w') as f:
-        f.write(atomic_asm)
+        f.write(at_asm)
         assemble_at(output_path+'at.asm',output_path,'False')
     with open(output_path+'ft.asm','w') as f:
         f.write(ft_asm)

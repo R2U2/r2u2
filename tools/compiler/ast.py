@@ -8,11 +8,16 @@ from .util import *
 
 logger = getLogger(logger_name)
 
+# TODO implement sets
 class Type(Enum):
     NONE = 0
     BOOL = 1
     INT = 2
     FLOAT = 3
+
+    # TODO for easier printing
+    def __str__(self) -> str:
+        return super().__str__()
 
 
 class FormulaType(Enum):
@@ -29,7 +34,7 @@ def to_str(t: Type) -> str:
     elif t == Type.FLOAT:
         return 'float'
     else:
-        return ''
+        return 'none'
 
 
 class Interval(NamedTuple):
@@ -54,6 +59,9 @@ class AST():
         child: AST
         for child in c:
             self.children.append(child)
+
+    def __str__(self) -> str:
+        return self.name
 
     def asm(self) -> str:
         return "n"+str(self.nid)+": "
@@ -161,7 +169,7 @@ class LOG_BIN_OP(LOG_OP):
         self.wpd = max(lhs.wpd, rhs.wpd)
 
     def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
 
 
 class LOG_UNARY_OP(LOG_OP):
@@ -172,7 +180,7 @@ class LOG_UNARY_OP(LOG_OP):
         self.wpd = o.wpd
 
     def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]!s})'
+        return f'{self.name!s} {self.children[0]!s}'
 
 
 class REL_OP(EXPR):
@@ -181,7 +189,7 @@ class REL_OP(EXPR):
         super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
 
     def asm(self, a: int) -> str:
         a1: str
@@ -229,7 +237,7 @@ class TL_FT_BIN_OP(TL_FT_OP):
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
+        return f'{self.children[0]!s} {self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[1]!s}'
 
 
 class TL_FT_UNARY_OP(TL_FT_OP):
@@ -241,7 +249,7 @@ class TL_FT_UNARY_OP(TL_FT_OP):
         self.wpd = o.wpd + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
 
 
 class TL_PT_BIN_OP(TL_PT_OP):
@@ -252,7 +260,7 @@ class TL_PT_BIN_OP(TL_PT_OP):
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
+        return f'{self.children[0]!s} {self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[1]!s}'
 
 
 class TL_PT_UNARY_OP(TL_PT_OP):
@@ -264,7 +272,7 @@ class TL_PT_UNARY_OP(TL_PT_OP):
         self.wpd = o.wpd + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
 
 
 class TERNARY_OP(EXPR):
@@ -277,7 +285,7 @@ class TERNARY_OP(EXPR):
         arg1: AST = self.children[0]
         arg2: AST = self.children[1]
         arg3: AST = self.children[2]
-        return '(' + str(arg1) + ')?(' + str(arg2) + '):(' + str(arg3) + ')'
+        return str(arg1) + ' ? ' + str(arg2) + ' : ' + str(arg3)
 
 
 class LOG_OR(LOG_BIN_OP):
