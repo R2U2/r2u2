@@ -179,5 +179,5 @@ LETTER
   : [a-zA-Z_]
   ;
 
-COMMENT : '#' ~[\r\n]* -> skip;
+COMMENT : '--' ~[\r\n]* -> skip;
 WS  :  [ \t\r\n]+ -> channel(HIDDEN);

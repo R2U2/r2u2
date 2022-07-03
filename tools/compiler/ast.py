@@ -155,7 +155,7 @@ class LOG_OP(EXPR):
 
 class LOG_BIN_OP(LOG_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln,[lhs, rhs])
         self.bpd = min(lhs.bpd, rhs.bpd)
         self.wpd = max(lhs.wpd, rhs.wpd)
@@ -166,7 +166,7 @@ class LOG_BIN_OP(LOG_OP):
 
 class LOG_UNARY_OP(LOG_OP):
 
-    def __init__(self, ln: int, o: EXPR):
+    def __init__(self, ln: int, o: AST):
         super().__init__(ln,[o])
         self.bpd = o.bpd
         self.wpd = o.wpd
@@ -177,7 +177,7 @@ class LOG_UNARY_OP(LOG_OP):
 
 class REL_OP(EXPR):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
@@ -223,7 +223,7 @@ class TL_PT_OP(TL_OP):
 
 class TL_FT_BIN_OP(TL_FT_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln,[lhs,rhs],l,u)
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
@@ -234,7 +234,7 @@ class TL_FT_BIN_OP(TL_FT_OP):
 
 class TL_FT_UNARY_OP(TL_FT_OP):
 
-    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
         self.bpd = o.bpd + self.interval.lb
@@ -246,7 +246,7 @@ class TL_FT_UNARY_OP(TL_FT_OP):
 
 class TL_PT_BIN_OP(TL_PT_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, [lhs, rhs], l, u)
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
@@ -257,7 +257,7 @@ class TL_PT_BIN_OP(TL_PT_OP):
 
 class TL_PT_UNARY_OP(TL_PT_OP):
 
-    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
         self.bpd = o.bpd + self.interval.lb
@@ -282,7 +282,7 @@ class TERNARY_OP(EXPR):
 
 class LOG_OR(LOG_BIN_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '||'
 
@@ -297,9 +297,9 @@ class LOG_OR(LOG_BIN_OP):
 
 class LOG_AND(LOG_BIN_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = '||'
+        self.name: str = '&&'
 
     def __str__(self) -> str:
         return super().__str__()
@@ -310,9 +310,39 @@ class LOG_AND(LOG_BIN_OP):
         return super().asm() + 'and ' + lhs.id + ' ' + rhs.id + '\n'
 
 
+class LOG_XOR(LOG_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '^^'
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def asm(self) -> str:
+        lhs: AST = self.children[0]
+        rhs: AST = self.children[1]
+        return super().asm() + 'xor ' + lhs.id + ' ' + rhs.id + '\n'
+
+
+class LOG_IMPL(LOG_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '->'
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def asm(self) -> str:
+        lhs: AST = self.children[0]
+        rhs: AST = self.children[1]
+        return super().asm() + 'impl ' + lhs.id + ' ' + rhs.id + '\n'
+
+
 class REL_EQ(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '=='
 
@@ -322,7 +352,7 @@ class REL_EQ(REL_OP):
 
 class REL_NEQ(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '!='
 
@@ -332,7 +362,7 @@ class REL_NEQ(REL_OP):
 
 class REL_GT(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '>'
 
@@ -342,7 +372,7 @@ class REL_GT(REL_OP):
 
 class REL_LT(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '<'
 
@@ -352,7 +382,7 @@ class REL_LT(REL_OP):
 
 class REL_GTE(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '>='
 
@@ -362,7 +392,7 @@ class REL_GTE(REL_OP):
 
 class REL_LTE(REL_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '<='
 
@@ -372,7 +402,7 @@ class REL_LTE(REL_OP):
 
 class TL_UNTIL(TL_FT_BIN_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'U'
 
@@ -388,7 +418,7 @@ class TL_UNTIL(TL_FT_BIN_OP):
 
 class TL_RELEASE(TL_FT_BIN_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'R'
 
@@ -404,7 +434,7 @@ class TL_RELEASE(TL_FT_BIN_OP):
 
 class TL_SINCE(TL_PT_BIN_OP):
 
-    def __init__(self, ln: int, lhs: EXPR, rhs: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.name: str = 'S'
 
@@ -420,7 +450,7 @@ class TL_SINCE(TL_PT_BIN_OP):
 
 class LOG_NEG(LOG_UNARY_OP):
 
-    def __init__(self, ln: int, o: EXPR):
+    def __init__(self, ln: int, o: AST):
         super().__init__(ln, o)
         self.name: str = '!'
 
@@ -434,7 +464,7 @@ class LOG_NEG(LOG_UNARY_OP):
 
 class TL_GLOBAL(TL_FT_UNARY_OP):
 
-    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.name: str = 'G'
 
@@ -449,7 +479,7 @@ class TL_GLOBAL(TL_FT_UNARY_OP):
 
 class TL_FUTURE(TL_FT_UNARY_OP):
 
-    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.name: str = 'F'
 
@@ -464,7 +494,7 @@ class TL_FUTURE(TL_FT_UNARY_OP):
 
 class TL_HISTORICAL(TL_PT_UNARY_OP):
 
-    def __init__(self, ln: int, o: EXPR, l: int, u: int) -> None:
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.name: str = 'H'
 

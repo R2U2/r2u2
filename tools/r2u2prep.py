@@ -36,7 +36,7 @@ def main(args):
     else:
         MLTL = args.mltl
 
-    compile(MLTL, args.output_dir)
+    compile(MLTL, args.output_dir, False)
 
     return
     # mltl_compiler.preprocess()

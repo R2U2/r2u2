@@ -75,7 +75,7 @@ def assign_sid(prog: PROGRAM) -> None:
 def type_check(prog: AST) -> bool:
     status: bool = True
 
-    def type_check_util(a: AST) -> None: # TODO error messages
+    def type_check_util(a: AST) -> None:
         nonlocal status
         c: AST
 
@@ -141,6 +141,40 @@ def type_check(prog: AST) -> bool:
 
     postorder(prog,type_check_util)
     return status
+
+
+def rewrite_ops(prog: PROGRAM) -> None:
+
+    def rewrite_ops_util(a: AST) -> None:
+        ln: int = a.ln
+
+        for c in range(0,len(a.children)):
+            cur = a.children[c]
+
+            if isinstance(cur,LOG_BIN_OP):
+                lhs: AST = cur.children[0]
+                rhs: AST = cur.children[1]
+            
+                if isinstance(cur,LOG_OR):
+                    a.children[c] = LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs)))
+                elif isinstance(cur,LOG_XOR):
+                    a.children[c] = LOG_AND(ln, LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
+                                                LOG_NEG(ln, LOG_AND(ln, lhs, rhs)))
+                elif isinstance(cur,LOG_IMPL):
+                    a.children[c] = LOG_NEG(ln, LOG_AND(ln, lhs, LOG_NEG(ln, rhs)))
+            elif isinstance(cur, TL_FT_BIN_OP):
+                lhs: AST = cur.children[0]
+                rhs: AST = cur.children[1]
+                bounds: Interval = cur.interval
+
+                a.children[c] = LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub))
+            elif isinstance(cur, TL_FT_UNARY_OP):
+                operand: AST = cur.children[0]
+                bounds: Interval = cur.interval
+
+                a.children[c] = TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub)
+
+    postorder(prog, rewrite_ops_util)
 
 
 def optimize_cse(prog: PROGRAM) -> None:
@@ -248,19 +282,12 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 
 
 def gen_assembly(prog: PROGRAM) -> list[str]:
-    if not type_check(prog):
-        logger.error(' Failed type check')
-        exit()
-
-    assign_sid(prog)
-    optimize_cse(prog)
-
-    atomic_asm: str = gen_atomic_asm(prog)
-
-    assign_nid(prog)
-
     visited: list[int] = []
     ft_asm: str = ''
+    atomic_asm: str = gen_atomic_asm(prog)
+
+    # assign node ids
+    assign_nid(prog)
 
     def gen_assembly_util(a: AST) -> None:
         nonlocal ft_asm
@@ -278,7 +305,7 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
             visited.append(a.nid)
 
     postorder(prog,gen_assembly_util)
-
+    
     scq_asm = gen_scq_assembly(prog)
 
     return [atomic_asm,ft_asm,'n0: end sequence',scq_asm]
@@ -289,15 +316,30 @@ def parse(input) -> list[PROGRAM]:
     stream = CommonTokenStream(lexer)
     parser = C2POParser(stream)
     parse_tree = parser.start()
-
-    # print(parse_tree.toStringTree(recog=parser))
-    
     v = Visitor()
     return v.visit(parse_tree)
 
 
-def compile(input, output_path) -> None:
-    progs = parse(input)
+def compile(input: str, output_path: str, extops: bool) -> None:
+    # parse input, progs is a list of configurations (each SPEC block is a configuration)
+    progs: list[PROGRAM] = parse(input)
+
+    # type check
+    if not type_check(progs[0]):
+        logger.error(' Failed type check')
+        return
+
+    # rewrite without extended operators if enabled
+    if not extops:
+        rewrite_ops(progs[0])
+
+    # assign signal ids
+    assign_sid(progs[0])
+
+    # common sub-expressions elimination
+    optimize_cse(progs[0])
+
+    # generate assembly
     atomic_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
 
     with open(output_path+'at.asm','w') as f:

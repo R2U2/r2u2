@@ -199,7 +199,7 @@ class Visitor(C2POVisitor):
             if ctx.tl_bin_op().TL_UNTIL():
                 return TL_UNTIL(ln, lhs, rhs, bounds.lb, bounds.ub)
             elif ctx.tl_bin_op().TL_RELEASE():
-                return LOG_NEG(ln, TL_RELEASE(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub))
+                return TL_RELEASE(ln, lhs, rhs, bounds.lb, bounds.ub)
             elif ctx.tl_bin_op().TL_SINCE():
                 return TL_SINCE(ln, lhs, rhs, bounds.lb, bounds.ub)
             else:
@@ -217,14 +217,13 @@ class Visitor(C2POVisitor):
         rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
-            return LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs)))
+            return LOG_OR(ln, lhs, rhs)
         elif ctx.LOG_AND():
             return LOG_AND(ln, lhs, rhs)
         elif ctx.LOG_XOR():
-            return LOG_AND(ln, LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
-                                                    LOG_NEG(ln, LOG_AND(ln, lhs, rhs)))
+            return LOG_XOR(ln, lhs, rhs)
         elif ctx.LOG_IMPL():
-            return LOG_NEG(ln, LOG_AND(ln, lhs, LOG_NEG(ln, rhs)))
+            return LOG_IMPL(ln, lhs, rhs)
         else:
             logger.error('%d: Expression not recognized', ln)
             return EXPR(ln, [])
@@ -289,7 +288,7 @@ class Visitor(C2POVisitor):
             if ctx.tl_unary_op().TL_GLOBAL():
                 return TL_GLOBAL(ln, operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_FUTURE():
-                return TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub)
+                return TL_FUTURE(ln, operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_HISTORICAL():
                 return TL_HISTORICAL(ln, operand, bounds.lb, bounds.ub)
             elif ctx.tl_unary_op().TL_ONCE():
