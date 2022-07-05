@@ -32,9 +32,9 @@ expr: expr '?' expr ':' expr        # TernaryExpr
     | expr LOG_XOR expr             # LogBinExpr
     | expr LOG_AND expr             # LogBinExpr
     | expr LOG_IMPL expr            # LogBinExpr
-    // | expr BW_OR expr               # BWBinExpr
-    // | expr BW_XOR expr              # BWBinExpr
-    // | expr BW_AND expr              # BWBinExpr
+    | expr BW_OR expr               # BWBinExpr
+    | expr BW_XOR expr              # BWBinExpr
+    | expr BW_AND expr              # BWBinExpr
     | expr tl_bin_op interval expr  # TLBinExpr
     | tl_unary_op interval expr     # TLUnaryExpr
     | expr rel_eq_op expr           # RelExpr

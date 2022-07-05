@@ -69,13 +69,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#LogBinExpr.
-    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#SetExpr.
-    def visitSetExpr(self, ctx:C2POParser.SetExprContext):
+    # Visit a parse tree produced by C2POParser#BWBinExpr.
+    def visitBWBinExpr(self, ctx:C2POParser.BWBinExprContext):
         return self.visitChildren(ctx)
 
 
@@ -94,11 +89,6 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ParensExpr.
-    def visitParensExpr(self, ctx:C2POParser.ParensExprContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by C2POParser#TLUnaryExpr.
     def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext):
         return self.visitChildren(ctx)
@@ -106,6 +96,21 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#UnaryExpr.
     def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#LogBinExpr.
+    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#SetExpr.
+    def visitSetExpr(self, ctx:C2POParser.SetExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#ParensExpr.
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext):
         return self.visitChildren(ctx)
 
 

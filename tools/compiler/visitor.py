@@ -228,6 +228,11 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
+    # Visit a parse tree produced by C2POParser#BWBinExpr.
+    def visitBWBinExpr(self, ctx:C2POParser.BWBinExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#SetExpr.
     def visitSetExpr(self, ctx:C2POParser.SetExprContext):
         ln: int = ctx.start.line
@@ -237,8 +242,8 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#RelExpr.
     def visitRelExpr(self, ctx:C2POParser.RelExprContext) -> EXPR:
         ln: int = ctx.start.line
-        lhs: LIT = self.visit(ctx.expr(0))
-        rhs: LIT = self.visit(ctx.expr(1))
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
@@ -266,15 +271,43 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#ArithMulExpr.
-    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext):
+    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext) -> EXPR:
         ln: int = ctx.start.line
-        return self.visitChildren(ctx)
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
+
+        if ctx.arith_mul_op():
+            if ctx.arith_mul_op().ARITH_MUL():
+                return ARITH_MUL(ln, lhs, rhs)
+            elif ctx.arith_mul_op().ARITH_DIV():
+                return ARITH_DIV(ln, lhs, rhs)
+            elif ctx.arith_mul_op().ARITH_MOD():
+                return ARITH_MOD(ln, lhs, rhs)
+            else:
+                logger.error('%d: Binary arithmetic op \'%s\' not recognized', ln, ctx.tl_bin_op().start.text)
+                return EXPR(ln, [])
+        else:
+            logger.error('%d: Expression not recognized', ln)
+            return EXPR(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#ArithAddExpr.
-    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext):
+    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext) -> EXPR:
         ln: int = ctx.start.line
-        return self.visitChildren(ctx)
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
+
+        if ctx.arith_mul_op():
+            if ctx.arith_mul_op().ARITH_ADD():
+                return ARITH_MUL(ln, lhs, rhs)
+            elif ctx.arith_mul_op().ARITH_SUB():
+                return ARITH_DIV(ln, lhs, rhs)
+            else:
+                logger.error('%d: Binary arithmetic op \'%s\' not recognized', ln, ctx.tl_bin_op().start.text)
+                return EXPR(ln, [])
+        else:
+            logger.error('%d: Expression not recognized', ln)
+            return EXPR(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#TLUnaryExpr.

@@ -1,5 +1,3 @@
-## Description: 1. optimize the AST; 2. assign SCQ size; 3. generate assembly
-## Author: Chris Johannsen
 import os
 import re
 from logging import getLogger
@@ -18,6 +16,7 @@ __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 logger = getLogger(logger_name)
 
+
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
     c: AST
     for c in a.children:
@@ -32,45 +31,58 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
         preorder(c,func)
 
 
-### TODO Question:
-### only reference to subformulas appears supported in the c version
-### -- why not only support this? do we forsee supporting direct
-### atomic/immediate loads?
-def assign_nid(a: AST) -> None:
-    n = 0
-
-    def assign_nid_util(a: AST) -> None:
-        nonlocal n
-
-        # if a is const, skip
-        if isinstance(a,CONST):
-            a.id = a.name[0]
-            return
-        
-        # assign nid to nodes we have not seen
-        # by default, nid = -1
-        if a.nid < 0:
-            a.nid = n
-            a.id = 'n'+str(n)
-            n += 1
-
-    postorder(a,assign_nid_util)
-
-
-def assign_sid(prog: PROGRAM) -> None:
+def assign_ids(prog: PROGRAM) -> None:
     order: dict[str,int] = prog.order
+    nid: int = 0
+    aid: int = 0
 
-    def assign_sid_util(a: AST) -> None:
+    def assign_ids_rec(a: AST, atomic: bool) -> None:
         nonlocal order
+        nonlocal nid
+        nonlocal aid
 
-        if isinstance(a,VAR): 
-            b = cast(VAR,a)
-            if b.name in list(order):
-                b.sid = order[b.name]
+        if isinstance(a,CONST):
+            a.id = a.name
+            return
+        elif isinstance(a,VAR): 
+            if a.name in list(order):
+                a.sid = order[a.name]
             else:
-                logger.error('%d: Signal \'%s\' referenced but not defined in Order', b.name)
+                logger.error('%d: Signal \'%s\' referenced but not defined in Order', a.name)
 
-    postorder(prog,assign_sid_util)
+            a.aid = aid
+            a.id = 'a'+str(aid)
+            aid += 1
+
+            if not atomic:
+                a.nid = nid
+                a.id = 'a'+str(nid)
+                nid += 1
+            return
+
+        if isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,BW_OP):
+            a.aid = aid
+            a.id = 'a'+str(aid)
+            aid += 1
+
+            if not atomic:
+                a.nid = nid
+                a.id = 'a'+str(nid)
+                nid += 1
+
+            for c in a.children:
+                assign_ids_rec(c,True)
+            return
+        else:
+            a.nid = nid
+            a.id = 'a'+str(nid)
+            nid += 1
+
+            for c in a.children:
+                assign_ids_rec(c,atomic)
+            return
+
+    assign_ids_rec(prog,False)
 
 
 def type_check(prog: AST) -> bool:
@@ -100,7 +112,7 @@ def type_check(prog: AST) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,LIT) or isinstance(a,PROGRAM):
+        if isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
@@ -108,14 +120,9 @@ def type_check(prog: AST) -> bool:
             if not child._type == Type.BOOL:
                 status = False
                 logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', a.ln, to_str(child._type), a)
-        elif isinstance(a,REL_OP):
-            # both operands must be literals of same type
+        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,BW_OP):
             lhs = a.children[0]
             rhs = a.children[1]
-
-            if not isinstance(lhs,LIT) or not isinstance(rhs,LIT):
-                status = False
-                logger.error('%d: Invalid operands for %s, must be literals (found \'%s\' and \'%s\')\n\t%s', a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
 
             if lhs._type != rhs._type:
                 status = False
@@ -200,34 +207,15 @@ def optimize_cse(prog: PROGRAM) -> None:
 def gen_atomic_asm(prog: PROGRAM) -> str:
     s: str = ''
     visited: dict[int,AST] = {}
-    a_num: int = 0
 
     def gen_atomic_asm_util(a: AST) -> None:
         nonlocal s
         nonlocal visited
-        nonlocal a_num
 
         c: int
         for c in range(0,len(a.children)):
             child = a.children[c]
             i = id(child)
-
-            if isinstance(child,REL_OP):
-                if i in list(visited):
-                    a.children[c] = visited[i]
-                else:
-                    s += child.asm(a_num)
-                    a.children[c] = ATOM(child.ln, 'a'+str(a_num), a_num)
-                    visited[i] = a.children[c]
-                    a_num += 1
-            elif isinstance(child,VAR): 
-                if i in list(visited):
-                    a.children[c] = visited[i]
-                else:
-                    s += child.asm(a_num)
-                    a.children[c] = ATOM(child.ln, 'a'+str(a_num), a_num)
-                    visited[i] = a.children[c]
-                    a_num += 1
 
     preorder(prog,gen_atomic_asm_util)
     return s[:-1] # remove final newline
@@ -278,18 +266,15 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 def gen_assembly(prog: PROGRAM) -> list[str]:
     visited: list[int] = []
     ft_asm: str = ''
+
+    assign_ids(prog)
+
     atomic_asm: str = gen_atomic_asm(prog)
 
-    # assign node ids
-    assign_nid(prog)
 
     def gen_assembly_util(a: AST) -> None:
         nonlocal ft_asm
         nonlocal visited
-
-        if isinstance(a, VAR) or isinstance(a, REL_OP):
-            logger.error('%d: Atomics not resolved; was \'gen_atomic_eval\' called?', a.ln)
-            return
 
         if isinstance(a,CONST):
             return
@@ -326,9 +311,6 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # rewrite without extended operators if enabled
     if not extops:
         rewrite_ops(progs[0])
-
-    # assign signal ids
-    assign_sid(progs[0])
 
     # common sub-expressions elimination
     optimize_cse(progs[0])
