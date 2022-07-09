@@ -79,13 +79,13 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#RelExpr.
-    def visitRelExpr(self, ctx:C2POParser.RelExprContext):
+    # Visit a parse tree produced by C2POParser#ArithMulExpr.
+    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ArithMulExpr.
-    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext):
+    # Visit a parse tree produced by C2POParser#RelExpr.
+    def visitRelExpr(self, ctx:C2POParser.RelExprContext):
         return self.visitChildren(ctx)
 
 

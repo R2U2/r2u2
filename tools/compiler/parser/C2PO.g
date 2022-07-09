@@ -37,10 +37,10 @@ expr: expr '?' expr ':' expr        # TernaryExpr
     // | expr BW_AND expr              # BWBinExpr
     | expr tl_bin_op interval expr  # TLBinExpr
     | tl_unary_op interval expr     # TLUnaryExpr
-    | expr rel_eq_op expr           # RelExpr
-    | expr rel_ineq_op expr         # RelExpr
     | expr arith_add_op expr        # ArithAddExpr
     | expr arith_mul_op expr        # ArithMulExpr
+    | expr rel_eq_op expr           # RelExpr
+    | expr rel_ineq_op expr         # RelExpr
     | unary_op expr                 # UnaryExpr
     | IDENTIFIER '(' expr ')'       # FunExpr
     | set_expr                      # SetExpr

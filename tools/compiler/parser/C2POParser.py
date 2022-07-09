@@ -69,11 +69,11 @@ def serializedATN():
         5,23,0,0,154,183,3,20,10,18,155,156,10,16,0,0,156,157,5,21,0,0,157,
         183,3,20,10,17,158,159,10,15,0,0,159,160,5,24,0,0,160,183,3,20,10,
         16,161,162,10,14,0,0,162,163,3,32,16,0,163,164,3,24,12,0,164,165,
-        3,20,10,15,165,183,1,0,0,0,166,167,10,12,0,0,167,168,3,34,17,0,168,
-        169,3,20,10,13,169,183,1,0,0,0,170,171,10,11,0,0,171,172,3,36,18,
+        3,20,10,15,165,183,1,0,0,0,166,167,10,12,0,0,167,168,3,38,19,0,168,
+        169,3,20,10,13,169,183,1,0,0,0,170,171,10,11,0,0,171,172,3,40,20,
         0,172,173,3,20,10,12,173,183,1,0,0,0,174,175,10,10,0,0,175,176,3,
-        38,19,0,176,177,3,20,10,11,177,183,1,0,0,0,178,179,10,9,0,0,179,
-        180,3,40,20,0,180,181,3,20,10,10,181,183,1,0,0,0,182,143,1,0,0,0,
+        34,17,0,176,177,3,20,10,11,177,183,1,0,0,0,178,179,10,9,0,0,179,
+        180,3,36,18,0,180,181,3,20,10,10,181,183,1,0,0,0,182,143,1,0,0,0,
         182,149,1,0,0,0,182,152,1,0,0,0,182,155,1,0,0,0,182,158,1,0,0,0,
         182,161,1,0,0,0,182,166,1,0,0,0,182,170,1,0,0,0,182,174,1,0,0,0,
         182,178,1,0,0,0,183,186,1,0,0,0,184,182,1,0,0,0,184,185,1,0,0,0,
@@ -981,6 +981,29 @@ class C2POParser ( Parser ):
                 return visitor.visitChildren(self)
 
 
+    class ArithMulExprContext(ExprContext):
+
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.ExprContext
+            super().__init__(parser)
+            self.copyFrom(ctx)
+
+        def expr(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(C2POParser.ExprContext)
+            else:
+                return self.getTypedRuleContext(C2POParser.ExprContext,i)
+
+        def arith_mul_op(self):
+            return self.getTypedRuleContext(C2POParser.Arith_mul_opContext,0)
+
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitArithMulExpr" ):
+                return visitor.visitArithMulExpr(self)
+            else:
+                return visitor.visitChildren(self)
+
+
     class RelExprContext(ExprContext):
 
         def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.ExprContext
@@ -1003,29 +1026,6 @@ class C2POParser ( Parser ):
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitRelExpr" ):
                 return visitor.visitRelExpr(self)
-            else:
-                return visitor.visitChildren(self)
-
-
-    class ArithMulExprContext(ExprContext):
-
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.ExprContext
-            super().__init__(parser)
-            self.copyFrom(ctx)
-
-        def expr(self, i:int=None):
-            if i is None:
-                return self.getTypedRuleContexts(C2POParser.ExprContext)
-            else:
-                return self.getTypedRuleContext(C2POParser.ExprContext,i)
-
-        def arith_mul_op(self):
-            return self.getTypedRuleContext(C2POParser.Arith_mul_opContext,0)
-
-
-        def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitArithMulExpr" ):
-                return visitor.visitArithMulExpr(self)
             else:
                 return visitor.visitChildren(self)
 
@@ -1352,53 +1352,53 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 7:
-                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.ArithAddExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 166
                         if not self.precpred(self._ctx, 12):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 12)")
                         self.state = 167
-                        self.rel_eq_op()
+                        self.arith_add_op()
                         self.state = 168
                         self.expr(13)
                         pass
 
                     elif la_ == 8:
-                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.ArithMulExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 170
                         if not self.precpred(self._ctx, 11):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
                         self.state = 171
-                        self.rel_ineq_op()
+                        self.arith_mul_op()
                         self.state = 172
                         self.expr(12)
                         pass
 
                     elif la_ == 9:
-                        localctx = C2POParser.ArithAddExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 174
                         if not self.precpred(self._ctx, 10):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
                         self.state = 175
-                        self.arith_add_op()
+                        self.rel_eq_op()
                         self.state = 176
                         self.expr(11)
                         pass
 
                     elif la_ == 10:
-                        localctx = C2POParser.ArithMulExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
                         self.state = 178
                         if not self.precpred(self._ctx, 9):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
                         self.state = 179
-                        self.arith_mul_op()
+                        self.rel_ineq_op()
                         self.state = 180
                         self.expr(10)
                         pass

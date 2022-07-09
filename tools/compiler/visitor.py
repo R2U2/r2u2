@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing_extensions import get_overloads
+from typing_extensions import get_overloads, runtime
 
 from antlr4 import TerminalNode
 

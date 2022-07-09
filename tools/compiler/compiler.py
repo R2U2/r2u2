@@ -68,7 +68,7 @@ def assign_sid(prog: PROGRAM) -> None:
             if b.name in list(order):
                 b.sid = order[b.name]
             else:
-                logger.error('%d: Signal \'%s\' referenced but not defined in Order', b.name)
+                logger.error('%d: Signal \'%s\' referenced but not defined in Order', b.ln, b.name)
 
     postorder(prog,assign_sid_util)
 
@@ -310,6 +310,7 @@ def parse(input) -> list[PROGRAM]:
     stream = CommonTokenStream(lexer)
     parser = C2POParser(stream)
     parse_tree = parser.start()
+    # print(parse_tree.toStringTree(recog=parser))
     v = Visitor()
     return v.visit(parse_tree)
 
