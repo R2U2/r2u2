@@ -60,7 +60,7 @@ def assign_ids(prog: PROGRAM) -> None:
                 nid += 1
             return
 
-        if isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,BW_OP):
+        if isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,LOG_OP):
             a.aid = aid
             a.id = 'a'+str(aid)
             aid += 1
@@ -120,7 +120,7 @@ def type_check(prog: AST) -> bool:
             if not child._type == Type.BOOL:
                 status = False
                 logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', a.ln, to_str(child._type), a)
-        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,BW_OP):
+        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,LOG_OP):
             lhs = a.children[0]
             rhs = a.children[1]
 
@@ -272,7 +272,7 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
     atomic_asm: str = gen_atomic_asm(prog)
 
 
-    def gen_assembly_util(a: AST) -> None:
+    def gen_tl_assembly_util(a: AST) -> None:
         nonlocal ft_asm
         nonlocal visited
 
@@ -280,10 +280,10 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
             return
 
         if not a.nid in visited:
-            ft_asm += a.asm()
+            ft_asm += a.tl_asm()
             visited.append(a.nid)
 
-    postorder(prog,gen_assembly_util)
+    postorder(prog,gen_tl_assembly_util)
     
     scq_asm = gen_scq_assembly(prog)
 
@@ -295,6 +295,7 @@ def parse(input) -> list[PROGRAM]:
     stream = CommonTokenStream(lexer)
     parser = C2POParser(stream)
     parse_tree = parser.start()
+    print(parse_tree.toStringTree(recog=parser))
     v = Visitor()
     return v.visit(parse_tree)
 
@@ -302,6 +303,8 @@ def parse(input) -> list[PROGRAM]:
 def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
+
+    return
 
     # type check
     if not type_check(progs[0]):

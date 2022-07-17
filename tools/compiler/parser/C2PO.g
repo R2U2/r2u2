@@ -27,28 +27,22 @@ def: IDENTIFIER '=' expr ';' ;
 spec_block: KW_SPEC spec+ ;
 spec: (IDENTIFIER ':')? expr ';' ;
 
-expr: expr '?' expr ':' expr        # TernaryExpr
-    | expr LOG_OR expr              # LogBinExpr
-    | expr LOG_XOR expr             # LogBinExpr
-    | expr LOG_AND expr             # LogBinExpr
-    | expr LOG_IMPL expr            # LogBinExpr
-    | expr BW_OR expr               # BWBinExpr
-    | expr BW_XOR expr              # BWBinExpr
-    | expr BW_AND expr              # BWBinExpr
-    | expr tl_bin_op interval expr  # TLBinExpr
-    | tl_unary_op interval expr     # TLUnaryExpr
-    | expr rel_eq_op expr           # RelExpr
-    | expr rel_ineq_op expr         # RelExpr
-    | expr arith_add_op expr        # ArithAddExpr
-    | expr arith_mul_op expr        # ArithMulExpr
-    | unary_op expr                 # UnaryExpr
-    | IDENTIFIER '(' expr ')'       # FunExpr
-    | set_expr                      # SetExpr
-    | '(' expr ')'                  # ParensExpr
-    | log_lit                       # LitExpr
-    | IDENTIFIER                    # LitExpr
-    | INT                           # LitExpr
-    | FLOAT                         # LitExpr
+expr: expr BW_OR expr         # BWBinExpr
+    | expr BW_AND expr        # BWBinExpr
+    | expr BW_XOR expr        # BWBinExpr
+    | expr BW_IMPL expr       # BWBinExpr
+    | expr tl_bin_op expr     # TLBinExpr
+    | tl_unary_op expr        # TLUnaryExpr
+    | expr rel_eq_op expr     # RelExpr
+    | expr rel_ineq_op expr   # RelExpr
+    | expr arith_add_op expr  # ArithAddExpr
+    | expr arith_mul_op expr  # ArithMulExpr
+    | BW_NEG expr             # BWNegExpr
+    | ARITH_SUB expr          # ArithNegExpr
+    | IDENTIFIER '(' expr ')' # FunExpr
+    | set_expr                # SetExpr
+    | '(' expr ')'            # ParensExpr
+    | literal                 # LitExpr
     ;
 
 set_expr: SW_EMPTY_SET
@@ -58,10 +52,11 @@ set_expr: SW_EMPTY_SET
 
 interval: '[' INT (',' INT)? ']' ;
 
-log_lit: TRUE | FALSE ;
-unary_op: LOG_NEG | ARITH_SUB ; // | BW_NEG ;
-tl_unary_op: TL_GLOBAL | TL_FUTURE | TL_HISTORICAL | TL_ONCE ;
-tl_bin_op: TL_UNTIL | TL_RELEASE | TL_SINCE ;
+tl_unary_op: (TL_GLOBAL | TL_FUTURE | TL_HISTORICAL | TL_ONCE) interval ;
+tl_bin_op: (TL_UNTIL | TL_RELEASE | TL_SINCE) interval ;
+
+literal: TRUE | FALSE | IDENTIFIER | INT | FLOAT ;
+
 rel_eq_op: REL_EQ | REL_NEQ ;
 rel_ineq_op: REL_GT | REL_LT | REL_GTE | REL_LTE  ;
 arith_add_op: ARITH_ADD | ARITH_SUB ;
@@ -82,22 +77,15 @@ KW_SPEC: 'SPEC' ;
 KW_ORDER: 'Order' ;
 KW_SET: 'set' ;
 
-
-// Propositional logic ops/literals
-LOG_NEG: '!' | '¬' ;
-LOG_AND: '&&' | '∧' ;
-LOG_OR: '||' | '∨' ;
-LOG_XOR: 'XOR' | '⊕' ;
-LOG_IMPL: '->' | '→' ;
-LOG_IFF: '<->' | '↔' ;
+// Propositional logic/Bitwise ops
+BW_NEG: '!' | '~' | '¬' ;
+BW_AND: '&' | '∧' ;
+BW_OR: '|' | '∨' ;
+BW_XOR: '^' | '⊕' ;
+BW_IMPL: '->' | '→' ;
+BW_IFF: '<->' | '↔' ;
 TRUE: 'TRUE' | 'true' | '⊤' ;
 FALSE: 'FALSE' | 'false' | '⊥' ;
-
-// Bitwise ops
-BW_NEG: '~' ;
-BW_AND: '&' ;
-BW_OR: '|' ;
-BW_XOR: '^' ;
 
 // Relational ops
 REL_EQ: '==' ;
@@ -136,8 +124,6 @@ SW_EMPTY_SET: '∅' ;
 SW_MEMBER: '∈' ;
 SW_SUBSET: '⊂' ;
 SW_SUBSETEQ: '⊆' ;
-SW_SUPSET: '⊃' ;
-SW_SUPSETEQ: '⊇' ;
 SW_SUM: '∑' ;
 SW_PROD: '∏' ;
 SW_UNION: '⋃' ;

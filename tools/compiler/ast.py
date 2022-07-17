@@ -64,11 +64,11 @@ class AST():
     def __str__(self) -> str:
         return self.name
 
-    def asm(self) -> str:
-        if self.nid > -1:
-            return 'n'+str(self.nid)+': '
-        else: 
-            return 'a'+str(self.aid)+': '
+    def tl_asm(self) -> str:
+        return 'n' + str(self.nid) + ': '
+
+    def at_asm(self) -> str:
+        return ''
 
 
 class EXPR(AST):
@@ -77,7 +77,19 @@ class EXPR(AST):
         super().__init__(ln,c)
 
 
-class LIT(EXPR):  
+class TL_EXPR(EXPR):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
+
+
+class AT_EXPR(EXPR):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
+
+
+class LIT(AT_EXPR):
 
     def __init__(self, ln: int) -> None:
         super().__init__(ln,[])
@@ -87,20 +99,6 @@ class CONST(LIT):
 
     def __init__(self, ln: int) -> None:
         super().__init__(ln)
-        self.bpd: int = 0
-        self.wpd: int = 0
-
-
-class BOOL(CONST):
-    
-    def __init__(self, ln: int, v: bool) -> None:
-        super().__init__(ln)
-        self._type = Type.BOOL
-        self.val: bool = v
-        self.name = str(v)
-
-    def __str__(self) -> str:
-        return self.name
 
 
 class INT(CONST):
@@ -114,6 +112,9 @@ class INT(CONST):
     def __str__(self) -> str:
         return self.name
 
+    def at_asm(self) -> str:
+        return 'iconst ' + str(self.name) + '\n'
+
 
 class FLOAT(CONST):
     
@@ -125,6 +126,9 @@ class FLOAT(CONST):
 
     def __str__(self) -> str:
         return self.name
+
+    def at_asm(self) -> str:
+        return 'fconst ' + str(self.name) + '\n'
 
 
 class VAR(LIT):
@@ -138,11 +142,28 @@ class VAR(LIT):
     def __str__(self) -> str:
         return self.name
 
+    def at_asm(self) -> str:
+        return 'load ' + str(self.sid) + '\n'
 
-class ATOM(LIT):
+
+class BOOL(TL_EXPR):
+    
+    def __init__(self, ln: int, v: bool) -> None:
+        super().__init__(ln,[])
+        self._type = Type.BOOL
+        self.bpd: int = 0
+        self.wpd: int = 0
+        self.val: bool = v
+        self.name = str(v)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class ATOM(TL_EXPR):
     
     def __init__(self, ln: int, n: str, a: int) -> None:
-        super().__init__(ln,)
+        super().__init__(ln,[])
         self._type: Type = Type.BOOL
         self.bpd: int = 0
         self.wpd: int = 0
@@ -152,11 +173,14 @@ class ATOM(LIT):
     def __str__(self) -> str:
         return self.name
 
-    def asm(self) -> str:
-        return super().asm() + 'load ' + self.name + '\n'
+    def tl_asm(self) -> str:
+        return super().tl_asm() + 'load ' + self.name + '\n'
+
+    def at_asm(self) -> str:
+        return 'store ' + str(self.aid) + '\n'
 
 
-class LOG_OP(EXPR):
+class LOG_OP(TL_EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
@@ -184,61 +208,7 @@ class LOG_UNARY_OP(LOG_OP):
         return f'{self.name!s} {self.children[0]!s}'
 
 
-class BW_OP(EXPR):
-
-    def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
-
-
-class BW_BIN_OP(BW_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
-
-    def __str__(self) -> str:
-        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
-
-
-class BW_UNARY_OP(BW_OP):
-
-    def __init__(self, ln: int, o: AST):
-        super().__init__(ln,[o])
-
-    def __str__(self) -> str:
-        return f'{self.name!s} {self.children[0]!s}'
-
-
-class ARITH_OP(EXPR):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
-
-    def __str__(self) -> str:
-        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
-
-
-class ARITH_ADD_OP(ARITH_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-
-
-class ARITH_MUL_OP(ARITH_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-
-
-class REL_OP(EXPR):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
-
-    def __str__(self) -> str:
-        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
-
-
-class TL_OP(EXPR):
+class TL_OP(TL_EXPR):
 
     def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
         super().__init__(ln,c)
@@ -303,17 +273,76 @@ class TL_PT_UNARY_OP(TL_PT_OP):
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
 
 
-class TERNARY_OP(EXPR):
+class BW_OP(AT_EXPR):
 
-    def __init__(self, ln: int, arg1: EXPR , arg2: EXPR, arg3: EXPR) -> None:
-        super().__init__(ln, [arg1,arg2,arg3])
-        self.name: str = 'ite'
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
+
+
+class BW_BIN_OP(BW_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
-        arg1: AST = self.children[0]
-        arg2: AST = self.children[1]
-        arg3: AST = self.children[2]
-        return str(arg1) + ' ? ' + str(arg2) + ' : ' + str(arg3)
+        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+
+
+class BW_UNARY_OP(BW_OP):
+
+    def __init__(self, ln: int, o: AST):
+        super().__init__(ln,[o])
+
+    def __str__(self) -> str:
+        return f'{self.name!s} {self.children[0]!s}'
+
+
+class ARITH_OP(AT_EXPR):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
+
+    def __str__(self) -> str:
+        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+
+
+class ARITH_BIN_OP(ARITH_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln,[lhs, rhs])
+
+    def __str__(self) -> str:
+        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+
+
+class ARITH_UNARY_OP(ARITH_OP):
+
+    def __init__(self, ln: int, o: AST) -> None:
+        super().__init__(ln,[o])
+
+    def __str__(self) -> str:
+        return f'{self.name!s} {self.children[0]}'
+
+
+class ARITH_ADD_OP(ARITH_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+
+
+class ARITH_MUL_OP(ARITH_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+
+
+class REL_OP(AT_EXPR):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln,[lhs, rhs])
+
+    def __str__(self) -> str:
+        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
 
 
 class LOG_OR(LOG_BIN_OP):
@@ -325,10 +354,10 @@ class LOG_OR(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'or ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'or ' + lhs.id + ' ' + rhs.id + '\n'
 
 
 class LOG_AND(LOG_BIN_OP):
@@ -340,10 +369,10 @@ class LOG_AND(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'and ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'and ' + lhs.id + ' ' + rhs.id + '\n'
 
 
 class LOG_XOR(LOG_BIN_OP):
@@ -355,10 +384,10 @@ class LOG_XOR(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'xor ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'xor ' + lhs.id + ' ' + rhs.id + '\n'
 
 
 class LOG_IMPL(LOG_BIN_OP):
@@ -370,208 +399,10 @@ class LOG_IMPL(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'impl ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class BW_AND(BW_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '&'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'bwand ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class BW_OR(BW_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '-'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'bwor ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class BW_XOR(BW_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '+'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'mul ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class BW_NEG(BW_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST) -> None:
-        super().__init__(ln, o)
-        self.name: str = '~'
-
-    def asm(self) -> str:
-        operand: AST = self.children[0]
-        return super().asm() + 'bwneg ' + operand.id + '\n'
-
-
-class ARITH_ADD(ARITH_ADD_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '+'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'add ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class ARITH_SUB(ARITH_ADD_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '-'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'sub ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class ARITH_MUL(ARITH_MUL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '+'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'mul ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class ARITH_DIV(ARITH_MUL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '/'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'duv ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class ARITH_MOD(ARITH_MUL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '%'
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'mod ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-
-class REL_EQ(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '=='
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'eq ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class REL_NEQ(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '!='
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'neq ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class REL_GT(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '>'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'gt ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class REL_LT(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '<'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'lt ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class REL_GTE(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '>='
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'gte ' + lhs.id + ' ' + rhs.id + '\n'
-
-
-class REL_LTE(REL_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '<='
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'lte ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'impl ' + lhs.id + ' ' + rhs.id + '\n'
 
 
 class TL_UNTIL(TL_FT_BIN_OP):
@@ -583,10 +414,10 @@ class TL_UNTIL(TL_FT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'until ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'until ' + lhs.id + ' ' + rhs.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -599,10 +430,10 @@ class TL_RELEASE(TL_FT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'release ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'release ' + lhs.id + ' ' + rhs.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -615,10 +446,10 @@ class TL_SINCE(TL_PT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().asm() + 'since ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'since ' + lhs.id + ' ' + rhs.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -631,9 +462,9 @@ class LOG_NEG(LOG_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'not ' + operand.id + '\n'
+        return super().tl_asm() + 'not ' + operand.id + '\n'
 
 
 class TL_GLOBAL(TL_FT_UNARY_OP):
@@ -645,9 +476,9 @@ class TL_GLOBAL(TL_FT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'global ' + operand.id + ' ' + \
+        return super().tl_asm() + 'global ' + operand.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -660,9 +491,9 @@ class TL_FUTURE(TL_FT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'future ' + operand.id + ' ' + \
+        return super().tl_asm() + 'future ' + operand.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -675,9 +506,9 @@ class TL_HISTORICAL(TL_PT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'his ' + operand.id + ' ' + \
+        return super().tl_asm() + 'his ' + operand.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -690,10 +521,188 @@ class TL_ONCE(TL_PT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().asm() + 'once ' + operand.id + ' ' + \
+        return super().tl_asm() + 'once ' + operand.id + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+
+
+class BW_AND(BW_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '&'
+
+    def at_asm(self) -> str:
+        return 'and\n'
+
+
+class BW_OR(BW_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '|'
+
+    def at_asm(self) -> str:
+        return 'or\n'
+
+
+class BW_XOR(BW_BIN_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '+'
+
+    def at_asm(self) -> str:
+        return 'xor\n'
+
+
+class BW_NEG(BW_UNARY_OP):
+
+    def __init__(self, ln: int, o: AST) -> None:
+        super().__init__(ln, o)
+        self.name: str = '~'
+
+    def at_asm(self) -> str:
+        return 'bneg\n'
+
+
+class ARITH_ADD(ARITH_ADD_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '+'
+
+    def at_asm(self) -> str:
+        return 'add\n'
+
+
+class ARITH_SUB(ARITH_ADD_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '-'
+
+    def at_asm(self) -> str:
+        return 'sub\n'
+
+
+class ARITH_MUL(ARITH_MUL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '+'
+
+    def at_asm(self) -> str:
+        return 'mul\n'
+
+
+class ARITH_DIV(ARITH_MUL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '/'
+
+    def at_asm(self) -> str:
+        return 'div\n'
+
+
+class ARITH_MOD(ARITH_MUL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '%'
+
+    def at_asm(self) -> str:
+        return 'mod\n'
+
+
+class ARITH_NEG(ARITH_UNARY_OP):
+
+    def __init__(self, ln: int, o: AST) -> None:
+        super().__init__(ln, o)
+        self.name: str = '-'
+
+    def at_asm(self) -> str:
+        return 'aneg\n'
+
+
+class REL_EQ(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '=='
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'eq\n'
+
+
+class REL_NEQ(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '!='
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'neq\n'
+
+
+class REL_GT(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '>'
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'gt\n'
+
+
+class REL_LT(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '<'
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'lt\n'
+
+
+class REL_GTE(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '>='
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'gte\n'
+
+
+class REL_LTE(REL_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, lhs, rhs)
+        self.name: str = '<='
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def at_asm(self) -> str:
+        return 'lte\n'
 
 
 class SPEC(AST):
@@ -706,9 +715,9 @@ class SPEC(AST):
     def __str__(self) -> str:
         return self.name + ': ' + str(self.children[0])
 
-    def asm(self) -> str:
+    def tl_asm(self) -> str:
         top: AST = self.children[0]
-        return super().asm() + 'end ' + top.id + ' f' + str(self.fnum) + '\n'
+        return super().tl_asm() + 'end ' + top.id + ' f' + str(self.fnum) + '\n'
 
 
 class PROGRAM(AST):
@@ -724,6 +733,6 @@ class PROGRAM(AST):
             ret += str(s) + '\n'
         return ret
 
-    def asm(self) -> str:
-        return super().asm() + 'end sequence'
+    def tl_asm(self) -> str:
+        return super().tl_asm() + 'end sequence'
 
