@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing_extensions import get_overloads
+from typing_extensions import get_overloads, runtime
 
 from antlr4 import TerminalNode
 
@@ -19,6 +19,15 @@ class Visitor(C2POVisitor):
         self.order: dict[str,int] = {}
         self.spec_num: int = 0
         self.status = True
+
+
+    def error(self, msg) -> None:
+        logger.error(msg)
+        self.status = False
+
+    
+    def warning(self, msg) -> None:
+        logger.warning(msg)
 
 
     # Visit a parse tree produced by C2POParser#start.
@@ -83,7 +92,7 @@ class Visitor(C2POVisitor):
         # elif ctx.KW_SET:
         #     return Type.SET
 
-        logger.error('%d: Type \'%s\' not recognized', ln, text)
+        self.error(f'{ln}: Type \'{text}\' not recognized')
         return Type.NONE
 
 
@@ -106,7 +115,7 @@ class Visitor(C2POVisitor):
         expr: EXPR = self.visit(ctx.expr())
 
         if var in list(self.vars):
-            logger.warning('%d: Definition \'%s\' declared in VAR, skipping', ln, var)
+            self.warning(f'{ln}: Definition \'{var}\' declared in VAR, skipping')
         else:
             self.defs[var] = expr
 
@@ -115,16 +124,16 @@ class Visitor(C2POVisitor):
     def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> PROGRAM:
         ln: int = ctx.start.line
         spec: SPEC
-        spec_dict: dict[int,SPEC] = {}
+        spec_dict: dict[SPEC,int] = {}
 
         self.spec_num = 0
 
         for s in ctx.spec():
             spec = self.visit(s)
-            spec_dict[self.spec_num] = spec
+            spec_dict[spec] = self.spec_num
             self.spec_num += 1
 
-        return PROGRAM(ln, spec_dict,self.order)
+        return PROGRAM(ln, spec_dict, self.order)
 
 
     # Visit a parse tree produced by C2POParser#spec.
@@ -138,7 +147,7 @@ class Visitor(C2POVisitor):
         if ctx.IDENTIFIER(): 
             label = ctx.IDENTIFIER().getText()
             if label in list(self.defs):
-                logger.warning('%d: Spec label identifier \'%s\' previously declared, not storing', ln, label)
+                self.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
             else:
                 self.defs[label] = expr
 
@@ -151,6 +160,7 @@ class Visitor(C2POVisitor):
         lhs: EXPR = self.visit(ctx.expr(0))
         rhs: EXPR = self.visit(ctx.expr(1))
 
+<<<<<<< HEAD
         if ctx.BW_OR():
             return LOG_OR(ln, lhs, rhs)
         elif ctx.BW_AND():
@@ -164,6 +174,46 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
+=======
+        if ctx.log_lit():
+            return self.visit(ctx.log_lit())
+        elif ctx.IDENTIFIER():
+            name: str = ctx.IDENTIFIER().getText()
+            if name in list(self.defs):
+                return self.defs[name]
+            elif name in list(self.vars):
+                return VAR(ln, name, self.vars[name])
+            else:
+                self.error(f'{ln}: Variable \'{name}\' undeclared')
+                return EXPR(ln, [])
+        elif ctx.INT():
+            return INT(ln, int(ctx.INT().getText()))
+        elif ctx.FLOAT():
+            return FLOAT(ln, float(ctx.FLOAT().getText()))
+        else:
+            self.error(f'{ln}: Literal \'{ctx.start.text}\' parser token not recognized')
+            return EXPR(ln, [])
+
+
+    # Visit a parse tree produced by C2POParser#log_lit.
+    def visitLog_lit(self, ctx:C2POParser.Log_litContext) -> EXPR:
+        ln: int = ctx.start.line
+
+        if ctx.TRUE():
+            return BOOL(ln, True)
+        elif ctx.FALSE():
+            return BOOL(ln, False)
+        else:
+            self.error(f'{ln}: Logical literal \'{ctx.start.text}\' not recognized')
+            return EXPR(ln, [])
+
+
+    # Visit a parse tree produced by C2POParser#ParensExpr.
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> EXPR:
+        return self.visit(ctx.expr())
+
+
+>>>>>>> new-syntax
     # Visit a parse tree produced by C2POParser#TLBinExpr.
     def visitTLBinExpr(self, ctx:C2POParser.TLBinExprContext):
         ln: int = ctx.start.line
@@ -179,10 +229,10 @@ class Visitor(C2POVisitor):
             elif ctx.tl_bin_op().SINCE():
                 return TL_SINCE(ln, lhs, rhs, bounds.lb, bounds.ub)
             else:
-                logger.error('%d: Binary TL op \'%s\' not recognized', ln, ctx.tl_bin_op().start.text)
+                self.error(f'{ln}: Binary TL op \'{ctx.tl_bin_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -205,7 +255,7 @@ class Visitor(C2POVisitor):
                 logger.error('%d: Unary TL op \'%s\' not recognized', ln, ctx.tl_unary_op().start.text)
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -233,7 +283,7 @@ class Visitor(C2POVisitor):
             elif ctx.rel_eq_op().REL_NEQ:
                 return REL_NEQ(ln, lhs, rhs)
             else:
-                logger.error('%d: Rel op \'%s\' not recognized', ln, ctx.rel_eq_op().start.text)
+                self.error(f'{ln}: Rel op \'{ctx.rel_eq_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         elif ctx.rel_ineq_op():
             if ctx.rel_ineq_op().REL_GT():
@@ -245,10 +295,10 @@ class Visitor(C2POVisitor):
             elif ctx.rel_ineq_op().REL_LTE():
                 return REL_LTE(ln, lhs, rhs)
             else:
-                logger.error('%d: Rel op \'%s\' not recognized', ln, ctx.rel_ineq_op().start.text)
+                self.error(f'{ln}: Rel op \'{ctx.rel_ineq_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -264,10 +314,14 @@ class Visitor(C2POVisitor):
             elif ctx.arith_mul_op().ARITH_SUB():
                 return ARITH_DIV(ln, lhs, rhs)
             else:
+<<<<<<< HEAD
                 logger.error('%d: Binary arithmetic op \'%s\' not recognized', ln, ctx.tl_bin_op().start.text)
+=======
+                self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
+>>>>>>> new-syntax
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -300,7 +354,7 @@ class Visitor(C2POVisitor):
         if ctx.unary_op().BW_NEG():
             return ARITH_NEG(ln, operand)
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -314,7 +368,7 @@ class Visitor(C2POVisitor):
         # e.g., no functions, only rel ops, rel ops and addition, etc.
         # each configuration will have its own canonical opcode definition
 
-        logger.error('%d: Functions not implemented', ln)
+        self.error(f'{ln}: Functions not implemented')
         return EXPR(ln, [])
 
 
@@ -378,7 +432,7 @@ class Visitor(C2POVisitor):
             u: int = int(bounds[1].getText())
             return Interval(lb=l,ub=u)
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return Interval(0,0)
 
 

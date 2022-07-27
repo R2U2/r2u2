@@ -25,8 +25,12 @@ def_block: KW_DEF def+ ;
 def: IDENTIFIER '=' expr ';' ;
 
 spec_block: KW_SPEC spec+ ;
-spec: (IDENTIFIER ':')? expr ';' ;
+spec: IDENTIFIER ':' contract ';'  
+    | (IDENTIFIER ':')? expr ';' ;
 
+contract: expr '=>' expr ;
+
+<<<<<<< HEAD
 expr: expr BW_OR expr         # BWBinExpr
     | expr BW_AND expr        # BWBinExpr
     | expr BW_XOR expr        # BWBinExpr
@@ -43,6 +47,25 @@ expr: expr BW_OR expr         # BWBinExpr
     | set_expr                # SetExpr
     | '(' expr ')'            # ParensExpr
     | literal                 # LitExpr
+=======
+expr: expr '?' expr ':' expr        # TernaryExpr
+    | expr LOG_OR expr              # LogBinExpr
+    | expr LOG_XOR expr             # LogBinExpr
+    | expr LOG_AND expr             # LogBinExpr
+    | expr LOG_IMPL expr            # LogBinExpr
+    | expr tl_bin_op interval expr  # TLBinExpr
+    | tl_unary_op interval expr     # TLUnaryExpr
+    | expr rel_eq_op expr           # RelExpr
+    | expr rel_ineq_op expr         # RelExpr
+    | unary_op expr                 # UnaryExpr
+    | IDENTIFIER '(' expr ')'       # FunExpr
+    | set_expr                      # SetExpr
+    | '(' expr ')'                  # ParensExpr
+    | log_lit                       # LitExpr
+    | IDENTIFIER                    # LitExpr
+    | INT                           # LitExpr
+    | FLOAT                         # LitExpr
+>>>>>>> new-syntax
     ;
 
 set_expr: SW_EMPTY_SET
@@ -77,6 +100,7 @@ KW_SPEC: 'SPEC' ;
 KW_ORDER: 'Order' ;
 KW_SET: 'set' ;
 
+<<<<<<< HEAD
 // Propositional logic/Bitwise ops
 BW_NEG: '!' | '~' | '¬' ;
 BW_AND: '&' | '∧' ;
@@ -84,6 +108,16 @@ BW_OR: '|' | '∨' ;
 BW_XOR: '^' | '⊕' ;
 BW_IMPL: '->' | '→' ;
 BW_IFF: '<->' | '↔' ;
+=======
+
+// Propositional logic ops/literals
+LOG_NEG: '!' | '¬' ;
+LOG_AND: '&' | '∧' ;
+LOG_OR: '|' | '∨' ;
+LOG_XOR: 'XOR' | '⊕' ;
+LOG_IMPL: '->' | '→' ;
+LOG_IFF: '<->' | '↔' ;
+>>>>>>> new-syntax
 TRUE: 'TRUE' | 'true' | '⊤' ;
 FALSE: 'FALSE' | 'false' | '⊥' ;
 

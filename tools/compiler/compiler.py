@@ -48,7 +48,7 @@ def assign_ids(prog: PROGRAM) -> None:
             if a.name in list(order):
                 a.sid = order[a.name]
             else:
-                logger.error('%d: Signal \'%s\' referenced but not defined in Order', a.name)
+                logger.error('%d: Signal \'%s\' referenced but not defined in Order', a.ln, a.name)
 
             a.aid = aid
             a.id = 'a'+str(aid)
@@ -85,6 +85,15 @@ def assign_ids(prog: PROGRAM) -> None:
     assign_ids_rec(prog,False)
 
 
+def assign_tl(prog: PROGRAM) -> None:
+
+    def is_ft(a: AST) -> bool:
+        return True
+        
+    for spec in prog.children:
+        spec.is_ft = is_ft(spec)
+
+
 def type_check(prog: AST) -> bool:
     status: bool = True
 
@@ -97,13 +106,13 @@ def type_check(prog: AST) -> bool:
             for c in a.children:
                 if c.formula_type == FormulaType.PT:
                     status = False
-                    logger.error('%d: Mixed-time (sub)formula detected\n\t%s', a.ln, a)
+                    logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
             a.formula_type = FormulaType.FT
         elif isinstance(a,TL_PT_OP):
             for c in a.children:
                 if c.formula_type == FormulaType.FT:
                     status = False
-                    logger.error('%d: Mixed-time (sub)formula detected\n\t%s', a.ln, a)
+                    logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
             a.formula_type = FormulaType.PT
         else:
             # not a TL op, propagate formula type from children
@@ -204,6 +213,27 @@ def optimize_cse(prog: PROGRAM) -> None:
     postorder(prog,optimize_cse)
 
 
+def gen_alias(prog: PROGRAM) -> str:
+    s: str = ''
+
+    for spec,num in prog.specs.items():
+        s += 'F ' + spec.name + ' ' + str(num) + '\n'
+
+    # for contract, formula_num in self.contracts.items():
+    #     s += 'C ' + contract + ' ' + str(formula_num) + ' ' + \
+    #         str(formula_num+1) + ' ' + str(formula_num+2) + '\n'
+    # for signal, index in self.signals.items():
+    #     s += 'S ' + signal + ' ' + str(index) + '\n'
+    # for atom, index in self.atomics.items():
+    #     s += 'A ' + atom + ' ' + str(index) + '\n'
+    # for set_name, atomics in self.def_sets.items():
+    #     atoms = [str(self.atomics.get(atom, atom[1:])) for atom in atomics[1]]
+    #     s += 'R ' + set_name + ' ' + str(atomics[0]) + ' ' + ' '.join(atoms) + '\n'
+
+    return s
+
+
+# Replaces REL_OP with ATOM in PROGRAM
 def gen_atomic_asm(prog: PROGRAM) -> str:
     s: str = ''
     visited: dict[int,AST] = {}
@@ -274,6 +304,7 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
 
     def gen_tl_assembly_util(a: AST) -> None:
         nonlocal ft_asm
+        # nonlocal pt_asm
         nonlocal visited
 
         if isinstance(a,CONST):
@@ -302,7 +333,9 @@ def parse(input) -> list[PROGRAM]:
 
 def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
-    progs: list[PROGRAM] = parse(input)
+    progs: list[PROGRAM]
+    
+    progs = parse(input)
 
     return
 
@@ -318,6 +351,9 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # common sub-expressions elimination
     optimize_cse(progs[0])
 
+    # generate alias file
+    alias = gen_alias(progs[0])
+
     # generate assembly
     at_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
 
@@ -332,15 +368,21 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
             re.sub('\n','\n\t',re.sub('^','\t',pt_asm)))
 
     # write assembly and assemble all files into binaries
+    with open(output_path+'alias.txt','w') as f:
+        f.write(alias)
+
     with open(output_path+'at.asm','w') as f:
         f.write(at_asm)
         assemble_at(output_path+'at.asm',output_path,'False')
+
     with open(output_path+'ft.asm','w') as f:
         f.write(ft_asm)
         assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
+
     with open(output_path+'pt.asm','w') as f:
         f.write(pt_asm)
         assemble_pt(output_path+'pt.asm','4',output_path,'False')
+
     with open(output_path+'ftscq.asm','w') as f:
         f.write(ftscq_asm)
 

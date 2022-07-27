@@ -56,6 +56,7 @@ class AST():
         self.formula_type = FormulaType.PROP
         self._type: Type = Type.NONE
         self.children: list[AST] = []
+        self.is_ft: bool = True
 
         child: AST
         for child in c:
@@ -710,7 +711,7 @@ class SPEC(AST):
     def __init__(self, ln: int, lbl: str, f: int, e: EXPR) -> None:
         super().__init__(ln, [e])
         self.name: str = lbl
-        self.fnum = f
+        self.fnum: int = f
 
     def __str__(self) -> str:
         return self.name + ': ' + str(self.children[0])
@@ -722,8 +723,9 @@ class SPEC(AST):
 
 class PROGRAM(AST):
 
-    def __init__(self, ln: int, s: dict[int,SPEC], o: dict[str,int]) -> None:
-        super().__init__(ln, list(s.values()))
+    def __init__(self, ln: int, s: dict[SPEC,int], o: dict[str,int]) -> None:
+        super().__init__(ln, list(s.keys()))
+        self.specs = s
         self.order = o
 
     def __str__(self) -> str:

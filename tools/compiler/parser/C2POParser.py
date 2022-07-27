@@ -10,7 +10,11 @@ else:
 
 def serializedATN():
     return [
+<<<<<<< HEAD
         4,1,66,215,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+=======
+        4,1,69,227,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+>>>>>>> new-syntax
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,1,0,
         1,0,1,0,5,0,44,8,0,10,0,12,0,47,9,0,1,1,1,1,4,1,51,8,1,11,1,12,1,
@@ -22,6 +26,7 @@ def serializedATN():
         1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,
         1,10,3,10,137,8,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,
         1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,
+<<<<<<< HEAD
         1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,5,10,171,8,10,
         10,10,12,10,174,9,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,5,11,183,
         8,11,10,11,12,11,186,9,11,1,11,3,11,189,8,11,1,12,1,12,1,12,1,12,
@@ -85,6 +90,75 @@ def serializedATN():
         208,209,7,4,0,0,209,35,1,0,0,0,210,211,7,5,0,0,211,37,1,0,0,0,212,
         213,7,6,0,0,213,39,1,0,0,0,16,43,45,52,61,75,83,91,97,108,112,136,
         170,172,184,188,194
+=======
+        1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,
+        1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,1,10,5,10,183,8,10,10,10,
+        12,10,186,9,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,5,11,195,8,11,
+        10,11,12,11,198,9,11,1,11,3,11,201,8,11,1,12,1,12,1,12,1,12,3,12,
+        207,8,12,1,12,1,12,1,13,1,13,1,14,1,14,1,15,1,15,1,16,1,16,1,17,
+        1,17,1,18,1,18,1,19,1,19,1,20,1,20,1,20,0,1,20,21,0,2,4,6,8,10,12,
+        14,16,18,20,22,24,26,28,30,32,34,36,38,40,0,8,1,0,26,27,2,0,20,20,
+        35,35,3,0,42,43,46,46,49,49,2,0,45,45,47,48,1,0,28,29,1,0,30,33,
+        1,0,34,35,1,0,36,38,238,0,47,1,0,0,0,2,50,1,0,0,0,4,58,1,0,0,0,6,
+        70,1,0,0,0,8,85,1,0,0,0,10,93,1,0,0,0,12,95,1,0,0,0,14,101,1,0,0,
+        0,16,106,1,0,0,0,18,114,1,0,0,0,20,141,1,0,0,0,22,200,1,0,0,0,24,
+        202,1,0,0,0,26,210,1,0,0,0,28,212,1,0,0,0,30,214,1,0,0,0,32,216,
+        1,0,0,0,34,218,1,0,0,0,36,220,1,0,0,0,38,222,1,0,0,0,40,224,1,0,
+        0,0,42,46,3,2,1,0,43,46,3,12,6,0,44,46,3,16,8,0,45,42,1,0,0,0,45,
+        43,1,0,0,0,45,44,1,0,0,0,46,49,1,0,0,0,47,45,1,0,0,0,47,48,1,0,0,
+        0,48,1,1,0,0,0,49,47,1,0,0,0,50,52,5,15,0,0,51,53,3,4,2,0,52,51,
+        1,0,0,0,53,54,1,0,0,0,54,52,1,0,0,0,54,55,1,0,0,0,55,56,1,0,0,0,
+        56,57,3,6,3,0,57,3,1,0,0,0,58,63,5,65,0,0,59,60,5,1,0,0,60,62,5,
+        65,0,0,61,59,1,0,0,0,62,65,1,0,0,0,63,61,1,0,0,0,63,64,1,0,0,0,64,
+        66,1,0,0,0,65,63,1,0,0,0,66,67,5,2,0,0,67,68,3,8,4,0,68,69,5,3,0,
+        0,69,5,1,0,0,0,70,71,5,18,0,0,71,72,5,2,0,0,72,77,5,65,0,0,73,74,
+        5,1,0,0,74,76,5,65,0,0,75,73,1,0,0,0,76,79,1,0,0,0,77,75,1,0,0,0,
+        77,78,1,0,0,0,78,80,1,0,0,0,79,77,1,0,0,0,80,81,5,3,0,0,81,7,1,0,
+        0,0,82,86,5,14,0,0,83,84,5,19,0,0,84,86,3,10,5,0,85,82,1,0,0,0,85,
+        83,1,0,0,0,86,9,1,0,0,0,87,88,5,4,0,0,88,89,5,14,0,0,89,94,5,5,0,
+        0,90,91,5,33,0,0,91,92,5,14,0,0,92,94,5,32,0,0,93,87,1,0,0,0,93,
+        90,1,0,0,0,94,11,1,0,0,0,95,97,5,16,0,0,96,98,3,14,7,0,97,96,1,0,
+        0,0,98,99,1,0,0,0,99,97,1,0,0,0,99,100,1,0,0,0,100,13,1,0,0,0,101,
+        102,5,65,0,0,102,103,5,6,0,0,103,104,3,20,10,0,104,105,5,3,0,0,105,
+        15,1,0,0,0,106,108,5,17,0,0,107,109,3,18,9,0,108,107,1,0,0,0,109,
+        110,1,0,0,0,110,108,1,0,0,0,110,111,1,0,0,0,111,17,1,0,0,0,112,113,
+        5,65,0,0,113,115,5,2,0,0,114,112,1,0,0,0,114,115,1,0,0,0,115,116,
+        1,0,0,0,116,117,3,20,10,0,117,118,5,3,0,0,118,19,1,0,0,0,119,120,
+        6,10,-1,0,120,121,3,30,15,0,121,122,3,24,12,0,122,123,3,20,10,13,
+        123,142,1,0,0,0,124,125,3,28,14,0,125,126,3,20,10,8,126,142,1,0,
+        0,0,127,128,5,65,0,0,128,129,5,8,0,0,129,130,3,20,10,0,130,131,5,
+        9,0,0,131,142,1,0,0,0,132,142,3,22,11,0,133,134,5,8,0,0,134,135,
+        3,20,10,0,135,136,5,9,0,0,136,142,1,0,0,0,137,142,3,26,13,0,138,
+        142,5,65,0,0,139,142,5,67,0,0,140,142,5,66,0,0,141,119,1,0,0,0,141,
+        124,1,0,0,0,141,127,1,0,0,0,141,132,1,0,0,0,141,133,1,0,0,0,141,
+        137,1,0,0,0,141,138,1,0,0,0,141,139,1,0,0,0,141,140,1,0,0,0,142,
+        184,1,0,0,0,143,144,10,19,0,0,144,145,5,7,0,0,145,146,3,20,10,0,
+        146,147,5,2,0,0,147,148,3,20,10,20,148,183,1,0,0,0,149,150,10,18,
+        0,0,150,151,5,22,0,0,151,183,3,20,10,19,152,153,10,17,0,0,153,154,
+        5,23,0,0,154,183,3,20,10,18,155,156,10,16,0,0,156,157,5,21,0,0,157,
+        183,3,20,10,17,158,159,10,15,0,0,159,160,5,24,0,0,160,183,3,20,10,
+        16,161,162,10,14,0,0,162,163,3,32,16,0,163,164,3,24,12,0,164,165,
+        3,20,10,15,165,183,1,0,0,0,166,167,10,12,0,0,167,168,3,38,19,0,168,
+        169,3,20,10,13,169,183,1,0,0,0,170,171,10,11,0,0,171,172,3,40,20,
+        0,172,173,3,20,10,12,173,183,1,0,0,0,174,175,10,10,0,0,175,176,3,
+        34,17,0,176,177,3,20,10,11,177,183,1,0,0,0,178,179,10,9,0,0,179,
+        180,3,36,18,0,180,181,3,20,10,10,181,183,1,0,0,0,182,143,1,0,0,0,
+        182,149,1,0,0,0,182,152,1,0,0,0,182,155,1,0,0,0,182,158,1,0,0,0,
+        182,161,1,0,0,0,182,166,1,0,0,0,182,170,1,0,0,0,182,174,1,0,0,0,
+        182,178,1,0,0,0,183,186,1,0,0,0,184,182,1,0,0,0,184,185,1,0,0,0,
+        185,21,1,0,0,0,186,184,1,0,0,0,187,201,5,52,0,0,188,189,5,10,0,0,
+        189,201,5,11,0,0,190,191,5,10,0,0,191,196,5,65,0,0,192,193,5,1,0,
+        0,193,195,5,65,0,0,194,192,1,0,0,0,195,198,1,0,0,0,196,194,1,0,0,
+        0,196,197,1,0,0,0,197,199,1,0,0,0,198,196,1,0,0,0,199,201,5,11,0,
+        0,200,187,1,0,0,0,200,188,1,0,0,0,200,190,1,0,0,0,201,23,1,0,0,0,
+        202,203,5,12,0,0,203,206,5,67,0,0,204,205,5,1,0,0,205,207,5,67,0,
+        0,206,204,1,0,0,0,206,207,1,0,0,0,207,208,1,0,0,0,208,209,5,13,0,
+        0,209,25,1,0,0,0,210,211,7,0,0,0,211,27,1,0,0,0,212,213,7,1,0,0,
+        213,29,1,0,0,0,214,215,7,2,0,0,215,31,1,0,0,0,216,217,7,3,0,0,217,
+        33,1,0,0,0,218,219,7,4,0,0,219,35,1,0,0,0,220,221,7,5,0,0,221,37,
+        1,0,0,0,222,223,7,6,0,0,223,39,1,0,0,0,224,225,7,7,0,0,225,41,1,
+        0,0,0,16,45,47,54,63,77,85,93,99,110,114,141,182,184,196,200,206
+>>>>>>> new-syntax
     ]
 
 class C2POParser ( Parser ):
@@ -98,6 +172,7 @@ class C2POParser ( Parser ):
     sharedContextCache = PredictionContextCache()
 
     literalNames = [ "<INVALID>", "','", "':'", "';'", "'\\u27E8'", "'\\u27E9'", 
+<<<<<<< HEAD
                      "'='", "'('", "')'", "'{'", "'}'", "'['", "']'", "<INVALID>", 
                      "'VAR'", "'DEFINE'", "'SPEC'", "'Order'", "'set'", 
                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
@@ -110,10 +185,26 @@ class C2POParser ( Parser ):
                      "'\\u2205'", "'\\u2208'", "'\\u2282'", "'\\u2286'", 
                      "'\\u2211'", "'\\u220F'", "'\\u22C3'", "'\\u22C2'", 
                      "'\\u22C0'", "'\\u22C1'", "'\\u00D7'" ]
+=======
+                     "'='", "'?'", "'('", "')'", "'{'", "'}'", "'['", "']'", 
+                     "<INVALID>", "'VAR'", "'DEFINE'", "'SPEC'", "'Order'", 
+                     "'set'", "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+                     "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+                     "'=='", "<INVALID>", "<INVALID>", "<INVALID>", "'>'", 
+                     "'<'", "'+'", "'-'", "<INVALID>", "<INVALID>", "'%'", 
+                     "'**'", "'\\u221A'", "<INVALID>", "<INVALID>", "<INVALID>", 
+                     "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+                     "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+                     "'\\u2205'", "'\\u2208'", "'\\u2282'", "'\\u2286'", 
+                     "'\\u2283'", "'\\u2287'", "'\\u2211'", "'\\u220F'", 
+                     "'\\u22C3'", "'\\u22C2'", "'\\u22C0'", "'\\u22C1'", 
+                     "'\\u00D7'" ]
+>>>>>>> new-syntax
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
+<<<<<<< HEAD
                       "<INVALID>", "BASE_TYPE", "KW_VAR", "KW_DEF", "KW_SPEC", 
                       "KW_ORDER", "KW_SET", "BW_NEG", "BW_AND", "BW_OR", 
                       "BW_XOR", "BW_IMPL", "BW_IFF", "TRUE", "FALSE", "REL_EQ", 
@@ -124,6 +215,19 @@ class C2POParser ( Parser ):
                       "TL_UNTIL", "TL_RELEASE", "TL_HISTORICAL", "FO_FORALL", 
                       "FO_EXISTS", "SW_EMPTY_SET", "SW_MEMBER", "SW_SUBSET", 
                       "SW_SUBSETEQ", "SW_SUM", "SW_PROD", "SW_UNION", "SW_INTERSECTION", 
+=======
+                      "<INVALID>", "<INVALID>", "BASE_TYPE", "KW_VAR", "KW_DEF", 
+                      "KW_SPEC", "KW_ORDER", "KW_SET", "LOG_NEG", "LOG_AND", 
+                      "LOG_OR", "LOG_XOR", "LOG_IMPL", "LOG_IFF", "TRUE", 
+                      "FALSE", "REL_EQ", "REL_NEQ", "REL_GTE", "REL_LTE", 
+                      "REL_GT", "REL_LT", "ARITH_ADD", "ARITH_SUB", "ARITH_MUL", 
+                      "ARITH_DIV", "ARITH_MOD", "ARITH_POW", "ARITH_SQRT", 
+                      "ARITH_PM", "TL_GLOBAL", "TL_FUTURE", "TL_NEXT", "TL_SINCE", 
+                      "TL_ONCE", "TL_UNTIL", "TL_RELEASE", "TL_HISTORICAL", 
+                      "FO_FORALL", "FO_EXISTS", "SW_EMPTY_SET", "SW_MEMBER", 
+                      "SW_SUBSET", "SW_SUBSETEQ", "SW_SUPSET", "SW_SUPSETEQ", 
+                      "SW_SUM", "SW_PROD", "SW_UNION", "SW_INTERSECTION", 
+>>>>>>> new-syntax
                       "SW_AND", "SW_OR", "SW_CTPROD", "IDENTIFIER", "FLOAT", 
                       "INT", "COMMENT", "WS" ]
 
@@ -167,6 +271,7 @@ class C2POParser ( Parser ):
     T__9=10
     T__10=11
     T__11=12
+<<<<<<< HEAD
     BASE_TYPE=13
     KW_VAR=14
     KW_DEF=15
@@ -221,6 +326,65 @@ class C2POParser ( Parser ):
     INT=64
     COMMENT=65
     WS=66
+=======
+    T__12=13
+    BASE_TYPE=14
+    KW_VAR=15
+    KW_DEF=16
+    KW_SPEC=17
+    KW_ORDER=18
+    KW_SET=19
+    LOG_NEG=20
+    LOG_AND=21
+    LOG_OR=22
+    LOG_XOR=23
+    LOG_IMPL=24
+    LOG_IFF=25
+    TRUE=26
+    FALSE=27
+    REL_EQ=28
+    REL_NEQ=29
+    REL_GTE=30
+    REL_LTE=31
+    REL_GT=32
+    REL_LT=33
+    ARITH_ADD=34
+    ARITH_SUB=35
+    ARITH_MUL=36
+    ARITH_DIV=37
+    ARITH_MOD=38
+    ARITH_POW=39
+    ARITH_SQRT=40
+    ARITH_PM=41
+    TL_GLOBAL=42
+    TL_FUTURE=43
+    TL_NEXT=44
+    TL_SINCE=45
+    TL_ONCE=46
+    TL_UNTIL=47
+    TL_RELEASE=48
+    TL_HISTORICAL=49
+    FO_FORALL=50
+    FO_EXISTS=51
+    SW_EMPTY_SET=52
+    SW_MEMBER=53
+    SW_SUBSET=54
+    SW_SUBSETEQ=55
+    SW_SUPSET=56
+    SW_SUPSETEQ=57
+    SW_SUM=58
+    SW_PROD=59
+    SW_UNION=60
+    SW_INTERSECTION=61
+    SW_AND=62
+    SW_OR=63
+    SW_CTPROD=64
+    IDENTIFIER=65
+    FLOAT=66
+    INT=67
+    COMMENT=68
+    WS=69
+>>>>>>> new-syntax
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -954,7 +1118,11 @@ class C2POParser ( Parser ):
                 return visitor.visitChildren(self)
 
 
+<<<<<<< HEAD
     class BWBinExprContext(ExprContext):
+=======
+    class ArithMulExprContext(ExprContext):
+>>>>>>> new-syntax
 
         def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.ExprContext
             super().__init__(parser)
@@ -966,6 +1134,7 @@ class C2POParser ( Parser ):
             else:
                 return self.getTypedRuleContext(C2POParser.ExprContext,i)
 
+<<<<<<< HEAD
         def BW_OR(self):
             return self.getToken(C2POParser.BW_OR, 0)
         def BW_AND(self):
@@ -978,6 +1147,15 @@ class C2POParser ( Parser ):
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitBWBinExpr" ):
                 return visitor.visitBWBinExpr(self)
+=======
+        def arith_mul_op(self):
+            return self.getTypedRuleContext(C2POParser.Arith_mul_opContext,0)
+
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitArithMulExpr" ):
+                return visitor.visitArithMulExpr(self)
+>>>>>>> new-syntax
             else:
                 return visitor.visitChildren(self)
 
@@ -1004,29 +1182,6 @@ class C2POParser ( Parser ):
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitRelExpr" ):
                 return visitor.visitRelExpr(self)
-            else:
-                return visitor.visitChildren(self)
-
-
-    class ArithMulExprContext(ExprContext):
-
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.ExprContext
-            super().__init__(parser)
-            self.copyFrom(ctx)
-
-        def expr(self, i:int=None):
-            if i is None:
-                return self.getTypedRuleContexts(C2POParser.ExprContext)
-            else:
-                return self.getTypedRuleContext(C2POParser.ExprContext,i)
-
-        def arith_mul_op(self):
-            return self.getTypedRuleContext(C2POParser.Arith_mul_opContext,0)
-
-
-        def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitArithMulExpr" ):
-                return visitor.visitArithMulExpr(self)
             else:
                 return visitor.visitChildren(self)
 
@@ -1301,8 +1456,9 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 7:
-                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.ArithAddExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+<<<<<<< HEAD
                         self.state = 158
                         if not self.precpred(self._ctx, 9):
                             from antlr4.error.Errors import FailedPredicateException
@@ -1310,6 +1466,54 @@ class C2POParser ( Parser ):
                         self.state = 159
                         self.rel_ineq_op()
                         self.state = 160
+=======
+                        self.state = 166
+                        if not self.precpred(self._ctx, 12):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 12)")
+                        self.state = 167
+                        self.arith_add_op()
+                        self.state = 168
+                        self.expr(13)
+                        pass
+
+                    elif la_ == 8:
+                        localctx = C2POParser.ArithMulExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+                        self.state = 170
+                        if not self.precpred(self._ctx, 11):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
+                        self.state = 171
+                        self.arith_mul_op()
+                        self.state = 172
+                        self.expr(12)
+                        pass
+
+                    elif la_ == 9:
+                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+                        self.state = 174
+                        if not self.precpred(self._ctx, 10):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
+                        self.state = 175
+                        self.rel_eq_op()
+                        self.state = 176
+                        self.expr(11)
+                        pass
+
+                    elif la_ == 10:
+                        localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+                        self.state = 178
+                        if not self.precpred(self._ctx, 9):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
+                        self.state = 179
+                        self.rel_ineq_op()
+                        self.state = 180
+>>>>>>> new-syntax
                         self.expr(10)
                         pass
 
