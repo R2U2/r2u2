@@ -25,20 +25,18 @@ def_block: KW_DEF def+ ;
 def: IDENTIFIER '=' expr ';' ;
 
 spec_block: KW_SPEC spec+ ;
-spec: (IDENTIFIER ':')? expr ';' ;
+spec: IDENTIFIER ':' contract ';'  
+    | (IDENTIFIER ':')? expr ';' ;
+
+contract: expr '=>' expr ;
 
 expr: expr '?' expr ':' expr        # TernaryExpr
     | expr LOG_OR expr              # LogBinExpr
     | expr LOG_XOR expr             # LogBinExpr
     | expr LOG_AND expr             # LogBinExpr
     | expr LOG_IMPL expr            # LogBinExpr
-    // | expr BW_OR expr               # BWBinExpr
-    // | expr BW_XOR expr              # BWBinExpr
-    // | expr BW_AND expr              # BWBinExpr
     | expr tl_bin_op interval expr  # TLBinExpr
     | tl_unary_op interval expr     # TLUnaryExpr
-    | expr arith_add_op expr        # ArithAddExpr
-    | expr arith_mul_op expr        # ArithMulExpr
     | expr rel_eq_op expr           # RelExpr
     | expr rel_ineq_op expr         # RelExpr
     | unary_op expr                 # UnaryExpr
@@ -85,19 +83,13 @@ KW_SET: 'set' ;
 
 // Propositional logic ops/literals
 LOG_NEG: '!' | '¬' ;
-LOG_AND: '&&' | '∧' ;
-LOG_OR: '||' | '∨' ;
+LOG_AND: '&' | '∧' ;
+LOG_OR: '|' | '∨' ;
 LOG_XOR: 'XOR' | '⊕' ;
 LOG_IMPL: '->' | '→' ;
 LOG_IFF: '<->' | '↔' ;
 TRUE: 'TRUE' | 'true' | '⊤' ;
 FALSE: 'FALSE' | 'false' | '⊥' ;
-
-// Bitwise ops
-BW_NEG: '~' ;
-BW_AND: '&' ;
-BW_OR: '|' ;
-BW_XOR: '^' ;
 
 // Relational ops
 REL_EQ: '==' ;
