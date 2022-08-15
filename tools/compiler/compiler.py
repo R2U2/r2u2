@@ -36,64 +36,23 @@ def assign_ids(prog: PROGRAM) -> None:
     nid: int = 0
     aid: int = 0
 
-    def assign_ids_rec(a: AST, atomic: bool) -> None:
+    def assign_ids_util(a: AST) -> None:
         nonlocal order
         nonlocal nid
         nonlocal aid
 
-        if isinstance(a,CONST):
-            a.id = a.name
-            return
-        elif isinstance(a,VAR): 
-            if a.name in list(order):
-                a.sid = order[a.name]
-            else:
-                logger.error('%d: Signal \'%s\' referenced but not defined in Order', a.ln, a.name)
-
+        if isinstance(a,ATOM):
             a.aid = aid
             a.id = 'a'+str(aid)
             aid += 1
-
-            if not atomic:
-                a.nid = nid
-                a.id = 'a'+str(nid)
-                nid += 1
-            return
-
-        if isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,LOG_OP):
-            a.aid = aid
-            a.id = 'a'+str(aid)
-            aid += 1
-
-            if not atomic:
-                a.nid = nid
-                a.id = 'a'+str(nid)
-                nid += 1
-
-            for c in a.children:
-                assign_ids_rec(c,True)
-            return
         else:
             a.nid = nid
             a.id = 'a'+str(nid)
             nid += 1
 
-            for c in a.children:
-                assign_ids_rec(c,atomic)
-            return
+    postorder(prog,assign_ids_util)
 
-    assign_ids_rec(prog,False)
-
-
-def assign_tl(prog: PROGRAM) -> None:
-
-    def is_ft(a: AST) -> bool:
-        return True
-        
-    for spec in prog.children:
-        spec.is_ft = is_ft(spec)
-
-
+    
 def type_check(prog: AST) -> bool:
     status: bool = True
 
@@ -233,24 +192,6 @@ def gen_alias(prog: PROGRAM) -> str:
     return s
 
 
-# Replaces REL_OP with ATOM in PROGRAM
-def gen_atomic_asm(prog: PROGRAM) -> str:
-    s: str = ''
-    visited: dict[int,AST] = {}
-
-    def gen_atomic_asm_util(a: AST) -> None:
-        nonlocal s
-        nonlocal visited
-
-        c: int
-        for c in range(0,len(a.children)):
-            child = a.children[c]
-            i = id(child)
-
-    preorder(prog,gen_atomic_asm_util)
-    return s[:-1] # remove final newline
-
-
 def compute_scq_size(prog: PROGRAM) -> None:
     
     def compute_scq_size_util(a: AST) -> None:
@@ -295,15 +236,15 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 
 def gen_assembly(prog: PROGRAM) -> list[str]:
     visited: list[int] = []
-    ft_asm: str = ''
+    asm: str = ''
 
     assign_ids(prog)
 
-    atomic_asm: str = gen_atomic_asm(prog)
+    atomic_asm: str = "" # gen_atomic_asm(prog)
 
 
     def gen_tl_assembly_util(a: AST) -> None:
-        nonlocal ft_asm
+        nonlocal asm
         # nonlocal pt_asm
         nonlocal visited
 
@@ -311,31 +252,29 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
             return
 
         if not a.nid in visited:
-            ft_asm += a.tl_asm()
+            asm += a.tl_asm()
             visited.append(a.nid)
 
     postorder(prog,gen_tl_assembly_util)
     
     scq_asm = gen_scq_assembly(prog)
 
-    return [atomic_asm,ft_asm,'n0: end sequence',scq_asm]
+    return [atomic_asm,asm,'n0: end sequence',scq_asm]
 
 
 def parse(input) -> list[PROGRAM]:
-    lexer = C2POLexer(InputStream(input))
-    stream = CommonTokenStream(lexer)
-    parser = C2POParser(stream)
+    lexer: C2POLexer = C2POLexer(InputStream(input))
+    stream: CommonTokenStream = CommonTokenStream(lexer)
+    parser: C2POParser = C2POParser(stream)
     parse_tree = parser.start()
     print(parse_tree.toStringTree(recog=parser))
-    v = Visitor()
-    return v.visit(parse_tree)
+    v: Visitor = Visitor()
+    return v.visitStart(parse_tree)
 
 
 def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
-    progs: list[PROGRAM]
-    
-    progs = parse(input)
+    progs: list[PROGRAM] = parse(input)
 
     return
 

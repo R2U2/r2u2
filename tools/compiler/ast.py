@@ -163,13 +163,11 @@ class BOOL(TL_EXPR):
 
 class ATOM(TL_EXPR):
     
-    def __init__(self, ln: int, n: str, a: int) -> None:
-        super().__init__(ln,[])
+    def __init__(self, ln: int, c: AST) -> None:
+        super().__init__(ln,[c])
         self._type: Type = Type.BOOL
         self.bpd: int = 0
         self.wpd: int = 0
-        self.name: str = n
-        self.aid: int = a
 
     def __str__(self) -> str:
         return self.name

@@ -30,45 +30,34 @@ spec: IDENTIFIER ':' contract ';'
 
 contract: expr '=>' expr ;
 
-<<<<<<< HEAD
-expr: expr BW_OR expr         # BWBinExpr
-    | expr BW_AND expr        # BWBinExpr
-    | expr BW_XOR expr        # BWBinExpr
-    | expr BW_IMPL expr       # BWBinExpr
+expr: expr LOG_OR expr        # LogBinExpr
+    | expr LOG_XOR expr       # LogBinExpr
+    | expr LOG_AND expr       # LogBinExpr
+    | expr LOG_IMPL expr      # LogBinExpr
     | expr tl_bin_op expr     # TLBinExpr
     | tl_unary_op expr        # TLUnaryExpr
-    | expr rel_eq_op expr     # RelExpr
-    | expr rel_ineq_op expr   # RelExpr
-    | expr arith_add_op expr  # ArithAddExpr
-    | expr arith_mul_op expr  # ArithMulExpr
-    | BW_NEG expr             # BWNegExpr
-    | ARITH_SUB expr          # ArithNegExpr
-    | IDENTIFIER '(' expr ')' # FunExpr
-    | set_expr                # SetExpr
+    | LOG_NEG expr            # LogNegExpr
     | '(' expr ')'            # ParensExpr
-    | literal                 # LitExpr
-=======
-expr: expr '?' expr ':' expr        # TernaryExpr
-    | expr LOG_OR expr              # LogBinExpr
-    | expr LOG_XOR expr             # LogBinExpr
-    | expr LOG_AND expr             # LogBinExpr
-    | expr LOG_IMPL expr            # LogBinExpr
-    | expr tl_bin_op interval expr  # TLBinExpr
-    | tl_unary_op interval expr     # TLUnaryExpr
-    | expr rel_eq_op expr           # RelExpr
-    | expr rel_ineq_op expr         # RelExpr
-    | unary_op expr                 # UnaryExpr
-    | IDENTIFIER '(' expr ')'       # FunExpr
-    | set_expr                      # SetExpr
-    | '(' expr ')'                  # ParensExpr
-    | log_lit                       # LitExpr
-    | IDENTIFIER                    # LitExpr
-    | INT                           # LitExpr
-    | FLOAT                         # LitExpr
->>>>>>> new-syntax
+    | term                    # TermExpr
     ;
 
-set_expr: SW_EMPTY_SET
+term: term '?' term ':' term  # TernaryTerm
+    | term BW_OR term         # BWBinTerm
+    | term BW_XOR term        # BWBinTerm
+    | term BW_AND term        # BWBinTerm
+    | term rel_eq_op term     # RelTerm
+    | term rel_ineq_op term   # RelTerm
+    | term arith_add_op term  # ArithAddTerm
+    | term arith_mul_op term  # ArithMulTerm
+    | ARITH_SUB term          # UnaryTerm
+    | BW_NEG term             # UnaryTerm
+    | IDENTIFIER '(' term ')' # FuncTerm
+    | set_term                # SetTerm
+    | '(' term ')'            # ParensTerm
+    | literal                 # LiteralTerm
+    ;
+
+set_term: SW_EMPTY_SET
         | '{' '}'
         | '{' IDENTIFIER (',' IDENTIFIER)* '}'
         ;
@@ -82,8 +71,11 @@ literal: TRUE | FALSE | IDENTIFIER | INT | FLOAT ;
 
 rel_eq_op: REL_EQ | REL_NEQ ;
 rel_ineq_op: REL_GT | REL_LT | REL_GTE | REL_LTE  ;
+
 arith_add_op: ARITH_ADD | ARITH_SUB ;
 arith_mul_op: ARITH_MUL | ARITH_DIV | ARITH_MOD ;
+
+unary_op: ARITH_SUB | BW_NEG ;
 
 //// Lexical Spec
 
@@ -100,26 +92,21 @@ KW_SPEC: 'SPEC' ;
 KW_ORDER: 'Order' ;
 KW_SET: 'set' ;
 
-<<<<<<< HEAD
-// Propositional logic/Bitwise ops
-BW_NEG: '!' | '~' | '¬' ;
-BW_AND: '&' | '∧' ;
-BW_OR: '|' | '∨' ;
-BW_XOR: '^' | '⊕' ;
-BW_IMPL: '->' | '→' ;
-BW_IFF: '<->' | '↔' ;
-=======
-
 // Propositional logic ops/literals
 LOG_NEG: '!' | '¬' ;
-LOG_AND: '&' | '∧' ;
-LOG_OR: '|' | '∨' ;
+LOG_AND: '&&' | '∧' ;
+LOG_OR: '||' | '∨' ;
 LOG_XOR: 'XOR' | '⊕' ;
 LOG_IMPL: '->' | '→' ;
 LOG_IFF: '<->' | '↔' ;
->>>>>>> new-syntax
 TRUE: 'TRUE' | 'true' | '⊤' ;
 FALSE: 'FALSE' | 'false' | '⊥' ;
+
+// Bitwise ops
+BW_NEG: '~' ;
+BW_AND: '&'  ;
+BW_OR: '|'  ;
+BW_XOR: '^'  ;
 
 // Relational ops
 REL_EQ: '==' ;

@@ -59,8 +59,13 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ArithAddExpr.
-    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext):
+    # Visit a parse tree produced by C2POParser#contract.
+    def visitContract(self, ctx:C2POParser.ContractContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#TermExpr.
+    def visitTermExpr(self, ctx:C2POParser.TermExprContext):
         return self.visitChildren(ctx)
 
 
@@ -69,38 +74,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ArithNegExpr.
-    def visitArithNegExpr(self, ctx:C2POParser.ArithNegExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#SetExpr.
-    def visitSetExpr(self, ctx:C2POParser.SetExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#BWBinExpr.
-    def visitBWBinExpr(self, ctx:C2POParser.BWBinExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#RelExpr.
-    def visitRelExpr(self, ctx:C2POParser.RelExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#RelExpr.
-    def visitRelExpr(self, ctx:C2POParser.RelExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#LitExpr.
-    def visitLitExpr(self, ctx:C2POParser.LitExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#BWNegExpr.
-    def visitBWNegExpr(self, ctx:C2POParser.BWNegExprContext):
+    # Visit a parse tree produced by C2POParser#LogBinExpr.
+    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
         return self.visitChildren(ctx)
 
 
@@ -114,13 +89,63 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#FunExpr.
-    def visitFunExpr(self, ctx:C2POParser.FunExprContext):
+    # Visit a parse tree produced by C2POParser#LogNegExpr.
+    def visitLogNegExpr(self, ctx:C2POParser.LogNegExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#set_expr.
-    def visitSet_expr(self, ctx:C2POParser.Set_exprContext):
+    # Visit a parse tree produced by C2POParser#ArithAddTerm.
+    def visitArithAddTerm(self, ctx:C2POParser.ArithAddTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#TernaryTerm.
+    def visitTernaryTerm(self, ctx:C2POParser.TernaryTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#UnaryTerm.
+    def visitUnaryTerm(self, ctx:C2POParser.UnaryTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#BWBinTerm.
+    def visitBWBinTerm(self, ctx:C2POParser.BWBinTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#SetTerm.
+    def visitSetTerm(self, ctx:C2POParser.SetTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#RelTerm.
+    def visitRelTerm(self, ctx:C2POParser.RelTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#LiteralTerm.
+    def visitLiteralTerm(self, ctx:C2POParser.LiteralTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#ArithMulTerm.
+    def visitArithMulTerm(self, ctx:C2POParser.ArithMulTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#FuncTerm.
+    def visitFuncTerm(self, ctx:C2POParser.FuncTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#ParensTerm.
+    def visitParensTerm(self, ctx:C2POParser.ParensTermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#set_term.
+    def visitSet_term(self, ctx:C2POParser.Set_termContext):
         return self.visitChildren(ctx)
 
 
@@ -161,6 +186,11 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#arith_mul_op.
     def visitArith_mul_op(self, ctx:C2POParser.Arith_mul_opContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#unary_op.
+    def visitUnary_op(self, ctx:C2POParser.Unary_opContext):
         return self.visitChildren(ctx)
 
 
