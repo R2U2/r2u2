@@ -1,13 +1,17 @@
 #include "BZ_operations.h"
 
-void bz_store(bz_stack_t *stack, uint32_t addr)
+void bz_store(bz_stack_t *stack, bz_val_t param)
 {
+    uint32_t addr;
     bool val;
-    val = bz_stack_pop(stack)->b;
+
+    addr = param.i;
+
+    val = bz_stack_pop(stack).b;
     atomics_vector[addr] = val;
 }
 
-void bz_ieq(bz_stack_t *stack)
+void bz_ieq(bz_stack_t *stack, bz_val_t param)
 {
     uint32_t i1, i2;
     bool res;
@@ -19,10 +23,12 @@ void bz_ieq(bz_stack_t *stack)
     bz_stack_bpush(stack,res);
 }
 
-void bz_feq(bz_stack_t *stack, float epsilon)
+void bz_feq(bz_stack_t *stack, bz_val_t param)
 {
-    float f1, f2;
+    float f1, f2, epsilon;
     bool res;
+
+    epsilon = param.f;
 
     i1 = bz_stack_pop(stack)->i;
     i2 = bz_stack_pop(stack)->i;
@@ -31,7 +37,7 @@ void bz_feq(bz_stack_t *stack, float epsilon)
     bz_stack_bpush(stack,res);
 }
 
-void bz_ineq(bz_stack_t *stack)
+void bz_ineq(bz_stack_t *stack, bz_val_t param)
 {
     uint32_t i1, i2;
     bool res;
@@ -43,15 +49,15 @@ void bz_ineq(bz_stack_t *stack)
     bz_stack_bpush(stack,res);
 }
 
-void bz_fneq(bz_stack_t *stack);
-void bz_igt(bz_stack_t *stack);
-void bz_fgt(bz_stack_t *stack);
-void bz_igte(bz_stack_t *stack);
-void bz_fgte(bz_stack_t *stack);
-void bz_ilt(bz_stack_t *stack);
-void bz_flt(bz_stack_t *stack);
+void bz_fneq(bz_stack_t *stack, bz_val_t param);
+void bz_igt(bz_stack_t *stack, bz_val_t param);
+void bz_fgt(bz_stack_t *stack, bz_val_t param);
+void bz_igte(bz_stack_t *stack, bz_val_t param);
+void bz_fgte(bz_stack_t *stack, bz_val_t param);
+void bz_ilt(bz_stack_t *stack, bz_val_t param);
+void bz_flt(bz_stack_t *stack, bz_val_t param);
 
-void bz_iadd(bz_stack_t *stack)
+void bz_iadd(bz_stack_t *stack, bz_val_t param)
 {
     uint32_t i1, i2, res;
 
@@ -62,7 +68,7 @@ void bz_iadd(bz_stack_t *stack)
     bz_stack_ipush(stack,res);
 }
 
-void bz_fadd(bz_stack_t *)
+void bz_fadd(bz_stack_t *, bz_val_t param)
 {
     float f1, f2, res;
 
@@ -73,7 +79,7 @@ void bz_fadd(bz_stack_t *)
     bz_stack_fpush(stack,res);
 }
 
-void bz_isub(bz_stack_t *)
+void bz_isub(bz_stack_t *, bz_val_t param)
 {
     uint32_t i1, i2, res;
 
@@ -84,7 +90,7 @@ void bz_isub(bz_stack_t *)
     bz_stack_ipush(stack,res);
 }
 
-void bz_fsub(bz_stack_t *)
+void bz_fsub(bz_stack_t *, bz_val_t param)
 {
     float f1, f2, res;
 

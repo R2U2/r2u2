@@ -2,7 +2,7 @@
 #define BZ_BOOLEANIZER_H
 
 /*
- * A booleanizer is a reasoning engine that converts input signals
+ * A booleanizer is an engine that converts input signals
  * into booleans according to the given specification. It functions
  * as a stack machine by using a stack to keep track of its internal
  * state. 

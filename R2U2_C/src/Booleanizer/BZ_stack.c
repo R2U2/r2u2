@@ -27,7 +27,7 @@ void bz_stack_ipush(bz_stack_t *stack, uin32_t val)
     stack->size++;
 }
 
-void bz_stack_bpush(bz_stack_t *stack, float val)
+void bz_stack_fpush(bz_stack_t *stack, float val)
 {
     if(stack->size == BZ_STACK_SIZE) {
         fprintf(stderr, "Error in Booleanizer: max stack size exceeded");
@@ -38,7 +38,7 @@ void bz_stack_bpush(bz_stack_t *stack, float val)
     stack->size++;
 }
 
-bz_val_t *bz_stack_pop(bz_stack_t *stack)
+bz_val_t bz_stack_pop(bz_stack_t *stack)
 {
     if(stack->size == 0) {
         return NULL;
