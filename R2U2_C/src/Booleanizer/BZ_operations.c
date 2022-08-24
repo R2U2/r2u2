@@ -11,6 +11,29 @@ void bz_store(bz_stack_t *stack, bz_val_t param)
     atomics_vector[addr] = val;
 }
 
+void bz_iload(bz_stack_t *stack, bz_val_t param)
+{
+    uint32_t addr, val;
+
+    addr = param.i;
+
+    sscanf(signals_vector[addr], "%d", &val);
+    
+    bz_stack_ipush(stack,val);
+}
+
+void bz_fload(bz_stack_t *stack, bz_val_t param)
+{
+    uint32_t addr;
+    float val;
+
+    addr = param.i;
+
+    sscanf(signals_vector[addr], "%f", &val);
+
+    bz_stack_fpush(stack,val);
+}
+
 void bz_ieq(bz_stack_t *stack, bz_val_t param)
 {
     uint32_t i1, i2;
