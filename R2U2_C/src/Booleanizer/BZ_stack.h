@@ -1,7 +1,7 @@
 #ifndef BZ_STACK_H
 #define BZ_STACK_H
 
-#define BZ_STACK_SIZE 16
+#define BZ_STACK_SIZE 8
 
 #include <stdbool.h>
 
