@@ -3,7 +3,8 @@
 
 /* Store, Load */
 void bz_store(bz_stack_t *, bz_val_t);
-void bz_load(bz_stack_t *, bz_val_t);
+void bz_iload(bz_stack_t *, bz_val_t);
+void bz_fload(bz_stack_t *, bz_val_t);
 
 /* Ternary */
 void bz_iite(bz_stack_t *, bz_val_t);

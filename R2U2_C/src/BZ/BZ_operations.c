@@ -34,6 +34,36 @@ void bz_fload(bz_stack_t *stack, bz_val_t param)
     bz_stack_fpush(stack,val);
 }
 
+void bz_iite(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_fite(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_bwneg(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_bwand(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_bwor(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_bwxor(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
 void bz_ieq(bz_stack_t *stack, bz_val_t param)
 {
     uint32_t i1, i2;
@@ -53,9 +83,9 @@ void bz_feq(bz_stack_t *stack, bz_val_t param)
 
     epsilon = param.f;
 
-    i1 = bz_stack_pop(stack)->i;
-    i2 = bz_stack_pop(stack)->i;
-    res = (i1 - i2 <= epsilon) || (i2 - i1 <= epsilon);
+    f1 = bz_stack_pop(stack)->f;
+    f2 = bz_stack_pop(stack)->f;
+    res = (f1 - f2 <= epsilon) || (f2 - f1 <= epsilon);
 
     bz_stack_bpush(stack,res);
 }
@@ -72,13 +102,41 @@ void bz_ineq(bz_stack_t *stack, bz_val_t param)
     bz_stack_bpush(stack,res);
 }
 
-void bz_fneq(bz_stack_t *stack, bz_val_t param);
-void bz_igt(bz_stack_t *stack, bz_val_t param);
-void bz_fgt(bz_stack_t *stack, bz_val_t param);
-void bz_igte(bz_stack_t *stack, bz_val_t param);
-void bz_fgte(bz_stack_t *stack, bz_val_t param);
-void bz_ilt(bz_stack_t *stack, bz_val_t param);
-void bz_flt(bz_stack_t *stack, bz_val_t param);
+void bz_fneq(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_igt(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_fgt(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_igte(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_fgte(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_ilt(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
+void bz_flt(bz_stack_t *stack, bz_val_t param)
+{
+    return;
+}
+
 
 void bz_iadd(bz_stack_t *stack, bz_val_t param)
 {
