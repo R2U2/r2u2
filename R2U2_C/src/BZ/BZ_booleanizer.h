@@ -1,10 +1,14 @@
 #ifndef BZ_BOOLEANIZER_H
 #define BZ_BOOLEANIZER_H
 
-#include "BZ_stack.h"
+#include <stdint.h>
 
-#define MAX_SIGS 4
-#define MAX_BZ 4
+#include "BZ_stack.h"
+#include "BZ_instruction.h"
+
+#define N_BZ_INSTR 64
+#define N_SIGS 4
+#define N_BZ 4
 
 /*
  * A booleanizer is an engine that converts input signals
@@ -16,11 +20,11 @@ typedef struct bz_booleanizer {
     bz_stack_t stack;
     bz_instruction_t instructions[N_BZ_INSTR];
     uint32_t num_instr;
-    char *sig_vector[MAX_SIGS];
-    bool bz_vector[MAX_BZ];
+    bz_val_t sig_vector[N_SIGS];
+    bool bz_vector[N_BZ];
 } bz_booleanizer_t;
 
-void bz_booleanizer_init(bz_booleanizer_t *);
+void bz_booleanizer_init(bz_booleanizer_t *, uint32_t);
 void bz_booleanizer_update(bz_booleanizer_t *);
 
 #endif

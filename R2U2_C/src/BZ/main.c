@@ -1,3 +1,4 @@
+#include <stdint.h>
 
 #include "BZ_booleanizer.h"
 #include "BZ_instruction.h"
@@ -17,8 +18,9 @@ void main()
 
     bz_booleanizer_t bz;
 
-    bz_booleanizer_init(&bz);
+    bz_booleanizer_init(&bz,8);
 
+    bz.instructions = instr;
     
 
 }
