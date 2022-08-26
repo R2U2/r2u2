@@ -1,49 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "BZ_stack.h"
 
-void bz_stack_init(bz_stack_t *stack)
+void bz_stack_init(bz_stack_t *s)
 {
-    stack->size = 0;
+    uint32_t i;
+    for(i = 0; i < BZ_STACK_SIZE; ++i) {
+        s->stack[i].i = 0;
+    }
+
+    s->size = 0;
 }
 
-void bz_stack_bpush(bz_stack_t *stack, bool val)
+void bz_stack_bpush(bz_stack_t *s, bool val)
 {
-    if(stack->size == BZ_STACK_SIZE) {
-        fprintf(stderr, "Error in Booleanizer: max stack size exceeded");
+    if(s->size == BZ_STACK_SIZE) {
+        fprintf(stderr, "Error in Booleanizer: max s size exceeded");
         exit(1);
     }
 
-    stack[stack->size].b = val;
-    stack->size++;
+    s->stack[s->size].b = val;
+    s->size++;
 }
 
-void bz_stack_ipush(bz_stack_t *stack, uin32_t val)
+void bz_stack_ipush(bz_stack_t *s, uint32_t val)
 {
-    if(stack->size == BZ_STACK_SIZE) {
-        fprintf(stderr, "Error in Booleanizer: max stack size exceeded");
+    if(s->size == BZ_STACK_SIZE) {
+        fprintf(stderr, "Error in Booleanizer: max s size exceeded");
         exit(1);
     }
 
-    stack[stack->size].i = val;
-    stack->size++;
+    s->stack[s->size].i = val;
+    s->size++;
 }
 
-void bz_stack_fpush(bz_stack_t *stack, float val)
+void bz_stack_fpush(bz_stack_t *s, float val)
 {
-    if(stack->size == BZ_STACK_SIZE) {
-        fprintf(stderr, "Error in Booleanizer: max stack size exceeded");
+    if(s->size == BZ_STACK_SIZE) {
+        fprintf(stderr, "Error in Booleanizer: max s size exceeded");
         exit(1);
     }
 
-    stack[stack->size].f = val;
-    stack->size++;
+    s->stack[s->size].f = val;
+    s->size++;
 }
 
-bz_val_t bz_stack_pop(bz_stack_t *stack)
+bz_val_t bz_stack_pop(bz_stack_t *s)
 {
-    if(stack->size == 0) {
-        return NULL;
+    if(s->size == 0) {
+        bz_val_t err;
+        err.b = false;
+        return err;
     }
 
-    stack->size--;
-    return stack[stack->size+1];
+    bz_val_t top = s->stack[s->size-1];
+    s->size--;
+
+    return top;
 }

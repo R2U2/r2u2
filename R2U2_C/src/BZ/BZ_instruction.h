@@ -2,7 +2,6 @@
 #define BZ_INSTRUCTION_H
 
 typedef enum bz_opcode {
-    NONE,
     /* Load/Store */
     STORE,
     ILOAD,
@@ -28,9 +27,9 @@ typedef enum bz_opcode {
     FLT,
     ILTE,
     FLTE,
+    /* Arithmetic */
     INEG,
     FNEG,
-    /* Arithmetic  */
     IADD,
     FADD,
     ISUB,
@@ -43,12 +42,13 @@ typedef enum bz_opcode {
     AUX1,
     AUX2,
     AUX3,
-    AUX4
+    AUX4,
+    NONE
 } bz_opcode_t;
 
 typedef struct bz_instruction {
     bz_opcode_t opcode;
-    uint32_t param;
+    bz_val_t param;
 } bz_instruction_t;
 
 #endif

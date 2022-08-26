@@ -1,5 +1,5 @@
 #ifndef BZ_GLOBALS_H
-#define BS_GLOBALS_H
+#define BZ_GLOBALS_H
 
 typedef char *signals_vector_t[N_SIGS];
 typedef at_instruction_t instructions_t[N_AT];

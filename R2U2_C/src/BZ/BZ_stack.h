@@ -1,9 +1,10 @@
 #ifndef BZ_STACK_H
 #define BZ_STACK_H
 
-#define BZ_MAX_STACK_SIZE 8
+#define BZ_STACK_SIZE 8
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef union bz_val {
     bool b;
@@ -12,7 +13,7 @@ typedef union bz_val {
 } bz_val_t;
 
 typedef struct bz_stack {
-    bz_val_t stack[BZ_MAX_STACK_SIZE];
+    bz_val_t stack[BZ_STACK_SIZE];
     uint32_t size;
 } bz_stack_t;
 
