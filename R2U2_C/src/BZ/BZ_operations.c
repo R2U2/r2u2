@@ -89,7 +89,7 @@ void bz_feq(bz_booleanizer_t *bz, bz_val_t param)
 
     f1 = bz_stack_pop(&bz->stack).f;
     f2 = bz_stack_pop(&bz->stack).f;
-    res = (f1 - f2 <= epsilon) || (f2 - f1 <= epsilon);
+    res = (f1 > f2) ? (f1 - f2 <= epsilon) : (f2 - f1 <= epsilon);
 
     bz_stack_bpush(&bz->stack,res);
 }
