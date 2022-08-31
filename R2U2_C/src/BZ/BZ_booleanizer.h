@@ -26,5 +26,6 @@ typedef struct bz_booleanizer {
 
 void bz_booleanizer_init(bz_booleanizer_t *, uint32_t);
 void bz_booleanizer_update(bz_booleanizer_t *);
+void bz_execute(bz_booleanizer_t *, uint32_t);
 
 #endif
