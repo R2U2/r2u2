@@ -1,7 +1,4 @@
-//// Configuration Compiler for Property Observation -- C2PO
-//// Configuration Compiler for Property Organization -- C2PO
-//// Configuration Compiler for Proposition Organization -- C2PO
-//// Compiler for Creation and Coordination of Configurations for Proposition Organization -- C4PO
+//// Configuration Compiler for Property Observation (C2PO)
 
 //// Parser Rules
 
@@ -42,9 +39,9 @@ expr: expr LOG_OR expr        # LogBinExpr
     ;
 
 term: term '?' term ':' term  # TernaryTerm
-    | term BW_OR term         # BWBinTerm
-    | term BW_XOR term        # BWBinTerm
-    | term BW_AND term        # BWBinTerm
+    | term BW_OR term         # BWTerm
+    | term BW_XOR term        # BWTerm
+    | term BW_AND term        # BWTerm
     | term rel_eq_op term     # RelTerm
     | term rel_ineq_op term   # RelTerm
     | term arith_add_op term  # ArithAddTerm

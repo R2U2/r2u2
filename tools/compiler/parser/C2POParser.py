@@ -1,4 +1,4 @@
-# Generated from C2PO.g by ANTLR 4.10.1
+# Generated from C2PO.g by ANTLR 4.11.1
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -253,7 +253,7 @@ class C2POParser ( Parser ):
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.10.1")
+        self.checkVersion("4.11.1")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
@@ -310,19 +310,19 @@ class C2POParser ( Parser ):
             self.state = 51
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while (((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << C2POParser.KW_VAR) | (1 << C2POParser.KW_DEF) | (1 << C2POParser.KW_SPEC))) != 0):
+            while ((_la) & ~0x3f) == 0 and ((1 << _la) & 458752) != 0:
                 self.state = 49
                 self._errHandler.sync(self)
                 token = self._input.LA(1)
-                if token in [C2POParser.KW_VAR]:
+                if token in [16]:
                     self.state = 46
                     self.var_block()
                     pass
-                elif token in [C2POParser.KW_DEF]:
+                elif token in [17]:
                     self.state = 47
                     self.def_block()
                     pass
-                elif token in [C2POParser.KW_SPEC]:
+                elif token in [18]:
                     self.state = 48
                     self.spec_block()
                     pass
@@ -393,7 +393,7 @@ class C2POParser ( Parser ):
                 self.state = 58 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==C2POParser.IDENTIFIER):
+                if not (_la==68):
                     break
 
             self.state = 60
@@ -448,7 +448,7 @@ class C2POParser ( Parser ):
             self.state = 67
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while _la==C2POParser.T__0:
+            while _la==1:
                 self.state = 63
                 self.match(C2POParser.T__0)
                 self.state = 64
@@ -516,7 +516,7 @@ class C2POParser ( Parser ):
             self.state = 81
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while _la==C2POParser.T__0:
+            while _la==1:
                 self.state = 77
                 self.match(C2POParser.T__0)
                 self.state = 78
@@ -573,12 +573,12 @@ class C2POParser ( Parser ):
             self.state = 89
             self._errHandler.sync(self)
             token = self._input.LA(1)
-            if token in [C2POParser.BASE_TYPE]:
+            if token in [15]:
                 self.enterOuterAlt(localctx, 1)
                 self.state = 86
                 self.match(C2POParser.BASE_TYPE)
                 pass
-            elif token in [C2POParser.KW_SET]:
+            elif token in [20]:
                 self.enterOuterAlt(localctx, 2)
                 self.state = 87
                 self.match(C2POParser.KW_SET)
@@ -633,7 +633,7 @@ class C2POParser ( Parser ):
             self.state = 97
             self._errHandler.sync(self)
             token = self._input.LA(1)
-            if token in [C2POParser.T__3]:
+            if token in [4]:
                 self.enterOuterAlt(localctx, 1)
                 self.state = 91
                 self.match(C2POParser.T__3)
@@ -642,7 +642,7 @@ class C2POParser ( Parser ):
                 self.state = 93
                 self.match(C2POParser.T__4)
                 pass
-            elif token in [C2POParser.REL_LT]:
+            elif token in [38]:
                 self.enterOuterAlt(localctx, 2)
                 self.state = 94
                 self.match(C2POParser.REL_LT)
@@ -710,7 +710,7 @@ class C2POParser ( Parser ):
                 self.state = 103 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==C2POParser.IDENTIFIER):
+                if not (_la==68):
                     break
 
         except RecognitionException as re:
@@ -818,7 +818,7 @@ class C2POParser ( Parser ):
                 self.state = 114 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (((((_la - 8)) & ~0x3f) == 0 and ((1 << (_la - 8)) & ((1 << (C2POParser.T__7 - 8)) | (1 << (C2POParser.T__10 - 8)) | (1 << (C2POParser.LOG_NEG - 8)) | (1 << (C2POParser.TRUE - 8)) | (1 << (C2POParser.FALSE - 8)) | (1 << (C2POParser.BW_NEG - 8)) | (1 << (C2POParser.ARITH_SUB - 8)) | (1 << (C2POParser.TL_GLOBAL - 8)) | (1 << (C2POParser.TL_FUTURE - 8)) | (1 << (C2POParser.TL_ONCE - 8)) | (1 << (C2POParser.TL_HISTORICAL - 8)) | (1 << (C2POParser.SW_EMPTY_SET - 8)) | (1 << (C2POParser.IDENTIFIER - 8)) | (1 << (C2POParser.FLOAT - 8)) | (1 << (C2POParser.INT - 8)))) != 0)):
+                if not ((((_la - 8)) & ~0x3f) == 0 and ((1 << (_la - 8)) & 8071094300604637193) != 0):
                     break
 
         except RecognitionException as re:
@@ -1257,6 +1257,32 @@ class C2POParser ( Parser ):
             super().copyFrom(ctx)
 
 
+    class BWTermContext(TermContext):
+
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.TermContext
+            super().__init__(parser)
+            self.copyFrom(ctx)
+
+        def term(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(C2POParser.TermContext)
+            else:
+                return self.getTypedRuleContext(C2POParser.TermContext,i)
+
+        def BW_OR(self):
+            return self.getToken(C2POParser.BW_OR, 0)
+        def BW_XOR(self):
+            return self.getToken(C2POParser.BW_XOR, 0)
+        def BW_AND(self):
+            return self.getToken(C2POParser.BW_AND, 0)
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitBWTerm" ):
+                return visitor.visitBWTerm(self)
+            else:
+                return visitor.visitChildren(self)
+
+
     class ArithAddTermContext(TermContext):
 
         def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.TermContext
@@ -1317,32 +1343,6 @@ class C2POParser ( Parser ):
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitUnaryTerm" ):
                 return visitor.visitUnaryTerm(self)
-            else:
-                return visitor.visitChildren(self)
-
-
-    class BWBinTermContext(TermContext):
-
-        def __init__(self, parser, ctx:ParserRuleContext): # actually a C2POParser.TermContext
-            super().__init__(parser)
-            self.copyFrom(ctx)
-
-        def term(self, i:int=None):
-            if i is None:
-                return self.getTypedRuleContexts(C2POParser.TermContext)
-            else:
-                return self.getTypedRuleContext(C2POParser.TermContext,i)
-
-        def BW_OR(self):
-            return self.getToken(C2POParser.BW_OR, 0)
-        def BW_XOR(self):
-            return self.getToken(C2POParser.BW_XOR, 0)
-        def BW_AND(self):
-            return self.getToken(C2POParser.BW_AND, 0)
-
-        def accept(self, visitor:ParseTreeVisitor):
-            if hasattr( visitor, "visitBWBinTerm" ):
-                return visitor.visitBWBinTerm(self)
             else:
                 return visitor.visitChildren(self)
 
@@ -1573,7 +1573,7 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 2:
-                        localctx = C2POParser.BWBinTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.BWTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 192
                         if not self.precpred(self._ctx, 13):
@@ -1586,7 +1586,7 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 3:
-                        localctx = C2POParser.BWBinTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.BWTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 195
                         if not self.precpred(self._ctx, 12):
@@ -1599,7 +1599,7 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 4:
-                        localctx = C2POParser.BWBinTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.BWTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 198
                         if not self.precpred(self._ctx, 11):
@@ -1737,7 +1737,7 @@ class C2POParser ( Parser ):
                 self.state = 231
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                while _la==C2POParser.T__0:
+                while _la==1:
                     self.state = 227
                     self.match(C2POParser.T__0)
                     self.state = 228
@@ -1799,7 +1799,7 @@ class C2POParser ( Parser ):
             self.state = 241
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==C2POParser.T__0:
+            if _la==1:
                 self.state = 239
                 self.match(C2POParser.T__0)
                 self.state = 240
@@ -1861,7 +1861,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 245
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << C2POParser.TL_GLOBAL) | (1 << C2POParser.TL_FUTURE) | (1 << C2POParser.TL_ONCE) | (1 << C2POParser.TL_HISTORICAL))) != 0)):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 20688410788233216) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1918,7 +1918,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 248
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << C2POParser.TL_SINCE) | (1 << C2POParser.TL_UNTIL) | (1 << C2POParser.TL_RELEASE))) != 0)):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 14636698788954112) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1977,7 +1977,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 251
             _la = self._input.LA(1)
-            if not(((((_la - 27)) & ~0x3f) == 0 and ((1 << (_la - 27)) & ((1 << (C2POParser.TRUE - 27)) | (1 << (C2POParser.FALSE - 27)) | (1 << (C2POParser.IDENTIFIER - 27)) | (1 << (C2POParser.FLOAT - 27)) | (1 << (C2POParser.INT - 27)))) != 0)):
+            if not((((_la - 27)) & ~0x3f) == 0 and ((1 << (_la - 27)) & 15393162788867) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2025,7 +2025,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 253
             _la = self._input.LA(1)
-            if not(_la==C2POParser.REL_EQ or _la==C2POParser.REL_NEQ):
+            if not(_la==33 or _la==34):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2079,7 +2079,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 255
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << C2POParser.REL_GTE) | (1 << C2POParser.REL_LTE) | (1 << C2POParser.REL_GT) | (1 << C2POParser.REL_LT))) != 0)):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 515396075520) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2127,7 +2127,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 257
             _la = self._input.LA(1)
-            if not(_la==C2POParser.ARITH_ADD or _la==C2POParser.ARITH_SUB):
+            if not(_la==39 or _la==40):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2178,7 +2178,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 259
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << C2POParser.ARITH_MUL) | (1 << C2POParser.ARITH_DIV) | (1 << C2POParser.ARITH_MOD))) != 0)):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 15393162788864) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2226,7 +2226,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 261
             _la = self._input.LA(1)
-            if not(_la==C2POParser.BW_NEG or _la==C2POParser.ARITH_SUB):
+            if not(_la==29 or _la==40):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)

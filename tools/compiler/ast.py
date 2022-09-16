@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Callable
 from enum import Enum
-from typing import Any, NamedTuple, cast
+from typing import Any, Dict, NamedTuple
 from logging import getLogger
 
 from .util import *
@@ -31,7 +31,7 @@ def to_str(t: Type) -> str:
         return 'bool'
     elif t == Type.INT:
         return 'int'
-    elif t == Type.FLOAT:
+    elif t == Type.FLOBZ:
         return 'float'
     else:
         return 'none'
@@ -44,7 +44,7 @@ class Interval(NamedTuple):
 
 class AST():
 
-    def __init__(self, ln: int, c: list[AST]) -> None:
+    def __init__(self, ln: int, c: list['AST']) -> None:
         self.ln: int = ln
         self.nid: int = -1
         self.aid: int = -1
@@ -68,7 +68,7 @@ class AST():
     def tl_asm(self) -> str:
         return 'n' + str(self.nid) + ': '
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return ''
 
 
@@ -84,13 +84,13 @@ class TL_EXPR(EXPR):
         super().__init__(ln,c)
 
 
-class AT_EXPR(EXPR):
+class BZ_EXPR(EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
 
 
-class LIT(AT_EXPR):
+class LIT(BZ_EXPR):
 
     def __init__(self, ln: int) -> None:
         super().__init__(ln,[])
@@ -113,7 +113,7 @@ class INT(CONST):
     def __str__(self) -> str:
         return self.name
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'iconst ' + str(self.name) + '\n'
 
 
@@ -128,7 +128,7 @@ class FLOAT(CONST):
     def __str__(self) -> str:
         return self.name
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'fconst ' + str(self.name) + '\n'
 
 
@@ -143,7 +143,7 @@ class VAR(LIT):
     def __str__(self) -> str:
         return self.name
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'load ' + str(self.sid) + '\n'
 
 
@@ -175,7 +175,7 @@ class ATOM(TL_EXPR):
     def tl_asm(self) -> str:
         return super().tl_asm() + 'load ' + self.name + '\n'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'store ' + str(self.aid) + '\n'
 
 
@@ -272,7 +272,7 @@ class TL_PT_UNARY_OP(TL_PT_OP):
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
 
 
-class BW_OP(AT_EXPR):
+class BW_OP(BZ_EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
@@ -296,7 +296,7 @@ class BW_UNARY_OP(BW_OP):
         return f'{self.name!s} {self.children[0]!s}'
 
 
-class ARITH_OP(AT_EXPR):
+class ARITH_OP(BZ_EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
@@ -335,7 +335,7 @@ class ARITH_MUL_OP(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
 
 
-class REL_OP(AT_EXPR):
+class REL_OP(BZ_EXPR):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln,[lhs, rhs])
@@ -532,7 +532,7 @@ class BW_AND(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '&'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'and\n'
 
 
@@ -542,7 +542,7 @@ class BW_OR(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '|'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'or\n'
 
 
@@ -552,7 +552,7 @@ class BW_XOR(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'xor\n'
 
 
@@ -562,7 +562,7 @@ class BW_NEG(BW_UNARY_OP):
         super().__init__(ln, o)
         self.name: str = '~'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'bneg\n'
 
 
@@ -572,7 +572,7 @@ class ARITH_ADD(ARITH_ADD_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'add\n'
 
 
@@ -582,7 +582,7 @@ class ARITH_SUB(ARITH_ADD_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '-'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'sub\n'
 
 
@@ -592,7 +592,7 @@ class ARITH_MUL(ARITH_MUL_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'mul\n'
 
 
@@ -602,7 +602,7 @@ class ARITH_DIV(ARITH_MUL_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '/'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'div\n'
 
 
@@ -612,7 +612,7 @@ class ARITH_MOD(ARITH_MUL_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '%'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'mod\n'
 
 
@@ -622,7 +622,7 @@ class ARITH_NEG(ARITH_UNARY_OP):
         super().__init__(ln, o)
         self.name: str = '-'
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'aneg\n'
 
 
@@ -635,7 +635,7 @@ class REL_EQ(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'eq\n'
 
 
@@ -648,7 +648,7 @@ class REL_NEQ(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'neq\n'
 
 
@@ -661,7 +661,7 @@ class REL_GT(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'gt\n'
 
 
@@ -674,7 +674,7 @@ class REL_LT(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'lt\n'
 
 
@@ -687,7 +687,7 @@ class REL_GTE(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'gte\n'
 
 
@@ -700,7 +700,7 @@ class REL_LTE(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def at_asm(self) -> str:
+    def BZ_asm(self) -> str:
         return 'lte\n'
 
 
@@ -721,7 +721,7 @@ class SPEC(AST):
 
 class PROGRAM(AST):
 
-    def __init__(self, ln: int, s: dict[SPEC,int], o: dict[str,int]) -> None:
+    def __init__(self, ln: int, s: Dict[SPEC,int], o: Dict[str,int]) -> None:
         super().__init__(ln, list(s.keys()))
         self.specs = s
         self.order = o

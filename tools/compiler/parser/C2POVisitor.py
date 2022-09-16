@@ -1,4 +1,4 @@
-# Generated from C2PO.g by ANTLR 4.10.1
+# Generated from C2PO.g by ANTLR 4.11.1
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .C2POParser import C2POParser
@@ -94,6 +94,11 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by C2POParser#BWTerm.
+    def visitBWTerm(self, ctx:C2POParser.BWTermContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#ArithAddTerm.
     def visitArithAddTerm(self, ctx:C2POParser.ArithAddTermContext):
         return self.visitChildren(ctx)
@@ -106,11 +111,6 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#UnaryTerm.
     def visitUnaryTerm(self, ctx:C2POParser.UnaryTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#BWBinTerm.
-    def visitBWBinTerm(self, ctx:C2POParser.BWBinTermContext):
         return self.visitChildren(ctx)
 
 

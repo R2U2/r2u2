@@ -141,19 +141,28 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#spec.
     def visitSpec(self, ctx:C2POParser.SpecContext) -> SPEC:
         ln: int = ctx.start.line
-        expr: EXPR = self.visit(ctx.expr())
         label: str = ''
 
-        # if spec has a label, can be referred to in other specs
-        # else, cannot be referred to later, do not store
-        if ctx.IDENTIFIER(): 
-            label = ctx.IDENTIFIER().getText()
-            if label in list(self.defs):
-                self.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
-            else:
-                self.defs[label] = expr
+        if ctx.expr():
+            spec: EXPR = self.visit(ctx.expr())
+        
+            # if spec has a label, can be referred to in other specs
+            # else, cannot be referred to later, do not store
+            if ctx.IDENTIFIER(): 
+                label = ctx.IDENTIFIER().getText()
+                if label in list(self.defs):
+                    self.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
+                else:
+                    self.defs[label] = spec
 
-        return SPEC(ln, label, self.spec_num, expr)
+            return SPEC(ln, label, self.spec_num, spec)
+        else:
+            spec = self.visit(ctx.contract())
+
+
+    # Visit a parse tree produced by C2POParser#contract.
+    def visitContract(self, ctx:C2POParser.ContractContext):
+        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by C2POParser#LogBinExpr.
@@ -180,7 +189,7 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         lhs: EXPR = self.visit(ctx.expr(0))
         rhs: EXPR = self.visit(ctx.expr(1))
-        bounds: Interval = self.visit(ctx.tl_unary_op().interval())
+        bounds: Interval = self.visit(ctx.tl_bin_op().interval())
 
         if ctx.tl_bin_op():
             if ctx.tl_bin_op().TL_UNTIL():
@@ -238,8 +247,8 @@ class Visitor(C2POVisitor):
         return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#BWBinTerm.
-    def visitBWBinTerm(self, ctx:C2POParser.BWBinTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#BWTerm.
+    def visitBWTerm(self, ctx:C2POParser.BWTermContext) -> EXPR:
         ln: int = ctx.start.line
         lhs: EXPR = self.visit(ctx.term(0))
         rhs: EXPR = self.visit(ctx.term(1))
@@ -344,8 +353,8 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#FunExpr.
-    def visitFunExpr(self, ctx:C2POParser.FunExprContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#FuncTerm.
+    def visitFuncTerm(self, ctx:C2POParser.FuncTermContext):
         ln: int = ctx.start.line
         self.error(f'{ln}: Functions not implemented')
         return EXPR(ln, [])
@@ -367,12 +376,14 @@ class Visitor(C2POVisitor):
     def visitLiteralTerm(self, ctx:C2POParser.LiteralTermContext) -> EXPR:
         ln: int = ctx.start.line
 
-        if ctx.TRUE():
+        literal: C2POParser.LiteralContext = ctx.literal()
+
+        if literal.TRUE():
             return BOOL(ln, True)
-        elif ctx.FALSE():
+        elif literal.FALSE():
             return BOOL(ln, False)
-        elif ctx.IDENTIFIER():
-            name: str = ctx.IDENTIFIER().getText()
+        elif literal.IDENTIFIER():
+            name: str = literal.IDENTIFIER().getText()
             if name in list(self.defs):
                 return self.defs[name]
             elif name in list(self.vars):
@@ -380,10 +391,10 @@ class Visitor(C2POVisitor):
             else:
                 logger.error('%d: Variable \'%s\' undeclared', ln, name)
                 return EXPR(ln, [])
-        elif ctx.INT():
-            return INT(ln, int(ctx.INT().getText()))
-        elif ctx.FLOAT():
-            return FLOAT(ln, float(ctx.FLOAT().getText()))
+        elif literal.INT():
+            return INT(ln, int(literal.INT().getText()))
+        elif literal.FLOAT():
+            return FLOAT(ln, float(literal.FLOAT().getText()))
         else:
             logger.error('%d: Literal \'%s\' parser token not recognized', ln, ctx.start.text)
             return EXPR(ln, [])

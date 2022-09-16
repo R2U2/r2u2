@@ -1,6 +1,7 @@
 import os
 import re
 from logging import getLogger
+# from typing import list, Callable
 from antlr4 import InputStream, CommonTokenStream
 
 from .ast import *
@@ -15,7 +16,6 @@ from .util import *
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 logger = getLogger(logger_name)
-
 
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
     c: AST
