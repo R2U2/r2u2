@@ -1,8 +1,9 @@
 import os
 import re
 from logging import getLogger
-# from typing import list, Callable
-from antlr4 import InputStream, CommonTokenStream
+from signal import valid_signals
+from typing import cast
+from antlr4 import InputStream, CommonTokenStream # type: ignore
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -34,21 +35,26 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
 def assign_ids(prog: PROGRAM) -> None:
     order: dict[str,int] = prog.order
     nid: int = 0
-    aid: int = 0
+    bid: int = 0
 
     def assign_ids_util(a: AST) -> None:
         nonlocal order
         nonlocal nid
-        nonlocal aid
+        nonlocal bid
 
-        if isinstance(a,ATOM):
-            a.aid = aid
-            a.id = 'a'+str(aid)
-            aid += 1
+        if isinstance(a,BOOL) or a.nid > -1 or a.bid > -1:
+            return
+        elif isinstance(a,BZ_EXPR):
+            a.bid = bid
+            a.id = 'b'+str(bid)
+            bid += 1
         else:
             a.nid = nid
-            a.id = 'a'+str(nid)
+            a.id = 'n'+str(nid)
             nid += 1
+
+        if isinstance(a,VAR):
+            a.sid = order[a.name]
 
     postorder(prog,assign_ids_util)
 
@@ -80,7 +86,7 @@ def type_check(prog: AST) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,CONST) or isinstance(a,PROGRAM):
+        if isinstance(a,ATOM) or isinstance(a,VAR) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
@@ -88,7 +94,7 @@ def type_check(prog: AST) -> bool:
             if not child._type == Type.BOOL:
                 status = False
                 logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', a.ln, to_str(child._type), a)
-        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP) or isinstance(a,LOG_OP):
+        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP):
             lhs = a.children[0]
             rhs = a.children[1]
 
@@ -96,7 +102,10 @@ def type_check(prog: AST) -> bool:
                 status = False
                 logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
 
-            a._type = Type.BOOL
+            if isinstance(a,REL_OP):
+                a._type = Type.BOOL
+            else:
+                a._type = lhs._type
         elif isinstance(a,LOG_OP):
             for c in a.children:
                 if c._type != Type.BOOL:
@@ -113,6 +122,7 @@ def type_check(prog: AST) -> bool:
             status = status and a.interval.lb <= a.interval.ub
             a._type = Type.BOOL
         else:
+            logger.error('%d: Invalid expression\n\t%s', a.ln, a)
             status = False
 
     postorder(prog,type_check_util)
@@ -160,6 +170,10 @@ def optimize_cse(prog: PROGRAM) -> None:
         nonlocal S
         c: int
         i: str
+
+        if isinstance(a,ATOM):
+            return
+
         for c in range(0,len(a.children)):
             child = a.children[c]
             i = str(child)
@@ -170,6 +184,18 @@ def optimize_cse(prog: PROGRAM) -> None:
                 S[i] = a.children[c]
             
     postorder(prog,optimize_cse)
+
+
+def insert_atomics(prog: PROGRAM) -> None:
+
+    def insert_atom(a: AST) -> None:
+        for c in range(0,len(a.children)):
+            child = a.children[c]
+            if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL):
+                new: ATOM = ATOM(a.ln,child)
+                a.children[c] = new
+
+    postorder(prog,insert_atom)
 
 
 def gen_alias(prog: PROGRAM) -> str:
@@ -235,31 +261,45 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 
 
 def gen_assembly(prog: PROGRAM) -> list[str]:
-    visited: list[int] = []
-    asm: str = ''
+    bz_visited: list[int] = []
+    tl_visited: list[int] = []
+    tl_asm: str = ''
+    bz_asm: str = "" 
 
     assign_ids(prog)
 
-    atomic_asm: str = "" # gen_atomic_asm(prog)
-
-
-    def gen_tl_assembly_util(a: AST) -> None:
-        nonlocal asm
+    def gen_bz_asm_util(a: AST) -> None:
+        nonlocal bz_asm
         # nonlocal pt_asm
-        nonlocal visited
+        nonlocal bz_visited
 
-        if isinstance(a,CONST):
+        if isinstance(a,TL_EXPR):
             return
 
-        if not a.nid in visited:
-            asm += a.tl_asm()
-            visited.append(a.nid)
+        if not a.bid in bz_visited:
+            bz_asm += a.bz_asm()
+            bz_visited.append(a.bid)
 
-    postorder(prog,gen_tl_assembly_util)
+    def gen_tl_asm_util(a: AST) -> None:
+        nonlocal tl_asm
+        # nonlocal pt_asm
+        nonlocal tl_visited
+
+        if isinstance(a,BZ_EXPR):
+            return
+
+        if not a.nid in tl_visited:
+            tl_asm += a.tl_asm()
+            tl_visited.append(a.nid)
+
+    postorder(prog,gen_bz_asm_util)
+    bz_asm += 'end'
+
+    postorder(prog,gen_tl_asm_util)
     
     scq_asm = gen_scq_assembly(prog)
 
-    return [atomic_asm,asm,'n0: end sequence',scq_asm]
+    return [bz_asm,tl_asm,'n0: end sequence',scq_asm]
 
 
 def parse(input) -> list[PROGRAM]:
@@ -267,7 +307,7 @@ def parse(input) -> list[PROGRAM]:
     stream: CommonTokenStream = CommonTokenStream(lexer)
     parser: C2POParser = C2POParser(stream)
     parse_tree = parser.start()
-    print(parse_tree.toStringTree(recog=parser))
+    # print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
     return v.visitStart(parse_tree)
 
@@ -276,16 +316,17 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
-    return
-
     # type check
     if not type_check(progs[0]):
-        logger.error(' Failed type check')
+        logger.error('Failed type check')
         return
 
     # rewrite without extended operators if enabled
     if not extops:
         rewrite_ops(progs[0])
+
+    # demarcate TL and BZ nodes with ATOM nodes
+    insert_atomics(progs[0])
 
     # common sub-expressions elimination
     optimize_cse(progs[0])
@@ -294,34 +335,34 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     alias = gen_alias(progs[0])
 
     # generate assembly
-    at_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
+    bz_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
 
     # print asm if 'quiet' option not enabled
     # uses re.sub to get nice tabs
     if not quiet:
-        logger.info(Color.HEADER+' AT Assembly'+Color.ENDC+':\n'+ \
-                re.sub('\n','\n\t',re.sub('^','\t',at_asm)))
+        logger.info(Color.HEADER+' BZ Assembly'+Color.ENDC+':\n'+ \
+            re.sub('\n','\n\t',re.sub('^','\t',bz_asm)))
         logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
             re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
         logger.info(Color.HEADER+' PT Assembly'+Color.ENDC+':\n'+ \
             re.sub('\n','\n\t',re.sub('^','\t',pt_asm)))
 
     # write assembly and assemble all files into binaries
-    with open(output_path+'alias.txt','w') as f:
-        f.write(alias)
+    # with open(output_path+'alias.txt','w') as f:
+    #     f.write(alias)
 
-    with open(output_path+'at.asm','w') as f:
-        f.write(at_asm)
-        assemble_at(output_path+'at.asm',output_path,'False')
+    # with open(output_path+'at.asm','w') as f:
+    #     f.write(bz_asm)
+    #     assemble_at(output_path+'at.asm',output_path,'False')
 
-    with open(output_path+'ft.asm','w') as f:
-        f.write(ft_asm)
-        assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
+    # with open(output_path+'ft.asm','w') as f:
+    #     f.write(ft_asm)
+    #     assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
 
-    with open(output_path+'pt.asm','w') as f:
-        f.write(pt_asm)
-        assemble_pt(output_path+'pt.asm','4',output_path,'False')
+    # with open(output_path+'pt.asm','w') as f:
+    #     f.write(pt_asm)
+    #     assemble_pt(output_path+'pt.asm','4',output_path,'False')
 
-    with open(output_path+'ftscq.asm','w') as f:
-        f.write(ftscq_asm)
+    # with open(output_path+'ftscq.asm','w') as f:
+    #     f.write(ftscq_asm)
 

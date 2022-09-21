@@ -83,10 +83,10 @@ def serializedATN():
         191,218,1,0,0,0,192,193,10,13,0,0,193,194,5,31,0,0,194,218,3,24,
         12,14,195,196,10,12,0,0,196,197,5,32,0,0,197,218,3,24,12,13,198,
         199,10,11,0,0,199,200,5,30,0,0,200,218,3,24,12,12,201,202,10,10,
-        0,0,202,203,3,36,18,0,203,204,3,24,12,11,204,218,1,0,0,0,205,206,
-        10,9,0,0,206,207,3,38,19,0,207,208,3,24,12,10,208,218,1,0,0,0,209,
-        210,10,8,0,0,210,211,3,40,20,0,211,212,3,24,12,9,212,218,1,0,0,0,
-        213,214,10,7,0,0,214,215,3,42,21,0,215,216,3,24,12,8,216,218,1,0,
+        0,0,202,203,3,40,20,0,203,204,3,24,12,11,204,218,1,0,0,0,205,206,
+        10,9,0,0,206,207,3,42,21,0,207,208,3,24,12,10,208,218,1,0,0,0,209,
+        210,10,8,0,0,210,211,3,36,18,0,211,212,3,24,12,9,212,218,1,0,0,0,
+        213,214,10,7,0,0,214,215,3,38,19,0,215,216,3,24,12,8,216,218,1,0,
         0,0,217,186,1,0,0,0,217,192,1,0,0,0,217,195,1,0,0,0,217,198,1,0,
         0,0,217,201,1,0,0,0,217,205,1,0,0,0,217,209,1,0,0,0,217,213,1,0,
         0,0,218,221,1,0,0,0,219,217,1,0,0,0,219,220,1,0,0,0,220,25,1,0,0,
@@ -1612,53 +1612,53 @@ class C2POParser ( Parser ):
                         pass
 
                     elif la_ == 5:
-                        localctx = C2POParser.RelTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.ArithAddTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 201
                         if not self.precpred(self._ctx, 10):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
                         self.state = 202
-                        self.rel_eq_op()
+                        self.arith_add_op()
                         self.state = 203
                         self.term(11)
                         pass
 
                     elif la_ == 6:
-                        localctx = C2POParser.RelTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.ArithMulTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 205
                         if not self.precpred(self._ctx, 9):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
                         self.state = 206
-                        self.rel_ineq_op()
+                        self.arith_mul_op()
                         self.state = 207
                         self.term(10)
                         pass
 
                     elif la_ == 7:
-                        localctx = C2POParser.ArithAddTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.RelTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 209
                         if not self.precpred(self._ctx, 8):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 8)")
                         self.state = 210
-                        self.arith_add_op()
+                        self.rel_eq_op()
                         self.state = 211
                         self.term(9)
                         pass
 
                     elif la_ == 8:
-                        localctx = C2POParser.ArithMulTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.RelTermContext(self, C2POParser.TermContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_term)
                         self.state = 213
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
                         self.state = 214
-                        self.arith_mul_op()
+                        self.rel_ineq_op()
                         self.state = 215
                         self.term(8)
                         pass

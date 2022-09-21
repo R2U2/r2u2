@@ -72,7 +72,7 @@ class Visitor(C2POVisitor):
 
         for id in ctx.IDENTIFIER():
             if not id.getText() in var_list:
-                sid += 1 # error?
+                sid += 1 # error? var in order but not declared
             elif id.getText() == '_':
                 sid += 1
             else:
@@ -116,8 +116,8 @@ class Visitor(C2POVisitor):
         var: str = ctx.IDENTIFIER().getText()
         expr: EXPR = self.visit(ctx.expr())
 
-        if var in list(self.vars):
-            self.warning(f'{ln}: Definition \'{var}\' declared in VAR, skipping')
+        if var in list(self.order):
+            self.warning(f'{ln}: Definition \'{var}\' already in Order, treating as signal and skipping')
         else:
             self.defs[var] = expr
 
@@ -238,7 +238,7 @@ class Visitor(C2POVisitor):
     def visitTermExpr(self, ctx:C2POParser.TermExprContext) -> EXPR:
         ln: int = ctx.start.line
         child: EXPR = self.visit(ctx.term())
-        return ATOM(ln, child)
+        return child
 
 
     # Visit a parse tree produced by C2POParser#TernaryTerm.

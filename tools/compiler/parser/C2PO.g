@@ -42,10 +42,10 @@ term: term '?' term ':' term  # TernaryTerm
     | term BW_OR term         # BWTerm
     | term BW_XOR term        # BWTerm
     | term BW_AND term        # BWTerm
-    | term rel_eq_op term     # RelTerm
-    | term rel_ineq_op term   # RelTerm
     | term arith_add_op term  # ArithAddTerm
     | term arith_mul_op term  # ArithMulTerm
+    | term rel_eq_op term     # RelTerm
+    | term rel_ineq_op term   # RelTerm
     | ARITH_SUB term          # UnaryTerm
     | BW_NEG term             # UnaryTerm
     | IDENTIFIER '(' term ')' # FuncTerm
