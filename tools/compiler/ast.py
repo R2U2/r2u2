@@ -1,7 +1,6 @@
 from __future__ import annotations
-from collections.abc import Callable
 from enum import Enum
-from typing import Any, Dict, NamedTuple
+from typing import NamedTuple
 from logging import getLogger
 
 from .util import *
@@ -147,7 +146,7 @@ class VAR(LIT):
         return self.name
 
     def bz_asm(self) -> str:
-        return 'load ' + str(self.sid) + '\n'
+        return 'load s' + str(self.sid) + '\n'
 
 
 class BOOL(CONST):
@@ -165,22 +164,24 @@ class BOOL(CONST):
         return self.name
 
 
-class ATOM(TL_EXPR):
+class ATOM(TL_EXPR,BZ_EXPR):
     
-    def __init__(self, ln: int, c: AST) -> None:
+    def __init__(self, ln: int, c: AST, b: int) -> None:
         super().__init__(ln,[c])
         self._type: Type = Type.BOOL
         self.bpd: int = 0
         self.wpd: int = 0
+        self.bzidx: int = b
+        self.id = 'b'+str(b)
 
     def __str__(self) -> str:
         return f'{self.children[0]!s}'
 
     def tl_asm(self) -> str:
-        return super().tl_asm() + 'load ' + self.children[0].id + '\n'
+        return super().tl_asm() + 'load ' + self.id + '\n'
 
     def bz_asm(self) -> str:
-        return 'store ' + str(self.bid) + '\n'
+        return 'store b' + str(self.bzidx) + '\n'
 
 
 class LOG_OP(TL_EXPR):
@@ -725,7 +726,7 @@ class SPEC(TL_EXPR):
 
 class PROGRAM(TL_EXPR):
 
-    def __init__(self, ln: int, s: Dict[SPEC,int], o: Dict[str,int]) -> None:
+    def __init__(self, ln: int, s: dict[SPEC,int], o: dict[str,int]) -> None:
         super().__init__(ln, list(s.keys()))
         self.specs = s
         self.order = o

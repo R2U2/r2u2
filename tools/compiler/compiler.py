@@ -1,20 +1,14 @@
 import os
 import re
 from logging import getLogger
-from signal import valid_signals
-from typing import cast
+from typing import cast, Callable, Any
 from antlr4 import InputStream, CommonTokenStream # type: ignore
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
 from .parser.C2POParser import C2POParser
 from .visitor import Visitor
-from .assembler.atas import assemble_at
-from .assembler.ftas import assemble_ft
-from .assembler.ptas import assemble_pt
 from .util import *
-
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
 logger = getLogger(logger_name)
 
@@ -30,33 +24,6 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
     c: AST
     for c in a.children:
         preorder(c,func)
-
-
-def assign_ids(prog: PROGRAM) -> None:
-    order: dict[str,int] = prog.order
-    nid: int = 0
-    bid: int = 0
-
-    def assign_ids_util(a: AST) -> None:
-        nonlocal order
-        nonlocal nid
-        nonlocal bid
-
-        if isinstance(a,BOOL) or a.nid > -1 or a.bid > -1:
-            return
-        elif isinstance(a,BZ_EXPR):
-            a.bid = bid
-            a.id = 'b'+str(bid)
-            bid += 1
-        else:
-            a.nid = nid
-            a.id = 'n'+str(nid)
-            nid += 1
-
-        if isinstance(a,VAR):
-            a.sid = order[a.name]
-
-    postorder(prog,assign_ids_util)
 
     
 def type_check(prog: AST) -> bool:
@@ -187,12 +154,16 @@ def optimize_cse(prog: PROGRAM) -> None:
 
 
 def insert_atomics(prog: PROGRAM) -> None:
+    bzidx: int = 0
 
     def insert_atom(a: AST) -> None:
+        nonlocal bzidx
+        
         for c in range(0,len(a.children)):
             child = a.children[c]
-            if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL):
-                new: ATOM = ATOM(a.ln,child)
+            if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL) \
+                    and not isinstance(a,ATOM) and not isinstance(child,ATOM):
+                new: ATOM = ATOM(a.ln,child,bzidx)
                 a.children[c] = new
 
     postorder(prog,insert_atom)
@@ -238,6 +209,82 @@ def compute_scq_size(prog: PROGRAM) -> None:
     preorder(prog,compute_scq_size_util)
 
 
+def assign_ids(prog: PROGRAM) -> None:
+    order: dict[str,int] = prog.order
+    nid: int = 0
+    bid: int = 0
+    bzidx: int = 0
+
+    def assign_ids_util(a: AST) -> None:
+        nonlocal order
+        nonlocal nid
+        nonlocal bid
+        nonlocal bzidx
+
+        if isinstance(a,BOOL) or a.nid > -1 or a.bid > -1:
+            return
+        elif isinstance(a,BZ_EXPR):
+            a.bid = bid
+            a.id = 'b'+str(bid)
+            bid += 1
+        else:
+            a.nid = nid
+            a.id = 'n'+str(nid)
+            nid += 1
+
+        if isinstance(a,ATOM):
+            # print(a)
+            a.bzidx = bzidx
+            bzidx += 1
+
+        if isinstance(a,VAR):
+            a.sid = order[a.name]
+
+    postorder(prog,assign_ids_util)
+
+
+def gen_bz_assembly(prog: PROGRAM) -> str:
+    bz_visited: list[int] = []
+    bz_asm: str = ''
+
+    def gen_bz_asm_util(a: AST) -> None:
+        nonlocal bz_asm
+        nonlocal bz_visited
+
+        if not isinstance(a,ATOM) and isinstance(a,TL_EXPR):
+            return
+
+        if not a.bid in bz_visited:
+            # print(a)
+            bz_asm += a.bz_asm()
+            bz_visited.append(a.bid)
+
+    postorder(prog,gen_bz_asm_util)
+    bz_asm += 'end'
+
+    return bz_asm
+
+
+def gen_tl_assembly(prog: PROGRAM) -> list[str]:
+    tl_visited: list[int] = []
+    tl_asm: str = ''
+
+    def gen_tl_asm_util(a: AST) -> None:
+        nonlocal tl_asm
+        nonlocal tl_visited
+
+        if isinstance(a,BZ_EXPR):
+            return
+
+        if not a.nid in tl_visited:
+            tl_asm += a.tl_asm()
+            tl_visited.append(a.nid)
+
+    postorder(prog,gen_tl_asm_util)
+    
+    return tl_asm
+
+
 def gen_scq_assembly(prog: PROGRAM) -> str:
     s: str = ''
     pos: int = 0
@@ -261,43 +308,11 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 
 
 def gen_assembly(prog: PROGRAM) -> list[str]:
-    bz_visited: list[int] = []
-    tl_visited: list[int] = []
-    tl_asm: str = ''
-    bz_asm: str = "" 
-
     assign_ids(prog)
-
-    def gen_bz_asm_util(a: AST) -> None:
-        nonlocal bz_asm
-        # nonlocal pt_asm
-        nonlocal bz_visited
-
-        if isinstance(a,TL_EXPR):
-            return
-
-        if not a.bid in bz_visited:
-            bz_asm += a.bz_asm()
-            bz_visited.append(a.bid)
-
-    def gen_tl_asm_util(a: AST) -> None:
-        nonlocal tl_asm
-        # nonlocal pt_asm
-        nonlocal tl_visited
-
-        if isinstance(a,BZ_EXPR):
-            return
-
-        if not a.nid in tl_visited:
-            tl_asm += a.tl_asm()
-            tl_visited.append(a.nid)
-
-    postorder(prog,gen_bz_asm_util)
-    bz_asm += 'end'
-
-    postorder(prog,gen_tl_asm_util)
     
-    scq_asm = gen_scq_assembly(prog)
+    bz_asm: str = gen_bz_assembly(prog)
+    tl_asm: str = gen_tl_assembly(prog)
+    scq_asm: str = gen_scq_assembly(prog)
 
     return [bz_asm,tl_asm,'n0: end sequence',scq_asm]
 
@@ -348,21 +363,21 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
             re.sub('\n','\n\t',re.sub('^','\t',pt_asm)))
 
     # write assembly and assemble all files into binaries
-    # with open(output_path+'alias.txt','w') as f:
-    #     f.write(alias)
+    with open(output_path+'alias.txt','w') as f:
+        f.write(alias)
 
-    # with open(output_path+'at.asm','w') as f:
-    #     f.write(bz_asm)
-    #     assemble_at(output_path+'at.asm',output_path,'False')
+    with open(output_path+'bz.asm','w') as f:
+        f.write(bz_asm)
+        # assemble_at(output_path+'at.asm',output_path,'False')
 
-    # with open(output_path+'ft.asm','w') as f:
-    #     f.write(ft_asm)
-    #     assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
+    with open(output_path+'ft.asm','w') as f:
+        f.write(ft_asm)
+        # assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
 
-    # with open(output_path+'pt.asm','w') as f:
-    #     f.write(pt_asm)
-    #     assemble_pt(output_path+'pt.asm','4',output_path,'False')
+    with open(output_path+'pt.asm','w') as f:
+        f.write(pt_asm)
+        # assemble_pt(output_path+'pt.asm','4',output_path,'False')
 
-    # with open(output_path+'ftscq.asm','w') as f:
-    #     f.write(ftscq_asm)
+    with open(output_path+'ftscq.asm','w') as f:
+        f.write(ftscq_asm)
 
