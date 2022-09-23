@@ -1,0 +1,50 @@
+VAR
+    a,b,c,e: bool;
+    j,k,s,t: int;
+    x,y,z: float;
+    
+    Order: a,b,k,s,t,j,_,_,_,_,e,c,x,y,z;
+
+DEFINE
+    d = a & b;
+    i = j + k;
+    setvar = {a,b,c};
+    setint = {j,k,s};
+
+SPEC
+    spec0: G[0,3] (a & ((i>j) & (s<t)));
+    --spec1: a => (y > z);
+    spec2: H[0,0] a & b;
+    --spec3: F[0,10](d && (k > 5) || spec0);
+    --spec4: G[0,5](j < k);
+    --unicodespec: ◊[0,3](a ∨ b ∨ ¬c) ∧ ((x ≤ y) 𝓤[3,5] (z ≠ x - y));
+
+    
+
+------ or in a "restricted" mode ------
+
+--SPEC (a0 && a1) U[2,5] a2;
+
+
+------ or allow some features i.e., have feature flags ------
+
+-- spec with only named signals:
+
+--SPEC F[0,3] (input1 && input2);
+--ORDER input1,input2 ;
+
+-- spec with named signals and some atomic expressions:
+
+--VAR input1: int; 
+--    input2,input3 : float;
+--    order = input1,input2,input3;
+--SPEC F[0,3] ((input1 > 5) && (input2 == input3));
+
+------ output with the corresponding make command
+
+------ r2u2 is meant to fit in the nooks and crannies of existing systems
+------ * the size of those nooks and crannies may allow for more/less features
+------ * also useful for spec debugging
+
+------ is it better for AT checker to handle boolean expressions when possible? probably
+------ complexity of AT checker may blow up if we allow arbitrary expressions
