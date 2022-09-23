@@ -45,9 +45,8 @@ class AST():
 
     def __init__(self, ln: int, c: list['AST']) -> None:
         self.ln: int = ln
-        self.nid: int = -1
-        self.bid: int = -1
-        self.id: str = str(self.nid)
+        self.tlid: int = -1
+        self.bzid: int = -1
         self.scq_size: int = -1
         self.name: str = ''
         self.bpd: int = 0
@@ -83,7 +82,7 @@ class TL_EXPR(EXPR):
         super().__init__(ln,c)
 
     def tl_asm(self) -> str:
-        return 'n' + str(self.nid) + ': '
+        return 'n' + str(self.tlid) + ': '
 
 
 class BZ_EXPR(EXPR):
@@ -166,22 +165,21 @@ class BOOL(CONST):
 
 class ATOM(TL_EXPR,BZ_EXPR):
     
-    def __init__(self, ln: int, c: AST, b: int) -> None:
+    def __init__(self, ln: int, c: AST, a: int) -> None:
         super().__init__(ln,[c])
         self._type: Type = Type.BOOL
         self.bpd: int = 0
         self.wpd: int = 0
-        self.bzidx: int = b
-        self.id = 'b'+str(b)
+        self.atid: int = a
 
     def __str__(self) -> str:
         return f'{self.children[0]!s}'
 
     def tl_asm(self) -> str:
-        return super().tl_asm() + 'load ' + self.id + '\n'
+        return super().tl_asm() + 'load b' + str(self.atid) + '\n'
 
     def bz_asm(self) -> str:
-        return 'store b' + str(self.bzidx) + '\n'
+        return 'store b' + str(self.atid) + '\n'
 
 
 class LOG_OP(TL_EXPR):
@@ -361,7 +359,7 @@ class LOG_OR(LOG_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'or ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'or n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
 
 
 class LOG_AND(LOG_BIN_OP):
@@ -376,7 +374,7 @@ class LOG_AND(LOG_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'and ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'and n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
 
 
 class LOG_XOR(LOG_BIN_OP):
@@ -391,7 +389,7 @@ class LOG_XOR(LOG_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'xor ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'xor n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
 
 
 class LOG_IMPL(LOG_BIN_OP):
@@ -406,7 +404,7 @@ class LOG_IMPL(LOG_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'impl ' + lhs.id + ' ' + rhs.id + '\n'
+        return super().tl_asm() + 'impl n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
 
 
 class TL_UNTIL(TL_FT_BIN_OP):
@@ -421,7 +419,7 @@ class TL_UNTIL(TL_FT_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'until ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -437,7 +435,7 @@ class TL_RELEASE(TL_FT_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'release ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -453,7 +451,7 @@ class TL_SINCE(TL_PT_BIN_OP):
     def tl_asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tl_asm() + 'since ' + lhs.id + ' ' + rhs.id + ' ' + \
+        return super().tl_asm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -468,7 +466,7 @@ class LOG_NEG(LOG_UNARY_OP):
 
     def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tl_asm() + 'not ' + operand.id + '\n'
+        return super().tl_asm() + 'not n' + str(operand.tlid) + '\n'
 
 
 class TL_GLOBAL(TL_FT_UNARY_OP):
@@ -482,7 +480,7 @@ class TL_GLOBAL(TL_FT_UNARY_OP):
 
     def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tl_asm() + 'global ' + operand.id + ' ' + \
+        return super().tl_asm() + 'global n' + str(operand.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -497,7 +495,7 @@ class TL_FUTURE(TL_FT_UNARY_OP):
 
     def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tl_asm() + 'future ' + operand.id + ' ' + \
+        return super().tl_asm() + 'future n' + str(operand.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -512,7 +510,7 @@ class TL_HISTORICAL(TL_PT_UNARY_OP):
 
     def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tl_asm() + 'his ' + operand.id + ' ' + \
+        return super().tl_asm() + 'his n' + str(operand.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -527,7 +525,7 @@ class TL_ONCE(TL_PT_UNARY_OP):
 
     def tl_asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tl_asm() + 'once ' + operand.id + ' ' + \
+        return super().tl_asm() + 'once n' + str(operand.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
 
 
@@ -721,7 +719,7 @@ class SPEC(TL_EXPR):
 
     def tl_asm(self) -> str:
         top: AST = self.children[0]
-        return super().tl_asm() + 'end ' + top.id + ' f' + str(self.fnum) + '\n'
+        return super().tl_asm() + 'end n' + str(top.tlid) + ' f' + str(self.fnum) + '\n'
 
 
 class PROGRAM(TL_EXPR):

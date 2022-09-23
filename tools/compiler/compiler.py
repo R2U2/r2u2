@@ -211,31 +211,32 @@ def compute_scq_size(prog: PROGRAM) -> None:
 
 def assign_ids(prog: PROGRAM) -> None:
     order: dict[str,int] = prog.order
-    nid: int = 0
-    bid: int = 0
-    bzidx: int = 0
+    tlid: int = 0
+    bzid: int = 0
+    atid: int = 0
 
     def assign_ids_util(a: AST) -> None:
         nonlocal order
-        nonlocal nid
-        nonlocal bid
-        nonlocal bzidx
+        nonlocal tlid
+        nonlocal bzid
+        nonlocal atid
 
-        if isinstance(a,BOOL) or a.nid > -1 or a.bid > -1:
+        if isinstance(a,BOOL) or a.tlid > -1 or a.bzid > -1:
             return
-        elif isinstance(a,BZ_EXPR):
-            a.bid = bid
-            a.id = 'b'+str(bid)
-            bid += 1
-        else:
-            a.nid = nid
-            a.id = 'n'+str(nid)
-            nid += 1
+            
+        if isinstance(a,BZ_EXPR):
+            a.bzid = bzid
+            a.id = 'b'+str(bzid)
+            bzid += 1
+
+        if isinstance(a,TL_EXPR):
+            a.tlid = tlid
+            a.id = 'n'+str(tlid)
+            tlid += 1
 
         if isinstance(a,ATOM):
-            # print(a)
-            a.bzidx = bzidx
-            bzidx += 1
+            a.atid = atid
+            atid += 1
 
         if isinstance(a,VAR):
             a.sid = order[a.name]
@@ -254,10 +255,10 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
         if not isinstance(a,ATOM) and isinstance(a,TL_EXPR):
             return
 
-        if not a.bid in bz_visited:
+        if not a.bzid in bz_visited:
             # print(a)
             bz_asm += a.bz_asm()
-            bz_visited.append(a.bid)
+            bz_visited.append(a.bzid)
 
     postorder(prog,gen_bz_asm_util)
     bz_asm += 'end'
@@ -273,12 +274,12 @@ def gen_tl_assembly(prog: PROGRAM) -> list[str]:
         nonlocal tl_asm
         nonlocal tl_visited
 
-        if isinstance(a,BZ_EXPR):
+        if not isinstance(a,ATOM) and isinstance(a,BZ_EXPR):
             return
 
-        if not a.nid in tl_visited:
+        if not a.tlid in tl_visited:
             tl_asm += a.tl_asm()
-            tl_visited.append(a.nid)
+            tl_visited.append(a.tlid)
 
     postorder(prog,gen_tl_asm_util)
     
