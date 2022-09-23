@@ -1,0 +1,28 @@
+-- Example C2PO input file
+
+-- This is an SMV-inspired syntax, including 
+-- comments which are preceded by two dashes
+
+VAR
+  a,b,c,d,e: bool;
+  i,j,k,s,t: int;
+  x,y,z: float;
+  
+  Order: a,b,k,s,t,j,_,_,_,_,e,c,x,y,z;
+
+DEFINE
+  d = a && b;
+  i = j + k;
+  -- setvar = {a,b,c};
+  -- setint = {j,k,s};
+
+SPEC
+  -- a && (b U[0,3] c);
+
+  -- spec0: G[0,5](s < t);
+  spec1: G[0,5](s < t);
+  -- spec2: F[0,10](d && (j+k > 5)); 
+  
+  spec3: F[0,10](d && (i > 5) || spec1); 
+
+  -- contract: a => (y > z); 

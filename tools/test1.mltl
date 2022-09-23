@@ -1,0 +1,12 @@
+-- Example C2PO input file
+
+-- This is an SMV-inspired syntax, including 
+-- comments which are preceded by two dashes
+
+VAR
+  a,b,c: bool;
+  
+  Order: a,b,c;
+
+SPEC
+  (a && b) U[3,5] (c);
