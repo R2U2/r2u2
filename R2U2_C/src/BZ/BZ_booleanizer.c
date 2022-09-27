@@ -32,6 +32,8 @@ void bz_execute(bz_booleanizer_t *bz, uint32_t i)
     bool b;
 
     switch(bz->instructions[i].opcode) {
+        case NONE: 
+            break;
         /* Load/Store */
         case STORE:
             i1 = bz->instructions[i].param.i; // atomic idx
@@ -54,9 +56,27 @@ void bz_execute(bz_booleanizer_t *bz, uint32_t i)
             break;
         /* Bitwise */
         case BWNEG:
+            i1 = bz_stack_pop(&bz->stack).i;
+            b = ~i1;
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case BWAND:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 & i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case BWOR:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 | i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case BWXOR:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 ^ i2);
+            bz_stack_bpush(&bz->stack, b);
             break;
         /* Equality */
         case IEQ:
@@ -87,16 +107,63 @@ void bz_execute(bz_booleanizer_t *bz, uint32_t i)
             break;
         /* Inequality */
         case IGT:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 > i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case FGT:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            b = (f1 > f2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case IGTE:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 >= i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case FGTE:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            b = (f1 >= f2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case ILT:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 < i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case FLT:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            b = (f1 < f2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case ILTE:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            b = (i1 <= i2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         case FLTE:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            b = (f1 <= f2);
+            bz_stack_bpush(&bz->stack, b);
+            break;
         /* Arithmetic */
         case INEG:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = -i1;
+            bz_stack_ipush(&bz->stack, i2);
+            break;
         case FNEG:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = -f1;
+            bz_stack_fpush(&bz->stack, f2);
             break;
         case IADD:
             i1 = bz_stack_pop(&bz->stack).i;
@@ -105,18 +172,52 @@ void bz_execute(bz_booleanizer_t *bz, uint32_t i)
             bz_stack_ipush(&bz->stack,i3);
             break;
         case FADD:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            f3 = f1 + f2;
+            bz_stack_fpush(&bz->stack,f3);
+            break;
         case ISUB:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            i3 = i1 - i2;
+            bz_stack_ipush(&bz->stack,i3);
+            break;
         case FSUB:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            f3 = f1 - f2;
+            bz_stack_fpush(&bz->stack,f3);
+            break;
         case IMUL:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            i3 = i1 * i2;
+            bz_stack_ipush(&bz->stack,i3);
+            break;
         case FMUL:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            f3 = f1 * f2;
+            bz_stack_fpush(&bz->stack,f3);
+            break;
         case IDIV:
+            i1 = bz_stack_pop(&bz->stack).i;
+            i2 = bz_stack_pop(&bz->stack).i;
+            i3 = i1 / i2;
+            bz_stack_ipush(&bz->stack,i3);
+            break;
         case FDIV:
+            f1 = bz_stack_pop(&bz->stack).f;
+            f2 = bz_stack_pop(&bz->stack).f;
+            f3 = f1 / f2;
+            bz_stack_fpush(&bz->stack,f3);
+            break;
         /* Auxiliary */
         case AUX1:
         case AUX2:
         case AUX3:
         case AUX4:
-        case NONE:
         default:
             break;
     }
