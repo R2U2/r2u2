@@ -9,6 +9,7 @@ from .parser.C2POLexer import C2POLexer
 from .parser.C2POParser import C2POParser
 from .visitor import Visitor
 from .util import *
+from .assembler import assemble
 
 logger = getLogger(logger_name)
 
@@ -60,14 +61,16 @@ def type_check(prog: AST) -> bool:
 
             if not child._type == Type.BOOL:
                 status = False
-                logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', a.ln, to_str(child._type), a)
+                logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', 
+                        a.ln, to_str(child._type), a)
         elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP):
             lhs = a.children[0]
             rhs = a.children[1]
 
             if lhs._type != rhs._type:
                 status = False
-                logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
+                logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', 
+                        a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
 
             if isinstance(a,REL_OP):
                 a._type = Type.BOOL
@@ -77,14 +80,16 @@ def type_check(prog: AST) -> bool:
             for c in a.children:
                 if c._type != Type.BOOL:
                     status = False
-                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', a.ln, a.name, to_str(c._type), c, a)
+                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
+                            a.ln, a.name, to_str(c._type), c, a)
 
             a._type = Type.BOOL
         elif isinstance(a,TL_OP):
             for c in a.children:
                 if c._type != Type.BOOL:
                     status = False
-                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', a.ln, a.name, to_str(c._type), c, a)
+                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
+                            a.ln, a.name, to_str(c._type), c, a)
 
             status = status and a.interval.lb <= a.interval.ub
             a._type = Type.BOOL
@@ -223,7 +228,7 @@ def assign_ids(prog: PROGRAM) -> None:
 
         if isinstance(a,BOOL) or a.tlid > -1 or a.bzid > -1:
             return
-            
+
         if isinstance(a,BZ_EXPR):
             a.bzid = bzid
             a.id = 'b'+str(bzid)
@@ -246,44 +251,42 @@ def assign_ids(prog: PROGRAM) -> None:
 
 def gen_bz_assembly(prog: PROGRAM) -> str:
     bz_visited: list[int] = []
-    bz_asm: str = ''
+    bzasm: str = ''
 
-    def gen_bz_asm_util(a: AST) -> None:
-        nonlocal bz_asm
+    def gen_bzasm_util(a: AST) -> None:
+        nonlocal bzasm
         nonlocal bz_visited
 
         if not isinstance(a,ATOM) and isinstance(a,TL_EXPR):
             return
 
         if not a.bzid in bz_visited:
-            # print(a)
-            bz_asm += a.bz_asm()
+            bzasm += a.bzasm()
             bz_visited.append(a.bzid)
 
-    postorder(prog,gen_bz_asm_util)
-    bz_asm += 'end'
+    postorder(prog,gen_bzasm_util)
 
-    return bz_asm
+    return bzasm[:-1] # remove dangling '\n'
 
 
 def gen_tl_assembly(prog: PROGRAM) -> list[str]:
     tl_visited: list[int] = []
-    tl_asm: str = ''
+    tlasm: str = ''
 
-    def gen_tl_asm_util(a: AST) -> None:
-        nonlocal tl_asm
+    def gen_tlasm_util(a: AST) -> None:
+        nonlocal tlasm
         nonlocal tl_visited
 
         if not isinstance(a,ATOM) and isinstance(a,BZ_EXPR):
             return
 
         if not a.tlid in tl_visited:
-            tl_asm += a.tl_asm()
+            tlasm += a.tlasm()
             tl_visited.append(a.tlid)
 
-    postorder(prog,gen_tl_asm_util)
+    postorder(prog,gen_tlasm_util)
     
-    return tl_asm
+    return tlasm
 
 
 def gen_scq_assembly(prog: PROGRAM) -> str:
@@ -311,11 +314,11 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 def gen_assembly(prog: PROGRAM) -> list[str]:
     assign_ids(prog)
     
-    bz_asm: str = gen_bz_assembly(prog)
-    tl_asm: str = gen_tl_assembly(prog)
+    bzasm: str = gen_bz_assembly(prog)
+    tlasm: str = gen_tl_assembly(prog)
     scq_asm: str = gen_scq_assembly(prog)
 
-    return [bz_asm,tl_asm,'n0: end sequence',scq_asm]
+    return [bzasm,tlasm,'n0: end sequence',scq_asm]
 
 
 def parse(input) -> list[PROGRAM]:
@@ -351,34 +354,32 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     alias = gen_alias(progs[0])
 
     # generate assembly
-    bz_asm,ft_asm,pt_asm,ftscq_asm = gen_assembly(progs[0])
+    bzasm,ftasm,ptasm,ftscqasm = gen_assembly(progs[0])
 
     # print asm if 'quiet' option not enabled
     # uses re.sub to get nice tabs
     if not quiet:
         logger.info(Color.HEADER+' BZ Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',bz_asm)))
+            re.sub('\n','\n\t',re.sub('^','\t',bzasm)))
         logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',ft_asm)))
+            re.sub('\n','\n\t',re.sub('^','\t',ftasm)))
         logger.info(Color.HEADER+' PT Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',pt_asm)))
+            re.sub('\n','\n\t',re.sub('^','\t',ptasm)))
 
     # write assembly and assemble all files into binaries
     with open(output_path+'alias.txt','w') as f:
         f.write(alias)
 
     with open(output_path+'bz.asm','w') as f:
-        f.write(bz_asm)
-        # assemble_at(output_path+'at.asm',output_path,'False')
+        f.write(bzasm)
 
     with open(output_path+'ft.asm','w') as f:
-        f.write(ft_asm)
-        # assemble_ft(output_path+'ft.asm',output_path+'ftscq.asm','4',output_path,'False')
+        f.write(ftasm)
 
     with open(output_path+'pt.asm','w') as f:
-        f.write(pt_asm)
-        # assemble_pt(output_path+'pt.asm','4',output_path,'False')
+        f.write(ptasm)
 
     with open(output_path+'ftscq.asm','w') as f:
-        f.write(ftscq_asm)
+        f.write(ftscqasm)
 
+    assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)

@@ -303,9 +303,9 @@ class Visitor(C2POVisitor):
 
         if ctx.arith_add_op():
             if ctx.arith_add_op().ARITH_ADD():
-                return ARITH_MUL(ln, lhs, rhs)
+                return ARITH_ADD(ln, lhs, rhs)
             elif ctx.arith_add_op().ARITH_SUB():
-                return ARITH_DIV(ln, lhs, rhs)
+                return ARITH_SUB(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
