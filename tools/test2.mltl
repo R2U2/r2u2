@@ -1,0 +1,12 @@
+-- Example C2PO input file
+
+-- This is an SMV-inspired syntax, including 
+-- comments which are preceded by two dashes
+
+VAR
+  x,y,z: float;
+  
+  Order: x,y,z;
+
+SPEC
+  x>(y+5);

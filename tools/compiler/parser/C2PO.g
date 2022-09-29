@@ -165,7 +165,7 @@ INT
 
 fragment
 SIGN
-  : [+-]
+  : [-]
   ;
 
 fragment

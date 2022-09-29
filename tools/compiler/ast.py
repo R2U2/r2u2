@@ -565,7 +565,7 @@ class BW_NEG(BW_UNARY_OP):
         self.name: str = '~'
 
     def bzasm(self) -> str:
-        return 'bneg\n'
+        return 'bwneg\n'
 
 
 class ARITH_ADD(ARITH_ADD_OP):
@@ -625,7 +625,7 @@ class ARITH_NEG(ARITH_UNARY_OP):
         self.name: str = '-'
 
     def bzasm(self) -> str:
-        return ('f' if self._type == Type.FLOAT else 'i') + 'aneg\n'
+        return ('f' if self._type == Type.FLOAT else 'i') + 'neg\n'
 
 
 class REL_EQ(REL_OP):
@@ -736,5 +736,5 @@ class PROGRAM(TL_EXPR):
         return ret
 
     def tlasm(self) -> str:
-        return super().tlasm() + 'end sequence'
+        return super().tlasm() + 'endsequence'
 

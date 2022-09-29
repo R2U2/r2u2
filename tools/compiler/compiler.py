@@ -67,6 +67,13 @@ def type_check(prog: AST) -> bool:
             lhs = a.children[0]
             rhs = a.children[1]
 
+            if isinstance(lhs,INT) and rhs._type == Type.FLOAT:
+                lhs = FLOAT(lhs.ln,lhs.val)
+                a.children[0] = lhs
+            elif isinstance(rhs,INT) and lhs._type == Type.FLOAT:
+                rhs = FLOAT(rhs.ln,rhs.val)
+                a.children[1] = rhs
+
             if lhs._type != rhs._type:
                 status = False
                 logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', 
