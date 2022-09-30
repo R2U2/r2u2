@@ -1,5 +1,5 @@
 from bitarray import bitarray
-from bitarray.util import int2ba, zeros
+from bitarray.util import int2ba, zeros, make_endian, ba2hex
 from array import array
 
 ### BZ Opcodes
@@ -79,6 +79,9 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
 
     # start BZ with number of instructions
     bin += int2ba(int(len(bzasm.splitlines())),length=32)
+
+    print(len(bzasm.splitlines()))
+    print(ba2hex(bin))
 
     for line in bzasm.splitlines():
         asm_instr: list[str] = line.split(' ')
@@ -185,6 +188,9 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
             print('error during assembly: invalid opcode')
 
         bin += bin_instr
+
+    # pad with zeroes to align bytes
+    bin += zeros(len(bin) % 8)
 
     return bin
 
@@ -315,9 +321,15 @@ def assemble_ft(ftasm: str, opc_width: int, opnd_width: int, ts_width: int, scr_
 
         bin += bin_instr
 
-    # start intvls w number of intvls
+    # pad with zeroes to align bytes
+    bin += zeros(len(bin) % 8)
+
+    # start intervals w number of intervals
     bin += int2ba(num_intvls,length=32)
     bin += intvl_bin
+
+    # pad with zeroes to align bytes
+    bin += zeros(len(bin) % 8)
 
     return bin
 
@@ -344,6 +356,9 @@ def assemble_ftscq(ftscqasm: str, scq_addr_width: int) -> bitarray:
         bin += int2ba(st_pos, length=scq_addr_width)
         bin += int2ba(end_pos, length=scq_addr_width)
 
+    # pad with zeroes to align bytes
+    bin += zeros(len(bin) % 8)
+
     return bin
 
 
@@ -354,6 +369,8 @@ def assemble(filename: str, bzasm: str, ftasm: str, ptasm: str, ftscqasm: str):
     bin += assemble_ft(ftasm,5,8,8,8)
     bin += assemble_pt(ptasm,5,8,8,8)
     bin += assemble_ftscq(ftscqasm,16)
+
+    make_endian(bin,'little')
 
     with open(filename,'wb') as f:
         f.write(bin)

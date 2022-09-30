@@ -2,12 +2,13 @@
 #define BZ_BOOLEANIZER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
-#include "BZ_stack.h"
-#include "BZ_instruction.h"
+#include "R2U2.h"
+#include "bz_stack.h"
+#include "bz_instruction.h"
 
 #define N_BZ_INSTR 64
-#define N_SIGS 4
 #define N_BZ 4
 
 /*
@@ -24,8 +25,15 @@ typedef struct bz_booleanizer {
     bool bz_vector[N_BZ];
 } bz_booleanizer_t;
 
-void bz_booleanizer_init(bz_booleanizer_t *, uint32_t);
-void bz_booleanizer_update(bz_booleanizer_t *);
-void bz_execute(bz_booleanizer_t *, uint32_t);
+typedef char *signals_vector_t[N_SIGS];
+
+extern bz_booleanizer_t bz;
+extern signals_vector_t signals_vector;
+
+void bz_init(void);
+void bz_update(void);
+void bz_execute(uint32_t);
+
+bool bz_opcode_has_param(bz_opcode_t);
 
 #endif

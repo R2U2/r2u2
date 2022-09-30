@@ -32,11 +32,11 @@ def main(args):
     #if(os.path.isfile(__AbsolutePath__ + mltl)):
     #    MLTL = open(args.mltl,'r').read()
     if(os.path.isfile(args.mltl)):
-        MLTL = open(args.mltl,'r').read()
+        mltl = open(args.mltl,'r').read()
     else:
-        MLTL = args.mltl
+        mltl = args.mltl
 
-    compile(MLTL, args.output_dir, True, args.quiet)
+    compile(mltl, args.output_dir, True, args.quiet)
 
     return
     # mltl_compiler.preprocess()

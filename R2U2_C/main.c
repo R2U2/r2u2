@@ -1,7 +1,7 @@
 #include <stdint.h>
 
-#include "BZ_booleanizer.h"
-#include "BZ_instruction.h"
+#include "bz_booleanizer.h"
+#include "bz_instruction.h"
 
 #define DEFAULT_BZ_INSTR 64
 

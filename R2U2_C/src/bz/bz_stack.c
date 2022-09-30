@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "BZ_stack.h"
+#include "bz_stack.h"
 
 void bz_stack_init(bz_stack_t *s)
 {

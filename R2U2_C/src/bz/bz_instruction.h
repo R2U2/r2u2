@@ -1,6 +1,8 @@
 #ifndef BZ_INSTRUCTION_H
 #define BZ_INSTRUCTION_H
 
+#include <stdbool.h>
+
 typedef enum bz_opcode {
     NONE    = 0b000000,
     /* Load/Store */

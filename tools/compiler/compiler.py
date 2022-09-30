@@ -342,6 +342,9 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
+    if len(progs) < 1:
+        return
+
     # type check
     if not type_check(progs[0]):
         logger.error('Failed type check')
