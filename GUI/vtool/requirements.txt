@@ -1,0 +1,4 @@
+dash-cytoscape==0.1.1
+dash==1.7.0
+gunicorn
+ply
