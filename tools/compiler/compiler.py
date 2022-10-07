@@ -27,12 +27,18 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
         preorder(c,func)
 
     
-def type_check(prog: AST) -> bool:
+def type_check(prog: AST, bz: bool) -> bool:
     status: bool = True
 
     def type_check_util(a: AST) -> None:
+        nonlocal bz
         nonlocal status
         c: AST
+
+        if not bz and not isinstance(a,LIT) and isinstance(a,BZ_EXPR):
+            status = False
+            logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
+
 
         # enforce no mixed-time formulas
         if isinstance(a,TL_FT_OP):
@@ -338,7 +344,7 @@ def parse(input) -> list[PROGRAM]:
     return v.visitStart(parse_tree)
 
 
-def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
+def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
@@ -346,7 +352,7 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
         return
 
     # type check
-    if not type_check(progs[0]):
+    if not type_check(progs[0],bz):
         logger.error('Failed type check')
         return
 
@@ -369,8 +375,9 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     # print asm if 'quiet' option not enabled
     # uses re.sub to get nice tabs
     if not quiet:
-        logger.info(Color.HEADER+' BZ Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',bzasm)))
+        if bz:
+            logger.info(Color.HEADER+' BZ Assembly'+Color.ENDC+':\n'+ \
+                re.sub('\n','\n\t',re.sub('^','\t',bzasm)))
         logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
             re.sub('\n','\n\t',re.sub('^','\t',ftasm)))
         logger.info(Color.HEADER+' PT Assembly'+Color.ENDC+':\n'+ \
@@ -380,8 +387,9 @@ def compile(input: str, output_path: str, extops: bool, quiet: bool) -> None:
     with open(output_path+'alias.txt','w') as f:
         f.write(alias)
 
-    with open(output_path+'bz.asm','w') as f:
-        f.write(bzasm)
+    if bz:
+        with open(output_path+'bz.asm','w') as f:
+            f.write(bzasm)
 
     with open(output_path+'ft.asm','w') as f:
         f.write(ftasm)

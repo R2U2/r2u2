@@ -36,7 +36,7 @@ def main(args):
     else:
         mltl = args.mltl
 
-    compile(mltl, args.output_dir, True, args.quiet)
+    compile(mltl, args.output_dir, args.booleanizer, True, args.quiet)
 
     return
     # mltl_compiler.preprocess()
@@ -106,5 +106,7 @@ if __name__ == "__main__":
                         help="location where assembly and configuration programs will be called from")
     parser.add_argument("--no-binaries", action="store_true",
                         help="generate config.c file in place of binaries")
+    parser.add_argument("--booleanizer", action="store_true",
+                        help="enable booleanizer")
     args = parser.parse_args()
     main(args)
