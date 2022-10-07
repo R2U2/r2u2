@@ -105,96 +105,96 @@ int main(int argc, char *argv[]) {
     return 0;
     /**********/
 
-    // TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
-    // #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status || R2U2_AT_Signal_Sets
-    // TL_aux_config("alias.txt");
-    // #endif
-    // TL_init();
+    TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
+    #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status || R2U2_AT_Signal_Sets
+    TL_aux_config("alias.txt");
+    #endif
+    TL_init();
 
-    // #ifndef CONFIG
-    // chdir(inbuf);
-    // #endif
+    #ifndef CONFIG
+    chdir(inbuf);
+    #endif
 
-    // /* Input configuration */
-    // if(argind < argc) { // The trace file was specified
-    //   if (access(argv[argind], F_OK) == 0) {
-    //     input_file = fopen(argv[argind], "r");
-    //     if (input_file == NULL) {
-    //       fprintf(stderr, "Invalid trace filename");
-    //       return 1;
-    //     }
-    //   }
-    // } else { // Trace file not specified, use stdin
-    //   input_file = stdin;
-    // }
+    /* Input configuration */
+    if(argind < argc) { // The trace file was specified
+      if (access(argv[argind], F_OK) == 0) {
+        input_file = fopen(argv[argind], "r");
+        if (input_file == NULL) {
+          fprintf(stderr, "Invalid trace filename");
+          return 1;
+        }
+      }
+    } else { // Trace file not specified, use stdin
+      input_file = stdin;
+    }
 
-    // #if R2U2_CSV_Header_Mapping
-    // chdir(bin_dir);
-    // int header_status = 0;
-    // uintptr_t alias_table[N_SIGS];
-    // header_status = signal_aux_config("alias.txt", input_file, alias_table);
-    // if (header_status > 1) { return header_status; }
-    // chdir(inbuf);
-    // #endif
+    #if R2U2_CSV_Header_Mapping
+    chdir(bin_dir);
+    int header_status = 0;
+    uintptr_t alias_table[N_SIGS];
+    header_status = signal_aux_config("alias.txt", input_file, alias_table);
+    if (header_status > 1) { return header_status; }
+    chdir(inbuf);
+    #endif
 
-    // /* R2U2 Output File */
-    // FILE *log_file;
-    // log_file = fopen("./R2U2.log", "w+");
-    // if(log_file == NULL) return 1;
+    /* R2U2 Output File */
+    FILE *log_file;
+    log_file = fopen("./R2U2.log", "w+");
+    if(log_file == NULL) return 1;
 
-    // /* R2U2 Debug File */
-    // #if R2U2_DEBUG
-    // r2u2_debug_fptr = stderr;
-    // // Set to stderr by default, uncoimment below for file output
-    // // r2u2_debug_fptr = fopen("./R2U2_dbg.log", "w+");
-    // // if(r2u2_debug_fptr == NULL) return 10;
-    // #endif
+    /* R2U2 Debug File */
+    #if R2U2_DEBUG
+    r2u2_debug_fptr = stderr;
+    // Set to stderr by default, uncoimment below for file output
+    // r2u2_debug_fptr = fopen("./R2U2_dbg.log", "w+");
+    // if(r2u2_debug_fptr == NULL) return 10;
+    #endif
 
-    // /* Main processing loop */
-    // uint32_t cur_time = 0, i;
-    // for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
+    /* Main processing loop */
+    uint32_t cur_time = 0, i;
+    for(cur_time = 0; cur_time < MAX_TIME; cur_time++) {
 
-    //     if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+        if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
 
-    //     #if R2U2_CSV_Header_Mapping
-    //     if (cur_time == 0 && inbuf[0] == '#') {
-    //       /* Skip Header row, if it exists */
-    //       if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
-    //     }
+        #if R2U2_CSV_Header_Mapping
+        if (cur_time == 0 && inbuf[0] == '#') {
+          /* Skip Header row, if it exists */
+          if(fgets(inbuf, sizeof inbuf, input_file) == NULL) break;
+        }
 
-    //     if (header_status == 1) {
-    //       /* Use CSV header reordering */
-    //       for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
-    //           signal = strtok(NULL, ",\n")) {
-    //             signals_vector[alias_table[i]] = signal;
-    //         }
-    //     } else {
-    //       /* Use CSV columns in order given */
-    //       for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
-    //           signal = strtok(NULL, ",\n")) {
-    //             signals_vector[i] = signal;
-    //         }
-    //     }
-    //     #else
-    //     for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
-    //         signal = strtok(NULL, ",\n")) {
-    //           signals_vector[i] = signal;
-    //     }
-    //     #endif
+        if (header_status == 1) {
+          /* Use CSV header reordering */
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[alias_table[i]] = signal;
+            }
+        } else {
+          /* Use CSV columns in order given */
+          for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+              signal = strtok(NULL, ",\n")) {
+                signals_vector[i] = signal;
+            }
+        }
+        #else
+        for(i = 0, signal = strtok(inbuf, ",\n"); signal; i++,
+            signal = strtok(NULL, ",\n")) {
+              signals_vector[i] = signal;
+        }
+        #endif
 
 
-    //     R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
+        R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
-    //     /* Atomics Update */
-    //     bz_update();
+        /* Atomics Update */
+        bz_update();
 
-    //     /* Temporal Logic Update */
-    //     TL_update(log_file);
-    // }
+        /* Temporal Logic Update */
+        TL_update(log_file);
+    }
 
-    // fclose(log_file);
+    fclose(log_file);
 
-    // return 0;
+    return 0;
 }
 
 int signal_aux_config(char* aux, FILE* input_file, uintptr_t* alias_table){
