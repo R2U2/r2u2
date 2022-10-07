@@ -1,113 +1,43 @@
-from struct import pack
-from bitarray import bitarray
-from array import array
+from ctypes import Structure, Union, c_float, c_int
+from typing import Sequence
+from .instruction import *
 
-### BZ Opcodes
-BZ_NONE:   bytes = b'\x00'
-BZ_STORE:  bytes = b'\x01'
-BZ_ILOAD:  bytes = b'\x02'
-BZ_FLOAD:  bytes = b'\x03'
-BZ_ICONST: bytes = b'\x04'
-BZ_FCONST: bytes = b'\x05'
-BZ_IITE:   bytes = b'\x06'
-BZ_FITE:   bytes = b'\x07'
-BZ_BWNEG:  bytes = b'\x08'
-BZ_BWAND:  bytes = b'\x09'
-BZ_BWOR:   bytes = b'\x0A'
-BZ_BWXOR:  bytes = b'\x0B'
-BZ_IEQ:    bytes = b'\x0C'
-BZ_FEQ:    bytes = b'\x0D'
-BZ_INEQ:   bytes = b'\x0E'
-BZ_FNEQ:   bytes = b'\x0F'
-BZ_IGT:    bytes = b'\x10'
-BZ_FGT:    bytes = b'\x12'
-BZ_IGTE:   bytes = b'\x13'
-BZ_FGTE:   bytes = b'\x14'
-BZ_ILT:    bytes = b'\x15'
-BZ_FLT:    bytes = b'\x16'
-BZ_ILTE:   bytes = b'\x17'
-BZ_FLTE:   bytes = b'\x18'
-BZ_INEG:   bytes = b'\x19'
-BZ_FNEG:   bytes = b'\x1A'
-BZ_IADD:   bytes = b'\x1B'
-BZ_FADD:   bytes = b'\x1C'
-BZ_ISUB:   bytes = b'\x1D'
-BZ_FSUB:   bytes = b'\x1E'
-BZ_IMUL:   bytes = b'\x1F'
-BZ_FMUL:   bytes = b'\x20'
-BZ_IDIV:   bytes = b'\x21'
-BZ_FDIV:   bytes = b'\x22'
-BZ_MOD:    bytes = b'\x23'
-BZ_AUX1:   bytes = b'\x24'
-BZ_AUX2:   bytes = b'\x25'
-BZ_AUX3:   bytes = b'\x26'
-BZ_AUX4:   bytes = b'\x27'
+def assemble_bz(filename: str, bzasm: str, opc_width: int, param_width: int) -> None:
 
-### TL Opcodes
-TL_START:     bytes = b''
-TL_END:       bytes = b''
-TL_END_SEQ:   bytes = b''
-TL_NOP:       bytes = b''
-TL_NOT:       bytes = b''
-TL_AND:       bytes = b''
-TL_OR:        bytes = b''
-TL_EQUIV:     bytes = b''
-TL_IMPL:      bytes = b''
-TL_FT_NOT:    bytes = b''
-TL_FT_AND:    bytes = b''
-TL_FT_IMPL:   bytes = b''
-TL_FT_GLOBAL: bytes = b''
-TL_FT_FUTURE: bytes = b''
-TL_FT_UNTIL:  bytes = b''
-TL_FT_LOAD:   bytes = b''
-TL_PT_YSTRDY: bytes = b''
-TL_PT_ONCE:   bytes = b''
-TL_PT_HIST:   bytes = b''
-TL_PT_SINCE:  bytes = b''
+    class BZParam(Union):
+        _fields_ = [('i',c_int),
+                    ('f',c_float)]
 
-### Unused TL Opcodes
-TL_FT_GLOBAL_TP: bytes = b''
-TL_FT_FUTURE_TP: bytes = b''
-TL_PT_ONCE_TP:   bytes = b''
-TL_PT_HIST_TP:   bytes = b''
-TL_PT_SINCE_TP:  bytes = b''
+    class BZInstruction(Structure):
+        _pack_: int = 1
+        _fields_ = [('opcode',c_int,opc_width), ('param',BZParam)]
 
+    BZArray = BZInstruction * len(bzasm.splitlines())
+    bzarray = BZArray
 
-def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
-    bin: bytearray = bytearray()
-
-    num_params: int = 0
-    num_instr: int = 0
-
+    i: int = 0
     for line in bzasm.splitlines():
-        asm_instr: list[str] = line.split(' ')
-        bin_instr: bytearray = bytearray()
-
+        asm_instr: list(str) = line.split(' ')
         op: str = asm_instr[0]
         param: str
 
         if op == 'end':
-            bin_instr += BZ_NONE
+            bzarray[i] = BZInstruction(BZ_NONE, BZParam(0))
         if op == 'store':
-            param = int(asm_instr[1][1:]) # remove preceding 'b'
-            bin_instr += pack('=cI', BZ_STORE, param)
-            num_params += 1
+            param = BZParam(i=int(asm_instr[1][1:])) # remove preceding 'b'
+            bzarray[i] = BZInstruction(BZ_STORE, param)
         elif op == 'iload':
-            param = int(asm_instr[1][1:]) # remove preceding 's'
-            bin_instr += pack('=cI', BZ_ILOAD, param)
-            num_params += 1
+            param = BZParam(i=int(asm_instr[1][1:])) # remove preceding 'b'
+            bzarray[i] = BZInstruction(BZ_ILOAD, param)
         elif op == 'fload':
-            param = int(asm_instr[1][1:]) # remove preceding 's'
-            bin_instr += pack('=cI', BZ_FLOAD, param)
-            num_params += 1
+            param = BZParam(i=int(asm_instr[1][1:])) # remove preceding 'b'
+            bzarray[i] = BZInstruction(BZ_FLOAD, param)
         elif op == 'iconst':
-            param = int(param)
-            bin_instr += pack('=ci', BZ_ICONST, param)
-            num_params += 1
+            param = BZParam(i=int(param))
+            bzarray[i] = BZInstruction(BZ_ICONST, param)
         elif op == 'fconst':
-            param = float(asm_instr[1])
-            bin_instr += pack('=cf', BZ_FCONST, param)
-            num_params += 1
+            param = BZParam(f=float(asm_instr[1]))
+            bzarray[i] = BZInstruction(BZ_FCONST, param)
         # elif op == 'iite':
         #     param = int(asm_instr[1][1:]) # remove preceding 'b'
         #     bin_instr += pack('=ci', BZ_IITE, param)
@@ -115,81 +45,74 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
         #     param = int(asm_instr[1][1:]) # remove preceding 'b'
         #     bin_instr += pack('=cI', BZ_STORE, param)
         elif op == 'bwneg':
-            bin_instr += BZ_BWNEG
+            bzarray[i] = BZInstruction(BZ_BWNEG, BZParam(0))
         elif op == 'and':
-            bin_instr += BZ_BWAND
+            bzarray[i] = BZInstruction(BZ_BWAND, BZParam(0))
         elif op == 'or':
-            bin_instr += BZ_BWOR
+            bzarray[i] = BZInstruction(BZ_BWOR, BZParam(0))
         elif op == 'xor':
-            bin_instr += BZ_BWXOR
+            bzarray[i] = BZInstruction(BZ_BWXOR, BZParam(0))
         elif op == 'ieq':
-            bin_instr += BZ_IEQ
+            bzarray[i] = BZInstruction(BZ_IEQ, BZParam(0))
         elif op == 'feq':
-            param = float(asm_instr[1])
-            bin_instr += pack('=cf', BZ_FEQ, param)
-            num_params += 1
+            param = BZParam(f=float(asm_instr[1]))
+            bzarray[i] = BZInstruction(BZ_FEQ, param)
         elif op == 'ineq':
-            bin_instr += BZ_INEQ
+            bzarray[i] = BZInstruction(BZ_INEQ, BZParam(0))
         elif op == 'fneq':
-            param = float(asm_instr[1])
-            bin_instr += pack('=cf', BZ_FNEQ, param)
-            num_params += 1
+            param = BZParam(f=float(asm_instr[1]))
+            bzarray[i] = BZInstruction(BZ_FNEQ, param)
         elif op == 'igt':
-            bin_instr += BZ_IGT
+            bzarray[i] = BZInstruction(BZ_IGT, BZParam(0))
         elif op == 'fgt':
-            bin_instr += BZ_FGT
+            bzarray[i] = BZInstruction(BZ_FGT, BZParam(0))
         elif op == 'igte':
-            bin_instr += BZ_IGTE
+            bzarray[i] = BZInstruction(BZ_IGTE, BZParam(0))
         elif op == 'fgte':
-            bin_instr += BZ_FGTE
+            bzarray[i] = BZInstruction(BZ_FGTE, BZParam(0))
         elif op == 'ilt':
-            bin_instr += BZ_ILT
+            bzarray[i] = BZInstruction(BZ_ILT, BZParam(0))
         elif op == 'flt':
-            bin_instr += BZ_FLT
+            bzarray[i] = BZInstruction(BZ_FLT, BZParam(0))
         elif op == 'ilte':
-            bin_instr += BZ_ILTE
+            bzarray[i] = BZInstruction(BZ_ILTE, BZParam(0))
         elif op == 'flte':
-            bin_instr += BZ_FLTE
-        elif op == 'ineg':
-            bin_instr += BZ_INEG
-        elif op == 'fneg':
-            bin_instr += BZ_FNEG
+            bzarray[i] = BZInstruction(BZ_FLTE, BZParam(0))
+        # elif op == 'ineg':
+        #     bin_instr += BZ_INEG
+        # elif op == 'fneg':
+        #     bin_instr += BZ_FNEG
         elif op == 'iadd':
-            bin_instr += BZ_IADD
+            bzarray[i] = BZInstruction(BZ_IADD, BZParam(0))
         elif op == 'fadd':
             bin_instr += BZ_FADD
         elif op == 'isub':
-            bin_instr += BZ_ISUB
-        elif op == 'fsub':
-            bin_instr += BZ_FSUB
-        elif op == 'imul':
-            bin_instr += BZ_IMUL
-        elif op == 'fmul':
-            bin_instr += BZ_FMUL
-        elif op == 'idiv':
-            bin_instr += BZ_IDIV
-        elif op == 'fdiv':
-            bin_instr += BZ_FDIV
-        elif op == 'mod':
-            bin_instr += BZ_MOD
-        elif op == 'aux1':
-            bin_instr += BZ_AUX1
-        elif op == 'aux2':
-            bin_instr += BZ_AUX2
-        elif op == 'aux3':
-            bin_instr += BZ_AUX3
-        elif op == 'aux4':
-            bin_instr += BZ_AUX4
+            bzarray[i] = BZInstruction(BZ_ISUB, BZParam(0))
+        # elif op == 'fsub':
+        #     bin_instr += BZ_FSUB
+        # elif op == 'imul':
+        #     bin_instr += BZ_IMUL
+        # elif op == 'fmul':
+        #     bin_instr += BZ_FMUL
+        # elif op == 'idiv':
+        #     bin_instr += BZ_IDIV
+        # elif op == 'fdiv':
+        #     bin_instr += BZ_FDIV
+        # elif op == 'mod':
+        #     bin_instr += BZ_MOD
+        # elif op == 'aux1':
+        #     bin_instr += BZ_AUX1
+        # elif op == 'aux2':
+        #     bin_instr += BZ_AUX2
+        # elif op == 'aux3':
+        #     bin_instr += BZ_AUX3
+        # elif op == 'aux4':
+        #     bin_instr += BZ_AUX4
         else:
             print('error during assembly: invalid opcode')
 
-        num_instr += 1
-        bin += bin_instr
-
-    bin += pack('=c',BZ_NONE)
-    bin = pack('=Q',num_instr+4*num_params) + bin
-
-    return bin
+    with open(filename, 'wb') as f:
+        f.write(bzarray)
 
 
 # def operand2ba(op: str, width: int) -> bitarray:
@@ -215,6 +138,13 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
 
 
 # def assemble_ft(ftasm: str, opc_width: int, opnd_width: int, ts_width: int, scr_width: int) -> bitarray:
+    # class TLInstruction(Structure):
+    #     _fields_: Sequence[tuple[str, type[_CData], int]] = \
+    #         [('opcode',c_int,5),
+    #         ('op1',c_int,10),
+    #         ('op2',c_int,10),
+    #         ('intvl_addr',c_int,8),
+    #         ('scratch',c_int,7)]
 #     bin: bitarray = bitarray(endian='little')
 #     intvl_bin: bitarray = bitarray(endian='little')
     
@@ -349,6 +279,11 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
 
 
 # def assemble_ftscq(ftscqasm: str, scq_addr_width: int) -> bitarray:
+    # class SCQ(Structure):
+    #     _fields_: Sequence[tuple[str, type[_CData], int]] = \
+    #         [('start',c_int,16),
+    #         ('end',c_int,16)]
+
 #     bin: bitarray = bitarray(endian='little')
 
 #     # start w number of SCQs
@@ -368,18 +303,10 @@ def assemble_bz(bzasm: str, opc_width: int, param_width: int) -> bytearray:
 
 
 def assemble(filename: str, bzasm: str, ftasm: str, ptasm: str, ftscqasm: str):
-    bin: bytearray = bytearray()
-
-    bin += assemble_bz(bzasm,1,4)
-    # bin += assemble_ft(ftasm,5,8,8,7)
-    # bin += assemble_pt(ptasm,5,8,8,7)
-    # bin += assemble_ftscq(ftscqasm,16)
-
-    # b: bitarray = int2ba(8,length=32)
-    # b = make_endian(b,'big')
-    # b = b + make_endian(bin,'big')
-
-    # print(ba2hex(b))
-
     with open(filename,'wb') as f:
-        f.write(bin)
+        f.write(b'\x00')
+
+    assemble_bz(filename,bzasm,8,32)
+
+    with open(filename,'rb') as f:
+        f.read()
