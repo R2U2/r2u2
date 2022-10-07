@@ -37,55 +37,7 @@ def main(args):
         mltl = args.mltl
 
     compile(mltl, args.output_dir, args.booleanizer, True, args.quiet)
-
-    return
-    # mltl_compiler.preprocess()
-
-    print('************************** FT ASM **************************')
-
-    mltl_compiler.compile()
-
-    print('************************** PT ASM **************************')
-
-    mltl_compiler.compile_pt('pt.asm')
-
-
-    print('************************** AT ASM **************************')
-
-    mltl_compiler.compile_at('at.asm')
-
-    print('************************************************************')
-
-    if not mltl_compiler.status:
-        print('Error in compilation of MLTL or AT')
-        return
-
-    mltl_compiler.gen_alias_file('alias.txt')
-
-    if not os.path.isdir(args.output_dir+'config_files/'):
-        os.mkdir(args.output_dir+'config_files/')
-
-    print('Generating configuration files')
-    parse_config(args.config_file)
-    check_updates(args.header_file)
-    gen_config(args.output_dir+'config_files/R2U2Config.h')
-
-    print('************************************************************')
-
-    assemble_ft(binary_dir+'ft.asm', binary_dir+'ftscq.asm',
-                str(TIMESTAMP_WIDTH), args.output_dir,
-                str(args.no_binaries))
-
-    assemble_pt(binary_dir+'pt.asm', str(TIMESTAMP_WIDTH), args.output_dir,
-                str(args.no_binaries))
-
-    assemble_at(binary_dir+'at.asm', args.output_dir, str(args.no_binaries))
-
-
-    print('************************************************************')
-    print('Output files are located in the '+args.output_dir+' directory')
-    print('Use '+args.output_dir+'binary_files/ as input to r2u2')
-    print('************************************************************')
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
