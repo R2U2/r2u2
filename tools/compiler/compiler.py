@@ -1,4 +1,3 @@
-import os
 import re
 from logging import getLogger
 from typing import cast, Callable, Any
@@ -9,7 +8,7 @@ from .parser.C2POLexer import C2POLexer
 from .parser.C2POParser import C2POParser
 from .visitor import Visitor
 from .util import *
-from .assembler import assemble
+# from .assembler import assemble
 
 logger = getLogger(logger_name)
 
@@ -65,47 +64,47 @@ def type_check(prog: AST, bz: bool) -> bool:
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
 
-            if not child._type == Type.BOOL:
+            if not child.type == Type.BOOL:
                 status = False
                 logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', 
-                        a.ln, to_str(child._type), a)
+                        a.ln, to_str(child.type), a)
         elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP):
             lhs = a.children[0]
             rhs = a.children[1]
 
-            if isinstance(lhs,INT) and rhs._type == Type.FLOAT:
+            if isinstance(lhs,INT) and rhs.type == Type.FLOAT:
                 lhs = FLOAT(lhs.ln,lhs.val)
                 a.children[0] = lhs
-            elif isinstance(rhs,INT) and lhs._type == Type.FLOAT:
+            elif isinstance(rhs,INT) and lhs.type == Type.FLOAT:
                 rhs = FLOAT(rhs.ln,rhs.val)
                 a.children[1] = rhs
 
-            if lhs._type != rhs._type:
+            if lhs.type != rhs.type:
                 status = False
                 logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', 
-                        a.ln, a.name, to_str(lhs._type), to_str(rhs._type), a)
+                        a.ln, a.name, to_str(lhs.type), to_str(rhs.type), a)
 
             if isinstance(a,REL_OP):
-                a._type = Type.BOOL
+                a.type = Type.BOOL
             else:
-                a._type = lhs._type
+                a.type = lhs.type
         elif isinstance(a,LOG_OP):
             for c in a.children:
-                if c._type != Type.BOOL:
+                if c.type != Type.BOOL:
                     status = False
                     logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, to_str(c._type), c, a)
+                            a.ln, a.name, to_str(c.type), c, a)
 
-            a._type = Type.BOOL
+            a.type = Type.BOOL
         elif isinstance(a,TL_OP):
             for c in a.children:
-                if c._type != Type.BOOL:
+                if c.type != Type.BOOL:
                     status = False
                     logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, to_str(c._type), c, a)
+                            a.ln, a.name, to_str(c.type), c, a)
 
             status = status and a.interval.lb <= a.interval.ub
-            a._type = Type.BOOL
+            a.type = Type.BOOL
         else:
             logger.error('%d: Invalid expression\n\t%s', a.ln, a)
             status = False
@@ -190,16 +189,16 @@ def insert_atomics(prog: PROGRAM) -> None:
 def gen_alias(prog: PROGRAM) -> str:
     s: str = ''
 
-    for spec,num in prog.specs.items():
+    for num,spec in prog.specs.items():
+        if spec.name in [c.name for c in prog.contracts.values()]: 
+            # then formula is part of contract, ignore
+            continue
         s += 'F ' + spec.name + ' ' + str(num) + '\n'
 
-    # for contract, formula_num in self.contracts.items():
-    #     s += 'C ' + contract + ' ' + str(formula_num) + ' ' + \
-    #         str(formula_num+1) + ' ' + str(formula_num+2) + '\n'
-    # for signal, index in self.signals.items():
-    #     s += 'S ' + signal + ' ' + str(index) + '\n'
-    # for atom, index in self.atomics.items():
-    #     s += 'A ' + atom + ' ' + str(index) + '\n'
+    for num,contract in prog.contracts.items():
+        s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
+            str(num+1) + ' ' + str(num+2) + '\n'
+
     # for set_name, atomics in self.def_sets.items():
     #     atoms = [str(self.atomics.get(atom, atom[1:])) for atom in atomics[1]]
     #     s += 'R ' + set_name + ' ' + str(atomics[0]) + ' ' + ' '.join(atoms) + '\n'
@@ -244,12 +243,10 @@ def assign_ids(prog: PROGRAM) -> None:
 
         if isinstance(a,BZ_EXPR):
             a.bzid = bzid
-            a.id = 'b'+str(bzid)
             bzid += 1
 
         if isinstance(a,TL_EXPR):
             a.tlid = tlid
-            a.id = 'n'+str(tlid)
             tlid += 1
 
         if isinstance(a,ATOM):
@@ -282,7 +279,7 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
     return bzasm[:-1] # remove dangling '\n'
 
 
-def gen_tl_assembly(prog: PROGRAM) -> list[str]:
+def gen_tl_assembly(prog: PROGRAM) -> str:
     tl_visited: list[int] = []
     tlasm: str = ''
 
@@ -334,7 +331,7 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
     return [bzasm,tlasm,'n0: end sequence',scq_asm]
 
 
-def parse(input) -> list[PROGRAM]:
+def parse(input: str) -> list[PROGRAM]:
     lexer: C2POLexer = C2POLexer(InputStream(input))
     stream: CommonTokenStream = CommonTokenStream(lexer)
     parser: C2POParser = C2POParser(stream)
@@ -400,4 +397,4 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     with open(output_path+'ftscq.asm','w') as f:
         f.write(ftscqasm)
 
-    assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)
+    # assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)

@@ -125,26 +125,32 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#spec_block.
     def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> PROGRAM:
         ln: int = ctx.start.line
-        spec: SPEC
-        spec_dict: dict[SPEC,int] = {}
+        specs: list[SPEC]
+        spec_dict: dict[int,SPEC] = {}
+        contract_dict: dict[int,SPEC] = {}
 
         self.spec_num = 0
 
         for s in ctx.spec():
-            spec = self.visit(s)
-            spec_dict[spec] = self.spec_num
-            self.spec_num += 1
+            specs = self.visit(s)
 
-        return PROGRAM(ln, spec_dict, self.order)
+            if len(specs) > 1: # then s is a contract
+                contract_dict[self.spec_num] = specs[0]
+
+            for sp in specs:
+                spec_dict[self.spec_num] = sp
+                self.spec_num += 1
+
+        return PROGRAM(ln, spec_dict, contract_dict, self.order)
 
 
     # Visit a parse tree produced by C2POParser#spec.
-    def visitSpec(self, ctx:C2POParser.SpecContext) -> SPEC:
+    def visitSpec(self, ctx:C2POParser.SpecContext) -> list[SPEC]:
         ln: int = ctx.start.line
         label: str = ''
 
         if ctx.expr():
-            spec: EXPR = self.visit(ctx.expr())
+            expr: EXPR = self.visit(ctx.expr())
         
             # if spec has a label, can be referred to in other specs
             # else, cannot be referred to later, do not store
@@ -153,16 +159,31 @@ class Visitor(C2POVisitor):
                 if label in list(self.defs):
                     self.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
                 else:
-                    self.defs[label] = spec
+                    self.defs[label] = expr
 
-            return SPEC(ln, label, self.spec_num, spec)
+            return [SPEC(ln, label, self.spec_num, expr)]
         else:
-            spec = self.visit(ctx.contract())
+            f1,f2,f3 = self.visit(ctx.contract())
+            label = ctx.IDENTIFIER().getText()
+
+            return [SPEC(ln, label, self.spec_num, f1),
+                    SPEC(ln, label, self.spec_num+1, f2),
+                    SPEC(ln, label, self.spec_num+2, f3)]
+
+            
 
 
     # Visit a parse tree produced by C2POParser#contract.
-    def visitContract(self, ctx:C2POParser.ContractContext):
-        return self.visitChildren(ctx)
+    def visitContract(self, ctx:C2POParser.ContractContext) -> list[EXPR]:
+        ln: int = ctx.start.line
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
+
+        f1: EXPR = lhs
+        f2: EXPR = LOG_IMPL(ln,lhs,rhs)
+        f3: EXPR = LOG_AND(ln,lhs,rhs)
+
+        return [f1,f2,f3]
 
 
     # Visit a parse tree produced by C2POParser#LogBinExpr.
