@@ -11,12 +11,9 @@ var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
 order_list: KW_ORDER ':' IDENTIFIER (',' IDENTIFIER)* ';' ;
 
 type: BASE_TYPE
-    | KW_SET set_param
+    | KW_SET '⟨' type '⟩'
+    | KW_SET REL_LT type REL_GT
     ;
-
-set_param: '⟨' BASE_TYPE '⟩'
-         | REL_LT BASE_TYPE REL_GT
-         ;
 
 def_block: KW_DEF def+ ;
 def: IDENTIFIER '=' expr ';' ;
@@ -56,7 +53,7 @@ term: term '?' term ':' term  # TernaryTerm
 
 set_term: SW_EMPTY_SET
         | '{' '}'
-        | '{' IDENTIFIER (',' IDENTIFIER)* '}'
+        | '{' expr (',' expr)* '}'
         ;
 
 interval: '[' INT (',' INT)? ']' ;

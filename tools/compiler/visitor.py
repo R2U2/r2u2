@@ -86,22 +86,17 @@ class Visitor(C2POVisitor):
         text = ctx.getText()
 
         if text == 'bool':
-            return Type.BOOL
+            return Bool()
         elif text == 'int':
-            return Type.INT
+            return Int()
         elif text == 'float':
-            return Type.FLOAT
-        # elif ctx.KW_SET:
-        #     return Type.SET
+            return Float()
+        elif ctx.KW_SET:
+            t: Type = self.visit(ctx.type_())
+            return Set(t)
 
         self.error(f'{ln}: Type \'{text}\' not recognized')
-        return Type.NONE
-
-
-    # Visit a parse tree produced by C2POParser#set_param.
-    def visitSet_param(self, ctx:C2POParser.Set_paramContext) -> None:
-        ln: int = ctx.start.line
-        return self.visitChildren(ctx)
+        return NoType()
 
 
     # Visit a parse tree produced by C2POParser#def_block.
@@ -116,8 +111,10 @@ class Visitor(C2POVisitor):
         var: str = ctx.IDENTIFIER().getText()
         expr: EXPR = self.visit(ctx.expr())
 
-        if var in list(self.order):
-            self.warning(f'{ln}: Definition \'{var}\' already in Order, treating as signal and skipping')
+        if not var in self.vars.keys():
+            self.error(f'{ln}: Variable \'{var}\' undeclared')
+        elif var in list(self.order):
+            self.warning(f'{ln}: Definition \'{var}\' used in Order statement, treating as signal and skipping')
         else:
             self.defs[var] = expr
 
@@ -384,8 +381,13 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#SetTerm.
     def visitSetTerm(self, ctx:C2POParser.SetTermContext) -> EXPR:
         ln: int = ctx.start.line
-        self.error(f'{ln}: Sets not implemented')
-        return EXPR(ln, [])
+        members: list[EXPR] = []
+
+        for e in ctx.set_term().expr():
+            m: EXPR = self.visit(e)
+            members.append(m)
+
+        return SET(ln, members)
 
 
     # Visit a parse tree produced by C2POParser#ParensTerm.

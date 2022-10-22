@@ -34,11 +34,6 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#set_param.
-    def visitSet_param(self, ctx:C2POParser.Set_paramContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by C2POParser#def_block.
     def visitDef_block(self, ctx:C2POParser.Def_blockContext):
         return self.visitChildren(ctx)

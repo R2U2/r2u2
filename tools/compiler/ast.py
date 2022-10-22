@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import Enum
-from typing import NamedTuple
+from typing import NamedTuple, cast
 from logging import getLogger
 
 from .util import *
@@ -8,32 +8,63 @@ from .util import *
 logger = getLogger(logger_name)
 
 # TODO implement sets
-class Type(Enum):
-    NONE = 0
-    BOOL = 1
-    INT = 2
-    FLOAT = 3
+class Type():
+    NOTYPE: int = 0
+    BOOL: int = 1
+    INT: int = 2
+    FLOAT: int = 3
+    SET: int = 4
 
-    # TODO for easier printing
+    def __init__(self, t: int) -> None:
+        self.value: int = t
+
+    def __eq__(self, arg: object) -> bool:
+        return self.value == cast(Type,arg).value
+
     def __str__(self) -> str:
-        return super().__str__()
+        if self.value == self.BOOL:
+            return 'bool'
+        elif self.value == self.INT:
+            return 'int'
+        elif self.value == self.FLOAT:
+            return 'float'
+        return 'none'
+
+class NoType(Type):
+    def __init__(self) -> None:
+        super().__init__(self.NOTYPE)
+
+class Bool(Type):
+    def __init__(self) -> None:
+        super().__init__(self.BOOL)
+
+class Int(Type):
+    def __init__(self) -> None:
+        super().__init__(self.INT)
+
+class Float(Type):
+    def __init__(self) -> None:
+        super().__init__(self.FLOAT)
+
+class Set(Type):
+    def __init__(self, m: Type) -> None:
+        super().__init__(self.SET)
+        self.member_type: Type = m
+
+    def __eq__(self, arg: object) -> bool:
+        if super().__eq__(arg):
+            return self.member_type.__eq__(cast(Set,arg).member_type)
+        else:
+            return False
+
+    def __str__(self) -> str:
+        return 'set<' + str(self.member_type) + '>'
 
 
 class FormulaType(Enum):
     PROP = 0
     FT = 1
     PT = 2
-
-
-def to_str(t: Type) -> str:
-    if t == Type.BOOL:
-        return 'bool'
-    elif t == Type.INT:
-        return 'int'
-    elif t == Type.FLOAT:
-        return 'float'
-    else:
-        return 'none'
 
 
 class Interval(NamedTuple):
@@ -52,7 +83,7 @@ class AST():
         self.bpd: int = 0
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
-        self.type: Type = Type.NONE
+        self.type: Type = NoType()
         self.children: list[AST] = []
         self.is_ft: bool = True
 
@@ -107,7 +138,7 @@ class INT(CONST):
     
     def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln)
-        self.type = Type.INT
+        self.type = Int()
         self.val: int = v
         self.name = str(v)
 
@@ -122,12 +153,29 @@ class FLOAT(CONST):
     
     def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln)
-        self.type = Type.FLOAT
+        self.type = Float()
         self.val: float = v
         self.name = str(v)
 
     def __str__(self) -> str:
         return self.name
+
+    def bzasm(self) -> str:
+        return 'fconst ' + str(self.name) + '\n'
+
+
+class SET(CONST):
+    
+    def __init__(self, ln: int, m: list[EXPR]) -> None:
+        super().__init__(ln)
+        self.members: list[EXPR] = m
+
+    def __str__(self) -> str:
+        s: str = '{'
+        for m in self.members:
+            s += str(m) + ','
+        s = s[:-1] + '}'
+        return s
 
     def bzasm(self) -> str:
         return 'fconst ' + str(self.name) + '\n'
@@ -145,14 +193,14 @@ class VAR(LIT):
         return self.name
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'load s' + str(self.sid) + '\n'
+        return ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + '\n'
 
 
 class BOOL(CONST):
     
     def __init__(self, ln: int, v: bool) -> None:
         super().__init__(ln)
-        self.type = Type.BOOL
+        self.type = Bool()
         self.bpd: int = 0
         self.wpd: int = 0
         self.val: bool = v
@@ -166,7 +214,7 @@ class ATOM(TL_EXPR,BZ_EXPR):
     
     def __init__(self, ln: int, c: AST, a: int) -> None:
         super().__init__(ln,[c])
-        self.type: Type = Type.BOOL
+        self.type: Type = Bool()
         self.bpd: int = 0
         self.wpd: int = 0
         self.atid: int = a
@@ -575,7 +623,7 @@ class ARITH_ADD(ARITH_ADD_OP):
         self.name: str = '+'
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'add\n'
+        return ('f' if self.type == Float() else 'i') + 'add\n'
 
 
 class ARITH_SUB(ARITH_ADD_OP):
@@ -585,7 +633,7 @@ class ARITH_SUB(ARITH_ADD_OP):
         self.name: str = '-'
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'sub\n'
+        return ('f' if self.type == Float() else 'i') + 'sub\n'
 
 
 class ARITH_MUL(ARITH_MUL_OP):
@@ -595,7 +643,7 @@ class ARITH_MUL(ARITH_MUL_OP):
         self.name: str = '+'
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'mul\n'
+        return ('f' if self.type == Float() else 'i') + 'mul\n'
 
 
 class ARITH_DIV(ARITH_MUL_OP):
@@ -605,7 +653,7 @@ class ARITH_DIV(ARITH_MUL_OP):
         self.name: str = '/'
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'div\n'
+        return ('f' if self.type == Float() else 'i') + 'div\n'
 
 
 class ARITH_MOD(ARITH_MUL_OP):
@@ -625,7 +673,7 @@ class ARITH_NEG(ARITH_UNARY_OP):
         self.name: str = '-'
 
     def bzasm(self) -> str:
-        return ('f' if self.type == Type.FLOAT else 'i') + 'neg\n'
+        return ('f' if self.type == Float() else 'i') + 'neg\n'
 
 
 class REL_EQ(REL_OP):
@@ -638,7 +686,7 @@ class REL_EQ(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'eq\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'eq\n'
 
 
 class REL_NEQ(REL_OP):
@@ -651,7 +699,7 @@ class REL_NEQ(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'neq\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'neq\n'
 
 
 class REL_GT(REL_OP):
@@ -664,7 +712,7 @@ class REL_GT(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'gt\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'gt\n'
 
 
 class REL_LT(REL_OP):
@@ -677,7 +725,7 @@ class REL_LT(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'lt\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'lt\n'
 
 
 class REL_GTE(REL_OP):
@@ -690,7 +738,7 @@ class REL_GTE(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'gte\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'gte\n'
 
 
 class REL_LTE(REL_OP):
@@ -703,7 +751,7 @@ class REL_LTE(REL_OP):
         return super().__str__()
 
     def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Type.INT else 'f') + 'lte\n'
+        return ('i' if self.children[0].type == Int() else 'f') + 'lte\n'
 
 
 class SPEC(TL_EXPR):

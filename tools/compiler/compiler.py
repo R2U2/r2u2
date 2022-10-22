@@ -64,52 +64,68 @@ def type_check(prog: AST, bz: bool) -> bool:
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
 
-            if not child.type == Type.BOOL:
+            if not child.type == Bool():
                 status = False
                 logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', 
-                        a.ln, to_str(child.type), a)
+                        a.ln, str(child.type), a)
         elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP):
             lhs = a.children[0]
             rhs = a.children[1]
 
-            if isinstance(lhs,INT) and rhs.type == Type.FLOAT:
+            if isinstance(lhs,INT) and rhs.type == Float():
                 lhs = FLOAT(lhs.ln,lhs.val)
                 a.children[0] = lhs
-            elif isinstance(rhs,INT) and lhs.type == Type.FLOAT:
+            elif isinstance(rhs,INT) and lhs.type == Float():
                 rhs = FLOAT(rhs.ln,rhs.val)
                 a.children[1] = rhs
 
             if lhs.type != rhs.type:
                 status = False
                 logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', 
-                        a.ln, a.name, to_str(lhs.type), to_str(rhs.type), a)
+                        a.ln, a.name, str(lhs.type), str(rhs.type), a)
 
             if isinstance(a,REL_OP):
-                a.type = Type.BOOL
+                a.type = Bool()
             else:
                 a.type = lhs.type
         elif isinstance(a,LOG_OP):
             for c in a.children:
-                if c.type != Type.BOOL:
+                if c.type != Bool():
                     status = False
                     logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, to_str(c.type), c, a)
+                            a.ln, a.name, str(c.type), c, a)
 
-            a.type = Type.BOOL
+            a.type = Bool()
         elif isinstance(a,TL_OP):
             for c in a.children:
-                if c.type != Type.BOOL:
+                if c.type != Bool():
                     status = False
                     logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, to_str(c.type), c, a)
+                            a.ln, a.name, str(c.type), c, a)
 
             status = status and a.interval.lb <= a.interval.ub
-            a.type = Type.BOOL
+            a.type = Bool()
         else:
             logger.error('%d: Invalid expression\n\t%s', a.ln, a)
             status = False
 
+
+    def check_set_circular_dep_util(a: AST) -> None:
+        pass
+
+    set_expr_list: list[AST] = []
+    def find_sets_util(a: AST) -> None:
+        nonlocal set_expr_list
+        if isinstance(a,SET):
+            set_expr_list.append(a)
+
+
     postorder(prog,type_check_util)
+
+    postorder(prog,find_sets_util)
+    for s in set_expr_list:
+        postorder(s,check_set_circular_dep_util)
+
     return status
 
 
@@ -338,7 +354,11 @@ def parse(input: str) -> list[PROGRAM]:
     parse_tree = parser.start()
     # print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
-    return v.visitStart(parse_tree)
+    progs: list[PROGRAM] = v.visitStart(parse_tree)
+    if v.status:
+        return progs
+    else:
+        return []
 
 
 def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
