@@ -78,7 +78,7 @@ class AST():
         self.ln: int = ln
         self.tlid: int = -1
         self.bzid: int = -1
-        self.scq_size: int = -1
+        self.scq_size: int = 0
         self.name: str = ''
         self.bpd: int = 0
         self.wpd: int = 0
@@ -86,6 +86,8 @@ class AST():
         self.type: Type = NoType()
         self.children: list[AST] = []
         self.is_ft: bool = True
+
+        self.parents: list[AST] = []
 
         child: AST
         for child in c:
@@ -243,7 +245,7 @@ class LOG_BIN_OP(LOG_OP):
         self.wpd = max(lhs.wpd, rhs.wpd)
 
     def __str__(self) -> str:
-        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
+        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
 
 
 class LOG_UNARY_OP(LOG_OP):
@@ -254,7 +256,7 @@ class LOG_UNARY_OP(LOG_OP):
         self.wpd = o.wpd
 
     def __str__(self) -> str:
-        return f'{self.name!s} {self.children[0]!s}'
+        return f'{self.name!s}({self.children[0]!s})'
 
 
 class TL_OP(TL_EXPR):
@@ -284,7 +286,7 @@ class TL_FT_BIN_OP(TL_FT_OP):
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.children[0]!s} {self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[1]!s}'
+        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
 
 class TL_FT_UNARY_OP(TL_FT_OP):
@@ -296,18 +298,16 @@ class TL_FT_UNARY_OP(TL_FT_OP):
         self.wpd = o.wpd + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
 
 
 class TL_PT_BIN_OP(TL_PT_OP):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, [lhs, rhs], l, u)
-        self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
-        self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.children[0]!s} {self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[1]!s}'
+        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
 
 class TL_PT_UNARY_OP(TL_PT_OP):
@@ -315,11 +315,9 @@ class TL_PT_UNARY_OP(TL_PT_OP):
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
-        self.bpd = o.bpd + self.interval.lb
-        self.wpd = o.wpd + self.interval.ub
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}] {self.children[0]!s}'
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
 
 
 class BW_OP(BZ_EXPR):
@@ -334,7 +332,7 @@ class BW_BIN_OP(BW_OP):
         super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
-        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
 
 class BW_UNARY_OP(BW_OP):
@@ -343,7 +341,7 @@ class BW_UNARY_OP(BW_OP):
         super().__init__(ln,[o])
 
     def __str__(self) -> str:
-        return f'{self.name!s} {self.children[0]!s}'
+        return f'{self.name!s}({self.children[0]!s})'
 
 
 class ARITH_OP(BZ_EXPR):
@@ -352,7 +350,7 @@ class ARITH_OP(BZ_EXPR):
         super().__init__(ln,c)
 
     def __str__(self) -> str:
-        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
 
 class ARITH_BIN_OP(ARITH_OP):
@@ -361,7 +359,7 @@ class ARITH_BIN_OP(ARITH_OP):
         super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
-        return f'{self.children[0]} {self.name!s} {self.children[1]!s}'
+        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
 
 class ARITH_UNARY_OP(ARITH_OP):
@@ -370,7 +368,7 @@ class ARITH_UNARY_OP(ARITH_OP):
         super().__init__(ln,[o])
 
     def __str__(self) -> str:
-        return f'{self.name!s} {self.children[0]}'
+        return f'{self.name!s}({self.children[0]})'
 
 
 class ARITH_ADD_OP(ARITH_BIN_OP):
@@ -391,7 +389,7 @@ class REL_OP(BZ_EXPR):
         super().__init__(ln,[lhs, rhs])
 
     def __str__(self) -> str:
-        return f'{self.children[0]!s} {self.name!s} {self.children[1]!s}'
+        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
 
 
 class LOG_OR(LOG_BIN_OP):

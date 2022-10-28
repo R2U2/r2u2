@@ -25,6 +25,34 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
     for c in a.children:
         preorder(c,func)
 
+
+# used for when a is root of a DAG -- after CSE, otherwise post/preorder is more efficient
+def dfs(a: AST, func: Callable[[AST],Any]) -> None:
+    s: list[AST] = []
+    explored: list[AST] = []
+
+    s.append(a)
+
+    b: AST
+    c: AST
+    while not len(s) == 0:
+        b = s.pop()
+        if b in explored:
+            continue
+        explored.append(b)
+        func(b)
+        for c in b.children:
+            s.append(c)
+            
+
+def set_parents(prog: AST) -> None:
+
+    def set_parents_util(a: AST) -> None:
+        for c in a.children:
+            c.parents.append(a)
+
+    postorder(prog,set_parents_util)
+
     
 def type_check(prog: AST, bz: bool) -> bool:
     status: bool = True
@@ -208,23 +236,40 @@ def gen_alias(prog: PROGRAM) -> str:
 
 
 def compute_scq_size(prog: PROGRAM) -> None:
-    
+
     def compute_scq_size_util(a: AST) -> None:
-        if isinstance(a, PROGRAM):
-            # all SPEC scq_size = 1
-            for c in a.children:
-                c.scq_size = 1
+        if not isinstance(a, TL_EXPR) or isinstance(a, PROGRAM):
             return
 
-        wpd: int = 0
-        for c in a.children:
-            if c.wpd > wpd:
-                wpd = c.wpd
+        if isinstance(a, SPEC):
+            a.scq_size = 1
+            return
 
-        for c in a.children:
-            c.scq_size = max(wpd-c.bpd,0)+3 # +3 b/c of some bug -- ask Brian
+        siblings: list[AST] = []
+        for p in a.parents:
+            for s in p.children:
+                if not s == a:
+                    siblings.append(s)
 
-    preorder(prog,compute_scq_size_util)
+        wpd: int = max([s.wpd for s in siblings]+[0])
+
+        a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+
+    set_parents(prog)
+    dfs(prog,compute_scq_size_util)
+
+
+def total_scq_size(prog: PROGRAM) -> int:
+    mem: int = 0
+
+    def total_scq_size_util(a: AST) -> None:
+        nonlocal mem
+        mem += a.scq_size
+        # if isinstance(a,TL_EXPR) and not isinstance(a, PROGRAM):
+        #     print('mem('+str(a)+') = '+str(a.scq_size))
+
+    dfs(prog,total_scq_size_util)
+    return mem
 
 
 def assign_ids(prog: PROGRAM) -> None:
@@ -305,12 +350,13 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
     pos: int = 0
 
     compute_scq_size(prog)
+    # print(total_scq_size(prog))
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal s
         nonlocal pos
 
-        if isinstance(a,PROGRAM) or isinstance(a,CONST):
+        if isinstance(a,PROGRAM) or (isinstance(a,BZ_EXPR) and not isinstance(a,ATOM)):
             return
 
         start_pos = pos
@@ -366,7 +412,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     insert_atomics(progs[0])
 
     # common sub-expressions elimination
-    optimize_cse(progs[0])
+    optimize_cse(progs[0]) # AST is now a DAG
 
     # generate alias file
     alias = gen_alias(progs[0])
