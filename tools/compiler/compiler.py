@@ -109,22 +109,7 @@ def type_check(prog: AST, bz: bool) -> bool:
             logger.error('%d: Invalid expression\n\t%s', a.ln, a)
             status = False
 
-
-    def check_set_circular_dep_util(a: AST) -> None:
-        pass
-
-    set_expr_list: list[AST] = []
-    def find_sets_util(a: AST) -> None:
-        nonlocal set_expr_list
-        if isinstance(a,SET):
-            set_expr_list.append(a)
-
-
     postorder(prog,type_check_util)
-
-    postorder(prog,find_sets_util)
-    for s in set_expr_list:
-        postorder(s,check_set_circular_dep_util)
 
     return status
 
@@ -166,7 +151,7 @@ def rewrite_ops(prog: PROGRAM) -> None:
 def optimize_cse(prog: PROGRAM) -> None:
     S: dict[str,AST] = {}
     
-    def optimize_cse(a: AST) -> None:
+    def optimize_cse_util(a: AST) -> None:
         nonlocal S
         c: int
         i: str
@@ -183,7 +168,7 @@ def optimize_cse(prog: PROGRAM) -> None:
             else:
                 S[i] = a.children[c]
             
-    postorder(prog,optimize_cse)
+    postorder(prog,optimize_cse_util)
 
 
 def insert_atomics(prog: PROGRAM) -> None:

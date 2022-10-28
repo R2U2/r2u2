@@ -166,19 +166,19 @@ class FLOAT(CONST):
 
 class SET(CONST):
     
-    def __init__(self, ln: int, m: list[EXPR]) -> None:
+    def __init__(self, ln: int, m: list[AST]) -> None:
         super().__init__(ln)
-        self.members: list[EXPR] = m
+        self.children: list[AST] = m
 
     def __str__(self) -> str:
         s: str = '{'
-        for m in self.members:
+        for m in self.children:
             s += str(m) + ','
         s = s[:-1] + '}'
         return s
 
     def bzasm(self) -> str:
-        return 'fconst ' + str(self.name) + '\n'
+        return 'set ' + str(self.name) + '\n'
 
 
 class VAR(LIT):

@@ -240,7 +240,7 @@ class Visitor(C2POVisitor):
             elif ctx.tl_unary_op().TL_ONCE():
                 return TL_ONCE(ln, operand, bounds.lb, bounds.ub)
             else:
-                logger.error('%d: Unary TL op \'%s\' not recognized', ln, ctx.tl_unary_op().start.text)
+                self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
             self.error(f'{ln}: Expression not recognized')
@@ -346,10 +346,10 @@ class Visitor(C2POVisitor):
             elif ctx.arith_mul_op().ARITH_MOD():
                 return ARITH_MOD(ln, lhs, rhs)
             else:
-                logger.error('%d: Binary arithmetic op \'%s\' not recognized', ln, ctx.tl_bin_op().start.text)
+                self.error(f'{ln}: Binary arithmetic op \'{ctx.tl_bin_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -364,10 +364,10 @@ class Visitor(C2POVisitor):
             elif ctx.unary_op.BW_NEG():
                 return BW_NEG(ln, op)
             else:
-                logger.error('%d: Unary op \'%s\' not recognized', ln, ctx.unary_op().start.text)
+                self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            logger.error('%d: Expression not recognized', ln)
+            self.error(f'{ln}: Expression not recognized')
             return EXPR(ln, [])
 
 
@@ -407,19 +407,19 @@ class Visitor(C2POVisitor):
             return BOOL(ln, False)
         elif literal.IDENTIFIER():
             name: str = literal.IDENTIFIER().getText()
-            if name in list(self.defs):
+            if name in self.defs.keys():
                 return self.defs[name]
-            elif name in list(self.vars):
+            elif name in self.order.keys():
                 return VAR(ln, name, self.vars[name])
             else:
-                logger.error('%d: Variable \'%s\' undeclared', ln, name)
+                self.error(f'{ln}: Variable \'{name}\' undefined')
                 return EXPR(ln, [])
         elif literal.INT():
             return INT(ln, int(literal.INT().getText()))
         elif literal.FLOAT():
             return FLOAT(ln, float(literal.FLOAT().getText()))
         else:
-            logger.error('%d: Literal \'%s\' parser token not recognized', ln, ctx.start.text)
+            self.error(f'{ln}: Literal \'{ctx.start.text}\' parser token not recognized')
             return EXPR(ln, [])
 
 
