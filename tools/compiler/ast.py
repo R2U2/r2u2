@@ -19,6 +19,7 @@ class Type():
         self.value: int = t
 
     def __eq__(self, arg: object) -> bool:
+        assert isinstance(arg,Type)
         return self.value == cast(Type,arg).value
 
     def __str__(self) -> str:
@@ -32,23 +33,23 @@ class Type():
 
 class NoType(Type):
     def __init__(self) -> None:
-        super().__init__(self.NOTYPE)
+        super().__init__(Type.NOTYPE)
 
 class Bool(Type):
     def __init__(self) -> None:
-        super().__init__(self.BOOL)
+        super().__init__(Type.BOOL)
 
 class Int(Type):
     def __init__(self) -> None:
-        super().__init__(self.INT)
+        super().__init__(Type.INT)
 
 class Float(Type):
     def __init__(self) -> None:
-        super().__init__(self.FLOAT)
+        super().__init__(Type.FLOAT)
 
 class Set(Type):
     def __init__(self, m: Type) -> None:
-        super().__init__(self.SET)
+        super().__init__(Type.SET)
         self.member_type: Type = m
 
     def __eq__(self, arg: object) -> bool:
@@ -183,7 +184,7 @@ class SET(CONST):
         return 'set ' + str(self.name) + '\n'
 
 
-class VAR(LIT):
+class SIGNAL(LIT):
     
     def __init__(self, ln: int, n: str, t: Type) -> None:
         super().__init__(ln,)

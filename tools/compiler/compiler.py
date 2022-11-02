@@ -26,8 +26,9 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
         preorder(c,func)
 
 
+# depth-first traversal
 # used for when a is root of a DAG -- after CSE, otherwise post/preorder is more efficient
-def dfs(a: AST, func: Callable[[AST],Any]) -> None:
+def dft(a: AST, func: Callable[[AST],Any]) -> None:
     s: list[AST] = []
     explored: list[AST] = []
 
@@ -87,7 +88,7 @@ def type_check(prog: AST, bz: bool) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,ATOM) or isinstance(a,VAR) or isinstance(a,CONST) or isinstance(a,PROGRAM):
+        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
@@ -256,7 +257,7 @@ def compute_scq_size(prog: PROGRAM) -> None:
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
 
     set_parents(prog)
-    dfs(prog,compute_scq_size_util)
+    dft(prog,compute_scq_size_util)
 
 
 def total_scq_size(prog: PROGRAM) -> int:
@@ -268,28 +269,22 @@ def total_scq_size(prog: PROGRAM) -> int:
         # if isinstance(a,TL_EXPR) and not isinstance(a, PROGRAM):
         #     print('mem('+str(a)+') = '+str(a.scq_size))
 
-    dfs(prog,total_scq_size_util)
+    dft(prog,total_scq_size_util)
     return mem
 
 
 def assign_ids(prog: PROGRAM) -> None:
     order: dict[str,int] = prog.order
     tlid: int = 0
-    bzid: int = 0
     atid: int = 0
 
     def assign_ids_util(a: AST) -> None:
         nonlocal order
         nonlocal tlid
-        nonlocal bzid
         nonlocal atid
 
-        if isinstance(a,BOOL) or a.tlid > -1 or a.bzid > -1:
+        if isinstance(a,BOOL) or a.tlid > -1:
             return
-
-        if isinstance(a,BZ_EXPR):
-            a.bzid = bzid
-            bzid += 1
 
         if isinstance(a,TL_EXPR):
             a.tlid = tlid
@@ -299,14 +294,14 @@ def assign_ids(prog: PROGRAM) -> None:
             a.atid = atid
             atid += 1
 
-        if isinstance(a,VAR):
+        if isinstance(a,SIGNAL):
             a.sid = order[a.name]
 
     postorder(prog,assign_ids_util)
 
 
 def gen_bz_assembly(prog: PROGRAM) -> str:
-    bz_visited: list[int] = []
+    bz_visited: list[AST] = []
     bzasm: str = ''
 
     def gen_bzasm_util(a: AST) -> None:
@@ -316,9 +311,9 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
         if not isinstance(a,ATOM) and isinstance(a,TL_EXPR):
             return
 
-        if not a.bzid in bz_visited:
+        if not a in bz_visited:
             bzasm += a.bzasm()
-            bz_visited.append(a.bzid)
+            bz_visited.append(a)
 
     postorder(prog,gen_bzasm_util)
 

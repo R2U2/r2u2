@@ -410,7 +410,7 @@ class Visitor(C2POVisitor):
             if name in self.defs.keys():
                 return self.defs[name]
             elif name in self.order.keys():
-                return VAR(ln, name, self.vars[name])
+                return SIGNAL(ln, name, self.vars[name])
             else:
                 self.error(f'{ln}: Variable \'{name}\' undefined')
                 return EXPR(ln, [])
