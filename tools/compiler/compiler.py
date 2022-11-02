@@ -177,6 +177,7 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
+# prog becomes DAG after this function
 def optimize_cse(prog: PROGRAM) -> None:
     S: dict[str,AST] = {}
     
@@ -201,16 +202,16 @@ def optimize_cse(prog: PROGRAM) -> None:
 
 
 def insert_atomics(prog: PROGRAM) -> None:
-    bzidx: int = 0
+    idx: int = 0
 
     def insert_atom(a: AST) -> None:
-        nonlocal bzidx
+        nonlocal idx
         
         for c in range(0,len(a.children)):
             child = a.children[c]
             if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL) \
                     and not isinstance(a,ATOM) and not isinstance(child,ATOM):
-                new: ATOM = ATOM(a.ln,child,bzidx)
+                new: ATOM = ATOM(a.ln,child,idx)
                 a.children[c] = new
 
     postorder(prog,insert_atom)
@@ -228,10 +229,6 @@ def gen_alias(prog: PROGRAM) -> str:
     for num,contract in prog.contracts.items():
         s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
             str(num+1) + ' ' + str(num+2) + '\n'
-
-    # for set_name, atomics in self.def_sets.items():
-    #     atoms = [str(self.atomics.get(atom, atom[1:])) for atom in atomics[1]]
-    #     s += 'R ' + set_name + ' ' + str(atomics[0]) + ' ' + ' '.join(atoms) + '\n'
 
     return s
 
@@ -407,7 +404,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     insert_atomics(progs[0])
 
     # common sub-expressions elimination
-    optimize_cse(progs[0]) # AST is now a DAG
+    optimize_cse(progs[0])
 
     # generate alias file
     alias = gen_alias(progs[0])

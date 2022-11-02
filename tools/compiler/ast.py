@@ -19,8 +19,11 @@ class Type():
         self.value: int = t
 
     def __eq__(self, arg: object) -> bool:
-        assert isinstance(arg,Type)
-        return self.value == cast(Type,arg).value
+        try:
+            assert isinstance(arg,Type)
+            return self.value == arg.value
+        except AssertionError:
+            return False
 
     def __str__(self) -> str:
         if self.value == self.BOOL:
