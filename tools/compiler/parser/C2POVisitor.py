@@ -59,8 +59,13 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#TermExpr.
-    def visitTermExpr(self, ctx:C2POParser.TermExprContext):
+    # Visit a parse tree produced by C2POParser#ArithAddExpr.
+    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#BWExpr.
+    def visitBWExpr(self, ctx:C2POParser.BWExprContext):
         return self.visitChildren(ctx)
 
 
@@ -69,13 +74,23 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#LogBinExpr.
-    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
+    # Visit a parse tree produced by C2POParser#ArithMulExpr.
+    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ParensExpr.
-    def visitParensExpr(self, ctx:C2POParser.ParensExprContext):
+    # Visit a parse tree produced by C2POParser#RelExpr.
+    def visitRelExpr(self, ctx:C2POParser.RelExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#FuncExpr.
+    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#UnaryExpr.
+    def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext):
         return self.visitChildren(ctx)
 
 
@@ -84,68 +99,43 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#LogNegExpr.
-    def visitLogNegExpr(self, ctx:C2POParser.LogNegExprContext):
+    # Visit a parse tree produced by C2POParser#LogBinExpr.
+    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#BWTerm.
-    def visitBWTerm(self, ctx:C2POParser.BWTermContext):
+    # Visit a parse tree produced by C2POParser#SetExpr.
+    def visitSetExpr(self, ctx:C2POParser.SetExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#ArithAddTerm.
-    def visitArithAddTerm(self, ctx:C2POParser.ArithAddTermContext):
+    # Visit a parse tree produced by C2POParser#ParensExpr.
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#TernaryTerm.
-    def visitTernaryTerm(self, ctx:C2POParser.TernaryTermContext):
+    # Visit a parse tree produced by C2POParser#LiteralExpr.
+    def visitLiteralExpr(self, ctx:C2POParser.LiteralExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#UnaryTerm.
-    def visitUnaryTerm(self, ctx:C2POParser.UnaryTermContext):
+    # Visit a parse tree produced by C2POParser#TernaryExpr.
+    def visitTernaryExpr(self, ctx:C2POParser.TernaryExprContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#SetTerm.
-    def visitSetTerm(self, ctx:C2POParser.SetTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#RelTerm.
-    def visitRelTerm(self, ctx:C2POParser.RelTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#LiteralTerm.
-    def visitLiteralTerm(self, ctx:C2POParser.LiteralTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#ArithMulTerm.
-    def visitArithMulTerm(self, ctx:C2POParser.ArithMulTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#FuncTerm.
-    def visitFuncTerm(self, ctx:C2POParser.FuncTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#ParensTerm.
-    def visitParensTerm(self, ctx:C2POParser.ParensTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#set_term.
-    def visitSet_term(self, ctx:C2POParser.Set_termContext):
+    # Visit a parse tree produced by C2POParser#set_expr.
+    def visitSet_expr(self, ctx:C2POParser.Set_exprContext):
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by C2POParser#interval.
     def visitInterval(self, ctx:C2POParser.IntervalContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#expr_list.
+    def visitExpr_list(self, ctx:C2POParser.Expr_listContext):
         return self.visitChildren(ctx)
 
 

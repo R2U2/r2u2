@@ -1,7 +1,6 @@
 # type: ignore
 
 from logging import getLogger
-from typing_extensions import get_overloads, runtime
 
 from antlr4 import TerminalNode
 
@@ -252,24 +251,17 @@ class Visitor(C2POVisitor):
         return self.visit(ctx.expr())
 
 
-    # Visit a parse tree produced by C2POParser#TermExpr.
-    def visitTermExpr(self, ctx:C2POParser.TermExprContext) -> EXPR:
-        ln: int = ctx.start.line
-        child: EXPR = self.visit(ctx.term())
-        return child
-
-
-    # Visit a parse tree produced by C2POParser#TernaryTerm.
-    def visitTernaryTerm(self, ctx:C2POParser.TernaryTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#TernaryExpr.
+    def visitTernaryExpr(self, ctx:C2POParser.TernaryExprContext) -> EXPR:
         self.error(f'{ln}: Ternary operator not supported')
         return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#BWTerm.
-    def visitBWTerm(self, ctx:C2POParser.BWTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#BWExpr.
+    def visitBWExpr(self, ctx:C2POParser.BWExprContext) -> EXPR:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.term(0))
-        rhs: EXPR = self.visit(ctx.term(1))
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.BW_OR():
             return BW_OR(ln, lhs, rhs)
@@ -282,11 +274,11 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
             
 
-    # Visit a parse tree produced by C2POParser#RelTerm.
-    def visitRelTerm(self, ctx:C2POParser.RelTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#RelExpr.
+    def visitRelExpr(self, ctx:C2POParser.RelExprContext) -> EXPR:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.term(0))
-        rhs: EXPR = self.visit(ctx.term(1))
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
@@ -313,11 +305,11 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#ArithAddTerm.
-    def visitArithAddTerm(self, ctx:C2POParser.ArithAddTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#ArithAddExpr.
+    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext) -> EXPR:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.term(0))
-        rhs: EXPR = self.visit(ctx.term(1))
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.arith_add_op():
             if ctx.arith_add_op().ARITH_ADD():
@@ -332,11 +324,11 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#ArithMulTerm.
-    def visitArithMulTerm(self, ctx:C2POParser.ArithMulTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#ArithMulExpr.
+    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext) -> EXPR:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.term(0))
-        rhs: EXPR = self.visit(ctx.term(1))
+        lhs: EXPR = self.visit(ctx.expr(0))
+        rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.arith_mul_op():
             if ctx.arith_mul_op().ARITH_MUL():
@@ -353,10 +345,10 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#UnaryTerm.
-    def visitUnaryTerm(self, ctx:C2POParser.UnaryTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#UnaryExpr.
+    def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext) -> EXPR:
         ln: int = ctx.start.line
-        op: EXPR = self.visit(ctx.term(0))
+        op: EXPR = self.visit(ctx.expr(0))
 
         if ctx.unary_op():
             if ctx.unary_op.ARITH_SUB():
@@ -371,32 +363,31 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#FuncTerm.
-    def visitFuncTerm(self, ctx:C2POParser.FuncTermContext):
+    # Visit a parse tree produced by C2POParser#FuncExpr.
+    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext):
         ln: int = ctx.start.line
         self.error(f'{ln}: Functions not implemented')
         return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#SetTerm.
-    def visitSetTerm(self, ctx:C2POParser.SetTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#SetExpr.
+    def visitSetExpr(self, ctx:C2POParser.SetExprContext) -> EXPR:
         ln: int = ctx.start.line
         members: list[EXPR] = []
-
-        for e in ctx.set_term().expr():
-            m: EXPR = self.visit(e)
-            members.append(m)
+        
+        if ctx.set_expr.expr_list():
+            members = self.visit(ctx.set_expr.expr_list())
 
         return SET(ln, members)
 
 
-    # Visit a parse tree produced by C2POParser#ParensTerm.
-    def visitParensTerm(self, ctx:C2POParser.ParensTermContext) -> EXPR:
-        return self.visit(ctx.term())
+    # Visit a parse tree produced by C2POParser#ParensExpr.
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> EXPR:
+        return self.visit(ctx.expr())
 
 
-    # Visit a parse tree produced by C2POParser#LiteralTerm.
-    def visitLiteralTerm(self, ctx:C2POParser.LiteralTermContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#LiteralExpr.
+    def visitLiteralExpr(self, ctx:C2POParser.LiteralExprContext) -> EXPR:
         ln: int = ctx.start.line
 
         literal: C2POParser.LiteralContext = ctx.literal()
@@ -438,6 +429,18 @@ class Visitor(C2POVisitor):
         else:
             self.error(f'{ln}: Expression not recognized')
             return Interval(0,0)
+
+
+        # Visit a parse tree produced by C2POParser#expr_list.
+    def visitExpr_list(self, ctx:C2POParser.Expr_listContext) -> list[EXPR]:
+        ln: int = ctx.start.line
+        exprs: list[EXPR] = []
+
+        for expr in ctx.expr():
+            e: EXPR = self.visit(expr)
+            exprs.append(e)
+
+        return exprs
 
 
 del C2POParser

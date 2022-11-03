@@ -229,10 +229,10 @@ class ATOM(TL_EXPR,BZ_EXPR):
         return f'{self.children[0]!s}'
 
     def tlasm(self) -> str:
-        return super().tlasm() + 'load b' + str(self.atid) + '\n'
+        return super().tlasm() + 'load a' + str(self.atid) + '\n'
 
     def bzasm(self) -> str:
-        return 'store b' + str(self.atid) + '\n'
+        return 'store a' + str(self.atid) + '\n'
 
 
 class LOG_OP(TL_EXPR):

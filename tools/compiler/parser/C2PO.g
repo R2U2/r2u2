@@ -24,39 +24,36 @@ spec: IDENTIFIER ':' contract ';'
 
 contract: expr '=>' expr ;
 
-expr: expr LOG_OR expr        # LogBinExpr
-    | expr LOG_XOR expr       # LogBinExpr
-    | expr LOG_AND expr       # LogBinExpr
-    | expr LOG_IMPL expr      # LogBinExpr
-    | expr tl_bin_op expr     # TLBinExpr
-    | tl_unary_op expr        # TLUnaryExpr
-    | LOG_NEG expr            # LogNegExpr
-    | '(' expr ')'            # ParensExpr
-    | term                    # TermExpr
+expr: set_expr                  # SetExpr
+    | IDENTIFIER '(' expr_list? ')' # FuncExpr
+    | ARITH_SUB expr            # UnaryExpr
+    | ARITH_ADD expr            # UnaryExpr
+    | BW_NEG expr               # UnaryExpr
+    | expr arith_mul_op expr    # ArithMulExpr
+    | expr arith_add_op expr    # ArithAddExpr
+    | expr BW_SHIFT_LEFT expr   # BWExpr
+    | expr BW_SHIFT_RIGHT expr  # BWExpr
+    | expr rel_ineq_op expr     # RelExpr
+    | expr rel_eq_op expr       # RelExpr
+    | expr BW_AND expr          # BWExpr
+    | expr BW_XOR expr          # BWExpr
+    | expr BW_OR expr           # BWExpr
+    | expr tl_bin_op expr       # TLBinExpr
+    | tl_unary_op expr          # TLUnaryExpr
+    | expr LOG_AND expr         # LogBinExpr
+    | expr LOG_OR expr          # LogBinExpr
+    | expr '?' expr ':' expr    # TernaryExpr
+    | '(' expr ')'              # ParensExpr
+    | literal                   # LiteralExpr
     ;
 
-term: term '?' term ':' term  # TernaryTerm
-    | term BW_OR term         # BWTerm
-    | term BW_XOR term        # BWTerm
-    | term BW_AND term        # BWTerm
-    | term arith_add_op term  # ArithAddTerm
-    | term arith_mul_op term  # ArithMulTerm
-    | term rel_eq_op term     # RelTerm
-    | term rel_ineq_op term   # RelTerm
-    | ARITH_SUB term          # UnaryTerm
-    | BW_NEG term             # UnaryTerm
-    | IDENTIFIER '(' term ')' # FuncTerm
-    | set_term                # SetTerm
-    | '(' term ')'            # ParensTerm
-    | literal                 # LiteralTerm
-    ;
-
-set_term: SW_EMPTY_SET
-        | '{' '}'
-        | '{' expr (',' expr)* '}'
+set_expr: SW_EMPTY_SET
+        | '{' expr_list? '}'
         ;
 
 interval: '[' INT (',' INT)? ']' ;
+
+expr_list: expr (',' expr)* ;
 
 tl_unary_op: (TL_GLOBAL | TL_FUTURE | TL_HISTORICAL | TL_ONCE) interval ;
 tl_bin_op: (TL_UNTIL | TL_RELEASE | TL_SINCE) interval ;
@@ -101,6 +98,8 @@ BW_NEG: '~' ;
 BW_AND: '&'  ;
 BW_OR: '|'  ;
 BW_XOR: '^'  ;
+BW_SHIFT_LEFT: '<<' ;
+BW_SHIFT_RIGHT: '>>' ;
 
 // Relational ops
 REL_EQ: '==' ;
