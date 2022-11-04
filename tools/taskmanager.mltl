@@ -1,0 +1,27 @@
+STRUCT
+    task: { start, exec, end: bool, start_ts, end_ts: int };
+    task_manager: { task_set: set<task>[3], num_active: int };
+
+VAR
+    tm1, tm2: task_manager;
+
+    Order: tm1, tm2;
+
+    -- sample input:
+    -- tm1.t1    | tm1.t2    | tm1.t3    | tm1.num_active | tm2.t1    | tm2.t2    | tm2.t3    | tm2.num_active
+    -- 0,1,0,5,0 , 0,0,0,0,0 , 0,0,1,3,8 , 1,               0,1,0,9,0 , 0,1,0,7,0 , 0,0,0,0,0 , 2 
+
+DEFINE
+
+    TM = {tm1,tm2};
+
+SPEC
+    -- for all task managers tm, if there is at least one active task then
+    -- there exists a task t in tm's task set such that t is in the exec state 
+    forall(tm: TM) ((tm.num_active > 0) -> exists(t: tm.task_set) (t.exec))
+
+    -- for all task managers tm, if all task slots are active, then within
+    -- the next ten time steps at least one slot will become inactive and
+    -- at least one task will enter the end state and until then the number
+    -- of active tasks will remain at 3.
+    forall(tm: TM) ((tm.num_active == 3) -> (tm.num_active == 3) U[0,10] (tm.num_active < 3 && exists(t: tm.task_set) (t.end)))
