@@ -4,7 +4,10 @@
 
 grammar C2PO;
 
-start: (var_block | def_block | spec_block)* ;
+start: (struct_block | var_block | def_block | spec_block)* ;
+
+struct_block: KW_STRUCT struct+ ;
+struct: IDENTIFIER ':' '{' var_list+ '}' ';' ;
 
 var_block: KW_VAR var_list+ order_list ;
 var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
@@ -26,6 +29,7 @@ contract: expr '=>' expr ;
 
 expr: set_expr                  # SetExpr
     | IDENTIFIER '(' expr_list? ')' # FuncExpr
+    | expr '.' IDENTIFIER       # StructMemberExpr
     | ARITH_SUB expr            # UnaryExpr
     | ARITH_ADD expr            # UnaryExpr
     | BW_NEG expr               # UnaryExpr
@@ -58,7 +62,7 @@ expr_list: expr (',' expr)* ;
 tl_unary_op: (TL_GLOBAL | TL_FUTURE | TL_HISTORICAL | TL_ONCE) interval ;
 tl_bin_op: (TL_UNTIL | TL_RELEASE | TL_SINCE) interval ;
 
-literal: TRUE | FALSE | IDENTIFIER | INT | FLOAT ;
+literal: IDENTIFIER | TRUE | FALSE | INT | FLOAT ;
 
 rel_eq_op: REL_EQ | REL_NEQ ;
 rel_ineq_op: REL_GT | REL_LT | REL_GTE | REL_LTE  ;
@@ -77,6 +81,7 @@ BASE_TYPE: 'bool'
          ;
 
 // Keywords
+KW_STRUCT: 'STRUCT' ;
 KW_VAR: 'VAR' ;
 KW_DEF: 'DEFINE' ;
 KW_SPEC: 'SPEC' ;

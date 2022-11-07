@@ -14,6 +14,7 @@ class Type():
     INT: int = 2
     FLOAT: int = 3
     SET: int = 4
+    STRUCT: int = 5
 
     def __init__(self, t: int) -> None:
         self.value: int = t
@@ -26,11 +27,11 @@ class Type():
             return False
 
     def __str__(self) -> str:
-        if self.value == self.BOOL:
+        if self.value == Type.BOOL:
             return 'bool'
-        elif self.value == self.INT:
+        elif self.value == Type.INT:
             return 'int'
-        elif self.value == self.FLOAT:
+        elif self.value == Type.FLOAT:
             return 'float'
         return 'none'
 
@@ -49,6 +50,21 @@ class Int(Type):
 class Float(Type):
     def __init__(self) -> None:
         super().__init__(Type.FLOAT)
+
+class Struct(Type):
+    def __init__(self, n: str) -> None:
+        super().__init__(Type.STRUCT)
+        self.name = n
+
+    def __eq__(self, arg: object) -> bool:
+        try:
+            assert isinstance(arg,Struct)
+            return self.name == arg.name
+        except AssertionError:
+            return False 
+
+    def __str__(self) -> str:
+        return self.name
 
 class Set(Type):
     def __init__(self, m: Type) -> None:
@@ -185,6 +201,14 @@ class SET(CONST):
 
     def bzasm(self) -> str:
         return 'set ' + str(self.name) + '\n'
+
+
+class STRUCT(CONST):
+
+    def __init__(self, ln: int, n: str) -> None:
+        super().__init__(ln)
+        self.type: Type = Struct(n)
+        self.name: str = n
 
 
 class SIGNAL(LIT):

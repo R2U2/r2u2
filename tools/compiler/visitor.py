@@ -15,6 +15,7 @@ class Visitor(C2POVisitor):
 
     def __init__(self) -> None:
         super().__init__()
+        self.structs: dict[str,list[tuple[str,Type]]] = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,EXPR] = {}
         self.order: dict[str,int] = {}
@@ -35,6 +36,8 @@ class Visitor(C2POVisitor):
     def visitStart(self, ctx:C2POParser.StartContext) -> list[PROGRAM]:
         ln: int = ctx.start.line 
 
+        for s in ctx.struct_block():
+            self.visit(s)
         for v in ctx.var_block():
             self.visit(v)
         for d in ctx.def_block():
@@ -46,20 +49,53 @@ class Visitor(C2POVisitor):
         return ret
 
 
-    # Visit a parse tree produced by C2POParser#var_block.
-    def visitVar_block(self, ctx:C2POParser.Var_blockContext) -> None:
-        ln: int = ctx.start.line
+    # Visit a parse tree produced by C2POParser#struct_block.
+    def visitStruct_block(self, ctx:C2POParser.Struct_blockContext):
+        ln: int = ctx.start.line 
+
+        s: STRUCT
+
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by C2POParser#struct.
+    def visitStruct(self, ctx:C2POParser.StructContext) -> None:
+        ln: int = ctx.start.line 
+        var_type: Type
+        var_list: list[str]
+
+        name: str = ctx.IDENTIFIER().getText()
+
+        for vl in ctx.var_list():
+            var_type, var_list = self.visit(vl)
+
+        self.structs[name] = [var_type,var_list]
+        
+
+
+    # Visit a parse tree produced by C2POParser#var_block.
+    def visitVar_block(self, ctx:C2POParser.Var_blockContext) -> None:
+        ln: int = ctx.start.line
+        var_type: Type
+        var_list: list[str]
+
+        for vl in ctx.var_list():
+            var_type, var_list = self.visit(vl)
+            for v in var_list:
+                self.vars[v] = var_type
+
+
     # Visit a parse tree produced by C2POParser#var_list.
-    def visitVar_list(self, ctx:C2POParser.Var_listContext) -> None:
+    def visitVar_list(self, ctx:C2POParser.Var_listContext) -> [Type,list[str]]:
         ln: int = ctx.start.line
         var_type: Type = self.visit(ctx.type_())
 
         id: TerminalNode
+        var_list: list[str] = []
         for id in ctx.IDENTIFIER():
-            self.vars[id.getText()] = var_type
+            var_list.append(id.getText())
+
+        return [var_type,var_list]
 
     
     # Visit a parse tree produced by C2POParser#order_list.
@@ -368,6 +404,12 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         self.error(f'{ln}: Functions not implemented')
         return EXPR(ln, [])
+
+
+    # Visit a parse tree produced by C2POParser#StructMemberExpr.
+    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext):
+        print(ctx.IDENTIFIER().getText())
+        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.

@@ -14,6 +14,16 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by C2POParser#struct_block.
+    def visitStruct_block(self, ctx:C2POParser.Struct_blockContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#struct.
+    def visitStruct(self, ctx:C2POParser.StructContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#var_block.
     def visitVar_block(self, ctx:C2POParser.Var_blockContext):
         return self.visitChildren(ctx)
@@ -96,6 +106,11 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#TLUnaryExpr.
     def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#StructMemberExpr.
+    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext):
         return self.visitChildren(ctx)
 
 

@@ -12,18 +12,29 @@ from .util import *
 
 logger = getLogger(logger_name)
 
+
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
+    explored: list[AST] = []
     c: AST
+    
     for c in a.children:
-        postorder(c,func)
+        if c not in explored:
+            explored.append(c)
+            postorder(c,func)
+    
     func(a)
 
 
 def preorder(a: AST, func: Callable[[AST],Any]) -> None:
-    func(a)
+    explored: list[AST] = []
     c: AST
+
+    func(a)
+    
     for c in a.children:
-        preorder(c,func)
+        if c not in explored:
+            explored.append(c)
+            preorder(c,func)
 
 
 # depth-first traversal
@@ -375,7 +386,7 @@ def parse(input: str) -> list[PROGRAM]:
     stream: CommonTokenStream = CommonTokenStream(lexer)
     parser: C2POParser = C2POParser(stream)
     parse_tree = parser.start()
-    # print(parse_tree.toStringTree(recog=parser))
+    print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
     progs: list[PROGRAM] = v.visitStart(parse_tree)
     if v.status:
@@ -387,6 +398,8 @@ def parse(input: str) -> list[PROGRAM]:
 def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
+
+    return
 
     if len(progs) < 1:
         return
