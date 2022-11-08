@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,76,276,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,75,276,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,
         7,20,2,21,7,21,2,22,7,22,2,23,7,23,1,0,1,0,1,0,1,0,5,0,53,8,0,10,
@@ -32,9 +32,9 @@ def serializedATN():
         14,3,14,246,8,14,1,14,1,14,1,15,1,15,1,15,5,15,253,8,15,10,15,12,
         15,256,9,15,1,16,1,16,1,16,1,17,1,17,1,17,1,18,1,18,1,19,1,19,1,
         20,1,20,1,21,1,21,1,22,1,22,1,23,1,23,1,23,0,1,24,24,0,2,4,6,8,10,
-        12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,0,8,3,0,51,
-        52,55,55,58,58,2,0,54,54,56,57,2,0,29,30,72,74,1,0,37,38,1,0,39,
-        42,1,0,43,44,1,0,45,47,2,0,31,31,44,44,292,0,54,1,0,0,0,2,57,1,0,
+        12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,0,8,3,0,50,
+        51,54,54,57,57,2,0,53,53,55,56,2,0,28,29,71,73,1,0,36,37,1,0,38,
+        41,1,0,42,43,1,0,44,46,2,0,30,30,43,43,292,0,54,1,0,0,0,2,57,1,0,
         0,0,4,63,1,0,0,0,6,74,1,0,0,0,8,82,1,0,0,0,10,94,1,0,0,0,12,117,
         1,0,0,0,14,119,1,0,0,0,16,125,1,0,0,0,18,130,1,0,0,0,20,148,1,0,
         0,0,22,150,1,0,0,0,24,176,1,0,0,0,26,239,1,0,0,0,28,241,1,0,0,0,
@@ -43,62 +43,62 @@ def serializedATN():
         0,0,48,53,3,2,1,0,49,53,3,6,3,0,50,53,3,14,7,0,51,53,3,18,9,0,52,
         48,1,0,0,0,52,49,1,0,0,0,52,50,1,0,0,0,52,51,1,0,0,0,53,56,1,0,0,
         0,54,52,1,0,0,0,54,55,1,0,0,0,55,1,1,0,0,0,56,54,1,0,0,0,57,59,5,
-        17,0,0,58,60,3,4,2,0,59,58,1,0,0,0,60,61,1,0,0,0,61,59,1,0,0,0,61,
-        62,1,0,0,0,62,3,1,0,0,0,63,64,5,72,0,0,64,65,5,1,0,0,65,67,5,2,0,
+        16,0,0,58,60,3,4,2,0,59,58,1,0,0,0,60,61,1,0,0,0,61,59,1,0,0,0,61,
+        62,1,0,0,0,62,3,1,0,0,0,63,64,5,71,0,0,64,65,5,1,0,0,65,67,5,2,0,
         0,66,68,3,8,4,0,67,66,1,0,0,0,68,69,1,0,0,0,69,67,1,0,0,0,69,70,
         1,0,0,0,70,71,1,0,0,0,71,72,5,3,0,0,72,73,5,4,0,0,73,5,1,0,0,0,74,
-        76,5,18,0,0,75,77,3,8,4,0,76,75,1,0,0,0,77,78,1,0,0,0,78,76,1,0,
+        76,5,17,0,0,75,77,3,8,4,0,76,75,1,0,0,0,77,78,1,0,0,0,78,76,1,0,
         0,0,78,79,1,0,0,0,79,80,1,0,0,0,80,81,3,10,5,0,81,7,1,0,0,0,82,87,
-        5,72,0,0,83,84,5,5,0,0,84,86,5,72,0,0,85,83,1,0,0,0,86,89,1,0,0,
+        5,71,0,0,83,84,5,5,0,0,84,86,5,71,0,0,85,83,1,0,0,0,86,89,1,0,0,
         0,87,85,1,0,0,0,87,88,1,0,0,0,88,90,1,0,0,0,89,87,1,0,0,0,90,91,
-        5,1,0,0,91,92,3,12,6,0,92,93,5,4,0,0,93,9,1,0,0,0,94,95,5,21,0,0,
-        95,96,5,1,0,0,96,101,5,72,0,0,97,98,5,5,0,0,98,100,5,72,0,0,99,97,
+        5,1,0,0,91,92,3,12,6,0,92,93,5,4,0,0,93,9,1,0,0,0,94,95,5,20,0,0,
+        95,96,5,1,0,0,96,101,5,71,0,0,97,98,5,5,0,0,98,100,5,71,0,0,99,97,
         1,0,0,0,100,103,1,0,0,0,101,99,1,0,0,0,101,102,1,0,0,0,102,104,1,
-        0,0,0,103,101,1,0,0,0,104,105,5,4,0,0,105,11,1,0,0,0,106,118,5,16,
-        0,0,107,108,5,22,0,0,108,109,5,6,0,0,109,110,3,12,6,0,110,111,5,
-        7,0,0,111,118,1,0,0,0,112,113,5,22,0,0,113,114,5,42,0,0,114,115,
-        3,12,6,0,115,116,5,41,0,0,116,118,1,0,0,0,117,106,1,0,0,0,117,107,
-        1,0,0,0,117,112,1,0,0,0,118,13,1,0,0,0,119,121,5,19,0,0,120,122,
+        0,0,0,103,101,1,0,0,0,104,105,5,4,0,0,105,11,1,0,0,0,106,118,5,71,
+        0,0,107,108,5,21,0,0,108,109,5,6,0,0,109,110,3,12,6,0,110,111,5,
+        7,0,0,111,118,1,0,0,0,112,113,5,21,0,0,113,114,5,41,0,0,114,115,
+        3,12,6,0,115,116,5,40,0,0,116,118,1,0,0,0,117,106,1,0,0,0,117,107,
+        1,0,0,0,117,112,1,0,0,0,118,13,1,0,0,0,119,121,5,18,0,0,120,122,
         3,16,8,0,121,120,1,0,0,0,122,123,1,0,0,0,123,121,1,0,0,0,123,124,
-        1,0,0,0,124,15,1,0,0,0,125,126,5,72,0,0,126,127,5,8,0,0,127,128,
-        3,24,12,0,128,129,5,4,0,0,129,17,1,0,0,0,130,132,5,20,0,0,131,133,
+        1,0,0,0,124,15,1,0,0,0,125,126,5,71,0,0,126,127,5,8,0,0,127,128,
+        3,24,12,0,128,129,5,4,0,0,129,17,1,0,0,0,130,132,5,19,0,0,131,133,
         3,20,10,0,132,131,1,0,0,0,133,134,1,0,0,0,134,132,1,0,0,0,134,135,
-        1,0,0,0,135,19,1,0,0,0,136,137,5,72,0,0,137,138,5,1,0,0,138,139,
-        3,22,11,0,139,140,5,4,0,0,140,149,1,0,0,0,141,142,5,72,0,0,142,144,
+        1,0,0,0,135,19,1,0,0,0,136,137,5,71,0,0,137,138,5,1,0,0,138,139,
+        3,22,11,0,139,140,5,4,0,0,140,149,1,0,0,0,141,142,5,71,0,0,142,144,
         5,1,0,0,143,141,1,0,0,0,143,144,1,0,0,0,144,145,1,0,0,0,145,146,
         3,24,12,0,146,147,5,4,0,0,147,149,1,0,0,0,148,136,1,0,0,0,148,143,
         1,0,0,0,149,21,1,0,0,0,150,151,3,24,12,0,151,152,5,9,0,0,152,153,
         3,24,12,0,153,23,1,0,0,0,154,155,6,12,-1,0,155,177,3,26,13,0,156,
-        157,5,72,0,0,157,159,5,10,0,0,158,160,3,30,15,0,159,158,1,0,0,0,
-        159,160,1,0,0,0,160,161,1,0,0,0,161,177,5,11,0,0,162,163,5,44,0,
-        0,163,177,3,24,12,19,164,165,5,43,0,0,165,177,3,24,12,18,166,167,
-        5,31,0,0,167,177,3,24,12,17,168,169,3,32,16,0,169,170,3,24,12,6,
+        157,5,71,0,0,157,159,5,10,0,0,158,160,3,30,15,0,159,158,1,0,0,0,
+        159,160,1,0,0,0,160,161,1,0,0,0,161,177,5,11,0,0,162,163,5,43,0,
+        0,163,177,3,24,12,19,164,165,5,42,0,0,165,177,3,24,12,18,166,167,
+        5,30,0,0,167,177,3,24,12,17,168,169,3,32,16,0,169,170,3,24,12,6,
         170,177,1,0,0,0,171,172,5,10,0,0,172,173,3,24,12,0,173,174,5,11,
         0,0,174,177,1,0,0,0,175,177,3,36,18,0,176,154,1,0,0,0,176,156,1,
         0,0,0,176,162,1,0,0,0,176,164,1,0,0,0,176,166,1,0,0,0,176,168,1,
         0,0,0,176,171,1,0,0,0,176,175,1,0,0,0,177,230,1,0,0,0,178,179,10,
         16,0,0,179,180,3,44,22,0,180,181,3,24,12,17,181,229,1,0,0,0,182,
         183,10,15,0,0,183,184,3,42,21,0,184,185,3,24,12,16,185,229,1,0,0,
-        0,186,187,10,14,0,0,187,188,5,35,0,0,188,229,3,24,12,15,189,190,
-        10,13,0,0,190,191,5,36,0,0,191,229,3,24,12,14,192,193,10,12,0,0,
+        0,186,187,10,14,0,0,187,188,5,34,0,0,188,229,3,24,12,15,189,190,
+        10,13,0,0,190,191,5,35,0,0,191,229,3,24,12,14,192,193,10,12,0,0,
         193,194,3,40,20,0,194,195,3,24,12,13,195,229,1,0,0,0,196,197,10,
         11,0,0,197,198,3,38,19,0,198,199,3,24,12,12,199,229,1,0,0,0,200,
-        201,10,10,0,0,201,202,5,32,0,0,202,229,3,24,12,11,203,204,10,9,0,
-        0,204,205,5,34,0,0,205,229,3,24,12,10,206,207,10,8,0,0,207,208,5,
-        33,0,0,208,229,3,24,12,9,209,210,10,7,0,0,210,211,3,34,17,0,211,
-        212,3,24,12,8,212,229,1,0,0,0,213,214,10,5,0,0,214,215,5,24,0,0,
-        215,229,3,24,12,6,216,217,10,4,0,0,217,218,5,25,0,0,218,229,3,24,
+        201,10,10,0,0,201,202,5,31,0,0,202,229,3,24,12,11,203,204,10,9,0,
+        0,204,205,5,33,0,0,205,229,3,24,12,10,206,207,10,8,0,0,207,208,5,
+        32,0,0,208,229,3,24,12,9,209,210,10,7,0,0,210,211,3,34,17,0,211,
+        212,3,24,12,8,212,229,1,0,0,0,213,214,10,5,0,0,214,215,5,23,0,0,
+        215,229,3,24,12,6,216,217,10,4,0,0,217,218,5,24,0,0,218,229,3,24,
         12,5,219,220,10,3,0,0,220,221,5,13,0,0,221,222,3,24,12,0,222,223,
         5,1,0,0,223,224,3,24,12,4,224,229,1,0,0,0,225,226,10,20,0,0,226,
-        227,5,12,0,0,227,229,5,72,0,0,228,178,1,0,0,0,228,182,1,0,0,0,228,
+        227,5,12,0,0,227,229,5,71,0,0,228,178,1,0,0,0,228,182,1,0,0,0,228,
         186,1,0,0,0,228,189,1,0,0,0,228,192,1,0,0,0,228,196,1,0,0,0,228,
         200,1,0,0,0,228,203,1,0,0,0,228,206,1,0,0,0,228,209,1,0,0,0,228,
         213,1,0,0,0,228,216,1,0,0,0,228,219,1,0,0,0,228,225,1,0,0,0,229,
         232,1,0,0,0,230,228,1,0,0,0,230,231,1,0,0,0,231,25,1,0,0,0,232,230,
-        1,0,0,0,233,240,5,61,0,0,234,236,5,2,0,0,235,237,3,30,15,0,236,235,
+        1,0,0,0,233,240,5,60,0,0,234,236,5,2,0,0,235,237,3,30,15,0,236,235,
         1,0,0,0,236,237,1,0,0,0,237,238,1,0,0,0,238,240,5,3,0,0,239,233,
         1,0,0,0,239,234,1,0,0,0,240,27,1,0,0,0,241,242,5,14,0,0,242,245,
-        5,74,0,0,243,244,5,5,0,0,244,246,5,74,0,0,245,243,1,0,0,0,245,246,
+        5,73,0,0,243,244,5,5,0,0,244,246,5,73,0,0,245,243,1,0,0,0,245,246,
         1,0,0,0,246,247,1,0,0,0,247,248,5,15,0,0,248,29,1,0,0,0,249,254,
         3,24,12,0,250,251,5,5,0,0,251,253,3,24,12,0,252,250,1,0,0,0,253,
         256,1,0,0,0,254,252,1,0,0,0,254,255,1,0,0,0,255,31,1,0,0,0,256,254,
@@ -122,37 +122,36 @@ class C2POParser ( Parser ):
 
     literalNames = [ "<INVALID>", "':'", "'{'", "'}'", "';'", "','", "'\\u27E8'", 
                      "'\\u27E9'", "'='", "'=>'", "'('", "')'", "'.'", "'?'", 
-                     "'['", "']'", "<INVALID>", "'STRUCT'", "'VAR'", "'DEFINE'", 
-                     "'SPEC'", "'Order'", "'set'", "<INVALID>", "<INVALID>", 
+                     "'['", "']'", "'STRUCT'", "'VAR'", "'DEFINE'", "'SPEC'", 
+                     "'Order'", "'set'", "<INVALID>", "<INVALID>", "<INVALID>", 
                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
-                     "<INVALID>", "<INVALID>", "'~'", "'&'", "'|'", "'^'", 
-                     "'<<'", "'>>'", "'=='", "<INVALID>", "<INVALID>", "<INVALID>", 
-                     "'>'", "'<'", "'+'", "'-'", "<INVALID>", "<INVALID>", 
-                     "'%'", "'**'", "'\\u221A'", "<INVALID>", "<INVALID>", 
+                     "<INVALID>", "'~'", "'&'", "'|'", "'^'", "'<<'", "'>>'", 
+                     "'=='", "<INVALID>", "<INVALID>", "<INVALID>", "'>'", 
+                     "'<'", "'+'", "'-'", "<INVALID>", "<INVALID>", "'%'", 
+                     "'**'", "'\\u221A'", "<INVALID>", "<INVALID>", "<INVALID>", 
                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
-                     "<INVALID>", "'\\u2205'", "'\\u2208'", "'\\u2282'", 
-                     "'\\u2286'", "'\\u2211'", "'\\u220F'", "'\\u22C3'", 
-                     "'\\u22C2'", "'\\u22C0'", "'\\u22C1'", "'\\u00D7'" ]
+                     "'\\u2205'", "'\\u2208'", "'\\u2282'", "'\\u2286'", 
+                     "'\\u2211'", "'\\u220F'", "'\\u22C3'", "'\\u22C2'", 
+                     "'\\u22C0'", "'\\u22C1'", "'\\u00D7'" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
-                      "BASE_TYPE", "KW_STRUCT", "KW_VAR", "KW_DEF", "KW_SPEC", 
-                      "KW_ORDER", "KW_SET", "LOG_NEG", "LOG_AND", "LOG_OR", 
-                      "LOG_XOR", "LOG_IMPL", "LOG_IFF", "TRUE", "FALSE", 
-                      "BW_NEG", "BW_AND", "BW_OR", "BW_XOR", "BW_SHIFT_LEFT", 
-                      "BW_SHIFT_RIGHT", "REL_EQ", "REL_NEQ", "REL_GTE", 
-                      "REL_LTE", "REL_GT", "REL_LT", "ARITH_ADD", "ARITH_SUB", 
-                      "ARITH_MUL", "ARITH_DIV", "ARITH_MOD", "ARITH_POW", 
-                      "ARITH_SQRT", "ARITH_PM", "TL_GLOBAL", "TL_FUTURE", 
-                      "TL_NEXT", "TL_SINCE", "TL_ONCE", "TL_UNTIL", "TL_RELEASE", 
-                      "TL_HISTORICAL", "FO_FORALL", "FO_EXISTS", "SW_EMPTY_SET", 
-                      "SW_MEMBER", "SW_SUBSET", "SW_SUBSETEQ", "SW_SUM", 
-                      "SW_PROD", "SW_UNION", "SW_INTERSECTION", "SW_AND", 
-                      "SW_OR", "SW_CTPROD", "IDENTIFIER", "FLOAT", "INT", 
-                      "COMMENT", "WS" ]
+                      "KW_STRUCT", "KW_VAR", "KW_DEF", "KW_SPEC", "KW_ORDER", 
+                      "KW_SET", "LOG_NEG", "LOG_AND", "LOG_OR", "LOG_XOR", 
+                      "LOG_IMPL", "LOG_IFF", "TRUE", "FALSE", "BW_NEG", 
+                      "BW_AND", "BW_OR", "BW_XOR", "BW_SHIFT_LEFT", "BW_SHIFT_RIGHT", 
+                      "REL_EQ", "REL_NEQ", "REL_GTE", "REL_LTE", "REL_GT", 
+                      "REL_LT", "ARITH_ADD", "ARITH_SUB", "ARITH_MUL", "ARITH_DIV", 
+                      "ARITH_MOD", "ARITH_POW", "ARITH_SQRT", "ARITH_PM", 
+                      "TL_GLOBAL", "TL_FUTURE", "TL_NEXT", "TL_SINCE", "TL_ONCE", 
+                      "TL_UNTIL", "TL_RELEASE", "TL_HISTORICAL", "FO_FORALL", 
+                      "FO_EXISTS", "SW_EMPTY_SET", "SW_MEMBER", "SW_SUBSET", 
+                      "SW_SUBSETEQ", "SW_SUM", "SW_PROD", "SW_UNION", "SW_INTERSECTION", 
+                      "SW_AND", "SW_OR", "SW_CTPROD", "IDENTIFIER", "FLOAT", 
+                      "INT", "COMMENT", "WS" ]
 
     RULE_start = 0
     RULE_struct_block = 1
@@ -201,67 +200,66 @@ class C2POParser ( Parser ):
     T__12=13
     T__13=14
     T__14=15
-    BASE_TYPE=16
-    KW_STRUCT=17
-    KW_VAR=18
-    KW_DEF=19
-    KW_SPEC=20
-    KW_ORDER=21
-    KW_SET=22
-    LOG_NEG=23
-    LOG_AND=24
-    LOG_OR=25
-    LOG_XOR=26
-    LOG_IMPL=27
-    LOG_IFF=28
-    TRUE=29
-    FALSE=30
-    BW_NEG=31
-    BW_AND=32
-    BW_OR=33
-    BW_XOR=34
-    BW_SHIFT_LEFT=35
-    BW_SHIFT_RIGHT=36
-    REL_EQ=37
-    REL_NEQ=38
-    REL_GTE=39
-    REL_LTE=40
-    REL_GT=41
-    REL_LT=42
-    ARITH_ADD=43
-    ARITH_SUB=44
-    ARITH_MUL=45
-    ARITH_DIV=46
-    ARITH_MOD=47
-    ARITH_POW=48
-    ARITH_SQRT=49
-    ARITH_PM=50
-    TL_GLOBAL=51
-    TL_FUTURE=52
-    TL_NEXT=53
-    TL_SINCE=54
-    TL_ONCE=55
-    TL_UNTIL=56
-    TL_RELEASE=57
-    TL_HISTORICAL=58
-    FO_FORALL=59
-    FO_EXISTS=60
-    SW_EMPTY_SET=61
-    SW_MEMBER=62
-    SW_SUBSET=63
-    SW_SUBSETEQ=64
-    SW_SUM=65
-    SW_PROD=66
-    SW_UNION=67
-    SW_INTERSECTION=68
-    SW_AND=69
-    SW_OR=70
-    SW_CTPROD=71
-    IDENTIFIER=72
-    FLOAT=73
-    INT=74
-    COMMENT=75
-    WS=76
+    KW_STRUCT=16
+    KW_VAR=17
+    KW_DEF=18
+    KW_SPEC=19
+    KW_ORDER=20
+    KW_SET=21
+    LOG_NEG=22
+    LOG_AND=23
+    LOG_OR=24
+    LOG_XOR=25
+    LOG_IMPL=26
+    LOG_IFF=27
+    TRUE=28
+    FALSE=29
+    BW_NEG=30
+    BW_AND=31
+    BW_OR=32
+    BW_XOR=33
+    BW_SHIFT_LEFT=34
+    BW_SHIFT_RIGHT=35
+    REL_EQ=36
+    REL_NEQ=37
+    REL_GTE=38
+    REL_LTE=39
+    REL_GT=40
+    REL_LT=41
+    ARITH_ADD=42
+    ARITH_SUB=43
+    ARITH_MUL=44
+    ARITH_DIV=45
+    ARITH_MOD=46
+    ARITH_POW=47
+    ARITH_SQRT=48
+    ARITH_PM=49
+    TL_GLOBAL=50
+    TL_FUTURE=51
+    TL_NEXT=52
+    TL_SINCE=53
+    TL_ONCE=54
+    TL_UNTIL=55
+    TL_RELEASE=56
+    TL_HISTORICAL=57
+    FO_FORALL=58
+    FO_EXISTS=59
+    SW_EMPTY_SET=60
+    SW_MEMBER=61
+    SW_SUBSET=62
+    SW_SUBSETEQ=63
+    SW_SUM=64
+    SW_PROD=65
+    SW_UNION=66
+    SW_INTERSECTION=67
+    SW_AND=68
+    SW_OR=69
+    SW_CTPROD=70
+    IDENTIFIER=71
+    FLOAT=72
+    INT=73
+    COMMENT=74
+    WS=75
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -329,23 +327,23 @@ class C2POParser ( Parser ):
             self.state = 54
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            while ((_la) & ~0x3f) == 0 and ((1 << _la) & 1966080) != 0:
+            while ((_la) & ~0x3f) == 0 and ((1 << _la) & 983040) != 0:
                 self.state = 52
                 self._errHandler.sync(self)
                 token = self._input.LA(1)
-                if token in [17]:
+                if token in [16]:
                     self.state = 48
                     self.struct_block()
                     pass
-                elif token in [18]:
+                elif token in [17]:
                     self.state = 49
                     self.var_block()
                     pass
-                elif token in [19]:
+                elif token in [18]:
                     self.state = 50
                     self.def_block()
                     pass
-                elif token in [20]:
+                elif token in [19]:
                     self.state = 51
                     self.spec_block()
                     pass
@@ -412,7 +410,7 @@ class C2POParser ( Parser ):
                 self.state = 61 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==72):
+                if not (_la==71):
                     break
 
         except RecognitionException as re:
@@ -475,7 +473,7 @@ class C2POParser ( Parser ):
                 self.state = 69 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==72):
+                if not (_la==71):
                     break
 
             self.state = 71
@@ -542,7 +540,7 @@ class C2POParser ( Parser ):
                 self.state = 78 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==72):
+                if not (_la==71):
                     break
 
             self.state = 80
@@ -692,8 +690,8 @@ class C2POParser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def BASE_TYPE(self):
-            return self.getToken(C2POParser.BASE_TYPE, 0)
+        def IDENTIFIER(self):
+            return self.getToken(C2POParser.IDENTIFIER, 0)
 
         def KW_SET(self):
             return self.getToken(C2POParser.KW_SET, 0)
@@ -731,7 +729,7 @@ class C2POParser ( Parser ):
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
                 self.state = 106
-                self.match(C2POParser.BASE_TYPE)
+                self.match(C2POParser.IDENTIFIER)
                 pass
 
             elif la_ == 2:
@@ -815,7 +813,7 @@ class C2POParser ( Parser ):
                 self.state = 123 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==72):
+                if not (_la==71):
                     break
 
         except RecognitionException as re:
@@ -923,7 +921,7 @@ class C2POParser ( Parser ):
                 self.state = 134 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (((_la) & ~0x3f) == 0 and ((1 << _la) & 2636883973862589444) != 0 or (((_la - 72)) & ~0x3f) == 0 and ((1 << (_la - 72)) & 7) != 0):
+                if not (((_la) & ~0x3f) == 0 and ((1 << _la) & 1318441986931295236) != 0 or (((_la - 71)) & ~0x3f) == 0 and ((1 << (_la - 71)) & 7) != 0):
                     break
 
         except RecognitionException as re:
@@ -1411,7 +1409,7 @@ class C2POParser ( Parser ):
                 self.state = 159
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 2636883973862589444) != 0 or (((_la - 72)) & ~0x3f) == 0 and ((1 << (_la - 72)) & 7) != 0:
+                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 1318441986931295236) != 0 or (((_la - 71)) & ~0x3f) == 0 and ((1 << (_la - 71)) & 7) != 0:
                     self.state = 158
                     self.expr_list()
 
@@ -1728,7 +1726,7 @@ class C2POParser ( Parser ):
             self.state = 239
             self._errHandler.sync(self)
             token = self._input.LA(1)
-            if token in [61]:
+            if token in [60]:
                 self.enterOuterAlt(localctx, 1)
                 self.state = 233
                 self.match(C2POParser.SW_EMPTY_SET)
@@ -1740,7 +1738,7 @@ class C2POParser ( Parser ):
                 self.state = 236
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 2636883973862589444) != 0 or (((_la - 72)) & ~0x3f) == 0 and ((1 << (_la - 72)) & 7) != 0:
+                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 1318441986931295236) != 0 or (((_la - 71)) & ~0x3f) == 0 and ((1 << (_la - 71)) & 7) != 0:
                     self.state = 235
                     self.expr_list()
 
@@ -1917,7 +1915,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 257
             _la = self._input.LA(1)
-            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 331014572611731456) != 0):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 165507286305865728) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1974,7 +1972,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 260
             _la = self._input.LA(1)
-            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 234187180623265792) != 0):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 117093590311632896) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2033,7 +2031,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 263
             _la = self._input.LA(1)
-            if not((((_la - 29)) & ~0x3f) == 0 and ((1 << (_la - 29)) & 61572651155459) != 0):
+            if not((((_la - 28)) & ~0x3f) == 0 and ((1 << (_la - 28)) & 61572651155459) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2081,7 +2079,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 265
             _la = self._input.LA(1)
-            if not(_la==37 or _la==38):
+            if not(_la==36 or _la==37):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2135,7 +2133,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 267
             _la = self._input.LA(1)
-            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 8246337208320) != 0):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 4123168604160) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2183,7 +2181,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 269
             _la = self._input.LA(1)
-            if not(_la==43 or _la==44):
+            if not(_la==42 or _la==43):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2234,7 +2232,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 271
             _la = self._input.LA(1)
-            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 246290604621824) != 0):
+            if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 123145302310912) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2282,7 +2280,7 @@ class C2POParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 273
             _la = self._input.LA(1)
-            if not(_la==31 or _la==44):
+            if not(_la==30 or _la==43):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)

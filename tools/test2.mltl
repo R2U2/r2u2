@@ -3,10 +3,17 @@
 -- This is an SMV-inspired syntax, including 
 -- comments which are preceded by two dashes
 
+STRUCT
+  test: {a,b,c: int;};
+
 VAR
   x,y,z: float;
   
+  t0: test;
+
+
   Order: x,y,z;
 
+
 SPEC
-  x>(y+5);
+  test.a;

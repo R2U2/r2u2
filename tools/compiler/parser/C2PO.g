@@ -13,7 +13,7 @@ var_block: KW_VAR var_list+ order_list ;
 var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
 order_list: KW_ORDER ':' IDENTIFIER (',' IDENTIFIER)* ';' ;
 
-type: BASE_TYPE
+type: IDENTIFIER
     | KW_SET '⟨' type '⟩'
     | KW_SET REL_LT type REL_GT
     ;
@@ -73,12 +73,6 @@ arith_mul_op: ARITH_MUL | ARITH_DIV | ARITH_MOD ;
 unary_op: ARITH_SUB | BW_NEG ;
 
 //// Lexical Spec
-
-// Types
-BASE_TYPE: 'bool'
-         | 'int'
-         | 'float'
-         ;
 
 // Keywords
 KW_STRUCT: 'STRUCT' ;

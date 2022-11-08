@@ -12,13 +12,18 @@ VAR
     Order: t1st,t1ex,t1ed,t1stts,t1edts,t2st,t2ex,t2ed,t2stts,t2edts,t3st,t3ex,t3ed,t3stts,t3edts,nact1,
            t4st,t4ex,t4ed,t4stts,t4edts,t5st,t5ex,t5ed,t5stts,t5edts,t6st,t6ex,t6ed,t6stts,t6edts,nact2;
 
+
+INPUT
+    [t1st,t1ex,t1ed,t2st,t2ex,t2ed]: bool;
+    [t1stts,t1edts,t2stts,t2edts]: int;
+
     -- sample input:
     -- tm1.t1    | tm1.t2    | tm1.t3    | tm1.num_active | tm2.t1    | tm2.t2    | tm2.t3    | tm2.num_active
     -- 0,1,0,5,0 , 0,0,0,0,0 , 0,0,1,3,8 , 1,               0,1,0,9,0 , 0,1,0,7,0 , 0,0,0,0,0 , 2 
 
 DEFINE
     task1 = task(t1st,t1ex,t1ed,t1stts,t1edts); -- case 1
-    task2 = {t2st,t2ex,t2ed,t2stts,t2edts}; -- case 2, conflicts with set syntax
+    task1 = task(start=t1st,exec=t1ex,end=t1ed,start_ts=t1stts,end_ts=t1edts); -- case 2
     task2 = {.start = t2st, .exec = t2ex, .end = t2ed, .start_ts = t2stts, .end_ts = t2edts}; -- case 3
 
 
