@@ -15,7 +15,7 @@ class Visitor(C2POVisitor):
 
     def __init__(self) -> None:
         super().__init__()
-        self.structs: dict[str,dict[str,Type]] = {}
+        self.structs: dict[str,list[tuple[str,Type]]] = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,EXPR] = {}
         self.order: dict[str,int] = {}
@@ -65,16 +65,25 @@ class Visitor(C2POVisitor):
         for i in self.structs.keys():
             self.warning(f'{ln}: Struct {i} already defined, redefining')
 
-        self.structs[id] = {}
+        self.structs[id] = []
+        var_dict: dict[str,Type] = {}
         for vl in ctx.var_list():
-            self.structs[id].update(self.visit(vl))
+            var_dict = self.visit(vl)
+            self.structs[id] += [(i,t) for (i,t) in var_dict.items()]
 
 
     # Visit a parse tree produced by C2POParser#var_block.
     def visitVar_block(self, ctx:C2POParser.Var_blockContext) -> None:
         ln: int = ctx.start.line
 
+        var_dict: dict[str,Type]
         for vl in ctx.var_list():
+            var_dict = self.visit(vl)
+
+            for id in var_dict.keys():
+                if id in self.vars.keys():
+                    self.warning(f'{ln}: Variable {id} declared more than once, using type {var_dict[id]}')
+
             self.vars.update(self.visit(vl))
 
 
@@ -123,7 +132,6 @@ class Visitor(C2POVisitor):
             t: Type = self.visit(ctx.type_())
             return Set(t)
         elif text in self.structs.keys():
-            print(text)
             return Struct(text)
 
         self.error(f'{ln}: Type \'{text}\' not recognized')
@@ -396,14 +404,22 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#FuncExpr.
-    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext):
+    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> EXPR:
         ln: int = ctx.start.line
-        self.error(f'{ln}: Functions not implemented')
-        return EXPR(ln, [])
+        id: str = ctx.IDENTIFIER().getText()
+
+        if id in self.structs.keys():
+            elist: list[EXPR] = self.visit(ctx.expr_list())
+            for e in elist:
+                pass
+        else:
+            self.error(f'{ln}: Symbol {id} not recognized')
+            return EXPR(ln, [])
+
 
 
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
-    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext):
+    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> EXPR:
         print(ctx.IDENTIFIER().getText())
         return self.visitChildren(ctx)
 

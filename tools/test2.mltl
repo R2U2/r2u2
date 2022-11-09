@@ -7,13 +7,16 @@ STRUCT
   test: {a,b,c: int;};
 
 VAR
-  x,y,z: float;
+  x,y,z: int;
   
   t0: test;
 
 
   Order: x,y,z;
 
+DEFINE
+  t0 = test(x,y,z);
+
 
 SPEC
-  test.a;
+  t0.a;
