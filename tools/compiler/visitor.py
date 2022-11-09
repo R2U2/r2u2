@@ -448,12 +448,12 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#SetExpr.
     def visitSetExpr(self, ctx:C2POParser.SetExprContext) -> EXPR:
         ln: int = ctx.start.line
-        members: list[EXPR] = []
+        elements: list[EXPR] = []
         
         if ctx.set_expr.expr_list():
-            members = self.visit(ctx.set_expr.expr_list())
+            elements = self.visit(ctx.set_expr.expr_list())
 
-        return SET(ln, members)
+        return SET(ln, elements)
 
 
     # Visit a parse tree produced by C2POParser#ParensExpr.

@@ -316,12 +316,10 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
         nonlocal bzasm
         nonlocal bz_visited
 
-        if not isinstance(a,ATOM) and isinstance(a,TL_EXPR):
-            return
-
-        if not a in bz_visited:
-            bzasm += a.bzasm()
-            bz_visited.append(a)
+        if isinstance(a,ATOM) or isinstance(a,BZ_EXPR):
+            if not a in bz_visited:
+                bzasm += a.bzasm()
+                bz_visited.append(a)
 
     postorder(prog,gen_bzasm_util)
 
@@ -336,12 +334,10 @@ def gen_tl_assembly(prog: PROGRAM) -> str:
         nonlocal tlasm
         nonlocal tl_visited
 
-        if not isinstance(a,ATOM) and isinstance(a,BZ_EXPR):
-            return
-
-        if not a.tlid in tl_visited:
-            tlasm += a.tlasm()
-            tl_visited.append(a.tlid)
+        if isinstance(a,ATOM) or isinstance(a,TL_EXPR):
+            if not a.tlid in tl_visited:
+                tlasm += a.tlasm()
+                tl_visited.append(a.tlid)
 
     postorder(prog,gen_tlasm_util)
     
@@ -378,7 +374,7 @@ def gen_assembly(prog: PROGRAM) -> list[str]:
     tlasm: str = gen_tl_assembly(prog)
     scq_asm: str = gen_scq_assembly(prog)
 
-    return [bzasm,tlasm,'n0: end sequence',scq_asm]
+    return [bzasm,tlasm,'n0: endsequence',scq_asm]
 
 
 def parse(input: str) -> list[PROGRAM]:
@@ -399,7 +395,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
-    return
+    # return
 
     if len(progs) < 1:
         return

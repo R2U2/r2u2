@@ -36,12 +36,6 @@ class AST():
     def __str__(self) -> str:
         return self.name
 
-    def tlasm(self) -> str:
-        return ''
-
-    def bzasm(self) -> str:
-        return ''
-
 
 class EXPR(AST):
 
@@ -62,6 +56,9 @@ class BZ_EXPR(EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
+
+    def bzasm(self) -> str:
+        return ''
 
 
 class LIT(BZ_EXPR):
@@ -106,11 +103,10 @@ class FLOAT(CONST):
         return 'fconst ' + str(self.name) + '\n'
 
 
-class SET(CONST):
+class SET(BZ_EXPR):
     
     def __init__(self, ln: int, m: list[AST]) -> None:
-        super().__init__(ln)
-        self.children: list[AST] = m
+        super().__init__(ln,m)
 
     def __str__(self) -> str:
         s: str = '{'
@@ -123,10 +119,10 @@ class SET(CONST):
         return 'set ' + str(self.name) + '\n'
 
 
-class STRUCT(CONST):
+class STRUCT(EXPR):
 
     def __init__(self, ln: int, n: str, m: dict[str,EXPR]) -> None:
-        super().__init__(ln)
+        super().__init__(ln,[mem for mem in m.values()])
         self.type: Type = Struct(n)
         self.name: str = n
         self.members: dict[str,EXPR] = m
@@ -717,7 +713,7 @@ class SPEC(TL_EXPR):
         self.fnum: int = f
 
     def __str__(self) -> str:
-        return self.name + ': ' + str(self.children[0])
+        return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])
 
     def tlasm(self) -> str:
         top: AST = self.children[0]
