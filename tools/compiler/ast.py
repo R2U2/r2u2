@@ -131,6 +131,14 @@ class STRUCT(CONST):
         self.name: str = n
         self.members: dict[str,EXPR] = m
 
+    def __str__(self) -> str:
+        s: str = ''
+        s += self.name + '('
+        for i,e in self.members.items():
+            s += i + '=' + str(e) + ','  
+        s = s[:-1] + ')'
+        return s
+
 
 class SIGNAL(LIT):
     

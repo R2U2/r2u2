@@ -1,5 +1,6 @@
 # type: ignore
 
+from ast import expr
 from logging import getLogger
 
 from antlr4 import TerminalNode
@@ -15,7 +16,7 @@ class Visitor(C2POVisitor):
 
     def __init__(self) -> None:
         super().__init__()
-        self.structs: dict[str,list[tuple[str,Type]]] = {}
+        self.structs: dict[str,tuple[list[str],list[Type]]] = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,EXPR] = {}
         self.order: dict[str,int] = {}
@@ -65,11 +66,13 @@ class Visitor(C2POVisitor):
         for i in self.structs.keys():
             self.warning(f'{ln}: Struct {i} already defined, redefining')
 
-        self.structs[id] = []
+        self.structs[id] = ([],[])
         var_dict: dict[str,Type] = {}
         for vl in ctx.var_list():
             var_dict = self.visit(vl)
-            self.structs[id] += [(i,t) for (i,t) in var_dict.items()]
+            for i,t in var_dict.items():
+                self.structs[id][0].append(i)
+                self.structs[id][1].append(t)
 
 
     # Visit a parse tree produced by C2POParser#var_block.
@@ -84,7 +87,9 @@ class Visitor(C2POVisitor):
                 if id in self.vars.keys():
                     self.warning(f'{ln}: Variable {id} declared more than once, using type {var_dict[id]}')
 
-            self.vars.update(self.visit(vl))
+            self.vars.update(var_dict)
+
+        self.visit(ctx.order_list())
 
 
     # Visit a parse tree produced by C2POParser#var_list.
@@ -103,12 +108,11 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#order_list.
     def visitOrder_list(self, ctx:C2POParser.Order_listContext) -> None:
         ln: int = ctx.start.line
-        var_list: list[str] = list(self.vars)
         sid: int = 0
         id: TerminalNode
 
         for id in ctx.IDENTIFIER():
-            if not id.getText() in var_list:
+            if not id.getText() in self.vars.keys():
                 sid += 1 # error? var in order but not declared
             elif id.getText() == '_':
                 sid += 1
@@ -410,18 +414,35 @@ class Visitor(C2POVisitor):
 
         if id in self.structs.keys():
             elist: list[EXPR] = self.visit(ctx.expr_list())
-            for e in elist:
-                pass
+            members: dict[str,EXPR] = {}
+
+            if len(elist) == len(self.structs[id][0]):
+                for i in range(len(elist)):
+                    members[self.structs[id][0][i]] = elist[i]
+                return STRUCT(ln,id,members)
+            else:
+                self.error(f'{ln}: Member mismatch for struct {id}, number of members do not match')
+                return EXPR(ln, [])
         else:
             self.error(f'{ln}: Symbol {id} not recognized')
             return EXPR(ln, [])
 
 
-
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
     def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> EXPR:
-        print(ctx.IDENTIFIER().getText())
-        return self.visitChildren(ctx)
+        ln: int = ctx.start.line
+        id: str = ctx.IDENTIFIER().getText()
+        e: EXPR = self.visit(ctx.expr())
+
+        if isinstance(e,STRUCT):
+            if id in e.members.keys():
+                return e.members[id]
+            else:
+                self.error(f'{ln}: Member {id} of struct {e} does not exist')
+                return EXPR(ln, [])
+        else:
+            self.error(f'{ln}: Accessing member {id} of non-struct expression {e}')
+            return EXPR(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.
