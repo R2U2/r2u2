@@ -28,6 +28,7 @@ spec: IDENTIFIER ':' contract ';'
 contract: expr '=>' expr ;
 
 expr: set_expr                  # SetExpr
+    | IDENTIFIER '(' fo_binder ')' '(' expr ')' # FOExpr
     | IDENTIFIER '(' expr_list? ')' # FuncExpr
     | expr '.' IDENTIFIER       # StructMemberExpr
     | ARITH_SUB expr            # UnaryExpr
@@ -54,6 +55,8 @@ expr: set_expr                  # SetExpr
 set_expr: SW_EMPTY_SET
         | '{' expr_list? '}'
         ;
+
+fo_binder: IDENTIFIER ':' IDENTIFIER ;
 
 interval: '[' INT (',' INT)? ']' ;
 

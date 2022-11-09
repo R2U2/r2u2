@@ -103,6 +103,35 @@ class FLOAT(CONST):
         return 'fconst ' + str(self.name) + '\n'
 
 
+class SIGNAL(LIT):
+    
+    def __init__(self, ln: int, n: str, t: Type) -> None:
+        super().__init__(ln,)
+        self.name: str = n
+        self.type: Type = t
+        self.sid = -1
+
+    def __str__(self) -> str:
+        return self.name
+
+    def bzasm(self) -> str:
+        return ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + '\n'
+
+
+class BOOL(CONST):
+    
+    def __init__(self, ln: int, v: bool) -> None:
+        super().__init__(ln)
+        self.type = Bool()
+        self.bpd: int = 0
+        self.wpd: int = 0
+        self.val: bool = v
+        self.name = str(v)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class SET(BZ_EXPR):
     
     def __init__(self, ln: int, m: list[AST]) -> None:
@@ -136,33 +165,13 @@ class STRUCT(EXPR):
         return s
 
 
-class SIGNAL(LIT):
-    
-    def __init__(self, ln: int, n: str, t: Type) -> None:
-        super().__init__(ln,)
+class FUNCTION(EXPR):
+
+    def __init__(self, ln: int, n: str, r: Type, a: list[AST]) -> None:
+        super().__init__(ln, a)
         self.name: str = n
-        self.type: Type = t
-        self.sid = -1
+        self.type: Type = r
 
-    def __str__(self) -> str:
-        return self.name
-
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + '\n'
-
-
-class BOOL(CONST):
-    
-    def __init__(self, ln: int, v: bool) -> None:
-        super().__init__(ln)
-        self.type = Bool()
-        self.bpd: int = 0
-        self.wpd: int = 0
-        self.val: bool = v
-        self.name = str(v)
-
-    def __str__(self) -> str:
-        return self.name
 
 
 class ATOM(TL_EXPR,BZ_EXPR):
