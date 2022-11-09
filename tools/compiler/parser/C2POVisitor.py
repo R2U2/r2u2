@@ -24,8 +24,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#var_block.
-    def visitVar_block(self, ctx:C2POParser.Var_blockContext):
+    # Visit a parse tree produced by C2POParser#input_block.
+    def visitInput_block(self, ctx:C2POParser.Input_blockContext):
         return self.visitChildren(ctx)
 
 
@@ -94,6 +94,11 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by C2POParser#SetAggExpr.
+    def visitSetAggExpr(self, ctx:C2POParser.SetAggExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#FuncExpr.
     def visitFuncExpr(self, ctx:C2POParser.FuncExprContext):
         return self.visitChildren(ctx)
@@ -116,11 +121,6 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#LogBinExpr.
     def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#FOExpr.
-    def visitFOExpr(self, ctx:C2POParser.FOExprContext):
         return self.visitChildren(ctx)
 
 
@@ -149,8 +149,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#fo_binder.
-    def visitFo_binder(self, ctx:C2POParser.Fo_binderContext):
+    # Visit a parse tree produced by C2POParser#set_agg_binder.
+    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext):
         return self.visitChildren(ctx)
 
 

@@ -35,26 +35,6 @@ def preorder(a: AST, func: Callable[[AST],Any]) -> None:
         if c not in explored:
             explored.append(c)
             preorder(c,func)
-
-
-# depth-first traversal
-# used for when a is root of a DAG -- after CSE, otherwise post/preorder is more efficient
-def dft(a: AST, func: Callable[[AST],Any]) -> None:
-    s: list[AST] = []
-    explored: list[AST] = []
-
-    s.append(a)
-
-    b: AST
-    c: AST
-    while not len(s) == 0:
-        b = s.pop()
-        if b in explored:
-            continue
-        explored.append(b)
-        func(b)
-        for c in b.children:
-            s.append(c)
             
 
 def set_parents(prog: AST) -> None:
@@ -66,11 +46,12 @@ def set_parents(prog: AST) -> None:
     postorder(prog,set_parents_util)
 
     
-def type_check(prog: AST, bz: bool) -> bool:
+def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
     status: bool = True
 
     def type_check_util(a: AST) -> None:
         nonlocal bz
+        nonlocal st
         nonlocal status
         c: AST
 
@@ -99,7 +80,7 @@ def type_check(prog: AST, bz: bool) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
+        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,VAR) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
@@ -145,6 +126,20 @@ def type_check(prog: AST, bz: bool) -> bool:
 
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()
+        elif isinstance(a,SET):
+            t: Type = NoType()
+            for i in range(0,len(a.children)-1):
+                t = a.children[i].type
+                if t != a.children[i+1].type:
+                    status = False
+                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type')
+            a.type = Set(t)
+        elif isinstance(a,STRUCT):
+            a.type = Struct(a.name)
+        elif isinstance(a,STRUCT_ACCESS):
+            pass
+        elif isinstance(a,SET_AGG_OP):
+            a.type = Bool()
         else:
             logger.error('%d: Invalid expression\n\t%s', a.ln, a)
             status = False
@@ -166,13 +161,13 @@ def rewrite_ops(prog: PROGRAM) -> None:
                 lhs: AST = cur.children[0]
                 rhs: AST = cur.children[1]
             
-                if isinstance(cur,LOG_OR):
-                    a.children[c] = LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs)))
+                if isinstance(cur,LOG_BIN_OR):
+                    a.children[c] = LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs)))
                 elif isinstance(cur,LOG_XOR):
-                    a.children[c] = LOG_AND(ln, LOG_NEG(ln, LOG_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
-                                                LOG_NEG(ln, LOG_AND(ln, lhs, rhs)))
+                    a.children[c] = LOG_BIN_AND(ln, LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
+                                                LOG_NEG(ln, LOG_BIN_AND(ln, lhs, rhs)))
                 elif isinstance(cur,LOG_IMPL):
-                    a.children[c] = LOG_NEG(ln, LOG_AND(ln, lhs, LOG_NEG(ln, rhs)))
+                    a.children[c] = LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs)))
             elif isinstance(cur, TL_FT_BIN_OP):
                 lhs: AST = cur.children[0]
                 rhs: AST = cur.children[1]
@@ -186,6 +181,36 @@ def rewrite_ops(prog: PROGRAM) -> None:
                 a.children[c] = TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub)
 
     postorder(prog, rewrite_ops_util)
+
+
+def rewrite_struct_access(prog: PROGRAM) -> None:
+    pass
+
+
+def rewrite_set_agg(prog: PROGRAM) -> None:
+
+    def rename_var(v: VAR, e: AST, r: AST) -> None:
+
+        def rename_var_util(a: AST) -> None:
+            nonlocal v
+            nonlocal e
+            if isinstance(a,VAR) and a == v:
+                print(a.parents[0].children[0])
+                replace(a,e)
+                print(a.parents[0].children[0])
+
+        postorder(r,rename_var_util)
+
+    def rewrite_set_agg_util(a: AST) -> None:
+        if isinstance(a,ALL_OF):
+            # print(a.expr)
+            # for e in a.set.children:
+            #     rename_var(a.bound_var,e,a.expr)
+            # print(a.expr)
+            replace(a,LOG_AND(a.ln,[rename_var(a.bound_var,e,e) for e in a.set.children]))
+
+    postorder(prog, rewrite_set_agg_util)
+    print(prog)
 
 
 # prog becomes DAG after this function
@@ -264,8 +289,7 @@ def compute_scq_size(prog: PROGRAM) -> None:
 
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
 
-    set_parents(prog)
-    dft(prog,compute_scq_size_util)
+    postorder(prog,compute_scq_size_util)
 
 
 def total_scq_size(prog: PROGRAM) -> int:
@@ -277,7 +301,7 @@ def total_scq_size(prog: PROGRAM) -> int:
         # if isinstance(a,TL_EXPR) and not isinstance(a, PROGRAM):
         #     print('mem('+str(a)+') = '+str(a.scq_size))
 
-    dft(prog,total_scq_size_util)
+    postorder(prog,total_scq_size_util)
     return mem
 
 
@@ -382,7 +406,7 @@ def parse(input: str) -> list[PROGRAM]:
     stream: CommonTokenStream = CommonTokenStream(lexer)
     parser: C2POParser = C2POParser(stream)
     parse_tree = parser.start()
-    print(parse_tree.toStringTree(recog=parser))
+    # print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
     progs: list[PROGRAM] = v.visitStart(parse_tree)
     if v.status:
@@ -394,16 +418,17 @@ def parse(input: str) -> list[PROGRAM]:
 def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
-
-    return
+    set_parents(progs[0])
 
     if len(progs) < 1:
         return
 
     # type check
-    if not type_check(progs[0],bz):
+    if not type_check(progs[0],bz,progs[0].structs):
         logger.error('Failed type check')
         return
+
+    rewrite_set_agg(progs[0])
 
     # rewrite without extended operators if enabled
     if not extops:

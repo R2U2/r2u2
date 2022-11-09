@@ -1,11 +1,8 @@
 # type: ignore
 
-from ast import expr
-from gettext import gettext
 from logging import getLogger
 
 from antlr4 import TerminalNode
-import txaio
 
 from .parser.C2POVisitor import C2POVisitor
 from .parser.C2POParser import C2POParser
@@ -18,7 +15,8 @@ class Visitor(C2POVisitor):
 
     def __init__(self) -> None:
         super().__init__()
-        self.structs: dict[str,tuple[list[str],list[Type]]] = {}
+        # self.structs: dict[str,tuple[list[str],list[Type]]] = {}
+        self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,EXPR] = {}
         self.order: dict[str,int] = {}
@@ -41,7 +39,7 @@ class Visitor(C2POVisitor):
 
         for s in ctx.struct_block():
             self.visit(s)
-        for v in ctx.var_block():
+        for v in ctx.input_block():
             self.visit(v)
         for d in ctx.def_block():
             self.visit(d)
@@ -68,17 +66,18 @@ class Visitor(C2POVisitor):
         for i in self.structs.keys():
             self.warning(f'{ln}: Struct {i} already defined, redefining')
 
-        self.structs[id] = ([],[])
+        self.structs[id] = {}
         var_dict: dict[str,Type] = {}
         for vl in ctx.var_list():
             var_dict = self.visit(vl)
-            for i,t in var_dict.items():
-                self.structs[id][0].append(i)
-                self.structs[id][1].append(t)
+            self.structs[id].update(var_dict)
+            # for i,t in var_dict.items():
+            #     self.structs[id][0].append(i)
+            #     self.structs[id][1].append(t)
 
 
-    # Visit a parse tree produced by C2POParser#var_block.
-    def visitVar_block(self, ctx:C2POParser.Var_blockContext) -> None:
+    # Visit a parse tree produced by C2POParser#input_block.
+    def visitInput_block(self, ctx:C2POParser.Input_blockContext):
         ln: int = ctx.start.line
 
         var_dict: dict[str,Type]
@@ -91,7 +90,8 @@ class Visitor(C2POVisitor):
 
             self.vars.update(var_dict)
 
-        self.visit(ctx.order_list())
+        if ctx.order_list():
+            self.visit(ctx.order_list())
 
 
     # Visit a parse tree produced by C2POParser#var_list.
@@ -156,10 +156,13 @@ class Visitor(C2POVisitor):
         var: str = ctx.IDENTIFIER().getText()
         expr: EXPR = self.visit(ctx.expr())
 
-        if not var in self.vars.keys():
-            self.error(f'{ln}: Variable \'{var}\' undeclared')
-        elif var in list(self.order):
-            self.warning(f'{ln}: Definition \'{var}\' used in Order statement, treating as signal and skipping')
+        if var in self.vars.keys():
+            self.error(f'{ln}: Variable \'{var}\' already declared')
+        elif var in self.defs.keys():
+            self.warning(f'{ln}: Variable \'{var}\' defined twice, using most recent definition')
+            self.defs[var] = expr
+        # elif var in list(self.order):
+        #     self.warning(f'{ln}: Definition \'{var}\' used in Order statement, treating as signal and skipping')
         else:
             self.defs[var] = expr
 
@@ -183,7 +186,7 @@ class Visitor(C2POVisitor):
                 spec_dict[self.spec_num] = sp
                 self.spec_num += 1
 
-        return PROGRAM(ln, spec_dict, contract_dict, self.order)
+        return PROGRAM(ln, self.structs, spec_dict, contract_dict, self.order)
 
 
     # Visit a parse tree produced by C2POParser#spec.
@@ -212,8 +215,6 @@ class Visitor(C2POVisitor):
                     SPEC(ln, label, self.spec_num+1, f2),
                     SPEC(ln, label, self.spec_num+2, f3)]
 
-            
-
 
     # Visit a parse tree produced by C2POParser#contract.
     def visitContract(self, ctx:C2POParser.ContractContext) -> list[EXPR]:
@@ -235,9 +236,9 @@ class Visitor(C2POVisitor):
         rhs: EXPR = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
-            return LOG_OR(ln, lhs, rhs)
+            return LOG_BIN_OR(ln, lhs, rhs)
         elif ctx.LOG_AND():
-            return LOG_AND(ln, lhs, rhs)
+            return LOG_BIN_AND(ln, lhs, rhs)
         elif ctx.LOG_XOR():
             return LOG_XOR(ln, lhs, rhs)
         elif ctx.LOG_IMPL():
@@ -413,14 +414,13 @@ class Visitor(C2POVisitor):
     def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> EXPR:
         ln: int = ctx.start.line
         id: str = ctx.IDENTIFIER().getText()
+        elist: list[EXPR] = self.visit(ctx.expr_list())
 
         if id in self.structs.keys():
-            elist: list[EXPR] = self.visit(ctx.expr_list())
             members: dict[str,EXPR] = {}
-
-            if len(elist) == len(self.structs[id][0]):
-                for i in range(len(elist)):
-                    members[self.structs[id][0][i]] = elist[i]
+            if len(elist) == len(self.structs[id]):
+                for s in self.structs[id].keys():
+                    members[s] = elist.pop(0)
                 return STRUCT(ln,id,members)
             else:
                 self.error(f'{ln}: Member mismatch for struct {id}, number of members do not match')
@@ -430,24 +430,28 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
-    # Visit a parse tree produced by C2POParser#FOExpr.
-    def visitFOExpr(self, ctx:C2POParser.FOExprContext) -> EXPR:
+    # Visit a parse tree produced by C2POParser#SetAggExpr.
+    def visitSetAggExpr(self, ctx:C2POParser.SetAggExprContext) -> EXPR:
         ln: int = ctx.start.line
-        op: str = ctx.IDENTIFIER().gettext()
+        op: str = ctx.IDENTIFIER().getText()
 
-        if op == 'forall':
-            pass
+        if op == 'allof':
+            S,v = self.visit(ctx.set_agg_binder())
+            self.defs[v.name] = v
+            e: EXPR = self.visit(ctx.expr())
+            del self.defs[v.name]
+            return ALL_OF(ln,S,v,e)
         else:
-            self.error(f'{ln}: First-order operator {op} not supported')
+            self.error(f'{ln}: Set aggregation operator {op} not supported')
             return EXPR(ln, [])
 
-        return self.visitChildren(ctx)
 
-
-    # Visit a parse tree produced by C2POParser#fo_binder.
-    def visitFo_binder(self, ctx:C2POParser.Fo_binderContext):
+    # Visit a parse tree produced by C2POParser#set_agg_binder.
+    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[EXPR,VAR]:
         ln: int = ctx.start.line
-        return self.visitChildren(ctx)
+        S: EXPR = self.visit(ctx.expr())
+        v: VAR = VAR(ln,ctx.IDENTIFIER().getText())
+        return (S,v)
 
 
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
@@ -456,15 +460,17 @@ class Visitor(C2POVisitor):
         id: str = ctx.IDENTIFIER().getText()
         e: EXPR = self.visit(ctx.expr())
 
-        if isinstance(e,STRUCT):
-            if id in e.members.keys():
-                return e.members[id]
-            else:
-                self.error(f'{ln}: Member {id} of struct {e} does not exist')
-                return EXPR(ln, [])
-        else:
-            self.error(f'{ln}: Accessing member {id} of non-struct expression {e}')
-            return EXPR(ln, [])
+        return STRUCT_ACCESS(ln,e,id)
+
+        # if isinstance(e,STRUCT):
+        #     if id in e.members.keys():
+        #         return e.members[id]
+        #     else:
+        #         self.error(f'{ln}: Member {id} of struct {e} does not exist')
+        #         return EXPR(ln, [])
+        # else:
+        #     self.error(f'{ln}: Accessing member {id} of non-struct expression {e}')
+        #     return EXPR(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.

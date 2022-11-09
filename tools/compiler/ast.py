@@ -1,6 +1,5 @@
 from __future__ import annotations
-from enum import Enum
-from typing import NamedTuple, cast
+from typing import NamedTuple, NewType
 from logging import getLogger
 
 from .util import *
@@ -11,6 +10,20 @@ logger = getLogger(logger_name)
 class Interval(NamedTuple):
     lb: int
     ub: int
+
+StructDict = NewType('StructDict',dict[str,dict[str,Type]])
+
+
+# replace AST old with AST new by pointing all of old's parents to new
+def replace(old: AST, new: AST) -> None:
+    p: AST
+    i: int
+    for p in old.parents:
+        for i in range(0,len(p.children)):
+            if p.children[i] == old:
+                p.children[i] = new
+        new.parents.append(p)
+
 
 class AST():
 
@@ -103,6 +116,19 @@ class FLOAT(CONST):
         return 'fconst ' + str(self.name) + '\n'
 
 
+class VAR(EXPR):
+
+    def __init__(self, ln: int, n: str) -> None:
+        super().__init__(ln,[])
+        self.name: str = n
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o,VAR) and __o.name == self.name
+
+
 class SIGNAL(LIT):
     
     def __init__(self, ln: int, n: str, t: Type) -> None:
@@ -165,13 +191,23 @@ class STRUCT(EXPR):
         return s
 
 
+class STRUCT_ACCESS(EXPR):
+
+    def __init__(self, ln: int, s: EXPR, m: str) -> None:
+        super().__init__(ln, [s])
+        self.struct: AST = self.children[0]
+        self.member: str = m
+
+    def __str__(self) -> str:
+        return str(self.struct) + '.' + self.member
+
+
 class FUNCTION(EXPR):
 
     def __init__(self, ln: int, n: str, r: Type, a: list[AST]) -> None:
         super().__init__(ln, a)
         self.name: str = n
         self.type: Type = r
-
 
 
 class ATOM(TL_EXPR,BZ_EXPR):
@@ -193,32 +229,27 @@ class ATOM(TL_EXPR,BZ_EXPR):
         return 'store a' + str(self.atid) + '\n'
 
 
-class LOG_OP(TL_EXPR):
+class SET_AGG_OP(EXPR):
 
-    def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
-
-
-class LOG_BIN_OP(LOG_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
-        self.bpd = min(lhs.bpd, rhs.bpd)
-        self.wpd = max(lhs.wpd, rhs.wpd)
+    def __init__(self, ln: int, s: SET, v: VAR,  e: EXPR) -> None:
+        if e is None:
+            super().__init__(ln,[])
+        else:
+            super().__init__(ln,[e])
+        self.set: SET = s
+        self.bound_var: VAR = v
+        self.expr: EXPR = e
 
     def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+        return self.name + '(' + str(self.bound_var) + ':' + str(self.set) + ')' + '(' + str(self.expr) + ')'
 
 
-class LOG_UNARY_OP(LOG_OP):
+class ALL_OF(SET_AGG_OP):
 
-    def __init__(self, ln: int, o: AST):
-        super().__init__(ln,[o])
-        self.bpd = o.bpd
-        self.wpd = o.wpd
+    def __init__(self, ln: int, s: SET, v: VAR, e: EXPR) -> None:
+        super().__init__(ln, s, v, e)
+        self.name: str = 'allof'
 
-    def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]!s})'
 
 
 class TL_OP(TL_EXPR):
@@ -354,7 +385,67 @@ class REL_OP(BZ_EXPR):
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
 
 
-class LOG_OR(LOG_BIN_OP):
+class LOG_OP(TL_EXPR):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln,c)
+
+
+class LOG_BIN_OP(LOG_OP):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln,[lhs, rhs])
+        self.bpd = min(lhs.bpd, rhs.bpd)
+        self.wpd = max(lhs.wpd, rhs.wpd)
+
+    def __str__(self) -> str:
+        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+
+
+class LOG_UNARY_OP(LOG_OP):
+
+    def __init__(self, ln: int, o: AST):
+        super().__init__(ln,[o])
+        self.bpd = o.bpd
+        self.wpd = o.wpd
+
+    def __str__(self) -> str:
+        return f'{self.name!s}({self.children[0]!s})'
+
+
+class LOG_OR(LOG_OP):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln, c)
+        self.name: str = '||'
+
+    def __str__(self) -> str:
+        s: str = ''
+        for arg in self.children:
+            s += str(arg) + '||'
+        return s[:-2]
+
+    def tlasm(self) -> str:
+        return 'ERROR\n'
+
+
+class LOG_AND(LOG_OP):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln, c)
+        self.name: str = '&&'
+
+    def __str__(self) -> str:
+        s: str = ''
+        for arg in self.children:
+            s += str(arg) + '&&'
+        return s[:-2]
+
+    def tlasm(self) -> str:
+        return 'ERROR\n'
+
+
+class LOG_BIN_OR(LOG_BIN_OP):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -369,7 +460,7 @@ class LOG_OR(LOG_BIN_OP):
         return super().tlasm() + 'or n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
 
 
-class LOG_AND(LOG_BIN_OP):
+class LOG_BIN_AND(LOG_BIN_OP):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -731,8 +822,9 @@ class SPEC(TL_EXPR):
 
 class PROGRAM(TL_EXPR):
 
-    def __init__(self, ln: int, s: dict[int,SPEC], c: dict[int,SPEC], o: dict[str,int]) -> None:
+    def __init__(self, ln: int, st: StructDict, s: dict[int,SPEC], c: dict[int,SPEC], o: dict[str,int]) -> None:
         super().__init__(ln, list(s.values()))
+        self.structs = st
         self.specs = s
         self.contracts = c
         self.order = o

@@ -4,12 +4,12 @@
 
 grammar C2PO;
 
-start: (struct_block | var_block | def_block | spec_block)* ;
+start: (struct_block | input_block | def_block | spec_block)* ;
 
 struct_block: KW_STRUCT struct+ ;
 struct: IDENTIFIER ':' '{' var_list+ '}' ';' ;
 
-var_block: KW_VAR var_list+ order_list ;
+input_block: KW_INPUT var_list+ order_list? ;
 var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
 order_list: KW_ORDER ':' IDENTIFIER (',' IDENTIFIER)* ';' ;
 
@@ -28,7 +28,7 @@ spec: IDENTIFIER ':' contract ';'
 contract: expr '=>' expr ;
 
 expr: set_expr                  # SetExpr
-    | IDENTIFIER '(' fo_binder ')' '(' expr ')' # FOExpr
+    | IDENTIFIER '(' set_agg_binder ')' '(' expr ')' # SetAggExpr
     | IDENTIFIER '(' expr_list? ')' # FuncExpr
     | expr '.' IDENTIFIER       # StructMemberExpr
     | ARITH_SUB expr            # UnaryExpr
@@ -56,7 +56,7 @@ set_expr: SW_EMPTY_SET
         | '{' expr_list? '}'
         ;
 
-fo_binder: IDENTIFIER ':' expr ;
+set_agg_binder: IDENTIFIER ':' expr ;
 
 interval: '[' INT (',' INT)? ']' ;
 
@@ -79,7 +79,7 @@ unary_op: ARITH_SUB | BW_NEG ;
 
 // Keywords
 KW_STRUCT: 'STRUCT' ;
-KW_VAR: 'VAR' ;
+KW_INPUT: 'INPUT' ;
 KW_DEF: 'DEFINE' ;
 KW_SPEC: 'SPEC' ;
 KW_ORDER: 'Order' ;
