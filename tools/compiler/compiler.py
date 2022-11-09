@@ -395,7 +395,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
-    # return
+    return
 
     if len(progs) < 1:
         return

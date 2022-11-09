@@ -119,6 +119,11 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by C2POParser#FOExpr.
+    def visitFOExpr(self, ctx:C2POParser.FOExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#SetExpr.
     def visitSetExpr(self, ctx:C2POParser.SetExprContext):
         return self.visitChildren(ctx)
@@ -141,6 +146,11 @@ class C2POVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by C2POParser#set_expr.
     def visitSet_expr(self, ctx:C2POParser.Set_exprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#fo_binder.
+    def visitFo_binder(self, ctx:C2POParser.Fo_binderContext):
         return self.visitChildren(ctx)
 
 

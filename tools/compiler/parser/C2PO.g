@@ -56,7 +56,7 @@ set_expr: SW_EMPTY_SET
         | '{' expr_list? '}'
         ;
 
-fo_binder: IDENTIFIER ':' IDENTIFIER ;
+fo_binder: IDENTIFIER ':' expr ;
 
 interval: '[' INT (',' INT)? ']' ;
 

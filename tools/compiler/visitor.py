@@ -1,9 +1,11 @@
 # type: ignore
 
 from ast import expr
+from gettext import gettext
 from logging import getLogger
 
 from antlr4 import TerminalNode
+import txaio
 
 from .parser.C2POVisitor import C2POVisitor
 from .parser.C2POParser import C2POParser
@@ -428,6 +430,26 @@ class Visitor(C2POVisitor):
             return EXPR(ln, [])
 
 
+    # Visit a parse tree produced by C2POParser#FOExpr.
+    def visitFOExpr(self, ctx:C2POParser.FOExprContext) -> EXPR:
+        ln: int = ctx.start.line
+        op: str = ctx.IDENTIFIER().gettext()
+
+        if op == 'forall':
+            pass
+        else:
+            self.error(f'{ln}: First-order operator {op} not supported')
+            return EXPR(ln, [])
+
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by C2POParser#fo_binder.
+    def visitFo_binder(self, ctx:C2POParser.Fo_binderContext):
+        ln: int = ctx.start.line
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
     def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> EXPR:
         ln: int = ctx.start.line
@@ -450,8 +472,8 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         elements: list[EXPR] = []
         
-        if ctx.set_expr.expr_list():
-            elements = self.visit(ctx.set_expr.expr_list())
+        if ctx.set_expr().expr_list():
+            elements = self.visit(ctx.set_expr().expr_list())
 
         return SET(ln, elements)
 
