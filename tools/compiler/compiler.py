@@ -166,9 +166,7 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
             s: STRUCT = cast(STRUCT,a.children[0])
             rewrite(a,s.members[a.member])
 
-    print(prog)
     postorder(prog, rewrite_struct_access_util)
-    print(prog)
 
 
 # prog becomes DAG after this function
