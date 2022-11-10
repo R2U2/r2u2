@@ -36,7 +36,7 @@ def main(args):
     else:
         mltl = args.mltl
 
-    compile(mltl, args.output_dir, args.booleanizer, True, args.quiet)
+    compile(mltl, args.output_dir, args.booleanizer, False, args.quiet)
     
 
 if __name__ == "__main__":

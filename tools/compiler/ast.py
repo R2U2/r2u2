@@ -297,6 +297,12 @@ class ALL_OF(SET_AGG_OP):
         self.name: str = 'allof'
 
 
+class AT_LEAST_ONE_OF(SET_AGG_OP):
+
+    def __init__(self, ln: int, s: SET, v: VAR, e: EXPR) -> None:
+        super().__init__(ln, s, v, e)
+        self.name: str = 'atleastoneof'
+
 
 class TL_OP(TL_EXPR):
 
@@ -472,7 +478,10 @@ class LOG_OR(LOG_OP):
         return s[:-2]
 
     def tlasm(self) -> str:
-        return 'ERROR\n'
+        s: str = super().tlasm() + 'or'
+        for c in self.children:
+            s += ' n' + str(c.tlid)
+        return s + '\n'
 
 
 class LOG_AND(LOG_OP):

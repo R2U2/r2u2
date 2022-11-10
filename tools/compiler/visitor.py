@@ -435,12 +435,15 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         op: str = ctx.IDENTIFIER().getText()
 
+        S,v = self.visit(ctx.set_agg_binder())
+        self.defs[v.name] = v
+        e: EXPR = self.visit(ctx.expr())
+        del self.defs[v.name]
+
         if op == 'allof':
-            S,v = self.visit(ctx.set_agg_binder())
-            self.defs[v.name] = v
-            e: EXPR = self.visit(ctx.expr())
-            del self.defs[v.name]
             return ALL_OF(ln,S,v,e)
+        elif op == 'atleastoneof':
+            return AT_LEAST_ONE_OF(ln,S,v,e)
         else:
             self.error(f'{ln}: Set aggregation operator {op} not supported')
             return EXPR(ln, [])

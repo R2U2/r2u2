@@ -18,4 +18,4 @@ DEFINE
 
 
 SPEC
-  allof(t:{t0,t1,t2})(t.a == t.b);
+  atleastoneof(t:{t0,t1,t2})(t.a == t.b);

@@ -2,6 +2,7 @@ import re
 from logging import getLogger
 from typing import cast, Callable, Any
 from antlr4 import InputStream, CommonTokenStream
+from numpy import isin
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -120,32 +121,29 @@ def rewrite_ops(prog: PROGRAM) -> None:
 
     def rewrite_ops_util(a: AST) -> None:
         ln: int = a.ln
+        
+        if isinstance(a,LOG_BIN_OP):
+            lhs: AST = a.children[0]
+            rhs: AST = a.children[1]
 
-        for c in range(0,len(a.children)):
-            cur = a.children[c]
+            if isinstance(a,LOG_BIN_OR):
+                rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))))
+            elif isinstance(a,LOG_XOR):
+                rewrite(a,LOG_BIN_AND(ln, LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
+                                                LOG_NEG(ln, LOG_BIN_AND(ln, lhs, rhs))))
+            elif isinstance(a,LOG_IMPL):
+                rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs))))
+        elif isinstance(a, TL_FT_BIN_OP):
+            lhs: AST = a.children[0]
+            rhs: AST = a.children[1]
+            bounds: Interval = a.interval
 
-            if isinstance(cur,LOG_BIN_OP):
-                lhs: AST = cur.children[0]
-                rhs: AST = cur.children[1]
-            
-                if isinstance(cur,LOG_BIN_OR):
-                    a.children[c] = LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs)))
-                elif isinstance(cur,LOG_XOR):
-                    a.children[c] = LOG_BIN_AND(ln, LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
-                                                LOG_NEG(ln, LOG_BIN_AND(ln, lhs, rhs)))
-                elif isinstance(cur,LOG_IMPL):
-                    a.children[c] = LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs)))
-            elif isinstance(cur, TL_FT_BIN_OP):
-                lhs: AST = cur.children[0]
-                rhs: AST = cur.children[1]
-                bounds: Interval = cur.interval
+            rewrite(a, LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub)))
+        elif isinstance(a, TL_FT_UNARY_OP):
+            operand: AST = a.children[0]
+            bounds: Interval = a.interval
 
-                a.children[c] = LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub))
-            elif isinstance(cur, TL_FT_UNARY_OP):
-                operand: AST = cur.children[0]
-                bounds: Interval = cur.interval
-
-                a.children[c] = TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub)
+            rewrite(a, TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub))
 
     postorder(prog, rewrite_ops_util)
 
@@ -155,6 +153,8 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a,ALL_OF):
             rewrite(a,LOG_AND(a.ln,[rename(a.bound_var,e,a.expr) for e in a.set.children]))
+        elif isinstance(a,AT_LEAST_ONE_OF):
+            rewrite(a,LOG_OR(a.ln,[rename(a.bound_var,e,a.expr) for e in a.set.children]))
 
     postorder(prog, rewrite_set_agg_util)
 
@@ -374,10 +374,12 @@ def parse(input: str) -> list[PROGRAM]:
 def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
-    set_parents(progs[0])
 
     if len(progs) < 1:
+        logger.error('Failed parsing')
         return
+
+    set_parents(progs[0])
 
     # type check
     if not type_check(progs[0],bz,progs[0].structs):
