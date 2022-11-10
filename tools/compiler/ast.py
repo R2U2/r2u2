@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import NamedTuple, NewType
+from copy import deepcopy
+from typing import Any, Callable, NamedTuple, NewType
 from logging import getLogger
 
 from .util import *
@@ -7,22 +8,68 @@ from .types import *
 
 logger = getLogger(logger_name)
 
+
 class Interval(NamedTuple):
     lb: int
     ub: int
 
+
 StructDict = NewType('StructDict',dict[str,dict[str,Type]])
 
 
+def postorder(a: AST, func: Callable[[AST],Any]) -> None:
+    explored: list[AST] = []
+    c: AST
+    
+    for c in a.children:
+        if c not in explored:
+            explored.append(c)
+            postorder(c,func)
+    
+    func(a)
+
+
+def preorder(a: AST, func: Callable[[AST],Any]) -> None:
+    explored: list[AST] = []
+    c: AST
+
+    func(a)
+    
+    for c in a.children:
+        if c not in explored:
+            explored.append(c)
+            preorder(c,func)
+
+
+# precondition: all children are properly set
+def set_parents(prog: AST) -> None:
+
+    def set_parents_util(a: AST) -> None:
+        for c in a.children:
+            c.parents.append(a)
+
+    postorder(prog,set_parents_util)
+
+
 # replace AST old with AST new by pointing all of old's parents to new
-def replace(old: AST, new: AST) -> None:
-    p: AST
-    i: int
+# and setting new's parents accordingly
+def rewrite(old: AST, new: AST) -> None:
     for p in old.parents:
         for i in range(0,len(p.children)):
             if p.children[i] == old:
                 p.children[i] = new
         new.parents.append(p)
+
+
+def rename(v: VAR, repl: AST, expr: EXPR) -> AST:
+    new: AST = deepcopy(expr)
+
+    def rename_util(a: AST) -> None:
+        if a == v:
+            rewrite(a,repl)
+
+    postorder(new,rename_util)
+    return new
 
 
 class AST():
@@ -195,11 +242,10 @@ class STRUCT_ACCESS(EXPR):
 
     def __init__(self, ln: int, s: EXPR, m: str) -> None:
         super().__init__(ln, [s])
-        self.struct: AST = self.children[0]
         self.member: str = m
 
     def __str__(self) -> str:
-        return str(self.struct) + '.' + self.member
+        return str(self.children[0]) + '.' + self.member
 
 
 class FUNCTION(EXPR):
@@ -442,7 +488,10 @@ class LOG_AND(LOG_OP):
         return s[:-2]
 
     def tlasm(self) -> str:
-        return 'ERROR\n'
+        s: str = super().tlasm() + 'and'
+        for c in self.children:
+            s += ' n' + str(c.tlid)
+        return s + '\n'
 
 
 class LOG_BIN_OR(LOG_BIN_OP):

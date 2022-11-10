@@ -1,7 +1,7 @@
 import re
 from logging import getLogger
 from typing import cast, Callable, Any
-from antlr4 import InputStream, CommonTokenStream # type: ignore
+from antlr4 import InputStream, CommonTokenStream
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -11,39 +11,6 @@ from .util import *
 # from .assembler import assemble
 
 logger = getLogger(logger_name)
-
-
-def postorder(a: AST, func: Callable[[AST],Any]) -> None:
-    explored: list[AST] = []
-    c: AST
-    
-    for c in a.children:
-        if c not in explored:
-            explored.append(c)
-            postorder(c,func)
-    
-    func(a)
-
-
-def preorder(a: AST, func: Callable[[AST],Any]) -> None:
-    explored: list[AST] = []
-    c: AST
-
-    func(a)
-    
-    for c in a.children:
-        if c not in explored:
-            explored.append(c)
-            preorder(c,func)
-            
-
-def set_parents(prog: AST) -> None:
-
-    def set_parents_util(a: AST) -> None:
-        for c in a.children:
-            c.parents.append(a)
-
-    postorder(prog,set_parents_util)
 
     
 def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
@@ -183,33 +150,24 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
-def rewrite_struct_access(prog: PROGRAM) -> None:
-    pass
-
-
 def rewrite_set_agg(prog: PROGRAM) -> None:
-
-    def rename_var(v: VAR, e: AST, r: AST) -> None:
-
-        def rename_var_util(a: AST) -> None:
-            nonlocal v
-            nonlocal e
-            if isinstance(a,VAR) and a == v:
-                print(a.parents[0].children[0])
-                replace(a,e)
-                print(a.parents[0].children[0])
-
-        postorder(r,rename_var_util)
 
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a,ALL_OF):
-            # print(a.expr)
-            # for e in a.set.children:
-            #     rename_var(a.bound_var,e,a.expr)
-            # print(a.expr)
-            replace(a,LOG_AND(a.ln,[rename_var(a.bound_var,e,e) for e in a.set.children]))
+            rewrite(a,LOG_AND(a.ln,[rename(a.bound_var,e,a.expr) for e in a.set.children]))
 
     postorder(prog, rewrite_set_agg_util)
+
+
+def rewrite_struct_access(prog: PROGRAM) -> None:
+
+    def rewrite_struct_access_util(a: AST) -> None:
+        if isinstance(a,STRUCT_ACCESS):
+            s: STRUCT = cast(STRUCT,a.children[0])
+            rewrite(a,s.members[a.member])
+
+    print(prog)
+    postorder(prog, rewrite_struct_access_util)
     print(prog)
 
 
@@ -429,6 +387,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
         return
 
     rewrite_set_agg(progs[0])
+    rewrite_struct_access(progs[0])
 
     # rewrite without extended operators if enabled
     if not extops:

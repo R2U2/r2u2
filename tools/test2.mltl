@@ -6,17 +6,16 @@
 STRUCT
   test: {a,b,c: int;};
 
-VAR
+INPUT
   x,y,z: int;
   
-  t0: test;
-
-
   Order: x,y,z;
 
 DEFINE
   t0 = test(x,y,z);
+  t1 = test(y,z,x);
+  t2 = test(z,x,y);
 
 
 SPEC
-  t0.a;
+  allof(t:{t0,t1,t2})(t.a == t.b);
