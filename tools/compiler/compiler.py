@@ -16,10 +16,19 @@ logger = getLogger(logger_name)
     
 def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
     status: bool = True
+    context: list[VAR] = []
+
+    def type_check_set_agg_pre(a: AST) -> None:
+        nonlocal status
+
+        if isinstance(a,SET_AGG_OP):
+            
+            context.append(a.get_boundvar())
+
+    def type_check_set_agg_post(a: AST) -> None:
+        nonlocal status
 
     def type_check_util(a: AST) -> None:
-        nonlocal bz
-        nonlocal st
         nonlocal status
         c: AST
 
@@ -48,18 +57,18 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,VAR) or isinstance(a,PROGRAM):
+        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or \
+            isinstance(a,VAR) or isinstance(a,PROGRAM) or isinstance(a,SET_AGG_OP):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
 
             if not child.type == Bool():
                 status = False
-                logger.error('%d: Specification must be of boolean type (found \'%s\')\n\t%s', 
-                        a.ln, str(child.type), a)
-        elif isinstance(a,REL_OP) or isinstance(a,ARITH_OP):
-            lhs = a.children[0]
-            rhs = a.children[1]
+                logger.error(f'{a.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{a}')
+        elif isinstance(a,REL_OP) or isinstance(a,ARITH_BIN_OP):
+            lhs = a.get_lhs()
+            rhs = a.get_rhs()
 
             if isinstance(lhs,INT) and rhs.type == Float():
                 lhs = FLOAT(lhs.ln,lhs.val)
@@ -70,27 +79,26 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
 
             if lhs.type != rhs.type:
                 status = False
-                logger.error('%d: Invalid operands for %s, must be of same type (found \'%s\' and \'%s\')\n\t%s', 
-                        a.ln, a.name, str(lhs.type), str(rhs.type), a)
+                logger.error(f'{a.ln}: Invalid operands for {a.name}, must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
             if isinstance(a,REL_OP):
                 a.type = Bool()
             else:
                 a.type = lhs.type
+        elif isinstance(a,ARITH_UNARY_OP):
+            a.type = a.get_operand().type
         elif isinstance(a,LOG_OP):
             for c in a.children:
                 if c.type != Bool():
                     status = False
-                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, str(c.type), c, a)
+                    logger.error(f'{a.ln}: Invalid operands for {a.name}, found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
             a.type = Bool()
         elif isinstance(a,TL_OP):
             for c in a.children:
                 if c.type != Bool():
                     status = False
-                    logger.error('%d: Invalid operands for %s, found \'%s\' (\'%s\') but expected \'bool\'\n\t%s', 
-                            a.ln, a.name, str(c.type), c, a)
+                    logger.error(f'{a.ln}: Invalid operands for {a.name}, found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()
@@ -100,18 +108,17 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                 t = a.children[i].type
                 if t != a.children[i+1].type:
                     status = False
-                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type')
+                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type (found {a.children[i].type} and  {a.children[i+1]})')
             a.type = Set(t)
         elif isinstance(a,STRUCT):
             a.type = Struct(a.name)
         elif isinstance(a,STRUCT_ACCESS):
             pass
-        elif isinstance(a,SET_AGG_OP):
-            a.type = Bool()
         else:
-            logger.error('%d: Invalid expression\n\t%s', a.ln, a)
+            logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
+    traverse(prog,type_check_set_agg_pre,type_check_set_agg_post)
     postorder(prog,type_check_util)
 
     return status
@@ -123,8 +130,8 @@ def rewrite_ops(prog: PROGRAM) -> None:
         ln: int = a.ln
         
         if isinstance(a,LOG_BIN_OP):
-            lhs: AST = a.children[0]
-            rhs: AST = a.children[1]
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
 
             if isinstance(a,LOG_BIN_OR):
                 rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))))
@@ -134,13 +141,13 @@ def rewrite_ops(prog: PROGRAM) -> None:
             elif isinstance(a,LOG_IMPL):
                 rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs))))
         elif isinstance(a, TL_FT_BIN_OP):
-            lhs: AST = a.children[0]
-            rhs: AST = a.children[1]
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
             bounds: Interval = a.interval
 
             rewrite(a, LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub)))
         elif isinstance(a, TL_FT_UNARY_OP):
-            operand: AST = a.children[0]
+            operand: AST = a.get_operand()
             bounds: Interval = a.interval
 
             rewrite(a, TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub))
@@ -152,9 +159,9 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
 
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a,ALL_OF):
-            rewrite(a,LOG_AND(a.ln,[rename(a.bound_var,e,a.expr) for e in a.set.children]))
+            rewrite(a,LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
         elif isinstance(a,AT_LEAST_ONE_OF):
-            rewrite(a,LOG_OR(a.ln,[rename(a.bound_var,e,a.expr) for e in a.set.children]))
+            rewrite(a,LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
 
     postorder(prog, rewrite_set_agg_util)
 
@@ -163,7 +170,7 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            s: STRUCT = cast(STRUCT,a.children[0])
+            s: STRUCT = cast(STRUCT,a.get_struct())
             rewrite(a,s.members[a.member])
 
     postorder(prog, rewrite_struct_access_util)
@@ -193,20 +200,20 @@ def optimize_cse(prog: PROGRAM) -> None:
     postorder(prog,optimize_cse_util)
 
 
-def insert_atomics(prog: PROGRAM) -> None:
-    idx: int = 0
+# def insert_atomics(prog: PROGRAM) -> None:
+#     idx: int = 0
 
-    def insert_atom(a: AST) -> None:
-        nonlocal idx
+#     def insert_atom(a: AST) -> None:
+#         nonlocal idx
         
-        for c in range(0,len(a.children)):
-            child = a.children[c]
-            if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL) \
-                    and not isinstance(a,ATOM) and not isinstance(child,ATOM):
-                new: ATOM = ATOM(a.ln,child,idx)
-                a.children[c] = new
+#         for c in range(0,len(a.children)):
+#             child = a.children[c]
+#             if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL) \
+#                     and not isinstance(a,ATOM) and not isinstance(child,ATOM):
+#                 new: ATOM = ATOM(a.ln,child,idx)
+#                 a.children[c] = new
 
-    postorder(prog,insert_atom)
+#     postorder(prog,insert_atom)
 
 
 def gen_alias(prog: PROGRAM) -> str:
@@ -394,7 +401,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
         rewrite_ops(progs[0])
 
     # demarcate TL and BZ nodes with ATOM nodes
-    insert_atomics(progs[0])
+    # insert_atomics(progs[0])
 
     # common sub-expressions elimination
     optimize_cse(progs[0])

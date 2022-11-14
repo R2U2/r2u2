@@ -1,5 +1,7 @@
 from __future__ import annotations
+from ast import expr
 from copy import deepcopy
+from re import L
 from typing import Any, Callable, NamedTuple, NewType
 from logging import getLogger
 
@@ -20,25 +22,32 @@ StructDict = NewType('StructDict',dict[str,dict[str,Type]])
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
     explored: list[AST] = []
     c: AST
-    
     for c in a.children:
         if c not in explored:
             explored.append(c)
             postorder(c,func)
-    
     func(a)
 
 
 def preorder(a: AST, func: Callable[[AST],Any]) -> None:
     explored: list[AST] = []
     c: AST
-
     func(a)
-    
     for c in a.children:
         if c not in explored:
             explored.append(c)
             preorder(c,func)
+
+
+def traverse(a: AST, pre: Callable[[AST],Any], post: Callable[[AST],Any]) -> None:
+    explored: list[AST] = []
+    c: AST
+    pre(a)
+    for c in a.children:
+        if c not in explored:
+            explored.append(c)
+            traverse(c,pre,post)
+    post(a)
 
 
 # precondition: all children are properly set
@@ -51,6 +60,15 @@ def set_parents(prog: AST) -> None:
     postorder(prog,set_parents_util)
 
 
+def set_type(s: AST, expr: EXPR, t: Type) -> None:
+
+    def set_type_util(a: AST) -> None:
+        if s == a:
+            a.type = t
+
+    postorder(expr,set_type_util)
+
+
 # replace AST old with AST new by pointing all of old's parents to new
 # and setting new's parents accordingly
 def rewrite(old: AST, new: AST) -> None:
@@ -61,11 +79,11 @@ def rewrite(old: AST, new: AST) -> None:
         new.parents.append(p)
 
 
-def rename(v: VAR, repl: AST, expr: EXPR) -> AST:
+def rename(v: AST, repl: AST, expr: EXPR) -> AST:
     new: AST = deepcopy(expr)
 
     def rename_util(a: AST) -> None:
-        if a == v:
+        if v == a:
             rewrite(a,repl)
 
     postorder(new,rename_util)
@@ -244,6 +262,9 @@ class STRUCT_ACCESS(EXPR):
         super().__init__(ln, [s])
         self.member: str = m
 
+    def get_struct(self) -> EXPR:
+        return cast(EXPR,self.children[0])
+
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
 
@@ -278,16 +299,19 @@ class ATOM(TL_EXPR,BZ_EXPR):
 class SET_AGG_OP(EXPR):
 
     def __init__(self, ln: int, s: SET, v: VAR,  e: EXPR) -> None:
-        if e is None:
-            super().__init__(ln,[])
-        else:
-            super().__init__(ln,[e])
-        self.set: SET = s
-        self.bound_var: VAR = v
-        self.expr: EXPR = e
+        super().__init__(ln,[s,v,e])
+
+    def get_set(self) -> SET:
+        return cast(SET,self.children[0])
+
+    def get_boundvar(self) -> VAR:
+        return cast(VAR,self.children[1])
+
+    def get_expr(self) -> EXPR:
+        return cast(EXPR,self.children[2])
 
     def __str__(self) -> str:
-        return self.name + '(' + str(self.bound_var) + ':' + str(self.set) + ')' + '(' + str(self.expr) + ')'
+        return self.name + '(' + str(self.get_boundvar()) + ':' + str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
 
 
 class ALL_OF(SET_AGG_OP):
@@ -330,6 +354,12 @@ class TL_FT_BIN_OP(TL_FT_OP):
         self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
+
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
@@ -342,6 +372,9 @@ class TL_FT_UNARY_OP(TL_FT_OP):
         self.bpd = o.bpd + self.interval.lb
         self.wpd = o.wpd + self.interval.ub
 
+    def get_operand(self) -> AST:
+        return self.children[0]
+
     def __str__(self) -> str:
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
 
@@ -350,6 +383,12 @@ class TL_PT_BIN_OP(TL_PT_OP):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, [lhs, rhs], l, u)
+
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
 
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
@@ -360,6 +399,9 @@ class TL_PT_UNARY_OP(TL_PT_OP):
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
         self.interval = Interval(lb=l,ub=u)
+
+    def get_operand(self) -> AST:
+        return self.children[0]
 
     def __str__(self) -> str:
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
@@ -376,6 +418,12 @@ class BW_BIN_OP(BW_OP):
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln,[lhs, rhs])
 
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
+
     def __str__(self) -> str:
         return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
@@ -384,6 +432,9 @@ class BW_UNARY_OP(BW_OP):
 
     def __init__(self, ln: int, o: AST):
         super().__init__(ln,[o])
+
+    def get_operand(self) -> AST:
+        return self.children[0]
 
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]!s})'
@@ -403,6 +454,12 @@ class ARITH_BIN_OP(ARITH_OP):
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln,[lhs, rhs])
 
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
+
     def __str__(self) -> str:
         return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
@@ -411,6 +468,9 @@ class ARITH_UNARY_OP(ARITH_OP):
 
     def __init__(self, ln: int, o: AST) -> None:
         super().__init__(ln,[o])
+
+    def get_operand(self) -> AST:
+        return self.children[0]
 
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]})'
@@ -431,7 +491,13 @@ class ARITH_MUL_OP(ARITH_BIN_OP):
 class REL_OP(BZ_EXPR):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
+        super().__init__(ln,[lhs,rhs])
+
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
 
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
@@ -450,6 +516,12 @@ class LOG_BIN_OP(LOG_OP):
         self.bpd = min(lhs.bpd, rhs.bpd)
         self.wpd = max(lhs.wpd, rhs.wpd)
 
+    def get_lhs(self) -> AST:
+        return self.children[0]
+
+    def get_rhs(self) -> AST:
+        return self.children[1]
+
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
 
@@ -460,6 +532,9 @@ class LOG_UNARY_OP(LOG_OP):
         super().__init__(ln,[o])
         self.bpd = o.bpd
         self.wpd = o.wpd
+
+    def get_operand(self) -> AST:
+        return self.children[0]
 
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]!s})'

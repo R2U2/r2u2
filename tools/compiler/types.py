@@ -1,73 +1,73 @@
 from enum import Enum
 from typing import cast
 
-class Type():
-    NOTYPE: int = 0
-    BOOL: int = 1
-    INT: int = 2
-    FLOAT: int = 3
-    SET: int = 4
-    STRUCT: int = 5
+class BaseType(Enum):
+    NOTYPE = 0
+    BOOL = 1
+    INT = 2
+    FLOAT = 3
+    SET = 4
+    STRUCT = 5
 
-    def __init__(self, t: int) -> None:
-        self.value: int = t
+
+class Type():
+
+    def __init__(self, t: BaseType) -> None:
+        self.value: BaseType = t
 
     def __eq__(self, arg: object) -> bool:
-        try:
-            assert isinstance(arg,Type)
+        if isinstance(arg,Type):
             return self.value == arg.value
-        except AssertionError:
-            return False
+        return False
 
     def __str__(self) -> str:
-        if self.value == Type.BOOL:
+        if self.value == BaseType.BOOL:
             return 'bool'
-        elif self.value == Type.INT:
+        elif self.value == BaseType.INT:
             return 'int'
-        elif self.value == Type.FLOAT:
+        elif self.value == BaseType.FLOAT:
             return 'float'
         return 'none'
 
 class NoType(Type):
     def __init__(self) -> None:
-        super().__init__(Type.NOTYPE)
+        super().__init__(BaseType.NOTYPE)
 
 class Bool(Type):
     def __init__(self) -> None:
-        super().__init__(Type.BOOL)
+        super().__init__(BaseType.BOOL)
 
 class Int(Type):
     def __init__(self) -> None:
-        super().__init__(Type.INT)
+        super().__init__(BaseType.INT)
 
 class Float(Type):
     def __init__(self) -> None:
-        super().__init__(Type.FLOAT)
+        super().__init__(BaseType.FLOAT)
 
 class Struct(Type):
     def __init__(self, n: str) -> None:
-        super().__init__(Type.STRUCT)
+        super().__init__(BaseType.STRUCT)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
         if isinstance(arg,Struct):
             return self.name == arg.name
-        else:
-            return False 
+        return False 
 
     def __str__(self) -> str:
         return self.name
 
 class Set(Type):
     def __init__(self, m: Type) -> None:
-        super().__init__(Type.SET)
+        super().__init__(BaseType.SET)
         self.member_type: Type = m
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
-            return self.member_type.__eq__(cast(Set,arg).member_type)
-        else:
-            return False
+            if isinstance(arg,Set):
+                return self.member_type.__eq__(arg.member_type)
+        return False
 
     def __str__(self) -> str:
         return 'set<' + str(self.member_type) + '>'

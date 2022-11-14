@@ -71,9 +71,6 @@ class Visitor(C2POVisitor):
         for vl in ctx.var_list():
             var_dict = self.visit(vl)
             self.structs[id].update(var_dict)
-            # for i,t in var_dict.items():
-            #     self.structs[id][0].append(i)
-            #     self.structs[id][1].append(t)
 
 
     # Visit a parse tree produced by C2POParser#input_block.
