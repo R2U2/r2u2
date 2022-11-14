@@ -1,8 +1,7 @@
 import re
 from logging import getLogger
-from typing import cast, Callable, Any
+from typing import cast
 from antlr4 import InputStream, CommonTokenStream
-from numpy import isin
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -16,19 +15,16 @@ logger = getLogger(logger_name)
     
 def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
     status: bool = True
-    context: list[VAR] = []
+    context: dict[VAR,Type]
 
-    def type_check_set_agg_pre(a: AST) -> None:
+    def type_check_util_pre(a: AST) -> None:
         nonlocal status
 
         if isinstance(a,SET_AGG_OP):
-            
-            context.append(a.get_boundvar())
+            context[a.get_boundvar()] = NoType()
 
-    def type_check_set_agg_post(a: AST) -> None:
-        nonlocal status
 
-    def type_check_util(a: AST) -> None:
+    def type_check_util_post(a: AST) -> None:
         nonlocal status
         c: AST
 
@@ -103,12 +99,11 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()
         elif isinstance(a,SET):
-            t: Type = NoType()
-            for i in range(0,len(a.children)-1):
-                t = a.children[i].type
-                if t != a.children[i+1].type:
+            t: Type = NoType() if len(a.children) == 0 else a.children[0].type
+            for m in a.children:
+                if m.type != t:
                     status = False
-                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type (found {a.children[i].type} and  {a.children[i+1]})')
+                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type (found {m.type} and {t})')
             a.type = Set(t)
         elif isinstance(a,STRUCT):
             a.type = Struct(a.name)
@@ -118,8 +113,8 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
-    traverse(prog,type_check_set_agg_pre,type_check_set_agg_post)
-    postorder(prog,type_check_util)
+    traverse(prog,type_check_util_pre,type_check_util_post)
+    # postorder(prog,type_check_util)
 
     return status
 
