@@ -12,8 +12,9 @@ class BaseType(Enum):
 
 class Type():
 
-    def __init__(self, t: BaseType) -> None:
+    def __init__(self, t: BaseType, n: str) -> None:
         self.value: BaseType = t
+        self.name: str = n
 
     def __eq__(self, arg: object) -> bool:
         if isinstance(arg,Type):
@@ -21,33 +22,27 @@ class Type():
         return False
 
     def __str__(self) -> str:
-        if self.value == BaseType.BOOL:
-            return 'bool'
-        elif self.value == BaseType.INT:
-            return 'int'
-        elif self.value == BaseType.FLOAT:
-            return 'float'
-        return 'none'
+        return self.name
 
 class NoType(Type):
     def __init__(self) -> None:
-        super().__init__(BaseType.NOTYPE)
+        super().__init__(BaseType.NOTYPE,'none')
 
 class Bool(Type):
     def __init__(self) -> None:
-        super().__init__(BaseType.BOOL)
+        super().__init__(BaseType.BOOL,'bool')
 
 class Int(Type):
     def __init__(self) -> None:
-        super().__init__(BaseType.INT)
+        super().__init__(BaseType.INT,'int')
 
 class Float(Type):
     def __init__(self) -> None:
-        super().__init__(BaseType.FLOAT)
+        super().__init__(BaseType.FLOAT,'float')
 
 class Struct(Type):
     def __init__(self, n: str) -> None:
-        super().__init__(BaseType.STRUCT)
+        super().__init__(BaseType.STRUCT,n)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
@@ -55,12 +50,9 @@ class Struct(Type):
             return self.name == arg.name
         return False 
 
-    def __str__(self) -> str:
-        return self.name
-
 class Set(Type):
     def __init__(self, m: Type) -> None:
-        super().__init__(BaseType.SET)
+        super().__init__(BaseType.SET,'set<'+str(m)+'>')
         self.member_type: Type = m
 
     def __eq__(self, arg: object) -> bool:
@@ -68,10 +60,6 @@ class Set(Type):
             if isinstance(arg,Set):
                 return self.member_type.__eq__(arg.member_type)
         return False
-
-    def __str__(self) -> str:
-        return 'set<' + str(self.member_type) + '>'
-
 
 class FormulaType(Enum):
     PROP = 0

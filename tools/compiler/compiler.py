@@ -2,6 +2,7 @@ import re
 from logging import getLogger
 from typing import cast
 from antlr4 import InputStream, CommonTokenStream
+from numpy import isin
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -15,16 +16,9 @@ logger = getLogger(logger_name)
     
 def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
     status: bool = True
-    context: dict[VAR,Type]
+    context: dict[str,Type] = {}
 
-    def type_check_util_pre(a: AST) -> None:
-        nonlocal status
-
-        if isinstance(a,SET_AGG_OP):
-            context[a.get_boundvar()] = NoType()
-
-
-    def type_check_util_post(a: AST) -> None:
+    def type_check_util(a: AST) -> None:
         nonlocal status
         c: AST
 
@@ -53,8 +47,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or \
-            isinstance(a,VAR) or isinstance(a,PROGRAM) or isinstance(a,SET_AGG_OP):
+        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = cast(EXPR,a.children[0])
@@ -75,7 +68,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
 
             if lhs.type != rhs.type:
                 status = False
-                logger.error(f'{a.ln}: Invalid operands for {a.name}, must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
+                logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
             if isinstance(a,REL_OP):
                 a.type = Bool()
@@ -87,14 +80,14 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             for c in a.children:
                 if c.type != Bool():
                     status = False
-                    logger.error(f'{a.ln}: Invalid operands for {a.name}, found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
+                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
             a.type = Bool()
         elif isinstance(a,TL_OP):
             for c in a.children:
                 if c.type != Bool():
                     status = False
-                    logger.error(f'{a.ln}: Invalid operands for {a.name}, found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
+                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()
@@ -103,18 +96,36 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             for m in a.children:
                 if m.type != t:
                     status = False
-                    logger.error(f'{a.ln}: Set {a} must be of homogeneous type (found {m.type} and {t})')
+                    logger.error(f'{a.ln}: Set \'{a}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
+
+            for p in a.parents:
+                if isinstance(p,SET_AGG_OP):
+                    context[p.get_boundvar().name] = t
+
             a.type = Set(t)
+        elif isinstance(a,VAR):
+            if a.name in context.keys():
+                a.type = context[a.name]
+            else:
+                status = False
+                logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
+        elif isinstance(a,SET_AGG_OP):
+            del context[a.get_boundvar().name]
+            a.type = Bool()
         elif isinstance(a,STRUCT):
             a.type = Struct(a.name)
         elif isinstance(a,STRUCT_ACCESS):
-            pass
+            st_name = a.get_struct().type.name
+            if st_name in st.keys() and a.member in st[st_name].keys():
+                a.type = st[st_name][a.member]
+            else:
+                status = False
+                logger.error(f'{a.ln}: Member \'{a.member}\' invalid for struct \'{a.get_struct().name}\'')
         else:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
-    traverse(prog,type_check_util_pre,type_check_util_post)
-    # postorder(prog,type_check_util)
+    postorder(prog,type_check_util)
 
     return status
 
@@ -378,14 +389,14 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     progs: list[PROGRAM] = parse(input)
 
     if len(progs) < 1:
-        logger.error('Failed parsing')
+        logger.error(' Failed parsing')
         return
 
     set_parents(progs[0])
 
     # type check
     if not type_check(progs[0],bz,progs[0].structs):
-        logger.error('Failed type check')
+        logger.error(' Failed type check')
         return
 
     rewrite_set_agg(progs[0])
