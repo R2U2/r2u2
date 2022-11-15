@@ -20,33 +20,24 @@ StructDict = NewType('StructDict',dict[str,dict[str,Type]])
 
 
 def postorder(a: AST, func: Callable[[AST],Any]) -> None:
-    explored: list[AST] = []
     c: AST
     for c in a.children:
-        if c not in explored:
-            explored.append(c)
-            postorder(c,func)
+        postorder(c,func)
     func(a)
 
 
 def preorder(a: AST, func: Callable[[AST],Any]) -> None:
-    explored: list[AST] = []
     c: AST
     func(a)
     for c in a.children:
-        if c not in explored:
-            explored.append(c)
-            preorder(c,func)
+        preorder(c,func)
 
 
 def traverse(a: AST, pre: Callable[[AST],Any], post: Callable[[AST],Any]) -> None:
-    explored: list[AST] = []
     c: AST
     pre(a)
     for c in a.children:
-        if c not in explored:
-            explored.append(c)
-            traverse(c,pre,post)
+        traverse(c,pre,post)
     post(a)
 
 
@@ -95,7 +86,7 @@ class AST():
     def __init__(self, ln: int, c: list['AST']) -> None:
         self.ln: int = ln
         self.tlid: int = -1
-        self.bzid: int = -1
+        self.atid: int = -1
         self.scq_size: int = 0
         self.name: str = ''
         self.bpd: int = 0
@@ -134,6 +125,9 @@ class BZ_EXPR(EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
+
+    def tlasm(self) -> str:
+        return f'n{str(self.tlid)}: load a{str(self.atid)}\n' 
 
     def bzasm(self) -> str:
         return ''
@@ -262,8 +256,8 @@ class STRUCT_ACCESS(EXPR):
         super().__init__(ln, [s])
         self.member: str = m
 
-    def get_struct(self) -> EXPR:
-        return cast(EXPR,self.children[0])
+    def get_struct(self) -> STRUCT:
+        return cast(STRUCT,self.children[0])
 
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
@@ -944,6 +938,9 @@ class SPEC(TL_EXPR):
         super().__init__(ln, [e])
         self.name: str = lbl
         self.fnum: int = f
+
+    def get_expr(self) -> EXPR:
+        return cast(EXPR,self.children[0])
 
     def __str__(self) -> str:
         return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])

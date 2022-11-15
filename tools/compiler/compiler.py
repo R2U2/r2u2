@@ -1,8 +1,6 @@
 import re
 from logging import getLogger
-from typing import cast
 from antlr4 import InputStream, CommonTokenStream
-from numpy import isin
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -12,15 +10,19 @@ from .util import *
 # from .assembler import assemble
 
 logger = getLogger(logger_name)
-
     
+
 def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
     status: bool = True
+    explored: list[AST] = []
     context: dict[str,Type] = {}
 
     def type_check_util(a: AST) -> None:
         nonlocal status
-        c: AST
+
+        if a in explored:
+            return
+        explored.append(a)
 
         if not bz and not isinstance(a,LIT) and isinstance(a,BZ_EXPR):
             status = False
@@ -50,7 +52,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
         if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
-            child = cast(EXPR,a.children[0])
+            child = a.get_expr()
 
             if not child.type == Bool():
                 status = False
@@ -176,13 +178,12 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            s: STRUCT = cast(STRUCT,a.get_struct())
+            s: STRUCT = a.get_struct()
             rewrite(a,s.members[a.member])
 
     postorder(prog, rewrite_struct_access_util)
 
 
-# prog becomes DAG after this function
 def optimize_cse(prog: PROGRAM) -> None:
     S: dict[str,AST] = {}
     
@@ -204,22 +205,6 @@ def optimize_cse(prog: PROGRAM) -> None:
                 S[i] = a.children[c]
             
     postorder(prog,optimize_cse_util)
-
-
-# def insert_atomics(prog: PROGRAM) -> None:
-#     idx: int = 0
-
-#     def insert_atom(a: AST) -> None:
-#         nonlocal idx
-        
-#         for c in range(0,len(a.children)):
-#             child = a.children[c]
-#             if isinstance(a,TL_EXPR) and isinstance(child,BZ_EXPR) and not isinstance(child,BOOL) \
-#                     and not isinstance(a,ATOM) and not isinstance(child,ATOM):
-#                 new: ATOM = ATOM(a.ln,child,idx)
-#                 a.children[c] = new
-
-#     postorder(prog,insert_atom)
 
 
 def gen_alias(prog: PROGRAM) -> str:
@@ -291,9 +276,13 @@ def assign_ids(prog: PROGRAM) -> None:
             a.tlid = tlid
             tlid += 1
 
-        if isinstance(a,ATOM):
-            a.atid = atid
-            atid += 1
+        if isinstance(a,BZ_EXPR):
+            for p in a.parents:
+                if isinstance(p,TL_EXPR):
+                    a.atid = atid
+                    atid += 1
+                    a.tlid = tlid
+                    tlid += 1
 
         if isinstance(a,SIGNAL):
             a.sid = order[a.name]
@@ -309,10 +298,16 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
         nonlocal bzasm
         nonlocal bz_visited
 
-        if isinstance(a,ATOM) or isinstance(a,BZ_EXPR):
+        if isinstance(a,BZ_EXPR):
             if not a in bz_visited:
                 bzasm += a.bzasm()
                 bz_visited.append(a)
+                for p in a.parents:
+                    if isinstance(p,TL_EXPR):
+                        bzasm += f'store a{str(a.atid)}\n'
+                        break
+            else:
+                pass # add dup command? -- need to put in correct order tho
 
     postorder(prog,gen_bzasm_util)
 
@@ -327,7 +322,12 @@ def gen_tl_assembly(prog: PROGRAM) -> str:
         nonlocal tlasm
         nonlocal tl_visited
 
-        if isinstance(a,ATOM) or isinstance(a,TL_EXPR):
+        if isinstance(a,TL_EXPR):
+            if not a.tlid in tl_visited:
+                tlasm += a.tlasm()
+                tl_visited.append(a.tlid)
+        
+        if isinstance(a,BZ_EXPR) and a.atid > -1:
             if not a.tlid in tl_visited:
                 tlasm += a.tlasm()
                 tl_visited.append(a.tlid)
