@@ -8,7 +8,7 @@ VAR
     Order: tm1, tm2;
 
     -- sample input:
-    -- tm1.t1    | tm1.t2    | tm1.t3    | tm1.num_active | tm2.t1    | tm2.t2    | tm2.t3    | tm2.num_active
+    -- tm1.task_set[0] | tm1.t2    | tm1.t3    | tm1.num_active | tm2.t1    | tm2.t2    | tm2.t3    | tm2.num_active
     -- 0,1,0,5,0 , 0,0,0,0,0 , 0,0,1,3,8 , 1,               0,1,0,9,0 , 0,1,0,7,0 , 0,0,0,0,0 , 2 
 
 DEFINE
