@@ -1,12 +1,14 @@
 import re
 from logging import getLogger
-from antlr4 import InputStream, CommonTokenStream
+
+from antlr4 import CommonTokenStream, InputStream
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
 from .parser.C2POParser import C2POParser
-from .visitor import Visitor
 from .util import *
+from .visitor import Visitor
+
 # from .assembler import assemble
 
 logger = getLogger(logger_name)
@@ -294,6 +296,8 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
     bz_visited: list[AST] = []
     bzasm: str = ''
 
+    print(prog)
+
     def gen_bzasm_util(a: AST) -> None:
         nonlocal bzasm
         nonlocal bz_visited
@@ -302,12 +306,14 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
             if not a in bz_visited:
                 bzasm += a.bzasm()
                 bz_visited.append(a)
+
                 for p in a.parents:
                     if isinstance(p,TL_EXPR):
-                        bzasm += f'store a{str(a.atid)}\n'
+                        bzasm += a.bzasm_store()
                         break
-            else:
-                pass # add dup command? -- need to put in correct order tho
+                    
+                for i in range(0,len(a.parents)-1): # type: ignore
+                    bzasm += a.bzasm_dup()
 
     postorder(prog,gen_bzasm_util)
 
@@ -377,7 +383,7 @@ def parse(input: str) -> list[PROGRAM]:
     parse_tree = parser.start()
     # print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
-    progs: list[PROGRAM] = v.visitStart(parse_tree)
+    progs: list[PROGRAM] = v.visitStart(parse_tree) # type: ignore
     if v.status:
         return progs
     else:

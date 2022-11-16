@@ -1,7 +1,5 @@
 from __future__ import annotations
-from ast import expr
 from copy import deepcopy
-from re import L
 from typing import Any, Callable, NamedTuple, NewType
 from logging import getLogger
 
@@ -132,6 +130,12 @@ class BZ_EXPR(EXPR):
     def bzasm(self) -> str:
         return ''
 
+    def bzasm_store(self) -> str:
+        return f'store a{self.atid}\n'
+
+    def bzasm_dup(self) -> str:
+        return 'dup\n'
+
 
 class LIT(BZ_EXPR):
 
@@ -198,6 +202,9 @@ class SIGNAL(LIT):
 
     def __str__(self) -> str:
         return self.name
+
+    def tlasm(self) -> str:
+        return super().tlasm() + f'load s{self.sid}\n'
 
     def bzasm(self) -> str:
         return ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + '\n'
