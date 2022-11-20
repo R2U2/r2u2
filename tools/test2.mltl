@@ -5,7 +5,7 @@
 
 STRUCT
   test: {a,b,c: int;};
-
+ 
 INPUT
   x,y,z: int;
   
@@ -16,6 +16,9 @@ DEFINE
   t1 = test(y,z,x);
   t2 = test(z,x,y);
 
+  t3 = test(x+y,y+z,x+z);
+
 
 SPEC
-  atleastoneof(t:{t0,t1,t2})(t.a == t.b || x>5);
+  foreach(t:{t0,t1,t2,t3})(t.a == t.b || x>5);
+  

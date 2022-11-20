@@ -241,7 +241,7 @@ class Visitor(C2POVisitor):
         elif ctx.LOG_IMPL():
             return LOG_IMPL(ln, lhs, rhs)
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -263,7 +263,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Binary TL op \'{ctx.tl_bin_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -286,7 +286,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -297,7 +297,7 @@ class Visitor(C2POVisitor):
 
     # Visit a parse tree produced by C2POParser#TernaryExpr.
     def visitTernaryExpr(self, ctx:C2POParser.TernaryExprContext) -> EXPR:
-        self.error(f'{ln}: Ternary operator not supported')
+        self.error(f'{ln}: Ternary operator \'{ctx.getText()}\' not supported')
         return EXPR(ln, [])
 
 
@@ -314,7 +314,7 @@ class Visitor(C2POVisitor):
         elif ctx.BW_AND():
             return BW_AND(ln, lhs, rhs)
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
             
 
@@ -345,7 +345,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Rel op \'{ctx.rel_ineq_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -364,7 +364,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -385,7 +385,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Binary arithmetic op \'{ctx.tl_bin_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -403,7 +403,7 @@ class Visitor(C2POVisitor):
                 self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -420,10 +420,10 @@ class Visitor(C2POVisitor):
                     members[s] = elist.pop(0)
                 return STRUCT(ln,id,members)
             else:
-                self.error(f'{ln}: Member mismatch for struct {id}, number of members do not match')
+                self.error(f'{ln}: Member mismatch for struct \'{id}\', number of members do not match')
                 return EXPR(ln, [])
         else:
-            self.error(f'{ln}: Symbol {id} not recognized')
+            self.error(f'{ln}: Symbol \'{id}\' not recognized')
             return EXPR(ln, [])
 
 
@@ -437,12 +437,12 @@ class Visitor(C2POVisitor):
         e: EXPR = self.visit(ctx.expr())
         del self.defs[v.name]
 
-        if op == 'allof':
-            return ALL_OF(ln,S,v,e)
+        if op == 'foreach':
+            return FOR_EACH(ln,S,v,e)
         elif op == 'atleastoneof':
             return AT_LEAST_ONE_OF(ln,S,v,e)
         else:
-            self.error(f'{ln}: Set aggregation operator {op} not supported')
+            self.error(f'{ln}: Set aggregation operator \'{op}\' not supported')
             return EXPR(ln, [])
 
 
@@ -459,18 +459,7 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         id: str = ctx.IDENTIFIER().getText()
         e: EXPR = self.visit(ctx.expr())
-
         return STRUCT_ACCESS(ln,e,id)
-
-        # if isinstance(e,STRUCT):
-        #     if id in e.members.keys():
-        #         return e.members[id]
-        #     else:
-        #         self.error(f'{ln}: Member {id} of struct {e} does not exist')
-        #         return EXPR(ln, [])
-        # else:
-        #     self.error(f'{ln}: Accessing member {id} of non-struct expression {e}')
-        #     return EXPR(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.
@@ -530,7 +519,7 @@ class Visitor(C2POVisitor):
             u: int = int(bounds[1].getText())
             return Interval(lb=l,ub=u)
         else:
-            self.error(f'{ln}: Expression not recognized')
+            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return Interval(0,0)
 
 

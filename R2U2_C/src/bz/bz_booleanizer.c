@@ -16,9 +16,15 @@ void bz_init(void)
         bz.sig_vector[i].b = false;
     }
 
-    for(i = 0; i < N_BZ; ++i) {
+    for(i = 0; i < MAX_BZ; ++i) {
         bz.bz_vector[i] = false;
     }
+
+    for(i = 0; i < MAX_REG; ++i) {
+        bz.reg[i].b = false;
+    }
+
+    bz.cur_reg = 0;
 }
 
 void bz_update(void)
@@ -217,6 +223,9 @@ void bz_execute(uint32_t i)
             f3 = f1 / f2;
             bz_stack_fpush(&bz.stack,f3);
             break;
+        /* Set aggregation */
+        case BZ_FOREACH:
+        case BZ_ATLEASTONEOF:
         /* Auxiliary */
         case BZ_AUX1:
         case BZ_AUX2:

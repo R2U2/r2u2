@@ -22,6 +22,9 @@ INPUT
 
     Order: c1, ...
 
+    -- instead, take csv file as input for "offline"
+    -- take some file format at input for "online"
+
 DEFINE
     CMDAccepted = 3; -- Assuming each response code is some constant
 

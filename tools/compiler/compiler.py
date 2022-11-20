@@ -165,23 +165,24 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
-def rewrite_set_agg(prog: PROGRAM) -> None:
+# def rewrite_set_agg(prog: PROGRAM) -> None:
 
-    def rewrite_set_agg_util(a: AST) -> None:
-        if isinstance(a,ALL_OF):
-            rewrite(a,LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
-        elif isinstance(a,AT_LEAST_ONE_OF):
-            rewrite(a,LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
+#     def rewrite_set_agg_util(a: AST) -> None:
+#         if isinstance(a,SET_AGG_OP):
+#             a.children = [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]
 
-    postorder(prog, rewrite_set_agg_util)
+#     postorder(prog, rewrite_set_agg_util)
 
 
 def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            s: STRUCT = a.get_struct()
-            rewrite(a,s.members[a.member])
+            s: EXPR = a.get_struct()
+            if isinstance(s,STRUCT):
+                rewrite(a,s.members[a.member])
+            else:
+                pass
 
     postorder(prog, rewrite_struct_access_util)
 
@@ -256,7 +257,6 @@ def total_scq_size(prog: PROGRAM) -> int:
         mem += a.scq_size
         # if isinstance(a,TL_EXPR) and not isinstance(a, PROGRAM):
         #     print('mem('+str(a)+') = '+str(a.scq_size))
-
     postorder(prog,total_scq_size_util)
     return mem
 
@@ -298,7 +298,11 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
 
     print(prog)
 
-    def gen_bzasm_util(a: AST) -> None:
+    def gen_bzasm_util_pre(a: AST) -> None:
+        # load next element's data into registers
+        pass
+
+    def gen_bzasm_util_post(a: AST) -> None:
         nonlocal bzasm
         nonlocal bz_visited
 
@@ -312,10 +316,10 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
                         bzasm += a.bzasm_store()
                         break
                     
-                for i in range(0,len(a.parents)-1): # type: ignore
-                    bzasm += a.bzasm_dup()
+                # for i in range(0,len(a.parents)-1): # type: ignore
+                #     bzasm += a.bzasm_dup()
 
-    postorder(prog,gen_bzasm_util)
+    traverse(prog,gen_bzasm_util_pre,gen_bzasm_util_post)
 
     return bzasm[:-1] # remove dangling '\n'
 
@@ -405,7 +409,7 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
         logger.error(' Failed type check')
         return
 
-    rewrite_set_agg(progs[0])
+    # rewrite_set_agg(progs[0])
     rewrite_struct_access(progs[0])
 
     # rewrite without extended operators if enabled

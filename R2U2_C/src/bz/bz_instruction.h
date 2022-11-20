@@ -45,11 +45,14 @@ typedef enum bz_opcode {
     BZ_IDIV    = 0b100000,
     BZ_FDIV    = 0b100001,
     BZ_MOD     = 0b100010,
+    /* Set Aggregation */
+    BZ_FOREACH = 0b100011,
+    BZ_ATLEASTONEOF = 0b100100,
     /* Auxiliary */
-    BZ_AUX1    = 0b100011,
-    BZ_AUX2    = 0b100100,
-    BZ_AUX3    = 0b100101,
-    BZ_AUX4    = 0b100110,
+    BZ_AUX1    = 0b100101,
+    BZ_AUX2    = 0b100111,
+    BZ_AUX3    = 0b101000,
+    BZ_AUX4    = 0b101001,
 } bz_opcode_t;
 
 typedef struct bz_instruction {

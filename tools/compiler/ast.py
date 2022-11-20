@@ -184,12 +184,16 @@ class VAR(EXPR):
     def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln,[])
         self.name: str = n
+        self.reg: int = -1
 
     def __str__(self) -> str:
         return self.name
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o,VAR) and __o.name == self.name
+
+    def bzasm(self) -> str:
+        return ('f' if self.type == Float() else 'i') + f'load r{self.reg}'
 
 
 class SIGNAL(LIT):
@@ -263,8 +267,8 @@ class STRUCT_ACCESS(EXPR):
         super().__init__(ln, [s])
         self.member: str = m
 
-    def get_struct(self) -> STRUCT:
-        return cast(STRUCT,self.children[0])
+    def get_struct(self) -> EXPR:
+        return cast(EXPR,self.children[0])
 
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
@@ -315,11 +319,11 @@ class SET_AGG_OP(EXPR):
         return self.name + '(' + str(self.get_boundvar()) + ':' + str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
 
 
-class ALL_OF(SET_AGG_OP):
+class FOR_EACH(SET_AGG_OP):
 
     def __init__(self, ln: int, s: SET, v: VAR, e: EXPR) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = 'allof'
+        self.name: str = 'foreach'
 
 
 class AT_LEAST_ONE_OF(SET_AGG_OP):
