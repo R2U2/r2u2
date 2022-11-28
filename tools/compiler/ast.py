@@ -262,7 +262,7 @@ class STRUCT_ACCESS(AST):
         self.member: str = m
 
     def get_struct(self) -> AST:
-        return cast(AST,self.children[0])
+        return self.children[0]
 
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
@@ -288,7 +288,7 @@ class SET_AGG_OP(AST):
         return cast(VAR,self.children[1])
 
     def get_expr(self) -> AST:
-        return cast(AST,self.children[2])
+        return self.children[2]
 
     def __str__(self) -> str:
         return self.name + '(' + str(self.get_boundvar()) + ':' + str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
@@ -934,7 +934,7 @@ class SPEC(TL_EXPR):
         self.fnum: int = f
 
     def get_expr(self) -> AST:
-        return cast(AST,self.children[0])
+        return self.children[0]
 
     def __str__(self) -> str:
         return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])
