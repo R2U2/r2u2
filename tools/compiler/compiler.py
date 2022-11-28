@@ -260,11 +260,13 @@ def total_scq_size(prog: PROGRAM) -> int:
 def assign_ids(prog: PROGRAM) -> None:
     order: dict[str,int] = prog.order
     tlid: int = 0
+    bzid: int = 0
     atid: int = 0
 
     def assign_ids_util(a: AST) -> None:
         nonlocal order
         nonlocal tlid
+        nonlocal bzid
         nonlocal atid
 
         if isinstance(a,BOOL) or a.tlid > -1:
@@ -275,6 +277,7 @@ def assign_ids(prog: PROGRAM) -> None:
             tlid += 1
 
         if isinstance(a,BZ_EXPR):
+            
             for p in a.parents:
                 if isinstance(p,TL_EXPR):
                     a.atid = atid

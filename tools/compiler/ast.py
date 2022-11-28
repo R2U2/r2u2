@@ -84,6 +84,7 @@ class AST():
     def __init__(self, ln: int, c: list['AST']) -> None:
         self.ln: int = ln
         self.tlid: int = -1
+        self.bzid: int = -1
         self.atid: int = -1
         self.scq_size: int = 0
         self.name: str = ''
@@ -311,15 +312,15 @@ class AT_LEAST_ONE_OF(SET_AGG_OP):
 class BRANCH(BZ_EXPR):
 
     def __init__(self, ln: int, c: AST, b: AST) -> None:
-        super().__init__(ln, [c,b])
+        super().__init__(ln, [c])
         self.cond = c
-        self.branch = b
+        self.branch = b # self.branch.bzid > self.bzid
 
     def get_cond(self) -> AST:
         return self.children[0]
 
     def get_branch(self) -> AST:
-        return self.children[1]
+        return self.branch
 
 
 class IF_EQ(BRANCH):
