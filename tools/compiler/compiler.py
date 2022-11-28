@@ -51,7 +51,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                     a.formula_type = c.formula_type
 
 
-        if isinstance(a,ATOM) or isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
+        if isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
             child = a.get_expr()
@@ -165,20 +165,19 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
-# def rewrite_set_agg(prog: PROGRAM) -> None:
+def rewrite_set_agg(prog: PROGRAM) -> None:
 
-#     def rewrite_set_agg_util(a: AST) -> None:
-#         if isinstance(a,SET_AGG_OP):
-#             a.children = [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]
+    def rewrite_set_agg_util(a: AST) -> None:
+        pass
 
-#     postorder(prog, rewrite_set_agg_util)
+    postorder(prog, rewrite_set_agg_util)
 
 
 def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            s: EXPR = a.get_struct()
+            s: AST = a.get_struct()
             if isinstance(s,STRUCT):
                 rewrite(a,s.members[a.member])
             else:
@@ -194,9 +193,6 @@ def optimize_cse(prog: PROGRAM) -> None:
         nonlocal S
         c: int
         i: str
-
-        if isinstance(a,ATOM):
-            return
 
         for c in range(0,len(a.children)):
             child = a.children[c]
@@ -358,7 +354,7 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
         nonlocal s
         nonlocal pos
 
-        if isinstance(a,PROGRAM) or (isinstance(a,BZ_EXPR) and not isinstance(a,ATOM)):
+        if isinstance(a,PROGRAM) or isinstance(a,BZ_EXPR):
             return
 
         start_pos = pos
@@ -409,15 +405,12 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
         logger.error(' Failed type check')
         return
 
-    # rewrite_set_agg(progs[0])
+    rewrite_set_agg(progs[0])
     rewrite_struct_access(progs[0])
 
     # rewrite without extended operators if enabled
     if not extops:
         rewrite_ops(progs[0])
-
-    # demarcate TL and BZ nodes with ATOM nodes
-    # insert_atomics(progs[0])
 
     # common sub-expressions elimination
     optimize_cse(progs[0])

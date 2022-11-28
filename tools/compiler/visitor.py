@@ -18,7 +18,7 @@ class Visitor(C2POVisitor):
         # self.structs: dict[str,tuple[list[str],list[Type]]] = {}
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
-        self.defs: dict[str,EXPR] = {}
+        self.defs: dict[str,AST] = {}
         self.order: dict[str,int] = {}
         self.spec_num: int = 0
         self.status = True
@@ -151,7 +151,7 @@ class Visitor(C2POVisitor):
     def visitDef(self, ctx:C2POParser.DefContext) -> None:
         ln: int = ctx.start.line
         var: str = ctx.IDENTIFIER().getText()
-        expr: EXPR = self.visit(ctx.expr())
+        expr: AST = self.visit(ctx.expr())
 
         if var in self.vars.keys():
             self.error(f'{ln}: Variable \'{var}\' already declared')
@@ -192,7 +192,7 @@ class Visitor(C2POVisitor):
         label: str = ''
 
         if ctx.expr():
-            expr: EXPR = self.visit(ctx.expr())
+            expr: AST = self.visit(ctx.expr())
         
             # if spec has a label, can be referred to in other specs
             # else, cannot be referred to later, do not store
@@ -214,23 +214,23 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#contract.
-    def visitContract(self, ctx:C2POParser.ContractContext) -> list[EXPR]:
+    def visitContract(self, ctx:C2POParser.ContractContext) -> list[AST]:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
-        f1: EXPR = lhs
-        f2: EXPR = LOG_IMPL(ln,lhs,rhs)
-        f3: EXPR = LOG_AND(ln,lhs,rhs)
+        f1: AST = lhs
+        f2: AST = LOG_IMPL(ln,lhs,rhs)
+        f3: AST = LOG_AND(ln,lhs,rhs)
 
         return [f1,f2,f3]
 
 
     # Visit a parse tree produced by C2POParser#LogBinExpr.
-    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext) -> EXPR:
+    def visitLogBinExpr(self, ctx:C2POParser.LogBinExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
             return LOG_BIN_OR(ln, lhs, rhs)
@@ -242,14 +242,14 @@ class Visitor(C2POVisitor):
             return LOG_IMPL(ln, lhs, rhs)
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#TLBinExpr.
-    def visitTLBinExpr(self, ctx:C2POParser.TLBinExprContext) -> EXPR:
+    def visitTLBinExpr(self, ctx:C2POParser.TLBinExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
         bounds: Interval = self.visit(ctx.tl_bin_op().interval())
 
         if ctx.tl_bin_op():
@@ -261,16 +261,16 @@ class Visitor(C2POVisitor):
                 return TL_SINCE(ln, lhs, rhs, bounds.lb, bounds.ub)
             else:
                 self.error(f'{ln}: Binary TL op \'{ctx.tl_bin_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#TLUnaryExpr.
-    def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext) -> EXPR:
+    def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext) -> AST:
         ln: int = ctx.start.line
-        operand: EXPR = self.visit(ctx.expr())
+        operand: AST = self.visit(ctx.expr())
         bounds: Interval = self.visit(ctx.tl_unary_op().interval())
 
         if ctx.tl_unary_op():
@@ -284,28 +284,28 @@ class Visitor(C2POVisitor):
                 return TL_ONCE(ln, operand, bounds.lb, bounds.ub)
             else:
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#ParensExpr.
-    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> EXPR:
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> AST:
         return self.visit(ctx.expr())
 
 
     # Visit a parse tree produced by C2POParser#TernaryExpr.
-    def visitTernaryExpr(self, ctx:C2POParser.TernaryExprContext) -> EXPR:
+    def visitTernaryExpr(self, ctx:C2POParser.TernaryExprContext) -> AST:
         self.error(f'{ln}: Ternary operator \'{ctx.getText()}\' not supported')
-        return EXPR(ln, [])
+        return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#BWExpr.
-    def visitBWExpr(self, ctx:C2POParser.BWExprContext) -> EXPR:
+    def visitBWExpr(self, ctx:C2POParser.BWExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.BW_OR():
             return BW_OR(ln, lhs, rhs)
@@ -315,14 +315,14 @@ class Visitor(C2POVisitor):
             return BW_AND(ln, lhs, rhs)
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
             
 
     # Visit a parse tree produced by C2POParser#RelExpr.
-    def visitRelExpr(self, ctx:C2POParser.RelExprContext) -> EXPR:
+    def visitRelExpr(self, ctx:C2POParser.RelExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
@@ -331,7 +331,7 @@ class Visitor(C2POVisitor):
                 return REL_NEQ(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Rel op \'{ctx.rel_eq_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         elif ctx.rel_ineq_op():
             if ctx.rel_ineq_op().REL_GT():
                 return REL_GT(ln, lhs, rhs)
@@ -343,17 +343,17 @@ class Visitor(C2POVisitor):
                 return REL_LTE(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Rel op \'{ctx.rel_ineq_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#ArithAddExpr.
-    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext) -> EXPR:
+    def visitArithAddExpr(self, ctx:C2POParser.ArithAddExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.arith_add_op():
             if ctx.arith_add_op().ARITH_ADD():
@@ -362,17 +362,17 @@ class Visitor(C2POVisitor):
                 return ARITH_SUB(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#ArithMulExpr.
-    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext) -> EXPR:
+    def visitArithMulExpr(self, ctx:C2POParser.ArithMulExprContext) -> AST:
         ln: int = ctx.start.line
-        lhs: EXPR = self.visit(ctx.expr(0))
-        rhs: EXPR = self.visit(ctx.expr(1))
+        lhs: AST = self.visit(ctx.expr(0))
+        rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.arith_mul_op():
             if ctx.arith_mul_op().ARITH_MUL():
@@ -383,16 +383,16 @@ class Visitor(C2POVisitor):
                 return ARITH_MOD(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Binary arithmetic op \'{ctx.tl_bin_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#UnaryExpr.
-    def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext) -> EXPR:
+    def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext) -> AST:
         ln: int = ctx.start.line
-        op: EXPR = self.visit(ctx.expr(0))
+        op: AST = self.visit(ctx.expr(0))
 
         if ctx.unary_op():
             if ctx.unary_op.ARITH_SUB():
@@ -401,40 +401,40 @@ class Visitor(C2POVisitor):
                 return BW_NEG(ln, op)
             else:
                 self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#FuncExpr.
-    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> EXPR:
+    def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> AST:
         ln: int = ctx.start.line
         id: str = ctx.IDENTIFIER().getText()
-        elist: list[EXPR] = self.visit(ctx.expr_list())
+        elist: list[AST] = self.visit(ctx.expr_list())
 
         if id in self.structs.keys():
-            members: dict[str,EXPR] = {}
+            members: dict[str,AST] = {}
             if len(elist) == len(self.structs[id]):
                 for s in self.structs[id].keys():
                     members[s] = elist.pop(0)
                 return STRUCT(ln,id,members)
             else:
                 self.error(f'{ln}: Member mismatch for struct \'{id}\', number of members do not match')
-                return EXPR(ln, [])
+                return AST(ln, [])
         else:
             self.error(f'{ln}: Symbol \'{id}\' not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#SetAggExpr.
-    def visitSetAggExpr(self, ctx:C2POParser.SetAggExprContext) -> EXPR:
+    def visitSetAggExpr(self, ctx:C2POParser.SetAggExprContext) -> AST:
         ln: int = ctx.start.line
         op: str = ctx.IDENTIFIER().getText()
 
         S,v = self.visit(ctx.set_agg_binder())
         self.defs[v.name] = v
-        e: EXPR = self.visit(ctx.expr())
+        e: AST = self.visit(ctx.expr())
         del self.defs[v.name]
 
         if op == 'foreach':
@@ -443,29 +443,29 @@ class Visitor(C2POVisitor):
             return AT_LEAST_ONE_OF(ln,S,v,e)
         else:
             self.error(f'{ln}: Set aggregation operator \'{op}\' not supported')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#set_agg_binder.
-    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[EXPR,VAR]:
+    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[AST,VAR]:
         ln: int = ctx.start.line
-        S: EXPR = self.visit(ctx.expr())
+        S: AST = self.visit(ctx.expr())
         v: VAR = VAR(ln,ctx.IDENTIFIER().getText())
         return (S,v)
 
 
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
-    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> EXPR:
+    def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> AST:
         ln: int = ctx.start.line
         id: str = ctx.IDENTIFIER().getText()
-        e: EXPR = self.visit(ctx.expr())
+        e: AST = self.visit(ctx.expr())
         return STRUCT_ACCESS(ln,e,id)
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.
-    def visitSetExpr(self, ctx:C2POParser.SetExprContext) -> EXPR:
+    def visitSetExpr(self, ctx:C2POParser.SetExprContext) -> AST:
         ln: int = ctx.start.line
-        elements: list[EXPR] = []
+        elements: list[AST] = []
         
         if ctx.set_expr().expr_list():
             elements = self.visit(ctx.set_expr().expr_list())
@@ -474,12 +474,12 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#ParensExpr.
-    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> EXPR:
+    def visitParensExpr(self, ctx:C2POParser.ParensExprContext) -> AST:
         return self.visit(ctx.expr())
 
 
     # Visit a parse tree produced by C2POParser#LiteralExpr.
-    def visitLiteralExpr(self, ctx:C2POParser.LiteralExprContext) -> EXPR:
+    def visitLiteralExpr(self, ctx:C2POParser.LiteralExprContext) -> AST:
         ln: int = ctx.start.line
 
         literal: C2POParser.LiteralContext = ctx.literal()
@@ -496,14 +496,14 @@ class Visitor(C2POVisitor):
                 return SIGNAL(ln, name, self.vars[name])
             else:
                 self.error(f'{ln}: Variable \'{name}\' undefined')
-                return EXPR(ln, [])
+                return AST(ln, [])
         elif literal.INT():
             return INT(ln, int(literal.INT().getText()))
         elif literal.FLOAT():
             return FLOAT(ln, float(literal.FLOAT().getText()))
         else:
             self.error(f'{ln}: Literal \'{ctx.start.text}\' parser token not recognized')
-            return EXPR(ln, [])
+            return AST(ln, [])
 
 
     # Visit a parse tree produced by C2POParser#interval.
@@ -524,12 +524,12 @@ class Visitor(C2POVisitor):
 
 
         # Visit a parse tree produced by C2POParser#expr_list.
-    def visitExpr_list(self, ctx:C2POParser.Expr_listContext) -> list[EXPR]:
+    def visitExpr_list(self, ctx:C2POParser.Expr_listContext) -> list[AST]:
         ln: int = ctx.start.line
-        exprs: list[EXPR] = []
+        exprs: list[AST] = []
 
         for expr in ctx.expr():
-            e: EXPR = self.visit(expr)
+            e: AST = self.visit(expr)
             exprs.append(e)
 
         return exprs
