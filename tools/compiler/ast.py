@@ -302,31 +302,45 @@ class FOR_EACH(SET_AGG_OP):
         self.name: str = 'foreach'
 
 
-class AT_LEAST_ONE_OF(SET_AGG_OP):
+class FOR_SOME(SET_AGG_OP):
 
     def __init__(self, ln: int, s: SET, v: VAR, e: AST) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = 'atleastoneof'
+        self.name: str = 'forsome'
+
+
+# TODO -- add check that N < size of set before evaluating
+
+class FOR_EXACTLY_N(SET_AGG_OP):
+
+    def __init__(self, ln: int, s: SET, v: VAR, e: AST) -> None:
+        super().__init__(ln, s, v, e)
+
+
+class FOR_AT_LEAST_N(SET_AGG_OP):
+
+    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
+        super().__init__(ln, s, v, e)
+        self.name: str = 'atleastnof'
+        self.num: int = n
+
+
+class FOR_AT_MOST_N(SET_AGG_OP):
+
+    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
+        super().__init__(ln, s, v, e)
+        self.name: str = 'atmostnof'
+        self.num: int = n
 
 
 class BRANCH(BZ_EXPR):
 
-    def __init__(self, ln: int, c: AST, b: AST) -> None:
-        super().__init__(ln, [c])
-        self.cond = c
+    def __init__(self, ln: int, b: AST) -> None:
+        super().__init__(ln, [])
         self.branch = b # self.branch.bzid > self.bzid
-
-    def get_cond(self) -> AST:
-        return self.children[0]
 
     def get_branch(self) -> AST:
         return self.branch
-
-
-class IF_EQ(BRANCH):
-
-    def __init__(self, ln: int, c: AST, b: AST) -> None:
-        super().__init__(ln, c, b)
 
 
 class BW_OP(BZ_EXPR):

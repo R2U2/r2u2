@@ -168,7 +168,16 @@ def rewrite_ops(prog: PROGRAM) -> None:
 def rewrite_set_agg(prog: PROGRAM) -> None:
 
     def rewrite_set_agg_util(a: AST) -> None:
-        pass
+        if isinstance(a, FOR_EACH):
+            pass
+        elif isinstance(a, FOR_SOME):
+            pass
+        elif isinstance(a, FOR_EXACTLY_N):
+            pass
+        elif isinstance(a, FOR_AT_LEAST_N):
+            pass
+        elif isinstance(a, FOR_AT_MOST_N):
+            pass
 
     postorder(prog, rewrite_set_agg_util)
 
