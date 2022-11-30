@@ -1,8 +1,21 @@
 -- Assume 3 tasks, 10 commands each. Can be generalized to 4 tasks, 25 commands each.
 
 STRUCT
-    Command: { Sent: bool; ResponseCode: int; };
+    Command: { Sent: bool; ResponseCode: uint8; };
     Task: { Running: bool; Cmds: set<Command>; };
+
+INPUT
+    cmd_1_01_sent, cmd_1_02_sent, cmd_1_03_sent, cmd_1_04_sent, cmd_1_05_sent, cmd_1_06_sent, cmd_1_07_sent, cmd_1_08_sent, cmd_1_09_sent, cmd_1_10_sent, 
+    cmd_2_01_sent, cmd_2_02_sent, cmd_2_03_sent, cmd_2_04_sent, cmd_2_05_sent, cmd_2_06_sent, cmd_2_07_sent, cmd_2_08_sent, cmd_2_09_sent, cmd_2_10_sent, 
+    cmd_3_01_sent, cmd_3_02_sent, cmd_3_03_sent, cmd_3_04_sent, cmd_3_05_sent, cmd_3_06_sent, cmd_3_07_sent, cmd_3_08_sent, cmd_3_09_sent, cmd_3_10_sent : bool;
+    
+    cmd_1_01_rc, cmd_1_02_rc, cmd_1_03_rc, cmd_1_04_rc, cmd_1_05_rc, cmd_1_06_rc, cmd_1_07_rc, cmd_1_08_rc, cmd_1_09_rc, cmd_1_10_rc, 
+    cmd_2_01_rc, cmd_2_02_rc, cmd_2_03_rc, cmd_2_04_rc, cmd_2_05_rc, cmd_2_06_rc, cmd_2_07_rc, cmd_2_08_rc, cmd_2_09_rc, cmd_2_10_rc, 
+    cmd_3_01_rc, cmd_3_02_rc, cmd_3_03_rc, cmd_3_04_rc, cmd_3_05_rc, cmd_3_06_rc, cmd_3_07_rc, cmd_3_08_rc, cmd_3_09_rc, cmd_3_10_rc : uint8;
+
+    task_1_cmds_size, task_2_cmds_size, task_3_cmds_size : uint8;
+
+    task_1_running, task_2_running, task_3_running : bool;
 
 DEFINE
     CMDAccepted = 3;
