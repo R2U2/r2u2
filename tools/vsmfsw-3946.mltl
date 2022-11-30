@@ -1,41 +1,64 @@
--- 4 tasks, 25 commands each
+-- Assume 3 tasks, 10 commands each. Can be generalized to 4 tasks, 25 commands each.
 
 STRUCT
     Command: { Sent: bool; ResponseCode: int; };
     Task: { Running: bool; Cmds: set<Command>; };
 
-INPUT
-    cmd_1_01_sent, cmd_1_02_sent, cmd_1_03_sent, cmd_1_04_sent, cmd_1_05_sent,
-    cmd_1_06_sent, cmd_1_07_sent, cmd_1_08_sent, cmd_1_03_sent, cmd_1_03_sent,
-    cmd_1_03_sent, cmd_1_03_sent, cmd_1_03_sent, cmd_1_03_sent
-    c21sent, c22sent, c23sent
-    
-    c11rc, c12rc, c13rc, 
-    c21rc, c22rc, c23rc: int; 
-
-    x1running, x2running: bool;
-
 DEFINE
     CMDAccepted = 3;
 
-    x1 = Task(x1running,{c11,c12,c13});
-    x2 = Task(x2running,{c21,c22,c23});
+    cmd_1_01 = Command(cmd_1_01_sent, cmd_1_01_rc);
+    cmd_1_02 = Command(cmd_1_02_sent, cmd_1_02_rc);
+    cmd_1_03 = Command(cmd_1_03_sent, cmd_1_03_rc);
+    cmd_1_04 = Command(cmd_1_04_sent, cmd_1_04_rc);
+    cmd_1_05 = Command(cmd_1_05_sent, cmd_1_05_rc);
+    cmd_1_06 = Command(cmd_1_06_sent, cmd_1_06_rc);
+    cmd_1_07 = Command(cmd_1_07_sent, cmd_1_07_rc);
+    cmd_1_08 = Command(cmd_1_08_sent, cmd_1_08_rc);
+    cmd_1_09 = Command(cmd_1_09_sent, cmd_1_09_rc);
+    cmd_1_10 = Command(cmd_1_10_sent, cmd_1_10_rc);
 
-    X = {x1,x2}; -- set of three tasks
+    cmd_2_01 = Command(cmd_2_01_sent, cmd_2_01_rc);
+    cmd_2_02 = Command(cmd_2_02_sent, cmd_2_02_rc);
+    cmd_2_03 = Command(cmd_2_03_sent, cmd_2_03_rc);
+    cmd_2_04 = Command(cmd_2_04_sent, cmd_2_04_rc);
+    cmd_2_05 = Command(cmd_2_05_sent, cmd_2_05_rc);
+    cmd_2_06 = Command(cmd_2_06_sent, cmd_2_06_rc);
+    cmd_2_07 = Command(cmd_2_07_sent, cmd_2_07_rc);
+    cmd_2_08 = Command(cmd_2_08_sent, cmd_2_08_rc);
+    cmd_2_09 = Command(cmd_2_09_sent, cmd_2_09_rc);
+    cmd_2_10 = Command(cmd_2_10_sent, cmd_2_10_rc);
 
+    cmd_3_01 = Command(cmd_3_01_sent, cmd_3_01_rc);
+    cmd_3_02 = Command(cmd_3_02_sent, cmd_3_02_rc);
+    cmd_3_03 = Command(cmd_3_03_sent, cmd_3_03_rc);
+    cmd_3_04 = Command(cmd_3_04_sent, cmd_3_04_rc);
+    cmd_3_05 = Command(cmd_3_05_sent, cmd_3_05_rc);
+    cmd_3_06 = Command(cmd_3_06_sent, cmd_3_06_rc);
+    cmd_3_07 = Command(cmd_3_07_sent, cmd_3_07_rc);
+    cmd_3_08 = Command(cmd_3_08_sent, cmd_3_08_rc);
+    cmd_3_09 = Command(cmd_3_09_sent, cmd_3_09_rc);
+    cmd_3_10 = Command(cmd_3_10_sent, cmd_3_10_rc);
+
+    task_1_cmds = {cmd_1_01, cmd_1_02, cmd_1_03, cmd_1_04, cmd_1_05, cmd_1_06, cmd_1_07, cmd_1_08, cmd_1_09, cmd_1_10};
+    task_1_cmds.size = task_1_cmds_size;
+ 
+    task_2_cmds = {cmd_2_01, cmd_2_02, cmd_2_03, cmd_2_04, cmd_2_05, cmd_2_06, cmd_2_07, cmd_2_08, cmd_2_09, cmd_2_10};
+    task_2_cmds.size = task_2_cmds_size;
+ 
+    task_3_cmds = {cmd_3_01, cmd_3_02, cmd_3_03, cmd_3_04, cmd_3_05, cmd_3_06, cmd_3_07, cmd_3_08, cmd_3_09, cmd_3_10};
+    task_3_cmds.size = task_3_cmds_size;
+
+    task_1 = Task(task_1_running, task_1_cmds);
+    task_2 = Task(task_2_running, task_2_cmds);
+    task_3 = Task(task_3_running, task_3_cmds);
+
+    task_set = {task_1, task_2, task_3}; 
 
 SPEC
-    -- Version 1:
-    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
-    -- if cmd has been sent and not accepted, then within 5 time steps, cmd will be sent and accepted.
-    foreach(x:X)(x.Running => 
-        (foreach(cmd:x.Cmds)((cmd.Sent && cmd.ResponseCode != CMDAccepted) -> 
-                                (F[0,4](cmd.Sent && cmd.ResponseCode == CMDAccepted)))));
-
-    -- Version 2:
-    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- For each task in task_set, if task is running then for all commands cmd in tasks's set of commands,
     -- if cmd has been sent and not accepted within 3 time steps, then within 5 time steps, 
     -- cmd will be sent and accepted within 3 time steps of being sent.
-    foreach(x:X)(x.Running =>
-        (foreach(cmd:x.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
+    foreach(task: task_set) (task.Running => 
+        (foreach(cmd: task.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
                                 F[0,4](cmd.Sent && F[0,2]cmd.ResponseCode == CMDAccepted))));
