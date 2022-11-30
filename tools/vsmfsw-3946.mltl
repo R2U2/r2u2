@@ -1,0 +1,41 @@
+-- 4 tasks, 25 commands each
+
+STRUCT
+    Command: { Sent: bool; ResponseCode: int; };
+    Task: { Running: bool; Cmds: set<Command>; };
+
+INPUT
+    cmd_1_01_sent, cmd_1_02_sent, cmd_1_03_sent, cmd_1_04_sent, cmd_1_05_sent,
+    cmd_1_06_sent, cmd_1_07_sent, cmd_1_08_sent, cmd_1_03_sent, cmd_1_03_sent,
+    cmd_1_03_sent, cmd_1_03_sent, cmd_1_03_sent, cmd_1_03_sent
+    c21sent, c22sent, c23sent
+    
+    c11rc, c12rc, c13rc, 
+    c21rc, c22rc, c23rc: int; 
+
+    x1running, x2running: bool;
+
+DEFINE
+    CMDAccepted = 3;
+
+    x1 = Task(x1running,{c11,c12,c13});
+    x2 = Task(x2running,{c21,c22,c23});
+
+    X = {x1,x2}; -- set of three tasks
+
+
+SPEC
+    -- Version 1:
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- if cmd has been sent and not accepted, then within 5 time steps, cmd will be sent and accepted.
+    foreach(x:X)(x.Running => 
+        (foreach(cmd:x.Cmds)((cmd.Sent && cmd.ResponseCode != CMDAccepted) -> 
+                                (F[0,4](cmd.Sent && cmd.ResponseCode == CMDAccepted)))));
+
+    -- Version 2:
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- if cmd has been sent and not accepted within 3 time steps, then within 5 time steps, 
+    -- cmd will be sent and accepted within 3 time steps of being sent.
+    foreach(x:X)(x.Running =>
+        (foreach(cmd:x.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
+                                F[0,4](cmd.Sent && F[0,2]cmd.ResponseCode == CMDAccepted))));
