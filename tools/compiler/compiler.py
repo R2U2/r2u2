@@ -2,6 +2,7 @@ import re
 from logging import getLogger
 
 from antlr4 import CommonTokenStream, InputStream
+from pyparsing import And
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -170,14 +171,18 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a, FOR_EACH):
             pass
+            rewrite(a, LOG_AND(a.ln, a.children))
         elif isinstance(a, FOR_SOME):
             pass
         elif isinstance(a, FOR_EXACTLY_N):
-            pass
+            s: SET = a.get_set()
+            rewrite(a, REL_EQ(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
         elif isinstance(a, FOR_AT_LEAST_N):
-            pass
+            s: SET = a.get_set()
+            rewrite(a, REL_GTE(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
         elif isinstance(a, FOR_AT_MOST_N):
-            pass
+            s: SET = a.get_set()
+            rewrite(a, REL_LTE(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
 
     postorder(prog, rewrite_set_agg_util)
 
@@ -190,7 +195,7 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
             if isinstance(s,STRUCT):
                 rewrite(a,s.members[a.member])
             else:
-                pass
+                logger.error(f'{a.ln}: Type error, {s} not a struct.')
 
     postorder(prog, rewrite_struct_access_util)
 

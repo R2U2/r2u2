@@ -2,6 +2,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Callable, NamedTuple, NewType
 from logging import getLogger
+from typing_extensions import Self
 
 from .util import *
 from .types import *
@@ -225,8 +226,9 @@ class BOOL(CONST):
 
 class SET(BZ_EXPR):
     
-    def __init__(self, ln: int, m: list[AST]) -> None:
+    def __init__(self, ln: int, m: list[AST], s: int=-1) -> None:
         super().__init__(ln,m)
+        self.size: int = s
 
     def __str__(self) -> str:
         s: str = '{'
@@ -309,19 +311,19 @@ class FOR_SOME(SET_AGG_OP):
         self.name: str = 'forsome'
 
 
-# TODO -- add check that N < size of set before evaluating
-
 class FOR_EXACTLY_N(SET_AGG_OP):
 
-    def __init__(self, ln: int, s: SET, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
         super().__init__(ln, s, v, e)
+        self.name: str = 'forexactlyn'
+        self.num: int = n
 
 
 class FOR_AT_LEAST_N(SET_AGG_OP):
 
     def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = 'atleastnof'
+        self.name: str = 'foratleastn'
         self.num: int = n
 
 
@@ -329,18 +331,22 @@ class FOR_AT_MOST_N(SET_AGG_OP):
 
     def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = 'atmostnof'
+        self.name: str = 'foratmostn'
         self.num: int = n
 
 
-class BRANCH(BZ_EXPR):
+class COUNT(BZ_EXPR):
 
-    def __init__(self, ln: int, b: AST) -> None:
-        super().__init__(ln, [])
-        self.branch = b # self.branch.bzid > self.bzid
+    def __init__(self, ln: int, n: int, c: list[AST]) -> None:
+        super().__init__(ln, c)
+        self.num: int = n
 
-    def get_branch(self) -> AST:
-        return self.branch
+    def tlasm(self) -> str:
+        assert(len(self.children) >= self.num)
+        s: str = ''
+        s += f'pop {len(self.children)-self.num}\n' if (len(self.children) - self.num > 0) else ''
+        s += f'count {self.num}\n'
+        return s
 
 
 class BW_OP(BZ_EXPR):
