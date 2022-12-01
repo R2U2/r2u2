@@ -15,13 +15,14 @@ class Visitor(C2POVisitor):
 
     def __init__(self) -> None:
         super().__init__()
-        # self.structs: dict[str,tuple[list[str],list[Type]]] = {}
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,AST] = {}
-        self.order: dict[str,int] = {}
         self.spec_num: int = 0
         self.status = True
+
+        # Initialize special structs/functions
+        self.structs['Set'] = {'set':Set(),'size':Int()}
 
 
     def error(self, msg) -> None:
@@ -83,12 +84,9 @@ class Visitor(C2POVisitor):
 
             for id in var_dict.keys():
                 if id in self.vars.keys():
-                    self.warning(f'{ln}: Variable {id} declared more than once, using type {var_dict[id]}')
+                    self.error(f'{ln}: Variable {id} declared more than once')
 
             self.vars.update(var_dict)
-
-        if ctx.order_list():
-            self.visit(ctx.order_list())
 
 
     # Visit a parse tree produced by C2POParser#var_list.
@@ -99,45 +97,31 @@ class Visitor(C2POVisitor):
         id: TerminalNode
         var_dict: dict[str,Type] = {}
         for id in ctx.IDENTIFIER():
+            if id in var_dict.keys():
+                self.error(f'{ln}: Variable {id} declared more than once')
             var_dict[id.getText()] = var_type
 
         return var_dict
-
-    
-    # Visit a parse tree produced by C2POParser#order_list.
-    def visitOrder_list(self, ctx:C2POParser.Order_listContext) -> None:
-        ln: int = ctx.start.line
-        sid: int = 0
-        id: TerminalNode
-
-        for id in ctx.IDENTIFIER():
-            if not id.getText() in self.vars.keys():
-                sid += 1 # error? var in order but not declared
-            elif id.getText() == '_':
-                sid += 1
-            else:
-                self.order[id.getText()] = sid
-                sid += 1
 
 
     # Visit a parse tree produced by C2POParser#type.
     def visitType(self, ctx:C2POParser.TypeContext) -> Type:
         ln: int = ctx.start.line
-        text = ctx.getText()
+        id: str = ctx.IDENTIFIER().getText()
 
-        if text == 'bool':
+        if id == 'bool':
             return Bool()
-        elif text == 'int':
+        elif id == 'int':
             return Int()
-        elif text == 'float':
+        elif id == 'float':
             return Float()
-        elif ctx.KW_SET():
+        elif id == 'set':
             t: Type = self.visit(ctx.type_())
             return Set(t)
-        elif text in self.structs.keys():
-            return Struct(text)
+        elif id in self.structs.keys():
+            return Struct(id)
 
-        self.error(f'{ln}: Type \'{text}\' not recognized')
+        self.error(f'{ln}: Type \'{ctx.getText()}\' not recognized')
         return NoType()
 
 
@@ -158,8 +142,6 @@ class Visitor(C2POVisitor):
         elif var in self.defs.keys():
             self.warning(f'{ln}: Variable \'{var}\' defined twice, using most recent definition')
             self.defs[var] = expr
-        # elif var in list(self.order):
-        #     self.warning(f'{ln}: Definition \'{var}\' used in Order statement, treating as signal and skipping')
         else:
             self.defs[var] = expr
 
@@ -183,7 +165,7 @@ class Visitor(C2POVisitor):
                 spec_dict[self.spec_num] = sp
                 self.spec_num += 1
 
-        return PROGRAM(ln, self.structs, spec_dict, contract_dict, self.order)
+        return PROGRAM(ln, self.structs, spec_dict, contract_dict)
 
 
     # Visit a parse tree produced by C2POParser#spec.
@@ -434,13 +416,33 @@ class Visitor(C2POVisitor):
 
         S,v = self.visit(ctx.set_agg_binder())
         self.defs[v.name] = v
-        e: AST = self.visit(ctx.expr())
+        e: AST = self.visit(ctx.expr(0))
         del self.defs[v.name]
 
         if op == 'foreach':
+            if len(ctx.expr() != 1):
+                self.error(f'{ln}: Extra parameter given for set aggregation expression \'{ctx.getText()}\'')
             return FOR_EACH(ln,S,v,e)
-        elif op == 'atleastoneof':
-            return AT_LEAST_ONE_OF(ln,S,v,e)
+        elif op == 'forsome':
+            return FOR_SOME(ln,S,v,e)
+        elif op == 'forexactlyn':
+            if ctx.INT():
+                n: int = int(ctx.INT().getText())
+                return FOR_EXACTLY_N(ln,S,n,v,e)
+            else:
+                self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
+        elif op == 'foratleastn':
+            if ctx.INT():
+                n: int = int(ctx.INT().getText())
+                return FOR_AT_LEAST_N(ln,S,n,v,e)
+            else:
+                self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
+        elif op == 'foratmostn':
+            if ctx.INT():
+                n: int = int(ctx.INT().getText())
+                return FOR_AT_MOST_N(ln,S,n,v,e)
+            else:
+                self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         else:
             self.error(f'{ln}: Set aggregation operator \'{op}\' not supported')
             return AST(ln, [])
@@ -492,7 +494,7 @@ class Visitor(C2POVisitor):
             name: str = literal.IDENTIFIER().getText()
             if name in self.defs.keys():
                 return self.defs[name]
-            elif name in self.order.keys():
+            elif name in self.vars.keys():
                 return SIGNAL(ln, name, self.vars[name])
             else:
                 self.error(f'{ln}: Variable \'{name}\' undefined')

@@ -34,11 +34,6 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#order_list.
-    def visitOrder_list(self, ctx:C2POParser.Order_listContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by C2POParser#type.
     def visitType(self, ctx:C2POParser.TypeContext):
         return self.visitChildren(ctx)

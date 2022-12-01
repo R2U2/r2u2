@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import cast
 
 class BaseType(Enum):
     NOTYPE = 0

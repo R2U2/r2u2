@@ -2,7 +2,6 @@ import re
 from logging import getLogger
 
 from antlr4 import CommonTokenStream, InputStream
-from pyparsing import And
 
 from .ast import *
 from .parser.C2POLexer import C2POLexer
@@ -170,13 +169,16 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
 
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a, FOR_EACH):
-            pass
             rewrite(a, LOG_AND(a.ln, a.children))
         elif isinstance(a, FOR_SOME):
-            pass
+            rewrite(a, LOG_OR(a.ln, a.children))
         elif isinstance(a, FOR_EXACTLY_N):
             s: SET = a.get_set()
-            rewrite(a, REL_EQ(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
+            dynamic_size: AST|None = s.get_dynamic_size()
+            if isinstance(dynamic_size, AST):
+                rewrite(a, REL_EQ(a.ln, COUNT(a.ln, dynamic_size, a.children), INT(a.ln, a.num)))
+            else:
+                rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), a.children), INT(a.ln, a.num)))
         elif isinstance(a, FOR_AT_LEAST_N):
             s: SET = a.get_set()
             rewrite(a, REL_GTE(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
@@ -196,6 +198,7 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
                 rewrite(a,s.members[a.member])
             else:
                 logger.error(f'{a.ln}: Type error, {s} not a struct.')
+
 
     postorder(prog, rewrite_struct_access_util)
 
@@ -271,14 +274,13 @@ def total_scq_size(prog: PROGRAM) -> int:
     return mem
 
 
-def assign_ids(prog: PROGRAM) -> None:
-    order: dict[str,int] = prog.order
+def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
     tlid: int = 0
     bzid: int = 0
     atid: int = 0
 
     def assign_ids_util(a: AST) -> None:
-        nonlocal order
+        nonlocal signal_mapping
         nonlocal tlid
         nonlocal bzid
         nonlocal atid
@@ -300,7 +302,7 @@ def assign_ids(prog: PROGRAM) -> None:
                     tlid += 1
 
         if isinstance(a,SIGNAL):
-            a.sid = order[a.name]
+            a.sid = signal_mapping[a.name]
 
     postorder(prog,assign_ids_util)
 
@@ -384,7 +386,7 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
 
 
 def gen_assembly(prog: PROGRAM) -> list[str]:
-    assign_ids(prog)
+    assign_ids(prog,{}) # TODO
     
     bzasm: str = gen_bz_assembly(prog)
     tlasm: str = gen_tl_assembly(prog)

@@ -9,13 +9,12 @@ start: (struct_block | input_block | def_block | spec_block)* ;
 struct_block: KW_STRUCT struct+ ;
 struct: IDENTIFIER ':' '{' var_list+ '}' ';' ;
 
-input_block: KW_INPUT var_list+ order_list? ;
+input_block: KW_INPUT var_list+ ;
 var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
-order_list: KW_ORDER ':' IDENTIFIER (',' IDENTIFIER)* ';' ;
 
 type: IDENTIFIER
-    | KW_SET '⟨' type '⟩'
-    | KW_SET REL_LT type REL_GT
+    | IDENTIFIER '⟨' type '⟩'
+    | IDENTIFIER REL_LT type REL_GT
     ;
 
 def_block: KW_DEF def+ ;
@@ -28,7 +27,7 @@ spec: IDENTIFIER ':' contract ';'
 contract: expr '=>' expr ;
 
 expr: set_expr                  # SetExpr
-    | IDENTIFIER '(' set_agg_binder ')' '(' expr ')' # SetAggExpr
+    | IDENTIFIER '(' set_agg_binder (',' expr)? ')' '(' expr ')' # SetAggExpr
     | IDENTIFIER '(' expr_list? ')' # FuncExpr
     | expr '.' IDENTIFIER       # StructMemberExpr
     | ARITH_SUB expr            # UnaryExpr
@@ -82,8 +81,6 @@ KW_STRUCT: 'STRUCT' ;
 KW_INPUT: 'INPUT' ;
 KW_DEF: 'DEFINE' ;
 KW_SPEC: 'SPEC' ;
-KW_ORDER: 'Order' ;
-KW_SET: 'set' ;
 
 // Propositional logic ops/literals
 LOG_NEG: '!' | '¬' ;
@@ -130,10 +127,6 @@ TL_ONCE: 'O' | '𝓞' ;
 TL_UNTIL: 'U' | '𝓤' ;
 TL_RELEASE: 'R' | '𝓡' ;  
 TL_HISTORICAL: 'H' | '𝓗' ;
-
-// First-order -- not used
-FO_FORALL: 'FORALL' | '∀' ;
-FO_EXISTS: 'EXISTS' | '∃' ;
 
 // Set-wise ops
 SW_EMPTY_SET: '∅' ;

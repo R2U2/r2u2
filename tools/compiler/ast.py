@@ -1,11 +1,10 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any, Callable, NamedTuple, NewType
+from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
-from typing_extensions import Self
 
 from .util import *
-from .types import *
+from .c2po_types import *
 
 logger = getLogger(logger_name)
 
@@ -226,9 +225,19 @@ class BOOL(CONST):
 
 class SET(BZ_EXPR):
     
-    def __init__(self, ln: int, m: list[AST], s: int=-1) -> None:
+    def __init__(self, ln: int, max: int, m: list[AST]) -> None:
         super().__init__(ln,m)
-        self.size: int = s
+        self.max_size: int = max
+        self.dynamic_size = None
+
+    def get_max_size(self) -> int:
+        return self.max_size
+
+    def get_dynamic_size(self) -> AST|None:
+        return self.dynamic_size
+
+    def set_dynamic_size(self, s: AST) -> None:
+        self.dynamic_size = s
 
     def __str__(self) -> str:
         s: str = '{'
@@ -337,14 +346,14 @@ class FOR_AT_MOST_N(SET_AGG_OP):
 
 class COUNT(BZ_EXPR):
 
-    def __init__(self, ln: int, n: int, c: list[AST]) -> None:
+    def __init__(self, ln: int, n: AST, c: list[AST]) -> None:
         super().__init__(ln, c)
-        self.num: int = n
+        self.num: AST = n
 
     def tlasm(self) -> str:
-        assert(len(self.children) >= self.num)
         s: str = ''
-        s += f'pop {len(self.children)-self.num}\n' if (len(self.children) - self.num > 0) else ''
+        # s += 
+        s += f'popn\n'
         s += f'count {self.num}\n'
         return s
 
@@ -967,12 +976,11 @@ class SPEC(TL_EXPR):
 
 class PROGRAM(TL_EXPR):
 
-    def __init__(self, ln: int, st: StructDict, s: dict[int,SPEC], c: dict[int,SPEC], o: dict[str,int]) -> None:
+    def __init__(self, ln: int, st: StructDict, s: dict[int,SPEC], c: dict[int,SPEC]) -> None:
         super().__init__(ln, list(s.values()))
         self.structs = st
         self.specs = s
         self.contracts = c
-        self.order = o
 
     def __str__(self) -> str:
         ret: str = ''
