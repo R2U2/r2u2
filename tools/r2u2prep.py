@@ -17,48 +17,71 @@ from compiler.compiler import compile
 TIMESTAMP_WIDTH = 4
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
-def main(args):
+parser = argparse.ArgumentParser()
+parser.add_argument("mltl",
+                    help="file where mltl formula are stored or literal mltl formula")
+parser.add_argument("sigs",
+                    help="csv or sig file where variable names are mapped to memory locations")
+parser.add_argument("-q","--quiet", action="store_true",
+                    help="enable to disable output")
+parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
+                    help="path to configuration file")
+parser.add_argument("--header-file",
+                    default=__AbsolutePath__+'gen_files/config_files/R2U2Config.h',
+                    help="path to configuration header file, uses this file to detect if recompilation is needed")
+parser.add_argument("--output-dir", default=__AbsolutePath__+'gen_files/',
+                    help="location where files will be generated")
+parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
+                    help="location where compiler programs will be called from")
+parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
+                    help="location where assembly and configuration programs will be called from")
+parser.add_argument("--no-binaries", action="store_true",
+                    help="generate config.c file in place of binaries")
+parser.add_argument("--booleanizer", action="store_true",
+                    help="enable booleanizer")
+args = parser.parse_args()
 
-    binary_dir = args.output_dir + 'binary_files/'
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 
-    if not os.path.isdir(args.output_dir):
-        os.mkdir(args.output_dir)
+parser = argparse.ArgumentParser()
+parser.add_argument("mltl",
+                    help="file where mltl formula are stored or literal mltl formula")
+parser.add_argument("sigs",
+                    help="csv or sig file where variable names are mapped to memory locations")
+parser.add_argument("-q","--quiet", action="store_true",
+                    help="enable to disable output")
+parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
+                    help="path to configuration file")
+parser.add_argument("--header-file",
+                    default=__AbsolutePath__+'gen_files/config_files/R2U2Config.h',
+                    help="path to configuration header file, uses this file to detect if recompilation is needed")
+parser.add_argument("--output-dir", default=__AbsolutePath__+'gen_files/',
+                    help="location where files will be generated")
+parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
+                    help="location where compiler programs will be called from")
+parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
+                    help="location where assembly and configuration programs will be called from")
+parser.add_argument("--no-binaries", action="store_true",
+                    help="generate config.c file in place of binaries")
+parser.add_argument("--booleanizer", action="store_true",
+                    help="enable booleanizer")
+args = parser.parse_args()
 
-    # Remove binary files directory, if it exists, and start fresh
-    if os.path.isdir(binary_dir):
-        shutil.rmtree(binary_dir)
+binary_dir = args.output_dir + '/'
 
-    # If the argument is a valid file,
-    #if(os.path.isfile(__AbsolutePath__ + mltl)):
-    #    MLTL = open(args.mltl,'r').read()
-    if(os.path.isfile(args.mltl)):
-        mltl = open(args.mltl,'r').read()
+if not os.path.isdir(args.output_dir):
+    os.mkdir(args.output_dir)
+
+# Remove binary files directory, if it exists, and start fresh
+if os.path.isdir(binary_dir):
+    shutil.rmtree(binary_dir)
+
+# If the argument is a valid file,
+if(os.path.isfile(args.mltl)):
+    mltl = open(args.mltl,'r').read()
+    if(os.path.isfile(args.sigs)):
+        compile(mltl, args.sigs, args.output_dir, args.booleanizer, False, args.quiet)
     else:
-        mltl = args.mltl
-
-    compile(mltl, args.output_dir, args.booleanizer, False, args.quiet)
-    
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("mltl",
-                        help="file where mltl formula are stored or literal mltl formula")
-    parser.add_argument("-q","--quiet", action="store_true",
-                        help="enable to disable output")
-    parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
-                        help="path to configuration file")
-    parser.add_argument("--header-file",
-                        default=__AbsolutePath__+'gen_files/config_files/R2U2Config.h',
-                        help="path to configuration header file, uses this file to detect if recompilation is needed")
-    parser.add_argument("--output-dir", default=__AbsolutePath__+'gen_files/',
-                        help="location where files will be generated")
-    parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
-                        help="location where compiler programs will be called from")
-    parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
-                        help="location where assembly and configuration programs will be called from")
-    parser.add_argument("--no-binaries", action="store_true",
-                        help="generate config.c file in place of binaries")
-    parser.add_argument("--booleanizer", action="store_true",
-                        help="enable booleanizer")
-    args = parser.parse_args()
-    main(args)
+        print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
+else:
+    print(f'MLTL file \'{args.sigs}\' not a valid file')

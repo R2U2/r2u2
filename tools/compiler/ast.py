@@ -273,8 +273,8 @@ class STRUCT_ACCESS(AST):
         super().__init__(ln, [s])
         self.member: str = m
 
-    def get_struct(self) -> AST:
-        return self.children[0]
+    def get_struct(self) -> STRUCT:
+        return cast(STRUCT, self.children[0])
 
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
@@ -351,11 +351,7 @@ class COUNT(BZ_EXPR):
         self.num: AST = n
 
     def tlasm(self) -> str:
-        s: str = ''
-        # s += 
-        s += f'popn\n'
-        s += f'count {self.num}\n'
-        return s
+        return f'count {self.num}\n'
 
 
 class BW_OP(BZ_EXPR):

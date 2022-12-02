@@ -115,6 +115,9 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                 logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
         elif isinstance(a,SET_AGG_OP):
             del context[a.get_boundvar().name]
+            if a.get_expr().type != Bool():
+                status = False
+                logger.error(f'{a.ln}: Set aggregation argument must be Boolean (found \'{a.get_expr().type}\')')
             a.type = Bool()
         elif isinstance(a,STRUCT):
             a.type = Struct(a.name)
@@ -169,22 +172,18 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
 
     def rewrite_set_agg_util(a: AST) -> None:
         if isinstance(a, FOR_EACH):
-            rewrite(a, LOG_AND(a.ln, a.children))
+            rewrite(a, LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
         elif isinstance(a, FOR_SOME):
-            rewrite(a, LOG_OR(a.ln, a.children))
+            rewrite(a, LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
         elif isinstance(a, FOR_EXACTLY_N):
             s: SET = a.get_set()
-            dynamic_size: AST|None = s.get_dynamic_size()
-            if isinstance(dynamic_size, AST):
-                rewrite(a, REL_EQ(a.ln, COUNT(a.ln, dynamic_size, a.children), INT(a.ln, a.num)))
-            else:
-                rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), a.children), INT(a.ln, a.num)))
+            rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
         elif isinstance(a, FOR_AT_LEAST_N):
             s: SET = a.get_set()
-            rewrite(a, REL_GTE(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
+            rewrite(a, REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
         elif isinstance(a, FOR_AT_MOST_N):
             s: SET = a.get_set()
-            rewrite(a, REL_LTE(a.ln, COUNT(a.ln, s.size, a.children), INT(a.ln, a.num)))
+            rewrite(a, REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
 
     postorder(prog, rewrite_set_agg_util)
 
@@ -193,12 +192,8 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            s: AST = a.get_struct()
-            if isinstance(s,STRUCT):
-                rewrite(a,s.members[a.member])
-            else:
-                logger.error(f'{a.ln}: Type error, {s} not a struct.')
-
+            s: STRUCT = a.get_struct()
+            rewrite(a,s.members[a.member])
 
     postorder(prog, rewrite_struct_access_util)
 
@@ -274,6 +269,25 @@ def total_scq_size(prog: PROGRAM) -> int:
     return mem
 
 
+def parse_signals(filename: str) -> dict[str,int]:
+    mapping: dict[str,int] = {}
+    if re.match('.*\\.csv',filename):
+        with open(filename,'r') as f:
+            text: str = f.read()
+            lines: list[str] = text.splitlines()
+            if len(lines) < 1:
+                logger.error(f' Not enough data in file \'{filename}\'')
+                return {}
+            cnt: int = 0
+            for id in lines[0].split(','):
+                mapping[id] = cnt
+                cnt += 1
+    else: # TODO, implement signal mapping file format
+        return {}
+
+    return mapping
+    
+
 def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
     tlid: int = 0
     bzid: int = 0
@@ -302,7 +316,10 @@ def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
                     tlid += 1
 
         if isinstance(a,SIGNAL):
-            a.sid = signal_mapping[a.name]
+            if not a.name in signal_mapping.keys():
+                logger.error(f'{a.ln}: Signal \'{a}\' not referenced in signal mapping')
+            else:
+                a.sid = signal_mapping[a.name]
 
     postorder(prog,assign_ids_util)
 
@@ -385,8 +402,8 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
     return s
 
 
-def gen_assembly(prog: PROGRAM) -> list[str]:
-    assign_ids(prog,{}) # TODO
+def gen_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[str]:
+    assign_ids(prog,signal_mapping)
     
     bzasm: str = gen_bz_assembly(prog)
     tlasm: str = gen_tl_assembly(prog)
@@ -409,7 +426,7 @@ def parse(input: str) -> list[PROGRAM]:
         return []
 
 
-def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
+def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, progs is a list of configurations (each SPEC block is a configuration)
     progs: list[PROGRAM] = parse(input)
 
@@ -437,8 +454,11 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
     # generate alias file
     alias = gen_alias(progs[0])
 
+    # parse csv/signals file
+    signal_mapping: dict[str,int] = parse_signals(sigs)
+
     # generate assembly
-    bzasm,ftasm,ptasm,ftscqasm = gen_assembly(progs[0])
+    bzasm,ftasm,ptasm,ftscqasm = gen_assembly(progs[0],signal_mapping)
 
     # print asm if 'quiet' option not enabled
     # uses re.sub to get nice tabs
@@ -469,3 +489,9 @@ def compile(input: str, output_path: str, bz: bool, extops: bool, quiet: bool) -
         f.write(ftscqasm)
 
     # assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)
+
+
+
+    
+
+    

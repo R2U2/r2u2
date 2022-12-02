@@ -9,8 +9,6 @@ STRUCT
 INPUT
   x,y,z: int;
   
-  Order: x,y,z;
-
 DEFINE
   t0 = test(x,y,z);
   t1 = test(y,z,x);

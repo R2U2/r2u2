@@ -22,7 +22,7 @@ class Visitor(C2POVisitor):
         self.status = True
 
         # Initialize special structs/functions
-        self.structs['Set'] = {'set':Set(),'size':Int()}
+        self.structs['Set'] = {'set':NoType(),'size':Int()}
 
 
     def error(self, msg) -> None:
@@ -64,7 +64,7 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line 
 
         id: str = ctx.IDENTIFIER().getText()
-        for i in self.structs.keys():
+        if id in self.structs.keys():
             self.warning(f'{ln}: Struct {i} already defined, redefining')
 
         self.structs[id] = {}
@@ -396,6 +396,10 @@ class Visitor(C2POVisitor):
         elist: list[AST] = self.visit(ctx.expr_list())
 
         if id in self.structs.keys():
+
+            # if id == 'Set':
+            #     elist[0].set_dynamic_set_size()
+
             members: dict[str,AST] = {}
             if len(elist) == len(self.structs[id]):
                 for s in self.structs[id].keys():
@@ -420,7 +424,7 @@ class Visitor(C2POVisitor):
         del self.defs[v.name]
 
         if op == 'foreach':
-            if len(ctx.expr() != 1):
+            if len(ctx.expr()) != 1:
                 self.error(f'{ln}: Extra parameter given for set aggregation expression \'{ctx.getText()}\'')
             return FOR_EACH(ln,S,v,e)
         elif op == 'forsome':
@@ -472,7 +476,7 @@ class Visitor(C2POVisitor):
         if ctx.set_expr().expr_list():
             elements = self.visit(ctx.set_expr().expr_list())
 
-        return SET(ln, elements)
+        return SET(ln, len(elements), elements)
 
 
     # Visit a parse tree produced by C2POParser#ParensExpr.
