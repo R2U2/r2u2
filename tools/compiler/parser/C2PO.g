@@ -33,6 +33,7 @@ expr: set_expr                  # SetExpr
     | ARITH_SUB expr            # UnaryExpr
     | ARITH_ADD expr            # UnaryExpr
     | BW_NEG expr               # UnaryExpr
+    | LOG_NEG expr              # UnaryExpr
     | expr arith_mul_op expr    # ArithMulExpr
     | expr arith_add_op expr    # ArithAddExpr
     | expr BW_SHIFT_LEFT expr   # BWExpr
@@ -44,6 +45,8 @@ expr: set_expr                  # SetExpr
     | expr BW_OR expr           # BWExpr
     | expr tl_bin_op expr       # TLBinExpr
     | tl_unary_op expr          # TLUnaryExpr
+    | expr LOG_XOR expr         # LogBinExpr
+    | expr LOG_IMPL expr        # LogBinExpr
     | expr LOG_AND expr         # LogBinExpr
     | expr LOG_OR expr          # LogBinExpr
     | expr '?' expr ':' expr    # TernaryExpr

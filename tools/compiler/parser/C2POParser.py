@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,71,278,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,71,286,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,
         7,20,2,21,7,21,2,22,7,22,2,23,7,23,1,0,1,0,1,0,1,0,5,0,53,8,0,10,
@@ -23,92 +23,96 @@ def serializedATN():
         8,9,1,10,1,10,1,10,1,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,3,11,
         148,8,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,3,11,158,8,11,1,
         11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
-        11,1,11,3,11,175,8,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
+        11,1,11,1,11,1,11,3,11,177,8,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
         11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
         11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
         11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,
-        11,1,11,1,11,5,11,227,8,11,10,11,12,11,230,9,11,1,12,1,12,1,12,3,
-        12,235,8,12,1,12,3,12,238,8,12,1,13,1,13,1,13,1,13,1,14,1,14,1,14,
-        1,14,3,14,248,8,14,1,14,1,14,1,15,1,15,1,15,5,15,255,8,15,10,15,
-        12,15,258,9,15,1,16,1,16,1,16,1,17,1,17,1,17,1,18,1,18,1,19,1,19,
-        1,20,1,20,1,21,1,21,1,22,1,22,1,23,1,23,1,23,0,1,22,24,0,2,4,6,8,
-        10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,0,8,3,0,
-        48,49,52,52,55,55,2,0,51,51,53,54,2,0,26,27,67,69,1,0,34,35,1,0,
-        36,39,1,0,40,41,1,0,42,44,2,0,28,28,41,41,295,0,54,1,0,0,0,2,57,
-        1,0,0,0,4,63,1,0,0,0,6,74,1,0,0,0,8,80,1,0,0,0,10,103,1,0,0,0,12,
-        105,1,0,0,0,14,111,1,0,0,0,16,116,1,0,0,0,18,134,1,0,0,0,20,136,
-        1,0,0,0,22,174,1,0,0,0,24,237,1,0,0,0,26,239,1,0,0,0,28,243,1,0,
-        0,0,30,251,1,0,0,0,32,259,1,0,0,0,34,262,1,0,0,0,36,265,1,0,0,0,
-        38,267,1,0,0,0,40,269,1,0,0,0,42,271,1,0,0,0,44,273,1,0,0,0,46,275,
-        1,0,0,0,48,53,3,2,1,0,49,53,3,6,3,0,50,53,3,12,6,0,51,53,3,16,8,
-        0,52,48,1,0,0,0,52,49,1,0,0,0,52,50,1,0,0,0,52,51,1,0,0,0,53,56,
-        1,0,0,0,54,52,1,0,0,0,54,55,1,0,0,0,55,1,1,0,0,0,56,54,1,0,0,0,57,
-        59,5,16,0,0,58,60,3,4,2,0,59,58,1,0,0,0,60,61,1,0,0,0,61,59,1,0,
-        0,0,61,62,1,0,0,0,62,3,1,0,0,0,63,64,5,67,0,0,64,65,5,1,0,0,65,67,
-        5,2,0,0,66,68,3,8,4,0,67,66,1,0,0,0,68,69,1,0,0,0,69,67,1,0,0,0,
-        69,70,1,0,0,0,70,71,1,0,0,0,71,72,5,3,0,0,72,73,5,4,0,0,73,5,1,0,
-        0,0,74,76,5,17,0,0,75,77,3,8,4,0,76,75,1,0,0,0,77,78,1,0,0,0,78,
-        76,1,0,0,0,78,79,1,0,0,0,79,7,1,0,0,0,80,85,5,67,0,0,81,82,5,5,0,
-        0,82,84,5,67,0,0,83,81,1,0,0,0,84,87,1,0,0,0,85,83,1,0,0,0,85,86,
-        1,0,0,0,86,88,1,0,0,0,87,85,1,0,0,0,88,89,5,1,0,0,89,90,3,10,5,0,
-        90,91,5,4,0,0,91,9,1,0,0,0,92,104,5,67,0,0,93,94,5,67,0,0,94,95,
-        5,6,0,0,95,96,3,10,5,0,96,97,5,7,0,0,97,104,1,0,0,0,98,99,5,67,0,
-        0,99,100,5,39,0,0,100,101,3,10,5,0,101,102,5,38,0,0,102,104,1,0,
-        0,0,103,92,1,0,0,0,103,93,1,0,0,0,103,98,1,0,0,0,104,11,1,0,0,0,
-        105,107,5,18,0,0,106,108,3,14,7,0,107,106,1,0,0,0,108,109,1,0,0,
-        0,109,107,1,0,0,0,109,110,1,0,0,0,110,13,1,0,0,0,111,112,5,67,0,
-        0,112,113,5,8,0,0,113,114,3,22,11,0,114,115,5,4,0,0,115,15,1,0,0,
-        0,116,118,5,19,0,0,117,119,3,18,9,0,118,117,1,0,0,0,119,120,1,0,
-        0,0,120,118,1,0,0,0,120,121,1,0,0,0,121,17,1,0,0,0,122,123,5,67,
-        0,0,123,124,5,1,0,0,124,125,3,20,10,0,125,126,5,4,0,0,126,135,1,
-        0,0,0,127,128,5,67,0,0,128,130,5,1,0,0,129,127,1,0,0,0,129,130,1,
-        0,0,0,130,131,1,0,0,0,131,132,3,22,11,0,132,133,5,4,0,0,133,135,
-        1,0,0,0,134,122,1,0,0,0,134,129,1,0,0,0,135,19,1,0,0,0,136,137,3,
-        22,11,0,137,138,5,9,0,0,138,139,3,22,11,0,139,21,1,0,0,0,140,141,
-        6,11,-1,0,141,175,3,24,12,0,142,143,5,67,0,0,143,144,5,10,0,0,144,
-        147,3,26,13,0,145,146,5,5,0,0,146,148,3,22,11,0,147,145,1,0,0,0,
-        147,148,1,0,0,0,148,149,1,0,0,0,149,150,5,11,0,0,150,151,5,10,0,
-        0,151,152,3,22,11,0,152,153,5,11,0,0,153,175,1,0,0,0,154,155,5,67,
-        0,0,155,157,5,10,0,0,156,158,3,30,15,0,157,156,1,0,0,0,157,158,1,
-        0,0,0,158,159,1,0,0,0,159,175,5,11,0,0,160,161,5,41,0,0,161,175,
-        3,22,11,19,162,163,5,40,0,0,163,175,3,22,11,18,164,165,5,28,0,0,
-        165,175,3,22,11,17,166,167,3,32,16,0,167,168,3,22,11,6,168,175,1,
-        0,0,0,169,170,5,10,0,0,170,171,3,22,11,0,171,172,5,11,0,0,172,175,
-        1,0,0,0,173,175,3,36,18,0,174,140,1,0,0,0,174,142,1,0,0,0,174,154,
-        1,0,0,0,174,160,1,0,0,0,174,162,1,0,0,0,174,164,1,0,0,0,174,166,
-        1,0,0,0,174,169,1,0,0,0,174,173,1,0,0,0,175,228,1,0,0,0,176,177,
-        10,16,0,0,177,178,3,44,22,0,178,179,3,22,11,17,179,227,1,0,0,0,180,
-        181,10,15,0,0,181,182,3,42,21,0,182,183,3,22,11,16,183,227,1,0,0,
-        0,184,185,10,14,0,0,185,186,5,32,0,0,186,227,3,22,11,15,187,188,
-        10,13,0,0,188,189,5,33,0,0,189,227,3,22,11,14,190,191,10,12,0,0,
-        191,192,3,40,20,0,192,193,3,22,11,13,193,227,1,0,0,0,194,195,10,
-        11,0,0,195,196,3,38,19,0,196,197,3,22,11,12,197,227,1,0,0,0,198,
-        199,10,10,0,0,199,200,5,29,0,0,200,227,3,22,11,11,201,202,10,9,0,
-        0,202,203,5,31,0,0,203,227,3,22,11,10,204,205,10,8,0,0,205,206,5,
-        30,0,0,206,227,3,22,11,9,207,208,10,7,0,0,208,209,3,34,17,0,209,
-        210,3,22,11,8,210,227,1,0,0,0,211,212,10,5,0,0,212,213,5,21,0,0,
-        213,227,3,22,11,6,214,215,10,4,0,0,215,216,5,22,0,0,216,227,3,22,
-        11,5,217,218,10,3,0,0,218,219,5,13,0,0,219,220,3,22,11,0,220,221,
-        5,1,0,0,221,222,3,22,11,4,222,227,1,0,0,0,223,224,10,20,0,0,224,
-        225,5,12,0,0,225,227,5,67,0,0,226,176,1,0,0,0,226,180,1,0,0,0,226,
-        184,1,0,0,0,226,187,1,0,0,0,226,190,1,0,0,0,226,194,1,0,0,0,226,
-        198,1,0,0,0,226,201,1,0,0,0,226,204,1,0,0,0,226,207,1,0,0,0,226,
-        211,1,0,0,0,226,214,1,0,0,0,226,217,1,0,0,0,226,223,1,0,0,0,227,
-        230,1,0,0,0,228,226,1,0,0,0,228,229,1,0,0,0,229,23,1,0,0,0,230,228,
-        1,0,0,0,231,238,5,56,0,0,232,234,5,2,0,0,233,235,3,30,15,0,234,233,
-        1,0,0,0,234,235,1,0,0,0,235,236,1,0,0,0,236,238,5,3,0,0,237,231,
-        1,0,0,0,237,232,1,0,0,0,238,25,1,0,0,0,239,240,5,67,0,0,240,241,
-        5,1,0,0,241,242,3,22,11,0,242,27,1,0,0,0,243,244,5,14,0,0,244,247,
-        5,69,0,0,245,246,5,5,0,0,246,248,5,69,0,0,247,245,1,0,0,0,247,248,
-        1,0,0,0,248,249,1,0,0,0,249,250,5,15,0,0,250,29,1,0,0,0,251,256,
-        3,22,11,0,252,253,5,5,0,0,253,255,3,22,11,0,254,252,1,0,0,0,255,
-        258,1,0,0,0,256,254,1,0,0,0,256,257,1,0,0,0,257,31,1,0,0,0,258,256,
-        1,0,0,0,259,260,7,0,0,0,260,261,3,28,14,0,261,33,1,0,0,0,262,263,
-        7,1,0,0,263,264,3,28,14,0,264,35,1,0,0,0,265,266,7,2,0,0,266,37,
-        1,0,0,0,267,268,7,3,0,0,268,39,1,0,0,0,269,270,7,4,0,0,270,41,1,
-        0,0,0,271,272,7,5,0,0,272,43,1,0,0,0,273,274,7,6,0,0,274,45,1,0,
-        0,0,275,276,7,7,0,0,276,47,1,0,0,0,20,52,54,61,69,78,85,103,109,
-        120,129,134,147,157,174,226,228,234,237,247,256
+        11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,5,11,235,8,
+        11,10,11,12,11,238,9,11,1,12,1,12,1,12,3,12,243,8,12,1,12,3,12,246,
+        8,12,1,13,1,13,1,13,1,13,1,14,1,14,1,14,1,14,3,14,256,8,14,1,14,
+        1,14,1,15,1,15,1,15,5,15,263,8,15,10,15,12,15,266,9,15,1,16,1,16,
+        1,16,1,17,1,17,1,17,1,18,1,18,1,19,1,19,1,20,1,20,1,21,1,21,1,22,
+        1,22,1,23,1,23,1,23,0,1,22,24,0,2,4,6,8,10,12,14,16,18,20,22,24,
+        26,28,30,32,34,36,38,40,42,44,46,0,8,3,0,48,49,52,52,55,55,2,0,51,
+        51,53,54,2,0,26,27,67,69,1,0,34,35,1,0,36,39,1,0,40,41,1,0,42,44,
+        2,0,28,28,41,41,306,0,54,1,0,0,0,2,57,1,0,0,0,4,63,1,0,0,0,6,74,
+        1,0,0,0,8,80,1,0,0,0,10,103,1,0,0,0,12,105,1,0,0,0,14,111,1,0,0,
+        0,16,116,1,0,0,0,18,134,1,0,0,0,20,136,1,0,0,0,22,176,1,0,0,0,24,
+        245,1,0,0,0,26,247,1,0,0,0,28,251,1,0,0,0,30,259,1,0,0,0,32,267,
+        1,0,0,0,34,270,1,0,0,0,36,273,1,0,0,0,38,275,1,0,0,0,40,277,1,0,
+        0,0,42,279,1,0,0,0,44,281,1,0,0,0,46,283,1,0,0,0,48,53,3,2,1,0,49,
+        53,3,6,3,0,50,53,3,12,6,0,51,53,3,16,8,0,52,48,1,0,0,0,52,49,1,0,
+        0,0,52,50,1,0,0,0,52,51,1,0,0,0,53,56,1,0,0,0,54,52,1,0,0,0,54,55,
+        1,0,0,0,55,1,1,0,0,0,56,54,1,0,0,0,57,59,5,16,0,0,58,60,3,4,2,0,
+        59,58,1,0,0,0,60,61,1,0,0,0,61,59,1,0,0,0,61,62,1,0,0,0,62,3,1,0,
+        0,0,63,64,5,67,0,0,64,65,5,1,0,0,65,67,5,2,0,0,66,68,3,8,4,0,67,
+        66,1,0,0,0,68,69,1,0,0,0,69,67,1,0,0,0,69,70,1,0,0,0,70,71,1,0,0,
+        0,71,72,5,3,0,0,72,73,5,4,0,0,73,5,1,0,0,0,74,76,5,17,0,0,75,77,
+        3,8,4,0,76,75,1,0,0,0,77,78,1,0,0,0,78,76,1,0,0,0,78,79,1,0,0,0,
+        79,7,1,0,0,0,80,85,5,67,0,0,81,82,5,5,0,0,82,84,5,67,0,0,83,81,1,
+        0,0,0,84,87,1,0,0,0,85,83,1,0,0,0,85,86,1,0,0,0,86,88,1,0,0,0,87,
+        85,1,0,0,0,88,89,5,1,0,0,89,90,3,10,5,0,90,91,5,4,0,0,91,9,1,0,0,
+        0,92,104,5,67,0,0,93,94,5,67,0,0,94,95,5,6,0,0,95,96,3,10,5,0,96,
+        97,5,7,0,0,97,104,1,0,0,0,98,99,5,67,0,0,99,100,5,39,0,0,100,101,
+        3,10,5,0,101,102,5,38,0,0,102,104,1,0,0,0,103,92,1,0,0,0,103,93,
+        1,0,0,0,103,98,1,0,0,0,104,11,1,0,0,0,105,107,5,18,0,0,106,108,3,
+        14,7,0,107,106,1,0,0,0,108,109,1,0,0,0,109,107,1,0,0,0,109,110,1,
+        0,0,0,110,13,1,0,0,0,111,112,5,67,0,0,112,113,5,8,0,0,113,114,3,
+        22,11,0,114,115,5,4,0,0,115,15,1,0,0,0,116,118,5,19,0,0,117,119,
+        3,18,9,0,118,117,1,0,0,0,119,120,1,0,0,0,120,118,1,0,0,0,120,121,
+        1,0,0,0,121,17,1,0,0,0,122,123,5,67,0,0,123,124,5,1,0,0,124,125,
+        3,20,10,0,125,126,5,4,0,0,126,135,1,0,0,0,127,128,5,67,0,0,128,130,
+        5,1,0,0,129,127,1,0,0,0,129,130,1,0,0,0,130,131,1,0,0,0,131,132,
+        3,22,11,0,132,133,5,4,0,0,133,135,1,0,0,0,134,122,1,0,0,0,134,129,
+        1,0,0,0,135,19,1,0,0,0,136,137,3,22,11,0,137,138,5,9,0,0,138,139,
+        3,22,11,0,139,21,1,0,0,0,140,141,6,11,-1,0,141,177,3,24,12,0,142,
+        143,5,67,0,0,143,144,5,10,0,0,144,147,3,26,13,0,145,146,5,5,0,0,
+        146,148,3,22,11,0,147,145,1,0,0,0,147,148,1,0,0,0,148,149,1,0,0,
+        0,149,150,5,11,0,0,150,151,5,10,0,0,151,152,3,22,11,0,152,153,5,
+        11,0,0,153,177,1,0,0,0,154,155,5,67,0,0,155,157,5,10,0,0,156,158,
+        3,30,15,0,157,156,1,0,0,0,157,158,1,0,0,0,158,159,1,0,0,0,159,177,
+        5,11,0,0,160,161,5,41,0,0,161,177,3,22,11,22,162,163,5,40,0,0,163,
+        177,3,22,11,21,164,165,5,28,0,0,165,177,3,22,11,20,166,167,5,20,
+        0,0,167,177,3,22,11,19,168,169,3,32,16,0,169,170,3,22,11,8,170,177,
+        1,0,0,0,171,172,5,10,0,0,172,173,3,22,11,0,173,174,5,11,0,0,174,
+        177,1,0,0,0,175,177,3,36,18,0,176,140,1,0,0,0,176,142,1,0,0,0,176,
+        154,1,0,0,0,176,160,1,0,0,0,176,162,1,0,0,0,176,164,1,0,0,0,176,
+        166,1,0,0,0,176,168,1,0,0,0,176,171,1,0,0,0,176,175,1,0,0,0,177,
+        236,1,0,0,0,178,179,10,18,0,0,179,180,3,44,22,0,180,181,3,22,11,
+        19,181,235,1,0,0,0,182,183,10,17,0,0,183,184,3,42,21,0,184,185,3,
+        22,11,18,185,235,1,0,0,0,186,187,10,16,0,0,187,188,5,32,0,0,188,
+        235,3,22,11,17,189,190,10,15,0,0,190,191,5,33,0,0,191,235,3,22,11,
+        16,192,193,10,14,0,0,193,194,3,40,20,0,194,195,3,22,11,15,195,235,
+        1,0,0,0,196,197,10,13,0,0,197,198,3,38,19,0,198,199,3,22,11,14,199,
+        235,1,0,0,0,200,201,10,12,0,0,201,202,5,29,0,0,202,235,3,22,11,13,
+        203,204,10,11,0,0,204,205,5,31,0,0,205,235,3,22,11,12,206,207,10,
+        10,0,0,207,208,5,30,0,0,208,235,3,22,11,11,209,210,10,9,0,0,210,
+        211,3,34,17,0,211,212,3,22,11,10,212,235,1,0,0,0,213,214,10,7,0,
+        0,214,215,5,23,0,0,215,235,3,22,11,8,216,217,10,6,0,0,217,218,5,
+        24,0,0,218,235,3,22,11,7,219,220,10,5,0,0,220,221,5,21,0,0,221,235,
+        3,22,11,6,222,223,10,4,0,0,223,224,5,22,0,0,224,235,3,22,11,5,225,
+        226,10,3,0,0,226,227,5,13,0,0,227,228,3,22,11,0,228,229,5,1,0,0,
+        229,230,3,22,11,4,230,235,1,0,0,0,231,232,10,23,0,0,232,233,5,12,
+        0,0,233,235,5,67,0,0,234,178,1,0,0,0,234,182,1,0,0,0,234,186,1,0,
+        0,0,234,189,1,0,0,0,234,192,1,0,0,0,234,196,1,0,0,0,234,200,1,0,
+        0,0,234,203,1,0,0,0,234,206,1,0,0,0,234,209,1,0,0,0,234,213,1,0,
+        0,0,234,216,1,0,0,0,234,219,1,0,0,0,234,222,1,0,0,0,234,225,1,0,
+        0,0,234,231,1,0,0,0,235,238,1,0,0,0,236,234,1,0,0,0,236,237,1,0,
+        0,0,237,23,1,0,0,0,238,236,1,0,0,0,239,246,5,56,0,0,240,242,5,2,
+        0,0,241,243,3,30,15,0,242,241,1,0,0,0,242,243,1,0,0,0,243,244,1,
+        0,0,0,244,246,5,3,0,0,245,239,1,0,0,0,245,240,1,0,0,0,246,25,1,0,
+        0,0,247,248,5,67,0,0,248,249,5,1,0,0,249,250,3,22,11,0,250,27,1,
+        0,0,0,251,252,5,14,0,0,252,255,5,69,0,0,253,254,5,5,0,0,254,256,
+        5,69,0,0,255,253,1,0,0,0,255,256,1,0,0,0,256,257,1,0,0,0,257,258,
+        5,15,0,0,258,29,1,0,0,0,259,264,3,22,11,0,260,261,5,5,0,0,261,263,
+        3,22,11,0,262,260,1,0,0,0,263,266,1,0,0,0,264,262,1,0,0,0,264,265,
+        1,0,0,0,265,31,1,0,0,0,266,264,1,0,0,0,267,268,7,0,0,0,268,269,3,
+        28,14,0,269,33,1,0,0,0,270,271,7,1,0,0,271,272,3,28,14,0,272,35,
+        1,0,0,0,273,274,7,2,0,0,274,37,1,0,0,0,275,276,7,3,0,0,276,39,1,
+        0,0,0,277,278,7,4,0,0,278,41,1,0,0,0,279,280,7,5,0,0,280,43,1,0,
+        0,0,281,282,7,6,0,0,282,45,1,0,0,0,283,284,7,7,0,0,284,47,1,0,0,
+        0,20,52,54,61,69,78,85,103,109,120,129,134,147,157,176,234,236,242,
+        245,255,264
     ]
 
 class C2POParser ( Parser ):
@@ -844,7 +848,7 @@ class C2POParser ( Parser ):
                 self.state = 120 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714619040772) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0):
+                if not (((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714620089348) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0):
                     break
 
         except RecognitionException as re:
@@ -1181,6 +1185,8 @@ class C2POParser ( Parser ):
             return self.getToken(C2POParser.ARITH_ADD, 0)
         def BW_NEG(self):
             return self.getToken(C2POParser.BW_NEG, 0)
+        def LOG_NEG(self):
+            return self.getToken(C2POParser.LOG_NEG, 0)
 
         def accept(self, visitor:ParseTreeVisitor):
             if hasattr( visitor, "visitUnaryExpr" ):
@@ -1240,6 +1246,10 @@ class C2POParser ( Parser ):
             else:
                 return self.getTypedRuleContext(C2POParser.ExprContext,i)
 
+        def LOG_XOR(self):
+            return self.getToken(C2POParser.LOG_XOR, 0)
+        def LOG_IMPL(self):
+            return self.getToken(C2POParser.LOG_IMPL, 0)
         def LOG_AND(self):
             return self.getToken(C2POParser.LOG_AND, 0)
         def LOG_OR(self):
@@ -1334,7 +1344,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 174
+            self.state = 176
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,13,self._ctx)
             if la_ == 1:
@@ -1387,7 +1397,7 @@ class C2POParser ( Parser ):
                 self.state = 157
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714619040772) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0:
+                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714620089348) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0:
                     self.state = 156
                     self.expr_list()
 
@@ -1403,7 +1413,7 @@ class C2POParser ( Parser ):
                 self.state = 160
                 self.match(C2POParser.ARITH_SUB)
                 self.state = 161
-                self.expr(19)
+                self.expr(22)
                 pass
 
             elif la_ == 5:
@@ -1413,7 +1423,7 @@ class C2POParser ( Parser ):
                 self.state = 162
                 self.match(C2POParser.ARITH_ADD)
                 self.state = 163
-                self.expr(18)
+                self.expr(21)
                 pass
 
             elif la_ == 6:
@@ -1423,42 +1433,52 @@ class C2POParser ( Parser ):
                 self.state = 164
                 self.match(C2POParser.BW_NEG)
                 self.state = 165
-                self.expr(17)
+                self.expr(20)
                 pass
 
             elif la_ == 7:
-                localctx = C2POParser.TLUnaryExprContext(self, localctx)
+                localctx = C2POParser.UnaryExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 166
-                self.tl_unary_op()
+                self.match(C2POParser.LOG_NEG)
                 self.state = 167
-                self.expr(6)
+                self.expr(19)
                 pass
 
             elif la_ == 8:
-                localctx = C2POParser.ParensExprContext(self, localctx)
+                localctx = C2POParser.TLUnaryExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
+                self.state = 168
+                self.tl_unary_op()
                 self.state = 169
-                self.match(C2POParser.T__9)
-                self.state = 170
-                self.expr(0)
-                self.state = 171
-                self.match(C2POParser.T__10)
+                self.expr(8)
                 pass
 
             elif la_ == 9:
+                localctx = C2POParser.ParensExprContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 171
+                self.match(C2POParser.T__9)
+                self.state = 172
+                self.expr(0)
+                self.state = 173
+                self.match(C2POParser.T__10)
+                pass
+
+            elif la_ == 10:
                 localctx = C2POParser.LiteralExprContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 173
+                self.state = 175
                 self.literal()
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 228
+            self.state = 236
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,15,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -1466,197 +1486,223 @@ class C2POParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 226
+                    self.state = 234
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,14,self._ctx)
                     if la_ == 1:
                         localctx = C2POParser.ArithMulExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 176
-                        if not self.precpred(self._ctx, 16):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 16)")
-                        self.state = 177
-                        self.arith_mul_op()
                         self.state = 178
-                        self.expr(17)
+                        if not self.precpred(self._ctx, 18):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 18)")
+                        self.state = 179
+                        self.arith_mul_op()
+                        self.state = 180
+                        self.expr(19)
                         pass
 
                     elif la_ == 2:
                         localctx = C2POParser.ArithAddExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 180
-                        if not self.precpred(self._ctx, 15):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 15)")
-                        self.state = 181
-                        self.arith_add_op()
                         self.state = 182
-                        self.expr(16)
+                        if not self.precpred(self._ctx, 17):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 17)")
+                        self.state = 183
+                        self.arith_add_op()
+                        self.state = 184
+                        self.expr(18)
                         pass
 
                     elif la_ == 3:
                         localctx = C2POParser.BWExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 184
-                        if not self.precpred(self._ctx, 14):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 14)")
-                        self.state = 185
-                        self.match(C2POParser.BW_SHIFT_LEFT)
                         self.state = 186
-                        self.expr(15)
+                        if not self.precpred(self._ctx, 16):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 16)")
+                        self.state = 187
+                        self.match(C2POParser.BW_SHIFT_LEFT)
+                        self.state = 188
+                        self.expr(17)
                         pass
 
                     elif la_ == 4:
                         localctx = C2POParser.BWExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 187
-                        if not self.precpred(self._ctx, 13):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 13)")
-                        self.state = 188
-                        self.match(C2POParser.BW_SHIFT_RIGHT)
                         self.state = 189
-                        self.expr(14)
+                        if not self.precpred(self._ctx, 15):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 15)")
+                        self.state = 190
+                        self.match(C2POParser.BW_SHIFT_RIGHT)
+                        self.state = 191
+                        self.expr(16)
                         pass
 
                     elif la_ == 5:
                         localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 190
-                        if not self.precpred(self._ctx, 12):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 12)")
-                        self.state = 191
-                        self.rel_ineq_op()
                         self.state = 192
-                        self.expr(13)
+                        if not self.precpred(self._ctx, 14):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 14)")
+                        self.state = 193
+                        self.rel_ineq_op()
+                        self.state = 194
+                        self.expr(15)
                         pass
 
                     elif la_ == 6:
                         localctx = C2POParser.RelExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 194
-                        if not self.precpred(self._ctx, 11):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
-                        self.state = 195
-                        self.rel_eq_op()
                         self.state = 196
-                        self.expr(12)
+                        if not self.precpred(self._ctx, 13):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 13)")
+                        self.state = 197
+                        self.rel_eq_op()
+                        self.state = 198
+                        self.expr(14)
                         pass
 
                     elif la_ == 7:
                         localctx = C2POParser.BWExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 198
-                        if not self.precpred(self._ctx, 10):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
-                        self.state = 199
-                        self.match(C2POParser.BW_AND)
                         self.state = 200
-                        self.expr(11)
+                        if not self.precpred(self._ctx, 12):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 12)")
+                        self.state = 201
+                        self.match(C2POParser.BW_AND)
+                        self.state = 202
+                        self.expr(13)
                         pass
 
                     elif la_ == 8:
                         localctx = C2POParser.BWExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 201
-                        if not self.precpred(self._ctx, 9):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
-                        self.state = 202
-                        self.match(C2POParser.BW_XOR)
                         self.state = 203
-                        self.expr(10)
+                        if not self.precpred(self._ctx, 11):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 11)")
+                        self.state = 204
+                        self.match(C2POParser.BW_XOR)
+                        self.state = 205
+                        self.expr(12)
                         pass
 
                     elif la_ == 9:
                         localctx = C2POParser.BWExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 204
-                        if not self.precpred(self._ctx, 8):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 8)")
-                        self.state = 205
-                        self.match(C2POParser.BW_OR)
                         self.state = 206
-                        self.expr(9)
+                        if not self.precpred(self._ctx, 10):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 10)")
+                        self.state = 207
+                        self.match(C2POParser.BW_OR)
+                        self.state = 208
+                        self.expr(11)
                         pass
 
                     elif la_ == 10:
                         localctx = C2POParser.TLBinExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 207
-                        if not self.precpred(self._ctx, 7):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
-                        self.state = 208
-                        self.tl_bin_op()
                         self.state = 209
-                        self.expr(8)
+                        if not self.precpred(self._ctx, 9):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 9)")
+                        self.state = 210
+                        self.tl_bin_op()
+                        self.state = 211
+                        self.expr(10)
                         pass
 
                     elif la_ == 11:
                         localctx = C2POParser.LogBinExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 211
-                        if not self.precpred(self._ctx, 5):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
-                        self.state = 212
-                        self.match(C2POParser.LOG_AND)
                         self.state = 213
-                        self.expr(6)
+                        if not self.precpred(self._ctx, 7):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
+                        self.state = 214
+                        self.match(C2POParser.LOG_XOR)
+                        self.state = 215
+                        self.expr(8)
                         pass
 
                     elif la_ == 12:
                         localctx = C2POParser.LogBinExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 214
-                        if not self.precpred(self._ctx, 4):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
-                        self.state = 215
-                        self.match(C2POParser.LOG_OR)
                         self.state = 216
-                        self.expr(5)
+                        if not self.precpred(self._ctx, 6):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
+                        self.state = 217
+                        self.match(C2POParser.LOG_IMPL)
+                        self.state = 218
+                        self.expr(7)
                         pass
 
                     elif la_ == 13:
-                        localctx = C2POParser.TernaryExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        localctx = C2POParser.LogBinExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 217
-                        if not self.precpred(self._ctx, 3):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
-                        self.state = 218
-                        self.match(C2POParser.T__12)
                         self.state = 219
-                        self.expr(0)
+                        if not self.precpred(self._ctx, 5):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
                         self.state = 220
-                        self.match(C2POParser.T__0)
+                        self.match(C2POParser.LOG_AND)
                         self.state = 221
-                        self.expr(4)
+                        self.expr(6)
                         pass
 
                     elif la_ == 14:
+                        localctx = C2POParser.LogBinExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+                        self.state = 222
+                        if not self.precpred(self._ctx, 4):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
+                        self.state = 223
+                        self.match(C2POParser.LOG_OR)
+                        self.state = 224
+                        self.expr(5)
+                        pass
+
+                    elif la_ == 15:
+                        localctx = C2POParser.TernaryExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
+                        self.state = 225
+                        if not self.precpred(self._ctx, 3):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
+                        self.state = 226
+                        self.match(C2POParser.T__12)
+                        self.state = 227
+                        self.expr(0)
+                        self.state = 228
+                        self.match(C2POParser.T__0)
+                        self.state = 229
+                        self.expr(4)
+                        pass
+
+                    elif la_ == 16:
                         localctx = C2POParser.StructMemberExprContext(self, C2POParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 223
-                        if not self.precpred(self._ctx, 20):
+                        self.state = 231
+                        if not self.precpred(self._ctx, 23):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 20)")
-                        self.state = 224
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 23)")
+                        self.state = 232
                         self.match(C2POParser.T__11)
-                        self.state = 225
+                        self.state = 233
                         self.match(C2POParser.IDENTIFIER)
                         pass
 
              
-                self.state = 230
+                self.state = 238
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,15,self._ctx)
 
@@ -1701,27 +1747,27 @@ class C2POParser ( Parser ):
         self.enterRule(localctx, 24, self.RULE_set_expr)
         self._la = 0 # Token type
         try:
-            self.state = 237
+            self.state = 245
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [56]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 231
+                self.state = 239
                 self.match(C2POParser.SW_EMPTY_SET)
                 pass
             elif token in [2]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 232
+                self.state = 240
                 self.match(C2POParser.T__1)
-                self.state = 234
+                self.state = 242
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714619040772) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0:
-                    self.state = 233
+                if ((_la) & ~0x3f) == 0 and ((1 << _la) & 113437714620089348) != 0 or (((_la - 67)) & ~0x3f) == 0 and ((1 << (_la - 67)) & 7) != 0:
+                    self.state = 241
                     self.expr_list()
 
 
-                self.state = 236
+                self.state = 244
                 self.match(C2POParser.T__2)
                 pass
             else:
@@ -1768,11 +1814,11 @@ class C2POParser ( Parser ):
         self.enterRule(localctx, 26, self.RULE_set_agg_binder)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 239
+            self.state = 247
             self.match(C2POParser.IDENTIFIER)
-            self.state = 240
+            self.state = 248
             self.match(C2POParser.T__0)
-            self.state = 241
+            self.state = 249
             self.expr(0)
         except RecognitionException as re:
             localctx.exception = re
@@ -1815,21 +1861,21 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 243
+            self.state = 251
             self.match(C2POParser.T__13)
-            self.state = 244
+            self.state = 252
             self.match(C2POParser.INT)
-            self.state = 247
+            self.state = 255
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==5:
-                self.state = 245
+                self.state = 253
                 self.match(C2POParser.T__4)
-                self.state = 246
+                self.state = 254
                 self.match(C2POParser.INT)
 
 
-            self.state = 249
+            self.state = 257
             self.match(C2POParser.T__14)
         except RecognitionException as re:
             localctx.exception = re
@@ -1873,17 +1919,17 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 251
+            self.state = 259
             self.expr(0)
-            self.state = 256
+            self.state = 264
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==5:
-                self.state = 252
+                self.state = 260
                 self.match(C2POParser.T__4)
-                self.state = 253
+                self.state = 261
                 self.expr(0)
-                self.state = 258
+                self.state = 266
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
@@ -1938,14 +1984,14 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 259
+            self.state = 267
             _la = self._input.LA(1)
             if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 41376821576466432) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 260
+            self.state = 268
             self.interval()
         except RecognitionException as re:
             localctx.exception = re
@@ -1995,14 +2041,14 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 262
+            self.state = 270
             _la = self._input.LA(1)
             if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 29273397577908224) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 263
+            self.state = 271
             self.interval()
         except RecognitionException as re:
             localctx.exception = re
@@ -2054,7 +2100,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 265
+            self.state = 273
             _la = self._input.LA(1)
             if not((((_la - 26)) & ~0x3f) == 0 and ((1 << (_la - 26)) & 15393162788867) != 0):
                 self._errHandler.recoverInline(self)
@@ -2102,7 +2148,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 267
+            self.state = 275
             _la = self._input.LA(1)
             if not(_la==34 or _la==35):
                 self._errHandler.recoverInline(self)
@@ -2156,7 +2202,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 269
+            self.state = 277
             _la = self._input.LA(1)
             if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 1030792151040) != 0):
                 self._errHandler.recoverInline(self)
@@ -2204,7 +2250,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 271
+            self.state = 279
             _la = self._input.LA(1)
             if not(_la==40 or _la==41):
                 self._errHandler.recoverInline(self)
@@ -2255,7 +2301,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 273
+            self.state = 281
             _la = self._input.LA(1)
             if not(((_la) & ~0x3f) == 0 and ((1 << _la) & 30786325577728) != 0):
                 self._errHandler.recoverInline(self)
@@ -2303,7 +2349,7 @@ class C2POParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 275
+            self.state = 283
             _la = self._input.LA(1)
             if not(_la==28 or _la==41):
                 self._errHandler.recoverInline(self)
@@ -2332,59 +2378,67 @@ class C2POParser ( Parser ):
 
     def expr_sempred(self, localctx:ExprContext, predIndex:int):
             if predIndex == 0:
-                return self.precpred(self._ctx, 16)
+                return self.precpred(self._ctx, 18)
          
 
             if predIndex == 1:
-                return self.precpred(self._ctx, 15)
+                return self.precpred(self._ctx, 17)
          
 
             if predIndex == 2:
-                return self.precpred(self._ctx, 14)
+                return self.precpred(self._ctx, 16)
          
 
             if predIndex == 3:
-                return self.precpred(self._ctx, 13)
+                return self.precpred(self._ctx, 15)
          
 
             if predIndex == 4:
-                return self.precpred(self._ctx, 12)
+                return self.precpred(self._ctx, 14)
          
 
             if predIndex == 5:
-                return self.precpred(self._ctx, 11)
+                return self.precpred(self._ctx, 13)
          
 
             if predIndex == 6:
-                return self.precpred(self._ctx, 10)
+                return self.precpred(self._ctx, 12)
          
 
             if predIndex == 7:
-                return self.precpred(self._ctx, 9)
+                return self.precpred(self._ctx, 11)
          
 
             if predIndex == 8:
-                return self.precpred(self._ctx, 8)
+                return self.precpred(self._ctx, 10)
          
 
             if predIndex == 9:
-                return self.precpred(self._ctx, 7)
+                return self.precpred(self._ctx, 9)
          
 
             if predIndex == 10:
-                return self.precpred(self._ctx, 5)
+                return self.precpred(self._ctx, 7)
          
 
             if predIndex == 11:
-                return self.precpred(self._ctx, 4)
+                return self.precpred(self._ctx, 6)
          
 
             if predIndex == 12:
-                return self.precpred(self._ctx, 3)
+                return self.precpred(self._ctx, 5)
          
 
             if predIndex == 13:
-                return self.precpred(self._ctx, 20)
+                return self.precpred(self._ctx, 4)
+         
+
+            if predIndex == 14:
+                return self.precpred(self._ctx, 3)
+         
+
+            if predIndex == 15:
+                return self.precpred(self._ctx, 23)
          
 
 

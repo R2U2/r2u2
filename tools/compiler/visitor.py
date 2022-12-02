@@ -111,7 +111,7 @@ class Visitor(C2POVisitor):
 
         if id == 'bool':
             return Bool()
-        elif id == 'int':
+        elif id == 'uint8':
             return Int()
         elif id == 'float':
             return Float()
@@ -374,18 +374,16 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#UnaryExpr.
     def visitUnaryExpr(self, ctx:C2POParser.UnaryExprContext) -> AST:
         ln: int = ctx.start.line
-        op: AST = self.visit(ctx.expr(0))
+        op: AST = self.visit(ctx.expr())
 
-        if ctx.unary_op():
-            if ctx.unary_op.ARITH_SUB():
-                return ARITH_NEG(ln, op)
-            elif ctx.unary_op.BW_NEG():
-                return BW_NEG(ln, op)
-            else:
-                self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
-                return AST(ln, [])
+        if ctx.ARITH_SUB():
+            return ARITH_NEG(ln, op)
+        elif ctx.BW_NEG():
+            return BW_NEG(ln, op)
+        elif ctx.LOG_NEG():
+            return LOG_NEG(ln, op)
         else:
-            self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
+            self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
             return AST(ln, [])
 
 

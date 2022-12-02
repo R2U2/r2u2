@@ -3,11 +3,18 @@ from enum import Enum
 class BaseType(Enum):
     NOTYPE = 0
     BOOL = 1
-    INT = 2
-    FLOAT = 3
-    SET = 4
-    STRUCT = 5
-
+    UINT8 = 2
+    UINT16 = 3
+    UINT32 = 4
+    UINT64 = 5
+    SINT8 = 6
+    SINT16 = 7
+    SINT32 = 8
+    SINT64 = 9
+    FLOAT = 10
+    DOUBLE = 11
+    SET = 12
+    STRUCT = 13
 
 class Type():
 
@@ -33,7 +40,7 @@ class Bool(Type):
 
 class Int(Type):
     def __init__(self) -> None:
-        super().__init__(BaseType.INT,'int')
+        super().__init__(BaseType.UINT8,'int')
 
 class Float(Type):
     def __init__(self) -> None:
