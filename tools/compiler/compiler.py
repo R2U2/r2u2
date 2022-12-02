@@ -328,8 +328,6 @@ def gen_bz_assembly(prog: PROGRAM) -> str:
     bz_visited: list[AST] = []
     bzasm: str = ''
 
-    print(prog)
-
     def gen_bzasm_util_pre(a: AST) -> None:
         # load next element's data into registers
         pass
