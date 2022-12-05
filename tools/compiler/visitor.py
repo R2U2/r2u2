@@ -48,6 +48,10 @@ class Visitor(C2POVisitor):
         ret: list[PROGRAM] = []
         for s in ctx.spec_block():
             ret.append(self.visit(s))
+
+        if len(ret) < 1:
+            self.error(f'{ln}: No specifications provided.') 
+
         return ret
 
 

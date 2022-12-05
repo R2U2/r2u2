@@ -102,10 +102,6 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                     status = False
                     logger.error(f'{a.ln}: Set \'{a}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
-            for p in a.parents:
-                if isinstance(p,SET_AGG_OP):
-                    context[p.get_boundvar().name] = t
-
             a.type = Set(t)
         elif isinstance(a,VAR):
             if a.name in context.keys():
@@ -131,6 +127,11 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
         else:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
+
+        if isinstance(a.type,Set):
+            for p in a.parents:
+                if isinstance(p,SET_AGG_OP):
+                    context[p.get_boundvar().name] = a.type.member_type
 
     postorder(prog,type_check_util)
 
@@ -168,34 +169,84 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
-def rewrite_set_agg(prog: PROGRAM) -> None:
+# def rewrite_set_agg(prog: PROGRAM) -> None:
 
-    def rewrite_set_agg_util(a: AST) -> None:
-        if isinstance(a, FOR_EACH):
-            rewrite(a, LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
-        elif isinstance(a, FOR_SOME):
-            rewrite(a, LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
-        elif isinstance(a, FOR_EXACTLY_N):
-            s: SET = a.get_set()
-            rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
-        elif isinstance(a, FOR_AT_LEAST_N):
-            s: SET = a.get_set()
-            rewrite(a, REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
-        elif isinstance(a, FOR_AT_MOST_N):
-            s: SET = a.get_set()
-            rewrite(a, REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
+#     def rewrite_set_agg_util(a: AST) -> None:
+#         if isinstance(a, FOR_EACH):
+#             rewrite(a, LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
+#         elif isinstance(a, FOR_SOME):
+#             rewrite(a, LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
+#         elif isinstance(a, FOR_EXACTLY_N):
+#             s: SET = a.get_set()
+#             rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
+#         elif isinstance(a, FOR_AT_LEAST_N):
+#             s: SET = a.get_set()
+#             rewrite(a, REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
+#         elif isinstance(a, FOR_AT_MOST_N):
+#             s: SET = a.get_set()
+#             rewrite(a, REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
 
-    postorder(prog, rewrite_set_agg_util)
+#     postorder(prog, rewrite_set_agg_util)
 
 
 def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
+            print(a)
             s: STRUCT = a.get_struct()
             rewrite(a,s.members[a.member])
 
     postorder(prog, rewrite_struct_access_util)
+
+
+def rewrite_set_agg(prog: PROGRAM) -> None:
+
+    # could be done far more efficiently...currently traverses each set agg
+    # expression sub tree searching for struct accesses. better approach: keep
+    # track of these accesses on the frontend
+    def rewrite_struct_access_util(a: AST) -> None:
+        for c in a.children:
+            rewrite_struct_access_util(c)
+
+        if isinstance(a,STRUCT_ACCESS) and not isinstance(a.get_struct(),VAR):
+            s: STRUCT = a.get_struct()
+            rewrite(a,s.members[a.member])
+    
+    def rewrite_set_agg_util(a: AST) -> None:
+        cur: AST = a
+
+        if isinstance(a, FOR_EACH):
+            cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
+            rewrite(a, cur)
+            rewrite_struct_access_util(cur)
+            print(a)
+            print(cur)
+        # elif isinstance(a, FOR_SOME):
+        #     cur = LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
+        #     rewrite(a, cur)
+        #     rewrite_struct_access_util(cur)
+        # elif isinstance(a, FOR_EXACTLY_N):
+        #     s: SET = a.get_set()
+        #     cur = REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+        #     rewrite(a, cur)
+        #     rewrite_struct_access_util(cur)
+        # elif isinstance(a, FOR_AT_LEAST_N):
+        #     s: SET = a.get_set()
+        #     cur = REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+        #     rewrite(a, cur)
+        #     rewrite_struct_access_util(cur)
+        # elif isinstance(a, FOR_AT_MOST_N):
+        #     s: SET = a.get_set()
+        #     cur = REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+        #     rewrite(a, cur)
+        #     rewrite_struct_access_util(cur)
+
+        for c in cur.children:
+            rewrite_set_agg_util(c)
+
+    rewrite_set_agg_util(prog)
+    print(prog)
 
 
 def optimize_cse(prog: PROGRAM) -> None:
@@ -429,7 +480,7 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
     progs: list[PROGRAM] = parse(input)
 
     if len(progs) < 1:
-        logger.error(' Failed parsing')
+        logger.error(' Failed parsing.')
         return
 
     set_parents(progs[0])

@@ -4,19 +4,18 @@
 -- comments which are preceded by two dashes
 
 STRUCT
-  test: {a,b,c: int;};
+  test: {v: uint8; V: set<uint8>; };
  
 INPUT
-  x,y,z: int;
+  x0,y0,z0: uint8;
+  x1,y1,z1: uint8;
   
 DEFINE
-  t0 = test(x,y,z);
-  t1 = test(y,z,x);
-  t2 = test(z,x,y);
+  t0 = test(x0,{y0,z0});
+  t1 = test(x1,{y1,z1});
 
-  t3 = test(x+y,y+z,x+z);
-
+  Set = {t0,t1};
 
 SPEC
-  foreach(t:{t0,t1,t2,t3})(t.a == t.b || x>5);
+  foreach(t:Set)(foreach(v:t.V)(v == 5));
   
