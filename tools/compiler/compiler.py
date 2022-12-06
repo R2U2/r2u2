@@ -169,26 +169,6 @@ def rewrite_ops(prog: PROGRAM) -> None:
     postorder(prog, rewrite_ops_util)
 
 
-# def rewrite_set_agg(prog: PROGRAM) -> None:
-
-#     def rewrite_set_agg_util(a: AST) -> None:
-#         if isinstance(a, FOR_EACH):
-#             rewrite(a, LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
-#         elif isinstance(a, FOR_SOME):
-#             rewrite(a, LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]))
-#         elif isinstance(a, FOR_EXACTLY_N):
-#             s: SET = a.get_set()
-#             rewrite(a, REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
-#         elif isinstance(a, FOR_AT_LEAST_N):
-#             s: SET = a.get_set()
-#             rewrite(a, REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
-#         elif isinstance(a, FOR_AT_MOST_N):
-#             s: SET = a.get_set()
-#             rewrite(a, REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num)))
-
-#     postorder(prog, rewrite_set_agg_util)
-
-
 def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
