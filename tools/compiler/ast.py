@@ -983,6 +983,7 @@ class PROGRAM(TL_EXPR):
         s: AST
         for s in self.children:
             ret += str(s) + '\n'
+        ret = ret[:-1]
         return ret
 
     def tlasm(self) -> str:

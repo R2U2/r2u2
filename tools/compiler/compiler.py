@@ -218,35 +218,33 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
 
         if isinstance(a, FOR_EACH):
             cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
+            set_parents(cur)
             rewrite(a, cur)
             rewrite_struct_access_util(cur)
-            print(a)
-            print(cur)
-        # elif isinstance(a, FOR_SOME):
-        #     cur = LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
-        #     rewrite(a, cur)
-        #     rewrite_struct_access_util(cur)
-        # elif isinstance(a, FOR_EXACTLY_N):
-        #     s: SET = a.get_set()
-        #     cur = REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-        #     rewrite(a, cur)
-        #     rewrite_struct_access_util(cur)
-        # elif isinstance(a, FOR_AT_LEAST_N):
-        #     s: SET = a.get_set()
-        #     cur = REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-        #     rewrite(a, cur)
-        #     rewrite_struct_access_util(cur)
-        # elif isinstance(a, FOR_AT_MOST_N):
-        #     s: SET = a.get_set()
-        #     cur = REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-        #     rewrite(a, cur)
-        #     rewrite_struct_access_util(cur)
+        elif isinstance(a, FOR_SOME):
+            cur = LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
+            rewrite(a, cur)
+            rewrite_struct_access_util(cur)
+        elif isinstance(a, FOR_EXACTLY_N):
+            s: SET = a.get_set()
+            cur = REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+            rewrite(a, cur)
+            rewrite_struct_access_util(cur)
+        elif isinstance(a, FOR_AT_LEAST_N):
+            s: SET = a.get_set()
+            cur = REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+            rewrite(a, cur)
+            rewrite_struct_access_util(cur)
+        elif isinstance(a, FOR_AT_MOST_N):
+            s: SET = a.get_set()
+            cur = REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
+            rewrite(a, cur)
+            rewrite_struct_access_util(cur)
 
         for c in cur.children:
             rewrite_set_agg_util(c)
 
     rewrite_set_agg_util(prog)
-    print(prog)
 
 
 def optimize_cse(prog: PROGRAM) -> None:
