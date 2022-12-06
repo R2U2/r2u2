@@ -1,5 +1,4 @@
 from __future__ import annotations
-from copy import copy, deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
@@ -75,8 +74,8 @@ def rename(v: AST, repl: AST, expr: AST) -> AST:
         if v == a:
             rewrite(a,repl)
 
+    set_parents(new)
     postorder(new,rename_util)
-    print('post-rename: '+str(expr))
     return new
 
 
@@ -348,10 +347,8 @@ class SET_AGG_OP(AST):
         return self.children[2]
 
     def copy(self) -> SET_AGG_OP:
-        print('pre-copy: '+str(self))
         new = type(self)(self.ln,self.get_set().copy(),self.get_boundvar().copy(),self.get_expr().copy())
         self.copy_attrs(new)
-        print('post-copy: '+str(self))
         return new
 
     def __str__(self) -> str:

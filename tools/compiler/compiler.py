@@ -197,9 +197,7 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
         cur: AST = a
 
         if isinstance(a, FOR_EACH):
-            print('a: '+str(a))
             cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
-            print('cur: '+str(cur))
             set_parents(cur)
             rewrite(a, cur)
             rewrite_struct_access_util(cur)
@@ -311,7 +309,7 @@ def parse_signals(filename: str) -> dict[str,int]:
                 logger.error(f' Not enough data in file \'{filename}\'')
                 return {}
             cnt: int = 0
-            for id in lines[0].split(','):
+            for id in [s.strip() for s in lines[0].split(',')]:
                 mapping[id] = cnt
                 cnt += 1
     else: # TODO, implement signal mapping file format
