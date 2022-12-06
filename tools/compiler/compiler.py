@@ -197,7 +197,9 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
         cur: AST = a
 
         if isinstance(a, FOR_EACH):
+            print('a: '+str(a))
             cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
+            print('cur: '+str(cur))
             set_parents(cur)
             rewrite(a, cur)
             rewrite_struct_access_util(cur)
@@ -225,6 +227,7 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
             rewrite_set_agg_util(c)
 
     rewrite_set_agg_util(prog)
+    print(prog)
 
 
 def optimize_cse(prog: PROGRAM) -> None:

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from copy import deepcopy
+from copy import copy, deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
@@ -69,19 +69,20 @@ def rewrite(old: AST, new: AST) -> None:
 
 
 def rename(v: AST, repl: AST, expr: AST) -> AST:
-    new: AST = deepcopy(expr)
+    new: AST = expr.copy()
 
     def rename_util(a: AST) -> None:
         if v == a:
             rewrite(a,repl)
 
     postorder(new,rename_util)
+    print('post-rename: '+str(expr))
     return new
 
 
 class AST():
 
-    def __init__(self, ln: int, c: list['AST']) -> None:
+    def __init__(self, ln: int, c: list[AST]) -> None:
         self.ln: int = ln
         self.tlid: int = -1
         self.bzid: int = -1
@@ -92,9 +93,9 @@ class AST():
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
         self.type: Type = NoType()
-        self.children: list[AST] = []
         self.is_ft: bool = True
 
+        self.children: list[AST] = []
         self.parents: list[AST] = []
 
         child: AST
@@ -103,6 +104,24 @@ class AST():
 
     def __str__(self) -> str:
         return self.name
+
+    def copy_attrs(self, new: AST) -> None:
+        new.tlid = self.tlid
+        new.bzid = self.bzid
+        new.atid = self.atid
+        new.scq_size = self.scq_size
+        new.name = self.name
+        new.bpd = self.bpd
+        new.wpd = self.wpd
+        new.formula_type = self.formula_type
+        new.type = self.type
+        new.is_ft = self.is_ft
+
+    def copy(self) -> AST:
+        children = [c.copy() for c in self.children]
+        new = type(self)(self.ln,children)
+        self.copy_attrs(new)
+        return new
 
 
 class TL_EXPR(AST):
@@ -181,6 +200,11 @@ class VAR(AST):
         self.name: str = n
         self.reg: int = -1
 
+    def copy(self) -> VAR:
+        new = type(self)(self.ln,self.name)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return self.name
 
@@ -201,6 +225,12 @@ class SIGNAL(LIT):
 
     def __str__(self) -> str:
         return self.name
+
+    def copy(self) -> SIGNAL:
+        new = type(self)(self.ln,self.name,self.type)
+        new.sid = self.sid
+        self.copy_attrs(new)
+        return new
 
     def tlasm(self) -> str:
         return super().tlasm() + f'load s{self.sid}\n'
@@ -239,6 +269,11 @@ class SET(BZ_EXPR):
     def set_dynamic_size(self, s: AST) -> None:
         self.dynamic_size = s
 
+    def copy(self) -> SET:
+        new = type(self)(self.ln,self.max_size,[c.copy() for c in self.children])
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         s: str = '{'
         for m in self.children:
@@ -258,6 +293,11 @@ class STRUCT(AST):
         self.name: str = n
         self.members: dict[str,AST] = m
 
+    def copy(self) -> STRUCT:
+        new = type(self)(self.ln,self.name,self.members)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         s: str = ''
         s += self.name + '('
@@ -276,6 +316,11 @@ class STRUCT_ACCESS(AST):
     def get_struct(self) -> STRUCT:
         return cast(STRUCT, self.children[0])
 
+    def copy(self) -> STRUCT_ACCESS:
+        new = type(self)(self.ln,self.get_struct().copy(),self.member)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return str(self.children[0]) + '.' + self.member
 
@@ -290,7 +335,7 @@ class FUNCTION(AST):
 
 class SET_AGG_OP(AST):
 
-    def __init__(self, ln: int, s: SET, v: VAR,  e: AST) -> None:
+    def __init__(self, ln: int, s: AST, v: AST,  e: AST) -> None:
         super().__init__(ln,[s,v,e])
 
     def get_set(self) -> SET:
@@ -301,6 +346,13 @@ class SET_AGG_OP(AST):
 
     def get_expr(self) -> AST:
         return self.children[2]
+
+    def copy(self) -> SET_AGG_OP:
+        print('pre-copy: '+str(self))
+        new = type(self)(self.ln,self.get_set().copy(),self.get_boundvar().copy(),self.get_expr().copy())
+        self.copy_attrs(new)
+        print('post-copy: '+str(self))
+        return new
 
     def __str__(self) -> str:
         return self.name + '(' + str(self.get_boundvar()) + ':' + str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
@@ -534,6 +586,11 @@ class REL_OP(BZ_EXPR):
     def get_rhs(self) -> AST:
         return self.children[1]
 
+    def copy(self) -> REL_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
 
@@ -648,6 +705,11 @@ class TL_FT_BIN_OP(TL_FT_OP):
     def get_rhs(self) -> AST:
         return self.children[1]
 
+    def copy(self) -> TL_FT_BIN_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy(),self.interval.lb,self.interval.ub)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
@@ -694,6 +756,11 @@ class TL_FT_UNARY_OP(TL_FT_OP):
 
     def get_operand(self) -> AST:
         return self.children[0]
+
+    def copy(self) -> TL_FT_UNARY_OP:
+        new = type(self)(self.ln,self.get_operand().copy(),self.interval.lb,self.interval.ub)
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
@@ -808,7 +875,6 @@ class LOG_OP(TL_EXPR):
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
 
-
 class LOG_OR(LOG_OP):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
@@ -859,6 +925,11 @@ class LOG_BIN_OP(LOG_OP):
 
     def get_rhs(self) -> AST:
         return self.children[1]
+
+    def copy(self) -> LOG_BIN_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
@@ -933,6 +1004,11 @@ class LOG_UNARY_OP(LOG_OP):
 
     def get_operand(self) -> AST:
         return self.children[0]
+
+    def copy(self) -> LOG_UNARY_OP:
+        new = type(self)(self.ln,self.get_operand().copy())
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]!s})'

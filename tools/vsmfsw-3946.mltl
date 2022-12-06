@@ -53,9 +53,9 @@ DEFINE
     cmd_3_09 = Command(cmd_3_09_sent, cmd_3_09_rc);
     cmd_3_10 = Command(cmd_3_10_sent, cmd_3_10_rc);
 
-    task_1_cmds = Set({cmd_1_01, cmd_1_02, cmd_1_03, cmd_1_04, cmd_1_05, cmd_1_06, cmd_1_07, cmd_1_08, cmd_1_09, cmd_1_10}, task_1_cmds_size);
-    task_2_cmds = Set({cmd_2_01, cmd_2_02, cmd_2_03, cmd_2_04, cmd_2_05, cmd_2_06, cmd_2_07, cmd_2_08, cmd_2_09, cmd_2_10}, task_2_cmds_size);
-    task_3_cmds = Set({cmd_3_01, cmd_3_02, cmd_3_03, cmd_3_04, cmd_3_05, cmd_3_06, cmd_3_07, cmd_3_08, cmd_3_09, cmd_3_10}, task_3_cmds_size);
+    task_1_cmds = {cmd_1_01, cmd_1_02, cmd_1_03, cmd_1_04, cmd_1_05, cmd_1_06, cmd_1_07, cmd_1_08, cmd_1_09, cmd_1_10};
+    task_2_cmds = {cmd_2_01, cmd_2_02, cmd_2_03, cmd_2_04, cmd_2_05, cmd_2_06, cmd_2_07, cmd_2_08, cmd_2_09, cmd_2_10};
+    task_3_cmds = {cmd_3_01, cmd_3_02, cmd_3_03, cmd_3_04, cmd_3_05, cmd_3_06, cmd_3_07, cmd_3_08, cmd_3_09, cmd_3_10};
 
     task_1 = Task(task_1_running, task_1_cmds);
     task_2 = Task(task_2_running, task_2_cmds);
@@ -69,4 +69,4 @@ SPEC
     -- cmd will be sent and accepted within 3 time steps of being sent.
     foreach(task: task_set) (task.Running -> 
         (foreach(cmd: task.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
-                                F[0,4](cmd.Sent && F[0,2]cmd.ResponseCode == CMDAccepted))));
+                                F[0,4](cmd.Sent && F[0,2](cmd.ResponseCode == CMDAccepted)))));
