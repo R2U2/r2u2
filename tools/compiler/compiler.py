@@ -198,7 +198,6 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
 
         if isinstance(a, FOR_EACH):
             cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
-            set_parents(cur)
             rewrite(a, cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, FOR_SOME):
@@ -461,8 +460,6 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
     if len(progs) < 1:
         logger.error(' Failed parsing.')
         return
-
-    set_parents(progs[0])
 
     # type check
     if not type_check(progs[0],bz,progs[0].structs):

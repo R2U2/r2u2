@@ -74,7 +74,6 @@ def rename(v: AST, repl: AST, expr: AST) -> AST:
         if v == a:
             rewrite(a,repl)
 
-    set_parents(new)
     postorder(new,rename_util)
     return new
 
@@ -100,6 +99,7 @@ class AST():
         child: AST
         for child in c:
             self.children.append(child)
+            child.parents.append(self)
 
     def __str__(self) -> str:
         return self.name
