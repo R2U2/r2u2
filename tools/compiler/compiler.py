@@ -327,7 +327,7 @@ def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
         nonlocal bzid
         nonlocal atid
 
-        if isinstance(a,BOOL) or a.tlid > -1:
+        if isinstance(a,BOOL) or a.tlid > -1 or a.bzid > -1:
             return
 
         if isinstance(a,TL_EXPR):
@@ -335,13 +335,13 @@ def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
             tlid += 1
 
         if isinstance(a,BZ_EXPR):
-            
             for p in a.parents:
                 if isinstance(p,TL_EXPR):
                     a.atid = atid
                     atid += 1
                     a.tlid = tlid
                     tlid += 1
+                    break
 
         if isinstance(a,SIGNAL):
             if not a.name in signal_mapping.keys():
@@ -352,68 +352,69 @@ def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
     postorder(prog,assign_ids_util)
 
 
-def gen_bz_assembly(prog: PROGRAM) -> str:
-    bz_visited: list[AST] = []
-    bzasm: str = ''
+def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]:
+    visited: list[AST] = []
+    asm: list[AST] = []
 
-    def gen_bzasm_util_pre(a: AST) -> None:
-        # load next element's data into registers
-        pass
+    def generate_assembly_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal asm
 
-    def gen_bzasm_util_post(a: AST) -> None:
-        nonlocal bzasm
-        nonlocal bz_visited
-
-        if isinstance(a,BZ_EXPR):
-            if not a in bz_visited:
-                bzasm += a.bzasm()
-                bz_visited.append(a)
-
-                for p in a.parents:
-                    if isinstance(p,TL_EXPR):
-                        bzasm += a.bzasm_store()
-                        break
-                    
-                # for i in range(0,len(a.parents)-1): # type: ignore
-                #     bzasm += a.bzasm_dup()
-
-    traverse(prog,gen_bzasm_util_pre,gen_bzasm_util_post)
-
-    return bzasm[:-1] # remove dangling '\n'
-
-
-def gen_tl_assembly(prog: PROGRAM) -> str:
-    tl_visited: list[int] = []
-    tlasm: str = ''
-
-    def gen_tlasm_util(a: AST) -> None:
-        nonlocal tlasm
-        nonlocal tl_visited
+        if a in visited:
+            return
 
         if isinstance(a,TL_EXPR):
-            if not a.tlid in tl_visited:
-                tlasm += a.tlasm()
-                tl_visited.append(a.tlid)
-        
-        if isinstance(a,BZ_EXPR) and a.atid > -1:
-            if not a.tlid in tl_visited:
-                tlasm += a.tlasm()
-                tl_visited.append(a.tlid)
+            asm.append(a)
+            visited.append(a)
 
-    postorder(prog,gen_tlasm_util)
+        if isinstance(a,BZ_EXPR):
+            asm.append(a)
+            visited.append(a)
+
+            num_bz_parents: int = 0
+            has_tl_parent: bool = False
+            for p in a.parents:
+                if isinstance(p,BZ_EXPR):
+                    num_bz_parents += 1
+                if isinstance(p,TL_EXPR):
+                    has_tl_parent = True
+
+            if has_tl_parent and num_bz_parents == 0:
+                asm.append(STORE(a.ln,a))
+            elif has_tl_parent and num_bz_parents > 0:
+                asm.append(STORE(a.ln,a))
+                asm.append(DUP(a.ln,a))
+            
+            for n in range(0,num_bz_parents-1):
+                print(a)
+                for p in a.parents:
+                    print(p)
+                asm.append(DUP(a.ln,a))
+
+            if a.atid > -1:
+                asm.append(LOAD(a.ln,a))
+                visited.append(a)
     
-    return tlasm
+    assign_ids(prog,signal_mapping)
+    
+    postorder(prog,generate_assembly_util)
+
+    for a in asm:
+        if isinstance(a,BZ_EXPR):
+            print(a.asm())
+
+    return asm
 
 
-def gen_scq_assembly(prog: PROGRAM) -> str:
-    s: str = ''
+def generate_scq_assembly(prog: PROGRAM) -> list[tuple[int,int]]:
+    ret: list[tuple[int,int]] = []
     pos: int = 0
 
     compute_scq_size(prog)
     # print(total_scq_size(prog))
 
     def gen_scq_assembly_util(a: AST) -> None:
-        nonlocal s
+        nonlocal ret
         nonlocal pos
 
         if isinstance(a,PROGRAM) or isinstance(a,BZ_EXPR):
@@ -422,20 +423,10 @@ def gen_scq_assembly(prog: PROGRAM) -> str:
         start_pos = pos
         end_pos = start_pos + a.scq_size
         pos = end_pos
-        s += str(start_pos) + ' ' + str(end_pos) + '\n'
+        ret.append((start_pos,end_pos))
 
     postorder(prog,gen_scq_assembly_util)
-    return s
-
-
-def gen_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[str]:
-    assign_ids(prog,signal_mapping)
-    
-    bzasm: str = gen_bz_assembly(prog)
-    tlasm: str = gen_tl_assembly(prog)
-    scq_asm: str = gen_scq_assembly(prog)
-
-    return [bzasm,tlasm,'n0: endsequence',scq_asm]
+    return ret
 
 
 def parse(input: str) -> list[PROGRAM]:
@@ -482,35 +473,27 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
     signal_mapping: dict[str,int] = parse_signals(sigs)
 
     # generate assembly
-    bzasm,ftasm,ptasm,ftscqasm = gen_assembly(progs[0],signal_mapping)
+    asm: list[AST] = generate_assembly(progs[0],signal_mapping)
+    scq_asm: list[tuple[int,int]] = generate_scq_assembly(progs[0])
 
     # print asm if 'quiet' option not enabled
-    # uses re.sub to get nice tabs
     if not quiet:
-        if bz:
-            logger.info(Color.HEADER+' BZ Assembly'+Color.ENDC+':\n'+ \
-                re.sub('\n','\n\t',re.sub('^','\t',bzasm)))
-        logger.info(Color.HEADER+' FT Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',ftasm)))
-        logger.info(Color.HEADER+' PT Assembly'+Color.ENDC+':\n'+ \
-            re.sub('\n','\n\t',re.sub('^','\t',ptasm)))
+        logger.info(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
+        for a in asm:
+            print('\t'+a.asm())
+        logger.info(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
+        for s in scq_asm:
+            print('\t'+str(s))
 
     # write assembly and assemble all files into binaries
-    with open(output_path+'alias.txt','w') as f:
-        f.write(alias)
+    # with open(output_path+'alias.txt','w') as f:
+    #     f.write(alias)
 
-    if bz:
-        with open(output_path+'bz.asm','w') as f:
-            f.write(bzasm)
+    # with open(output_path+'r2u2.asm','w') as f:
+    #     f.write(asm)
 
-    with open(output_path+'ft.asm','w') as f:
-        f.write(ftasm)
-
-    with open(output_path+'pt.asm','w') as f:
-        f.write(ptasm)
-
-    with open(output_path+'ftscq.asm','w') as f:
-        f.write(ftscqasm)
+    # with open(output_path+'ftscq.asm','w') as f:
+    #     f.write(ftscqasm)
 
     # assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)
 

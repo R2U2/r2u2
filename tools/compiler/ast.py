@@ -69,6 +69,7 @@ def rewrite(old: AST, new: AST) -> None:
 
 def rename(v: AST, repl: AST, expr: AST) -> AST:
     new: AST = expr.copy()
+    repl.parents = [] # replacement ought to be standalone
 
     def rename_util(a: AST) -> None:
         if v == a:
@@ -104,6 +105,9 @@ class AST():
     def __str__(self) -> str:
         return self.name
 
+    def asm(self) -> str:
+        return 'ERROR: no asm instruction'
+
     def copy_attrs(self, new: AST) -> None:
         new.tlid = self.tlid
         new.bzid = self.bzid
@@ -128,8 +132,8 @@ class TL_EXPR(AST):
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
 
-    def tlasm(self) -> str:
-        return 'n' + str(self.tlid) + ': '
+    def asm(self) -> str:
+        return 'TL: n' + str(self.tlid) + ': '
 
 
 class BZ_EXPR(AST):
@@ -137,17 +141,51 @@ class BZ_EXPR(AST):
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
 
-    def tlasm(self) -> str:
-        return f'n{str(self.tlid)}: load a{str(self.atid)}\n' 
+    def asm(self) -> str:
+        return 'BZ: '
 
-    def bzasm(self) -> str:
-        return ''
+    def asm_store(self) -> str:
+        return f'store a{self.atid}'
 
-    def bzasm_store(self) -> str:
-        return f'store a{self.atid}\n'
+    def asm_dup(self) -> str:
+        return 'dup'
 
-    def bzasm_dup(self) -> str:
-        return 'dup\n'
+
+# only used for assembly generation
+class LOAD(TL_EXPR):
+
+    def __init__(self, ln: int, l: AST) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> AST:
+        return self.children[0]
+ 
+    def asm(self) -> str:
+        return super().asm() + f'load a{str(self.get_load().atid)}' 
+
+
+# only used for assembly generation
+class DUP(BZ_EXPR):
+
+    def __init__(self, ln: int, d: AST) -> None:
+        super().__init__(ln, [d])
+
+    def asm(self) -> str:
+        return super().asm() + 'dup'
+
+
+# only used for assembly generation
+class STORE(BZ_EXPR):
+
+    def __init__(self, ln: int, s: AST) -> None:
+        super().__init__(ln, [s])
+
+    def get_store(self) -> AST:
+        return self.children[0]
+
+    def asm(self) -> str:
+        return super().asm() + f'store a{self.get_store().atid}'
 
 
 class LIT(BZ_EXPR):
@@ -178,8 +216,8 @@ class INT(CONST):
     def __str__(self) -> str:
         return self.name
 
-    def bzasm(self) -> str:
-        return 'iconst ' + str(self.name) + '\n'
+    def asm(self) -> str:
+        return super().asm() + 'iconst ' + str(self.name) + ''
 
 
 class FLOAT(CONST):
@@ -198,8 +236,8 @@ class FLOAT(CONST):
     def __str__(self) -> str:
         return self.name
 
-    def bzasm(self) -> str:
-        return 'fconst ' + str(self.name) + '\n'
+    def asm(self) -> str:
+        return super().asm() + 'fconst ' + str(self.name) + ''
 
 
 class VAR(AST):
@@ -220,8 +258,8 @@ class VAR(AST):
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o,VAR) and __o.name == self.name
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + f'load r{self.reg}'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + f'load r{self.reg}'
 
 
 class SIGNAL(LIT):
@@ -241,11 +279,11 @@ class SIGNAL(LIT):
         self.copy_attrs(new)
         return new
 
-    def tlasm(self) -> str:
-        return super().tlasm() + f'load s{self.sid}\n'
+    # def asm(self) -> str:
+    #     return super().asm() + f'load s{self.sid}'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + '\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + ''
 
 
 class BOOL(CONST):
@@ -295,8 +333,8 @@ class SET(BZ_EXPR):
         s = s[:-1] + '}'
         return s
 
-    def bzasm(self) -> str:
-        return 'set ' + str(self.name) + '\n'
+    def asm(self) -> str:
+        return super().asm() + 'set ' + str(self.name) + ''
 
 
 class STRUCT(AST):
@@ -414,8 +452,8 @@ class COUNT(BZ_EXPR):
         super().__init__(ln, c)
         self.num: AST = n
 
-    def tlasm(self) -> str:
-        return f'count {self.num}\n'
+    def asm(self) -> str:
+        return super().asm() + f'count {self.num}'
 
 
 class BW_OP(BZ_EXPR):
@@ -450,8 +488,8 @@ class BW_AND(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '&'
 
-    def bzasm(self) -> str:
-        return 'and\n'
+    def asm(self) -> str:
+        return super().asm() + 'and'
 
 
 class BW_OR(BW_BIN_OP):
@@ -460,8 +498,8 @@ class BW_OR(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '|'
 
-    def bzasm(self) -> str:
-        return 'or\n'
+    def asm(self) -> str:
+        return super().asm() + 'or'
 
 
 class BW_XOR(BW_BIN_OP):
@@ -470,8 +508,8 @@ class BW_XOR(BW_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def bzasm(self) -> str:
-        return 'xor\n'
+    def asm(self) -> str:
+        return super().asm() + 'xor'
 
 
 class BW_UNARY_OP(BW_OP):
@@ -497,8 +535,8 @@ class BW_NEG(BW_UNARY_OP):
         super().__init__(ln, o)
         self.name: str = '~'
 
-    def bzasm(self) -> str:
-        return 'bwneg\n'
+    def asm(self) -> str:
+        return super().asm() + 'bwneg'
 
 
 class ARITH_OP(BZ_EXPR):
@@ -536,8 +574,8 @@ class ARITH_ADD(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'add\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'add'
 
 
 class ARITH_SUB(ARITH_BIN_OP):
@@ -546,8 +584,8 @@ class ARITH_SUB(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '-'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'sub\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'sub'
 
 
 class ARITH_MUL(ARITH_BIN_OP):
@@ -556,8 +594,8 @@ class ARITH_MUL(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '+'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'mul\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'mul'
 
 
 class ARITH_DIV(ARITH_BIN_OP):
@@ -566,8 +604,8 @@ class ARITH_DIV(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '/'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'div\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'div'
 
 
 class ARITH_MOD(ARITH_BIN_OP):
@@ -576,8 +614,8 @@ class ARITH_MOD(ARITH_BIN_OP):
         super().__init__(ln, lhs, rhs)
         self.name: str = '%'
 
-    def bzasm(self) -> str:
-        return 'mod\n'
+    def asm(self) -> str:
+        return super().asm() + 'mod'
 
 
 class ARITH_UNARY_OP(ARITH_OP):
@@ -603,8 +641,8 @@ class ARITH_NEG(ARITH_UNARY_OP):
         super().__init__(ln, o)
         self.name: str = '-'
 
-    def bzasm(self) -> str:
-        return ('f' if self.type == Float() else 'i') + 'neg\n'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == Float() else 'i') + 'neg'
 
 
 class REL_OP(BZ_EXPR):
@@ -636,8 +674,8 @@ class REL_EQ(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'eq\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'eq'
 
 
 class REL_NEQ(REL_OP):
@@ -649,8 +687,8 @@ class REL_NEQ(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'neq\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'neq'
 
 
 class REL_GT(REL_OP):
@@ -662,8 +700,8 @@ class REL_GT(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'gt\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'gt'
 
 
 class REL_LT(REL_OP):
@@ -675,8 +713,8 @@ class REL_LT(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'lt\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'lt'
 
 
 class REL_GTE(REL_OP):
@@ -688,8 +726,8 @@ class REL_GTE(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'gte\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'gte'
 
 
 class REL_LTE(REL_OP):
@@ -701,8 +739,8 @@ class REL_LTE(REL_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def bzasm(self) -> str:
-        return ('i' if self.children[0].type == Int() else 'f') + 'lte\n'
+    def asm(self) -> str:
+        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'lte'
 
 
 class TL_OP(TL_EXPR):
@@ -755,11 +793,11 @@ class TL_UNTIL(TL_FT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_RELEASE(TL_FT_BIN_OP):
@@ -771,11 +809,11 @@ class TL_RELEASE(TL_FT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_FT_UNARY_OP(TL_FT_OP):
@@ -807,10 +845,10 @@ class TL_GLOBAL(TL_FT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tlasm() + 'global n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'global n' + str(operand.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_FUTURE(TL_FT_UNARY_OP):
@@ -822,10 +860,10 @@ class TL_FUTURE(TL_FT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tlasm() + 'future n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'future n' + str(operand.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_PT_BIN_OP(TL_PT_OP):
@@ -857,11 +895,11 @@ class TL_SINCE(TL_PT_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_PT_UNARY_OP(TL_PT_OP):
@@ -891,10 +929,10 @@ class TL_HISTORICAL(TL_PT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tlasm() + 'his n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'his n' + str(operand.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class TL_ONCE(TL_PT_UNARY_OP):
@@ -906,10 +944,10 @@ class TL_ONCE(TL_PT_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tlasm() + 'once n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + '\n'
+        return super().asm() + 'once n' + str(operand.tlid) + ' ' + \
+                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
 class LOG_OP(TL_EXPR):
@@ -935,11 +973,11 @@ class LOG_OR(LOG_OP):
             s += str(arg) + '||'
         return s[:-2]
 
-    def tlasm(self) -> str:
-        s: str = super().tlasm() + 'or'
+    def asm(self) -> str:
+        s: str = super().asm() + 'or'
         for c in self.children:
             s += ' n' + str(c.tlid)
-        return s + '\n'
+        return s + ''
 
 
 class LOG_AND(LOG_OP):
@@ -954,11 +992,11 @@ class LOG_AND(LOG_OP):
             s += str(arg) + '&&'
         return s[:-2]
 
-    def tlasm(self) -> str:
-        s: str = super().tlasm() + 'and'
+    def asm(self) -> str:
+        s: str = super().asm() + 'and'
         for c in self.children:
             s += ' n' + str(c.tlid)
-        return s + '\n'
+        return s + ''
 
 
 class LOG_BIN_OP(LOG_OP):
@@ -992,10 +1030,10 @@ class LOG_BIN_OR(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'or n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
+        return super().asm() + 'or n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
 class LOG_BIN_AND(LOG_BIN_OP):
@@ -1007,10 +1045,10 @@ class LOG_BIN_AND(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'and n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
+        return super().asm() + 'and n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
 class LOG_XOR(LOG_BIN_OP):
@@ -1022,10 +1060,10 @@ class LOG_XOR(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'xor n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
+        return super().asm() + 'xor n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
 class LOG_IMPL(LOG_BIN_OP):
@@ -1037,10 +1075,10 @@ class LOG_IMPL(LOG_BIN_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         lhs: AST = self.children[0]
         rhs: AST = self.children[1]
-        return super().tlasm() + 'impl n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + '\n'
+        return super().asm() + 'impl n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
 class LOG_UNARY_OP(LOG_OP):
@@ -1071,9 +1109,9 @@ class LOG_NEG(LOG_UNARY_OP):
     def __str__(self) -> str:
         return super().__str__()
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         operand: AST = self.children[0]
-        return super().tlasm() + 'not n' + str(operand.tlid) + '\n'
+        return super().asm() + 'not n' + str(operand.tlid) + ''
 
 
 class SPEC(TL_EXPR):
@@ -1094,9 +1132,9 @@ class SPEC(TL_EXPR):
     def __str__(self) -> str:
         return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])
 
-    def tlasm(self) -> str:
+    def asm(self) -> str:
         top: AST = self.children[0]
-        return super().tlasm() + 'end n' + str(top.tlid) + ' f' + str(self.fnum) + '\n'
+        return super().asm() + 'end n' + str(top.tlid) + ' f' + str(self.fnum) + ''
 
 
 class PROGRAM(TL_EXPR):
@@ -1111,10 +1149,10 @@ class PROGRAM(TL_EXPR):
         ret: str = ''
         s: AST
         for s in self.children:
-            ret += str(s) + '\n'
+            ret += str(s) + ''
         ret = ret[:-1]
         return ret
 
-    def tlasm(self) -> str:
-        return super().tlasm() + 'endsequence'
+    def asm(self) -> str:
+        return super().asm() + 'endsequence'
 
