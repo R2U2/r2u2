@@ -170,6 +170,11 @@ class INT(CONST):
         self.val: int = v
         self.name = str(v)
 
+    def copy(self) -> INT:
+        new = INT(self.ln,self.val)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return self.name
 
@@ -184,6 +189,11 @@ class FLOAT(CONST):
         self.type = Float()
         self.val: float = v
         self.name = str(v)
+
+    def copy(self) -> FLOAT:
+        new = FLOAT(self.ln,self.val)
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return self.name
@@ -200,7 +210,7 @@ class VAR(AST):
         self.reg: int = -1
 
     def copy(self) -> VAR:
-        new = type(self)(self.ln,self.name)
+        new = VAR(self.ln,self.name)
         self.copy_attrs(new)
         return new
 
@@ -226,7 +236,7 @@ class SIGNAL(LIT):
         return self.name
 
     def copy(self) -> SIGNAL:
-        new = type(self)(self.ln,self.name,self.type)
+        new = SIGNAL(self.ln,self.name,self.type)
         new.sid = self.sid
         self.copy_attrs(new)
         return new
@@ -247,6 +257,11 @@ class BOOL(CONST):
         self.wpd: int = 0
         self.val: bool = v
         self.name = str(v)
+
+    def copy(self) -> BOOL:
+        new = BOOL(self.ln,self.val)
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return self.name
@@ -269,7 +284,7 @@ class SET(BZ_EXPR):
         self.dynamic_size = s
 
     def copy(self) -> SET:
-        new = type(self)(self.ln,self.max_size,[c.copy() for c in self.children])
+        new = SET(self.ln,self.max_size,[c.copy() for c in self.children])
         self.copy_attrs(new)
         return new
 
@@ -293,7 +308,7 @@ class STRUCT(AST):
         self.members: dict[str,AST] = m
 
     def copy(self) -> STRUCT:
-        new = type(self)(self.ln,self.name,self.members)
+        new = STRUCT(self.ln,self.name,self.members)
         self.copy_attrs(new)
         return new
 
@@ -316,7 +331,7 @@ class STRUCT_ACCESS(AST):
         return cast(STRUCT, self.children[0])
 
     def copy(self) -> STRUCT_ACCESS:
-        new = type(self)(self.ln,self.get_struct().copy(),self.member)
+        new = STRUCT_ACCESS(self.ln,self.get_struct().copy(),self.member)
         self.copy_attrs(new)
         return new
 
@@ -420,6 +435,11 @@ class BW_BIN_OP(BW_OP):
     def get_rhs(self) -> AST:
         return self.children[1]
 
+    def copy(self) -> BW_BIN_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
 
@@ -462,6 +482,11 @@ class BW_UNARY_OP(BW_OP):
     def get_operand(self) -> AST:
         return self.children[0]
 
+    def copy(self) -> BW_UNARY_OP:
+        new = type(self)(self.ln,self.get_operand().copy())
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]!s})'
 
@@ -495,6 +520,11 @@ class ARITH_BIN_OP(ARITH_OP):
 
     def get_rhs(self) -> AST:
         return self.children[1]
+
+    def copy(self) -> ARITH_BIN_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
@@ -557,6 +587,11 @@ class ARITH_UNARY_OP(ARITH_OP):
 
     def get_operand(self) -> AST:
         return self.children[0]
+
+    def copy(self) -> ARITH_UNARY_OP:
+        new = type(self)(self.ln,self.get_operand().copy())
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'{self.name!s}({self.children[0]})'
@@ -804,6 +839,11 @@ class TL_PT_BIN_OP(TL_PT_OP):
     def get_rhs(self) -> AST:
         return self.children[1]
 
+    def copy(self) -> TL_PT_BIN_OP:
+        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy(),self.interval.lb,self.interval.ub)
+        self.copy_attrs(new)
+        return new
+
     def __str__(self) -> str:
         return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
 
@@ -832,6 +872,11 @@ class TL_PT_UNARY_OP(TL_PT_OP):
 
     def get_operand(self) -> AST:
         return self.children[0]
+
+    def copy(self) -> TL_PT_UNARY_OP:
+        new = type(self)(self.ln,self.get_operand().copy(),self.interval.lb,self.interval.ub)
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
@@ -871,6 +916,12 @@ class LOG_OP(TL_EXPR):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
+
+    def copy(self) -> LOG_OP:
+        new = type(self)(self.ln,[c.copy() for c in self.children])
+        self.copy_attrs(new)
+        return new
+
 
 class LOG_OR(LOG_OP):
 
@@ -1034,6 +1085,11 @@ class SPEC(TL_EXPR):
 
     def get_expr(self) -> AST:
         return self.children[0]
+
+    def copy(self) -> SPEC:
+        new: SPEC = SPEC(self.ln, self.name, self.fnum, self.get_expr().copy())
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])

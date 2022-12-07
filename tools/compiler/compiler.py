@@ -224,7 +224,6 @@ def rewrite_set_agg(prog: PROGRAM) -> None:
             rewrite_set_agg_util(c)
 
     rewrite_set_agg_util(prog)
-    print(prog)
 
 
 def optimize_cse(prog: PROGRAM) -> None:
