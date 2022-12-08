@@ -30,7 +30,6 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
-
         # enforce no mixed-time formulas
         if isinstance(a,TL_FT_OP):
             for c in a.children:
@@ -386,9 +385,6 @@ def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]
                 asm.append(DUP(a.ln,a))
             
             for n in range(0,num_bz_parents-1):
-                print(a)
-                for p in a.parents:
-                    print(p)
                 asm.append(DUP(a.ln,a))
 
             if a.atid > -1:
@@ -398,10 +394,6 @@ def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]
     assign_ids(prog,signal_mapping)
     
     postorder(prog,generate_assembly_util)
-
-    for a in asm:
-        if isinstance(a,BZ_EXPR):
-            print(a.asm())
 
     return asm
 

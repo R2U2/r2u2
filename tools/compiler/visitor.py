@@ -115,10 +115,26 @@ class Visitor(C2POVisitor):
 
         if id == 'bool':
             return Bool()
+        elif id == 'int8':
+            return Int8()
+        elif id == 'int16':
+            return Int16()
+        elif id == 'int32':
+            return Int32()
+        elif id == 'int64':
+            return Int64()
         elif id == 'uint8':
-            return Int()
+            return UInt8()
+        elif id == 'uint16':
+            return UInt16()
+        elif id == 'uint32':
+            return UInt32()
+        elif id == 'uint64':
+            return UInt64()
         elif id == 'float':
             return Float()
+        elif id == 'double':
+            return Double()
         elif id == 'set':
             t: Type = self.visit(ctx.type_())
             return Set(t)
