@@ -22,7 +22,7 @@ class Visitor(C2POVisitor):
         self.status = True
 
         # Initialize special structs/functions
-        self.structs['Set'] = {'set':NoType(),'size':Int()}
+        self.structs['Set'] = {'set':NoType(),'size':UInt64()}
 
 
     def error(self, msg) -> None:
@@ -411,17 +411,17 @@ class Visitor(C2POVisitor):
     def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> AST:
         ln: int = ctx.start.line
         id: str = ctx.IDENTIFIER().getText()
-        elist: list[AST] = self.visit(ctx.expr_list())
+        expr_list: list[AST] = self.visit(ctx.expr_list())
 
         if id in self.structs.keys():
 
             # if id == 'Set':
-            #     elist[0].set_dynamic_set_size()
+            #     expr_list[0].set_dynamic_set_size()
 
             members: dict[str,AST] = {}
-            if len(elist) == len(self.structs[id]):
+            if len(expr_list) == len(self.structs[id]):
                 for s in self.structs[id].keys():
-                    members[s] = elist.pop(0)
+                    members[s] = expr_list.pop(0)
                 return STRUCT(ln,id,members)
             else:
                 self.error(f'{ln}: Member mismatch for struct \'{id}\', number of members do not match')

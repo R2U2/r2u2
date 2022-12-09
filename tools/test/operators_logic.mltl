@@ -1,0 +1,13 @@
+INPUT
+    b0,b1: bool;
+    i0,i1: uint8;
+    f0,f1: float;
+
+SPEC
+    true;
+    false;
+    !b0;
+    b0 && b1;
+    b0 || b1;
+    b0 -> b1;
+    b0 <-> b1;

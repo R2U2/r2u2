@@ -30,26 +30,6 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
-        # enforce no mixed-time formulas
-        if isinstance(a,TL_FT_OP):
-            for c in a.children:
-                if c.formula_type == FormulaType.PT:
-                    status = False
-                    logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
-            a.formula_type = FormulaType.FT
-        elif isinstance(a,TL_PT_OP):
-            for c in a.children:
-                if c.formula_type == FormulaType.FT:
-                    status = False
-                    logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
-            a.formula_type = FormulaType.PT
-        else:
-            # not a TL op, propagate formula type from children
-            for c in a.children:
-                if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
-                    a.formula_type = c.formula_type
-
-
         if isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
             pass
         elif isinstance(a,SPEC):
@@ -62,12 +42,10 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             lhs = a.get_lhs()
             rhs = a.get_rhs()
 
-            if isinstance(lhs,INT) and rhs.type == Float():
-                lhs = FLOAT(lhs.ln,lhs.val)
-                a.children[0] = lhs
-            elif isinstance(rhs,INT) and lhs.type == Float():
-                rhs = FLOAT(rhs.ln,rhs.val)
-                a.children[1] = rhs
+            if isinstance(a,REL_EQ) or isinstance(a,REL_NEQ):
+                if lhs.type == Float() or lhs.type == Double() or rhs.type == Float() or rhs.type == Double():
+                    status = False
+                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
             if lhs.type != rhs.type:
                 status = False
@@ -91,6 +69,25 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                 if c.type != Bool():
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
+
+            # enforce no mixed-time formulas
+            if isinstance(a,TL_FT_OP):
+                for c in a.children:
+                    if c.formula_type == FormulaType.PT:
+                        status = False
+                        logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
+                a.formula_type = FormulaType.FT
+            elif isinstance(a,TL_PT_OP):
+                for c in a.children:
+                    if c.formula_type == FormulaType.FT:
+                        status = False
+                        logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
+                a.formula_type = FormulaType.PT
+            else:
+                # not a TL op, propagate formula type from children
+                for c in a.children:
+                    if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
+                        a.formula_type = c.formula_type
 
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()

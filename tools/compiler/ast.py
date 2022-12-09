@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ast import Not
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
@@ -204,9 +205,34 @@ class INT(CONST):
     
     def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln)
-        self.type = Int()
         self.val: int = v
         self.name = str(v)
+
+        bit_length: int = v.bit_length()
+        if v < 0:
+            if bit_length <= 8:
+                self.type = Int8()
+            elif bit_length <= 16:
+                self.type = Int16()
+            elif bit_length <= 32:
+                self.type = Int32()
+            elif bit_length <= 64:
+                self.type = Int64()
+            else:
+                logger.error(f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
+                self.type = NoType()
+        else:
+            if bit_length <= 8:
+                self.type = UInt8()
+            elif bit_length <= 16:
+                self.type = UInt16()
+            elif bit_length <= 32:
+                self.type = UInt32()
+            elif bit_length <= 64:
+                self.type = UInt64()
+            else:
+                logger.error(f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
+                self.type = NoType()
 
     def copy(self) -> INT:
         new = INT(self.ln,self.val)
@@ -675,7 +701,7 @@ class REL_EQ(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'eq'
+        return super().asm() + 'eq'
 
 
 class REL_NEQ(REL_OP):
@@ -688,7 +714,7 @@ class REL_NEQ(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'neq'
+        return super().asm() + 'neq'
 
 
 class REL_GT(REL_OP):
@@ -701,7 +727,7 @@ class REL_GT(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'gt'
+        return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gt'
 
 
 class REL_LT(REL_OP):
@@ -714,7 +740,7 @@ class REL_LT(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'lt'
+        return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lt'
 
 
 class REL_GTE(REL_OP):
@@ -727,7 +753,7 @@ class REL_GTE(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'gte'
+        return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gte'
 
 
 class REL_LTE(REL_OP):
@@ -740,7 +766,7 @@ class REL_LTE(REL_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        return super().asm() + ('i' if self.children[0].type == Int() else 'f') + 'lte'
+        return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lte'
 
 
 class TL_OP(TL_EXPR):

@@ -129,6 +129,16 @@ class Set(Type):
         return False
 
 
+def is_integer_type(t: Type) -> bool:
+    return isinstance(t,Int8) or isinstance(t,Int16) or isinstance(t,Int32) or isinstance(t,Int64) or \
+        isinstance(t,UInt8) or isinstance(t,UInt16) or isinstance(t,UInt32) or isinstance(t,UInt64) or \
+            isinstance(t,Bool)
+
+
+def is_float_type(t: Type) -> bool:
+    return isinstance(t,Float) or isinstance(t,Double)
+
+
 class FormulaType(Enum):
     PROP = 0
     FT = 1

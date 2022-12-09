@@ -1,0 +1,19 @@
+INPUT
+    b0,b1: bool;
+    i0,i1: uint8;
+    f0,f1: float;
+
+SPEC
+    -i0;
+    i0 + i1;
+    i0 - i1;
+    i0 * i1;
+    i0 / i1;
+    i0 % i1;
+
+    -f0;
+    f0 + f1;
+    f0 - f1;
+    f0 * f1;
+    f0 / f1;
+    f0 % f1;

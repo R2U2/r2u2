@@ -92,8 +92,8 @@ LOG_OR: '||' | '∨' ;
 LOG_XOR: 'XOR' | '⊕' ;
 LOG_IMPL: '->' | '→' ;
 LOG_IFF: '<->' | '↔' ;
-TRUE: 'TRUE' | 'true' | '⊤' ;
-FALSE: 'FALSE' | 'false' | '⊥' ;
+TRUE: 'true' | '⊤' ;
+FALSE: 'false' | '⊥' ;
 
 // Bitwise ops
 BW_NEG: '~' ;
