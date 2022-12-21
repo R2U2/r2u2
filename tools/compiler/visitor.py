@@ -67,7 +67,7 @@ class Visitor(C2POVisitor):
     def visitStruct(self, ctx:C2POParser.StructContext) -> None:
         ln: int = ctx.start.line 
 
-        id: str = ctx.IDENTIFIER().getText()
+        id: str = ctx.SYMBOL().getText()
         if id in self.structs.keys():
             self.warning(f'{ln}: Struct {i} already defined, redefining')
 
@@ -100,7 +100,7 @@ class Visitor(C2POVisitor):
 
         id: TerminalNode
         var_dict: dict[str,Type] = {}
-        for id in ctx.IDENTIFIER():
+        for id in ctx.SYMBOL():
             if id in var_dict.keys():
                 self.error(f'{ln}: Variable {id} declared more than once')
             var_dict[id.getText()] = var_type
@@ -111,7 +111,7 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#type.
     def visitType(self, ctx:C2POParser.TypeContext) -> Type:
         ln: int = ctx.start.line
-        id: str = ctx.IDENTIFIER().getText()
+        id: str = ctx.SYMBOL().getText()
 
         if id == 'bool':
             return Bool()
@@ -154,7 +154,7 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#def.
     def visitDef(self, ctx:C2POParser.DefContext) -> None:
         ln: int = ctx.start.line
-        var: str = ctx.IDENTIFIER().getText()
+        var: str = ctx.SYMBOL().getText()
         expr: AST = self.visit(ctx.expr())
 
         if var in self.vars.keys():
@@ -198,8 +198,8 @@ class Visitor(C2POVisitor):
         
             # if spec has a label, can be referred to in other specs
             # else, cannot be referred to later, do not store
-            if ctx.IDENTIFIER(): 
-                label = ctx.IDENTIFIER().getText()
+            if ctx.SYMBOL(): 
+                label = ctx.SYMBOL().getText()
                 if label in list(self.defs):
                     self.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
                 else:
@@ -208,7 +208,7 @@ class Visitor(C2POVisitor):
             return [SPEC(ln, label, self.spec_num, expr)]
         else:
             f1,f2,f3 = self.visit(ctx.contract())
-            label = ctx.IDENTIFIER().getText()
+            label = ctx.SYMBOL().getText()
 
             return [SPEC(ln, label, self.spec_num, f1),
                     SPEC(ln, label, self.spec_num+1, f2),
@@ -252,17 +252,18 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         lhs: AST = self.visit(ctx.expr(0))
         rhs: AST = self.visit(ctx.expr(1))
-        bounds: Interval = self.visit(ctx.tl_bin_op().interval())
+        bounds: Interval = self.visit(ctx.tl_op().interval())
 
-        if ctx.tl_bin_op():
-            if ctx.tl_bin_op().TL_UNTIL():
+        if ctx.tl_op():
+            op: str = ctx.tl_op().SYMBOL().getText()
+            if op == 'U':
                 return TL_UNTIL(ln, lhs, rhs, bounds.lb, bounds.ub)
-            elif ctx.tl_bin_op().TL_RELEASE():
+            elif op == 'R':
                 return TL_RELEASE(ln, lhs, rhs, bounds.lb, bounds.ub)
-            elif ctx.tl_bin_op().TL_SINCE():
+            elif op == 'S':
                 return TL_SINCE(ln, lhs, rhs, bounds.lb, bounds.ub)
             else:
-                self.error(f'{ln}: Binary TL op \'{ctx.tl_bin_op().start.text}\' not recognized')
+                self.error(f'{ln}: Binary TL op \'{ctx.tl_op().SYMBOL().getText()}\' not recognized')
                 return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
@@ -273,19 +274,20 @@ class Visitor(C2POVisitor):
     def visitTLUnaryExpr(self, ctx:C2POParser.TLUnaryExprContext) -> AST:
         ln: int = ctx.start.line
         operand: AST = self.visit(ctx.expr())
-        bounds: Interval = self.visit(ctx.tl_unary_op().interval())
+        bounds: Interval = self.visit(ctx.tl_op().interval())
 
-        if ctx.tl_unary_op():
-            if ctx.tl_unary_op().TL_GLOBAL():
+        if ctx.tl_op():
+            op: str = ctx.tl_op().SYMBOL().getText()
+            if op == 'G':
                 return TL_GLOBAL(ln, operand, bounds.lb, bounds.ub)
-            elif ctx.tl_unary_op().TL_FUTURE():
+            elif op == 'F':
                 return TL_FUTURE(ln, operand, bounds.lb, bounds.ub)
-            elif ctx.tl_unary_op().TL_HISTORICAL():
+            elif op == 'H':
                 return TL_HISTORICAL(ln, operand, bounds.lb, bounds.ub)
-            elif ctx.tl_unary_op().TL_ONCE():
+            elif op == 'O':
                 return TL_ONCE(ln, operand, bounds.lb, bounds.ub)
             else:
-                self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
+                self.error(f'{ln}: Unary TL op \'{ctx.tl_op().SYMBOL().getText()}\' not recognized')
                 return AST(ln, [])
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
@@ -410,7 +412,7 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#FuncExpr.
     def visitFuncExpr(self, ctx:C2POParser.FuncExprContext) -> AST:
         ln: int = ctx.start.line
-        id: str = ctx.IDENTIFIER().getText()
+        id: str = ctx.SYMBOL().getText()
         expr_list: list[AST] = self.visit(ctx.expr_list())
 
         if id in self.structs.keys():
@@ -434,7 +436,7 @@ class Visitor(C2POVisitor):
     # Visit a parse tree produced by C2POParser#SetAggExpr.
     def visitSetAggExpr(self, ctx:C2POParser.SetAggExprContext) -> AST:
         ln: int = ctx.start.line
-        op: str = ctx.IDENTIFIER().getText()
+        op: str = ctx.SYMBOL().getText()
 
         S,v = self.visit(ctx.set_agg_binder())
         self.defs[v.name] = v
@@ -474,14 +476,14 @@ class Visitor(C2POVisitor):
     def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[AST,VAR]:
         ln: int = ctx.start.line
         S: AST = self.visit(ctx.expr())
-        v: VAR = VAR(ln,ctx.IDENTIFIER().getText())
+        v: VAR = VAR(ln,ctx.SYMBOL().getText())
         return (S,v)
 
 
     # Visit a parse tree produced by C2POParser#StructMemberExpr.
     def visitStructMemberExpr(self, ctx:C2POParser.StructMemberExprContext) -> AST:
         ln: int = ctx.start.line
-        id: str = ctx.IDENTIFIER().getText()
+        id: str = ctx.SYMBOL().getText()
         e: AST = self.visit(ctx.expr())
         return STRUCT_ACCESS(ln,e,id)
 
@@ -508,13 +510,13 @@ class Visitor(C2POVisitor):
 
         literal: C2POParser.LiteralContext = ctx.literal()
 
-        if literal.TRUE():
-            return BOOL(ln, True)
-        elif literal.FALSE():
-            return BOOL(ln, False)
-        elif literal.IDENTIFIER():
-            name: str = literal.IDENTIFIER().getText()
-            if name in self.defs.keys():
+        if literal.SYMBOL():
+            name: str = literal.SYMBOL().getText()
+            if name == 'true':
+                return BOOL(ln, True)
+            elif name == 'false':
+                return BOOL(ln, False)
+            elif name in self.defs.keys():
                 return self.defs[name]
             elif name in self.vars.keys():
                 return SIGNAL(ln, name, self.vars[name])

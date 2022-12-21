@@ -1,0 +1,13 @@
+INPUT
+    b0,b1,b2,b3: bool;
+
+DEFINE
+    S = {b0,b1,b2,b3};
+    n = 1;
+
+SPEC
+    foreach(b:S)(b);
+    forsome(b:S)(b);
+    forexactlyn(b:S,n)(b);
+    foratleastn(b:S,n)(b);
+    foratmostn(b:S,n)(b);

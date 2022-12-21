@@ -1,10 +1,9 @@
 from __future__ import annotations
-from ast import Not
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
 from .util import *
-from .c2po_types import *
+from .type import *
 
 logger = getLogger(logger_name)
 
@@ -133,6 +132,9 @@ class TL_EXPR(AST):
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln,c)
 
+    def get_tlid_name(self) -> str:
+        return 'n'+str(self.tlid)
+
     def asm(self) -> str:
         return 'TL: n' + str(self.tlid) + ': '
 
@@ -145,15 +147,23 @@ class BZ_EXPR(AST):
     def asm(self) -> str:
         return 'BZ: '
 
-    def asm_store(self) -> str:
-        return f'store a{self.atid}'
 
-    def asm_dup(self) -> str:
-        return 'dup'
+# only used for assembly generation
+class TL_LOAD(TL_EXPR):
+
+    def __init__(self, ln: int, l: AST) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> AST:
+        return self.children[0]
+ 
+    def asm(self) -> str:
+        return super().asm() + 'load ' + ('a' if True else 's') + str(self.get_load().atid) 
 
 
 # only used for assembly generation
-class LOAD(TL_EXPR):
+class BZ_LOAD(BZ_EXPR):
 
     def __init__(self, ln: int, l: AST) -> None:
         super().__init__(ln, [l])
@@ -164,7 +174,6 @@ class LOAD(TL_EXPR):
  
     def asm(self) -> str:
         return super().asm() + f'load a{str(self.get_load().atid)}' 
-
 
 # only used for assembly generation
 class DUP(BZ_EXPR):
@@ -189,7 +198,7 @@ class STORE(BZ_EXPR):
         return super().asm() + f'store a{self.get_store().atid}'
 
 
-class LIT(BZ_EXPR):
+class LIT(TL_EXPR,BZ_EXPR):
 
     def __init__(self, ln: int) -> None:
         super().__init__(ln,[])
@@ -305,9 +314,10 @@ class SIGNAL(LIT):
         self.copy_attrs(new)
         return new
 
-    # def asm(self) -> str:
-    #     return super().asm() + f'load s{self.sid}'
-
+    # handle cases:
+    # 1) used by TL operator -- load directly from signal memory
+    # 2) used by BZ operator -- load into stack machine
+    # 3) used by both TL/BZ -- load into both
     def asm(self) -> str:
         return super().asm() + ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + ''
 
@@ -327,8 +337,14 @@ class BOOL(CONST):
         self.copy_attrs(new)
         return new
 
+    def get_tlid_name(self) -> str:
+        return self.name
+
     def __str__(self) -> str:
         return self.name
+
+    def asm(self) -> str:
+        return 'iconst ' + ('0' if self.name == 'False' else '1')
 
 
 class SET(BZ_EXPR):
@@ -820,8 +836,8 @@ class TL_UNTIL(TL_FT_BIN_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
+        lhs: AST = self.get_lhs()
+        rhs: AST = self.get_rhs()
         return super().asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
@@ -836,8 +852,8 @@ class TL_RELEASE(TL_FT_BIN_OP):
         return super().__str__()
 
     def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
+        lhs: AST = self.get_lhs()
+        rhs: AST = self.get_rhs()
         return super().asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
                 str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 

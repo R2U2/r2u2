@@ -7,29 +7,29 @@ grammar C2PO;
 start: (struct_block | input_block | def_block | spec_block)* ;
 
 struct_block: KW_STRUCT struct+ ;
-struct: IDENTIFIER ':' '{' var_list+ '}' ';' ;
+struct: SYMBOL ':' '{' var_list+ '}' ';' ;
 
 input_block: KW_INPUT var_list+ ;
-var_list: IDENTIFIER (',' IDENTIFIER)* ':' type ';' ;
+var_list: SYMBOL (',' SYMBOL)* ':' type ';' ;
 
-type: IDENTIFIER
-    | IDENTIFIER '⟨' type '⟩'
-    | IDENTIFIER REL_LT type REL_GT
+type: SYMBOL
+    | SYMBOL '⟨' type '⟩'
+    | SYMBOL REL_LT type REL_GT
     ;
 
 def_block: KW_DEF def+ ;
-def: IDENTIFIER '=' expr ';' ;
+def: SYMBOL '=' expr ';' ;
 
 spec_block: KW_SPEC spec+ ;
-spec: IDENTIFIER ':' contract ';'  
-    | (IDENTIFIER ':')? expr ';' ;
+spec: SYMBOL ':' contract ';'  
+    | (SYMBOL ':')? expr ';' ;
 
 contract: expr '=>' expr ;
 
 expr: set_expr                  # SetExpr
-    | IDENTIFIER '(' set_agg_binder (',' expr)? ')' '(' expr ')' # SetAggExpr
-    | IDENTIFIER '(' expr_list? ')' # FuncExpr
-    | expr '.' IDENTIFIER       # StructMemberExpr
+    | SYMBOL '(' set_agg_binder (',' expr)? ')' '(' expr ')' # SetAggExpr
+    | SYMBOL '(' expr_list? ')' # FuncExpr
+    | expr '.' SYMBOL           # StructMemberExpr
     | ARITH_SUB expr            # UnaryExpr
     | ARITH_ADD expr            # UnaryExpr
     | BW_NEG expr               # UnaryExpr
@@ -43,8 +43,8 @@ expr: set_expr                  # SetExpr
     | expr BW_AND expr          # BWExpr
     | expr BW_XOR expr          # BWExpr
     | expr BW_OR expr           # BWExpr
-    | expr tl_bin_op expr       # TLBinExpr
-    | tl_unary_op expr          # TLUnaryExpr
+    | expr tl_op expr           # TLBinExpr
+    | tl_op expr                # TLUnaryExpr
     | expr LOG_XOR expr         # LogBinExpr
     | expr LOG_IMPL expr        # LogBinExpr
     | expr LOG_AND expr         # LogBinExpr
@@ -58,16 +58,15 @@ set_expr: SW_EMPTY_SET
         | '{' expr_list? '}'
         ;
 
-set_agg_binder: IDENTIFIER ':' expr ;
+set_agg_binder: SYMBOL ':' expr ;
 
 interval: '[' INT (',' INT)? ']' ;
 
 expr_list: expr (',' expr)* ;
 
-tl_unary_op: (TL_GLOBAL | TL_FUTURE | TL_HISTORICAL | TL_ONCE) interval ;
-tl_bin_op: (TL_UNTIL | TL_RELEASE | TL_SINCE) interval ;
+tl_op: SYMBOL interval ;
 
-literal: IDENTIFIER | TRUE | FALSE | INT | FLOAT ;
+literal: SYMBOL | INT | FLOAT ;
 
 rel_eq_op: REL_EQ | REL_NEQ ;
 rel_ineq_op: REL_GT | REL_LT | REL_GTE | REL_LTE  ;
@@ -92,8 +91,6 @@ LOG_OR: '||' | '∨' ;
 LOG_XOR: 'XOR' | '⊕' ;
 LOG_IMPL: '->' | '→' ;
 LOG_IFF: '<->' | '↔' ;
-TRUE: 'true' | '⊤' ;
-FALSE: 'false' | '⊥' ;
 
 // Bitwise ops
 BW_NEG: '~' ;
@@ -121,16 +118,6 @@ ARITH_POW: '**' ;
 ARITH_SQRT: '√' ;
 ARITH_PM: '+/-' | '±' ;
 
-// Temporal ops
-TL_GLOBAL: 'G' | '𝓖' | '□' ;
-TL_FUTURE: 'F' | '𝓕' | '⋄' | '♢' | '◊' ;
-TL_NEXT: 'X' | '○' ;
-TL_SINCE: 'S' | '𝓢' ;
-TL_ONCE: 'O' | '𝓞' ;
-TL_UNTIL: 'U' | '𝓤' ;
-TL_RELEASE: 'R' | '𝓡' ;  
-TL_HISTORICAL: 'H' | '𝓗' ;
-
 // Set-wise ops
 SW_EMPTY_SET: '∅' ;
 SW_MEMBER: '∈' ;
@@ -144,7 +131,7 @@ SW_AND: '⋀' ;
 SW_OR: '⋁' ;
 SW_CTPROD: '×' ; 
 
-IDENTIFIER
+SYMBOL
   : LETTER (LETTER | DIGIT)*
   ;
 

@@ -1,13 +1,17 @@
 -- Assume 3 tasks, 10 commands each. Can be generalized to 4 tasks, 25 commands each.
 
 STRUCT
-    Command: { Sent: bool; ResponseCode: uint8; };
+    Command: { Sent,Resent: bool; ResponseCode: uint8; };
     Task: { Running: bool; Cmds: set<Command>; };
 
 INPUT
     cmd_1_01_sent, cmd_1_02_sent, cmd_1_03_sent, cmd_1_04_sent, cmd_1_05_sent, cmd_1_06_sent, cmd_1_07_sent, cmd_1_08_sent, cmd_1_09_sent, cmd_1_10_sent, 
     cmd_2_01_sent, cmd_2_02_sent, cmd_2_03_sent, cmd_2_04_sent, cmd_2_05_sent, cmd_2_06_sent, cmd_2_07_sent, cmd_2_08_sent, cmd_2_09_sent, cmd_2_10_sent, 
     cmd_3_01_sent, cmd_3_02_sent, cmd_3_03_sent, cmd_3_04_sent, cmd_3_05_sent, cmd_3_06_sent, cmd_3_07_sent, cmd_3_08_sent, cmd_3_09_sent, cmd_3_10_sent : bool;
+
+    cmd_1_01_resent, cmd_1_02_resent, cmd_1_03_resent, cmd_1_04_resent, cmd_1_05_resent, cmd_1_06_resent, cmd_1_07_resent, cmd_1_08_resent, cmd_1_09_resent, cmd_1_10_resent, 
+    cmd_2_01_resent, cmd_2_02_resent, cmd_2_03_resent, cmd_2_04_resent, cmd_2_05_resent, cmd_2_06_resent, cmd_2_07_resent, cmd_2_08_resent, cmd_2_09_resent, cmd_2_10_resent, 
+    cmd_3_01_resent, cmd_3_02_resent, cmd_3_03_resent, cmd_3_04_resent, cmd_3_05_resent, cmd_3_06_resent, cmd_3_07_resent, cmd_3_08_resent, cmd_3_09_resent, cmd_3_10_resent : bool;
     
     cmd_1_01_rc, cmd_1_02_rc, cmd_1_03_rc, cmd_1_04_rc, cmd_1_05_rc, cmd_1_06_rc, cmd_1_07_rc, cmd_1_08_rc, cmd_1_09_rc, cmd_1_10_rc, 
     cmd_2_01_rc, cmd_2_02_rc, cmd_2_03_rc, cmd_2_04_rc, cmd_2_05_rc, cmd_2_06_rc, cmd_2_07_rc, cmd_2_08_rc, cmd_2_09_rc, cmd_2_10_rc, 
@@ -18,40 +22,42 @@ INPUT
     task_1_running, task_2_running, task_3_running : bool;
 
 DEFINE
+    CMDBusy = 1;
+    CMRejected = 2;
     CMDAccepted = 3;
 
-    cmd_1_01 = Command(cmd_1_01_sent, cmd_1_01_rc);
-    cmd_1_02 = Command(cmd_1_02_sent, cmd_1_02_rc);
-    cmd_1_03 = Command(cmd_1_03_sent, cmd_1_03_rc);
-    cmd_1_04 = Command(cmd_1_04_sent, cmd_1_04_rc);
-    cmd_1_05 = Command(cmd_1_05_sent, cmd_1_05_rc);
-    cmd_1_06 = Command(cmd_1_06_sent, cmd_1_06_rc);
-    cmd_1_07 = Command(cmd_1_07_sent, cmd_1_07_rc);
-    cmd_1_08 = Command(cmd_1_08_sent, cmd_1_08_rc);
-    cmd_1_09 = Command(cmd_1_09_sent, cmd_1_09_rc);
-    cmd_1_10 = Command(cmd_1_10_sent, cmd_1_10_rc);
+    cmd_1_01 = Command(cmd_1_01_sent, cmd_1_01_resent, cmd_1_01_rc);
+    cmd_1_02 = Command(cmd_1_02_sent, cmd_1_02_resent, cmd_1_02_rc);
+    cmd_1_03 = Command(cmd_1_03_sent, cmd_1_03_resent, cmd_1_03_rc);
+    cmd_1_04 = Command(cmd_1_04_sent, cmd_1_04_resent, cmd_1_04_rc);
+    cmd_1_05 = Command(cmd_1_05_sent, cmd_1_05_resent, cmd_1_05_rc);
+    cmd_1_06 = Command(cmd_1_06_sent, cmd_1_06_resent, cmd_1_06_rc);
+    cmd_1_07 = Command(cmd_1_07_sent, cmd_1_07_resent, cmd_1_07_rc);
+    cmd_1_08 = Command(cmd_1_08_sent, cmd_1_08_resent, cmd_1_08_rc);
+    cmd_1_09 = Command(cmd_1_09_sent, cmd_1_09_resent, cmd_1_09_rc);
+    cmd_1_10 = Command(cmd_1_10_sent, cmd_1_10_resent, cmd_1_10_rc);
 
-    cmd_2_01 = Command(cmd_2_01_sent, cmd_2_01_rc);
-    cmd_2_02 = Command(cmd_2_02_sent, cmd_2_02_rc);
-    cmd_2_03 = Command(cmd_2_03_sent, cmd_2_03_rc);
-    cmd_2_04 = Command(cmd_2_04_sent, cmd_2_04_rc);
-    cmd_2_05 = Command(cmd_2_05_sent, cmd_2_05_rc);
-    cmd_2_06 = Command(cmd_2_06_sent, cmd_2_06_rc);
-    cmd_2_07 = Command(cmd_2_07_sent, cmd_2_07_rc);
-    cmd_2_08 = Command(cmd_2_08_sent, cmd_2_08_rc);
-    cmd_2_09 = Command(cmd_2_09_sent, cmd_2_09_rc);
-    cmd_2_10 = Command(cmd_2_10_sent, cmd_2_10_rc);
+    cmd_2_01 = Command(cmd_2_01_sent, cmd_2_01_resent, cmd_2_01_rc);
+    cmd_2_02 = Command(cmd_2_02_sent, cmd_2_02_resent, cmd_2_02_rc);
+    cmd_2_03 = Command(cmd_2_03_sent, cmd_2_03_resent, cmd_2_03_rc);
+    cmd_2_04 = Command(cmd_2_04_sent, cmd_2_04_resent, cmd_2_04_rc);
+    cmd_2_05 = Command(cmd_2_05_sent, cmd_2_05_resent, cmd_2_05_rc);
+    cmd_2_06 = Command(cmd_2_06_sent, cmd_2_06_resent, cmd_2_06_rc);
+    cmd_2_07 = Command(cmd_2_07_sent, cmd_2_07_resent, cmd_2_07_rc);
+    cmd_2_08 = Command(cmd_2_08_sent, cmd_2_08_resent, cmd_2_08_rc);
+    cmd_2_09 = Command(cmd_2_09_sent, cmd_2_09_resent, cmd_2_09_rc);
+    cmd_2_10 = Command(cmd_2_10_sent, cmd_2_10_resent, cmd_2_10_rc);
 
-    cmd_3_01 = Command(cmd_3_01_sent, cmd_3_01_rc);
-    cmd_3_02 = Command(cmd_3_02_sent, cmd_3_02_rc);
-    cmd_3_03 = Command(cmd_3_03_sent, cmd_3_03_rc);
-    cmd_3_04 = Command(cmd_3_04_sent, cmd_3_04_rc);
-    cmd_3_05 = Command(cmd_3_05_sent, cmd_3_05_rc);
-    cmd_3_06 = Command(cmd_3_06_sent, cmd_3_06_rc);
-    cmd_3_07 = Command(cmd_3_07_sent, cmd_3_07_rc);
-    cmd_3_08 = Command(cmd_3_08_sent, cmd_3_08_rc);
-    cmd_3_09 = Command(cmd_3_09_sent, cmd_3_09_rc);
-    cmd_3_10 = Command(cmd_3_10_sent, cmd_3_10_rc);
+    cmd_3_01 = Command(cmd_3_01_sent, cmd_3_01_resent, cmd_3_01_rc);
+    cmd_3_02 = Command(cmd_3_02_sent, cmd_3_02_resent, cmd_3_02_rc);
+    cmd_3_03 = Command(cmd_3_03_sent, cmd_3_03_resent, cmd_3_03_rc);
+    cmd_3_04 = Command(cmd_3_04_sent, cmd_3_04_resent, cmd_3_04_rc);
+    cmd_3_05 = Command(cmd_3_05_sent, cmd_3_05_resent, cmd_3_05_rc);
+    cmd_3_06 = Command(cmd_3_06_sent, cmd_3_06_resent, cmd_3_06_rc);
+    cmd_3_07 = Command(cmd_3_07_sent, cmd_3_07_resent, cmd_3_07_rc);
+    cmd_3_08 = Command(cmd_3_08_sent, cmd_3_08_resent, cmd_3_08_rc);
+    cmd_3_09 = Command(cmd_3_09_sent, cmd_3_09_resent, cmd_3_09_rc);
+    cmd_3_10 = Command(cmd_3_10_sent, cmd_3_10_resent, cmd_3_10_rc);
 
     task_1_cmds = {cmd_1_01, cmd_1_02, cmd_1_03, cmd_1_04, cmd_1_05, cmd_1_06, cmd_1_07, cmd_1_08, cmd_1_09, cmd_1_10};
     task_2_cmds = {cmd_2_01, cmd_2_02, cmd_2_03, cmd_2_04, cmd_2_05, cmd_2_06, cmd_2_07, cmd_2_08, cmd_2_09, cmd_2_10};
@@ -64,9 +70,18 @@ DEFINE
     task_set = {task_1, task_2, task_3}; 
 
 SPEC
-    -- For each task in task_set, if task is running then for all commands cmd in tasks's set of commands,
-    -- if cmd has been sent and not accepted within 3 time steps, then within 5 time steps, 
-    -- cmd will be sent and accepted within 3 time steps of being sent.
+    -- Assume: Task T is running. 
+    -- Guarantee: Each Command C is sent within "t1" time steps.
     foreach(task: task_set) (task.Running -> 
-        (foreach(cmd: task.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
-                                F[0,4](cmd.Sent && F[0,2](cmd.ResponseCode == CMDAccepted)))));
+        (foreach(cmd: task.Cmds)((F[0,3] cmd.Sent))));
+
+    -- Assume: Task T is running and Command C has been sent. 
+    -- Guarantee: C receives an "Accepted" response code within "t2" time steps.
+    foreach(task: task_set) (task.Running && 
+        (foreach(cmd: task.Cmds)(cmd.Sent -> F[0,5](cmd.ResponseCode == CMDAccepted))));
+
+    -- Assume: Task T is running, Command C has been sent, and C has not received an "Accepted" response code within "t3" time steps.
+    -- Guarantee: C will be resent within "t4" time steps.
+    foreach(task: task_set) (task.Running && 
+        (foreach(cmd: task.Cmds)((cmd.Sent && !F[0,6](cmd.ResponseCode == CMDAccepted))
+            -> F[0,3](cmd.Resent))));

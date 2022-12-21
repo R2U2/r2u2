@@ -4,9 +4,13 @@
 -- comments which are preceded by two dashes
 
 INPUT
-  a,b,c: bool;
+  b0,b1: bool;
   
-  Order: a,b,c;
-
 SPEC
-  (a || b) U[3,5] (c);
+  G[0,5] b0;
+  F[0,5] b0;
+  H[0,5] b0;
+  O[0,5] b0;
+  b0 U[0,5] b1;
+  b0 R[0,5] b1;
+  b0 S[0,5] b1;

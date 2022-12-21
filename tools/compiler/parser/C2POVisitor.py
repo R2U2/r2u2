@@ -159,13 +159,8 @@ class C2POVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by C2POParser#tl_unary_op.
-    def visitTl_unary_op(self, ctx:C2POParser.Tl_unary_opContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by C2POParser#tl_bin_op.
-    def visitTl_bin_op(self, ctx:C2POParser.Tl_bin_opContext):
+    # Visit a parse tree produced by C2POParser#tl_op.
+    def visitTl_op(self, ctx:C2POParser.Tl_opContext):
         return self.visitChildren(ctx)
 
 

@@ -284,6 +284,7 @@ test/*Results.txt
 gen_files/
 __pycache__/
 codechecker/
+tmp/
 
 # python virtual environment
 r2u2env/

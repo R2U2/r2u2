@@ -30,17 +30,24 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
-        if isinstance(a,SIGNAL) or isinstance(a,CONST) or isinstance(a,PROGRAM):
-            pass
+        if isinstance(a,SIGNAL) or isinstance(a,CONST):
+            return
+        elif isinstance(a,PROGRAM):
+            for c in a.children:
+                type_check_util(c)
         elif isinstance(a,SPEC):
             child = a.get_expr()
+            type_check_util(child)
 
             if not child.type == Bool():
                 status = False
                 logger.error(f'{a.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{a}')
+
         elif isinstance(a,REL_OP) or isinstance(a,ARITH_BIN_OP):
             lhs = a.get_lhs()
             rhs = a.get_rhs()
+            type_check_util(lhs)
+            type_check_util(rhs)
 
             if isinstance(a,REL_EQ) or isinstance(a,REL_NEQ):
                 if lhs.type == Float() or lhs.type == Double() or rhs.type == Float() or rhs.type == Double():
@@ -56,9 +63,12 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             else:
                 a.type = lhs.type
         elif isinstance(a,ARITH_UNARY_OP):
-            a.type = a.get_operand().type
+            operand = a.get_operand()
+            type_check_util(operand)
+            a.type = operand.type
         elif isinstance(a,LOG_OP):
             for c in a.children:
+                type_check_util(c)
                 if c.type != Bool():
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
@@ -66,6 +76,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             a.type = Bool()
         elif isinstance(a,TL_OP):
             for c in a.children:
+                type_check_util(c)
                 if c.type != Bool():
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
@@ -92,7 +103,11 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             status = status and a.interval.lb <= a.interval.ub
             a.type = Bool()
         elif isinstance(a,SET):
-            t: Type = NoType() if len(a.children) == 0 else a.children[0].type
+            t: Type = NoType()
+            for m in a.children:
+                type_check_util(m)
+                t = m.type
+
             for m in a.children:
                 if m.type != t:
                     status = False
@@ -106,14 +121,34 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                 status = False
                 logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
         elif isinstance(a,SET_AGG_OP):
-            del context[a.get_boundvar().name]
-            if a.get_expr().type != Bool():
+            s: SET = a.get_set()
+            boundvar: VAR = a.get_boundvar()
+
+            type_check_util(s)
+
+            if isinstance(s.type, Set):
+                context[boundvar.name] = s.type.member_type
+            else:
                 status = False
-                logger.error(f'{a.ln}: Set aggregation argument must be Boolean (found \'{a.get_expr().type}\')')
+                logger.error(f'{a.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
+
+            expr: AST = a.get_expr()
+            type_check_util(expr)
+
+            if expr.type != Bool():
+                status = False
+                logger.error(f'{a.ln}: Set aggregation argument must be Boolean (found \'{expr.type}\')')
+
+            del context[boundvar.name]
+            explored.remove(boundvar)
             a.type = Bool()
         elif isinstance(a,STRUCT):
+            for c in a.children: 
+                type_check_util(c)
             a.type = Struct(a.name)
         elif isinstance(a,STRUCT_ACCESS):
+            type_check_util(a.get_struct())
+            
             st_name = a.get_struct().type.name
             if st_name in st.keys() and a.member in st[st_name].keys():
                 a.type = st[st_name][a.member]
@@ -124,12 +159,7 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
-        if isinstance(a.type,Set):
-            for p in a.parents:
-                if isinstance(p,SET_AGG_OP):
-                    context[p.get_boundvar().name] = a.type.member_type
-
-    postorder(prog,type_check_util)
+    type_check_util(prog)
 
     return status
 
@@ -150,13 +180,13 @@ def rewrite_ops(prog: PROGRAM) -> None:
                                                 LOG_NEG(ln, LOG_BIN_AND(ln, lhs, rhs))))
             elif isinstance(a,LOG_IMPL):
                 rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs))))
-        elif isinstance(a, TL_FT_BIN_OP):
+        elif isinstance(a, TL_RELEASE):
             lhs: AST = a.get_lhs()
             rhs: AST = a.get_rhs()
             bounds: Interval = a.interval
 
             rewrite(a, LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub)))
-        elif isinstance(a, TL_FT_UNARY_OP):
+        elif isinstance(a, TL_FUTURE):
             operand: AST = a.get_operand()
             bounds: Interval = a.interval
 
@@ -169,7 +199,6 @@ def rewrite_struct_access(prog: PROGRAM) -> None:
 
     def rewrite_struct_access_util(a: AST) -> None:
         if isinstance(a,STRUCT_ACCESS):
-            print(a)
             s: STRUCT = a.get_struct()
             rewrite(a,s.members[a.member])
 
@@ -287,8 +316,7 @@ def total_scq_size(prog: PROGRAM) -> int:
     def total_scq_size_util(a: AST) -> None:
         nonlocal mem
         mem += a.scq_size
-        # if isinstance(a,TL_EXPR) and not isinstance(a, PROGRAM):
-        #     print('mem('+str(a)+') = '+str(a.scq_size))
+
     postorder(prog,total_scq_size_util)
     return mem
 
@@ -352,11 +380,33 @@ def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]
     visited: list[AST] = []
     asm: list[AST] = []
 
+    # print(prog)
+
     def generate_assembly_util(a: AST) -> None:
         nonlocal visited
         nonlocal asm
 
         if a in visited:
+            return
+
+        # For signals: if has BZ parent, push onto stack
+        # if has TL parent, load directly from signal memory
+        if isinstance(a,SIGNAL):
+            has_bz_parent: bool = False
+            has_tl_parent: bool = False
+            
+            for p in a.parents:
+                if isinstance(p,BZ_EXPR):
+                    has_bz_parent = True
+                if isinstance(p,TL_EXPR):
+                    has_tl_parent = True
+
+            if has_bz_parent:
+                pass
+
+            if has_tl_parent:
+                pass
+
             return
 
         if isinstance(a,TL_EXPR):
@@ -385,9 +435,9 @@ def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]
                 asm.append(DUP(a.ln,a))
 
             if a.atid > -1:
-                asm.append(LOAD(a.ln,a))
+                asm.append(TL_LOAD(a.ln,a))
                 visited.append(a)
-    
+
     assign_ids(prog,signal_mapping)
     
     postorder(prog,generate_assembly_util)
