@@ -1,81 +1,54 @@
 from __future__ import annotations
+from copy import copy, deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
+from typing_extensions import Self
+from webbrowser import Opera
 
 from .util import *
 from .type import *
 
 logger = getLogger(logger_name)
 
-
 class Interval(NamedTuple):
     lb: int
     ub: int
 
+StructDict = NewType('StructDict', dict[str, dict[str, Type]])
 
-StructDict = NewType('StructDict',dict[str,dict[str,Type]])
-
-
-def postorder(a: AST, func: Callable[[AST],Any]) -> None:
+def postorder(a: AST, func: Callable[[AST], Any]) -> None:
+    """Performs a postorder traversal of a, calling func on each node."""
     c: AST
-    for c in a.children:
-        postorder(c,func)
+    for c in a.get_children():
+        postorder(c, func)
     func(a)
 
 
-def preorder(a: AST, func: Callable[[AST],Any]) -> None:
+def preorder(a: AST, func: Callable[[AST], Any]) -> None:
+    """Performs a preorder traversal of a, calling func on each node. func must not alter the children of its argument node"""
     c: AST
     func(a)
-    for c in a.children:
-        preorder(c,func)
+    for c in a.get_children():
+        preorder(c, func)
 
 
-def traverse(a: AST, pre: Callable[[AST],Any], post: Callable[[AST],Any]) -> None:
+def traverse(a: AST, pre: Callable[[AST], Any], post: Callable[[AST], Any]) -> None:
     c: AST
     pre(a)
-    for c in a.children:
-        traverse(c,pre,post)
+    for c in a.get_children():
+        traverse(c, pre, post)
     post(a)
 
 
-# precondition: all children are properly set
-def set_parents(prog: AST) -> None:
-
-    def set_parents_util(a: AST) -> None:
-        for c in a.children:
-            c.parents.append(a)
-
-    postorder(prog,set_parents_util)
-
-
-def set_type(s: AST, expr: AST, t: Type) -> None:
-
-    def set_type_util(a: AST) -> None:
-        if s == a:
-            a.type = t
-
-    postorder(expr,set_type_util)
-
-
-# replace AST old with AST new by pointing all of old's parents to new
-# and setting new's parents accordingly
-def rewrite(old: AST, new: AST) -> None:
-    for p in old.parents:
-        for i in range(0,len(p.children)):
-            if p.children[i] == old:
-                p.children[i] = new
-        new.parents.append(p)
-
-
 def rename(v: AST, repl: AST, expr: AST) -> AST:
-    new: AST = expr.copy()
-    repl.parents = [] # replacement ought to be standalone
+    new: AST = deepcopy(expr)
+    # repl.parents = [] # replacement ought to be standalone
 
     def rename_util(a: AST) -> None:
         if v == a:
-            rewrite(a,repl)
+            a.replace(repl)
 
-    postorder(new,rename_util)
+    postorder(new, rename_util)
     return new
 
 
@@ -86,21 +59,58 @@ class AST():
         self.tlid: int = -1
         self.bzid: int = -1
         self.atid: int = -1
+        self.num_bz_parents: int = 0
+        self.num_tl_parents: int = 0
         self.scq_size: int = 0
         self.name: str = ''
         self.bpd: int = 0
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
-        self.type: Type = NoType()
+        self.type: Type = NOTYPE()
         self.is_ft: bool = True
 
-        self.children: list[AST] = []
-        self.parents: list[AST] = []
+        self._children: list[AST] = []
+        self._parents: list[AST] = []
 
         child: AST
         for child in c:
-            self.children.append(child)
-            child.parents.append(self)
+            self._children.append(child)
+            child._parents.append(self)
+            if isinstance(self, TLExpr):
+                child.num_tl_parents += 1
+            elif isinstance(self, BZExpr):
+                child.num_bz_parents += 1
+
+    def get_children(self) -> list[AST]:
+        return self._children
+
+    def get_parents(self) -> list[AST]:
+        return self._parents
+
+    def num_children(self) -> int:
+        return len(self._children)
+
+    def num_parents(self) -> int:
+        return len(self._parents)
+
+    def get_child(self, i: int) -> AST:
+        return self._children[i]
+
+    def get_parent(self, i: int) -> AST:
+        return self._parents[i]
+
+    def replace(self, new: AST) -> None:
+        for p in self._parents:
+            for i in range(0, len(p._children)):
+                if p._children[i] == self:
+                    p._children[i] = new
+
+            new._parents.append(p)
+
+            if isinstance(p, TLExpr):
+                new.num_tl_parents += 1
+            elif isinstance(p, BZExpr):
+                new.num_bz_parents += 1
 
     def __str__(self) -> str:
         return self.name
@@ -120,17 +130,17 @@ class AST():
         new.type = self.type
         new.is_ft = self.is_ft
 
-    def copy(self) -> AST:
-        children = [c.copy() for c in self.children]
-        new = type(self)(self.ln,children)
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self.get_children()]
+        new = type(self)(self.ln, children)
         self.copy_attrs(new)
         return new
 
 
-class TL_EXPR(AST):
+class TLExpr(AST):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
+        super().__init__(ln, c)
 
     def get_tlid_name(self) -> str:
         return 'n'+str(self.tlid)
@@ -139,238 +149,148 @@ class TL_EXPR(AST):
         return 'TL: n' + str(self.tlid) + ': '
 
 
-class BZ_EXPR(AST):
+class BZExpr(AST):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
+        super().__init__(ln, c)
+        self.register: int = -1
 
     def asm(self) -> str:
         return 'BZ: '
 
 
-# only used for assembly generation
-class TL_LOAD(TL_EXPR):
+class Literal(AST):
 
-    def __init__(self, ln: int, l: AST) -> None:
-        super().__init__(ln, [l])
-        self.tlid = l.tlid
-
-    def get_load(self) -> AST:
-        return self.children[0]
- 
-    def asm(self) -> str:
-        return super().asm() + 'load ' + ('a' if True else 's') + str(self.get_load().atid) 
-
-
-# only used for assembly generation
-class BZ_LOAD(BZ_EXPR):
-
-    def __init__(self, ln: int, l: AST) -> None:
-        super().__init__(ln, [l])
-        self.tlid = l.tlid
-
-    def get_load(self) -> AST:
-        return self.children[0]
- 
-    def asm(self) -> str:
-        return super().asm() + f'load a{str(self.get_load().atid)}' 
-
-# only used for assembly generation
-class DUP(BZ_EXPR):
-
-    def __init__(self, ln: int, d: AST) -> None:
-        super().__init__(ln, [d])
-
-    def asm(self) -> str:
-        return super().asm() + 'dup'
-
-
-# only used for assembly generation
-class STORE(BZ_EXPR):
-
-    def __init__(self, ln: int, s: AST) -> None:
-        super().__init__(ln, [s])
-
-    def get_store(self) -> AST:
-        return self.children[0]
-
-    def asm(self) -> str:
-        return super().asm() + f'store a{self.get_store().atid}'
-
-
-class LIT(TL_EXPR,BZ_EXPR):
-
-    def __init__(self, ln: int) -> None:
+    def __init__(self, ln: int, a: list[AST]) -> None:
         super().__init__(ln,[])
 
 
-class CONST(LIT):
+class Constant(Literal):
 
-    def __init__(self, ln: int) -> None:
-        super().__init__(ln)
+    def __init__(self, ln: int, a: list[AST]) -> None:
+        super().__init__(ln,[])
+        self.value = 0
+
+    def get_value(self) -> int|float:
+        return self.value
 
 
-class INT(CONST):
-    
+class Integer(Constant, BZExpr):
+
     def __init__(self, ln: int, v: int) -> None:
-        super().__init__(ln)
+        super().__init__(ln,[])
         self.val: int = v
         self.name = str(v)
 
         bit_length: int = v.bit_length()
         if v < 0:
             if bit_length <= 8:
-                self.type = Int8()
+                self.type = INT8()
             elif bit_length <= 16:
-                self.type = Int16()
+                self.type = INT16()
             elif bit_length <= 32:
-                self.type = Int32()
+                self.type = INT32()
             elif bit_length <= 64:
-                self.type = Int64()
+                self.type = INT64()
             else:
-                logger.error(f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
-                self.type = NoType()
+                logger.error(
+                    f'{ln}: INTeger constant \'{v}\' not representable within 64 bits')
         else:
             if bit_length <= 8:
-                self.type = UInt8()
+                self.type = UINT8()
             elif bit_length <= 16:
-                self.type = UInt16()
+                self.type = UINT16()
             elif bit_length <= 32:
-                self.type = UInt32()
+                self.type = UINT32()
             elif bit_length <= 64:
-                self.type = UInt64()
+                self.type = UINT64()
             else:
-                logger.error(f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
-                self.type = NoType()
+                logger.error(
+                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
 
-    def copy(self) -> INT:
-        new = INT(self.ln,self.val)
+    def get_value(self) -> int:
+        return self.value
+
+    def __deepcopy__(self, memo):
+        new = type(self)(self.ln, self.val)
         self.copy_attrs(new)
         return new
-
-    def __str__(self) -> str:
-        return self.name
 
     def asm(self) -> str:
         return super().asm() + 'iconst ' + str(self.name) + ''
 
 
-class FLOAT(CONST):
-    
+class Float(Constant, BZExpr):
+
     def __init__(self, ln: int, v: float) -> None:
-        super().__init__(ln)
-        self.type = Float()
+        super().__init__(ln,[])
+        self.type = FLOAT()
         self.val: float = v
         self.name = str(v)
 
-    def copy(self) -> FLOAT:
-        new = FLOAT(self.ln,self.val)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return self.name
+    def get_value(self) -> float:
+        return self.value
 
     def asm(self) -> str:
         return super().asm() + 'fconst ' + str(self.name) + ''
 
 
-class VAR(AST):
+class Variable(AST):
 
     def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln,[])
         self.name: str = n
         self.reg: int = -1
 
-    def copy(self) -> VAR:
-        new = VAR(self.ln,self.name)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return self.name
-
     def __eq__(self, __o: object) -> bool:
-        return isinstance(__o,VAR) and __o.name == self.name
-
-    def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + f'load r{self.reg}'
+        return isinstance(__o, Variable) and __o.name == self.name
 
 
-class SIGNAL(LIT):
-    
+class Signal(Literal):
+
     def __init__(self, ln: int, n: str, t: Type) -> None:
-        super().__init__(ln,)
+        super().__init__(ln,[])
         self.name: str = n
         self.type: Type = t
         self.sid = -1
 
-    def __str__(self) -> str:
-        return self.name
 
-    def copy(self) -> SIGNAL:
-        new = SIGNAL(self.ln,self.name,self.type)
-        new.sid = self.sid
-        self.copy_attrs(new)
-        return new
+class Bool(Constant, BZExpr, TLExpr):
 
-    # handle cases:
-    # 1) used by TL operator -- load directly from signal memory
-    # 2) used by BZ operator -- load into stack machine
-    # 3) used by both TL/BZ -- load into both
-    def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'load s' + str(self.sid) + ''
-
-
-class BOOL(CONST):
-    
     def __init__(self, ln: int, v: bool) -> None:
-        super().__init__(ln)
-        self.type = Bool()
+        super().__init__(ln,[])
+        self.type = BOOL()
         self.bpd: int = 0
         self.wpd: int = 0
         self.val: bool = v
         self.name = str(v)
 
-    def copy(self) -> BOOL:
-        new = BOOL(self.ln,self.val)
-        self.copy_attrs(new)
-        return new
-
     def get_tlid_name(self) -> str:
-        return self.name
-
-    def __str__(self) -> str:
         return self.name
 
     def asm(self) -> str:
         return 'iconst ' + ('0' if self.name == 'False' else '1')
 
 
-class SET(BZ_EXPR):
-    
+class Set(AST):
+
     def __init__(self, ln: int, max: int, m: list[AST]) -> None:
-        super().__init__(ln,m)
+        super().__init__(ln, m)
         self.max_size: int = max
         self.dynamic_size = None
 
     def get_max_size(self) -> int:
         return self.max_size
 
-    def get_dynamic_size(self) -> AST|None:
+    def get_dynamic_size(self) -> AST | None:
         return self.dynamic_size
 
     def set_dynamic_size(self, s: AST) -> None:
         self.dynamic_size = s
 
-    def copy(self) -> SET:
-        new = SET(self.ln,self.max_size,[c.copy() for c in self.children])
-        self.copy_attrs(new)
-        return new
-
     def __str__(self) -> str:
         s: str = '{'
-        for m in self.children:
+        for m in self.get_children():
             s += str(m) + ','
         s = s[:-1] + '}'
         return s
@@ -379,47 +299,248 @@ class SET(BZ_EXPR):
         return super().asm() + 'set ' + str(self.name) + ''
 
 
-class STRUCT(AST):
+class Struct(AST):
 
-    def __init__(self, ln: int, n: str, m: dict[str,AST]) -> None:
-        super().__init__(ln,[mem for mem in m.values()])
-        self.type: Type = Struct(n)
+    def __init__(self, ln: int, n: str, m: dict[str, AST]) -> None:
+        super().__init__(ln, [mem for mem in m.values()])
+        self.type: Type = STRUCT(n)
         self.name: str = n
-        self.members: dict[str,AST] = m
+        self.members: dict[str, AST] = m
 
-    def copy(self) -> STRUCT:
-        new = STRUCT(self.ln,self.name,self.members)
-        self.copy_attrs(new)
-        return new
+    # def __deepcopy__(self, memo):
+    #     new = deepcopy(self)
+    #     new.members = {}
+    #     for k,v in self.members:
+    #         new.members[k] = deepcopy(v)
+    #     return super().__deepcopy__(memo)
 
     def __str__(self) -> str:
         s: str = ''
         s += self.name + '('
-        for i,e in self.members.items():
-            s += i + '=' + str(e) + ','  
+        for i, e in self.members.items():
+            s += i + '=' + str(e) + ','
         s = s[:-1] + ')'
         return s
 
 
-class STRUCT_ACCESS(AST):
+class StructAccess(AST):
 
     def __init__(self, ln: int, s: AST, m: str) -> None:
         super().__init__(ln, [s])
         self.member: str = m
 
-    def get_struct(self) -> STRUCT:
-        return cast(STRUCT, self.children[0])
+    def get_struct(self) -> Struct:
+        return cast(Struct, self.get_child(0))
 
-    def copy(self) -> STRUCT_ACCESS:
-        new = STRUCT_ACCESS(self.ln,self.get_struct().copy(),self.member)
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], self.member)
         self.copy_attrs(new)
         return new
 
     def __str__(self) -> str:
-        return str(self.children[0]) + '.' + self.member
+        return str(self.get_struct()) + '.' + self.member
 
 
-class FUNCTION(AST):
+class Operator(AST):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln, c)
+        self.arity: int = len(c)
+
+
+class UnaryOperator(Operator):
+
+    def __init__(self, ln: int, o: list[AST]) -> None:
+        super().__init__(ln, o)
+        assert len(o) == 1
+
+    def get_operand(self) -> AST:
+        return self.get_child(0)
+
+    def __str__(self) -> str:
+        return f'{self.name}({self.get_operand()})'
+
+
+class BinaryOperator(Operator):
+
+    def __init__(self, ln: int, l: list[AST]) -> None:
+        super().__init__(ln, l)
+        assert len(l) == 2
+
+    def get_lhs(self) -> AST:
+        return self.get_child(0)
+
+    def get_rhs(self) -> AST:
+        return self.get_child(1)
+
+    def __str__(self) -> str:
+        return f'({self.get_lhs()}){self.name}({self.get_rhs()})'
+
+
+# only used for assembly generation
+class Duplicate(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, d: AST) -> None:
+        super().__init__(ln, [d])
+
+    def get_dup(self) -> AST:
+        return self.get_operand()
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = Duplicate(self.ln, children[0])
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + 'dup'
+
+
+# only used for assembly generation
+class TLAtomicLoad(UnaryOperator, TLExpr):
+
+    def __init__(self, ln: int, l: BZExpr) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> BZExpr:
+        return cast(BZExpr, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = TLAtomicLoad(self.ln, cast(BZExpr, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + 'load a' + str(self.get_load().atid)
+
+
+# only used for assembly generation
+class TLSignalLoad(UnaryOperator, TLExpr):
+
+    def __init__(self, ln: int, l: Signal) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> Signal:
+        return cast(Signal, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = TLSignalLoad(self.ln, cast(Signal, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        load = self.get_load()
+        return super().asm() + 'load s' + str(self.get_load().sid)
+
+
+# only used for assembly generation
+class BZAtomicLoad(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, l: TLExpr) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> TLExpr:
+        return cast(TLExpr, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BZAtomicLoad(self.ln, cast(TLExpr, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        load = self.get_load()
+        return super().asm() + f'aload {str(load.atid)}'
+
+
+# only used for assembly generation
+class BZSignalLoad(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, l: Signal) -> None:
+        super().__init__(ln, [l])
+        self.tlid = l.tlid
+
+    def get_load(self) -> Signal:
+        return cast(Signal, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BZSignalLoad(self.ln, cast(Signal, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        load = self.get_load()
+        return super().asm() + f'sload {str(load.sid)}'
+
+
+# only used for assembly generation
+class BZAtomicStore(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, s: BZExpr) -> None:
+        super().__init__(ln, [s])
+
+    def get_store(self) -> BZExpr:
+        return cast(BZExpr, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BZAtomicStore(self.ln, cast(BZExpr, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + f'astore {self.get_store().atid}'
+
+
+# only used for assembly generation
+class RegisterStore(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, s: BZExpr, r: int) -> None:
+        super().__init__(ln, [s])
+        self.register: int = r
+        s.register = r
+
+    def get_store(self) -> BZExpr:
+        return cast(BZExpr, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = RegisterStore(self.ln, cast(BZExpr, children[0]), self.register)
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + f'rstore {self.register}'
+
+
+# only used for assembly generation
+class RegisterLoad(UnaryOperator, BZExpr):
+
+    def __init__(self, ln: int, l: BZExpr) -> None:
+        super().__init__(ln, [l])
+        self.register: int = l.register
+
+    def get_load(self) -> BZExpr:
+        return cast(BZExpr, self.get_operand())
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = RegisterLoad(self.ln, cast(BZExpr, children[0]))
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + f'rload {self.register}'
+
+
+class Function(Operator):
 
     def __init__(self, ln: int, n: str, r: Type, a: list[AST]) -> None:
         super().__init__(ln, a)
@@ -427,774 +548,666 @@ class FUNCTION(AST):
         self.type: Type = r
 
 
-class SET_AGG_OP(AST):
+class SetAggOp(Operator):
 
-    def __init__(self, ln: int, s: AST, v: AST,  e: AST) -> None:
-        super().__init__(ln,[s,v,e])
+    def __init__(self, ln: int, s: Set, v: Variable,  e: AST) -> None:
+        super().__init__(ln, [s, v, e])
 
-    def get_set(self) -> SET:
-        return cast(SET,self.children[0])
+    def get_set(self) -> Set:
+        return cast(Set, self.get_child(0))
 
-    def get_boundvar(self) -> VAR:
-        return cast(VAR,self.children[1])
+    def get_boundvar(self) -> Variable:
+        return cast(Variable, self.get_child(1))
 
     def get_expr(self) -> AST:
-        return self.children[2]
+        return self.get_child(2)
 
-    def copy(self) -> SET_AGG_OP:
-        new = type(self)(self.ln,self.get_set().copy(),self.get_boundvar().copy(),self.get_expr().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, cast(Set, children[0]), cast(Variable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 
     def __str__(self) -> str:
-        return self.name + '(' + str(self.get_boundvar()) + ':' + str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
+        return self.name + '(' + str(self.get_boundvar()) + ':' + \
+            str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
 
 
-class FOR_EACH(SET_AGG_OP):
+class ForEach(SetAggOp):
 
-    def __init__(self, ln: int, s: SET, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foreach'
 
 
-class FOR_SOME(SET_AGG_OP):
+class ForSome(SetAggOp):
 
-    def __init__(self, ln: int, s: SET, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'forsome'
 
 
-class FOR_EXACTLY_N(SET_AGG_OP):
+class ForExactlyN(SetAggOp):
 
-    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'forexactlyn'
         self.num: int = n
 
 
-class FOR_AT_LEAST_N(SET_AGG_OP):
+class ForAtLeastN(SetAggOp):
 
-    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foratleastn'
         self.num: int = n
 
 
-class FOR_AT_MOST_N(SET_AGG_OP):
+class ForAtMostN(SetAggOp):
 
-    def __init__(self, ln: int, s: SET, n: int, v: VAR, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foratmostn'
         self.num: int = n
 
 
-class COUNT(BZ_EXPR):
+class Count(BZExpr):
 
     def __init__(self, ln: int, n: AST, c: list[AST]) -> None:
         super().__init__(ln, c)
         self.num: AST = n
 
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        if len(children) > 1:
+            new = Count(self.ln, children[0], children[1:])
+        else:
+            new = Count(self.ln, children[0], [])
+        self.copy_attrs(new)
+        return new
+
     def asm(self) -> str:
         return super().asm() + f'count {self.num}'
 
 
-class BW_OP(BZ_EXPR):
+class BitwiseOperator(Operator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
+        super().__init__(ln, c)
 
 
-class BW_BIN_OP(BW_OP):
+class BitwiseAnd(BitwiseOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '&'
 
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> BW_BIN_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseAnd(self.ln, children[0], children[1])
         self.copy_attrs(new)
         return new
-
-    def __str__(self) -> str:
-        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
-
-
-class BW_AND(BW_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '&'
 
     def asm(self) -> str:
         return super().asm() + 'and'
 
 
-class BW_OR(BW_BIN_OP):
+class BitwiseOr(BitwiseOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '|'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseOr(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
 
     def asm(self) -> str:
         return super().asm() + 'or'
 
 
-class BW_XOR(BW_BIN_OP):
+class BitwiseXor(BitwiseOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '+'
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '^'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseXor(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
 
     def asm(self) -> str:
         return super().asm() + 'xor'
 
 
-class BW_UNARY_OP(BW_OP):
-
-    def __init__(self, ln: int, o: AST):
-        super().__init__(ln,[o])
-
-    def get_operand(self) -> AST:
-        return self.children[0]
-
-    def copy(self) -> BW_UNARY_OP:
-        new = type(self)(self.ln,self.get_operand().copy())
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]!s})'
-
-
-class BW_NEG(BW_UNARY_OP):
+class BitwiseNegate(BitwiseOperator, UnaryOperator):
 
     def __init__(self, ln: int, o: AST) -> None:
-        super().__init__(ln, o)
+        super().__init__(ln, [o])
         self.name: str = '~'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseNegate(self.ln, children[0])
+        self.copy_attrs(new)
+        return new
 
     def asm(self) -> str:
         return super().asm() + 'bwneg'
 
 
-class ARITH_OP(BZ_EXPR):
+class ArithmeticOperator(BZExpr):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
-
-    def __str__(self) -> str:
-        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
+        super().__init__(ln, c)
 
 
-class ARITH_BIN_OP(ARITH_OP):
+class ArithmeticAdd(ArithmeticOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '+'
 
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> ARITH_BIN_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticAdd(self.ln, children[0], children[1])
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f'({self.children[0]}){self.name!s}({self.children[1]!s})'
-
-
-class ARITH_ADD(ARITH_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '+'
-
     def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'add'
+        return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'add'
 
 
-class ARITH_SUB(ARITH_BIN_OP):
+class ArithmeticSubtract(ArithmeticOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '-'
 
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticSubtract(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
     def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'sub'
+        return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'sub'
 
 
-class ARITH_MUL(ARITH_BIN_OP):
+class ArithmeticMultiply(ArithmeticOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '+'
 
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticMultiply(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
     def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'mul'
+        return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'mul'
 
 
-class ARITH_DIV(ARITH_BIN_OP):
+class ArithmeticDivide(ArithmeticOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '/'
 
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticDivide(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
     def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'div'
+        return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'div'
 
 
-class ARITH_MOD(ARITH_BIN_OP):
+class ArithmeticModulo(ArithmeticOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '%'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticModulo(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
 
     def asm(self) -> str:
         return super().asm() + 'mod'
 
 
-class ARITH_UNARY_OP(ARITH_OP):
+class ArithmeticNegate(ArithmeticOperator, UnaryOperator):
 
     def __init__(self, ln: int, o: AST) -> None:
-        super().__init__(ln,[o])
-
-    def get_operand(self) -> AST:
-        return self.children[0]
-
-    def copy(self) -> ARITH_UNARY_OP:
-        new = type(self)(self.ln,self.get_operand().copy())
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]})'
-
-
-class ARITH_NEG(ARITH_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST) -> None:
-        super().__init__(ln, o)
+        super().__init__(ln, [o])
         self.name: str = '-'
 
-    def asm(self) -> str:
-        return super().asm() + ('f' if self.type == Float() else 'i') + 'neg'
-
-
-class REL_OP(BZ_EXPR):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs,rhs])
-
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> REL_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
+    def asm(self) -> str:
+        return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'neg'
 
 
-class REL_EQ(REL_OP):
+class RelationalOperator(BZExpr, BinaryOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, [lhs, rhs])
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
+
+class Equal(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '=='
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + 'eq'
 
 
-class REL_NEQ(REL_OP):
+class NotEqual(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '!='
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + 'neq'
 
 
-class REL_GT(REL_OP):
+class GreaterThan(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '>'
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gt'
 
 
-class REL_LT(REL_OP):
+class LessThan(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '<'
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lt'
 
 
-class REL_GTE(REL_OP):
+class GreaterThanOrEqual(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '>='
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gte'
 
 
-class REL_LTE(REL_OP):
+class LessThanOrEqual(RelationalOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
         self.name: str = '<='
 
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lte'
 
 
-class TL_OP(TL_EXPR):
-
-    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
-        super().__init__(ln,c)
-        self.interval = Interval(lb=l,ub=u)
-
-
-class TL_FT_OP(TL_OP):
-
-    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
-        super().__init__(ln,c,l,u)
-
-
-class TL_PT_OP(TL_OP):
-
-    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
-        super().__init__(ln,c,l,u)
-
-
-class TL_FT_BIN_OP(TL_FT_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
-        super().__init__(ln,[lhs,rhs],l,u)
-        self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
-        self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
-
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> TL_FT_BIN_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy(),self.interval.lb,self.interval.ub)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
-
-
-class TL_UNTIL(TL_FT_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
-        super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'U'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.get_lhs()
-        rhs: AST = self.get_rhs()
-        return super().asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_RELEASE(TL_FT_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
-        super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'R'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.get_lhs()
-        rhs: AST = self.get_rhs()
-        return super().asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_FT_UNARY_OP(TL_FT_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, [o], l, u)
-        self.interval = Interval(lb=l,ub=u)
-        self.bpd = o.bpd + self.interval.lb
-        self.wpd = o.wpd + self.interval.ub
-
-    def get_operand(self) -> AST:
-        return self.children[0]
-
-    def copy(self) -> TL_FT_UNARY_OP:
-        new = type(self)(self.ln,self.get_operand().copy(),self.interval.lb,self.interval.ub)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
-
-
-class TL_GLOBAL(TL_FT_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, o, l, u)
-        self.name: str = 'G'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        operand: AST = self.children[0]
-        return super().asm() + 'global n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_FUTURE(TL_FT_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, o, l, u)
-        self.name: str = 'F'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        operand: AST = self.children[0]
-        return super().asm() + 'future n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_PT_BIN_OP(TL_PT_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
-        super().__init__(ln, [lhs, rhs], l, u)
-
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> TL_PT_BIN_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy(),self.interval.lb,self.interval.ub)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})'
-
-
-class TL_SINCE(TL_PT_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
-        super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'S'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_PT_UNARY_OP(TL_PT_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, [o], l, u)
-        self.interval = Interval(lb=l,ub=u)
-
-    def get_operand(self) -> AST:
-        return self.children[0]
-
-    def copy(self) -> TL_PT_UNARY_OP:
-        new = type(self)(self.ln,self.get_operand().copy(),self.interval.lb,self.interval.ub)
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.children[0]!s})'
-
-
-class TL_HISTORICAL(TL_PT_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, o, l, u)
-        self.name: str = 'H'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        operand: AST = self.children[0]
-        return super().asm() + 'his n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class TL_ONCE(TL_PT_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
-        super().__init__(ln, o, l, u)
-        self.name: str = 'O'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        operand: AST = self.children[0]
-        return super().asm() + 'once n' + str(operand.tlid) + ' ' + \
-                str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
-
-
-class LOG_OP(TL_EXPR):
+class LogicalOperator(TLExpr):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        super().__init__(ln,c)
-
-    def copy(self) -> LOG_OP:
-        new = type(self)(self.ln,[c.copy() for c in self.children])
-        self.copy_attrs(new)
-        return new
+        super().__init__(ln, c)
+        self.bpd = min([child.bpd for child in c])
+        self.wpd = max([child.wpd for child in c])
 
 
-class LOG_OR(LOG_OP):
+class LogicalOr(LogicalOperator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
+        assert len(c) > 1
         super().__init__(ln, c)
         self.name: str = '||'
 
     def __str__(self) -> str:
         s: str = ''
-        for arg in self.children:
+        for arg in self.get_children():
             s += str(arg) + '||'
         return s[:-2]
 
     def asm(self) -> str:
         s: str = super().asm() + 'or'
-        for c in self.children:
+        for c in self.get_children():
             s += ' n' + str(c.tlid)
         return s + ''
 
 
-class LOG_AND(LOG_OP):
+class LogicalAnd(LogicalOperator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
+        assert len(c) > 1
         super().__init__(ln, c)
         self.name: str = '&&'
 
     def __str__(self) -> str:
         s: str = ''
-        for arg in self.children:
+        for arg in self.get_children():
             s += str(arg) + '&&'
         return s[:-2]
 
     def asm(self) -> str:
         s: str = super().asm() + 'and'
-        for c in self.children:
+        for c in self.get_children():
             s += ' n' + str(c.tlid)
         return s + ''
 
 
-class LOG_BIN_OP(LOG_OP):
+class LogicalXor(LogicalOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln,[lhs, rhs])
-        self.bpd = min(lhs.bpd, rhs.bpd)
-        self.wpd = max(lhs.wpd, rhs.wpd)
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '^^'
 
-    def get_lhs(self) -> AST:
-        return self.children[0]
-
-    def get_rhs(self) -> AST:
-        return self.children[1]
-
-    def copy(self) -> LOG_BIN_OP:
-        new = type(self)(self.ln,self.get_lhs().copy(),self.get_rhs().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = LogicalXor(self.ln, children[0], children[1])
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f'({self.children[0]!s}){self.name!s}({self.children[1]!s})'
-
-
-class LOG_BIN_OR(LOG_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '||'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'or n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
-
-
-class LOG_BIN_AND(LOG_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '&&'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
-        return super().asm() + 'and n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
-
-
-class LOG_XOR(LOG_BIN_OP):
-
-    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
-        self.name: str = '^^'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
+        lhs: AST = self.get_child(0)
+        rhs: AST = self.get_child(1)
         return super().asm() + 'xor n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
-class LOG_IMPL(LOG_BIN_OP):
+class LogicalImplies(LogicalOperator, BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
-        super().__init__(ln, lhs, rhs)
+        super().__init__(ln, [lhs, rhs])
         self.name: str = '->'
 
-    def __str__(self) -> str:
-        return super().__str__()
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = LogicalImplies(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
 
     def asm(self) -> str:
-        lhs: AST = self.children[0]
-        rhs: AST = self.children[1]
+        lhs: AST = self.get_child(0)
+        rhs: AST = self.get_child(1)
         return super().asm() + 'impl n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
 
 
-class LOG_UNARY_OP(LOG_OP):
+class LogicalNegate(LogicalOperator, UnaryOperator):
 
     def __init__(self, ln: int, o: AST):
-        super().__init__(ln,[o])
-        self.bpd = o.bpd
-        self.wpd = o.wpd
+        super().__init__(ln, [o])
+        self.name: str = '!'
 
-    def get_operand(self) -> AST:
-        return self.children[0]
-
-    def copy(self) -> LOG_UNARY_OP:
-        new = type(self)(self.ln,self.get_operand().copy())
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = LogicalNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f'{self.name!s}({self.children[0]!s})'
-
-
-class LOG_NEG(LOG_UNARY_OP):
-
-    def __init__(self, ln: int, o: AST):
-        super().__init__(ln, o)
-        self.name: str = '!'
-
-    def __str__(self) -> str:
-        return super().__str__()
-
     def asm(self) -> str:
-        operand: AST = self.children[0]
+        operand: AST = self.get_operand()
         return super().asm() + 'not n' + str(operand.tlid) + ''
 
 
-class SPEC(TL_EXPR):
-    
-    def __init__(self, ln: int, lbl: str, f: int, e: AST) -> None:
-        super().__init__(ln, [e])
-        self.name: str = lbl
-        self.fnum: int = f
+class TemporalOperator(TLExpr):
 
-    def get_expr(self) -> AST:
-        return self.children[0]
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln, c)
+        self.interval = Interval(lb=l,ub=u)
 
-    def copy(self) -> SPEC:
-        new: SPEC = SPEC(self.ln, self.name, self.fnum, self.get_expr().copy())
+
+class FutureTimeOperator(TemporalOperator):
+
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln, c, l, u)
+
+
+class PastTimeOperator(TemporalOperator):
+
+    def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
+        super().__init__(ln, c, l, u)
+
+
+# cannot inherit from BinaryOperator due to multiple inheriting classes
+# with different __init__ signatures
+class FutureTimeBinaryOperator(TemporalOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
+        super().__init__(ln, [lhs, rhs], l, u)
+        self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
+        self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
+
+    def get_lhs(self) -> AST:
+        return self.get_child(0)
+
+    def get_rhs(self) -> AST:
+        return self.get_child(1)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], children[1], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
 
     def __str__(self) -> str:
-        return (self.name + ': ' if self.name != '' else '')  + str(self.children[0])
+        return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
+
+
+class Until(FutureTimeBinaryOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
+        self.name: str = 'U'
 
     def asm(self) -> str:
-        top: AST = self.children[0]
-        return super().asm() + 'end n' + str(top.tlid) + ' f' + str(self.fnum) + ''
+        lhs: AST = self.get_lhs()
+        rhs: AST = self.get_rhs()
+        return super().asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
 
 
-class PROGRAM(TL_EXPR):
+class Release(FutureTimeBinaryOperator):
 
-    def __init__(self, ln: int, st: StructDict, s: dict[int,SPEC], c: dict[int,SPEC]) -> None:
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
+        self.name: str = 'R'
+
+    def asm(self) -> str:
+        lhs: AST = self.get_lhs()
+        rhs: AST = self.get_rhs()
+        return super().asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+
+class FutureTimeUnaryOperator(FutureTimeOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, [o], l, u)
+        self.bpd = o.bpd + self.interval.lb
+        self.wpd = o.wpd + self.interval.ub
+
+    def get_operand(self) -> AST:
+        return self.get_child(0)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
+        self.copy_attrs(new)
+        return new
+
+    def __str__(self) -> str:
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
+
+
+class Global(FutureTimeUnaryOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
+        self.name: str = 'G'
+
+    def asm(self) -> str:
+        operand: AST = self.get_child(0)
+        return super().asm() + 'global n' + str(operand.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+
+class Future(FutureTimeUnaryOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
+        self.name: str = 'F'
+
+    def asm(self) -> str:
+        operand: AST = self.get_child(0)
+        return super().asm() + 'future n' + str(operand.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+
+class PastTimeBinaryOperator(PastTimeOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
+        super().__init__(ln, [lhs, rhs], l, u)
+
+    def get_lhs(self) -> AST:
+        return self.get_child(0)
+
+    def get_rhs(self) -> AST:
+        return self.get_child(1)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], children[1], self.interval.lb, self.interval.ub)
+        self.copy_attrs(new)
+        return new
+
+    def __str__(self) -> str:
+        return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
+
+
+class Since(PastTimeBinaryOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
+        super().__init__(ln, lhs, rhs, l, u)
+        self.name: str = 'S'
+
+    def asm(self) -> str:
+        lhs: AST = self.get_child(0)
+        rhs: AST = self.get_child(1)
+        return super().asm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+
+class PastTimeUnaryOperator(PastTimeOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, [o], l, u)
+
+    def get_operand(self) -> AST:
+        return self.get_child(0)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
+        self.copy_attrs(new)
+        return new
+
+    def __str__(self) -> str:
+        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
+
+
+class Historical(PastTimeUnaryOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
+        self.name: str = 'H'
+
+    def asm(self) -> str:
+        operand: AST = self.get_operand()
+        return super().asm() + 'his n' + str(operand.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+
+class Once(PastTimeUnaryOperator):
+
+    def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
+        super().__init__(ln, o, l, u)
+        self.name: str = 'O'
+
+    def asm(self) -> str:
+        operand: AST = self.get_child(0)
+        return super().asm() + 'once n' + str(operand.tlid) + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+
+class Specification(TLExpr):
+
+    def __init__(self, ln: int, lbl: str, f: int, e: AST) -> None:
+        super().__init__(ln, [e])
+        self.name: str = lbl
+        self.formula_number: int = f
+
+    def get_expr(self) -> AST:
+        return self.get_child(0)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = Specification(self.ln, self.name, self.formula_number, children[0])
+        self.copy_attrs(new)
+        return new
+
+    def __str__(self) -> str:
+        return (str(self.formula_number) if self.name == '' else self.name) + ': ' + str(self.get_expr())
+
+    def asm(self) -> str:
+        top: AST = self.get_child(0)
+        return super().asm() + 'end n' + str(top.tlid) + ' f' + str(self.formula_number) + ''
+
+
+class Program(TLExpr):
+
+    def __init__(self, ln: int, st: StructDict, s: dict[int, Specification], c: dict[int, Specification]) -> None:
         super().__init__(ln, list(s.values()))
         self.structs = st
         self.specs = s
         self.contracts = c
+        self.is_type_correct = False
+        self.is_boolean_normal_form = False
+        self.is_negative_normal_form = False
+        self.is_set_agg_free = False
+        self.is_struct_access_free = False
+        self.is_cse_reduced = False
 
     def __str__(self) -> str:
         ret: str = ''
         s: AST
-        for s in self.children:
+        for s in self.get_children():
             ret += str(s) + ''
-        ret = ret[:-1]
-        return ret
+        return ret[:-1]
 
     def asm(self) -> str:
         return super().asm() + 'endsequence'
-

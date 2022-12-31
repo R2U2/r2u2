@@ -17,5 +17,6 @@ DEFINE
   Set = {t0,t1};
 
 SPEC
-  foreach(t:Set)(foreach(v:t.V)(v == 5));
+  -- foreach(t:Set)(foreach(v:t.V)(v == 5));
+  (x0==0)&&(x0==0)&&(x0==0)&&(x1>1);
   

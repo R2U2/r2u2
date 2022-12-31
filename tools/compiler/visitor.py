@@ -22,7 +22,7 @@ class Visitor(C2POVisitor):
         self.status = True
 
         # Initialize special structs/functions
-        self.structs['Set'] = {'set':NoType(),'size':UInt64()}
+        self.structs['Set'] = {'set':NOTYPE(),'size':UINT64()}
 
 
     def error(self, msg) -> None:
@@ -35,7 +35,7 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#start.
-    def visitStart(self, ctx:C2POParser.StartContext) -> list[PROGRAM]:
+    def visitStart(self, ctx:C2POParser.StartContext) -> list[Program]:
         ln: int = ctx.start.line 
 
         for s in ctx.struct_block():
@@ -45,7 +45,7 @@ class Visitor(C2POVisitor):
         for d in ctx.def_block():
             self.visit(d)
 
-        ret: list[PROGRAM] = []
+        ret: list[Program] = []
         for s in ctx.spec_block():
             ret.append(self.visit(s))
 
@@ -114,32 +114,32 @@ class Visitor(C2POVisitor):
         id: str = ctx.SYMBOL().getText()
 
         if id == 'bool':
-            return Bool()
+            return BOOL()
         elif id == 'int8':
-            return Int8()
+            return INT8()
         elif id == 'int16':
-            return Int16()
+            return INT16()
         elif id == 'int32':
-            return Int32()
+            return INT32()
         elif id == 'int64':
-            return Int64()
+            return INT64()
         elif id == 'uint8':
-            return UInt8()
+            return UINT8()
         elif id == 'uint16':
-            return UInt16()
+            return UINT16()
         elif id == 'uint32':
-            return UInt32()
+            return UINT32()
         elif id == 'uint64':
-            return UInt64()
+            return UINT64()
         elif id == 'float':
-            return Float()
+            return FLOAT()
         elif id == 'double':
-            return Double()
+            return DOUBLE()
         elif id == 'set':
             t: Type = self.visit(ctx.type_())
-            return Set(t)
+            return SET(t)
         elif id in self.structs.keys():
-            return Struct(id)
+            return STRUCT(id)
 
         self.error(f'{ln}: Type \'{ctx.getText()}\' not recognized')
         return NoType()
@@ -167,11 +167,11 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#spec_block.
-    def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> PROGRAM:
+    def visitSpec_block(self, ctx:C2POParser.Spec_blockContext) -> Program:
         ln: int = ctx.start.line
-        specs: list[SPEC]
-        spec_dict: dict[int,SPEC] = {}
-        contract_dict: dict[int,SPEC] = {}
+        specs: list[Specification]
+        spec_dict: dict[int,Specification] = {}
+        contract_dict: dict[int,Specification] = {}
 
         self.spec_num = 0
 
@@ -185,11 +185,11 @@ class Visitor(C2POVisitor):
                 spec_dict[self.spec_num] = sp
                 self.spec_num += 1
 
-        return PROGRAM(ln, self.structs, spec_dict, contract_dict)
+        return Program(ln, self.structs, spec_dict, contract_dict)
 
 
     # Visit a parse tree produced by C2POParser#spec.
-    def visitSpec(self, ctx:C2POParser.SpecContext) -> list[SPEC]:
+    def visitSpec(self, ctx:C2POParser.SpecContext) -> list[Specification]:
         ln: int = ctx.start.line
         label: str = ''
 
@@ -205,14 +205,14 @@ class Visitor(C2POVisitor):
                 else:
                     self.defs[label] = expr
 
-            return [SPEC(ln, label, self.spec_num, expr)]
+            return [Specification(ln, label, self.spec_num, expr)]
         else:
             f1,f2,f3 = self.visit(ctx.contract())
             label = ctx.SYMBOL().getText()
 
-            return [SPEC(ln, label, self.spec_num, f1),
-                    SPEC(ln, label, self.spec_num+1, f2),
-                    SPEC(ln, label, self.spec_num+2, f3)]
+            return [Specification(ln, label, self.spec_num, f1),
+                    Specification(ln, label, self.spec_num+1, f2),
+                    Specification(ln, label, self.spec_num+2, f3)]
 
 
     # Visit a parse tree produced by C2POParser#contract.
@@ -222,8 +222,8 @@ class Visitor(C2POVisitor):
         rhs: AST = self.visit(ctx.expr(1))
 
         f1: AST = lhs
-        f2: AST = LOG_IMPL(ln,lhs,rhs)
-        f3: AST = LOG_AND(ln,lhs,rhs)
+        f2: AST = LogicalImplies(ln,lhs,rhs)
+        f3: AST = LogicalAnd(ln,lhs,rhs)
 
         return [f1,f2,f3]
 
@@ -235,13 +235,13 @@ class Visitor(C2POVisitor):
         rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.LOG_OR():
-            return LOG_BIN_OR(ln, lhs, rhs)
+            return LogicalOr(ln, [lhs, rhs])
         elif ctx.LOG_AND():
-            return LOG_BIN_AND(ln, lhs, rhs)
+            return LogicalAnd(ln, [lhs, rhs])
         elif ctx.LOG_XOR():
-            return LOG_XOR(ln, lhs, rhs)
+            return LogicalXor(ln, lhs, rhs)
         elif ctx.LOG_IMPL():
-            return LOG_IMPL(ln, lhs, rhs)
+            return LogicalImplies(ln, lhs, rhs)
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return AST(ln, [])
@@ -257,11 +257,11 @@ class Visitor(C2POVisitor):
         if ctx.tl_op():
             op: str = ctx.tl_op().SYMBOL().getText()
             if op == 'U':
-                return TL_UNTIL(ln, lhs, rhs, bounds.lb, bounds.ub)
+                return Until(ln, lhs, rhs, bounds.lb, bounds.ub)
             elif op == 'R':
-                return TL_RELEASE(ln, lhs, rhs, bounds.lb, bounds.ub)
+                return Release(ln, lhs, rhs, bounds.lb, bounds.ub)
             elif op == 'S':
-                return TL_SINCE(ln, lhs, rhs, bounds.lb, bounds.ub)
+                return Since(ln, lhs, rhs, bounds.lb, bounds.ub)
             else:
                 self.error(f'{ln}: Binary TL op \'{ctx.tl_op().SYMBOL().getText()}\' not recognized')
                 return AST(ln, [])
@@ -279,13 +279,13 @@ class Visitor(C2POVisitor):
         if ctx.tl_op():
             op: str = ctx.tl_op().SYMBOL().getText()
             if op == 'G':
-                return TL_GLOBAL(ln, operand, bounds.lb, bounds.ub)
+                return Global(ln, operand, bounds.lb, bounds.ub)
             elif op == 'F':
-                return TL_FUTURE(ln, operand, bounds.lb, bounds.ub)
+                return Future(ln, operand, bounds.lb, bounds.ub)
             elif op == 'H':
-                return TL_HISTORICAL(ln, operand, bounds.lb, bounds.ub)
+                return Historical(ln, operand, bounds.lb, bounds.ub)
             elif op == 'O':
-                return TL_ONCE(ln, operand, bounds.lb, bounds.ub)
+                return Once(ln, operand, bounds.lb, bounds.ub)
             else:
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_op().SYMBOL().getText()}\' not recognized')
                 return AST(ln, [])
@@ -312,11 +312,11 @@ class Visitor(C2POVisitor):
         rhs: AST = self.visit(ctx.expr(1))
 
         if ctx.BW_OR():
-            return BW_OR(ln, lhs, rhs)
+            return BitwiseOr(ln, lhs, rhs)
         elif ctx.BW_XOR():
-            return BW_XOR(ln, lhs, rhs)
+            return BitwiseXor(ln, lhs, rhs)
         elif ctx.BW_AND():
-            return BW_AND(ln, lhs, rhs)
+            return BitwiseAnd(ln, lhs, rhs)
         else:
             self.error(f'{ln}: Expression \'{ctx.getText()}\' not recognized')
             return AST(ln, [])
@@ -330,21 +330,21 @@ class Visitor(C2POVisitor):
 
         if ctx.rel_eq_op():
             if ctx.rel_eq_op().REL_EQ():
-                return REL_EQ(ln, lhs, rhs)
+                return Equal(ln, lhs, rhs)
             elif ctx.rel_eq_op().REL_NEQ:
-                return REL_NEQ(ln, lhs, rhs)
+                return NotEqual(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Rel op \'{ctx.rel_eq_op().start.text}\' not recognized')
                 return AST(ln, [])
         elif ctx.rel_ineq_op():
             if ctx.rel_ineq_op().REL_GT():
-                return REL_GT(ln, lhs, rhs)
+                return GreaterThan(ln, lhs, rhs)
             elif ctx.rel_ineq_op().REL_LT():
-                return REL_LT(ln, lhs, rhs)
+                return LessThan(ln, lhs, rhs)
             elif ctx.rel_ineq_op().REL_GTE():
-                return REL_GTE(ln, lhs, rhs)
+                return GreaterThanOrEqual(ln, lhs, rhs)
             elif ctx.rel_ineq_op().REL_LTE():
-                return REL_LTE(ln, lhs, rhs)
+                return LessThanOrEqual(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Rel op \'{ctx.rel_ineq_op().start.text}\' not recognized')
                 return AST(ln, [])
@@ -361,9 +361,9 @@ class Visitor(C2POVisitor):
 
         if ctx.arith_add_op():
             if ctx.arith_add_op().ARITH_ADD():
-                return ARITH_ADD(ln, lhs, rhs)
+                return ArithmeticAdd(ln, lhs, rhs)
             elif ctx.arith_add_op().ARITH_SUB():
-                return ARITH_SUB(ln, lhs, rhs)
+                return ArithmeticSubtract(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Unary TL op \'{ctx.tl_unary_op().start.text}\' not recognized')
                 return AST(ln, [])
@@ -380,11 +380,11 @@ class Visitor(C2POVisitor):
 
         if ctx.arith_mul_op():
             if ctx.arith_mul_op().ARITH_MUL():
-                return ARITH_MUL(ln, lhs, rhs)
+                return ArithmeticMultiply(ln, lhs, rhs)
             elif ctx.arith_mul_op().ARITH_DIV():
-                return ARITH_DIV(ln, lhs, rhs)
+                return ArithmeticDivide(ln, lhs, rhs)
             elif ctx.arith_mul_op().ARITH_MOD():
-                return ARITH_MOD(ln, lhs, rhs)
+                return ArithmeticModulo(ln, lhs, rhs)
             else:
                 self.error(f'{ln}: Binary arithmetic op \'{ctx.tl_bin_op().start.text}\' not recognized')
                 return AST(ln, [])
@@ -399,11 +399,11 @@ class Visitor(C2POVisitor):
         op: AST = self.visit(ctx.expr())
 
         if ctx.ARITH_SUB():
-            return ARITH_NEG(ln, op)
+            return ArithmeticNegate(ln, op)
         elif ctx.BW_NEG():
-            return BW_NEG(ln, op)
+            return BitwiseNegate(ln, op)
         elif ctx.LOG_NEG():
-            return LOG_NEG(ln, op)
+            return LogicalNegate(ln, op)
         else:
             self.error(f'{ln}: Unary op \'{ctx.unary_op().start.text}\' not recognized')
             return AST(ln, [])
@@ -424,7 +424,7 @@ class Visitor(C2POVisitor):
             if len(expr_list) == len(self.structs[id]):
                 for s in self.structs[id].keys():
                     members[s] = expr_list.pop(0)
-                return STRUCT(ln,id,members)
+                return Struct(ln,id,members)
             else:
                 self.error(f'{ln}: Member mismatch for struct \'{id}\', number of members do not match')
                 return AST(ln, [])
@@ -446,25 +446,25 @@ class Visitor(C2POVisitor):
         if op == 'foreach':
             if len(ctx.expr()) != 1:
                 self.error(f'{ln}: Extra parameter given for set aggregation expression \'{ctx.getText()}\'')
-            return FOR_EACH(ln,S,v,e)
+            return ForEach(ln,S,v,e)
         elif op == 'forsome':
-            return FOR_SOME(ln,S,v,e)
+            return ForSome(ln,S,v,e)
         elif op == 'forexactlyn':
             if ctx.INT():
                 n: int = int(ctx.INT().getText())
-                return FOR_EXACTLY_N(ln,S,n,v,e)
+                return ForExactlyN(ln,S,n,v,e)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         elif op == 'foratleastn':
             if ctx.INT():
                 n: int = int(ctx.INT().getText())
-                return FOR_AT_LEAST_N(ln,S,n,v,e)
+                return ForAtLeastN(ln,S,n,v,e)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         elif op == 'foratmostn':
             if ctx.INT():
                 n: int = int(ctx.INT().getText())
-                return FOR_AT_MOST_N(ln,S,n,v,e)
+                return ForAtMostN(ln,S,n,v,e)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         else:
@@ -473,10 +473,10 @@ class Visitor(C2POVisitor):
 
 
     # Visit a parse tree produced by C2POParser#set_agg_binder.
-    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[AST,VAR]:
+    def visitSet_agg_binder(self, ctx:C2POParser.Set_agg_binderContext) -> tuple[AST,Variable]:
         ln: int = ctx.start.line
         S: AST = self.visit(ctx.expr())
-        v: VAR = VAR(ln,ctx.SYMBOL().getText())
+        v: Variable = Variable(ln,ctx.SYMBOL().getText())
         return (S,v)
 
 
@@ -485,7 +485,7 @@ class Visitor(C2POVisitor):
         ln: int = ctx.start.line
         id: str = ctx.SYMBOL().getText()
         e: AST = self.visit(ctx.expr())
-        return STRUCT_ACCESS(ln,e,id)
+        return StructAccess(ln,e,id)
 
 
     # Visit a parse tree produced by C2POParser#SetExpr.
@@ -496,7 +496,7 @@ class Visitor(C2POVisitor):
         if ctx.set_expr().expr_list():
             elements = self.visit(ctx.set_expr().expr_list())
 
-        return SET(ln, len(elements), elements)
+        return Set(ln, len(elements), elements)
 
 
     # Visit a parse tree produced by C2POParser#ParensExpr.
@@ -513,20 +513,20 @@ class Visitor(C2POVisitor):
         if literal.SYMBOL():
             name: str = literal.SYMBOL().getText()
             if name == 'true':
-                return BOOL(ln, True)
+                return Bool(ln, True)
             elif name == 'false':
-                return BOOL(ln, False)
+                return Bool(ln, False)
             elif name in self.defs.keys():
                 return self.defs[name]
             elif name in self.vars.keys():
-                return SIGNAL(ln, name, self.vars[name])
+                return Signal(ln, name, self.vars[name])
             else:
                 self.error(f'{ln}: Variable \'{name}\' undefined')
                 return AST(ln, [])
         elif literal.INT():
-            return INT(ln, int(literal.INT().getText()))
+            return Integer(ln, int(literal.INT().getText()))
         elif literal.FLOAT():
-            return FLOAT(ln, float(literal.FLOAT().getText()))
+            return Float(ln, float(literal.FLOAT().getText()))
         else:
             self.error(f'{ln}: Literal \'{ctx.start.text}\' parser token not recognized')
             return AST(ln, [])

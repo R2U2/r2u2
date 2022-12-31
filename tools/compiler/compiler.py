@@ -12,9 +12,28 @@ from .visitor import Visitor
 # from .assembler import assemble
 
 logger = getLogger(logger_name)
-    
 
-def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
+# class C2PO:
+#     """Configuration Compiler for Property Organization"""
+
+#     def __init__(self, mltl_filename: str, signal_filename: str, output_path: str, booleanizer: bool, \
+#             extended_operators: bool, quiet: bool) -> None:
+#         pass
+
+
+def type_check(program: Program, bz: bool, st: StructDict) -> bool:
+    """
+    Performs type checking of the argument program. Uses type inferences to assign correct types to each 
+    AST node in the program and returns whether the program is properly type checked.
+
+    Preconditions: 
+        - None
+
+    Postconditions: 
+        - program is properly typed
+        - All descendants of program have a valid Type (i.e., none are NOTYPE)
+    """
+    
     status: bool = True
     explored: list[AST] = []
     context: dict[str,Type] = {}
@@ -26,31 +45,30 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             return
         explored.append(a)
 
-        if not bz and not isinstance(a,LIT) and isinstance(a,BZ_EXPR):
+        if not bz and not isinstance(a,Literal) and isinstance(a,BZExpr):
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
-        if isinstance(a,SIGNAL) or isinstance(a,CONST):
+        if isinstance(a,Signal) or isinstance(a,Constant):
             return
-        elif isinstance(a,PROGRAM):
-            for c in a.children:
+        elif isinstance(a,Program):
+            for c in a.get_children():
                 type_check_util(c)
-        elif isinstance(a,SPEC):
+        elif isinstance(a,Specification):
             child = a.get_expr()
             type_check_util(child)
 
-            if not child.type == Bool():
+            if not child.type == BOOL():
                 status = False
                 logger.error(f'{a.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{a}')
-
-        elif isinstance(a,REL_OP) or isinstance(a,ARITH_BIN_OP):
+        elif isinstance(a,RelationalOperator):
             lhs = a.get_lhs()
             rhs = a.get_rhs()
             type_check_util(lhs)
             type_check_util(rhs)
 
-            if isinstance(a,REL_EQ) or isinstance(a,REL_NEQ):
-                if lhs.type == Float() or lhs.type == Double() or rhs.type == Float() or rhs.type == Double():
+            if isinstance(a,Equal) or isinstance(a,NotEqual):
+                if not is_integer_type(lhs.type) or is_integer_type(rhs.type):
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
@@ -58,75 +76,88 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
                 status = False
                 logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
-            if isinstance(a,REL_OP):
-                a.type = Bool()
-            else:
-                a.type = lhs.type
-        elif isinstance(a,ARITH_UNARY_OP):
-            operand = a.get_operand()
-            type_check_util(operand)
-            a.type = operand.type
-        elif isinstance(a,LOG_OP):
-            for c in a.children:
+            a.type = BOOL()
+        elif isinstance(a, ArithmeticOperator):
+            for c in a.get_children():
                 type_check_util(c)
-                if c.type != Bool():
+            t: Type = a.get_child(0).type
+
+            if isinstance(a, ArithmeticDivide):
+                rhs: AST = a.get_rhs()
+                if isinstance(rhs, Constant) and rhs.get_value() == 0:
+                    status = False
+                    logger.error(f'{a.ln}: Divide by zero\n\t{a}')
+
+            for c in a.get_children():
+                if c.type != t:
+                    status = False
+                    logger.error(f'{a.ln}: Operand of \'{a}\' must be of homogeneous type (found \'{c.type}\' and \'{t}\')')
+
+            a.type = t
+        elif isinstance(a, BitwiseOperator):
+            status = False
+            logger.error(f'{a.ln}: Bitwise operators unsupported.\n\t{a}')
+        elif isinstance(a, LogicalOperator):
+            for c in a.get_children():
+                type_check_util(c)
+                if c.type != BOOL():
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
-            a.type = Bool()
-        elif isinstance(a,TL_OP):
-            for c in a.children:
+            a.type = BOOL()
+        elif isinstance(a, TemporalOperator):
+            for c in a.get_children():
                 type_check_util(c)
-                if c.type != Bool():
+                if c.type != BOOL():
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
-            # enforce no mixed-time formulas
-            if isinstance(a,TL_FT_OP):
-                for c in a.children:
+            # check for mixed-time formulas
+            if isinstance(a, FutureTimeOperator):
+                for c in a.get_children():
                     if c.formula_type == FormulaType.PT:
                         status = False
-                        logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
+                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
                 a.formula_type = FormulaType.FT
-            elif isinstance(a,TL_PT_OP):
-                for c in a.children:
+            elif isinstance(a, PastTimeOperator):
+                for c in a.get_children():
                     if c.formula_type == FormulaType.FT:
                         status = False
-                        logger.error('%d: Mixed-time formulas unsupported\n\t%s', a.ln, a)
+                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
                 a.formula_type = FormulaType.PT
             else:
                 # not a TL op, propagate formula type from children
-                for c in a.children:
+                for c in a.get_children():
                     if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
                         a.formula_type = c.formula_type
 
             status = status and a.interval.lb <= a.interval.ub
-            a.type = Bool()
-        elif isinstance(a,SET):
-            t: Type = NoType()
-            for m in a.children:
+            a.type = BOOL()
+        elif isinstance(a,Set):
+            t: Type = NOTYPE()
+            for m in a.get_children():
                 type_check_util(m)
                 t = m.type
 
-            for m in a.children:
+            for m in a.get_children():
                 if m.type != t:
                     status = False
                     logger.error(f'{a.ln}: Set \'{a}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
-            a.type = Set(t)
-        elif isinstance(a,VAR):
+            a.type = SET(t)
+        elif isinstance(a,Variable):
             if a.name in context.keys():
                 a.type = context[a.name]
             else:
                 status = False
                 logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
-        elif isinstance(a,SET_AGG_OP):
-            s: SET = a.get_set()
-            boundvar: VAR = a.get_boundvar()
+        elif isinstance(a,SetAggOp):
+            s: Set = a.get_set()
+            boundvar: Variable = a.get_boundvar()
 
             type_check_util(s)
 
-            if isinstance(s.type, Set):
+            if isinstance(s.type, SET):
                 context[boundvar.name] = s.type.member_type
             else:
                 status = False
@@ -135,18 +166,18 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             expr: AST = a.get_expr()
             type_check_util(expr)
 
-            if expr.type != Bool():
+            if expr.type != BOOL():
                 status = False
                 logger.error(f'{a.ln}: Set aggregation argument must be Boolean (found \'{expr.type}\')')
 
             del context[boundvar.name]
             explored.remove(boundvar)
-            a.type = Bool()
-        elif isinstance(a,STRUCT):
-            for c in a.children: 
+            a.type = BOOL()
+        elif isinstance(a,Struct):
+            for c in a.get_children(): 
                 type_check_util(c)
-            a.type = Struct(a.name)
-        elif isinstance(a,STRUCT_ACCESS):
+            a.type = STRUCT(a.name)
+        elif isinstance(a,StructAccess):
             type_check_util(a.get_struct())
             
             st_name = a.get_struct().type.name
@@ -159,166 +190,349 @@ def type_check(prog: AST, bz: bool, st: StructDict) -> bool:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
-    type_check_util(prog)
+    type_check_util(program)
+
+    if status:
+        program.is_type_correct = True
 
     return status
 
 
-def rewrite_ops(prog: PROGRAM) -> None:
+def rewrite_extended_operators(program: Program) -> None:
+    """
+    Rewrites program formulas without extended operators i.e., formulas with only negation, conjunction, until, global, and future.
+
+    Preconditions:
+        - program is type correct.
+
+    Postconditions:
+        - program formulas only have negation, conjunction, until, and global operators.
+    """
+    
+    if not program.is_type_correct:
+        logger.error(f' program must be type checked before rewriting.')
+        return
 
     def rewrite_ops_util(a: AST) -> None:
-        ln: int = a.ln
-        
-        if isinstance(a,LOG_BIN_OP):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
 
-            if isinstance(a,LOG_BIN_OR):
-                rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))))
-            elif isinstance(a,LOG_XOR):
-                rewrite(a,LOG_BIN_AND(ln, LOG_NEG(ln, LOG_BIN_AND(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs))), \
-                                                LOG_NEG(ln, LOG_BIN_AND(ln, lhs, rhs))))
-            elif isinstance(a,LOG_IMPL):
-                rewrite(a,LOG_NEG(ln, LOG_BIN_AND(ln, lhs, LOG_NEG(ln, rhs))))
-        elif isinstance(a, TL_RELEASE):
+        if isinstance(a, LogicalOperator):
+            if isinstance(a, LogicalOr):
+                # p || q = !(!p && !q)
+                a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in a.get_children()])))
+            elif isinstance(a, LogicalXor):
+                lhs: AST = a.get_lhs()
+                rhs: AST = a.get_rhs()
+                # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
+                a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(a.ln, \
+                    LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)])), LogicalNegate(a.ln, \
+                        LogicalAnd(a.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])))
+            elif isinstance(a, LogicalImplies):
+                lhs: AST = a.get_lhs()
+                rhs: AST = a.get_rhs()
+                # p -> q = !(p && !q)
+                a.replace(LogicalNegate(a.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
+        elif isinstance(a, Release):
             lhs: AST = a.get_lhs()
             rhs: AST = a.get_rhs()
             bounds: Interval = a.interval
-
-            rewrite(a, LOG_NEG(ln, TL_UNTIL(ln, LOG_NEG(ln, lhs), LOG_NEG(ln, rhs), bounds.lb, bounds.ub)))
-        elif isinstance(a, TL_FUTURE):
+            # p R q = !(!p U !q)
+            a.replace(LogicalNegate(a.ln, Until(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
+        elif isinstance(a, Future):
             operand: AST = a.get_operand()
             bounds: Interval = a.interval
+            # F p = True U p
+            a.replace(Until(a.ln, Bool(a.ln, True), operand, bounds.lb, bounds.ub))
 
-            rewrite(a, TL_UNTIL(ln, BOOL(ln, True), operand, bounds.lb, bounds.ub))
-
-    postorder(prog, rewrite_ops_util)
-
-
-def rewrite_struct_access(prog: PROGRAM) -> None:
-
-    def rewrite_struct_access_util(a: AST) -> None:
-        if isinstance(a,STRUCT_ACCESS):
-            s: STRUCT = a.get_struct()
-            rewrite(a,s.members[a.member])
-
-    postorder(prog, rewrite_struct_access_util)
+    postorder(program, rewrite_ops_util)
 
 
-def rewrite_set_agg(prog: PROGRAM) -> None:
+def boolean_normal_form(program: Program) -> None:
+    """
+    Converts program formulas to boolean normal form. An MLTL formula in boolean normal form has only negation, conjunction, and until operators.
+    
+    Preconditions:
+        - program is type checked
+
+    Postconditions:
+        - program formulas are in boolean normal form
+    """
+    
+    if not program.is_type_correct:
+        logger.error(f' program must be type checked before converting to boolean normal form.')
+        return
+
+    # TODO check if not in nnf
+    
+    def boolean_normal_form_util(a: AST) -> None:
+
+        if isinstance(a, LogicalOr):
+            # p || q = !(!p && !q)
+            a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in a.get_children()])))
+        elif isinstance(a, LogicalImplies):
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
+            # p -> q = !(p && !q)
+            a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
+        elif isinstance(a, LogicalXor):
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
+            # p xor q = !(!p && !q) && !(p && q)
+            a.replace(LogicalAnd(a.ln, [LogicalNegate(a.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), \
+                LogicalNegate(rhs.ln, rhs)])), LogicalNegate(lhs.ln, LogicalAnd(lhs.ln, [lhs, rhs]))]))
+        elif isinstance(a, Future):
+            operand: AST = a.get_operand()
+            bounds: Interval = a.interval
+            # F p = True U p
+            a.replace(Until(a.ln, Bool(operand.ln, True), operand, bounds.lb, bounds.ub))
+        elif isinstance(a, Global):
+            operand: AST = a.get_operand()
+            bounds: Interval = a.interval
+            # G p = !(True U !p)
+            a.replace(LogicalNegate(a.ln, Until(a.ln, Bool(operand.ln, True), LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub)))
+        elif isinstance(a, Release):
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
+            bounds: Interval = a.interval
+            # p R q = !(!p U !q)
+            a.replace(LogicalNegate(a.ln, Until(a.ln, LogicalNegate(lhs.ln, lhs), \
+                                                      LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
+
+        for child in a.get_children():
+            boolean_normal_form_util(child)
+
+    boolean_normal_form_util(program)
+    program.is_boolean_normal_form = True
+
+
+def negative_normal_form(program: Program) -> None:
+    """
+    Converts program to negative normal form. An MLTL formula in negative normal form has all MLTL operators, but negations are only applied to literals.
+    
+    Preconditions:
+        - program is type checked
+
+    Postconditions:
+        - program formulas are in negative normal form
+    """
+    
+    if not program.is_type_correct:
+        logger.error(f' program must be type checked before converting to negative normal form.')
+        return
+
+    # TODO check if not in bnf
+
+    def negative_normal_form_util(a: AST) -> None:
+
+        if isinstance(a, LogicalNegate):
+            operand = a.get_operand()
+            if isinstance(operand, LogicalNegate):
+                # !!p = p
+                a.replace(operand.get_operand())
+            if isinstance(operand, LogicalOr):
+                # !(p || q) = !p && !q
+                a.replace(LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
+            if isinstance(operand, LogicalAnd):
+                # !(p && q) = !p || !q
+                a.replace(LogicalOr(a.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
+            elif isinstance(operand, Future):
+                bounds: Interval = operand.interval
+                # !F p = G !p
+                a.replace(Global(a.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
+            elif isinstance(operand, Global):
+                bounds: Interval = operand.interval
+                # !G p = F !p
+                a.replace(Future(a.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
+            elif isinstance(operand, Until):
+                lhs: AST = operand.get_lhs()
+                rhs: AST = operand.get_rhs()
+                bounds: Interval = operand.interval
+                # !(p U q) = !p R !q 
+                a.replace(Release(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
+            elif isinstance(operand, Release):
+                lhs: AST = operand.get_lhs()
+                rhs: AST = operand.get_rhs()
+                bounds: Interval = operand.interval
+                # !(p R q) = !p U !q
+                a.replace(Until(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
+        elif isinstance(a, LogicalImplies):
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
+            # p -> q = !p || q
+            a.replace(LogicalOr(a.ln, [LogicalNegate(lhs.ln, lhs), rhs]))
+        elif isinstance(a, LogicalXor):
+            lhs: AST = a.get_lhs()
+            rhs: AST = a.get_rhs()
+            # p xor q = (p && !q) || (!p && q)
+            a.replace(LogicalOr(a.ln, [LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)]),\
+                                       LogicalAnd(a.ln, [LogicalNegate(lhs.ln, lhs), rhs])]))
+
+        for child in a.get_children():
+            negative_normal_form_util(child)
+
+    negative_normal_form_util(program)
+    program.is_negative_normal_form = True
+
+
+def rewrite_set_agg(program: Program) -> None:
+    """
+    Rewrites set aggregation operators into corresponding BZ and TL operations e.g., foreach is rewritten into a conjunction.
+
+    Preconditions:
+        - program is type correct
+
+    Postconditions:
+        - program has no struct access operations
+    """
 
     # could be done far more efficiently...currently traverses each set agg
     # expression sub tree searching for struct accesses. better approach: keep
     # track of these accesses on the frontend
     def rewrite_struct_access_util(a: AST) -> None:
-        for c in a.children:
+        for c in a.get_children():
             rewrite_struct_access_util(c)
 
-        if isinstance(a,STRUCT_ACCESS) and not isinstance(a.get_struct(),VAR):
-            s: STRUCT = a.get_struct()
-            rewrite(a,s.members[a.member])
+        if isinstance(a,StructAccess) and not isinstance(a.get_struct(),Variable):
+            s: Struct = a.get_struct()
+            a.replace(s.members[a.member])
     
     def rewrite_set_agg_util(a: AST) -> None:
         cur: AST = a
 
-        if isinstance(a, FOR_EACH):
-            cur = LOG_AND(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
-            rewrite(a, cur)
+        if isinstance(a, ForEach):
+            cur = LogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
+            a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, FOR_SOME):
-            cur = LOG_OR(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children])
-            rewrite(a, cur)
+        elif isinstance(a, ForSome):
+            cur = LogicalOr(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
+            a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, FOR_EXACTLY_N):
-            s: SET = a.get_set()
-            cur = REL_EQ(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-            rewrite(a, cur)
+        elif isinstance(a, ForExactlyN):
+            s: Set = a.get_set()
+            cur = Equal(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, FOR_AT_LEAST_N):
-            s: SET = a.get_set()
-            cur = REL_GTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-            rewrite(a, cur)
+        elif isinstance(a, ForAtLeastN):
+            s: Set = a.get_set()
+            cur = GreaterThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, FOR_AT_MOST_N):
-            s: SET = a.get_set()
-            cur = REL_LTE(a.ln, COUNT(a.ln, INT(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().children]), INT(a.ln, a.num))
-            rewrite(a, cur)
+        elif isinstance(a, ForAtMostN):
+            s: Set = a.get_set()
+            cur = LessThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            a.replace(cur)
             rewrite_struct_access_util(cur)
 
-        for c in cur.children:
+        for c in cur.get_children():
             rewrite_set_agg_util(c)
 
-    rewrite_set_agg_util(prog)
+    rewrite_set_agg_util(program)
+    program.is_set_agg_free = True
 
 
-def optimize_cse(prog: PROGRAM) -> None:
+def rewrite_struct_access(program: Program) -> None:
+    """
+    Rewrites struct access operations to the references member expression.
+
+    Preconditions:
+        - program is type correct
+        - program has no set aggregation operators
+
+    Postconditions:
+        - program has no struct access operations
+    """
+    
+    if not program.is_type_correct:
+        logger.error(f' program must be type checked before rewriting struct accesses.')
+        return
+    if not program.is_set_agg_free:
+        logger.error(f' program must be free of set aggregation operators before rewriting struct accesses.')
+        return
+
+    def rewrite_struct_access_util(a: AST) -> None:
+        if isinstance(a, StructAccess):
+            s: Struct = a.get_struct()
+            a.replace(s.members[a.member])
+
+    postorder(program, rewrite_struct_access_util)
+    program.is_struct_access_free = True
+
+
+def common_subexpression_eliminate(program: Program) -> None:
+    """
+    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence.
+
+    Preconditions:
+        - program is type correct
+
+    Postconditions:
+        - program has no distinct, syntactically equivalent sub-expressions (i.e., is CSE reduced)
+    """
+    
+    if not program.is_type_correct:
+        logger.error(f' program must be type checked before rewriting struct accesses.')
+        return
+
     S: dict[str,AST] = {}
     
-    def optimize_cse_util(a: AST) -> None:
+    def common_subexpression_eliminate_util(a: AST) -> None:
         nonlocal S
         c: int
         i: str
 
-        for c in range(0,len(a.children)):
-            child = a.children[c]
-            i = str(child)
+        for c in range(0,a.num_children()):
+            i = str(a.get_children()[c])
 
             if i in list(S):
-                a.children[c] = S[i]
+                a.get_child(c).replace(S[i])
             else:
-                S[i] = a.children[c]
+                S[i] = a.get_children()[c]
             
-    postorder(prog,optimize_cse_util)
+    postorder(program, common_subexpression_eliminate_util)
+    program.is_cse_reduced = True
 
 
-def gen_alias(prog: PROGRAM) -> str:
+def gen_alias(program: Program) -> str:
     s: str = ''
 
-    for num,spec in prog.specs.items():
-        if spec.name in [c.name for c in prog.contracts.values()]: 
+    for num,spec in program.specs.items():
+        if spec.name in [c.name for c in program.contracts.values()]: 
             # then formula is part of contract, ignore
             continue
         s += 'F ' + spec.name + ' ' + str(num) + '\n'
 
-    for num,contract in prog.contracts.items():
+    for num,contract in program.contracts.items():
         s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
             str(num+1) + ' ' + str(num+2) + '\n'
 
     return s
 
 
-def compute_scq_size(prog: PROGRAM) -> None:
+def compute_scq_size(program: Program) -> None:
+    visited: list[AST] = []
 
     def compute_scq_size_util(a: AST) -> None:
-        if not isinstance(a, TL_EXPR) or isinstance(a, PROGRAM):
+        if not isinstance(a, TLExpr) or isinstance(a, Program):
             return
 
-        if isinstance(a, SPEC):
+        if a in visited:
+            return
+        visited.append(a)
+
+        if isinstance(a, Specification):
             a.scq_size = 1
             return
 
         siblings: list[AST] = []
-        for p in a.parents:
-            for s in p.children:
+        for p in a.get_parents():
+            for s in p.get_children():
                 if not s == a:
                     siblings.append(s)
 
-        wpd: int = max([s.wpd for s in siblings]+[0])
+        wpd: int = max([s.wpd for s in siblings]+[1])
 
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
 
-    postorder(prog,compute_scq_size_util)
-
-
-def total_scq_size(prog: PROGRAM) -> int:
-    mem: int = 0
-
-    def total_scq_size_util(a: AST) -> None:
-        nonlocal mem
-        mem += a.scq_size
-
-    postorder(prog,total_scq_size_util)
-    return mem
+    postorder(program,compute_scq_size_util)
 
 
 def parse_signals(filename: str) -> dict[str,int]:
@@ -340,7 +554,7 @@ def parse_signals(filename: str) -> dict[str,int]:
     return mapping
     
 
-def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
+def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
     tlid: int = 0
     bzid: int = 0
     atid: int = 0
@@ -351,112 +565,97 @@ def assign_ids(prog: PROGRAM, signal_mapping: dict[str,int]) -> None:
         nonlocal bzid
         nonlocal atid
 
-        if isinstance(a,BOOL) or a.tlid > -1 or a.bzid > -1:
+        if isinstance(a,Bool) or a.tlid > -1 or a.bzid > -1:
             return
 
-        if isinstance(a,TL_EXPR):
+        if isinstance(a,TLExpr):
             a.tlid = tlid
             tlid += 1
 
-        if isinstance(a,BZ_EXPR):
-            for p in a.parents:
-                if isinstance(p,TL_EXPR):
+        if isinstance(a,BZExpr):
+            for p in a.get_parents():
+                if isinstance(p,TLExpr):
                     a.atid = atid
                     atid += 1
                     a.tlid = tlid
                     tlid += 1
                     break
 
-        if isinstance(a,SIGNAL):
+        if isinstance(a,Signal):
             if not a.name in signal_mapping.keys():
                 logger.error(f'{a.ln}: Signal \'{a}\' not referenced in signal mapping')
             else:
                 a.sid = signal_mapping[a.name]
 
-    postorder(prog,assign_ids_util)
+    postorder(program,assign_ids_util)
 
 
-def generate_assembly(prog: PROGRAM, signal_mapping: dict[str,int]) -> list[AST]:
-    visited: list[AST] = []
+def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[AST]:
+    visited: set[AST] = set()
+    available_registers: set[int] = set()
+    max_register: int = 0
     asm: list[AST] = []
 
-    # print(prog)
+    logger.info(program)
 
     def generate_assembly_util(a: AST) -> None:
         nonlocal visited
+        nonlocal available_registers
+        nonlocal max_register
         nonlocal asm
 
-        if a in visited:
-            return
+        # Visit each TL node exactly once
+        # Visit BZ literals as many times as necessary
+        # Visit all other BZ nodes once, store and load using registers
 
-        # For signals: if has BZ parent, push onto stack
-        # if has TL parent, load directly from signal memory
-        if isinstance(a,SIGNAL):
-            has_bz_parent: bool = False
-            has_tl_parent: bool = False
-            
-            for p in a.parents:
-                if isinstance(p,BZ_EXPR):
-                    has_bz_parent = True
-                if isinstance(p,TL_EXPR):
-                    has_tl_parent = True
+        # TODO add pass to assign register ids
 
-            if has_bz_parent:
-                pass
+        if isinstance(a,TLExpr):
+            for c in a.get_children():
+                if isinstance(c,Signal) and not c in visited:
+                    asm.append(TLSignalLoad(c.ln, c))
+                    visited.add(c)
+                elif not c in visited:
+                    generate_assembly_util(c)
 
-            if has_tl_parent:
-                pass
-
-            return
-
-        if isinstance(a,TL_EXPR):
             asm.append(a)
-            visited.append(a)
+            visited.add(a)
 
-        if isinstance(a,BZ_EXPR):
-            asm.append(a)
-            visited.append(a)
-
-            num_bz_parents: int = 0
-            has_tl_parent: bool = False
-            for p in a.parents:
-                if isinstance(p,BZ_EXPR):
-                    num_bz_parents += 1
-                if isinstance(p,TL_EXPR):
-                    has_tl_parent = True
-
-            if has_tl_parent and num_bz_parents == 0:
-                asm.append(STORE(a.ln,a))
-            elif has_tl_parent and num_bz_parents > 0:
-                asm.append(STORE(a.ln,a))
-                asm.append(DUP(a.ln,a))
+        elif isinstance(a,BZExpr):
+            for c in a.get_children():
+                if isinstance(c,Signal):
+                    asm.append(BZSignalLoad(c.ln, c))
+                else:
+                    generate_assembly_util(c)
             
-            for n in range(0,num_bz_parents-1):
-                asm.append(DUP(a.ln,a))
+            asm.append(a)
 
-            if a.atid > -1:
-                asm.append(TL_LOAD(a.ln,a))
-                visited.append(a)
+            if not a in visited and a.num_tl_parents > 0:
+                asm.append(BZAtomicStore(a.ln, a))
+                asm.append(TLAtomicLoad(a.ln, a))
 
-    assign_ids(prog,signal_mapping)
+            visited.add(a)
+        else:
+            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+
+    assign_ids(program,signal_mapping)
     
-    postorder(prog,generate_assembly_util)
-
+    generate_assembly_util(program)
+    
     return asm
 
 
-def generate_scq_assembly(prog: PROGRAM) -> list[tuple[int,int]]:
+def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     ret: list[tuple[int,int]] = []
     pos: int = 0
 
-    compute_scq_size(prog)
-    # print(total_scq_size(prog))
+    compute_scq_size(program)
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal ret
         nonlocal pos
 
-        if isinstance(a,PROGRAM) or isinstance(a,BZ_EXPR):
+        if isinstance(a,Program) or not isinstance(a,TLExpr):
             return
 
         start_pos = pos
@@ -464,80 +663,66 @@ def generate_scq_assembly(prog: PROGRAM) -> list[tuple[int,int]]:
         pos = end_pos
         ret.append((start_pos,end_pos))
 
-    postorder(prog,gen_scq_assembly_util)
+    postorder(program,gen_scq_assembly_util)
     return ret
 
 
-def parse(input: str) -> list[PROGRAM]:
+def validate_bz_stack(asm: list[AST]) -> bool:
+    return True
+
+
+def parse(input: str) -> list[Program]:
     lexer: C2POLexer = C2POLexer(InputStream(input))
     stream: CommonTokenStream = CommonTokenStream(lexer)
     parser: C2POParser = C2POParser(stream)
     parse_tree = parser.start()
     # print(parse_tree.toStringTree(recog=parser))
     v: Visitor = Visitor()
-    progs: list[PROGRAM] = v.visitStart(parse_tree) # type: ignore
+    programs: list[Program] = v.visitStart(parse_tree) # type: ignore
     if v.status:
-        return progs
+        return programs
     else:
         return []
 
 
 def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
-    # parse input, progs is a list of configurations (each SPEC block is a configuration)
-    progs: list[PROGRAM] = parse(input)
+    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+    programs: list[Program] = parse(input)
 
-    if len(progs) < 1:
+    if len(programs) < 1:
         logger.error(' Failed parsing.')
         return
 
     # type check
-    if not type_check(progs[0],bz,progs[0].structs):
+    if not type_check(programs[0],bz,programs[0].structs):
         logger.error(' Failed type check')
         return
 
-    rewrite_set_agg(progs[0])
-    rewrite_struct_access(progs[0])
+    rewrite_set_agg(programs[0])
+    rewrite_struct_access(programs[0])
 
     # rewrite without extended operators if enabled
     if not extops:
-        rewrite_ops(progs[0])
+        rewrite_extended_operators(programs[0])
 
     # common sub-expressions elimination
-    optimize_cse(progs[0])
+    common_subexpression_eliminate(programs[0])
 
     # generate alias file
-    alias = gen_alias(progs[0])
+    alias = gen_alias(programs[0])
 
     # parse csv/signals file
     signal_mapping: dict[str,int] = parse_signals(sigs)
 
     # generate assembly
-    asm: list[AST] = generate_assembly(progs[0],signal_mapping)
-    scq_asm: list[tuple[int,int]] = generate_scq_assembly(progs[0])
+    asm: list[AST] = generate_assembly(programs[0],signal_mapping)
+    scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
 
     # print asm if 'quiet' option not enabled
     if not quiet:
-        logger.info(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
+        print(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
         for a in asm:
             print('\t'+a.asm())
-        logger.info(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
+        print(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
         for s in scq_asm:
             print('\t'+str(s))
-
-    # write assembly and assemble all files into binaries
-    # with open(output_path+'alias.txt','w') as f:
-    #     f.write(alias)
-
-    # with open(output_path+'r2u2.asm','w') as f:
-    #     f.write(asm)
-
-    # with open(output_path+'ftscq.asm','w') as f:
-    #     f.write(ftscqasm)
-
-    # assemble(output_path+'r2u2.bin', bzasm, ftasm, ptasm, ftscqasm)
-
-
-
-    
-
-    

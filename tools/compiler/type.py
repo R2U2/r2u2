@@ -32,91 +32,91 @@ class Type():
         return self.name
 
 
-class NoType(Type):
+class NOTYPE(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.NOTYPE,'none')
 
 
-class Bool(Type):
+class BOOL(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.BOOL,'bool')
 
 
-class Int8(Type):
+class INT8(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.INT8,'int8')
 
 
-class Int16(Type):
+class INT16(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.INT16,'int16')
 
 
-class Int32(Type):
+class INT32(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.INT32,'int32')
 
 
-class Int64(Type):
+class INT64(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.INT64,'int64')
 
 
-class UInt8(Type):
+class UINT8(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.UINT8,'uint8')
 
 
-class UInt16(Type):
+class UINT16(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.UINT16,'uint16')
 
 
-class UInt32(Type):
+class UINT32(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.UINT32,'uint32')
 
 
-class UInt64(Type):
+class UINT64(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.UINT64,'uint64')
 
 
-class Float(Type):
+class FLOAT(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.FLOAT,'float')
 
 
-class Double(Type):
+class DOUBLE(Type):
 
     def __init__(self) -> None:
         super().__init__(BaseType.DOUBLE,'double')
 
 
-class Struct(Type):
+class STRUCT(Type):
 
     def __init__(self, n: str) -> None:
         super().__init__(BaseType.STRUCT,n)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
-        if isinstance(arg,Struct):
+        if isinstance(arg,STRUCT):
             return self.name == arg.name
         return False 
 
 
-class Set(Type):
+class SET(Type):
 
     def __init__(self, m: Type) -> None:
         super().__init__(BaseType.SET,'set<'+str(m)+'>')
@@ -124,19 +124,19 @@ class Set(Type):
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
-            if isinstance(arg,Set):
+            if isinstance(arg,SET):
                 return self.member_type.__eq__(arg.member_type)
         return False
 
 
 def is_integer_type(t: Type) -> bool:
-    return isinstance(t,Int8) or isinstance(t,Int16) or isinstance(t,Int32) or isinstance(t,Int64) or \
-        isinstance(t,UInt8) or isinstance(t,UInt16) or isinstance(t,UInt32) or isinstance(t,UInt64) or \
-            isinstance(t,Bool)
+    return isinstance(t,INT8) or isinstance(t,INT16) or isinstance(t,INT32) or isinstance(t,INT64) or \
+        isinstance(t,UINT8) or isinstance(t,UINT16) or isinstance(t,UINT32) or isinstance(t,UINT64) or \
+            isinstance(t,BOOL)
 
 
 def is_float_type(t: Type) -> bool:
-    return isinstance(t,Float) or isinstance(t,Double)
+    return isinstance(t,FLOAT) or isinstance(t,DOUBLE)
 
 
 class FormulaType(Enum):
