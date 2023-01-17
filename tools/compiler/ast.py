@@ -1,9 +1,7 @@
 from __future__ import annotations
-from copy import copy, deepcopy
+from copy import deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
-from typing_extensions import Self
-from webbrowser import Opera
 
 from .util import *
 from .type import *

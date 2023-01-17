@@ -457,7 +457,7 @@ def rewrite_struct_access(program: Program) -> None:
     program.is_struct_access_free = True
 
 
-def common_subexpression_eliminate(program: Program) -> None:
+def optimize_cse(program: Program) -> None:
     """
     Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence.
 
@@ -531,7 +531,7 @@ def compute_scq_size(program: Program) -> None:
         wpd: int = max([s.wpd for s in siblings]+[1])
 
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
-
+ 
     postorder(program,compute_scq_size_util)
 
 
@@ -706,10 +706,10 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
         rewrite_extended_operators(programs[0])
 
     # common sub-expressions elimination
-    common_subexpression_eliminate(programs[0])
+    optimize_cse(programs[0])
 
     # generate alias file
-    alias = gen_alias(programs[0])
+    # alias = gen_alias(programs[0])
 
     # parse csv/signals file
     signal_mapping: dict[str,int] = parse_signals(sigs)
