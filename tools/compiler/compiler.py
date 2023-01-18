@@ -68,7 +68,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             type_check_util(rhs)
 
             if isinstance(a,Equal) or isinstance(a,NotEqual):
-                if not is_integer_type(lhs.type) or is_integer_type(rhs.type):
+                if not is_integer_type(lhs.type) or not is_integer_type(rhs.type):
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
@@ -151,7 +151,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             else:
                 status = False
                 logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
-        elif isinstance(a,SetAggOp):
+        elif isinstance(a,SetAggOperator):
             s: Set = a.get_set()
             boundvar: Variable = a.get_boundvar()
 
@@ -162,6 +162,13 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             else:
                 status = False
                 logger.error(f'{a.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
+
+            if isinstance(a, ForExactlyN) or isinstance(a, ForAtLeastN) or isinstance(a, ForAtMostN):
+                n: AST = a.num
+                type_check_util(n)
+                if not is_integer_type(n.type):
+                    status = False
+                    logger.error(f'{a.ln}: Parameter for set aggregation must be integer type (found \'{n.type}\')')
 
             expr: AST = a.get_expr()
             type_check_util(expr)
@@ -408,17 +415,17 @@ def rewrite_set_agg(program: Program) -> None:
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForExactlyN):
             s: Set = a.get_set()
-            cur = Equal(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            cur = Equal(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtLeastN):
             s: Set = a.get_set()
-            cur = GreaterThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            cur = GreaterThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtMostN):
             s: Set = a.get_set()
-            cur = LessThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), Integer(a.ln, a.num))
+            cur = LessThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
 
@@ -706,7 +713,7 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
         rewrite_extended_operators(programs[0])
 
     # common sub-expressions elimination
-    optimize_cse(programs[0])
+    # optimize_cse(programs[0])
 
     # generate alias file
     # alias = gen_alias(programs[0])

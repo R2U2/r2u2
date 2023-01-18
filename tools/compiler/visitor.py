@@ -440,31 +440,35 @@ class Visitor(C2POVisitor):
 
         S,v = self.visit(ctx.set_agg_binder())
         self.defs[v.name] = v
-        e: AST = self.visit(ctx.expr(0))
+        e1: AST
+        if len(ctx.expr()) == 1:
+            e1 = self.visit(ctx.expr(0))
+        else:
+            e1 = self.visit(ctx.expr(1))
         del self.defs[v.name]
 
         if op == 'foreach':
             if len(ctx.expr()) != 1:
                 self.error(f'{ln}: Extra parameter given for set aggregation expression \'{ctx.getText()}\'')
-            return ForEach(ln,S,v,e)
+            return ForEach(ln,S,v,e1)
         elif op == 'forsome':
-            return ForSome(ln,S,v,e)
+            return ForSome(ln,S,v,e1)
         elif op == 'forexactlyn':
-            if ctx.INT():
-                n: int = int(ctx.INT().getText())
-                return ForExactlyN(ln,S,n,v,e)
+            if len(ctx.expr()) > 1:
+                n: AST = self.visit(ctx.expr(0))
+                return ForExactlyN(ln,S,n,v,e1)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         elif op == 'foratleastn':
-            if ctx.INT():
-                n: int = int(ctx.INT().getText())
-                return ForAtLeastN(ln,S,n,v,e)
+            if len(ctx.expr()) > 1:
+                n: AST = self.visit(ctx.expr(0))
+                return ForAtLeastN(ln,S,n,v,e1)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         elif op == 'foratmostn':
-            if ctx.INT():
-                n: int = int(ctx.INT().getText())
-                return ForAtMostN(ln,S,n,v,e)
+            if len(ctx.expr()) > 1:
+                n: AST = self.visit(ctx.expr(0))
+                return ForAtMostN(ln,S,n,v,e1)
             else:
                 self.error(f'{ln}: No parameter \'n\' for set aggregation expression \'{ctx.getText()}\'')
         else:

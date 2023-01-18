@@ -546,7 +546,7 @@ class Function(Operator):
         self.type: Type = r
 
 
-class SetAggOp(Operator):
+class SetAggOperator(Operator):
 
     def __init__(self, ln: int, s: Set, v: Variable,  e: AST) -> None:
         super().__init__(ln, [s, v, e])
@@ -571,42 +571,66 @@ class SetAggOp(Operator):
             str(self.get_set()) + ')' + '(' + str(self.get_expr()) + ')'
 
 
-class ForEach(SetAggOp):
+class ForEach(SetAggOperator):
 
     def __init__(self, ln: int, s: Set, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foreach'
 
 
-class ForSome(SetAggOp):
+class ForSome(SetAggOperator):
 
     def __init__(self, ln: int, s: Set, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'forsome'
 
 
-class ForExactlyN(SetAggOp):
+class ForExactlyN(SetAggOperator):
 
-    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: AST, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'forexactlyn'
-        self.num: int = n
+        self.num: AST = n
+        self._children.append(self.num)
+
+    def get_num(self) -> AST:
+        return self.num
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        self.copy_attrs(new)
+        return new
 
 
-class ForAtLeastN(SetAggOp):
+class ForAtLeastN(SetAggOperator):
 
-    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: AST, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foratleastn'
-        self.num: int = n
+        self.num: AST = n
+        self._children.append(self.num)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        self.copy_attrs(new)
+        return new
 
 
-class ForAtMostN(SetAggOp):
+class ForAtMostN(SetAggOperator):
 
-    def __init__(self, ln: int, s: Set, n: int, v: Variable, e: AST) -> None:
+    def __init__(self, ln: int, s: Set, n: AST, v: Variable, e: AST) -> None:
         super().__init__(ln, s, v, e)
         self.name: str = 'foratmostn'
-        self.num: int = n
+        self.num: AST = n
+        self._children.append(self.num)
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        self.copy_attrs(new)
+        return new
 
 
 class Count(BZExpr):
