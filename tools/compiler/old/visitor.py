@@ -4,10 +4,10 @@ from logging import getLogger
 
 from antlr4 import TerminalNode
 
-from .parser.C2POVisitor import C2POVisitor
-from .parser.C2POParser import C2POParser
-from .ast import *
-from .util import *
+from .C2POVisitor import C2POVisitor
+from ..parser import C2POParser
+from ..ast import *
+from ..util import *
 
 logger = getLogger(logger_name)
 

@@ -4,10 +4,9 @@ from logging import getLogger
 from antlr4 import CommonTokenStream, InputStream
 
 from .ast import *
-from .parser.C2POLexer import C2POLexer
-from .parser.C2POParser import C2POParser
+from .parser import C2POLexer
+from .parser import C2POParser
 from .util import *
-from .visitor import Visitor
 
 # from .assembler import assemble
 
@@ -679,22 +678,15 @@ def validate_bz_stack(asm: list[AST]) -> bool:
 
 
 def parse(input: str) -> list[Program]:
-    lexer: C2POLexer = C2POLexer(InputStream(input))
-    stream: CommonTokenStream = CommonTokenStream(lexer)
-    parser: C2POParser = C2POParser(stream)
-    parse_tree = parser.start()
-    # print(parse_tree.toStringTree(recog=parser))
-    v: Visitor = Visitor()
-    programs: list[Program] = v.visitStart(parse_tree) # type: ignore
-    if v.status:
-        return programs
-    else:
-        return []
+    lexer: C2POLexer = C2POLexer()
+    parser: C2POParser = C2POParser()
+    return parser.parse(lexer.tokenize(input))
 
 
 def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     programs: list[Program] = parse(input)
+    return
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')

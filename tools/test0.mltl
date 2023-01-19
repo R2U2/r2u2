@@ -3,13 +3,11 @@
 -- This is an SMV-inspired syntax, including 
 -- comments which are preceded by two dashes
 
-VAR
+INPUT
   a,b,c,d,e: bool;
   i,j,k,s,t: int;
   x,y,z: float;
   
-  Order: a,b,k,s,t,j,_,_,_,_,e,c,x,y,z;
-
 DEFINE
   d = a && b;
   i = j + k;
