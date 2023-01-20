@@ -333,9 +333,9 @@ class C2POParser(Parser):
         ln = p.lineno
         operator = p[0]
         variable_name = p[2]
-        mset = p[4]
-        param = p[6]
-        expr = p[9]
+        mset = p[5]
+        param = p[7]
+        expr = p[10]
 
         boundvar = Variable(ln, variable_name)
         del self.defs[variable_name]
