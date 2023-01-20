@@ -706,6 +706,38 @@ class BitwiseXor(BitwiseOperator, BinaryOperator):
         return super().asm() + 'xor'
 
 
+class BitwiseShiftLeft(BitwiseOperator, BinaryOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '<<'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseShiftLeft(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + 'lshift'
+
+
+class BitwiseShiftRight(BitwiseOperator, BinaryOperator):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = '>>'
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = BitwiseShiftRight(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return super().asm() + 'rshift'
+
+
 class BitwiseNegate(BitwiseOperator, UnaryOperator):
 
     def __init__(self, ln: int, o: AST) -> None:
@@ -927,7 +959,6 @@ class LogicalOr(LogicalOperator):
 class LogicalAnd(LogicalOperator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
-        assert len(c) > 1
         super().__init__(ln, c)
         self.name: str = '&&'
 
@@ -1212,8 +1243,8 @@ class Specification(TLExpr):
 
 class Program(TLExpr):
 
-    def __init__(self, ln: int, st: StructDict, s: dict[int, Specification], c: dict[int, Specification]) -> None:
-        super().__init__(ln, list(s.values()))
+    def __init__(self, ln: int, st: StructDict, s: list[Specification], c: dict[int, Specification]) -> None:
+        super().__init__(ln, [cast(AST,spec) for spec in s])
         self.structs = st
         self.specs = s
         self.contracts = c
@@ -1228,7 +1259,7 @@ class Program(TLExpr):
         ret: str = ''
         s: AST
         for s in self.get_children():
-            ret += str(s) + ''
+            ret += str(s) + '\n'
         return ret[:-1]
 
     def asm(self) -> str:

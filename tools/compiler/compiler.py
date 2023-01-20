@@ -500,11 +500,11 @@ def optimize_cse(program: Program) -> None:
 def gen_alias(program: Program) -> str:
     s: str = ''
 
-    for num,spec in program.specs.items():
+    for spec in program.specs:
         if spec.name in [c.name for c in program.contracts.values()]: 
             # then formula is part of contract, ignore
             continue
-        s += 'F ' + spec.name + ' ' + str(num) + '\n'
+        s += 'F ' + spec.name + ' ' + str(spec.formula_number) + '\n'
 
     for num,contract in program.contracts.items():
         s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
@@ -602,7 +602,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
     max_register: int = 0
     asm: list[AST] = []
 
-    logger.info(program)
+    # logger.info(program)
 
     def generate_assembly_util(a: AST) -> None:
         nonlocal visited
@@ -686,7 +686,6 @@ def parse(input: str) -> list[Program]:
 def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     programs: list[Program] = parse(input)
-    return
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')
@@ -705,7 +704,7 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
         rewrite_extended_operators(programs[0])
 
     # common sub-expressions elimination
-    # optimize_cse(programs[0])
+    optimize_cse(programs[0])
 
     # generate alias file
     # alias = gen_alias(programs[0])
