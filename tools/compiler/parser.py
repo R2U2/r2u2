@@ -1,9 +1,5 @@
 #type: ignore
 from logging import getLogger
-from re import L
-from typing import KeysView
-
-from numpy import var
 
 from .sly import Lexer, Parser
 from .ast import *

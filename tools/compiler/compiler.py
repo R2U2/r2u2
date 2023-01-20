@@ -1,8 +1,6 @@
 import re
 from logging import getLogger
 
-from antlr4 import CommonTokenStream, InputStream
-
 from .ast import *
 from .parser import C2POLexer
 from .parser import C2POParser
