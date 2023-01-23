@@ -1,42 +1,42 @@
 STRUCT
     Test1: { m1,m2: bool; };
-    Test2: { M: set<bool> };
+    Test2: { M: set<Test1>; };
 
 INPUT
     b0,b1,b2,b3,b4,b5,b6,b7: bool;
 
 DEFINE
-    S = {Test2({Test1(b0,b1),Test1(b2,b3)}),
+    X = {Test2({Test1(b0,b1),Test1(b2,b3)}),
          Test2({Test1(b4,b5),Test1(b6,b7)})};
     n = 1;
 
 SPEC
-    foreach(s:S)(foreach(t:s.M)(t.m1 && t.m2));
-    forsome(s:S)(foreach(t:s.M)(t.m1 && t.m2));
-    forexactlyn(s:S,n)(foreach(t:s.M)(t.m1 && t.m2));
-    foratleastn(s:S,n)(foreach(t:s.M)(t.m1 && t.m2));
-    foratmostn(s:S,n)(foreach(t:s.M)(t.m1 && t.m2));
+    foreach(s:X)(foreach(t:s.M)(t.m1 && t.m2));
+    forsome(s:X)(foreach(t:s.M)(t.m1 && t.m2));
+    forexactlyn(s:X,n)(foreach(t:s.M)(t.m1 && t.m2));
+    foratleastn(s:X,n)(foreach(t:s.M)(t.m1 && t.m2));
+    foratmostn(s:X,n)(foreach(t:s.M)(t.m1 && t.m2));
 
-    foreach(s:S)(forsome(t:s.M)(t.m1 && t.m2));
-    forsome(s:S)(forsome(t:s.M)(t.m1 && t.m2));
-    forexactlyn(s:S,n)(forsome(t:s.M)(t.m1 && t.m2));
-    foratleastn(s:S,n)(forsome(t:s.M)(t.m1 && t.m2));
-    foratmostn(s:S,n)(forsome(t:s.M)(t.m1 && t.m2));
+    foreach(s:X)(forsome(t:s.M)(t.m1 && t.m2));
+    forsome(s:X)(forsome(t:s.M)(t.m1 && t.m2));
+    forexactlyn(s:X,n)(forsome(t:s.M)(t.m1 && t.m2));
+    foratleastn(s:X,n)(forsome(t:s.M)(t.m1 && t.m2));
+    foratmostn(s:X,n)(forsome(t:s.M)(t.m1 && t.m2));
 
-    foreach(s:S)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
-    forsome(s:S)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
-    forexactlyn(s:S,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
-    foratleastn(s:S,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
-    foratmostn(s:S,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
+    foreach(s:X)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
+    forsome(s:X)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
+    forexactlyn(s:X,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
+    foratleastn(s:X,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
+    foratmostn(s:X,n)(forexactlyn(t:s.M,n)(t.m1 && t.m2));
 
-    foreach(s:S)(foratleastn(t:s.M,n)(t.m1 && t.m2));
-    forsome(s:S)(foratleastn(t:s.M,n)(t.m1 && t.m2));
-    forexactlyn(s:S,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
-    foratleastn(s:S,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
-    foratmostn(s:S,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
+    foreach(s:X)(foratleastn(t:s.M,n)(t.m1 && t.m2));
+    forsome(s:X)(foratleastn(t:s.M,n)(t.m1 && t.m2));
+    forexactlyn(s:X,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
+    foratleastn(s:X,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
+    foratmostn(s:X,n)(foratleastn(t:s.M,n)(t.m1 && t.m2));
 
-    foreach(s:S)(foratmostn(t:s.M,n)(t.m1 && t.m2));
-    forsome(s:S)(foratmostn(t:s.M,n)(t.m1 && t.m2));
-    forexactlyn(s:S,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));
-    foratleastn(s:S,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));
-    foratmostn(s:S,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));
+    foreach(s:X)(foratmostn(t:s.M,n)(t.m1 && t.m2));
+    forsome(s:X)(foratmostn(t:s.M,n)(t.m1 && t.m2));
+    forexactlyn(s:X,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));
+    foratleastn(s:X,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));
+    foratmostn(s:X,n)(foratmostn(t:s.M,n)(t.m1 && t.m2));

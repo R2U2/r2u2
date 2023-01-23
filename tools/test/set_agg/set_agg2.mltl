@@ -2,12 +2,12 @@ INPUT
     b0,b1,b2,b3: bool;
 
 DEFINE
-    S = {b0,b1,b2,b3};
+    X = {b0,b1,b2,b3};
     n = 1;
 
 SPEC
-    foreach(b:S)(b);
-    forsome(b:S)(b);
-    forexactlyn(b:S,n)(b);
-    foratleastn(b:S,n)(b);
-    foratmostn(b:S,n)(b);
+    foreach(b:X)(b);
+    forsome(b:X)(b);
+    forexactlyn(b:X,n)(b);
+    foratleastn(b:X,n)(b);
+    foratmostn(b:X,n)(b);

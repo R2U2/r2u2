@@ -178,12 +178,15 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             explored.remove(boundvar)
             a.type = BOOL()
         elif isinstance(a,Struct):
-            for c in a.get_children(): 
-                type_check_util(c)
+            for name,member in a.get_members().items():
+                type_check_util(member)
+                if st[a.name][name] != member.type:
+                    logger.error(f'{a.ln}: Member \'{name}\' invalid type for struct \'{a.name}\' (expected \'{st[a.name][name]}\' but got \'{member.type}\')')
+
             a.type = STRUCT(a.name)
         elif isinstance(a,StructAccess):
             type_check_util(a.get_struct())
-            
+
             st_name = a.get_struct().type.name
             if st_name in st.keys() and a.member in st[st_name].keys():
                 a.type = st[st_name][a.member]
@@ -447,10 +450,10 @@ def rewrite_struct_access(program: Program) -> None:
     """
     
     if not program.is_type_correct:
-        logger.error(f' program must be type checked before rewriting struct accesses.')
+        logger.error(f' Program must be type checked before rewriting struct accesses.')
         return
     if not program.is_set_agg_free:
-        logger.error(f' program must be free of set aggregation operators before rewriting struct accesses.')
+        logger.error(f' Program must be free of set aggregation operators before rewriting struct accesses.')
         return
 
     def rewrite_struct_access_util(a: AST) -> None:

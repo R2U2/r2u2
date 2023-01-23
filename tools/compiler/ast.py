@@ -313,12 +313,14 @@ class Struct(AST):
         self.name: str = n
         self.members: dict[str, AST] = m
 
-    # def __deepcopy__(self, memo):
-    #     new = deepcopy(self)
-    #     new.members = {}
-    #     for k,v in self.members:
-    #         new.members[k] = deepcopy(v)
-    #     return super().__deepcopy__(memo)
+    def get_members(self) -> dict[str, AST]:
+        return self.members
+
+    def __deepcopy__(self, memo):
+        members = deepcopy(self.members, memo)
+        new = Struct(self.ln, self.name, members)
+        self.copy_attrs(new)
+        return new
 
     def __str__(self) -> str:
         s: str = ''
