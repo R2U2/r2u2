@@ -386,6 +386,7 @@ def rewrite_set_agg(program: Program) -> None:
 
     Postconditions:
         - program has no struct access operations
+        - program has no variables
     """
 
     # could be done far more efficiently...currently traverses each set agg
@@ -473,25 +474,25 @@ def optimize_cse(program: Program) -> None:
     """
     
     if not program.is_type_correct:
-        logger.error(f' program must be type checked before rewriting struct accesses.')
+        logger.error(f' Program must be type checked before CSE.')
         return
 
     S: dict[str,AST] = {}
     
-    def common_subexpression_eliminate_util(a: AST) -> None:
+    def optimize_cse_util(a: AST) -> None:
         nonlocal S
         c: int
         i: str
 
         for c in range(0,a.num_children()):
-            i = str(a.get_children()[c])
+            i = str(a.get_child(c))
 
-            if i in list(S):
+            if i in S.keys():
                 a.get_child(c).replace(S[i])
             else:
-                S[i] = a.get_children()[c]
+                S[i] = a.get_child(c)
             
-    postorder(program, common_subexpression_eliminate_util)
+    postorder(program, optimize_cse_util)
     program.is_cse_reduced = True
 
 
@@ -590,7 +591,13 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
                 logger.error(f'{a.ln}: Signal \'{a}\' not referenced in signal mapping')
             else:
                 a.sid = signal_mapping[a.name]
-
+            
+            for p in a.get_parents():
+                if isinstance(p,TLExpr):
+                    a.tlid = tlid
+                    tlid += 1
+                    break
+                    
     postorder(program,assign_ids_util)
 
 
@@ -611,8 +618,6 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
         # Visit each TL node exactly once
         # Visit BZ literals as many times as necessary
         # Visit all other BZ nodes once, store and load using registers
-
-        # TODO add pass to assign register ids
 
         if isinstance(a,TLExpr):
             for c in a.get_children():

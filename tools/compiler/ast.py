@@ -39,8 +39,11 @@ def traverse(a: AST, pre: Callable[[AST], Any], post: Callable[[AST], Any]) -> N
 
 
 def rename(v: AST, repl: AST, expr: AST) -> AST:
+    # Special case: when expr is v
+    if expr == v:
+        return repl
+
     new: AST = deepcopy(expr)
-    # repl.parents = [] # replacement ought to be standalone
 
     def rename_util(a: AST) -> None:
         if v == a:
@@ -98,7 +101,11 @@ class AST():
         return self._parents[i]
 
     def replace(self, new: AST) -> None:
-        for p in self._parents:
+        # Special case: if trying to replace this with itself
+        if id(self) == id(new):
+            return
+
+        for p in self.get_parents():
             for i in range(0, len(p._children)):
                 if p._children[i] == self:
                     p._children[i] = new
@@ -272,9 +279,10 @@ class Bool(Constant, BZExpr, TLExpr):
 
 class Set(AST):
 
-    def __init__(self, ln: int, max: int, m: list[AST]) -> None:
+    def __init__(self, ln: int, m: list[AST]) -> None:
         super().__init__(ln, m)
-        self.max_size: int = max
+        m.sort(key=lambda x: str(x))
+        self.max_size: int = len(m)
         self.dynamic_size = None
 
     def get_max_size(self) -> int:
@@ -636,8 +644,10 @@ class ForAtMostN(SetAggOperator):
 class Count(BZExpr):
 
     def __init__(self, ln: int, n: AST, c: list[AST]) -> None:
+        # Note: all members of c must be of type Boolean
         super().__init__(ln, c)
         self.num: AST = n
+        self.type = UINT8() # TODO: set this more precisely
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -647,6 +657,12 @@ class Count(BZExpr):
             new = Count(self.ln, children[0], [])
         self.copy_attrs(new)
         return new
+
+    def __str__(self) -> str:
+        s = 'count('
+        for c in self.get_children():
+            s += str(c) + ','
+        return s[:-1] + ')'
 
     def asm(self) -> str:
         return super().asm() + f'count {self.num}'

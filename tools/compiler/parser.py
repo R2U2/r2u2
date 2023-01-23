@@ -144,12 +144,8 @@ class C2POParser(Parser):
     def block(self, p):
         return []
 
-    @_('KW_STRUCT struct_list_nonempty')
+    @_('KW_STRUCT struct struct_list')
     def struct_block(self, p):
-        pass
-
-    @_('struct_list struct')
-    def struct_list_nonempty(self, p):
         pass
 
     @_('struct_list struct', '')
@@ -165,8 +161,7 @@ class C2POParser(Parser):
 
     @_('KW_INPUT variable_declaration variable_declaration_list')
     def input_block(self, p):
-        p[2].append(p[1])
-        for variables, type in p[2]:
+        for variables, type in [p[1]]+p[2]:
             for v in variables:
                 self.vars[v] = type
 
@@ -181,8 +176,7 @@ class C2POParser(Parser):
 
     @_('SYMBOL symbol_list COLON type SEMI')
     def variable_declaration(self, p):
-        p[1].append(p[0])
-        return (p[1], p[3])
+        return ([p[0]]+p[1], p[3])
 
     @_('symbol_list COMMA SYMBOL')
     def symbol_list(self, p):
@@ -249,12 +243,12 @@ class C2POParser(Parser):
         else:
             self.defs[variable] = expr
 
-    @_('KW_SPEC spec spec_list')
+    @_('KW_SPEC spec_list spec')
     def spec_block(self, p):
         ln = p.lineno
-        p[2] += p[1]
+        p[1] += p[2]
         contract_dict = {}
-        return Program(ln, self.structs, p[2], contract_dict)
+        return Program(ln, self.structs, p[1], contract_dict)
 
     @_('spec_list spec')
     def spec_list(self, p):
@@ -315,13 +309,12 @@ class C2POParser(Parser):
     # Set expression
     @_('LBRACE expr expr_list RBRACE')
     def expr(self, p):
-        p[2].append(p[1])
-        return Set(p.lineno, len(p[2]), p[2])
+        return Set(p.lineno, [p[1]]+p[2])
 
     # Empty set expression
     @_('LBRACE RBRACE')
     def expr(self, p):
-        return Set(ln, 0, [])
+        return Set(ln, [])
 
     # Set aggregation expression with parameter
     @_('SYMBOL LPAREN SYMBOL bind_rule COLON expr COMMA expr RPAREN LPAREN expr RPAREN')
@@ -379,15 +372,14 @@ class C2POParser(Parser):
     @_('SYMBOL LPAREN expr expr_list RPAREN')
     def expr(self, p):
         ln = p.lineno
-        p[3].append(p[2])
-        expr_list = p[3]
+        expr_list = [p[2]]+p[3]
         symbol = p[0]
 
         if symbol in self.structs.keys():
             members: dict[str,AST] = {}
             if len(expr_list) == len(self.structs[symbol]):
                 for s in self.structs[symbol].keys():
-                    members[s] = expr_list.pop()
+                    members[s] = expr_list.pop(0)
                 return Struct(ln,symbol,members)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')

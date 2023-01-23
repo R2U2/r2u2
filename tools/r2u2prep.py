@@ -50,7 +50,7 @@ if os.path.isdir(binary_dir):
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,'r').read()
     if(os.path.isfile(args.sigs)):
-        compile(mltl, args.sigs, args.output_dir, args.booleanizer, False, args.quiet)
+        compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.quiet)
     else:
         print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
 else:
