@@ -24,7 +24,7 @@ class C2POLexer(Lexer):
     ignore_newline = r'\n+'
 
     REL_NEQ = r'!=|≠' # longer tokens must come first
-    FLOAT   = r'-?[1-9]+\.\d+'
+    FLOAT   = r'-?\d*\.\d+'
     INT     = r'-?[1-9][0-9]*|0'
 
     # Propositional logic ops/literals
@@ -566,7 +566,7 @@ class C2POParser(Parser):
     # Float
     @_('FLOAT')
     def expr(self, p):
-        return Float(0, int(p.FLOAT))
+        return Float(0, float(p.FLOAT))
         
     # Shorthand interval
     @_('LBRACK INT RBRACK')
