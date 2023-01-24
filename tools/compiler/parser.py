@@ -464,6 +464,8 @@ class C2POParser(Parser):
             return LogicalAnd(ln, [lhs, rhs])
         elif operator == '|':
             return BitwiseOr(ln, lhs, rhs)
+        elif operator == '^':
+            return BitwiseXor(ln, lhs, rhs)
         elif operator == '&':
             return BitwiseAnd(ln, lhs, rhs)
         elif operator == '==':
