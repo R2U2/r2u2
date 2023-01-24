@@ -624,8 +624,10 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
 
         if isinstance(a,TLExpr):
             for c in a.get_children():
-                if isinstance(c,Signal) and not c in visited:
+                if isinstance(c, Signal) and not c in visited:
                     asm.append(TLSignalLoad(c.ln, c))
+                    visited.add(c)
+                elif isinstance(c, Bool) and not c in visited:
                     visited.add(c)
                 elif not c in visited:
                     generate_assembly_util(c)
@@ -635,7 +637,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
 
         elif isinstance(a,BZExpr):
             for c in a.get_children():
-                if isinstance(c,Signal):
+                if isinstance(c, Signal):
                     asm.append(BZSignalLoad(c.ln, c))
                 else:
                     generate_assembly_util(c)

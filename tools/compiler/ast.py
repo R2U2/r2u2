@@ -100,6 +100,9 @@ class AST():
     def get_parent(self, i: int) -> AST:
         return self._parents[i]
 
+    def tlid_name(self) -> str:
+        return 'n'+str(self.tlid)
+
     def replace(self, new: AST) -> None:
         # Special case: if trying to replace this with itself
         if id(self) == id(new):
@@ -146,9 +149,6 @@ class TLExpr(AST):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
-
-    def get_tlid_name(self) -> str:
-        return 'n'+str(self.tlid)
 
     def asm(self) -> str:
         return 'TL: n' + str(self.tlid) + ': '
@@ -270,7 +270,7 @@ class Bool(Constant, BZExpr, TLExpr):
         self.val: bool = v
         self.name = str(v)
 
-    def get_tlid_name(self) -> str:
+    def tlid_name(self) -> str:
         return self.name
 
     def asm(self) -> str:
@@ -442,7 +442,6 @@ class TLSignalLoad(UnaryOperator, TLExpr):
         return new
 
     def asm(self) -> str:
-        load = self.get_load()
         return super().asm() + 'load s' + str(self.get_load().sid)
 
 
@@ -970,7 +969,7 @@ class LogicalOr(LogicalOperator):
     def asm(self) -> str:
         s: str = super().asm() + 'or'
         for c in self.get_children():
-            s += ' n' + str(c.tlid)
+            s += ' ' + c.tlid_name()
         return s + ''
 
 
@@ -989,7 +988,7 @@ class LogicalAnd(LogicalOperator):
     def asm(self) -> str:
         s: str = super().asm() + 'and'
         for c in self.get_children():
-            s += ' n' + str(c.tlid)
+            s += ' ' + c.tlid_name()
         return s + ''
 
 
@@ -1006,9 +1005,7 @@ class LogicalXor(LogicalOperator, BinaryOperator):
         return new
 
     def asm(self) -> str:
-        lhs: AST = self.get_child(0)
-        rhs: AST = self.get_child(1)
-        return super().asm() + 'xor n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
+        return super().asm() + 'xor ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name()
 
 
 class LogicalImplies(LogicalOperator, BinaryOperator):
@@ -1024,9 +1021,7 @@ class LogicalImplies(LogicalOperator, BinaryOperator):
         return new
 
     def asm(self) -> str:
-        lhs: AST = self.get_child(0)
-        rhs: AST = self.get_child(1)
-        return super().asm() + 'impl n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ''
+        return super().asm() + 'impl ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name()
 
 
 class LogicalNegate(LogicalOperator, UnaryOperator):
@@ -1042,8 +1037,7 @@ class LogicalNegate(LogicalOperator, UnaryOperator):
         return new
 
     def asm(self) -> str:
-        operand: AST = self.get_operand()
-        return super().asm() + 'not n' + str(operand.tlid) + ''
+        return super().asm() + 'not ' + self.get_operand().tlid_name()
 
 
 class TemporalOperator(TLExpr):
@@ -1097,10 +1091,8 @@ class Until(FutureTimeBinaryOperator):
         self.name: str = 'U'
 
     def asm(self) -> str:
-        lhs: AST = self.get_lhs()
-        rhs: AST = self.get_rhs()
-        return super().asm() + 'until n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'until ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class Release(FutureTimeBinaryOperator):
@@ -1110,10 +1102,8 @@ class Release(FutureTimeBinaryOperator):
         self.name: str = 'R'
 
     def asm(self) -> str:
-        lhs: AST = self.get_lhs()
-        rhs: AST = self.get_rhs()
-        return super().asm() + 'release n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'release ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
@@ -1143,9 +1133,8 @@ class Global(FutureTimeUnaryOperator):
         self.name: str = 'G'
 
     def asm(self) -> str:
-        operand: AST = self.get_child(0)
-        return super().asm() + 'global n' + str(operand.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'global ' + self.get_operand().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class Future(FutureTimeUnaryOperator):
@@ -1155,9 +1144,8 @@ class Future(FutureTimeUnaryOperator):
         self.name: str = 'F'
 
     def asm(self) -> str:
-        operand: AST = self.get_child(0)
-        return super().asm() + 'future n' + str(operand.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'future ' + self.get_operand().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
@@ -1188,10 +1176,8 @@ class Since(PastTimeBinaryOperator):
         self.name: str = 'S'
 
     def asm(self) -> str:
-        lhs: AST = self.get_child(0)
-        rhs: AST = self.get_child(1)
-        return super().asm() + 'since n' + str(lhs.tlid) + ' n' + str(rhs.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'since ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
@@ -1219,9 +1205,8 @@ class Historical(PastTimeUnaryOperator):
         self.name: str = 'H'
 
     def asm(self) -> str:
-        operand: AST = self.get_operand()
-        return super().asm() + 'his n' + str(operand.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'his ' + self.get_operand().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
 class Once(PastTimeUnaryOperator):
@@ -1231,9 +1216,8 @@ class Once(PastTimeUnaryOperator):
         self.name: str = 'O'
 
     def asm(self) -> str:
-        operand: AST = self.get_child(0)
-        return super().asm() + 'once n' + str(operand.tlid) + ' ' + \
-            str(self.interval.lb) + ' ' + str(self.interval.ub) + ''
+        return super().asm() + 'once ' + self.get_operand().tlid_name() + ' ' + \
+            str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 class Specification(TLExpr):
 
@@ -1256,7 +1240,7 @@ class Specification(TLExpr):
 
     def asm(self) -> str:
         top: AST = self.get_child(0)
-        return super().asm() + 'end n' + str(top.tlid) + ' f' + str(self.formula_number) + ''
+        return super().asm() + 'end ' + top.tlid_name() + ' f' + str(self.formula_number) + ''
 
 
 class Program(TLExpr):

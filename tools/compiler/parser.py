@@ -457,7 +457,7 @@ class C2POParser(Parser):
         if operator == '->':
             return LogicalImplies(ln, lhs, rhs)
         elif operator == '<->':
-            return LogicalAnd(LogicalImplies(ln, lhs, rhs), LogicalImplies(ln, rhs, lhs))
+            return LogicalAnd(ln,[ LogicalImplies(ln, lhs, rhs), LogicalImplies(ln, rhs, lhs)])
         elif operator == '||':
             return LogicalOr(ln, [lhs, rhs])
         elif operator == '&&':
