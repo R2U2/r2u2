@@ -3,10 +3,10 @@ from copy import deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
-from .util import *
+from .logger import *
 from .type import *
 
-logger = getLogger(logger_name)
+logger = getLogger(LOGGER_NAME)
 
 class Interval(NamedTuple):
     lb: int

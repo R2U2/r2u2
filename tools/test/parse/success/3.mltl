@@ -1,0 +1,3 @@
+INPUT x: uint8;
+DEFINE y = x;
+SPEC y == x;

@@ -8,6 +8,7 @@
 import os
 import shutil
 import argparse
+import sys
 
 from compiler.compiler import compile
 
@@ -47,11 +48,16 @@ if os.path.isdir(binary_dir):
     shutil.rmtree(binary_dir)
 
 # If the argument is a valid file,
+return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,'r').read()
     if(os.path.isfile(args.sigs)):
-        compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.quiet)
+        return_code = compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.quiet)
     else:
         print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
+        return_code = 1
 else:
     print(f'MLTL file \'{args.sigs}\' not a valid file')
+    return_code = 1
+
+sys.exit(return_code)

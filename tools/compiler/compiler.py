@@ -1,14 +1,19 @@
+from argparse import PARSER
 import re
 from logging import getLogger
 
 from .ast import *
 from .parser import C2POLexer
 from .parser import C2POParser
-from .util import *
+from .logger import *
 
 # from .assembler import assemble
 
-logger = getLogger(logger_name)
+logger = getLogger(LOGGER_NAME)
+
+SUCCESS_CODE: int = 0
+PARSER_ERROR_CODE: int = 1
+TYPE_CHECK_ERROR_CODE: int = 2
 
 # class C2PO:
 #     """Configuration Compiler for Property Organization"""
@@ -27,7 +32,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
         - None
 
     Postconditions: 
-        - program is properly typed
+        - program is type correct
         - All descendants of program have a valid Type (i.e., none are NOTYPE)
     """
     
@@ -42,7 +47,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             return
         explored.append(a)
 
-        if not bz and not isinstance(a,Literal) and isinstance(a,BZExpr):
+        if not bz and isinstance(a,BZExpr) and not isinstance(a,Signal) and not isinstance(a,Bool):
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
@@ -213,14 +218,14 @@ def rewrite_extended_operators(program: Program) -> None:
         - program is type correct.
 
     Postconditions:
-        - program formulas only have negation, conjunction, until, and global operators.
+        - program formulas only have negation, conjunction, until, and global TL operators.
     """
     
     if not program.is_type_correct:
-        logger.error(f' program must be type checked before rewriting.')
+        logger.error(f' Program must be type checked before rewriting.')
         return
 
-    def rewrite_ops_util(a: AST) -> None:
+    def rewrite_extended_operators_util(a: AST) -> None:
 
         if isinstance(a, LogicalOperator):
             if isinstance(a, LogicalOr):
@@ -250,12 +255,12 @@ def rewrite_extended_operators(program: Program) -> None:
             # F p = True U p
             a.replace(Until(a.ln, Bool(a.ln, True), operand, bounds.lb, bounds.ub))
 
-    postorder(program, rewrite_ops_util)
+    postorder(program, rewrite_extended_operators_util)
 
 
-def boolean_normal_form(program: Program) -> None:
+def rewrite_boolean_normal_form(program: Program) -> None:
     """
-    Converts program formulas to boolean normal form. An MLTL formula in boolean normal form has only negation, conjunction, and until operators.
+    Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators.
     
     Preconditions:
         - program is type checked
@@ -265,12 +270,12 @@ def boolean_normal_form(program: Program) -> None:
     """
     
     if not program.is_type_correct:
-        logger.error(f' program must be type checked before converting to boolean normal form.')
+        logger.error(f' Program must be type checked before converting to boolean normal form.')
         return
 
     # TODO check if not in nnf
     
-    def boolean_normal_form_util(a: AST) -> None:
+    def rewrite_boolean_normal_form_util(a: AST) -> None:
 
         if isinstance(a, LogicalOr):
             # p || q = !(!p && !q)
@@ -305,15 +310,15 @@ def boolean_normal_form(program: Program) -> None:
                                                       LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
 
         for child in a.get_children():
-            boolean_normal_form_util(child)
+            rewrite_boolean_normal_form_util(child)
 
-    boolean_normal_form_util(program)
+    rewrite_boolean_normal_form_util(program)
     program.is_boolean_normal_form = True
 
 
-def negative_normal_form(program: Program) -> None:
+def rewrite_negative_normal_form(program: Program) -> None:
     """
-    Converts program to negative normal form. An MLTL formula in negative normal form has all MLTL operators, but negations are only applied to literals.
+    Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals.
     
     Preconditions:
         - program is type checked
@@ -323,12 +328,12 @@ def negative_normal_form(program: Program) -> None:
     """
     
     if not program.is_type_correct:
-        logger.error(f' program must be type checked before converting to negative normal form.')
+        logger.error(f' Program must be type checked before converting to negative normal form.')
         return
 
     # TODO check if not in bnf
 
-    def negative_normal_form_util(a: AST) -> None:
+    def rewrite_negative_normal_form_util(a: AST) -> None:
 
         if isinstance(a, LogicalNegate):
             operand = a.get_operand()
@@ -374,13 +379,13 @@ def negative_normal_form(program: Program) -> None:
                                        LogicalAnd(a.ln, [LogicalNegate(lhs.ln, lhs), rhs])]))
 
         for child in a.get_children():
-            negative_normal_form_util(child)
+            rewrite_negative_normal_form_util(child)
 
-    negative_normal_form_util(program)
+    rewrite_negative_normal_form_util(program)
     program.is_negative_normal_form = True
 
 
-def rewrite_set_agg(program: Program) -> None:
+def rewrite_set_aggregation(program: Program) -> None:
     """
     Rewrites set aggregation operators into corresponding BZ and TL operations e.g., foreach is rewritten into a conjunction.
 
@@ -403,7 +408,7 @@ def rewrite_set_agg(program: Program) -> None:
             s: Struct = a.get_struct()
             a.replace(s.members[a.member])
     
-    def rewrite_set_agg_util(a: AST) -> None:
+    def rewrite_set_aggregation_util(a: AST) -> None:
         cur: AST = a
 
         if isinstance(a, ForEach):
@@ -431,9 +436,9 @@ def rewrite_set_agg(program: Program) -> None:
             rewrite_struct_access_util(cur)
 
         for c in cur.get_children():
-            rewrite_set_agg_util(c)
+            rewrite_set_aggregation_util(c)
 
-    rewrite_set_agg_util(program)
+    rewrite_set_aggregation_util(program)
     program.is_set_agg_free = True
 
 
@@ -500,6 +505,15 @@ def optimize_cse(program: Program) -> None:
 
 
 def gen_alias(program: Program) -> str:
+    """
+    Generates string corresponding to the alias file for th argument program. The alias file is used by R2U2 to print formula labels and contract status.
+
+    Preconditions:
+        - program is type correct
+
+    Postconditions:
+        - None
+    """
     s: str = ''
 
     for spec in program.specs:
@@ -691,20 +705,20 @@ def parse(input: str) -> list[Program]:
     return parser.parse(lexer.tokenize(input))
 
 
-def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> None:
+def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> int:
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     programs: list[Program] = parse(input)
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')
-        return
+        return PARSER_ERROR_CODE
 
     # type check
     if not type_check(programs[0],bz,programs[0].structs):
         logger.error(' Failed type check')
-        return
+        return TYPE_CHECK_ERROR_CODE
 
-    rewrite_set_agg(programs[0])
+    rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
 
     # rewrite without extended operators if enabled
@@ -732,3 +746,5 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, qui
         print(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
         for s in scq_asm:
             print('\t'+str(s))
+
+    return SUCCESS_CODE

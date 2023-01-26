@@ -1,6 +1,6 @@
 import logging
 
-logger_name: str = 'c2po_logger'
+LOGGER_NAME: str = 'c2po_logger'
 
 class Color:
     HEADER = '\033[95m'
@@ -30,7 +30,7 @@ class CustomFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
-logger = logging.getLogger(logger_name)
+logger = logging.getLogger(LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()

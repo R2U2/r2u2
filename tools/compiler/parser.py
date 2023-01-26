@@ -3,9 +3,9 @@ from logging import getLogger
 
 from .sly import Lexer, Parser
 from .ast import *
-from .util import *
+from .logger import *
 
-logger = getLogger(logger_name)
+logger = getLogger(LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
