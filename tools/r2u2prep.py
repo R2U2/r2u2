@@ -36,6 +36,8 @@ parser.add_argument("--no-binaries", action="store_true",
                     help="generate config.c file in place of binaries")
 parser.add_argument("--booleanizer", action="store_true",
                     help="enable booleanizer")
+parser.add_argument("--no-color", action="store_true",
+                    help="enable color in logging")
 args = parser.parse_args()
 
 binary_dir = args.output_dir + '/binary_files/'
@@ -52,7 +54,7 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,'r').read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.quiet)
+        return_code = compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.no_color, args.quiet)
     else:
         print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
         return_code = 1

@@ -9,7 +9,7 @@ from .logger import *
 
 # from .assembler import assemble
 
-logger = getLogger(LOGGER_NAME)
+logger = getLogger(COLOR_LOGGER_NAME)
 
 SUCCESS_CODE: int = 0
 PARSER_ERROR_CODE: int = 1
@@ -695,7 +695,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     return ret
 
 
-def validate_bz_stack(asm: list[AST]) -> bool:
+def validate_booleanizer_stack(asm: list[AST]) -> bool:
     return True
 
 
@@ -705,7 +705,7 @@ def parse(input: str) -> list[Program]:
     return parser.parse(lexer.tokenize(input))
 
 
-def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, quiet: bool) -> int:
+def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, color: bool, quiet: bool) -> int:
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     programs: list[Program] = parse(input)
 

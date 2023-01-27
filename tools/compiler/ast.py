@@ -6,7 +6,7 @@ from logging import getLogger
 from .logger import *
 from .type import *
 
-logger = getLogger(LOGGER_NAME)
+logger = getLogger(COLOR_LOGGER_NAME)
 
 class Interval(NamedTuple):
     lb: int

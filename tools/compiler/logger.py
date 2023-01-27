@@ -1,6 +1,7 @@
 import logging
 
-LOGGER_NAME: str = 'c2po_logger'
+STANDARD_LOGGER_NAME: str = 'c2po_standard_logger'
+COLOR_LOGGER_NAME: str = 'c2po_color_logger'
 
 class Color:
     HEADER = '\033[95m'
@@ -13,7 +14,24 @@ class Color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-class CustomFormatter(logging.Formatter):
+class StandardFormatter(logging.Formatter):
+
+    format_str = '%(levelname)s'
+
+    FORMATS = {
+        logging.DEBUG: format_str + ':%(message)s',
+        logging.INFO: format_str + ':%(message)s',
+        logging.WARNING: format_str + ':%(message)s',
+        logging.ERROR: format_str + ':%(message)s',
+        logging.CRITICAL: format_str + ':%(message)s',
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+class ColorFormatter(logging.Formatter):
 
     format_str = '%(levelname)s'
 
@@ -30,12 +48,24 @@ class CustomFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
-logger = logging.getLogger(LOGGER_NAME)
-logger.setLevel(logging.DEBUG)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+standard_logger = logging.getLogger(STANDARD_LOGGER_NAME)
+standard_logger.setLevel(logging.DEBUG)
 
-ch.setFormatter(CustomFormatter())
+standard_logger_handler = logging.StreamHandler()
+standard_logger_handler.setLevel(logging.DEBUG)
 
-logger.addHandler(ch)
+standard_logger_handler.setFormatter(StandardFormatter())
+
+standard_logger.addHandler(standard_logger_handler)
+
+
+color_logger = logging.getLogger(COLOR_LOGGER_NAME)
+color_logger.setLevel(logging.DEBUG)
+
+color_logger_handler = logging.StreamHandler()
+color_logger_handler.setLevel(logging.DEBUG)
+
+color_logger_handler.setFormatter(ColorFormatter())
+
+color_logger.addHandler(color_logger_handler)

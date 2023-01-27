@@ -5,7 +5,7 @@ from .sly import Lexer, Parser
 from .ast import *
 from .logger import *
 
-logger = getLogger(LOGGER_NAME)
+logger = getLogger(COLOR_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
