@@ -8,5 +8,3 @@
 #include <stdbool.h>
 
 bool filter_all_of(bool *set, uint8_t len);
-
-#endif

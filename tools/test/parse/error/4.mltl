@@ -1,0 +1,5 @@
+INPUT
+    test: uint8;
+
+DEFINE 
+    test + test = test;

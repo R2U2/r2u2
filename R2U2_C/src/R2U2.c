@@ -7,10 +7,9 @@
 #include <limits.h>
 #include <string.h>
 
-#include "binParser/parse.h"
+#include "parse/parse.h"
 #include "TL/TL_observers.h"
-#include "AT/at_checkers.h"
-#include "AT/at_globals.h"
+#include "bz/bz_booleanizer.h"
 
 #ifndef CONFIG
 const char *usage = "Usage: r2u2 <configuration directory> [trace-file] [-h]\n"
@@ -100,13 +99,17 @@ int main(int argc, char *argv[]) {
     chdir(bin_dir);
     #endif
 
+    /* TESTING */
+    parse("r2u2.bin");
+    // bz_booleanizer_init();
+    return 0;
+    /**********/
+
     TL_config("ftm.bin", "fti.bin", "ftscq.bin", "ptm.bin", "pti.bin");
     #if R2U2_TL_Formula_Names || R2U2_TL_Contract_Status || R2U2_AT_Signal_Sets
     TL_aux_config("alias.txt");
     #endif
     TL_init();
-    AT_config("at.bin");
-    AT_init();
 
     #ifndef CONFIG
     chdir(inbuf);
@@ -183,15 +186,13 @@ int main(int argc, char *argv[]) {
         R2U2_DEBUG_PRINT("\n----------TIME STEP: %d----------\n",cur_time);
 
         /* Atomics Update */
-        AT_update();
+        bz_update();
 
         /* Temporal Logic Update */
         TL_update(log_file);
     }
 
     fclose(log_file);
-
-    AT_free();
 
     return 0;
 }

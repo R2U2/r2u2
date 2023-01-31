@@ -1,0 +1,24 @@
+-- Example C2PO input file
+
+-- This is an SMV-inspired syntax, including 
+-- comments which are preceded by two dashes
+
+STRUCT
+  test: {v: uint8; V: set<uint8>; };
+ 
+INPUT
+  x0,y0,z0: uint8;
+  x1,y1,z1: uint8;
+  
+DEFINE
+  var = 5;
+  t0 = test(x0,{y0,z0});
+  t1 = test(x1,{y1,z1});
+
+  Set = {t0,t1};
+
+SPEC
+  foreach(t:Set)(foreach(v:t.V)(v == 5));
+  (x0==0)&&(x0==0)&&(x0==0)&&(x1>1);
+  G[0,5](y0==5);
+  

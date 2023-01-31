@@ -1,0 +1,28 @@
+STRUCT
+    task: { start, exec, end: bool, start_ts, end_ts: int };
+
+VAR
+    t1, t2, t3: task
+    num_tasks_active: int;
+
+    T: set<task>;
+
+    Order: t1, t2, t3, num_tasks_active;
+
+    -- sample input:
+    -- t1        | t2        | t3        | num_stasks_active
+    -- 0,1,0,5,0 , 0,0,0,0,0 , 0,0,1,3,8 , 1
+
+DEFINE
+    T = {t1,t2,t3}; -- set of three tasks
+
+SPEC
+    -- For all tasks t in T, if t is in the start state then t shall be 
+    -- in the end state within 10 time steps and shall be in the 
+    -- execution state until t is in the end state. 
+    forall(t: T) (t.start -> (t.exec U[1,10] t.end));
+
+    -- If there is at least one active task, then there exists a 
+    -- task t in T that is in the exec state.
+    (num_tasks_active >= 1) -> (exists(t: T) (t.exec));
+    

@@ -1,0 +1,56 @@
+-- Assume there are two possible tasks, each with a maximum of 3 commands
+
+STRUCT
+    command: { Sent: bool; ResponseCode: int; };
+    task: { Running: bool; Cmds: set<command>; };
+
+INPUT
+    c11sent, c12sent, c13sent, 
+    c21sent, c22sent, c23sent: bool; 
+    
+    c11rc, c12rc, c13rc, 
+    c21rc, c22rc, c23rc: int; 
+
+    x1running, x2running: bool;
+
+    Order: c11sent,c12sent,c13sent,
+           c21sent,c22sent,c23sent,
+           c11rc,c12rc,c13rc,
+           c21rc,c22rc,c23rc,
+           x1running,x2running;
+
+DEFINE
+    CMDAccepted = 3;
+
+    x1 = task(x1running,{c11,c12,c13});
+    x2 = task(x2running,{c21,c22,c23});
+
+    X = {x1,x2}; -- set of three tasks
+
+
+SPEC
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands, 
+    -- either cmd has been sent and was accepted or cmd was sent, not accepted, and within 5 time steps, 
+    -- cmd will sent and accepted.
+    allof(x:X)(x.Running => 
+        (allof(cmd:x.Cmds)((cmd.Sent && cmd.ResponseCode == CMDAccepted) || 
+                           (cmd.Sent && cmd.ResponseCode != CMDAccepted && 
+                                F[0,4](cmd.Sent && cmd.ResponseCode == CMDAccepted)))));
+
+    -- Note 1: this implies that every cmd.Sent must be true at all times
+    -- Note 2: this implies that every command is sent and response code is received in the same time step
+
+    -- Alt 1:
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- if cmd has been sent and not accepted, then within 5 time steps, cmd will be sent and accepted.
+    allof(x:X)(x.Running => 
+        (allof(cmd:x.Cmds)((cmd.Sent && cmd.ResponseCode != CMDAccepted) -> 
+                                (F[0,4](cmd.Sent && cmd.ResponseCode == CMDAccepted)))));
+
+    -- Alt 2:
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- if cmd has been sent and not accepted within 3 time steps, then within 5 time steps, 
+    -- cmd will be sent and accepted within 3 time steps of being sent.
+    allof(x:X)(x.Running =>
+        (allof(cmd:x.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode != CMDAccepted)) -> 
+                                F[0,4](cmd.Sent && F[0,2]cmd.ResponseCode == CMDAccepted))));

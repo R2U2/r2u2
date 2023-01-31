@@ -6,31 +6,33 @@
 #include "TL_observers.h"
 #include "TL_queue_ft.h"
 #include "TL_queue_pt.h"
-#include "parse.h"
+#include "../parse/parse.h"
 
 #ifndef CONFIG // TODO: Do we need to conditionally compile these?
 void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     // TODO: Does this crash on bad bins?
     // TODO: Weird memory stuff to be checked
-    parse_inst_ft_file(ftm);
-    parse_interval_ft_file(fti);
-    parse_scq_size_file(ftscq);
+    // parse_inst_ft_file(ftm);
+    // parse_interval_ft_file(fti);
+    // parse_scq_size_file(ftscq);
 
-    parse_inst_pt_file(ptm);
-    parse_interval_pt_file(pti);
+    // parse_inst_pt_file(ptm);
+    // parse_interval_pt_file(pti);
+    return;
 }
 #else
 void TL_config(const char* ftm, const char* fti, const char* ftscq, const char* ptm, const char* pti)
 {
     /* Future Time Configuration */
-    parse_inst_ft_bin(ftm);
-    parse_interval_ft_bin(fti);
-    parse_scq_size_bin(ftscq);
+    // parse_inst_ft_bin(ftm);
+    // parse_interval_ft_bin(fti);
+    // parse_scq_size_bin(ftscq);
 
-    /* Past Time Configuration */
-    parse_inst_pt_bin(ptm);
-    parse_interval_pt_bin(pti);
+    // /* Past Time Configuration */
+    // parse_inst_pt_bin(ptm);
+    // parse_interval_pt_bin(pti);
+    return;
 }
 #endif
 

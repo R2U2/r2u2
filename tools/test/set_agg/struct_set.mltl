@@ -1,0 +1,16 @@
+STRUCT
+    Test: { m1,m2: bool; };
+
+INPUT
+    b0,b1,b2,b3: bool;
+
+DEFINE
+    X = {Test(b0,b1),Test(b2,b3)};
+    n = 1;
+
+SPEC
+    foreach(s:X)(s.m1 && s.m2);
+    forsome(s:X)(s.m1 && s.m2);
+    forexactlyn(s:X,n)(s.m1 && s.m2);
+    foratleastn(s:X,n)(s.m1 && s.m2);
+    foratmostn(s:X,n)(s.m1 && s.m2);
