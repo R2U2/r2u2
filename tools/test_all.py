@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 
-TEST_DIR = 'test/'
+TEST_DIR: str = 'test/'
 INPUT_FILE = TEST_DIR+'input.csv'
 LOG_FILE = 'test.log'
 
