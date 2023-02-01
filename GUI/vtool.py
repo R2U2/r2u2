@@ -20,7 +20,7 @@ cyto.load_extra_layouts()
 app = dash.Dash(__name__)
 server = app.server
 
-app.title = "MLTL Compiler"
+app.title = "R2U2 Resource Estimator"
 default_stylesheet = [
     {
         'selector': '[type = "Signal"]',
@@ -124,7 +124,7 @@ app.layout = html.Div(
                         style = {'height': '350px'},
                         children=[
                             dcc.Markdown(d("""
-                                    ###### C2PO Output
+                                    ###### C2PO Logging Output
                                     """)),
                             html.Pre(
                                 id='compile_output',
@@ -143,16 +143,16 @@ app.layout = html.Div(
                     html.Div(
                             style={'backgroundColor': '#A2F0E4'},
                             children = [
-                                dcc.Markdown(d("---\n### Software System Configuration")),
+                                dcc.Markdown(d("---\n### Software Configuration")),
                                 # Command exection time for each operator
-                                dcc.Markdown(d("**CPU Clock Cycle for Each Operator**")),
-                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text'),
+                                dcc.Markdown(d("**TL Clock Cycles**")),
+                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text', size='5'),
                                 # Processing time for each atomic checker
-                                dcc.Markdown(d("**CPU Clock Cycle for Each Atomic Checker**")),
-                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text'),
+                                dcc.Markdown(d("**BZ Clock Cycles**")),
+                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text', size='5'),
 
-                                dcc.Markdown(d("**CPU Clock Frequency (GHz)**")),
-                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text'),
+                                dcc.Markdown(d("**Clock Frequency (GHz)**")),
+                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text', size='5'),
                                 dcc.Markdown(d("**Worst-case Execution Time**")),
                                 html.Div(id="comp_speed_CPU",),
                                 dcc.Markdown(d("**Total Memory usage for SCQ**")),
@@ -170,9 +170,9 @@ app.layout = html.Div(
                     html.Div(
                         style={'backgroundColor': '#F7FAC0'},
                         children  = [
-                        dcc.Markdown(d("---\n### Hardware System Configuration")),
-                        dcc.Markdown(d("**Hardware Clock Frequency (MHz)**")),
-                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='hardware_clk', value='100', type='text'),
+                        dcc.Markdown(d("---\n### Hardware Configuration")),
+                        dcc.Markdown(d("**Clock Frequency (MHz)**")),
+                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='hardware_clk', value='100', type='text', size='5'),
                         dcc.Markdown(d("**LUT Type Select**")),
                         dcc.Dropdown(
                             id = 'LUT_type',
@@ -198,7 +198,7 @@ app.layout = html.Div(
                         ),  
 
                         dcc.Markdown(d("**Timestamp Length (Bits)**")),
-                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='timestamp_length', value='32', type='text'),
+                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='timestamp_length', value='32', type='text', size='5'),
                         # dcc.Slider(
                         #     id='timestamp_length',
                         #     min=0,
@@ -255,13 +255,12 @@ app.layout = html.Div(
                 children = [
                     html.Div(
                         # className = 'one column',
-                        style = {'height': '250px'},
+                        style = {'height': '300px'},
                         children=[
-                        html.P(id='status',children=['Init']),
-                        # html.P('Node Data JSON:'),
+                        dcc.Markdown(d("#### Mouseover Data")),
                         html.Pre(
                             id='mouseover-node-data-json-output',
-                            style=styles['json-output']
+                            # style=styles['json-output']
                         )
                         ]
                     ),
@@ -269,7 +268,7 @@ app.layout = html.Div(
                         # className = 'one column',
                         style = {'height': '750px'},
                         children=[
-                            html.P('Assembly:'),
+                            dcc.Markdown(d("#### Assembly")),
                             html.Pre(
                                 id='assembly_window',
                                 style=styles['json-output'],
@@ -284,41 +283,43 @@ app.layout = html.Div(
     ),
 ])
 
-@app.callback(
-    Output('slider-output-container-ts', 'children'),
-    [Input('timestamp_length', 'value')])
-def update_output(value):
-    return 'You have selected "{}" bit'.format(value)
+# @app.callback(
+#     Output('slider-output-container-ts', 'children'),
+#     [Input('timestamp_length', 'value')])
+# def update_output(value):
+#     return 'You have selected "{}" bit'.format(value)
 
-@app.callback(Output('mouseover-edge-data-json-output', 'children'),
-              [Input('tree', 'mouseoverEdgeData')])
-def displayMouseoverEdgeData(data):
-    return json.dumps(data, indent=2)
+# @app.callback(Output('mouseover-edge-data-json-output', 'children'),
+#               [Input('tree', 'mouseoverEdgeData')])
+# def displayMouseoverEdgeData(data):
+#     return json.dumps(data, indent=2)
 
 @app.callback(
     Output('mouseover-node-data-json-output', 'children'),
     [Input('tree', 'mouseoverNodeData')])
 def displayMouseoverNodeTitle(data):
     if (data==None or 'bpd' not in data):
-        return html.P('None')
-    return html.P(
-        'Name:'+str(data['name'])+'\n'
-        +'bpd:'+str(data['bpd'])+'\n'
-        +'wpd:'+str(data['wpd'])+'\n'
-        +'SCQ size:'+str(data['scq_size'])+'\n'
+        return html.Pre('None Selected')
+    return html.Pre(
+        'Expression: '+str(data['str'])+'\n'
+        +'Node: '+str(data['name'])+'\n'
+        +'BPD: '+str(data['bpd'])+'\n'
+        +'WPD: '+str(data['wpd'])+'\n'
+        +'SCQ size: '+str(data['scq_size'])+'\n'
         )
 
-@app.callback(Output('status', 'children'),
-              [Input('tree', 'mouseoverNodeData')])
-def displayMouseoverNodeData(data):
-    if (data==None or 'num' not in data):
-        return html.P('Node: Unselected')
-    return html.P('Node: '+str(data['num']))
+
+# @app.callback(Output('selected-node', 'children'),
+#               [Input('tree', 'mouseoverNodeData')])
+# def displayMouseoverNodeData(data):
+#     if (data==None or 'num' not in data):
+#         return html.P('Selected Node: NA')
+#     return html.P('Selected Node: '+str(data['str']))
 
 
 def speed_unit_conversion(clk):
-    if clk < 0:
-        comp_speed = "Err: Operator unsupported in hardware!"
+    if clk <= 0:
+        comp_speed = "Error: Clock speed must be > 0!"
     elif clk<1000:
         comp_speed = '{:.6f}μs/ {:.6f}MHz'.format(clk, 1/clk) 
     elif clk<1000000:
@@ -326,6 +327,7 @@ def speed_unit_conversion(clk):
     else:
         comp_speed = '{:.6f}s/ {:.6f}Hz'.format(clk/1000000, 1/(clk/1000000))
     return comp_speed
+
 
 @app.callback( # multiple output is a new feature since dash==0.39.0
     [Output(component_id = 'tree', component_property = 'elements'),
@@ -383,7 +385,7 @@ def update_element(input, optimization, hw_clk, timestamp_length, LUT_type, reso
         compile_output = stdout
 
         node = [
-            {'data':{'id': str(node), 'num': 0, 'type': str(type(node))[21:-2], 'name':node.name,'bpd':node.bpd, 'wpd':node.wpd, 'scq_size':node.scq_size} }
+            {'data':{'id': str(node), 'num': 0, 'type': str(type(node))[21:-2], 'str':str(node), 'name':node.name,'bpd':node.bpd, 'wpd':node.wpd, 'scq_size':node.scq_size} }
             for node in asm
         ]
 

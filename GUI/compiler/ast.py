@@ -69,6 +69,8 @@ class AST():
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
         self.is_ft: bool = True
+        self.latency_init: int = -1
+        self.latency_eval: int = -1
 
         self._children: list[AST] = []
         self._parents: list[AST] = []
@@ -149,6 +151,8 @@ class TLExpr(AST):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
+        self.latency_init = 17
+        self.latency_eval = 16
 
     def asm(self) -> str:
         return 'TL: n' + str(self.tlid) + ': '
@@ -159,6 +163,8 @@ class BZExpr(AST):
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
         self.register: int = -1
+        self.latency_init = 15
+        self.latency_eval = 15
 
     def asm(self) -> str:
         return 'BZ: '
@@ -168,6 +174,8 @@ class Literal(AST):
 
     def __init__(self, ln: int, a: list[AST]) -> None:
         super().__init__(ln,[])
+        self.latency_init = 15
+        self.latency_eval = 1
 
 
 class Constant(Literal):
@@ -267,6 +275,8 @@ class Bool(Constant, BZExpr, TLExpr):
         self.type = BOOL()
         self.bpd: int = 0
         self.wpd: int = 0
+        self.latency_init = 15
+        self.latency_eval = 0
         self.val: bool = v
         self.name = str(v)
 
@@ -951,6 +961,8 @@ class LogicalOperator(TLExpr):
         super().__init__(ln, c)
         self.bpd = min([child.bpd for child in c])
         self.wpd = max([child.wpd for child in c])
+        self.latency_init = 18
+        self.latency_eval = 17
 
 
 class LogicalOr(LogicalOperator):
@@ -1028,6 +1040,8 @@ class LogicalNegate(LogicalOperator, UnaryOperator):
 
     def __init__(self, ln: int, o: AST):
         super().__init__(ln, [o])
+        self.latency_init = 17
+        self.latency_eval = 16
         self.name: str = '!'
 
     def __deepcopy__(self, memo):
@@ -1045,6 +1059,8 @@ class TemporalOperator(TLExpr):
     def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
         super().__init__(ln, c)
         self.interval = Interval(lb=l,ub=u)
+        self.latency_init = 17
+        self.latency_eval = 18
 
 
 class FutureTimeOperator(TemporalOperator):
@@ -1081,14 +1097,14 @@ class FutureTimeBinaryOperator(TemporalOperator):
         return new
 
     def __str__(self) -> str:
-        return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
+        return f'({self.get_lhs()!s}){self.name!s}({self.get_rhs()!s})'
 
 
 class Until(FutureTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'U'
+        self.name: str = 'U[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'until ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
@@ -1099,7 +1115,7 @@ class Release(FutureTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'R'
+        self.name: str = 'R[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'release ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
@@ -1123,14 +1139,14 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
+        return f'{self.name!s}({self.get_operand()!s})'
 
 
 class Global(FutureTimeUnaryOperator):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = 'G'
+        self.name: str = 'G[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'global ' + self.get_operand().tlid_name() + ' ' + \
@@ -1141,7 +1157,7 @@ class Future(FutureTimeUnaryOperator):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = 'F'
+        self.name: str = 'F[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'future ' + self.get_operand().tlid_name() + ' ' + \
@@ -1166,14 +1182,14 @@ class PastTimeBinaryOperator(PastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
+        return f'({self.get_lhs()!s}){self.name!s}({self.get_rhs()!s})'
 
 
 class Since(PastTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = 'S'
+        self.name: str = 'S[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'since ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name() + ' ' + \
@@ -1195,14 +1211,14 @@ class PastTimeUnaryOperator(PastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
+        return f'{self.name!s}({self.get_operand()!s})'
 
 
 class Historical(PastTimeUnaryOperator):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = 'H'
+        self.name: str = 'H[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'his ' + self.get_operand().tlid_name() + ' ' + \
@@ -1213,7 +1229,7 @@ class Once(PastTimeUnaryOperator):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = 'O'
+        self.name: str = 'O[' + str(l) + ',' + str(u) + ']'
 
     def asm(self) -> str:
         return super().asm() + 'once ' + self.get_operand().tlid_name() + ' ' + \

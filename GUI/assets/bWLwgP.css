@@ -39,8 +39,8 @@
     position: relative;
     width: 100%;
     max-width: 960px;
-    margin: 0 auto;
-    padding: 0 10px;
+    margin: auto;
+    padding: 0 0;
     box-sizing: border-box; }
   .column,
   .columns {
@@ -61,7 +61,7 @@
       width: 80%; }
     .column,
     .columns {
-      margin-left: 4%; }
+      margin-left: 0.25%; }
     .column:first-child,
     .columns:first-child {
       margin-left: 0; }
@@ -116,6 +116,36 @@
   
     .offset-by-one-half.column,
     .offset-by-one-half.columns     { margin-left: 52%; }
+    /* .offset-by-one.column,
+    .offset-by-one.columns          
+    .offset-by-two.column,
+    .offset-by-two.columns          
+    .offset-by-three.column,
+    .offset-by-three.columns        
+    .offset-by-four.column,
+    .offset-by-four.columns         
+    .offset-by-five.column,
+    .offset-by-five.columns         
+    .offset-by-six.column,
+    .offset-by-six.columns         
+    .offset-by-seven.column,
+    .offset-by-seven.columns        
+    .offset-by-eight.column,
+    .offset-by-eight.columns    
+    .offset-by-nine.column,
+    .offset-by-nine.columns       
+    .offset-by-ten.column,
+    .offset-by-ten.columns        
+    .offset-by-eleven.column,
+    .offset-by-eleven.columns      
+  
+    .offset-by-one-third.column,
+    .offset-by-one-third.columns   
+    .offset-by-two-thirds.column,
+    .offset-by-two-thirds.columns 
+  
+    .offset-by-one-half.column,
+    .offset-by-one-half.columns    */
   
   }
   
@@ -126,7 +156,7 @@
   html is set to 62.5% so that all the REM measurements throughout Skeleton
   are based on 10px sizing. So basically 1.5rem = 15px :) */
   html {
-    font-size: 62.5%; }
+    font-size: 80%; }
   body {
     font-size: 1.5em; /* currently ems cause chrome bug misinterpreting rems on body element */
     line-height: 1.6;

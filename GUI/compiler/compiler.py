@@ -708,6 +708,11 @@ def validate_booleanizer_stack(asm: list[AST]) -> bool:
     return True
 
 
+def compute_hardware_wcet(program: AST) -> int:
+    
+    return 0
+
+
 def parse(input: str) -> list[Program]:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
