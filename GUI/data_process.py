@@ -59,21 +59,21 @@ class Resource_fig():
         y_1, y_2, name_1, name_2 = [],[],"",""
         if (self.LUT_type=='3'):
             y_1, y_2 = y_3, z_3
-            name_1 = "Number of LUT-3 for all Comparators"
-            name_2 = "Number of LUT-3 for all Adder/Subtractors"
+            name_1 = "LUT-3 Comparators"
+            name_2 = "LUT-3 Adder/Subtractors"
         elif (self.LUT_type=='4'):
             y_1, y_2 = y_4, z_4
-            name_1 = "Number of LUT-4 for all Comparators"
-            name_2 = "Number of LUT-4 for all Adder/Subtractors"
+            name_1 = "LUT-4 Comparators"
+            name_2 = "LUT-4 Adder/Subtractors"
         else:
             y_1, y_2 = y_6, z_6
-            name_1 = "Number of LUT-6 for all Comparators"
-            name_2 = "Number of LUT-6 for all Adder/Subtractors"
+            name_1 = "LUT-6 Comparators"
+            name_2 = "LUT-6 Adder/Subtractors"
         
 
-        self.fig1.update_layout(title='Number of LUTs',
-               xaxis_title='Timestamp Width (bits)',
-               yaxis_title='Future-Time Number of LUTs')
+        self.fig1.update_layout(title='LUT Requirements',
+               xaxis_title='Timestamp Width (Bits)',
+               yaxis_title='Number of LUTs')
 
         # dash options include 'dash', 'dot', and 'dashdot'
         self.fig1.add_trace(go.Scatter(x=x, y=y_1, name=name_1,
@@ -83,6 +83,14 @@ class Resource_fig():
         self.fig1.add_trace(go.Scatter(x=[self.tts, self.tts],y=[y_1[self.tts-st], y_2[self.tts-st]], 
             name = "Current Configuration", line = dict(width=0),
                                 line_shape = 'vhv'))
+
+        self.fig1.update_layout(legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ))
+
 
     def gen_BRAM_fig(self):
         self.fig2 = go.Figure()
@@ -113,8 +121,8 @@ class Resource_fig():
             # y.append(gen_bram(self.tot_scq ,width)+extra)
             y.append(gen_bram(self.tot_scq, width)+extra)
 
-        self.fig2.update_layout(title='Number of 18Kb BRAMs',
-               xaxis_title='Timestamp Width (bits)',
+        self.fig2.update_layout(title='BRAM Requirements',
+               xaxis_title='Timestamp Width (Bits)',
                yaxis_title='Number of 18Kb BRAMs')
 
         self.fig2.add_trace(go.Scatter(x=x, y=y,

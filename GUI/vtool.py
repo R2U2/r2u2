@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # pip install dash-cytoscape==0.1.1
 # 
+# type: ignore
 import json
 import dash
 from dash import html, dcc
@@ -10,16 +11,12 @@ from dash.dependencies import Input, Output
 from textwrap import dedent as d
 
 import plotly.graph_objects as go
-# import MLTL compiler
-# from MLTL_Compiler import *
 from compiler.compiler import compile
 from compiler.ast import *
-from MLTL_Resource import *
-from Software_Time import *
+import data_process
 
 cyto.load_extra_layouts()
 
-# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__)
 server = app.server
 
@@ -111,7 +108,7 @@ app.layout = html.Div(
                     dcc.Textarea(
                         id='formula',
                         value='INPUT\n\ta0, a1, a2: bool;\n\nDEFINE\n\ta3 = a0 && a1;\n\nSPEC\n\ta0;\n\ta0 U[0,5] a2;\n\tG[1,3] a3;' ,
-                        style={'width': '100%', 'height': '250px'},
+                        style={'width': '100%', 'height': '350px'},
                     ),
                     dcc.Checklist(
                         id = 'optimization',
@@ -120,35 +117,22 @@ app.layout = html.Div(
                         ],
                         value=['opt_cse',]
                     ),
-                    html.Pre(id='compile_status', style = {'color': 'green'}),
-                    dcc.Markdown(d("""   
-                            **Prediction Horizon Hp**  
-                            """)),
-                    dcc.Input(id='pred_length', value='0', type='text'),
+                    html.Pre(id='compile_status', style = {'color': 'blue'}),
 
-                    # html.Div(
-                    #     style={'backgroundColor': '#A2F0E4'},
-                    #     children = [
-                    #         dcc.Markdown(d("---\n### Software System Configuration")),
-                    #         # Command exection time for each operator
-                    #         dcc.Markdown(d("**CPU Clock Cycle for Each Operator**")),
-                    #         dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text'),
-                    #         # Processing time for each atomic checker
-                    #         dcc.Markdown(d("**CPU Clock Cycle for Each Atomic Checker**")),
-                    #         dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text'),
-
-                    #         dcc.Markdown(d("**CPU Clock Frequency (GHz)**")),
-                    #         dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text'),
-                    #         dcc.Markdown(d("**Worst-case Execution Time**")),
-                    #         html.Div(id="comp_speed_CPU",),
-                    #         dcc.Markdown(d("**Total Memory usage for SCQ**")),
-                    #         html.Div(id="tot_memory",),
-                    #     ]
-                    # )
+                    html.Div(
+                        # className = 'one column',
+                        style = {'height': '350px'},
+                        children=[
+                            dcc.Markdown(d("""
+                                    ###### C2PO Output
+                                    """)),
+                            html.Pre(
+                                id='compile_output',
+                                style=styles['json-output'],
+                            )
+                        ]
+                    ),
                     ],
-                    
-                    # style={'width': '15%'}
-                    # style={'height': '300px'},
                     
                 ),
 
@@ -201,7 +185,7 @@ app.layout = html.Div(
                             value='3',
                             clearable=False
                         ),
-                        dcc.Markdown(d("**Resource to Observe Select**")),
+                        dcc.Markdown(d("**Resource to Observe**")),
                         dcc.Dropdown(
                             id = 'resource_type',
                             style={'backgroundColor': '#F7FAC0'},
@@ -213,17 +197,18 @@ app.layout = html.Div(
                             clearable=False
                         ),  
 
-                        dcc.Markdown(d("**Timestamp Length (bit)**")),
-                        dcc.Slider(
-                            id='timestamp_length',
-                            min=0,
-                            max=64,
-                            step=1,
-                            value=32,
-                            marks=None
-                        ),
+                        dcc.Markdown(d("**Timestamp Length (Bits)**")),
+                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='timestamp_length', value='32', type='text'),
+                        # dcc.Slider(
+                        #     id='timestamp_length',
+                        #     min=0,
+                        #     max=64,
+                        #     step=1,
+                        #     value=32,
+                        #     marks=None
+                        # ),
                         # html.Div(style="width:500px;height:100px;border:1px solid #000;"),
-                        html.Div(id='slider-output-container-ts'),
+                        # html.Div(id='slider-output-container-ts'),
                         # dcc.Input(id='timestamp_length', value='32', type='text'),
                         html.Div(
                         # style={'backgroundColor': '#A2F0E4'},
@@ -243,34 +228,6 @@ app.layout = html.Div(
                 # style={'width': '15%'}
             ),
 
-                
-
-            # html.Div(
-            #     className = 'three columns',
-            #     children = [
-            #         html.Div(
-            #             style={'backgroundColor': '#A2F0E4'},
-            #             children = [
-            #                 dcc.Markdown(d("---\n### Software System Configuration")),
-            #                 # Command exection time for each operator
-            #                 dcc.Markdown(d("**CPU Clock Cycle for TL Operations**")),
-            #                 dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text'),
-            #                 # Processing time for each atomic checker
-            #                 dcc.Markdown(d("**CPU Clock Cycle for BZ Operations**")),
-            #                 dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text'),
-
-            #                 dcc.Markdown(d("**CPU Clock Frequency (GHz)**")),
-            #                 dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text'),
-            #                 dcc.Markdown(d("**Worst-case Execution Time**")),
-            #                 html.Div(id="comp_speed_CPU",),
-            #                 dcc.Markdown(d("**Total SCQ Memory Slots**")),
-            #                 html.Div(id="tot_memory",),
-            #             ]
-            #         )
-            #     ],
-            #     style={'width': '15%'}
-            # ),
-
             html.Div(
                 className = 'four columns',
                 children = [
@@ -285,6 +242,7 @@ app.layout = html.Div(
                     dcc.Graph(
                         id='resource_usage',
                         figure = go.Figure(),
+                        style={'width': '100%'},
                     )
                 ],
                 # style={'width': '30%'}
@@ -309,7 +267,7 @@ app.layout = html.Div(
                     ),
                     html.Div(
                         # className = 'one column',
-                        style = {'height': '250px'},
+                        style = {'height': '750px'},
                         children=[
                             html.P('Assembly:'),
                             html.Pre(
@@ -318,53 +276,8 @@ app.layout = html.Div(
                             )
                         ]
                     ),
-
-                    # dcc.Tabs(
-                    #     id='tabs', 
-                    #     children=[            
-                    #         dcc.Tab(
-                    #             label='Mouseover Data', 
-                    #             children=[
-                    #                 html.Div(
-                    #                     style=styles['tab'], 
-                    #                     children=[
-                    #                         html.P(id='status',children=['Init']),
-                    #                         # html.P('Node Data JSON:'),
-                    #                         html.Pre(
-                    #                             id='mouseover-node-data-json-output',
-                    #                             style=styles['json-output']
-                    #                         )
-                    #                         # ,
-                    #                         # html.P('Edge Data JSON:'),
-                    #                         # html.Pre(
-                    #                         #     id='mouseover-edge-data-json-output',
-                    #                         #     style=styles['json-output']
-
-                    #                         # )
-                    #                     ]
-                    #                 )
-                    #             ]
-                    #         ),
-                    #         dcc.Tab(
-                    #             label='Assembly Output', 
-                    #             children=[
-                    #                 html.Div(
-                    #                     style=styles['tab'], 
-                    #                     children=[
-                    #                         html.P('Assembly:'),
-                    #                         html.Pre(
-                    #                             id='assembly_window',
-                    #                             style=styles['json-output'],
-                    #                         ),
-                    #                     ]
-                    #                 )
-                    #             ]
-                    #         ),
-                    #     ]
-                    # ),    
                 
                 ],
-                # style={'width': '15%'}
 
             )
         ],  
@@ -419,6 +332,7 @@ def speed_unit_conversion(clk):
     Output(component_id = 'assembly_window', component_property = 'children'),
     Output(component_id = 'compile_status', component_property = 'children'),
     Output(component_id = 'compile_status', component_property = 'style'),
+    Output(component_id = 'compile_output', component_property = 'children'),
     Output(component_id = 'comp_speed_FPGA', component_property = 'children'),
     Output(component_id = 'comp_speed_CPU', component_property = 'children'),
     Output(component_id = 'tot_scq_size', component_property = 'children'),
@@ -427,7 +341,6 @@ def speed_unit_conversion(clk):
     ],
     [Input(component_id = 'formula', component_property = 'value'),
     Input(component_id = 'optimization', component_property = 'value'),
-    Input(component_id = 'pred_length', component_property = 'value'),
     Input(component_id = 'hardware_clk', component_property = 'value'),
     Input(component_id = 'timestamp_length', component_property = 'value'),
     Input(component_id = 'LUT_type', component_property = 'value'),
@@ -437,65 +350,66 @@ def speed_unit_conversion(clk):
     Input(component_id = 'cpu_clk', component_property = 'value'),
     ]
 )
-def update_element(input, optimization, pred_length, hw_clk, timestamp_length, LUT_type, resource_type, op_exe_time, at_exe_time, cpu_clk):
+def update_element(input, optimization, hw_clk, timestamp_length, LUT_type, resource_type, op_exe_time, at_exe_time, cpu_clk):
     opt_cse = True if 'opt_cse' in optimization else False
-    status,ast,asm,asm_str,scq_size = compile(input, '', '', True, True, True, True)
-
-    asm = [a for a in asm if not isinstance(a,Program)]
-    asm.reverse()
-
-    asm_str.replace('\t','')
-    asm_str.replace('\n','')
+    status,logout,stdout,stderr,ast,asm,asm_str,scq_size = compile(input, '', '', True, True, True, True)
 
     compile_status = "Compile status: "
     if status == 0:
         compile_status += 'ok'
     elif status == 1:
-        compile_status += 'failed type check'
+        compile_status += 'failed parsing'
     else:
-        compile_status += 'fail'
+        compile_status += 'failed type check'
 
     if (status!=0):
         elements = []
-        assembly_window = 'Error'
+        asm = 'Error'
+        compile_output = logout
+        # print(stdout)
         style = {'color':'red'}
         comp_speed_FPGA = 'NA'
         comp_speed_CPU = 'NA'
+        tot_memory = 'NA'
+        resource_fig = data_process.RF
+        select_fig = resource_fig.get_LUT_fig()
     else:
+        asm = [a for a in asm if not isinstance(a,Program) and not isinstance(a,Specification)]
+        asm.reverse()
+
+        asm_str.replace('\t','')
+        asm_str.replace('\n','')
+
+        compile_output = stdout
+
         node = [
             {'data':{'id': str(node), 'num': 0, 'type': str(type(node))[21:-2], 'name':node.name,'bpd':node.bpd, 'wpd':node.wpd, 'scq_size':node.scq_size} }
             for node in asm
         ]
 
         edge = []
-        atomic_op = set()
+        signals = []
         for src in asm:
             for child in src.get_children():
                 edge.append({'data':{'source':str(src), 'target':str(child)}})
 
-            # if (src.left):
-            #     edge.append({'data':{'source':str(src), 'target':str(src.left)}})
-            
-            # if (src.right):
-            #     edge.append({'data':{'source':str(src), 'target':str(src.right)}})
-
-            # if (src.left==None and src.right==None):
-            #     atomic_op.add(src)
+            if isinstance(src,Signal):
+                signals.append(src)
 
         elements = node + edge
-        style = {'color':'blue'}
-        tot_memory = str(scq_size*timestamp_length/8/1024)+"KB" #KB
-        tot_scq_size = str(scq_size) # + "(" + str()+ ")"
+        style = {'color':'green'}
+        tot_memory = str(scq_size*int(timestamp_length)/8/1024)+"KB" #KB
+        # scq_size_str = str(scq_size) # + "(" + str()+ ")"
         # tmp = pg.tot_time/int(hw_clk)
         tmp = int(hw_clk)
         comp_speed_FPGA = speed_unit_conversion(tmp)
-        comp_speed_CPU = speed_unit_conversion(int(at_exe_time)*len(atomic_op)+int(op_exe_time)*scq_size/int(cpu_clk))
+        comp_speed_CPU = speed_unit_conversion(int(at_exe_time)*len(signals)+int(op_exe_time)*scq_size/int(cpu_clk))
         resource_fig = data_process.RF
 
-        resource_fig.config(LUT_type, tot_scq_size, int(timestamp_length))
+        resource_fig.config(LUT_type, scq_size, int(timestamp_length))
         select_fig = resource_fig.get_LUT_fig() if resource_type == "LUT" else resource_fig.get_BRAM_fig()
 
-    return elements, asm_str, compile_status, style, comp_speed_FPGA, comp_speed_CPU , scq_size, tot_memory, select_fig
+    return elements, asm_str, compile_status, style, compile_output, comp_speed_FPGA, comp_speed_CPU , scq_size, tot_memory, select_fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)

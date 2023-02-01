@@ -1,4 +1,6 @@
+from io import StringIO
 import logging
+import sys
 
 STANDARD_LOGGER_NAME: str = 'c2po_standard_logger'
 COLOR_LOGGER_NAME: str = 'c2po_color_logger'
@@ -52,8 +54,9 @@ class ColorFormatter(logging.Formatter):
 standard_logger = logging.getLogger(STANDARD_LOGGER_NAME)
 standard_logger.setLevel(logging.DEBUG)
 
-standard_logger_handler = logging.StreamHandler()
-standard_logger_handler.setLevel(logging.DEBUG)
+log_stream = StringIO()
+standard_logger_handler = logging.StreamHandler(log_stream)
+standard_logger_handler.setLevel(logging.ERROR)
 
 standard_logger_handler.setFormatter(StandardFormatter())
 
@@ -63,7 +66,7 @@ standard_logger.addHandler(standard_logger_handler)
 color_logger = logging.getLogger(COLOR_LOGGER_NAME)
 color_logger.setLevel(logging.DEBUG)
 
-color_logger_handler = logging.StreamHandler()
+color_logger_handler = logging.StreamHandler(log_stream)
 color_logger_handler.setLevel(logging.DEBUG)
 
 color_logger_handler.setFormatter(ColorFormatter())

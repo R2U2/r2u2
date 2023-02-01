@@ -1,5 +1,8 @@
 from argparse import PARSER
+import io
 import re
+from io import StringIO
+import contextlib
 from logging import getLogger
 
 from .ast import *
@@ -9,7 +12,7 @@ from .logger import *
 
 # from .assembler import assemble
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(STANDARD_LOGGER_NAME)
 
 SUCCESS_CODE: int = 0
 PARSER_ERROR_CODE: int = 1
@@ -708,64 +711,70 @@ def validate_booleanizer_stack(asm: list[AST]) -> bool:
 def parse(input: str) -> list[Program]:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
-    return parser.parse(lexer.tokenize(input))
+    progs = parser.parse(lexer.tokenize(input))
+
+    if progs is None:
+        return []
+    return progs
 
 
-def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, color: bool, quiet: bool) -> tuple[int,AST,list[AST],str,int]:
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
-    programs: list[Program] = parse(input)
+def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, color: bool, quiet: bool) -> tuple[int,str,str,str,AST,list[AST],str,int]:
+    with contextlib.redirect_stdout(io.StringIO()) as stdout:
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
 
-    if len(programs) < 1:
-        logger.error(' Failed parsing.')
-        return (PARSER_ERROR_CODE,AST(0,[]),[],'',0)
+            # parse input, programs is a list of configurations (each SPEC block is a configuration)
+            programs: list[Program] = parse(input)
 
-    # type check
-    if not type_check(programs[0],bz,programs[0].structs):
-        logger.error(' Failed type check')
-        return (TYPE_CHECK_ERROR_CODE,AST(0,[]),[],'',0)
+            if len(programs) < 1:
+                logger.error(' Failed parsing.')
+                return (PARSER_ERROR_CODE,log_stream.getvalue(),stdout.getvalue(),stderr.getvalue(),AST(0,[]),[],'',0)
 
-    rewrite_set_aggregation(programs[0])
-    rewrite_struct_access(programs[0])
+            # type check
+            if not type_check(programs[0],bz,programs[0].structs):
+                logger.error(' Failed type check')
+                return (TYPE_CHECK_ERROR_CODE,log_stream.getvalue(),stdout.getvalue(),stderr.getvalue(),AST(0,[]),[],'',0)
 
-    # rewrite without extended operators if enabled
-    if not extops:
-        rewrite_extended_operators(programs[0])
+            rewrite_set_aggregation(programs[0])
+            rewrite_struct_access(programs[0])
 
-    # common sub-expressions elimination
-    optimize_cse(programs[0])
+            # rewrite without extended operators if enabled
+            if not extops:
+                rewrite_extended_operators(programs[0])
 
-    # generate alias file
-    # alias = gen_alias(programs[0])
+            # common sub-expressions elimination
+            optimize_cse(programs[0])
 
-    # parse csv/signals file
-    signal_mapping: dict[str,int] = parse_signals(sigs)
+            # generate alias file
+            # alias = gen_alias(programs[0])
 
-    # generate assembly
-    asm: list[AST] = generate_assembly(programs[0],signal_mapping)
-    scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
+            # parse csv/signals file
+            signal_mapping: dict[str,int] = parse_signals(sigs)
 
-    # print asm if 'quiet' option not enabled
-    asm_str: str = ''
-    if not quiet:
-        print(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
+            # generate assembly
+            asm: list[AST] = generate_assembly(programs[0],signal_mapping)
+            scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
 
-    for a in asm:
-        asm_str += '\t'+a.asm()
-        if not quiet:
-            print('\t'+a.asm())
+            # print asm if 'quiet' option not enabled
+            asm_str: str = ''
+            if not quiet:
+                print(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
 
-    if not quiet:
-        print(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
+            for a in asm:
+                asm_str += a.asm()+'\n'
+                if not quiet:
+                    print('\t'+a.asm())
 
-    for s in scq_asm:
-        asm_str += '\t'+str(s)
-        if not quiet:
-            print('\t'+str(s))
+            if not quiet:
+                print(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
 
-    postorder_ast: list[AST] = []
-    def post_sort(a: AST) ->  None:
-        nonlocal postorder_ast
-        postorder_ast.append(a)
-    postorder(programs[0],post_sort)
+            for s in scq_asm:
+                if not quiet:
+                    print('\t'+str(s))
 
-    return (SUCCESS_CODE,programs[0],postorder_ast,asm_str,sum([a.scq_size for a in asm]))
+            postorder_ast: list[AST] = []
+            def post_sort(a: AST) ->  None:
+                nonlocal postorder_ast
+                postorder_ast.append(a)
+            postorder(programs[0],post_sort)
+
+            return (SUCCESS_CODE,log_stream.getvalue(),stdout.getvalue(),stderr.getvalue(),programs[0],postorder_ast,asm_str,sum([a.scq_size for a in asm]))
