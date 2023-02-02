@@ -1,7 +1,11 @@
 from __future__ import annotations
 from copy import deepcopy
+import inspect
+# import inspect
+import sys
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
+from typing_extensions import Self
 
 from .logger import *
 from .type import *
@@ -13,6 +17,10 @@ class Interval(NamedTuple):
     ub: int
 
 StructDict = NewType('StructDict', dict[str, dict[str, Type]])
+
+
+
+
 
 def postorder(a: AST, func: Callable[[AST], Any]) -> None:
     """Performs a postorder traversal of a, calling func on each node."""
@@ -54,6 +62,7 @@ def rename(v: AST, repl: AST, expr: AST) -> AST:
 
 
 class AST():
+    is_instruction: bool = False
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         self.ln: int = ln
@@ -77,9 +86,9 @@ class AST():
         for child in c:
             self._children.append(child)
             child._parents.append(self)
-            if isinstance(self, TLExpr):
+            if isinstance(self, TLInstruction):
                 child.num_tl_parents += 1
-            elif isinstance(self, BZExpr):
+            elif isinstance(self, BZInstruction):
                 child.num_bz_parents += 1
 
     def get_children(self) -> list[AST]:
@@ -115,16 +124,13 @@ class AST():
 
             new._parents.append(p)
 
-            if isinstance(p, TLExpr):
+            if isinstance(p, TLInstruction):
                 new.num_tl_parents += 1
-            elif isinstance(p, BZExpr):
+            elif isinstance(p, BZInstruction):
                 new.num_bz_parents += 1
 
     def __str__(self) -> str:
         return self.name
-
-    def asm(self) -> str:
-        return 'ERROR: no asm instruction'
 
     def copy_attrs(self, new: AST) -> None:
         new.tlid = self.tlid
@@ -145,7 +151,18 @@ class AST():
         return new
 
 
-class TLExpr(AST):
+# Abstract base class for module-specific instructions
+class Instruction(AST):
+
+    def __init__(self, ln: int, c: list[AST]) -> None:
+        super().__init__(ln, c)
+
+    def asm(self) -> str:
+        return 'ERROR: Invalid instruction (class should inherit from TLInstruction or BZInstruction, not Instruction)'
+
+
+# Abstract base class for AST nodes that have valid TL assembly instructions
+class TLInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -154,7 +171,8 @@ class TLExpr(AST):
         return 'TL: n' + str(self.tlid) + ': '
 
 
-class BZExpr(AST):
+# Abstract base class for AST nodes that have valid BZ assembly instructions
+class BZInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -180,7 +198,7 @@ class Constant(Literal):
         return self.value
 
 
-class Integer(Constant, BZExpr):
+class Integer(Constant, BZInstruction):
 
     def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln,[])
@@ -199,7 +217,7 @@ class Integer(Constant, BZExpr):
                 self.type = INT64()
             else:
                 logger.error(
-                    f'{ln}: INTeger constant \'{v}\' not representable within 64 bits')
+                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
         else:
             if bit_length <= 8:
                 self.type = UINT8()
@@ -225,7 +243,7 @@ class Integer(Constant, BZExpr):
         return super().asm() + 'iconst ' + str(self.name) + ''
 
 
-class Float(Constant, BZExpr):
+class Float(Constant, BZInstruction):
 
     def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln,[])
@@ -260,7 +278,7 @@ class Signal(Literal):
         self.sid = -1
 
 
-class Bool(Constant, BZExpr, TLExpr):
+class Bool(Constant, BZInstruction, TLInstruction):
 
     def __init__(self, ln: int, v: bool) -> None:
         super().__init__(ln,[])
@@ -300,9 +318,6 @@ class Set(AST):
             s += str(m) + ','
         s = s[:-1] + '}'
         return s
-
-    def asm(self) -> str:
-        return super().asm() + 'set ' + str(self.name) + ''
 
 
 class Struct(AST):
@@ -387,7 +402,7 @@ class BinaryOperator(Operator):
 
 
 # only used for assembly generation
-class Duplicate(UnaryOperator, BZExpr):
+class Duplicate(UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, d: AST) -> None:
         super().__init__(ln, [d])
@@ -406,18 +421,18 @@ class Duplicate(UnaryOperator, BZExpr):
 
 
 # only used for assembly generation
-class TLAtomicLoad(UnaryOperator, TLExpr):
+class TLAtomicLoad(UnaryOperator, TLInstruction):
 
-    def __init__(self, ln: int, l: BZExpr) -> None:
+    def __init__(self, ln: int, l: BZInstruction) -> None:
         super().__init__(ln, [l])
         self.tlid = l.tlid
 
-    def get_load(self) -> BZExpr:
-        return cast(BZExpr, self.get_operand())
+    def get_load(self) -> BZInstruction:
+        return cast(BZInstruction, self.get_operand())
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = TLAtomicLoad(self.ln, cast(BZExpr, children[0]))
+        new = TLAtomicLoad(self.ln, cast(BZInstruction, children[0]))
         self.copy_attrs(new)
         return new
 
@@ -426,7 +441,7 @@ class TLAtomicLoad(UnaryOperator, TLExpr):
 
 
 # only used for assembly generation
-class TLSignalLoad(UnaryOperator, TLExpr):
+class TLSignalLoad(UnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, l: Signal) -> None:
         super().__init__(ln, [l])
@@ -446,18 +461,18 @@ class TLSignalLoad(UnaryOperator, TLExpr):
 
 
 # only used for assembly generation
-class BZAtomicLoad(UnaryOperator, BZExpr):
+class BZAtomicLoad(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, l: TLExpr) -> None:
+    def __init__(self, ln: int, l: TLInstruction) -> None:
         super().__init__(ln, [l])
         self.tlid = l.tlid
 
-    def get_load(self) -> TLExpr:
-        return cast(TLExpr, self.get_operand())
+    def get_load(self) -> TLInstruction:
+        return cast(TLInstruction, self.get_operand())
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = BZAtomicLoad(self.ln, cast(TLExpr, children[0]))
+        new = BZAtomicLoad(self.ln, cast(TLInstruction, children[0]))
         self.copy_attrs(new)
         return new
 
@@ -467,7 +482,7 @@ class BZAtomicLoad(UnaryOperator, BZExpr):
 
 
 # only used for assembly generation
-class BZSignalLoad(UnaryOperator, BZExpr):
+class BZSignalLoad(UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, l: Signal) -> None:
         super().__init__(ln, [l])
@@ -488,17 +503,17 @@ class BZSignalLoad(UnaryOperator, BZExpr):
 
 
 # only used for assembly generation
-class BZAtomicStore(UnaryOperator, BZExpr):
+class BZAtomicStore(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, s: BZExpr) -> None:
+    def __init__(self, ln: int, s: BZInstruction) -> None:
         super().__init__(ln, [s])
 
-    def get_store(self) -> BZExpr:
-        return cast(BZExpr, self.get_operand())
+    def get_store(self) -> BZInstruction:
+        return cast(BZInstruction, self.get_operand())
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = BZAtomicStore(self.ln, cast(BZExpr, children[0]))
+        new = BZAtomicStore(self.ln, cast(BZInstruction, children[0]))
         self.copy_attrs(new)
         return new
 
@@ -507,19 +522,19 @@ class BZAtomicStore(UnaryOperator, BZExpr):
 
 
 # only used for assembly generation
-class RegisterStore(UnaryOperator, BZExpr):
+class RegisterStore(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, s: BZExpr, r: int) -> None:
+    def __init__(self, ln: int, s: BZInstruction, r: int) -> None:
         super().__init__(ln, [s])
         self.register: int = r
         s.register = r
 
-    def get_store(self) -> BZExpr:
-        return cast(BZExpr, self.get_operand())
+    def get_store(self) -> BZInstruction:
+        return cast(BZInstruction, self.get_operand())
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = RegisterStore(self.ln, cast(BZExpr, children[0]), self.register)
+        new = RegisterStore(self.ln, cast(BZInstruction, children[0]), self.register)
         self.copy_attrs(new)
         return new
 
@@ -528,18 +543,18 @@ class RegisterStore(UnaryOperator, BZExpr):
 
 
 # only used for assembly generation
-class RegisterLoad(UnaryOperator, BZExpr):
+class RegisterLoad(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, l: BZExpr) -> None:
+    def __init__(self, ln: int, l: BZInstruction) -> None:
         super().__init__(ln, [l])
         self.register: int = l.register
 
-    def get_load(self) -> BZExpr:
-        return cast(BZExpr, self.get_operand())
+    def get_load(self) -> BZInstruction:
+        return cast(BZInstruction, self.get_operand())
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = RegisterLoad(self.ln, cast(BZExpr, children[0]))
+        new = RegisterLoad(self.ln, cast(BZInstruction, children[0]))
         self.copy_attrs(new)
         return new
 
@@ -642,7 +657,7 @@ class ForAtMostN(SetAggOperator):
         return new
 
 
-class Count(BZExpr):
+class Count(BZInstruction):
 
     def __init__(self, ln: int, n: AST, c: list[AST]) -> None:
         # Note: all members of c must be of type Boolean
@@ -675,7 +690,7 @@ class BitwiseOperator(Operator):
         super().__init__(ln, c)
 
 
-class BitwiseAnd(BitwiseOperator, BinaryOperator):
+class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -691,7 +706,7 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator):
         return super().asm() + 'and'
 
 
-class BitwiseOr(BitwiseOperator, BinaryOperator):
+class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -707,7 +722,7 @@ class BitwiseOr(BitwiseOperator, BinaryOperator):
         return super().asm() + 'or'
 
 
-class BitwiseXor(BitwiseOperator, BinaryOperator):
+class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -723,7 +738,7 @@ class BitwiseXor(BitwiseOperator, BinaryOperator):
         return super().asm() + 'xor'
 
 
-class BitwiseShiftLeft(BitwiseOperator, BinaryOperator):
+class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -739,7 +754,7 @@ class BitwiseShiftLeft(BitwiseOperator, BinaryOperator):
         return super().asm() + 'lshift'
 
 
-class BitwiseShiftRight(BitwiseOperator, BinaryOperator):
+class BitwiseShiftRight(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -755,7 +770,7 @@ class BitwiseShiftRight(BitwiseOperator, BinaryOperator):
         return super().asm() + 'rshift'
 
 
-class BitwiseNegate(BitwiseOperator, UnaryOperator):
+class BitwiseNegate(BitwiseOperator, UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, o: AST) -> None:
         super().__init__(ln, [o])
@@ -771,13 +786,13 @@ class BitwiseNegate(BitwiseOperator, UnaryOperator):
         return super().asm() + 'bwneg'
 
 
-class ArithmeticOperator(BZExpr):
+class ArithmeticOperator(Operator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
 
 
-class ArithmeticAdd(ArithmeticOperator, BinaryOperator):
+class ArithmeticAdd(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -793,7 +808,7 @@ class ArithmeticAdd(ArithmeticOperator, BinaryOperator):
         return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'add'
 
 
-class ArithmeticSubtract(ArithmeticOperator, BinaryOperator):
+class ArithmeticSubtract(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -809,7 +824,7 @@ class ArithmeticSubtract(ArithmeticOperator, BinaryOperator):
         return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'sub'
 
 
-class ArithmeticMultiply(ArithmeticOperator, BinaryOperator):
+class ArithmeticMultiply(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -825,7 +840,7 @@ class ArithmeticMultiply(ArithmeticOperator, BinaryOperator):
         return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'mul'
 
 
-class ArithmeticDivide(ArithmeticOperator, BinaryOperator):
+class ArithmeticDivide(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -841,7 +856,7 @@ class ArithmeticDivide(ArithmeticOperator, BinaryOperator):
         return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'div'
 
 
-class ArithmeticModulo(ArithmeticOperator, BinaryOperator):
+class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -857,7 +872,7 @@ class ArithmeticModulo(ArithmeticOperator, BinaryOperator):
         return super().asm() + 'mod'
 
 
-class ArithmeticNegate(ArithmeticOperator, UnaryOperator):
+class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, o: AST) -> None:
         super().__init__(ln, [o])
@@ -873,7 +888,7 @@ class ArithmeticNegate(ArithmeticOperator, UnaryOperator):
         return super().asm() + ('f' if self.type == FLOAT() else 'i') + 'neg'
 
 
-class RelationalOperator(BZExpr, BinaryOperator):
+class RelationalOperator(BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -885,7 +900,7 @@ class RelationalOperator(BZExpr, BinaryOperator):
         return new
 
 
-class Equal(RelationalOperator):
+class Equal(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -895,7 +910,7 @@ class Equal(RelationalOperator):
         return super().asm() + 'eq'
 
 
-class NotEqual(RelationalOperator):
+class NotEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -905,7 +920,7 @@ class NotEqual(RelationalOperator):
         return super().asm() + 'neq'
 
 
-class GreaterThan(RelationalOperator):
+class GreaterThan(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -915,7 +930,7 @@ class GreaterThan(RelationalOperator):
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gt'
 
 
-class LessThan(RelationalOperator):
+class LessThan(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -925,7 +940,7 @@ class LessThan(RelationalOperator):
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lt'
 
 
-class GreaterThanOrEqual(RelationalOperator):
+class GreaterThanOrEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -935,7 +950,7 @@ class GreaterThanOrEqual(RelationalOperator):
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'gte'
 
 
-class LessThanOrEqual(RelationalOperator):
+class LessThanOrEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, lhs, rhs)
@@ -945,7 +960,7 @@ class LessThanOrEqual(RelationalOperator):
         return super().asm() + ('i' if is_integer_type(self.get_lhs().type) else 'f') + 'lte'
 
 
-class LogicalOperator(TLExpr):
+class LogicalOperator(Operator):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -953,7 +968,7 @@ class LogicalOperator(TLExpr):
         self.wpd = max([child.wpd for child in c])
 
 
-class LogicalOr(LogicalOperator):
+class LogicalOr(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         assert len(c) > 1
@@ -973,7 +988,7 @@ class LogicalOr(LogicalOperator):
         return s + ''
 
 
-class LogicalAnd(LogicalOperator):
+class LogicalAnd(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -992,7 +1007,7 @@ class LogicalAnd(LogicalOperator):
         return s + ''
 
 
-class LogicalXor(LogicalOperator, BinaryOperator):
+class LogicalXor(LogicalOperator, BinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -1008,7 +1023,7 @@ class LogicalXor(LogicalOperator, BinaryOperator):
         return super().asm() + 'xor ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name()
 
 
-class LogicalImplies(LogicalOperator, BinaryOperator):
+class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
@@ -1024,7 +1039,7 @@ class LogicalImplies(LogicalOperator, BinaryOperator):
         return super().asm() + 'impl ' + self.get_lhs().tlid_name() + ' ' + self.get_rhs().tlid_name()
 
 
-class LogicalNegate(LogicalOperator, UnaryOperator):
+class LogicalNegate(LogicalOperator, UnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST):
         super().__init__(ln, [o])
@@ -1040,7 +1055,7 @@ class LogicalNegate(LogicalOperator, UnaryOperator):
         return super().asm() + 'not ' + self.get_operand().tlid_name()
 
 
-class TemporalOperator(TLExpr):
+class TemporalOperator(Operator):
 
     def __init__(self, ln: int, c: list[AST], l: int, u: int) -> None:
         super().__init__(ln, c)
@@ -1084,7 +1099,7 @@ class FutureTimeBinaryOperator(TemporalOperator):
         return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
 
 
-class Until(FutureTimeBinaryOperator):
+class Until(FutureTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
@@ -1095,7 +1110,7 @@ class Until(FutureTimeBinaryOperator):
             str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
-class Release(FutureTimeBinaryOperator):
+class Release(FutureTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
@@ -1126,7 +1141,7 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
 
 
-class Global(FutureTimeUnaryOperator):
+class Global(FutureTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
@@ -1137,7 +1152,7 @@ class Global(FutureTimeUnaryOperator):
             str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
-class Future(FutureTimeUnaryOperator):
+class Future(FutureTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
@@ -1169,7 +1184,7 @@ class PastTimeBinaryOperator(PastTimeOperator):
         return f'({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})'
 
 
-class Since(PastTimeBinaryOperator):
+class Since(PastTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
@@ -1198,7 +1213,7 @@ class PastTimeUnaryOperator(PastTimeOperator):
         return f'{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})'
 
 
-class Historical(PastTimeUnaryOperator):
+class Historical(PastTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
@@ -1209,7 +1224,7 @@ class Historical(PastTimeUnaryOperator):
             str(self.interval.lb) + ' ' + str(self.interval.ub)
 
 
-class Once(PastTimeUnaryOperator):
+class Once(PastTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
@@ -1219,7 +1234,7 @@ class Once(PastTimeUnaryOperator):
         return super().asm() + 'once ' + self.get_operand().tlid_name() + ' ' + \
             str(self.interval.lb) + ' ' + str(self.interval.ub)
 
-class Specification(TLExpr):
+class Specification(TLInstruction):
 
     def __init__(self, ln: int, lbl: str, f: int, e: AST) -> None:
         super().__init__(ln, [e])
@@ -1243,19 +1258,33 @@ class Specification(TLExpr):
         return super().asm() + 'end ' + top.tlid_name() + ' f' + str(self.formula_number) + ''
 
 
-class Program(TLExpr):
+class Program(TLInstruction):
 
     def __init__(self, ln: int, st: StructDict, s: list[Specification], c: dict[int, Specification]) -> None:
         super().__init__(ln, [cast(AST,spec) for spec in s])
-        self.structs = st
-        self.specs = s
-        self.contracts = c
-        self.is_type_correct = False
-        self.is_boolean_normal_form = False
-        self.is_negative_normal_form = False
-        self.is_set_agg_free = False
-        self.is_struct_access_free = False
-        self.is_cse_reduced = False
+
+        # Data
+        self.timestamp_width: int = 0
+        self.structs: StructDict = st
+        self.specs: list[Specification] = s
+        self.contracts: dict[int, Specification] = c
+        self.assembly: list[Instruction]
+        self.scq_assembly: list[tuple[int,int]]
+        self.signal_mapping: dict[str,int]
+
+        # Computable properties
+        self.total_scq_size: int = -1
+        self.total_memory: int = -1
+        self.cpu_wcet: int = -1
+        self.fpga_wcet: float = -1
+
+        # Predicates
+        self.is_type_correct: bool = False
+        self.is_boolean_normal_form: bool = False
+        self.is_negative_normal_form: bool = False
+        self.is_set_agg_free: bool = False
+        self.is_struct_access_free: bool = False
+        self.is_cse_reduced: bool = False
 
     def __str__(self) -> str:
         ret: str = ''
@@ -1266,3 +1295,10 @@ class Program(TLExpr):
 
     def asm(self) -> str:
         return super().asm() + 'endsequence'
+
+
+# Collect all classes that are Instructions and store in this list
+# instruction_list
+
+# print(inspect.getmembers(sys.modules[__name__], 
+#     lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and obj != Instruction and obj != TLInstruction and obj != BZInstruction))

@@ -11,16 +11,30 @@ from .logger import *
 
 logger = getLogger(COLOR_LOGGER_NAME)
 
-SUCCESS_CODE: int = 0
-PARSER_ERROR_CODE: int = 1
-TYPE_CHECK_ERROR_CODE: int = 2
 
-# class C2PO:
-#     """Configuration Compiler for Property Organization"""
+class ReturnCode(Enum):
+    SUCCESS = 0
+    PARSE_ERROR = 1
+    TYPE_CHECK_ERROR = 2
 
-#     def __init__(self, mltl_filename: str, signal_filename: str, output_path: str, booleanizer: bool, \
-#             extended_operators: bool, quiet: bool) -> None:
-#         pass
+
+default_cpu_latency_table: dict[str, int] = { name:0 for (name,value) in 
+    inspect.getmembers(sys.modules['compiler.ast'], 
+        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
+            obj != Instruction and 
+            obj != TLInstruction and 
+            obj != BZInstruction and 
+            obj != Program and 
+            obj != Specification) }
+
+default_fpga_latency_table: dict[str, float] = { name:0.0 for (name,value) in 
+    inspect.getmembers(sys.modules['compiler.ast'], 
+        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
+            obj != Instruction and 
+            obj != TLInstruction and 
+            obj != BZInstruction and 
+            obj != Program and 
+            obj != Specification) }
 
 
 def type_check(program: Program, bz: bool, st: StructDict) -> bool:
@@ -47,7 +61,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
             return
         explored.append(a)
 
-        if not bz and isinstance(a,BZExpr) and not isinstance(a,Signal) and not isinstance(a,Bool):
+        if not bz and isinstance(a,BZInstruction) and not isinstance(a,Signal) and not isinstance(a,Bool):
             status = False
             logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
@@ -504,7 +518,7 @@ def optimize_cse(program: Program) -> None:
     program.is_cse_reduced = True
 
 
-def gen_alias(program: Program) -> str:
+def generate_alias(program: Program) -> str:
     """
     Generates string corresponding to the alias file for th argument program. The alias file is used by R2U2 to print formula labels and contract status.
 
@@ -529,11 +543,18 @@ def gen_alias(program: Program) -> str:
     return s
 
 
-def compute_scq_size(program: Program) -> None:
+def compute_scq_size(program: Program) -> int:
+    """
+    Computes SCQ sizes for each node in 'program' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+    """
     visited: list[AST] = []
+    total: int = 0
 
     def compute_scq_size_util(a: AST) -> None:
-        if not isinstance(a, TLExpr) or isinstance(a, Program):
+        nonlocal visited
+        nonlocal total
+
+        if not isinstance(a, TLInstruction) or isinstance(a, Program):
             return
 
         if a in visited:
@@ -542,6 +563,7 @@ def compute_scq_size(program: Program) -> None:
 
         if isinstance(a, Specification):
             a.scq_size = 1
+            total += a.scq_size
             return
 
         siblings: list[AST] = []
@@ -553,8 +575,12 @@ def compute_scq_size(program: Program) -> None:
         wpd: int = max([s.wpd for s in siblings]+[1])
 
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        total += a.scq_size
  
     postorder(program,compute_scq_size_util)
+    program.total_scq_size = total
+
+    return total
 
 
 def parse_signals(filename: str) -> dict[str,int]:
@@ -590,13 +616,13 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
         if isinstance(a,Bool) or a.tlid > -1 or a.bzid > -1:
             return
 
-        if isinstance(a,TLExpr):
+        if isinstance(a,TLInstruction):
             a.tlid = tlid
             tlid += 1
 
-        if isinstance(a,BZExpr):
+        if isinstance(a,BZInstruction):
             for p in a.get_parents():
-                if isinstance(p,TLExpr):
+                if isinstance(p,TLInstruction):
                     a.atid = atid
                     atid += 1
                     a.tlid = tlid
@@ -610,7 +636,7 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
                 a.sid = signal_mapping[a.name]
             
             for p in a.get_parents():
-                if isinstance(p,TLExpr):
+                if isinstance(p,TLInstruction):
                     a.tlid = tlid
                     tlid += 1
                     break
@@ -618,11 +644,11 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
     postorder(program,assign_ids_util)
 
 
-def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[AST]:
+def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[Instruction]:
     visited: set[AST] = set()
     available_registers: set[int] = set()
     max_register: int = 0
-    asm: list[AST] = []
+    asm: list[Instruction] = []
 
     # logger.info(program)
 
@@ -636,7 +662,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
         # Visit BZ literals as many times as necessary
         # Visit all other BZ nodes once, store and load using registers
 
-        if isinstance(a,TLExpr):
+        if isinstance(a,TLInstruction):
             for c in a.get_children():
                 if isinstance(c, Signal) and not c in visited:
                     asm.append(TLSignalLoad(c.ln, c))
@@ -648,8 +674,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
 
             asm.append(a)
             visited.add(a)
-
-        elif isinstance(a,BZExpr):
+        elif isinstance(a,BZInstruction):
             for c in a.get_children():
                 if isinstance(c, Signal):
                     asm.append(BZSignalLoad(c.ln, c))
@@ -669,6 +694,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[A
     assign_ids(program,signal_mapping)
     
     generate_assembly_util(program)
+    program.assembly = asm
     
     return asm
 
@@ -683,7 +709,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
         nonlocal ret
         nonlocal pos
 
-        if isinstance(a,Program) or not isinstance(a,TLExpr):
+        if isinstance(a,Program) or not isinstance(a,TLInstruction):
             return
 
         start_pos = pos
@@ -692,7 +718,67 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
         ret.append((start_pos,end_pos))
 
     postorder(program,gen_scq_assembly_util)
+    program.scq_assembly = ret
+
     return ret
+
+
+def compute_cpu_wcet(program: Program, latency_table: dict[str, int]) -> int:
+    """
+    Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
+
+    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in CPU clock cycles. For instance, one key-value pair may be ('LogicalAnd': 15). If an AST node is found that does not have a corresponding value in the table, an error is reported.
+
+    Preconditions:
+        - program has had its assembly generated
+
+    Postconditions:
+        - None
+    """
+    wcet: int = 0
+
+    def compute_cpu_wcet_util(a: AST) -> int:
+        nonlocal latency_table
+
+        classname: str = type(a).__name__
+        if classname not in latency_table:
+            logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
+            return 0
+        else:
+            return latency_table[classname]
+
+    wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
+    program.cpu_wcet = wcet
+    return wcet
+
+
+def compute_fpga_wcet(program: Program, latency_table: dict[str, float]) -> float:
+    """
+    Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
+
+    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in micro seconds. For instance, one key-value pair may be ('LogicalAnd': 15.0). If an AST node is found that does not have a corresponding value in the table, an error is reported.
+
+    Preconditions:
+        - program has had its assembly generated
+
+    Postconditions:
+        - None
+    """
+    wcet: float = 0
+
+    def compute_cpu_wcet_util(a: AST) -> float:
+        nonlocal latency_table
+
+        classname: str = type(a).__name__
+        if classname not in latency_table:
+            logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
+            return 0
+        else:
+            return latency_table[classname]
+
+    wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
+    program.fpga_wcet = wcet
+    return wcet
 
 
 def validate_booleanizer_stack(asm: list[AST]) -> bool:
@@ -711,12 +797,12 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')
-        return PARSER_ERROR_CODE
+        return ReturnCode.PARSE_ERROR.value
 
     # type check
     if not type_check(programs[0],bz,programs[0].structs):
         logger.error(' Failed type check')
-        return TYPE_CHECK_ERROR_CODE
+        return ReturnCode.TYPE_CHECK_ERROR.value
 
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
@@ -735,7 +821,7 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
     signal_mapping: dict[str,int] = parse_signals(sigs)
 
     # generate assembly
-    asm: list[AST] = generate_assembly(programs[0],signal_mapping)
+    asm: list[Instruction] = generate_assembly(programs[0],signal_mapping)
     scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
 
     # print asm if 'quiet' option not enabled
@@ -747,4 +833,4 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
         for s in scq_asm:
             print('\t'+str(s))
 
-    return SUCCESS_CODE
+    return ReturnCode.SUCCESS.value
