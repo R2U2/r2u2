@@ -40,7 +40,7 @@
     width: 100%;
     max-width: 960px;
     margin: auto;
-    padding: 0 0;
+    padding: 0;
     box-sizing: border-box; }
   .column,
   .columns {
@@ -116,36 +116,6 @@
   
     .offset-by-one-half.column,
     .offset-by-one-half.columns     { margin-left: 52%; }
-    /* .offset-by-one.column,
-    .offset-by-one.columns          
-    .offset-by-two.column,
-    .offset-by-two.columns          
-    .offset-by-three.column,
-    .offset-by-three.columns        
-    .offset-by-four.column,
-    .offset-by-four.columns         
-    .offset-by-five.column,
-    .offset-by-five.columns         
-    .offset-by-six.column,
-    .offset-by-six.columns         
-    .offset-by-seven.column,
-    .offset-by-seven.columns        
-    .offset-by-eight.column,
-    .offset-by-eight.columns    
-    .offset-by-nine.column,
-    .offset-by-nine.columns       
-    .offset-by-ten.column,
-    .offset-by-ten.columns        
-    .offset-by-eleven.column,
-    .offset-by-eleven.columns      
-  
-    .offset-by-one-third.column,
-    .offset-by-one-third.columns   
-    .offset-by-two-thirds.column,
-    .offset-by-two-thirds.columns 
-  
-    .offset-by-one-half.column,
-    .offset-by-one-half.columns    */
   
   }
   
@@ -443,3 +413,9 @@
   
   /* Larger than Desktop HD */
   @media (min-width: 1200px) {}
+
+  pre > code {
+    outline: none;
+    display: block;
+  }
+  

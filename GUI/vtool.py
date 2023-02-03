@@ -5,75 +5,113 @@
 # type: ignore
 import json
 import dash
+import inspect
+import sys
 from dash import html, dcc
 import dash_cytoscape as cyto
-from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output, State
 from textwrap import dedent as d
+from itertools import chain
 
 import plotly.graph_objects as go
-from compiler.compiler import compile
+from compiler.compiler import *
 from compiler.ast import *
 import data_process
 
+cpu_latency_table = default_cpu_latency_table.copy()
+fpga_latency_table = default_fpga_latency_table.copy()
+
 cyto.load_extra_layouts()
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.title = "R2U2 Resource Estimator"
-default_stylesheet = [
+
+default_stylesheet = [ 
     {
-        'selector': '[type = "Signal"]',
-        'style': {
-            'background-color': '#ff9900',
-            'label': 'data(name)'
-        }
-    },
-    {
-        'selector': '[type = "Bool"]',
-        'style': {
-            'background-color': '#BFD7B5',
-            'label': 'data(name)'
-        }
-    },
-    {
-        'selector': '[type = "LogicalNegate"]',
-        'style': {
-            'background-color': '#66ff99',
-            'label': 'data(name)'
-        }
-    },
-    {
-        'selector': '[type = "Global"]',
-        'style': {
-            'background-color': '#6699ff',
-            'label': 'data(name)',
-        }
-    },
-    {
-        'selector': '[type = "LogicalAnd"]',
-        'style': {
-            'background-color': '#ff6666',
-            'label': 'data(name)'
-        }
-    },
-    {
-        'selector': '[type = "Until"]',
+        'selector': '[type = "'+cls.__name__+'"]',
         'style': {
             'background-color': '#cc00cc',
             'label': 'data(name)'
         }
-    },
+    }
+    for cls in instruction_list if issubclass(cls, TemporalOperator)
+] + [
+    {
+        'selector': '[type = "'+cls.__name__+'"]',
+        'style': {
+            'background-color': '#66ff99',
+            'label': 'data(name)'
+        }
+    }
+    for cls in instruction_list if issubclass(cls, LogicalOperator)
+] + [
+    {
+        'selector': '[type = "'+cls.__name__+'"]',
+        'style': {
+            'background-color': '#ff9900',
+            'label': 'data(name)'
+        }
+    }
+    for cls in instruction_list if issubclass(cls, TLSignalLoad)
+] + [
     {
         'selector': 'edge',
         'style': {
             'curve-style': 'bezier',
-            'target-arrow-color': 'black',
+            'target-arrow-color': 'grey',
             'target-arrow-shape': 'vee',
-            'line-color': 'black'
+            'line-color': 'grey'
         }
     }
 ]
+
+# default_stylesheet = [
+#     {
+#         'selector': '[type = "Signal"]',
+#         'style': {
+#             'background-color': '#ff9900',
+#             'label': 'data(name)'
+#         }
+#     },
+#     {
+#         'selector': '[type = "Bool"]',
+#         'style': {
+#             'background-color': '#BFD7B5',
+#             'label': 'data(name)'
+#         }
+#     },
+#     {
+#         'selector': '[type = "LogicalNegate"]',
+#         'style': {
+#             'background-color': '#66ff99',
+#             'label': 'data(name)'
+#         }
+#     },
+#     {
+#         'selector': '[type = "Global"]',
+#         'style': {
+#             'background-color': '#6699ff',
+#             'label': 'data(name)',
+#         }
+#     },
+#     {
+#         'selector': '[type = "LogicalAnd"]',
+#         'style': {
+#             'background-color': '#ff6666',
+#             'label': 'data(name)'
+#         }
+#     },
+#     {
+#         'selector': '[type = "Until"]',
+#         'style': {
+#             'background-color': '#cc00cc',
+#             'label': 'data(name)'
+#         }
+#     },
+# ]
 
 styles = {
     'json-output': {
@@ -107,8 +145,8 @@ app.layout = html.Div(
                     # dcc.Input(id='formula', value='a0 U[5] a1; a1&a3;', type='text'),
                     dcc.Textarea(
                         id='formula',
-                        value='INPUT\n\ta0, a1, a2: bool;\n\nDEFINE\n\ta3 = a0 && a1;\n\nSPEC\n\ta0;\n\ta0 U[0,5] a2;\n\tG[1,3] a3;' ,
-                        style={'width': '100%', 'height': '350px'},
+                        value='INPUT\n  a0, a1, a2: bool;\n\nDEFINE\n  a3 = a0 && a1;\n\nSPEC\n  a0;\n  a0 U[0,5] a2;\n  G[1,3] a3;' ,
+                        style={'width': '100%', 'height': '350px', 'font-family': 'monospace'},
                     ),
                     dcc.Checklist(
                         id = 'optimization',
@@ -117,6 +155,9 @@ app.layout = html.Div(
                         ],
                         value=['opt_cse',]
                     ),
+                    dbc.Button(
+                        "Compile", id="run-compile", className="ms-auto", n_clicks=0
+                    ),
                     html.Pre(id='compile_status', style = {'color': 'blue'}),
 
                     html.Div(
@@ -124,7 +165,7 @@ app.layout = html.Div(
                         style = {'height': '350px'},
                         children=[
                             dcc.Markdown(d("""
-                                    ###### C2PO Logging Output
+                                    ###### C2PO Log
                                     """)),
                             html.Pre(
                                 id='compile_output',
@@ -144,18 +185,40 @@ app.layout = html.Div(
                             style={'backgroundColor': '#A2F0E4'},
                             children = [
                                 dcc.Markdown(d("---\n### Software Configuration")),
-                                # Command exection time for each operator
-                                dcc.Markdown(d("**TL Clock Cycles**")),
-                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text', size='5'),
-                                # Processing time for each atomic checker
-                                dcc.Markdown(d("**BZ Clock Cycles**")),
-                                dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text', size='5'),
-
                                 dcc.Markdown(d("**Clock Frequency (GHz)**")),
                                 dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text', size='5'),
-                                dcc.Markdown(d("**Worst-case Execution Time**")),
+                                # Command exection time for each operator
+                                dcc.Markdown(d("**CPU Operator Latencies**")),
+                                dbc.Button("Edit", id="cpu-open", n_clicks=0),
+                                dbc.Modal(
+                                    # style = {'width': '500px'},
+                                    children = [
+                                        dbc.ModalHeader(dbc.ModalTitle("CPU Operator Latency")),
+                                        dbc.ModalBody(
+                                            [html.Div(
+                                                style={'backgroundColor': '#A2F0E4'},
+                                                children = [
+                                                    html.Div(name, style={'width': '40%', 'display': 'inline-block'}), 
+                                                    dcc.Input(style={'backgroundColor': '#A2F0E4', 'display': 'inline-block'}, id=name+'cpu-latency', value=val, size='5')
+                                                ]) for (name,val) in default_cpu_latency_table.items()]
+                                        ),
+                                        dbc.ModalFooter(
+                                            dbc.Button(
+                                                "Update", id="cpu-close", className="ms-auto", n_clicks=0
+                                            )
+                                        ),
+                                    ],
+                                    id="cpu-modal",
+                                    is_open=False,
+                                ),
+                                # dcc.Markdown(d("**TL Clock Cycles**")),
+                                # dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='op_exe_time', value='10', type='text', size='5'),
+                                # # Processing time for each atomic checker
+                                # dcc.Markdown(d("**BZ Clock Cycles**")),
+                                # dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text', size='5'),
+                                dcc.Markdown(d("**Worst-case Exec. Time**")),
                                 html.Div(id="comp_speed_CPU",),
-                                dcc.Markdown(d("**Total Memory usage for SCQ**")),
+                                dcc.Markdown(d("**Est. SCQ Memory (Kb)**")),
                                 html.Div(id="tot_memory",),
                             ]
                         ),
@@ -199,6 +262,30 @@ app.layout = html.Div(
 
                         dcc.Markdown(d("**Timestamp Length (Bits)**")),
                         dcc.Input(style={'backgroundColor': '#F7FAC0'},id='timestamp_length', value='32', type='text', size='5'),
+
+                        dcc.Markdown(d("**FPGA Operator Latencies**")),
+                        dbc.Button("Edit", id="fpga-open", n_clicks=0),
+                        dbc.Modal(
+                            # style = {'width': '500px'},
+                            children = [
+                                dbc.ModalHeader(dbc.ModalTitle("FPGA Operator Latency")),
+                                dbc.ModalBody(
+                                    [html.Div(
+                                        style={'backgroundColor': '#F7FAC0'},
+                                        children = [
+                                            html.Div(name, style={'width': '40%', 'display': 'inline-block'}), 
+                                            dcc.Input(style={'backgroundColor': '#F7FAC0', 'display': 'inline-block'}, id=name+'fpga-latency', value=val, size='5')
+                                        ]) for (name,val) in default_fpga_latency_table.items()]
+                                ),
+                                dbc.ModalFooter(
+                                    dbc.Button(
+                                        "Update", id="fpga-close", className="ms-auto", n_clicks=0
+                                    )
+                                ),
+                            ],
+                            id="fpga-modal",
+                            is_open=False,
+                        ),
                         # dcc.Slider(
                         #     id='timestamp_length',
                         #     min=0,
@@ -214,7 +301,7 @@ app.layout = html.Div(
                         # style={'backgroundColor': '#A2F0E4'},
                         children = [
                             # dcc.Markdown(d("---\n### Results for Timing and Resource")),
-                            dcc.Markdown(d("**Worst-case Execution Time**")),
+                            dcc.Markdown(d("**Worst-case Exec. Time**")),
                             html.Div(id="comp_speed_FPGA",),
                             dcc.Markdown(d("**Total SCQ Memory Slots**")),
                             html.Div(id="tot_scq_size",),
@@ -295,6 +382,36 @@ app.layout = html.Div(
 #     return json.dumps(data, indent=2)
 
 @app.callback(
+    Output("cpu-modal", "is_open"),
+    [Input("cpu-open", "n_clicks"), 
+     Input("cpu-close", "n_clicks")],
+    [State("cpu-modal", "is_open")]
+)
+def toggle_cpu_modal(open, close, is_open):
+    if open or close:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output("fpga-modal", "is_open"),
+    [Input("fpga-open", "n_clicks"), 
+     Input("fpga-close", "n_clicks")],
+    [State("fpga-modal", "is_open")]
+)
+def toggle_fpga_modal(open, close, is_open):
+    if open or close:
+        return not is_open
+    return is_open
+
+
+# @app.callback(
+#     Output('slider-output-container-ts', 'children'),
+#     [Input('timestamp_length', 'value')])
+# def update_output(value):
+#     return 'You have selected "{}" bit'.format(value)
+
+
+@app.callback(
     Output('mouseover-node-data-json-output', 'children'),
     [Input('tree', 'mouseoverNodeData')])
 def displayMouseoverNodeTitle(data):
@@ -321,11 +438,11 @@ def speed_unit_conversion(clk):
     if clk <= 0:
         comp_speed = "Error: Clock speed must be > 0!"
     elif clk<1000:
-        comp_speed = '{:.6f}μs/ {:.6f}MHz'.format(clk, 1/clk) 
+        comp_speed = '{:.5f}μs/ {:.5f}MHz'.format(clk, 1/clk) 
     elif clk<1000000:
-        comp_speed = '{:.6f}ms/ {:.6f}KHz'.format(clk/1000, 1/(clk/1000)) 
+        comp_speed = '{:.5f}ms/ {:.5f}KHz'.format(clk/1000, 1/(clk/1000)) 
     else:
-        comp_speed = '{:.6f}s/ {:.6f}Hz'.format(clk/1000000, 1/(clk/1000000))
+        comp_speed = '{:.5f}s/ {:.5f}Hz'.format(clk/1000000, 1/(clk/1000000))
     return comp_speed
 
 
@@ -341,77 +458,81 @@ def speed_unit_conversion(clk):
     Output(component_id = 'tot_memory', component_property = 'children'),
     Output(component_id = 'resource_usage', component_property = 'figure'),
     ],
-    [Input(component_id = 'formula', component_property = 'value'),
+    [Input("run-compile", "n_clicks"),
     Input(component_id = 'optimization', component_property = 'value'),
     Input(component_id = 'hardware_clk', component_property = 'value'),
     Input(component_id = 'timestamp_length', component_property = 'value'),
     Input(component_id = 'LUT_type', component_property = 'value'),
     Input(component_id = 'resource_type', component_property = 'value'),
-    Input(component_id = 'op_exe_time', component_property = 'value'),
-    Input(component_id = 'at_exe_time', component_property = 'value'),
     Input(component_id = 'cpu_clk', component_property = 'value'),
-    ]
+    Input(component_id = "cpu-close", component_property = "n_clicks"),
+    Input(component_id = "fpga-close", component_property = "n_clicks")
+    ],
+    [State(component_id = 'formula', component_property = 'value')] +
+    [State(component_id=name+'cpu-latency', component_property='value') for name in default_cpu_latency_table.keys()] +
+    [State(component_id=name+'fpga-latency', component_property='value') for name in default_fpga_latency_table.keys()]
 )
-def update_element(input, optimization, hw_clk, timestamp_length, LUT_type, resource_type, op_exe_time, at_exe_time, cpu_clk):
+def update_element(run_compile, optimization, hw_clk, timestamp_length, LUT_type, resource_type, cpu_clk, cpu_close, fpga_close, input, *argv):
     opt_cse = True if 'opt_cse' in optimization else False
-    status,logout,stdout,stderr,ast,asm,asm_str,scq_size = compile(input, '', '', True, True, True, True)
+    status,logout,stderr,asm_str,program = compile(input, '', '', True, True, True, True)
+
+    compile_output = stderr+logout
 
     compile_status = "Compile status: "
-    if status == 0:
-        compile_status += 'ok'
-    elif status == 1:
-        compile_status += 'failed parsing'
-    else:
-        compile_status += 'failed type check'
-
-    if (status!=0):
+    if status > 0:
+        compile_status += 'fail'
         elements = []
         asm = 'Error'
-        compile_output = logout
-        # print(stdout)
         style = {'color':'red'}
-        comp_speed_FPGA = 'NA'
-        comp_speed_CPU = 'NA'
-        tot_memory = 'NA'
+        fpga_wcet_str = 'NA'
+        cpu_wcet_str = 'NA'
+        total_memory = 'NA'
         resource_fig = data_process.RF
         select_fig = resource_fig.get_LUT_fig()
     else:
-        asm = [a for a in asm if not isinstance(a,Program) and not isinstance(a,Specification)]
-        asm.reverse()
+        compile_status += 'ok'
 
-        asm_str.replace('\t','')
-        asm_str.replace('\n','')
-
-        compile_output = stdout
+        asm = [a for a in program.assembly if not isinstance(a,Program) and not isinstance(a,Specification)]
 
         node = [
-            {'data':{'id': str(node), 'num': 0, 'type': str(type(node))[21:-2], 'str':str(node), 'name':node.name,'bpd':node.bpd, 'wpd':node.wpd, 'scq_size':node.scq_size} }
+            {'data':{'id': str(node), 'num': 0, 'type': type(node).__name__, 'str':str(node), 'name':node.name,'bpd':node.bpd, 'wpd':node.wpd, 'scq_size':node.scq_size} }
             for node in asm
         ]
 
         edge = []
-        signals = []
-        for src in asm:
+        # signals = []
+        for src in [a for a in asm if not isinstance(a, TLSignalLoad)]:
             for child in src.get_children():
-                edge.append({'data':{'source':str(src), 'target':str(child)}})
+                if not isinstance(child, TLSignalLoad):
+                    edge.append({'data':{'source':str(src), 'target':str(child)}})
 
-            if isinstance(src,Signal):
-                signals.append(src)
+            # if isinstance(src,Signal):
+            #     signals.append(src)
 
         elements = node + edge
         style = {'color':'green'}
-        tot_memory = str(scq_size*int(timestamp_length)/8/1024)+"KB" #KB
+        
+        total_memory = str(program.total_scq_size*int(timestamp_length)/8/1024)+"KB" #KB
+
+        cpu_vals = argv[0:len(default_cpu_latency_table)-1]
+        fpga_vals = argv[len(default_cpu_latency_table):]
+
+        cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [int(val) for val in cpu_vals])))
+        fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [float(val) for val in fpga_vals])))
+
+        compute_cpu_wcet(program, cpu_latency_table, int(cpu_clk))
+        cpu_wcet_str = speed_unit_conversion(program.cpu_wcet)
+
         # scq_size_str = str(scq_size) # + "(" + str()+ ")"
         # tmp = pg.tot_time/int(hw_clk)
-        tmp = int(hw_clk)
-        comp_speed_FPGA = speed_unit_conversion(tmp)
-        comp_speed_CPU = speed_unit_conversion(int(at_exe_time)*len(signals)+int(op_exe_time)*scq_size/int(cpu_clk))
+        compute_fpga_wcet(program, fpga_latency_table, int(hw_clk))
+        fpga_wcet_str = speed_unit_conversion(program.fpga_wcet)
         resource_fig = data_process.RF
 
-        resource_fig.config(LUT_type, scq_size, int(timestamp_length))
+        resource_fig.config(LUT_type, program.total_scq_size, int(timestamp_length))
         select_fig = resource_fig.get_LUT_fig() if resource_type == "LUT" else resource_fig.get_BRAM_fig()
 
-    return elements, asm_str, compile_status, style, compile_output, comp_speed_FPGA, comp_speed_CPU , scq_size, tot_memory, select_fig
+    return elements, asm_str, compile_status, style, compile_output, fpga_wcet_str, cpu_wcet_str, program.total_scq_size, total_memory, select_fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)
