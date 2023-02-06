@@ -39,7 +39,7 @@ class Resource_fig():
         else:
             return -1
 
-    def gen_LUT_fig(self):
+    def gen_LUT_fig(self, num_comparators, num_adders):
         self.fig1 = go.Figure()
         st = max(self.tts-40, 0)
         ed = self.tts+30
@@ -47,15 +47,15 @@ class Resource_fig():
 
         y_3,y_4,y_6=[],[],[]
         z_3,z_4,z_6=[],[],[]
-        tot_comp = 33
-        tot_add = 32
+        num_comparators = 33
+        num_adders = 32
         for data in x:
-            y_3.append(self.gen_comparator(data,3)*tot_comp)
-            y_4.append(self.gen_comparator(data,4)*tot_comp)
-            y_6.append(self.gen_comparator(data,6)*tot_comp)
-            z_3.append(self.gen_adder(data,3)*tot_add)
-            z_4.append(self.gen_adder(data,4)*tot_add)
-            z_6.append(self.gen_adder(data,6)*tot_add)
+            y_3.append(self.gen_comparator(data,3)*num_comparators)
+            y_4.append(self.gen_comparator(data,4)*num_comparators)
+            y_6.append(self.gen_comparator(data,6)*num_comparators)
+            z_3.append(self.gen_adder(data,3)*num_adders)
+            z_4.append(self.gen_adder(data,4)*num_adders)
+            z_6.append(self.gen_adder(data,6)*num_adders)
         y_1, y_2, name_1, name_2 = [],[],"",""
         if (self.LUT_type=='3'):
             y_1, y_2 = y_3, z_3
@@ -125,14 +125,21 @@ class Resource_fig():
                xaxis_title='Timestamp Width (Bits)',
                yaxis_title='Number of 18Kb BRAMs')
 
-        self.fig2.add_trace(go.Scatter(x=x, y=y,
+        self.fig2.add_trace(go.Scatter(x=x, y=y, name='',
                      line=dict(color='orange', width=4)))
 
-        self.fig2.add_trace(go.Scatter(x=[self.tts,], y=[y[self.tts-st],], name = "Current Configuration",
+        self.fig2.add_trace(go.Scatter(x=[self.tts,], y=[y[self.tts-st],], name = "",
                      line=dict(color='purple', width=0), line_shape = 'vhv'))
 
-    def get_LUT_fig(self):
-        self.gen_LUT_fig()
+        self.fig2.update_layout(legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ))
+
+    def get_LUT_fig(self, num_comparators, num_adders):
+        self.gen_LUT_fig(num_comparators, num_adders)
         return self.fig1
     
     def get_BRAM_fig(self):

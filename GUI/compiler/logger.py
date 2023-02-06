@@ -66,7 +66,7 @@ standard_logger.addHandler(standard_logger_handler)
 color_logger = logging.getLogger(COLOR_LOGGER_NAME)
 color_logger.setLevel(logging.DEBUG)
 
-color_logger_handler = logging.StreamHandler()
+color_logger_handler = logging.StreamHandler(log_stream)
 color_logger_handler.setLevel(logging.DEBUG)
 
 color_logger_handler.setFormatter(ColorFormatter())

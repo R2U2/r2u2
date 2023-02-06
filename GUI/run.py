@@ -3,16 +3,12 @@
 # pip install dash-cytoscape==0.1.1
 # 
 # type: ignore
-import json
 import dash
-import inspect
-import sys
 from dash import html, dcc
 import dash_cytoscape as cyto
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from textwrap import dedent as d
-from itertools import chain
 
 import plotly.graph_objects as go
 from compiler.compiler import *
@@ -56,6 +52,15 @@ default_stylesheet = [
         }
     }
     for cls in instruction_list if issubclass(cls, TLSignalLoad)
+] + [
+    {
+        'selector': '[type = "'+cls.__name__+'"]',
+        'style': {
+            'background-color': '#BFD7B5',
+            'label': 'data(name)'
+        }
+    }
+    for cls in instruction_list if issubclass(cls, BZInstruction)
 ] + [
     {
         'selector': 'edge',
@@ -139,21 +144,51 @@ app.layout = html.Div(
             html.Div(
                 className = 'two columns',
                 children = [
-                    dcc.Markdown(d("""
-                            ###### C2PO Input
-                            """)),
+                    # dcc.Markdown(d("""
+                    #         ###### C2PO Input
+                    #         """)),
                     # dcc.Input(id='formula', value='a0 U[5] a1; a1&a3;', type='text'),
+                    # dcc.Markdown(d('**C2PO Input**')),
+                    html.Div('C2PO Input'),
                     dcc.Textarea(
                         id='formula',
-                        value='INPUT\n  a0, a1, a2: bool;\n\nDEFINE\n  a3 = a0 && a1;\n\nSPEC\n  a0;\n  a0 U[0,5] a2;\n  G[1,3] a3;' ,
+                        value='INPUT\n  a0,a1,a2: bool;\n  b0,b1,b2: bool;\n\nDEFINE\n  c = a1 || a2;\n\nSPEC\n  s0: a0;\n  s1: c;\n  s2: b0 U[0,5] b1;\n  s3: G[1,3] b2;\n  s4: s2 && s3;' ,
                         style={'width': '100%', 'height': '350px', 'font-family': 'monospace'},
                     ),
-                    dcc.Checklist(
-                        id = 'optimization',
+                    # html.Div('Int type'),
+                    dcc.Dropdown(
+                        id = 'int-type',
                         options=[
-                            {'label': 'Common Subexpression Elimination', 'value': 'opt_cse'},
+                            {'label': 'uint8_t', 'value': 'uint8_t'},
+                            {'label': 'uint16_t', 'value': 'uint16_t'},
+                            {'label': 'uint32_t', 'value': 'uint32_t'},
+                            {'label': 'uint64_t', 'value': 'uint64_t'},
+                            {'label': 'int8_t', 'value': 'int8_t'},
+                            {'label': 'int16_t', 'value': 'int16_t'},
+                            {'label': 'int32_t', 'value': 'int32_t'},
+                            {'label': 'int64_t', 'value': 'int64_t'},
                         ],
-                        value=['opt_cse',]
+                        value='uint8_t',
+                        clearable=False
+                    ),
+                    dcc.Dropdown(
+                        id = 'float-type',
+                        options=[
+                            {'label': 'float', 'value': 'float'},
+                            {'label': 'double', 'value': 'double'}
+                        ],
+                        value='float',
+                        clearable=False
+                    ),
+                    dcc.Checklist(
+                        id = 'compiler-opt',
+                        style = {'font-size': '70%'},
+                        options=[
+                            {'label': 'Common Subexpression Elimination', 'value': 'cse'},
+                            {'label': 'Booleanizer', 'value': 'bz'},
+                            {'label': 'Extended Operators', 'value': 'ext-ops'}
+                        ],
+                        value=['cse','bz','ext-ops']
                     ),
                     dbc.Button(
                         "Compile", id="run-compile", className="ms-auto", n_clicks=0
@@ -164,9 +199,10 @@ app.layout = html.Div(
                         # className = 'one column',
                         style = {'height': '350px'},
                         children=[
-                            dcc.Markdown(d("""
-                                    ###### C2PO Log
-                                    """)),
+                            # dcc.Markdown(d("""
+                            #         ###### C2PO Log
+                            #         """)),
+                            html.Div('C2PO Log'),
                             html.Pre(
                                 id='compile_output',
                                 style=styles['json-output'],
@@ -181,10 +217,12 @@ app.layout = html.Div(
                     className = 'two columns',
                     children = [
 
+                    # dcc.Markdown(d("#### Software Configuration")),
+                    html.Div('Software Configuration'),
                     html.Div(
                             style={'backgroundColor': '#A2F0E4'},
                             children = [
-                                dcc.Markdown(d("---\n### Software Configuration")),
+                                # dcc.Markdown(d("#### Software Configuration")),
                                 dcc.Markdown(d("**Clock Frequency (GHz)**")),
                                 dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='cpu_clk', value='10', type='text', size='5'),
                                 # Command exection time for each operator
@@ -193,7 +231,9 @@ app.layout = html.Div(
                                 dbc.Modal(
                                     # style = {'width': '500px'},
                                     children = [
-                                        dbc.ModalHeader(dbc.ModalTitle("CPU Operator Latency")),
+                                        dbc.ModalHeader(dbc.ModalTitle(
+                                            children = [ dcc.Markdown(d("**CPU Operator Latencies**")), ]
+                                        )),
                                         dbc.ModalBody(
                                             [html.Div(
                                                 style={'backgroundColor': '#A2F0E4'},
@@ -218,7 +258,7 @@ app.layout = html.Div(
                                 # dcc.Input(style={'backgroundColor': '#A2F0E4'}, id='at_exe_time', value='10', type='text', size='5'),
                                 dcc.Markdown(d("**Worst-case Exec. Time**")),
                                 html.Div(id="comp_speed_CPU",),
-                                dcc.Markdown(d("**Est. SCQ Memory (Kb)**")),
+                                dcc.Markdown(d("**Est. SCQ Memory**")),
                                 html.Div(id="tot_memory",),
                             ]
                         ),
@@ -230,16 +270,19 @@ app.layout = html.Div(
                 html.Div(
                 className = 'two columns',
                 children = [
+                        # dcc.Markdown(d("#### Hardware Configuration")),
+                    # dcc.Markdown(d('**Hardware Configuration**')),
+                    html.Div('Hardware Configuration'),
                     html.Div(
                         style={'backgroundColor': '#F7FAC0'},
                         children  = [
-                        dcc.Markdown(d("---\n### Hardware Configuration")),
+                        # dcc.Markdown(d("---\n#### Hardware Configuration")),
                         dcc.Markdown(d("**Clock Frequency (MHz)**")),
                         dcc.Input(style={'backgroundColor': '#F7FAC0'},id='hardware_clk', value='100', type='text', size='5'),
                         dcc.Markdown(d("**LUT Type Select**")),
                         dcc.Dropdown(
                             id = 'LUT_type',
-                            style={'backgroundColor': '#F7FAC0'},
+                            style={'backgroundColor': '#F7FAC0', 'width': '80%'},
                             options=[
                                 {'label': 'LUT-3', 'value': '3'},
                                 {'label': 'LUT-4', 'value': '4'},
@@ -251,31 +294,40 @@ app.layout = html.Div(
                         dcc.Markdown(d("**Resource to Observe**")),
                         dcc.Dropdown(
                             id = 'resource_type',
-                            style={'backgroundColor': '#F7FAC0'},
+                            style={'width': '80%', 'backgroundColor': '#F7FAC0'},
                             options=[
                                 {'label': 'LUT', 'value': 'LUT'},
-                                {'label': '18Kb BRAM', 'value': '18kbBRAM'},
+                                {'label': 'BRAM', 'value': 'BRAM'},
                             ],
                             value='LUT',
                             clearable=False
-                        ),  
+                        ),
 
                         dcc.Markdown(d("**Timestamp Length (Bits)**")),
                         dcc.Input(style={'backgroundColor': '#F7FAC0'},id='timestamp_length', value='32', type='text', size='5'),
+
+                        dcc.Markdown(d("**Comparators per Node**")),
+                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='comps', value='33', type='text', size='5'),
+
+                        dcc.Markdown(d("**Adders per Node**")),
+                        dcc.Input(style={'backgroundColor': '#F7FAC0'},id='adds', value='32', type='text', size='5'),
 
                         dcc.Markdown(d("**FPGA Operator Latencies**")),
                         dbc.Button("Edit", id="fpga-open", n_clicks=0),
                         dbc.Modal(
                             # style = {'width': '500px'},
                             children = [
-                                dbc.ModalHeader(dbc.ModalTitle("FPGA Operator Latency")),
+                                dbc.ModalHeader(dbc.ModalTitle(
+                                    children = [ dcc.Markdown(d("**FPGA Operator Latencies**")), ]
+                                )),
                                 dbc.ModalBody(
                                     [html.Div(
                                         style={'backgroundColor': '#F7FAC0'},
                                         children = [
                                             html.Div(name, style={'width': '40%', 'display': 'inline-block'}), 
-                                            dcc.Input(style={'backgroundColor': '#F7FAC0', 'display': 'inline-block'}, id=name+'fpga-latency', value=val, size='5')
-                                        ]) for (name,val) in default_fpga_latency_table.items()]
+                                            dcc.Input(style={'backgroundColor': '#F7FAC0', 'display': 'inline-block'}, id=name+'fpga-latency-init', value=init, size='5'),
+                                            dcc.Input(style={'backgroundColor': '#F7FAC0', 'display': 'inline-block'}, id=name+'fpga-latency-eval', value=eval, size='5')
+                                        ]) for (name,(init,eval)) in default_fpga_latency_table.items()]
                                 ),
                                 dbc.ModalFooter(
                                     dbc.Button(
@@ -316,20 +368,32 @@ app.layout = html.Div(
             ),
 
             html.Div(
-                className = 'four columns',
+                className = 'three columns',
                 children = [
                     cyto.Cytoscape(
                         id='tree',
                         # layout={'name': 'circle'},
-                        layout={'name': 'klay','klay': {'direction': 'DOWN'}},
+                        layout={'name': 'klay','klay': {'direction': 'DOWN'}},#, 'borderSpacing': 0, 'spacing': 3, 'compactComponents': False}},
                         stylesheet=default_stylesheet,
                         style={'width': '100%', 'height': '350px'},
                         elements=[]
                     ),
+                    # dcc.Markdown(d("**Resource to Observe**")),
+                    # dcc.Dropdown(
+                    #     id = 'resource_type',
+                    #     style={'width': '80%'},
+                    #     options=[
+                    #         {'label': 'LUT', 'value': 'LUT'},
+                    #         {'label': 'BRAM', 'value': 'BRAM'},
+                    #     ],
+                    #     value='LUT',
+                    #     clearable=False
+                    # ),  
                     dcc.Graph(
                         id='resource_usage',
                         figure = go.Figure(),
                         style={'width': '100%'},
+                        config={'frameMargins': 0}
                     )
                 ],
                 # style={'width': '30%'}
@@ -344,7 +408,8 @@ app.layout = html.Div(
                         # className = 'one column',
                         style = {'height': '300px'},
                         children=[
-                        dcc.Markdown(d("#### Mouseover Data")),
+                        # dcc.Markdown(d("#### Mouseover Data")),
+                        html.Div('Mouseover Data'),
                         html.Pre(
                             id='mouseover-node-data-json-output',
                             # style=styles['json-output']
@@ -355,7 +420,8 @@ app.layout = html.Div(
                         # className = 'one column',
                         style = {'height': '750px'},
                         children=[
-                            dcc.Markdown(d("#### Assembly")),
+                            # dcc.Markdown(d("#### Assembly")),
+                            html.Div('Assembly'),
                             html.Pre(
                                 id='assembly_window',
                                 style=styles['json-output'],
@@ -459,22 +525,30 @@ def speed_unit_conversion(clk):
     Output(component_id = 'resource_usage', component_property = 'figure'),
     ],
     [Input("run-compile", "n_clicks"),
-    Input(component_id = 'optimization', component_property = 'value'),
     Input(component_id = 'hardware_clk', component_property = 'value'),
     Input(component_id = 'timestamp_length', component_property = 'value'),
+    Input(component_id = 'comps', component_property = 'value'),
+    Input(component_id = 'adds', component_property = 'value'),
     Input(component_id = 'LUT_type', component_property = 'value'),
     Input(component_id = 'resource_type', component_property = 'value'),
     Input(component_id = 'cpu_clk', component_property = 'value'),
     Input(component_id = "cpu-close", component_property = "n_clicks"),
     Input(component_id = "fpga-close", component_property = "n_clicks")
     ],
-    [State(component_id = 'formula', component_property = 'value')] +
+    [State(component_id = 'formula', component_property = 'value'),
+     State(component_id = 'compiler-opt', component_property = 'value'),
+     State(component_id = 'int-type', component_property = 'value'),
+     State(component_id = 'float-type', component_property = 'value'),] +
     [State(component_id=name+'cpu-latency', component_property='value') for name in default_cpu_latency_table.keys()] +
-    [State(component_id=name+'fpga-latency', component_property='value') for name in default_fpga_latency_table.keys()]
+    [State(component_id=name+'fpga-latency-init', component_property='value') for name in default_fpga_latency_table.keys()] +
+    [State(component_id=name+'fpga-latency-eval', component_property='value') for name in default_fpga_latency_table.keys()]
 )
-def update_element(run_compile, optimization, hw_clk, timestamp_length, LUT_type, resource_type, cpu_clk, cpu_close, fpga_close, input, *argv):
-    opt_cse = True if 'opt_cse' in optimization else False
-    status,logout,stderr,asm_str,program = compile(input, '', '', True, True, True, True)
+def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type, resource_type, cpu_clk, cpu_close, fpga_close, input, options, int_type, float_type, *argv):
+    cse = True if 'cse' in options else False
+    bz = True if 'bz' in options else False
+    ext_ops = True if 'ext-ops' in options else False
+
+    status,logout,stderr,asm_str,program = compile(input, '', '', int_type, float_type, cse, bz, ext_ops, True, True)
 
     compile_output = stderr+logout
 
@@ -512,13 +586,17 @@ def update_element(run_compile, optimization, hw_clk, timestamp_length, LUT_type
         elements = node + edge
         style = {'color':'green'}
         
-        total_memory = str(program.total_scq_size*int(timestamp_length)/8/1024)+"KB" #KB
+        total_memory = str((program.total_scq_size*int(timestamp_length))/8/1024)+"KB" #KB
 
         cpu_vals = argv[0:len(default_cpu_latency_table)-1]
-        fpga_vals = argv[len(default_cpu_latency_table):]
+        fpga_vals_list = argv[len(default_cpu_latency_table):]
+
+        fpga_vals = []
+        for i in range(0,int(len(fpga_vals_list)/2)):
+            fpga_vals.append((fpga_vals_list[i*2],fpga_vals_list[i*2+1]))
 
         cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [int(val) for val in cpu_vals])))
-        fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [float(val) for val in fpga_vals])))
+        fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [(float(init),float(eval)) for (init,eval) in fpga_vals])))
 
         compute_cpu_wcet(program, cpu_latency_table, int(cpu_clk))
         cpu_wcet_str = speed_unit_conversion(program.cpu_wcet)
@@ -530,7 +608,7 @@ def update_element(run_compile, optimization, hw_clk, timestamp_length, LUT_type
         resource_fig = data_process.RF
 
         resource_fig.config(LUT_type, program.total_scq_size, int(timestamp_length))
-        select_fig = resource_fig.get_LUT_fig() if resource_type == "LUT" else resource_fig.get_BRAM_fig()
+        select_fig = resource_fig.get_LUT_fig(comps, adds) if resource_type == "LUT" else resource_fig.get_BRAM_fig()
 
     return elements, asm_str, compile_status, style, compile_output, fpga_wcet_str, cpu_wcet_str, program.total_scq_size, total_memory, select_fig
 

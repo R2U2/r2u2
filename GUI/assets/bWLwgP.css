@@ -58,10 +58,10 @@
   /* For devices larger than 550px */
   @media (min-width: 550px) {
     .container {
-      width: 80%; }
+      width: 85%; }
     .column,
     .columns {
-      margin-left: 0.25%; }
+      margin-left: 0; }
     .column:first-child,
     .columns:first-child {
       margin-left: 0; }
@@ -413,9 +413,3 @@
   
   /* Larger than Desktop HD */
   @media (min-width: 1200px) {}
-
-  pre > code {
-    outline: none;
-    display: block;
-  }
-  

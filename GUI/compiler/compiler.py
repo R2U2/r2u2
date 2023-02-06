@@ -29,7 +29,7 @@ default_cpu_latency_table: dict[str, int] = { name:10 for (name,value) in
             obj != TLInstruction and 
             obj != BZInstruction) }
 
-default_fpga_latency_table: dict[str, float] = { name:10.0 for (name,value) in 
+default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) for (name,value) in 
     inspect.getmembers(sys.modules['compiler.ast'], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
@@ -758,7 +758,7 @@ def compute_cpu_wcet(program: Program, latency_table: dict[str, int], clk: int) 
     return wcet
 
 
-def compute_fpga_wcet(program: Program, latency_table: dict[str, float], clk: float) -> float:
+def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, float]], clk: float) -> float:
     """
     Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
 
@@ -780,7 +780,8 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, float], clk: fl
             logger.error(f' Operator \'{classname}\' not found in FPGA latency table.')
             return 0
         else:
-            return latency_table[classname]
+            sum_scq_sizes_children = sum([c.scq_size for c in a.get_children()])
+            return latency_table[classname][0] + latency_table[classname][1]*sum_scq_sizes_children
 
     wcet = sum([compute_fpga_wcet_util(a) for a in program.assembly]) / clk
     program.fpga_wcet = wcet
@@ -791,20 +792,24 @@ def validate_booleanizer_stack(asm: list[AST]) -> bool:
     return True
 
 
-def parse(input: str) -> list[Program]:
+def parse(input: str) -> tuple[bool,list[Program]]:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
-    return parser.parse(lexer.tokenize(input))
+    programs: list[Program] = parser.parse(lexer.tokenize(input))
+    return (parser.status, programs)
 
 
-def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, color: bool, quiet: bool) -> tuple[int,str,str,str,Program]:
+def compile(input: str, sigs: str, output_path: str, int_type: str, float_type: str, cse: bool, bz: bool, extops: bool, color: bool, quiet: bool) -> tuple[int,str,str,str,Program]:
     log_stream.truncate(0)
 
     with contextlib.redirect_stderr(io.StringIO()) as stderr:
-        # parse input, programs is a list of configurations (each SPEC block is a configuration)
-        programs: list[Program] = parse(input)
+        INT.ctype = int_type
+        FLOAT.ctype = float_type
 
-        if programs is None:
+        # parse input, programs is a list of configurations (each SPEC block is a configuration)
+        (parser_status, programs) = parse(input)
+
+        if not parser_status or programs is None or len(programs) == 0:
             logger.error(' Failed parsing.')
             return (ReturnCode.PARSE_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},[],{}))  # type: ignore
 
@@ -822,7 +827,8 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
             rewrite_extended_operators(programs[0])
 
         # common sub-expressions elimination
-        optimize_cse(programs[0])
+        if cse:
+            optimize_cse(programs[0])
 
         # generate alias file
         # alias = gen_alias(programs[0])

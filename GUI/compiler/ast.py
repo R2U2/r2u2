@@ -201,32 +201,7 @@ class Integer(Constant, BZInstruction):
         super().__init__(ln,[])
         self.val: int = v
         self.name = str(v)
-
-        bit_length: int = v.bit_length()
-        if v < 0:
-            if bit_length <= 8:
-                self.type = INT8()
-            elif bit_length <= 16:
-                self.type = INT16()
-            elif bit_length <= 32:
-                self.type = INT32()
-            elif bit_length <= 64:
-                self.type = INT64()
-            else:
-                logger.error(
-                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
-        else:
-            if bit_length <= 8:
-                self.type = UINT8()
-            elif bit_length <= 16:
-                self.type = UINT16()
-            elif bit_length <= 32:
-                self.type = UINT32()
-            elif bit_length <= 64:
-                self.type = UINT64()
-            else:
-                logger.error(
-                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
+        self.type = INT()
 
     def get_value(self) -> int:
         return self.value
@@ -664,7 +639,7 @@ class Count(BZInstruction):
         # Note: all members of c must be of type Boolean
         super().__init__(ln, c)
         self.num: AST = n
-        self.type = UINT8() # TODO: set this more precisely
+        self.type = INT()
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
