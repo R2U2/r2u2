@@ -19,9 +19,6 @@ class Interval(NamedTuple):
 StructDict = NewType('StructDict', dict[str, dict[str, Type]])
 
 
-
-
-
 def postorder(a: AST, func: Callable[[AST], Any]) -> None:
     """Performs a postorder traversal of a, calling func on each node."""
     c: AST
@@ -204,32 +201,10 @@ class Integer(Constant, BZInstruction):
         super().__init__(ln,[])
         self.val: int = v
         self.name = str(v)
+        self.type = INT()
 
-        bit_length: int = v.bit_length()
-        if v < 0:
-            if bit_length <= 8:
-                self.type = INT8()
-            elif bit_length <= 16:
-                self.type = INT16()
-            elif bit_length <= 32:
-                self.type = INT32()
-            elif bit_length <= 64:
-                self.type = INT64()
-            else:
-                logger.error(
-                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
-        else:
-            if bit_length <= 8:
-                self.type = UINT8()
-            elif bit_length <= 16:
-                self.type = UINT16()
-            elif bit_length <= 32:
-                self.type = UINT32()
-            elif bit_length <= 64:
-                self.type = UINT64()
-            else:
-                logger.error(
-                    f'{ln}: Integer constant \'{v}\' not representable within 64 bits')
+        if v.bit_length() > INT.width:
+            logger.error(f'{ln} Constant \'{v}\' not representable in configured int width (\'{INT.width}\').')
 
     def get_value(self) -> int:
         return self.value
@@ -250,6 +225,9 @@ class Float(Constant, BZInstruction):
         self.type = FLOAT()
         self.val: float = v
         self.name = str(v)
+
+        if len(v.hex()[2:]) > FLOAT.width/2:
+            logger.error(f'{ln} Constant \'{v}\' not representable in configured float width (\'{FLOAT.width}\').')
 
     def get_value(self) -> float:
         return self.value
@@ -421,18 +399,18 @@ class Duplicate(UnaryOperator, BZInstruction):
 
 
 # only used for assembly generation
-class TLAtomicLoad(UnaryOperator, TLInstruction):
+class TLAtomicLoad(TLInstruction):
 
     def __init__(self, ln: int, l: BZInstruction) -> None:
-        super().__init__(ln, [l])
+        super().__init__(ln, [])
+        self.atomic: BZInstruction = l
         self.tlid = l.tlid
 
     def get_load(self) -> BZInstruction:
-        return cast(BZInstruction, self.get_operand())
+        return cast(BZInstruction, self.atomic)
 
     def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = TLAtomicLoad(self.ln, cast(BZInstruction, children[0]))
+        new = TLAtomicLoad(self.ln, cast(BZInstruction, self.atomic))
         self.copy_attrs(new)
         return new
 
@@ -441,18 +419,19 @@ class TLAtomicLoad(UnaryOperator, TLInstruction):
 
 
 # only used for assembly generation
-class TLSignalLoad(UnaryOperator, TLInstruction):
+class TLSignalLoad(TLInstruction):
 
     def __init__(self, ln: int, l: Signal) -> None:
-        super().__init__(ln, [l])
+        super().__init__(ln, [])
+        self.signal: Signal = l
         self.tlid = l.tlid
+        self.name = l.name
 
     def get_load(self) -> Signal:
-        return cast(Signal, self.get_operand())
+        return cast(Signal, self.signal)
 
     def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = TLSignalLoad(self.ln, cast(Signal, children[0]))
+        new = TLSignalLoad(self.ln, self.get_load())
         self.copy_attrs(new)
         return new
 
@@ -461,18 +440,18 @@ class TLSignalLoad(UnaryOperator, TLInstruction):
 
 
 # only used for assembly generation
-class BZAtomicLoad(UnaryOperator, BZInstruction):
+class BZAtomicLoad(BZInstruction):
 
     def __init__(self, ln: int, l: TLInstruction) -> None:
-        super().__init__(ln, [l])
+        super().__init__(ln, [])
+        self.atomic: TLInstruction = l
         self.tlid = l.tlid
 
     def get_load(self) -> TLInstruction:
-        return cast(TLInstruction, self.get_operand())
+        return cast(TLInstruction, self.atomic)
 
     def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = BZAtomicLoad(self.ln, cast(TLInstruction, children[0]))
+        new = BZAtomicLoad(self.ln, cast(TLInstruction, self.atomic))
         self.copy_attrs(new)
         return new
 
@@ -482,18 +461,19 @@ class BZAtomicLoad(UnaryOperator, BZInstruction):
 
 
 # only used for assembly generation
-class BZSignalLoad(UnaryOperator, BZInstruction):
+class BZSignalLoad(BZInstruction):
 
     def __init__(self, ln: int, l: Signal) -> None:
-        super().__init__(ln, [l])
+        super().__init__(ln, [])
         self.tlid = l.tlid
+        self.signal: Signal = l
+        self.name = l.name
 
     def get_load(self) -> Signal:
-        return cast(Signal, self.get_operand())
+        return cast(Signal, self.signal)
 
     def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = BZSignalLoad(self.ln, cast(Signal, children[0]))
+        new = BZSignalLoad(self.ln, self.get_load())
         self.copy_attrs(new)
         return new
 
@@ -663,7 +643,7 @@ class Count(BZInstruction):
         # Note: all members of c must be of type Boolean
         super().__init__(ln, c)
         self.num: AST = n
-        self.type = UINT8() # TODO: set this more precisely
+        self.type = INT()
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]

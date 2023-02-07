@@ -5,7 +5,7 @@ from .sly import Lexer, Parser
 from .ast import *
 from .logger import *
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(STANDARD_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
@@ -127,7 +127,7 @@ class C2POParser(Parser):
         self.status = True
 
         # Initialize special structs/functions
-        self.structs['Set'] = {'set':NOTYPE(),'size':UINT64()}
+        self.structs['Set'] = {'set':NOTYPE(),'size':INT()}
 
     @_('block spec_block')
     def block(self, p):
@@ -193,32 +193,17 @@ class C2POParser(Parser):
 
         if symbol == 'bool':
             return BOOL()
-        elif symbol == 'int8':
-            return INT8()
-        elif symbol == 'int16':
-            return INT16()
-        elif symbol == 'int32':
-            return INT32()
-        elif symbol == 'int64':
-            return INT64()
-        elif symbol == 'uint8':
-            return UINT8()
-        elif symbol == 'uint16':
-            return UINT16()
-        elif symbol == 'uint32':
-            return UINT32()
-        elif symbol == 'uint64':
-            return UINT64()
+        elif symbol == 'int':
+            return INT()
         elif symbol == 'float':
             return FLOAT()
-        elif symbol == 'double':
-            return DOUBLE()
         elif symbol == 'set':
             return SET(p[2])
         elif symbol in self.structs.keys():
             return STRUCT(symbol)
 
         logger.error(f'{p.lineno}: Type \'{p[0]}\' not recognized')
+        self.status = False
         return NOTYPE()
 
     @_('KW_DEFINE definition definition_list')
@@ -237,6 +222,7 @@ class C2POParser(Parser):
 
         if variable in self.vars.keys():
             logger.error(f'{ln}: Variable \'{variable}\' already declared.')
+            self.status = False
         elif variable in self.defs.keys():
             logger.warning(f'{ln}: Variable \'{variable}\' defined twice, using last definition.')
             self.defs[variable] = expr
@@ -337,6 +323,7 @@ class C2POParser(Parser):
             return ForAtMostN(ln, mset, param, boundvar, expr)
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
+            self.status = False
             return AST(ln, [])
 
     # Set aggregation expression
@@ -357,6 +344,7 @@ class C2POParser(Parser):
             return ForSome(ln, mset, boundvar, expr)
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
+            self.status = False
             return AST(ln, [])
 
     # Stub rule for binding a set agg variable
@@ -383,9 +371,11 @@ class C2POParser(Parser):
                 return Struct(ln,symbol,members)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
+                self.status = False
                 return AST(ln, [])
         else:
             logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
+            self.status = False
             return AST(ln, [])
 
     # Function/struct constructor expression empty arguments
@@ -399,9 +389,11 @@ class C2POParser(Parser):
                 return Struct(ln,symbol,[])
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
+                self.status = False
                 return AST(ln, [])
         else:
             logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
+            self.status = False
             return AST(ln, [])
 
     # Struct member access
@@ -425,6 +417,7 @@ class C2POParser(Parser):
             return ArithmeticNegate(ln, p[1])
         else:
             logger.error(f'{ln}: Bad expression')
+            self.status = False
             return AST(ln, [])
 
     # Binary expressions
@@ -496,6 +489,7 @@ class C2POParser(Parser):
             return ArithmeticModulo(ln, lhs, rhs)
         else:
             logger.error(f'{ln}: Bad expression')
+            self.status = False
             return AST(ln, [])
 
     # Unary temporal expressions
@@ -517,6 +511,7 @@ class C2POParser(Parser):
             return Once(ln, p[2], p[1].lb, p[1].ub)
         else:
             logger.error(f'{ln}: Bad expression')
+            self.status = False
             return AST(ln, [])
 
     # Binary temporal expressions
@@ -535,6 +530,7 @@ class C2POParser(Parser):
             return Since(ln, p[0], p[3], p[2].lb, p[2].ub)
         else:
             logger.error(f'{ln}: Bad expression')
+            self.status = False
             return AST(ln, [])
 
     # Parentheses
@@ -558,22 +554,23 @@ class C2POParser(Parser):
             return Signal(ln, symbol, self.vars[symbol])
         else:
             logger.error(f'{ln}: Variable \'{symbol}\' undefined')
+            self.status = False
             return AST(ln, [])
 
     # Integer
     @_('INT')
     def expr(self, p):
-        return Integer(0, int(p.INT))
+        return Integer(p.lineno, int(p.INT))
 
     # Float
     @_('FLOAT')
     def expr(self, p):
-        return Float(0, float(p.FLOAT))
+        return Float(p.lineno, float(p.FLOAT))
         
     # Shorthand interval
     @_('LBRACK INT RBRACK')
     def interval(self, p):
-        return Interval(0, p[1].get_value())
+        return Interval(p.lineno, p[1].get_value())
 
     # Standard interval
     @_('LBRACK INT COMMA INT RBRACK')

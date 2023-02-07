@@ -8,3 +8,5 @@
 #include <stdbool.h>
 
 bool filter_none_of(bool *set, uint8_t len);
+
+#endif

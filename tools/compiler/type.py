@@ -1,20 +1,18 @@
 from enum import Enum
+from logging import getLogger
+
+from .logger import STANDARD_LOGGER_NAME, COLOR_LOGGER_NAME
+
+logger = getLogger(COLOR_LOGGER_NAME)
+
 
 class BaseType(Enum):
     NOTYPE = 0
     BOOL = 1
-    INT8 = 2
-    INT16 = 3
-    INT32 = 4
-    INT64 = 5
-    UINT8 = 6
-    UINT16 = 7
-    UINT32 = 8
-    UINT64 = 9
-    FLOAT = 10
-    DOUBLE = 11
-    SET = 12
-    STRUCT = 13
+    INT = 2
+    FLOAT = 3
+    SET = 4
+    STRUCT = 5
 
 
 class Type():
@@ -44,64 +42,19 @@ class BOOL(Type):
         super().__init__(BaseType.BOOL,'bool')
 
 
-class INT8(Type):
+class INT(Type):
+    width: int = 8
+    is_signed: bool = False
 
     def __init__(self) -> None:
-        super().__init__(BaseType.INT8,'int8')
-
-
-class INT16(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.INT16,'int16')
-
-
-class INT32(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.INT32,'int32')
-
-
-class INT64(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.INT64,'int64')
-
-
-class UINT8(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.UINT8,'uint8')
-
-
-class UINT16(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.UINT16,'uint16')
-
-
-class UINT32(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.UINT32,'uint32')
-
-
-class UINT64(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.UINT64,'uint64')
+        super().__init__(BaseType.INT, 'int')
 
 
 class FLOAT(Type):
+    width: int = 32
 
     def __init__(self) -> None:
         super().__init__(BaseType.FLOAT,'float')
-
-
-class DOUBLE(Type):
-
-    def __init__(self) -> None:
-        super().__init__(BaseType.DOUBLE,'double')
 
 
 class STRUCT(Type):
@@ -130,16 +83,15 @@ class SET(Type):
 
 
 def is_integer_type(t: Type) -> bool:
-    return isinstance(t,INT8) or isinstance(t,INT16) or isinstance(t,INT32) or isinstance(t,INT64) or \
-        isinstance(t,UINT8) or isinstance(t,UINT16) or isinstance(t,UINT32) or isinstance(t,UINT64) or \
-            isinstance(t,BOOL)
+    return isinstance(t,INT) or isinstance(t,BOOL)
 
 
 def is_float_type(t: Type) -> bool:
-    return isinstance(t,FLOAT) or isinstance(t,DOUBLE)
+    return isinstance(t,FLOAT)
 
 
 class FormulaType(Enum):
     PROP = 0
     FT = 1
     PT = 2
+

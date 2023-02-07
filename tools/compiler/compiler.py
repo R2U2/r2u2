@@ -2,39 +2,56 @@ from argparse import PARSER
 import re
 from logging import getLogger
 
+from .logger import *
 from .ast import *
 from .parser import C2POLexer
 from .parser import C2POParser
-from .logger import *
 
-# from .assembler import assemble
 
 logger = getLogger(COLOR_LOGGER_NAME)
 
 
+class R2U2Implementation(Enum):
+    C = 0
+    CPP = 1
+    VHDL = 2
+
+def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
+    if s.lower() == 'c':
+        return R2U2Implementation.C
+    elif s.lower() == 'c++' or s.lower() == 'cpp':
+        return R2U2Implementation.CPP
+    elif s.lower() == 'fpga' or s.lower() == 'vhdl':
+        return R2U2Implementation.VHDL
+    else:
+        logger.error(f' R2U2 implementation \'{s}\' unsupported. Defaulting to C.')
+        return R2U2Implementation.C
+
+
 class ReturnCode(Enum):
     SUCCESS = 0
-    PARSE_ERROR = 1
-    TYPE_CHECK_ERROR = 2
+    ERROR = 1
+    PARSE_ERROR = 2
+    TYPE_CHECK_ERROR = 3
+    ASM_ERROR = 4
 
 
-default_cpu_latency_table: dict[str, int] = { name:0 for (name,value) in 
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules['compiler.ast'], 
+        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
+
+default_cpu_latency_table: dict[str, int] = { name:10 for (name,value) in 
     inspect.getmembers(sys.modules['compiler.ast'], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
-            obj != BZInstruction and 
-            obj != Program and 
-            obj != Specification) }
+            obj != BZInstruction) }
 
-default_fpga_latency_table: dict[str, float] = { name:0.0 for (name,value) in 
+default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) for (name,value) in 
     inspect.getmembers(sys.modules['compiler.ast'], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
-            obj != BZInstruction and 
-            obj != Program and 
-            obj != Specification) }
+            obj != BZInstruction) }
 
 
 def type_check(program: Program, bz: bool, st: StructDict) -> bool:
@@ -723,7 +740,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     return ret
 
 
-def compute_cpu_wcet(program: Program, latency_table: dict[str, int]) -> int:
+def compute_cpu_wcet(program: Program, latency_table: dict[str, int], clk: int) -> int:
     """
     Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
 
@@ -745,14 +762,14 @@ def compute_cpu_wcet(program: Program, latency_table: dict[str, int]) -> int:
             logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
             return 0
         else:
-            return latency_table[classname]
+            return int((latency_table[classname] * a.scq_size) / clk)
 
     wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
     program.cpu_wcet = wcet
     return wcet
 
 
-def compute_fpga_wcet(program: Program, latency_table: dict[str, float]) -> float:
+def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, float]], clk: float) -> float:
     """
     Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
 
@@ -766,22 +783,48 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, float]) -> floa
     """
     wcet: float = 0
 
-    def compute_cpu_wcet_util(a: AST) -> float:
+    def compute_fpga_wcet_util(a: AST) -> float:
         nonlocal latency_table
 
         classname: str = type(a).__name__
         if classname not in latency_table:
-            logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
+            logger.error(f' Operator \'{classname}\' not found in FPGA latency table.')
             return 0
         else:
-            return latency_table[classname]
+            sum_scq_sizes_children = sum([c.scq_size for c in a.get_children()])
+            return latency_table[classname][0] + latency_table[classname][1]*sum_scq_sizes_children
 
-    wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
+    wcet = sum([compute_fpga_wcet_util(a) for a in program.assembly]) / clk
     program.fpga_wcet = wcet
     return wcet
 
 
-def validate_booleanizer_stack(asm: list[AST]) -> bool:
+def validate_booleanizer_stack(asm: list[Instruction]) -> bool:
+    """
+    Performs basic validation of the Booleanizer instructions of the generated assembly. Returns False if the stack size ever goes below 0 or above its maximum size.
+    """
+    max_stack_size: int = 32
+    stack_size: int = 0
+
+    def is_invalid_stack_size(size: int) -> bool:
+        return size < 0 and size >= max_stack_size
+
+    for instruction in [a for a in asm if isinstance(a, BZInstruction)]:
+        if is_invalid_stack_size(stack_size):
+            return False
+
+        # Pop all instruction operands 
+        stack_size -= len(instruction.get_children())
+
+        if is_invalid_stack_size(stack_size):
+            return False
+
+        # Push result
+        stack_size += 1
+
+        if is_invalid_stack_size(stack_size):
+            return False
+
     return True
 
 
@@ -791,7 +834,12 @@ def parse(input: str) -> list[Program]:
     return parser.parse(lexer.tokenize(input))
 
 
-def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, color: bool, quiet: bool) -> int:
+def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c', int_width: int = 8, int_signed: bool = False, 
+        float_width: int = 32, cse: bool = True, bz: bool = False, extops: bool = True, color: bool = True, quiet: bool = False) -> int:
+    INT.width = int_width
+    INT.is_signed = int_signed
+    FLOAT.width = float_width
+
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     programs: list[Program] = parse(input)
 
@@ -801,7 +849,7 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
 
     # type check
     if not type_check(programs[0],bz,programs[0].structs):
-        logger.error(' Failed type check')
+        logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
     rewrite_set_aggregation(programs[0])
@@ -812,7 +860,8 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
         rewrite_extended_operators(programs[0])
 
     # common sub-expressions elimination
-    optimize_cse(programs[0])
+    if cse:
+        optimize_cse(programs[0])
 
     # generate alias file
     # alias = gen_alias(programs[0])
@@ -824,12 +873,16 @@ def compile(input: str, sigs: str, output_path: str, bz: bool, extops: bool, col
     asm: list[Instruction] = generate_assembly(programs[0],signal_mapping)
     scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
 
+    if not validate_booleanizer_stack(asm):
+        logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
+        return ReturnCode.ASM_ERROR.value
+
     # print asm if 'quiet' option not enabled
     if not quiet:
-        print(Color.HEADER+' Generated Assembly'+Color.ENDC+':')
+        print(Color.HEADER+'Generated Assembly'+Color.ENDC+':')
         for a in asm:
             print('\t'+a.asm())
-        print(Color.HEADER+' Generated SCQs'+Color.ENDC+':')
+        print(Color.HEADER+'Generated SCQs'+Color.ENDC+':')
         for s in scq_asm:
             print('\t'+str(s))
 

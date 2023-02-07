@@ -7,13 +7,13 @@ OBJ_PATH := target/release
 SRC_PATH := src
 DBG_PATH := target/debug
 
-# # Feature Flags
-# ifdef R2U2_AT_Extra_Filters
-# # Add Extra Filters
-# CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
-# SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
-# $(info    R2U2 Extra Filters Enabled)
-# endif
+# Feature Flags
+ifdef R2U2_AT_Extra_Filters
+# Add Extra Filters
+CFLAGS := $(CFLAGS) -DR2U2_AT_Extra_Filters
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/extra_filters
+$(info    R2U2 Extra Filters Enabled)
+endif
 
 ifdef R2U2_TL_Formula_Names
 CFLAGS := $(CFLAGS) -DR2U2_TL_Formula_Names
@@ -30,12 +30,12 @@ CFLAGS := $(CFLAGS) -DR2U2_CSV_Header_Mapping
 $(info    R2U2 CSV Header Mapping Enabled)
 endif
 
-# ifdef R2U2_AT_Signal_Sets
-# # Add Signal Sets Filters
-# CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets #-D_GNU_SOURCE
-# SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
-# $(info    R2U2 Signal Sets Enabled)
-# endif
+ifdef R2U2_AT_Signal_Sets
+# Add Signal Sets Filters
+CFLAGS := $(CFLAGS) -DR2U2_AT_Signal_Sets #-D_GNU_SOURCE
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/signal_set_filters
+$(info    R2U2 Signal Sets Enabled)
+endif
 
 # ifdef R2U2_AT_Prognostics
 # # Add prognostics module
@@ -44,13 +44,13 @@ endif
 # $(info    R2U2 Prognostics Enabled)
 # endif
 
-# ifdef R2U2_AT_FFT_Filter
-# # Enable the discrete Fourier transform filter
-# CFLAGS := $(CFLAGS) -DR2U2_AT_FFT_Filter
-# SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
-# LIBS := $(LIBS) fftw3
-# $(info    R2U2 FFT Filter Enabled)
-# endif
+ifdef R2U2_AT_FFT_Filter
+# Enable the discrete Fourier transform filter
+CFLAGS := $(CFLAGS) -DR2U2_AT_FFT_Filter
+SRC_DIRS := $(SRC_DIRS) $(SRC_PATH)/AT/fft_filter
+LIBS := $(LIBS) fftw3
+$(info    R2U2 FFT Filter Enabled)
+endif
 
 SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/TL $(SRC_PATH)/parse $(SRC_PATH)/bz $(SRC_DIRS)
 IDIR=$(SRC_DIRS)

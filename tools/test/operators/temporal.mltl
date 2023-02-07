@@ -1,6 +1,6 @@
 INPUT
     b0,b1: bool;
-    i0,i1: uint8;
+    i0,i1: int;
     f0,f1: float;
 
 SPEC

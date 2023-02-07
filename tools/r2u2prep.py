@@ -1,10 +1,3 @@
-#!/usr/bin/python3
-#------------------------------------------------------------------------------#
-# Author:      Matt Cauwels, Chris Johannsen
-# Date:        April 29th, 2020
-# File Name:   r2u2prep.py
-# Description:
-#------------------------------------------------------------------------------#
 import os
 import shutil
 import argparse
@@ -32,12 +25,18 @@ parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
                     help="location where compiler programs will be called from")
 parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
                     help="location where assembly and configuration programs will be called from")
+parser.add_argument("--int-width", default=8,
+                    help="bit width for integer types")
+parser.add_argument("--int-signed", action='store_true',
+                    help="set int types to signed")
+parser.add_argument("--float-width", default=32,
+                    help="bit width for floating point types")
 parser.add_argument("--no-binaries", action="store_true",
                     help="generate config.c file in place of binaries")
 parser.add_argument("--booleanizer", action="store_true",
                     help="enable booleanizer")
-parser.add_argument("--no-color", action="store_true",
-                    help="enable color in logging")
+parser.add_argument("--no-color", action="store_false",
+                    help="disable color in logging")
 args = parser.parse_args()
 
 binary_dir = args.output_dir + '/binary_files/'
@@ -54,7 +53,7 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,'r').read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(mltl, args.sigs, args.output_dir, args.booleanizer, True, args.no_color, args.quiet)
+        return_code = compile(mltl, args.sigs, output_path=args.output_dir, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, bz=args.booleanizer, cse=True, color=args.no_color, quiet=args.quiet)
     else:
         print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
         return_code = 1

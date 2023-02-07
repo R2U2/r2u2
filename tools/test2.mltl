@@ -4,11 +4,11 @@
 -- comments which are preceded by two dashes
 
 STRUCT
-  test: {v: uint8; V: set<uint8>; };
+  test: {v: int; V: set<int>; };
  
 INPUT
-  x0,y0,z0: uint8;
-  x1,y1,z1: uint8;
+  x0,y0,z0: int;
+  x1,y1,z1: int;
   
 DEFINE
   var = 5;
@@ -21,4 +21,3 @@ SPEC
   foreach(t:Set)(foreach(v:t.V)(v == 5));
   (x0==0)&&(x0==0)&&(x0==0)&&(x1>1);
   G[0,5](y0==5);
-  
