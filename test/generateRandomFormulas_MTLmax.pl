@@ -26,7 +26,7 @@
 use FileHandle;      #for open() 
 
 #Set the directory where all of the formulas will be stored
-$formula_dir = "./formulasMTL";
+$formula_dir = "./formulasMLTL";
 
 #If the formula directory doesn't exist, create it
 if (! (-d $formula_dir) ) {

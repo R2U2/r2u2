@@ -570,7 +570,7 @@ class C2POParser(Parser):
     # Shorthand interval
     @_('LBRACK INT RBRACK')
     def interval(self, p):
-        return Interval(p.lineno, p[1].get_value())
+        return Interval(0, int(p[1]))
 
     # Standard interval
     @_('LBRACK INT COMMA INT RBRACK')

@@ -46,24 +46,24 @@ Note: You must 'make' the R2U2 file within the R2U2_C/ directory prior to runnin
 '''
 def test_c():
     __OutputDIR__ = __ResultDIR__+__ResultCDir__
-    _input = 'input0052.csv'
+    signal_filename = __InputDir__+'input0052.csv'
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
     # For all formula files within the formulaFiles directory
-    _formulaFile = __TLDir__+'FT_Formulas.mltl'
-    formula = open(_formulaFile,'r').read()
+    mltl_filename = __TLDir__+'FT_Formulas.mltl'
+    # formula = open(mltl_filename,'r').read()
     # print(formula)
     # For each formula within
-    subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
-    filename = 'R2U2.log'
-    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
-    subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
+    subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)
+    log_filename = 'R2U2.log'
+    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,signal_filename],stdout=subprocess.PIPE)
+    subprocess.run(['mv',log_filename,__OutputDIR__+log_filename])
     # Split the multi-formula run into individual files.
-    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)
+    subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+log_filename],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
     for i in [x for x in range(0,13) if x!= 9]: # Formula 9 intentionally skipped since it is equivalent to 8
-        filename = __testDir__+'R2U2_formula'+str(i)+'.txt'
-        subprocess.run(['mv',filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
+        log_filename = __testDir__+'R2U2_formula'+str(i)+'.txt'
+        subprocess.run(['mv',log_filename,__OutputDIR__+'R2U2_formula'+str(i)+'.txt'],stdout=subprocess.PIPE)
     # Remove the overall R2U2.log file from the results directory
     #subprocess.run(['rm',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
 '''

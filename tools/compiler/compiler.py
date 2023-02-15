@@ -164,7 +164,10 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
                     if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
                         a.formula_type = c.formula_type
 
-            status = status and a.interval.lb <= a.interval.ub
+            if a.interval.lb > a.interval.ub:
+                status = status
+                logger.error(f'{a.ln}: Future time interval invalid, lower bound must less than or equal to upper bound (found [{a.interval.lb},{a.interval.ub}])')
+
             a.type = BOOL()
         elif isinstance(a,Set):
             t: Type = NOTYPE()
@@ -610,7 +613,8 @@ def parse_signals(filename: str) -> dict[str,int]:
                 logger.error(f' Not enough data in file \'{filename}\'')
                 return {}
             cnt: int = 0
-            for id in [s.strip() for s in lines[0].split(',')]:
+            header = lines[0][1:] if lines[0][0] == '#' else lines[0]
+            for id in [s.strip() for s in header.split(',')]:
                 mapping[id] = cnt
                 cnt += 1
     else: # TODO, implement signal mapping file format

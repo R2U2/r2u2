@@ -4,7 +4,7 @@ from pathlib import Path
 from random import randint
 from subprocess import run
 
-FORMULA_DIR: str = 'formulasMTL/'
+FORMULA_DIR: str = 'formulasMLTL/'
 MLTL_DIR: str = 'tmp/'
 CSV_FILENAME: str = 'random.csv'
 NUM_VARS: int = 5
