@@ -504,6 +504,191 @@ def rewrite_struct_access(program: Program) -> None:
     program.is_struct_access_free = True
 
 
+def optimize_rewrite_rules(program: Program) -> None:
+    rules = { '' : '' }
+
+    def optimize_rewrite_rules_util(a: AST) -> None:
+        if isinstance(a, LogicalNegate):
+            opnd1 = a.get_operand()
+            if isinstance(opnd1, Global):
+                opnd2 = opnd1.get_operand()
+                if isinstance(opnd2, LogicalNegate):
+                    # !(G[l,u](!p)) = F[l,u]p
+                    a.replace(Future(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
+            if isinstance(opnd1, Future):
+                opnd2 = opnd1.get_operand()
+                if isinstance(opnd2, LogicalNegate):
+                    # !(F[l,u](!p)) = G[l,u]p
+                    a.replace(Global(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
+        elif isinstance(a, Global):
+            opnd1 = a.get_operand()
+            if a.interval.lb == 0 and a.interval.ub == 0:
+                # G[0,0]p = p
+                a.replace(opnd1)
+            if isinstance(opnd1, Bool):
+                if opnd1.val == True:
+                    # G[l,u]True = True
+                    a.replace(Bool(a.ln, True))
+                else:
+                    # G[l,u]False = False
+                    a.replace(Bool(a.ln, False))
+            elif isinstance(opnd1, Global):
+                # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
+                opnd2 = opnd1.get_operand()
+                lb: int = a.interval.lb + opnd1.interval.lb
+                ub: int = a.interval.ub + opnd1.interval.ub
+                a.replace(Global(a.ln, opnd1, lb, ub))
+            elif isinstance(opnd1, Future):
+                opnd2 = opnd1.get_operand()
+                if a.interval.lb == a.interval.ub:
+                    # G[a,a](F[l,u]p) = F[l+a,u+a]p
+                    lb: int = a.interval.lb + opnd1.interval.lb
+                    ub: int = a.interval.ub + opnd1.interval.ub
+                    a.replace(Future(a.ln, opnd2, lb, ub))
+        elif isinstance(a, Future):
+            opnd1 = a.get_operand()
+            if a.interval.lb == 0 and a.interval.ub == 0:
+                # F[0,0]p = p
+                a.replace(opnd1)
+            if isinstance(opnd1, Bool):
+                if opnd1.val == True:
+                    # F[l,u]True = True
+                    a.replace(Bool(a.ln, True))
+                else:
+                    # F[l,u]False = False
+                    a.replace(Bool(a.ln, False))
+            elif isinstance(opnd1, Future):
+                # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
+                opnd2 = opnd1.get_operand()
+                lb: int = a.interval.lb + opnd1.interval.lb
+                ub: int = a.interval.ub + opnd1.interval.ub
+                a.replace(Future(a.ln, opnd1, lb, ub))
+            elif isinstance(opnd1, Global):
+                opnd2 = opnd1.get_operand()
+                if a.interval.lb == a.interval.ub:
+                    # F[a,a](G[l,u]p) = G[l+a,u+a]p
+                    lb: int = a.interval.lb + opnd1.interval.lb
+                    ub: int = a.interval.ub + opnd1.interval.ub
+                    a.replace(Global(a.ln, opnd2, lb, ub))
+        elif isinstance(a, LogicalAnd):
+            # Assume binary for now
+            lhs = a.get_child(0)
+            rhs = a.get_child(1)
+            if isinstance(lhs, Global) and isinstance(rhs, Global):
+                p = lhs.get_operand()
+                q = rhs.get_operand()
+                lb1: int = lhs.interval.lb
+                ub1: int = lhs.interval.ub
+                lb2: int = rhs.interval.lb
+                ub2: int = rhs.interval.ub
+
+                if p == q:
+                    # G[lb1,lb2]p && G[lb2,ub2]p
+                    if lb1 <= lb2 and ub1 >= ub2:
+                        # lb1 <= lb2 <= ub2 <= ub1
+                        a.replace(Global(a.ln, p, lb1, ub1))
+                        return
+                    elif lb2 <= lb1 and ub2 >= ub1:
+                        # lb2 <= lb1 <= ub1 <= ub2
+                        a.replace(Global(a.ln, p, lb2, ub2))
+                        return
+                    elif lb1 <= lb2 and lb2 <= ub1+1:
+                        # lb1 <= lb2 <= ub1+1
+                        a.replace(Global(a.ln, p, lb1, max(ub1,ub2)))
+                        return
+                    elif lb2 <= lb1 and lb1 <= ub2+1:
+                        # lb2 <= lb1 <= ub2+1
+                        a.replace(Global(a.ln, p, lb2, max(ub1,ub2)))
+                        return
+
+                # TODO: check for when lb==ub==0
+                # (G[l1,u1]p) && (G[l2,u2]q) = G[l3,u3](G[l1-l3,u1-u3]p && G[l2-l3,u2-u3]q)
+                lb3: int = min(lb1, lb2)
+                ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
+                a.replace(Global(a.ln, LogicalAnd(a.ln, 
+                    [Global(a.ln, p, lb1-lb3, ub1-ub3), Global(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+            elif isinstance(lhs, Future) and isinstance(rhs, Future):
+                lhs_opnd = lhs.get_operand()
+                rhs_opnd = rhs.get_operand()
+                if lhs_opnd == rhs_opnd:
+                    # F[l1,u1]p && F[l2,u2]p = F[max(l1,l2),min(u1,u2)]p
+                    pass
+            elif isinstance(lhs, Until) and isinstance(rhs, Until):
+                lhs_lhs = lhs.get_lhs()
+                lhs_rhs = lhs.get_rhs()
+                rhs_lhs = rhs.get_lhs()
+                rhs_rhs = rhs.get_rhs()
+                if lhs_rhs == rhs_rhs and lhs.interval.lb == rhs.interval.lb:
+                    # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
+                    a.replace(Until(a.ln, LogicalAnd(a.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb, 
+                        min(lhs.interval.ub, rhs.interval.ub)))
+        elif isinstance(a, LogicalOr):
+            # Assume binary for now
+            lhs = a.get_child(0)
+            rhs = a.get_child(1)
+            if isinstance(lhs, Future) and isinstance(rhs, Future):
+                p = lhs.get_operand()
+                q = rhs.get_operand()
+                lb1: int = lhs.interval.lb
+                ub1: int = lhs.interval.ub
+                lb2: int = rhs.interval.lb
+                ub2: int = rhs.interval.ub
+
+                if p == q:
+                    # F[lb1,lb2]p || F[lb2,ub2]p
+                    if lb1 <= lb2 and ub1 >= ub2:
+                        # lb1 <= lb2 <= ub2 <= ub1
+                        a.replace(Future(a.ln, p, lb1, ub1))
+                        return
+                    elif lb2 <= lb1 and ub2 >= ub1:
+                        # lb2 <= lb1 <= ub1 <= ub2
+                        a.replace(Future(a.ln, p, lb2, ub2))
+                        return
+                    elif lb1 <= lb2 and lb2 <= ub1+1:
+                        # lb1 <= lb2 <= ub1+1
+                        a.replace(Future(a.ln, p, lb1, max(ub1,ub2)))
+                        return
+                    elif lb2 <= lb1 and lb1 <= ub2+1:
+                        # lb2 <= lb1 <= ub2+1
+                        a.replace(Future(a.ln, p, lb2, max(ub1,ub2)))
+                        return
+
+                # TODO: check for when lb==ub==0
+                # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
+                lb3: int = min(lb1, lb2)
+                ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
+                a.replace(Future(a.ln, LogicalOr(a.ln, 
+                    [Future(a.ln, p, lb1-lb3, ub1-ub3), Future(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+            elif isinstance(lhs, Global) and isinstance(rhs, Global):
+                lhs_opnd = lhs.get_operand()
+                rhs_opnd = rhs.get_operand()
+                if lhs_opnd == rhs_opnd:
+                    # G[l1,u1]p || G[l2,u2]p = G[max(l1,l2),min(u1,u2)]p
+                    pass
+            elif isinstance(lhs, Until) and isinstance(rhs, Until):
+                lhs_lhs = lhs.get_lhs()
+                lhs_rhs = lhs.get_rhs()
+                rhs_lhs = rhs.get_lhs()
+                rhs_rhs = rhs.get_rhs()
+                if lhs_lhs == rhs_lhs and lhs.interval.lb == rhs.interval.lb:
+                    # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
+                    a.replace(Until(a.ln, LogicalOr(a.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb, 
+                        min(lhs.interval.ub, rhs.interval.ub)))
+        elif isinstance(a, Until):
+            lhs = a.get_lhs()
+            rhs = a.get_rhs()
+            if isinstance(rhs, Global) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
+                # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
+                a.replace(Global(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
+            if isinstance(rhs, Future) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
+                # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
+                a.replace(Future(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
+
+        
+
+    postorder(program, optimize_rewrite_rules_util)
+
+
 def optimize_cse(program: Program) -> None:
     """
     Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence.
@@ -592,10 +777,12 @@ def compute_scq_size(program: Program) -> int:
                 if not s == a:
                     siblings.append(s)
 
-        wpd: int = max([s.wpd for s in siblings]+[1])
+        wpd: int = max([s.wpd for s in siblings]+[0])
 
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
         total += a.scq_size
+
+        print(f"{a}: {a.scq_size}")
  
     postorder(program,compute_scq_size_util)
     program.total_scq_size = total
@@ -856,6 +1043,9 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
+    pre_memory = compute_scq_size(programs[0])
+    print(programs[0])
+
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
 
@@ -866,6 +1056,16 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
     # common sub-expressions elimination
     if cse:
         optimize_cse(programs[0])
+
+    optimize_rewrite_rules(programs[0])
+
+    post_memory = compute_scq_size(programs[0])
+
+    print(programs[0])
+    print(f"{pre_memory},{post_memory}")
+
+    return ReturnCode.SUCCESS.value
+
 
     # generate alias file
     # alias = gen_alias(programs[0])
