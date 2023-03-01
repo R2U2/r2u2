@@ -25,7 +25,7 @@ def readInput(_inputFile):
     # Open the input file and read the inputs
     f = open(__InputDir__ + _inputFile,'r').read()
     # Split the file object by rows
-    lines = f.split('\n')
+    lines = f.split('\n')[1:]
 
     # Create the Array list, which will store the inputs as a 2D list, where
     # the outer list corresponds to the atomics and the inner list corresponds to
