@@ -276,7 +276,7 @@ class C2POParser(Parser):
 
         f1: AST = p[2]
         f2: AST = LogicalImplies(ln,p[2],p[4])
-        f3: AST = LogicalAnd(ln,p[2],p[4])
+        f3: AST = LogicalAnd(ln,[p[2],p[4]])
 
         self.spec_num += 3
         return [Specification(ln, label, self.spec_num-3, f1),
@@ -450,7 +450,7 @@ class C2POParser(Parser):
         if operator == '->':
             return LogicalImplies(ln, lhs, rhs)
         elif operator == '<->':
-            return LogicalAnd(ln,[ LogicalImplies(ln, lhs, rhs), LogicalImplies(ln, rhs, lhs)])
+            return LogicalAnd(ln,[LogicalImplies(ln, lhs, rhs), LogicalImplies(ln, rhs, lhs)])
         elif operator == '||':
             return LogicalOr(ln, [lhs, rhs])
         elif operator == '&&':

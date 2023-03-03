@@ -215,7 +215,7 @@ class Integer(Constant, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + 'iconst ' + str(self.name) + ''
+        return super().asm() + 'iconst ' + self.name
 
 
 class Float(Constant, BZInstruction):
@@ -256,7 +256,7 @@ class Signal(Literal):
         self.sid = -1
 
 
-class Bool(Constant, BZInstruction, TLInstruction):
+class Bool(Constant):
 
     def __init__(self, ln: int, v: bool) -> None:
         super().__init__(ln,[])
@@ -269,8 +269,8 @@ class Bool(Constant, BZInstruction, TLInstruction):
     def tlid_name(self) -> str:
         return self.name
 
-    def asm(self) -> str:
-        return 'iconst ' + ('0' if self.name == 'False' else '1')
+    # def asm(self) -> str:
+    #     return 'iconst ' + ('0' if self.name == 'False' else '1')
 
 
 class Set(AST):

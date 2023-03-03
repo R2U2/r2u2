@@ -505,21 +505,41 @@ def rewrite_struct_access(program: Program) -> None:
 
 
 def optimize_rewrite_rules(program: Program) -> None:
-    rules = { '' : '' }
 
     def optimize_rewrite_rules_util(a: AST) -> None:
         if isinstance(a, LogicalNegate):
             opnd1 = a.get_operand()
-            if isinstance(opnd1, Global):
+            if isinstance(opnd1, Bool):
+                if opnd1.val == True:
+                    # !true = false
+                    a.replace(Bool(a.ln, False))
+                else:
+                    # !false = true
+                    a.replace(Bool(a.ln, True))
+            elif isinstance(opnd1, LogicalNegate):
+                # !!p = p
+                a.replace(opnd1.get_operand())
+            elif isinstance(opnd1, Global):
                 opnd2 = opnd1.get_operand()
                 if isinstance(opnd2, LogicalNegate):
                     # !(G[l,u](!p)) = F[l,u]p
                     a.replace(Future(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
-            if isinstance(opnd1, Future):
+            elif isinstance(opnd1, Future):
                 opnd2 = opnd1.get_operand()
                 if isinstance(opnd2, LogicalNegate):
                     # !(F[l,u](!p)) = G[l,u]p
                     a.replace(Global(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
+        elif isinstance(a, Equal):
+            lhs = a.get_lhs()
+            rhs = a.get_rhs()
+            if isinstance(lhs, Bool) and isinstance(rhs, Bool):
+                pass
+            elif isinstance(lhs, Bool):
+                # (true == p) = p
+                a.replace(rhs)
+            elif isinstance(rhs, Bool):
+                # (p == true) = p
+                a.replace(lhs)
         elif isinstance(a, Global):
             opnd1 = a.get_operand()
             if a.interval.lb == 0 and a.interval.ub == 0:
@@ -782,7 +802,7 @@ def compute_scq_size(program: Program) -> int:
         a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
         total += a.scq_size
 
-        print(f"{a}: {a.scq_size}")
+        # print(f"{a}: {a.scq_size}")
  
     postorder(program,compute_scq_size_util)
     program.total_scq_size = total
@@ -1043,8 +1063,8 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
-    pre_memory = compute_scq_size(programs[0])
-    print(programs[0])
+    # pre_memory = compute_scq_size(programs[0])
+    # print(programs[0])
 
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
@@ -1059,12 +1079,12 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
 
     optimize_rewrite_rules(programs[0])
 
-    post_memory = compute_scq_size(programs[0])
+    # post_memory = compute_scq_size(programs[0])
 
-    print(programs[0])
-    print(f"{pre_memory},{post_memory}")
+    # print(programs[0])
+    # print(f"{pre_memory},{post_memory}")
 
-    return ReturnCode.SUCCESS.value
+    # return ReturnCode.SUCCESS.value
 
 
     # generate alias file
