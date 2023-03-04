@@ -5,6 +5,8 @@ from pathlib import Path
 from random import randint
 from itertools import combinations
 from subprocess import run, check_output
+import matplotlib.pyplot as plt
+
 
 FORMULA_DIR: str = "formulasMLTL"
 REWRITE_DIR: str = "rewrites/"
@@ -151,7 +153,7 @@ def run_mltl_rewriting_benchmarks() -> None:
 
 
 if __name__ == "__main__":
-    generate_mltl_rewriting_benchmark()
+    # generate_mltl_rewriting_benchmark()
     run_mltl_rewriting_benchmarks()
     # generate_self_ref_benchmark_random(2,3)
     # generate_self_ref_benchmark(2)
