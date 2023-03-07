@@ -1,6 +1,7 @@
 from argparse import PARSER
 import re
 from logging import getLogger
+from time import perf_counter
 
 from .logger import *
 from .ast import *
@@ -242,6 +243,48 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
         program.is_type_correct = True
 
     return status
+
+
+def compute_scq_size(a: AST) -> int:
+    """
+    Computes SCQ sizes for each node in 'program' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+    """
+    visited: list[AST] = []
+    total: int = 0
+
+    def compute_scq_size_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal total
+
+        if not isinstance(a, TLInstruction) or isinstance(a, Program):
+            return
+
+        if a in visited:
+            return
+        visited.append(a)
+
+        if isinstance(a, Specification):
+            a.scq_size = 1
+            total += a.scq_size
+            return
+
+        siblings: list[AST] = []
+        for p in a.get_parents():
+            for s in p.get_children():
+                if not s == a:
+                    siblings.append(s)
+
+        wpd: int = max([s.wpd for s in siblings]+[0])
+
+        a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        total += a.scq_size
+
+        # print(f"{a}: {a.scq_size}")
+ 
+    postorder(a ,compute_scq_size_util)
+    a.total_scq_size = total
+
+    return total
 
 
 def rewrite_extended_operators(program: Program) -> None:
@@ -621,12 +664,11 @@ def optimize_rewrite_rules(program: Program) -> None:
                         a.replace(Global(a.ln, p, lb2, max(ub1,ub2)))
                         return
 
-                # TODO: check for when lb==ub==0
-                # (G[l1,u1]p) && (G[l2,u2]q) = G[l3,u3](G[l1-l3,u1-u3]p && G[l2-l3,u2-u3]q)
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
+
                 a.replace(Global(a.ln, LogicalAnd(a.ln, 
-                    [Global(a.ln, p, lb1-lb3, ub1-ub3), Global(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+                        [Global(a.ln, p, lb1-lb3, ub1-ub3), Global(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Future) and isinstance(rhs, Future):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
@@ -677,8 +719,9 @@ def optimize_rewrite_rules(program: Program) -> None:
                 # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
+
                 a.replace(Future(a.ln, LogicalOr(a.ln, 
-                    [Future(a.ln, p, lb1-lb3, ub1-ub3), Future(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+                        [Future(a.ln, p, lb1-lb3, ub1-ub3), Future(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Global) and isinstance(rhs, Global):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
@@ -700,13 +743,44 @@ def optimize_rewrite_rules(program: Program) -> None:
             if isinstance(rhs, Global) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
                 a.replace(Global(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
-            if isinstance(rhs, Future) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
+            elif isinstance(rhs, Future) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
                 a.replace(Future(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
 
-        
-
     postorder(program, optimize_rewrite_rules_util)
+
+
+def optimize_associative_operators(a: AST) -> None:
+    
+    def optimize_associative_operators_rec(a: AST) -> None:
+        if isinstance(a, LogicalAnd) and len(a.get_children()) > 2:
+            n: int = len(a.get_children())
+            children = [c for c in a.get_children()]
+            wpds = [c.wpd for c in children]
+            wpds.sort(reverse=True)
+
+            T = max(children, key=lambda c: c.wpd)
+            print('max:')
+            print(T)
+
+            if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in a.get_children() if c.wpd < wpds[0]]):
+                a.replace(LogicalAnd(a.ln, [LogicalAnd(a.ln, [c for c in children if c != children[0]]), children[0]]))
+
+        elif isinstance(a, LogicalOr):
+            max_wpd: int = max([c.wpd for c in a.get_children()])
+            target: AST = next(c for c in a.get_children() if c.wpd == max_wpd)
+
+            new_children = [c for c in a.get_children() if c != target]
+            new_ast = LogicalOr(a.ln, [LogicalOr(a.ln, new_children), target])
+
+            if compute_scq_size(new_ast) < compute_scq_size(a):
+                # (a0 && a1 && ... && an) = ((a1 && a2 && ... && an-1) && an)
+                a.replace(new_ast)
+
+        for c in a.get_children():
+            optimize_associative_operators_rec(c)
+
+    optimize_associative_operators_rec(a)
 
 
 def optimize_cse(program: Program) -> None:
@@ -766,48 +840,6 @@ def generate_alias(program: Program) -> str:
             str(num+1) + ' ' + str(num+2) + '\n'
 
     return s
-
-
-def compute_scq_size(program: Program) -> int:
-    """
-    Computes SCQ sizes for each node in 'program' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
-    """
-    visited: list[AST] = []
-    total: int = 0
-
-    def compute_scq_size_util(a: AST) -> None:
-        nonlocal visited
-        nonlocal total
-
-        if not isinstance(a, TLInstruction) or isinstance(a, Program):
-            return
-
-        if a in visited:
-            return
-        visited.append(a)
-
-        if isinstance(a, Specification):
-            a.scq_size = 1
-            total += a.scq_size
-            return
-
-        siblings: list[AST] = []
-        for p in a.get_parents():
-            for s in p.get_children():
-                if not s == a:
-                    siblings.append(s)
-
-        wpd: int = max([s.wpd for s in siblings]+[0])
-
-        a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
-        total += a.scq_size
-
-        # print(f"{a}: {a.scq_size}")
- 
-    postorder(program,compute_scq_size_util)
-    program.total_scq_size = total
-
-    return total
 
 
 def parse_signals(filename: str) -> dict[str,int]:
@@ -1045,14 +1077,28 @@ def parse(input: str) -> list[Program]:
     return parser.parse(lexer.tokenize(input))
 
 
-def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c', int_width: int = 8, int_signed: bool = False, 
-        float_width: int = 32, cse: bool = True, bz: bool = False, extops: bool = True, color: bool = True, quiet: bool = False) -> int:
+def compile(
+    input_filename: str, 
+    signals_filename: str, 
+    output_path: str = 'config/', 
+    impl: str = 'c', 
+    int_width: int = 8, 
+    int_signed: bool = False, 
+    float_width: int = 32, 
+    cse: bool = True, 
+    bz: bool = False, 
+    extops: bool = True, 
+    color: bool = True, 
+    quiet: bool = False
+) -> int:
+    """Compiles a C2PO input file and outputs generated R2U2 assembly/binaries"""
     INT.width = int_width
     INT.is_signed = int_signed
     FLOAT.width = float_width
 
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
-    programs: list[Program] = parse(input)
+    with open(input_filename, "r") as f:
+        programs: list[Program] = parse(f.read())
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')
@@ -1063,8 +1109,8 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
-    # pre_memory = compute_scq_size(programs[0])
-    # print(programs[0])
+    pre_memory = compute_scq_size(programs[0])
+    print(programs[0])
 
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
@@ -1073,25 +1119,25 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
     if not extops:
         rewrite_extended_operators(programs[0])
 
+    optimize_rewrite_rules(programs[0])
+
     # common sub-expressions elimination
     if cse:
         optimize_cse(programs[0])
 
-    optimize_rewrite_rules(programs[0])
-
-    # post_memory = compute_scq_size(programs[0])
+    post_memory = compute_scq_size(programs[0])
 
     # print(programs[0])
-    # print(f"{pre_memory},{post_memory}")
+    print(f"{pre_memory},{post_memory}")
 
-    # return ReturnCode.SUCCESS.value
+    return ReturnCode.SUCCESS.value
 
 
     # generate alias file
     # alias = gen_alias(programs[0])
 
     # parse csv/signals file
-    signal_mapping: dict[str,int] = parse_signals(sigs)
+    signal_mapping: dict[str,int] = parse_signals(signals_filename)
 
     # generate assembly
     asm: list[Instruction] = generate_assembly(programs[0],signal_mapping)
@@ -1111,3 +1157,24 @@ def compile(input: str, sigs: str, output_path: str = 'config/', impl: str = 'c'
             print('\t'+str(s))
 
     return ReturnCode.SUCCESS.value
+
+
+def benchmark_rewrite_rules(input_filename: str, signals_filename: str) -> str: 
+
+    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+    with open(input_filename, "r") as f:
+        programs: list[Program] = parse(f.read())
+
+    if len(programs) < 1:
+        logger.error(' Failed parsing.')
+        return ""
+
+    programs[0].is_type_correct = True
+
+    pre_memory = compute_scq_size(programs[0])
+
+    optimize_rewrite_rules(programs[0])
+
+    post_memory = compute_scq_size(programs[0])
+
+    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"

@@ -68,6 +68,7 @@ class AST():
         self.atid: int = -1
         self.num_bz_parents: int = 0
         self.num_tl_parents: int = 0
+        self.total_scq_size: int = 0
         self.scq_size: int = 0
         self.name: str = ''
         self.bpd: int = 0
@@ -254,6 +255,9 @@ class Signal(Literal):
         self.name: str = n
         self.type: Type = t
         self.sid = -1
+
+    def __deepcopy__(self, memo):
+        return Signal(self.ln, self.name, self.type)
 
 
 class Bool(Constant):
@@ -1253,7 +1257,6 @@ class Program(TLInstruction):
         self.signal_mapping: dict[str,int]
 
         # Computable properties
-        self.total_scq_size: int = -1
         self.total_memory: int = -1
         self.cpu_wcet: int = -1
         self.fpga_wcet: float = -1
@@ -1272,6 +1275,9 @@ class Program(TLInstruction):
         for s in self.get_children():
             ret += str(s) + '\n'
         return ret[:-1]
+
+    def __deepcopy__(self, memo):
+        return Program(self.ln, deepcopy(self.structs), deepcopy(self.specs), deepcopy(self.contracts))
 
     def asm(self) -> str:
         return super().asm() + 'endsequence'

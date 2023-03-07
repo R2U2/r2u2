@@ -10,6 +10,7 @@
 #      L : formula length
 #      N : number of variables (named a0, a1, ...)
 #      P : probability of choosing temporal operators 
+#      S : the starting value of every generated bound. If S = 0, every bound starts from 0.
 #      M : generate bounds <= M (M is maximum delta between i and j in Z[i,j])
 #      T : max trace length; mission-time formulas must have end bounds < T (T is max value of j)
 #      (--help will produce a usage message)
@@ -25,16 +26,7 @@
 
 use FileHandle;      #for open() 
 
-#Set the directory where all of the formulas will be stored
-$formula_dir = "./formulasMLTL";
 
-#If the formula directory doesn't exist, create it
-if (! (-d $formula_dir) ) {
-    mkdir("$formula_dir", 0755) or die "Cannot mkdir $formula_dir: $!";
-} #end if
-elsif (! (-w $formula_dir) ) { #check for write permission
-    die "ERROR: formula directory $formula_dir is not writable!";
-} #end elseif
 
 
 #################### Argument Setup ####################
@@ -42,8 +34,14 @@ elsif (! (-w $formula_dir) ) { #check for write permission
 #Check for correct number and type of command line arguments
 
 if ($ARGV[0] =~ /--help/) {
-    die "generateRandomFormulas_MTL.pl: \n\tWith no arguments: generate a wide range of formula files containing MTL formulas.\n\tWith 3 arguments: generate files for specified L, N, P, M, T (order matters).\n";
+    die "generateRandomFormulas_MTL.pl: \n\tWith no arguments: generate a wide range of formula files containing MTL formulas.\n\tWith 3 arguments: generate files for specified L, N, P, S, M, T (order matters).\n";
 } #end if
+
+# $S = 0; #default value for S (not starting from 0)
+
+$M = 100; #default value for M
+
+$T = 100; #default value for T
 
 # if ($ARGV[0] =~ /-useR/i) {
 #     $useR = 1; 
@@ -52,20 +50,21 @@ if ($ARGV[0] =~ /--help/) {
 # } #end if
 # die "ARGV is now @ARGV";
 
-if (@ARGV == 4) {
+if (@ARGV == 5) {
     print "Reading command-line arguments:\n";
-    ($L, $n, $P, $M) = @ARGV;
-    print "L = $L; N = $n; P = $P; M = $M\n";
+    ($L, $n, $P, $M, $T) = @ARGV;
+    print "L = $L; N = $n; P = $P; S = $S; M = $M; T = $T\n";
     if (($L !~ /^\d+\.?\d*$/) 
 	|| ($n !~ /^\d+\.?\d*$/) 
 	|| ($P !~ /^\d+\.?\d*$/)
+	|| ($S !~ /^\d+\.?\d*$/)
 	|| ($M !~ /^\d+\.?\d*$/)
 	|| ($L < 1)
 	|| ($n < 1) 
 	|| ($P < 0)
 	|| ($P > 1) 
 	|| ($M < 1)
-	# || ($T < 1)
+	|| ($T < 1)
 	) {
 	die "Require 5 numerical arguments: L, N, P, M, T\n";
     } #end if
@@ -77,6 +76,22 @@ elsif (@ARGV != 0) {
 
 else {print "Generating formulas for ranges of L, N, P, M, and T ...\n";}
 
+
+#Set the directory where all of the formulas will be stored
+$formula_dir = "./random";
+
+# if ($S == 0) {
+#     $formula_dir = "./random0";
+# }
+
+
+#If the formula directory doesn't exist, create it
+if (! (-d $formula_dir) ) {
+    mkdir("$formula_dir", 0755) or die "Cannot mkdir $formula_dir: $!";
+} #end if
+elsif (! (-w $formula_dir) ) { #check for write permission
+    die "ERROR: formula directory $formula_dir is not writable!";
+} #end elseif
 
 #################### Generation of Formulas ####################
 
@@ -91,27 +106,21 @@ print "N is @N\n";
 print OUT "N is @N\n";
 
 #@Llist = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100);
-#@Llist = (5, 15, 25, 35, 50, 65, 75, 85, 100);
-@Llist = (3, 5, 8, 10, 12, 15);
+@Llist = (20, 40, 60, 80, 100);
 print "L = (@Llist)\n";
 print OUT "L = (@Llist)\n";
 
-@Plist = (0.7); #array of probabilities to try
-#@Plist = (1.0); ##################Pei
+@Plist = (0.3, 0.5, 0.7, 0.95); #array of probabilities to try
 print "P = (@Plist)\n";
 print OUT "P = (@Plist)\n";
 
-$M = 10; #default value for M
 
-$T = 4; #default value for T
 
 
 #Note: No R operator in MTL
 @operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
-#@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
 $num_unary_temporal_ops = 2;
-#$num_temporal_ops = 4;
-$num_temporal_ops = 3;#Pei################################################
+$num_temporal_ops = 4;
 #order is very important here: unary temporal ops, binary temporal ops, then ! then binary ops
 
 
@@ -132,6 +141,10 @@ sub generate_bounds {
     my $this;
 
     my $M_num = int(rand(3)); #Choose between the 3 common formula scenarios:
+    if ($S == 0) {
+        $M_num = 1;
+    }
+
     if ($M_num == 1) { #1) Make the bounds 0 ... num
 	my $first_num = int(rand($M));
 	$this = "[0,$first_num]"; #M single bound
@@ -163,7 +176,7 @@ sub generate_formula {
     my $this;
     my $bound;
 
-    #print STDERR "generate_formula here: L is $L, N is $n, P is $P, M is $M, and T is $T\n";
+    print STDERR "generate_formula here: L is $L, N is $n, P is $P, M is $M, and T is $T\n";
     
     if ($L == 1) { #randomly choose one variable
 	my $var_num = int(rand($n));
@@ -179,7 +192,7 @@ sub generate_formula {
 
 	    #if ($op ne "X") { #X operators can't have MTL bounds
 	    $bound = generate_bounds();
-	    $this = $this.$bound;	    
+	    $this = $this.$bound;
 	    #} #end if "X"
 
 	    my $var_num = int(rand($n));
@@ -230,12 +243,15 @@ sub generate_formula {
 	    else { #unary temporal operators
 		my $Lminus1 = $L - 1;
 		my $recur = &generate_formula($Lminus1);
-
-		#Decide on M-bounds
-		if ($op ne "!"){ ### pei add this line on Mar.15
-			$bound = generate_bounds();
-			$this = $this.$bound;
-		} ### pei add this line on Mar.15
+        
+        if ($op eq "!") {
+        }
+        else {
+		    #Decide on M-bounds
+		    $bound = generate_bounds();
+		    $this = $this.$bound;
+		}
+		
 		$this = "($this ("
 		    .$recur
 		    ."))";
@@ -296,23 +312,26 @@ sub generate_formula {
 ##################################################################
 
 
-if (@ARGV == 4) {
+if (@ARGV == 5) {
 
     print "\n\nN = $n, L = $L, P = $P, M = $M; T - $T:\n";
 
-    #Create an output file for each set of formulas data
-    $FormFile = "${formula_dir}/P${P}N${n}L${L}M${M}T${T}.form";
-    open(FORMULAS, ">$FormFile") or die "Could not open $FormFile";
     
-    for ($f = 0; $f < $F; $f++) { #generate $F formulas
+    
+    for ($f = 1; $f <= $F; $f++) { #generate $F formulas
+    
+    #Create an output file for each set of formulas data
+    $FormFile = "${formula_dir}/P${P}N${n}L${L}M${M}T${T}-${f}.mltl";
+    open(FORMULAS, ">$FormFile") or die "Could not open $FormFile";
 	
 	$formula = &generate_formula($L);
 	print FORMULAS "$formula\n";
 	#print STDERR "End: $formula\n";
-
-    } #end for each formula
     
     close(FORMULAS) or die "Could not close $FormFile";
+    } #end for each formula
+    
+    
     #return; #exit since we just needed to generate this one set
     die;
 } #end if
@@ -324,24 +343,26 @@ for ($n = 1; $n <= @N; $n++) { #for n variables
 
     for ($l = 0; $l < @Llist; $l++) { #for each length
 	$L = $Llist[$l];
-	
+
 	for ($p = 0; $p < @Plist; $p++) { #for each probability
 	    $P = $Plist[$p];
 	    
 	    print "\n\nN = $n, L = $L, P = $P, M = $M, T = $T:\n";
-	    
-	    #Create an output file for each set of formulas data
-	    $FormFile = "${formula_dir}/P${P}N${n}L${L}M${M}T${T}.form";
-	    open(FORMULAS, ">$FormFile") or die "Could not open $FormFile";
+	     
 
-	    for ($f = 0; $f < $F; $f++) { #generate $F formulas
 		
-		$formula = &generate_formula($L);
-		print FORMULAS "$formula\n";
-		
+		#Create an output file for each set of formulas data
+	    $FormFile = "${formula_dir}/P${P}N${n}L${L}M${M}T${T}-${f}.form";
+	    open(FORMULAS, ">$FormFile") or die "Could not open $FormFile";
+	    
+		for ($f = 1; $f <= $F; $f++) { #generate $F formulas
+				$formula = &generate_formula($L);
+				print FORMULAS "$formula\n";
+			
+				close(FORMULAS) or die "Could not close $FormFile";
 	    } #end for each formula
 
-	    close(FORMULAS) or die "Could not close $FormFile";
+	    
 	    
 	} #end for each temporal probability
 

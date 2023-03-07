@@ -1,19 +1,25 @@
 from asyncio import subprocess
+from copy import copy
 import csv
 import os
 from pathlib import Path
 from random import randint
 from itertools import combinations
 from subprocess import run, check_output
+from time import perf_counter
+from isort import file
 import matplotlib.pyplot as plt
+from compiler.compiler import benchmark_rewrite_rules #type: ignore
 
 
 FORMULA_DIR: str = "formulasMLTL"
-REWRITE_DIR: str = "rewrites/"
-SELF_REF_DIR: str = "self_ref/"
+REWRITE_DIR: str = "rewrite/"
+DYN_SET_DIR: str = "dyn-set/"
 COUNT_DIR: str = "count/"
 CSV_FILENAME: str = "random.csv"
-RESULT_DIR: str = "results/"
+REWRITE_RESULT_DIR: str = "results/rewrite/"
+DYN_SET_RESULT_DIR: str = "results/dyn-set/"
+COUNT_RESULT_DIR: str = "results/count/"
 R2U2_PREP: str = "../../tools/r2u2prep.py"
 
 NUM_VARS: int = 5
@@ -67,51 +73,42 @@ def generate_mltl_rewriting_benchmark() -> None:
             spec = spec[:-2]
             with open(f"{REWRITE_DIR}{filename.stem}.mltl", "w") as f1:
                 f1.write(prefix+spec+";")
+        print(filename.stem)
 
 
-def generate_self_ref_benchmark(n: int) -> None:
-    if not Path("./" + SELF_REF_DIR).is_dir():
-        os.mkdir(SELF_REF_DIR)
-
-    # each spec requires two vars
-    prefix: str = generate_file_prefix(n*2)
-
-    # if a request is "received", it will be "granted" within 10 time steps
-    spec: str = ""
-    for i in range(0,n*2,2):
-        spec += f"(!a{i}||F[1,10](a{i+1}))&&"
-    spec = spec[:-2]+";"
-
-    print(prefix+spec)
-
-
-def generate_self_ref_benchmark_random(n: int, p: int) -> None:
-    """Generates a self-referential specification using n entities and p properties of each"""
-    # each spec requires two vars
-    prefix: str = generate_file_prefix(n*p)
+def generate_dynamic_set_random_benchmark(n: int) -> None:
+    """Generates dynamic set specification benchmarks with max size n"""
+    prefix: str = generate_file_prefix(n+n*MAX_VARS)
 
     # generate random mltl formulas
     if not Path("./" + FORMULA_DIR).is_dir():
         run(["perl","generateRandomFormulas_MTLmax.pl"])
 
-    if not Path("./" + SELF_REF_DIR).is_dir():
-        os.mkdir(SELF_REF_DIR)
-
+    if not Path("./" + DYN_SET_DIR).is_dir():
+        os.mkdir(DYN_SET_DIR)
+ 
     # for each random mltl formula file, add mltl file prefix and write to new file
     spec_set: str = ""
     spec: str = ""
     k: int = 0
-    for filename in [f for f in Path("./" + FORMULA_DIR).iterdir() if str(f).find('N'+str(p)) != -1]:
+    for filename in [f for f in Path("./" + FORMULA_DIR).iterdir()]:
         with open(filename, "r") as f0:
+            spec_set = ""
+            num_vars = int(filename.stem[5])
+            # spec_set += prefix
             for formula in f0.read().splitlines():
                 spec = "("
                 for i in range(0,n):
-                    for j in range(0,p):
-                        spec += "(" + formula.replace(f"a{j}",f"a{(i*n)+j}") + ")&&"
-                spec = spec[:-2]+");"
-                with open(f"{SELF_REF_DIR}self_ref{k}.mltl","w") as f:
-                    f.write(prefix+spec)
-                    k += 1
+                    new_form = copy(formula)
+                    for j in reversed(range(0,num_vars)):
+                        new_form = new_form.replace(f"(a{j})",f"(a{(i*(num_vars+1))+j+1})")
+                    spec += f"(a{(i*(num_vars+1))}->(" + new_form + "))&&"
+                spec = spec[:-2]+");\n"
+                spec_set += spec
+            with open(f"{DYN_SET_DIR}{filename.stem}.mltl","w") as f:
+                f.write(prefix+spec_set)
+                k += 1
+        print(f"{filename.stem}")
 
 
 def generate_counting_benchmark(size: int, n: int) -> None:
@@ -142,19 +139,50 @@ def generate_counting_benchmark(size: int, n: int) -> None:
 
 
 def run_mltl_rewriting_benchmarks() -> None:
-    if not Path(f"{RESULT_DIR}").is_dir():
-        os.mkdir(RESULT_DIR)
+    if not Path(f"{REWRITE_RESULT_DIR}").is_dir():
+        os.mkdir(REWRITE_RESULT_DIR)
 
-    for filename in [f for f in Path("./" + REWRITE_DIR).iterdir()]:
-        result = run(["python",R2U2_PREP,filename,CSV_FILENAME], stdout=subprocess.PIPE)
-        with open(f"./{RESULT_DIR}{filename.stem}.out", "w") as f1:
-            f1.write(result.stdout.decode("utf-8"))
-            print(f"wrote to {RESULT_DIR}{filename.stem}.out")
+    with open(f"./{REWRITE_RESULT_DIR}results.out", "w") as f1:
+        for filename in [f for f in Path("./" + REWRITE_DIR).iterdir()]:
+            test_name = filename.stem
+            prob = float(test_name[1:4])
+            len = 0
+            if test_name[8] == "M":
+                len = int(test_name[7])
+            elif test_name[9] == "M":
+                len = int(test_name[7:9])
+            else:
+                len = int(test_name[7:10])
+            result = benchmark_rewrite_rules(str(filename),CSV_FILENAME)
+            f1.write(f"{prob},{len},{result}\n")
+            print(f"{prob},{len},{result}")
+
+
+def run_dynamic_set_benchmarks() -> None:
+    if not Path(f"{DYN_SET_RESULT_DIR}").is_dir():
+        os.mkdir(DYN_SET_RESULT_DIR)
+
+    with open(f"./{DYN_SET_RESULT_DIR}results.out", "w") as f1:
+        for filename in [f for f in Path("./" + DYN_SET_DIR).iterdir()]:
+            test_name = filename.stem
+            prob = float(test_name[1:4])
+            len = 0
+            if test_name[8] == "M":
+                len = int(test_name[7])
+            elif test_name[9] == "M":
+                len = int(test_name[7:9])
+            else:
+                len = int(test_name[7:10])
+            result = benchmark_rewrite_rules(str(filename),CSV_FILENAME)
+            f1.write(f"{prob},{len},{result}\n")
+            print(f"{prob},{len},{result}")
 
 
 if __name__ == "__main__":
+    # generate_random_csv(1,1000)
     # generate_mltl_rewriting_benchmark()
-    run_mltl_rewriting_benchmarks()
-    # generate_self_ref_benchmark_random(2,3)
+    # run_mltl_rewriting_benchmarks()
+    generate_dynamic_set_random_benchmark(10)
+    run_dynamic_set_benchmarks()
     # generate_self_ref_benchmark(2)
-    # generate_counting_benchmark(10,2)
+    # generate_counting_benchmark(5,2)
