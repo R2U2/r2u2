@@ -5,7 +5,6 @@ import inspect
 import sys
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
-from typing_extensions import Self
 
 from .logger import *
 from .type import *

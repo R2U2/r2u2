@@ -5,11 +5,8 @@ import os
 from pathlib import Path
 from random import randint
 from itertools import combinations
-from subprocess import run, check_output
-from time import perf_counter
-from isort import file
-import matplotlib.pyplot as plt
-from compiler.compiler import benchmark_rewrite_rules #type: ignore
+from subprocess import run
+from compiler.compiler import benchmark_file_rewrite_rules, benchmark_input_rewrite_rules #type: ignore
 
 
 FORMULA_DIR: str = "formulasMLTL"
@@ -153,7 +150,7 @@ def run_mltl_rewriting_benchmarks() -> None:
                 len = int(test_name[7:9])
             else:
                 len = int(test_name[7:10])
-            result = benchmark_rewrite_rules(str(filename),CSV_FILENAME)
+            result = benchmark_file_rewrite_rules(str(filename))
             f1.write(f"{prob},{len},{result}\n")
             print(f"{prob},{len},{result}")
 
@@ -173,16 +170,17 @@ def run_dynamic_set_benchmarks() -> None:
                 len = int(test_name[7:9])
             else:
                 len = int(test_name[7:10])
-            result = benchmark_rewrite_rules(str(filename),CSV_FILENAME)
+            result = benchmark_file_rewrite_rules(str(filename))
             f1.write(f"{prob},{len},{result}\n")
             print(f"{prob},{len},{result}")
 
 
 if __name__ == "__main__":
     # generate_random_csv(1,1000)
+    # print(benchmark_rewrite_rules("rewrite/tmp.mltl"))
     # generate_mltl_rewriting_benchmark()
-    # run_mltl_rewriting_benchmarks()
-    generate_dynamic_set_random_benchmark(10)
-    run_dynamic_set_benchmarks()
+    run_mltl_rewriting_benchmarks()
+    # generate_dynamic_set_random_benchmark(10)
+    # run_dynamic_set_benchmarks()
     # generate_self_ref_benchmark(2)
     # generate_counting_benchmark(5,2)
