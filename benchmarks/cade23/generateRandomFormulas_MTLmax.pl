@@ -91,12 +91,12 @@ print "N is @N\n";
 print OUT "N is @N\n";
 
 #@Llist = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100);
-#@Llist = (5, 15, 25, 35, 50, 65, 75, 85, 100);
-@Llist = (3, 5, 8, 10, 12, 15);
+@Llist = (5, 15, 25, 35, 50, 65, 75, 85, 100);
+#@Llist = (3, 5, 8, 10, 12, 15);
 print "L = (@Llist)\n";
 print OUT "L = (@Llist)\n";
 
-@Plist = (0.7); #array of probabilities to try
+@Plist = (0.3,0.7); #array of probabilities to try
 #@Plist = (1.0); ##################Pei
 print "P = (@Plist)\n";
 print OUT "P = (@Plist)\n";
@@ -320,7 +320,7 @@ if (@ARGV == 4) {
 
 #################### Generate the sets of formulas ####################
 
-for ($n = 1; $n <= @N; $n++) { #for n variables
+for ($n = @N; $n <= @N; $n++) { #for n variables
 
     for ($l = 0; $l < @Llist; $l++) { #for each length
 	$L = $Llist[$l];

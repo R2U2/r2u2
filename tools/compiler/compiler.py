@@ -600,7 +600,7 @@ def optimize_rewrite_rules(program: Program) -> None:
                 opnd2 = opnd1.get_operand()
                 lb: int = a.interval.lb + opnd1.interval.lb
                 ub: int = a.interval.ub + opnd1.interval.ub
-                a.replace(Global(a.ln, opnd1, lb, ub))
+                a.replace(Global(a.ln, opnd2, lb, ub))
             elif isinstance(opnd1, Future):
                 opnd2 = opnd1.get_operand()
                 if a.interval.lb == a.interval.ub:
@@ -625,7 +625,7 @@ def optimize_rewrite_rules(program: Program) -> None:
                 opnd2 = opnd1.get_operand()
                 lb: int = a.interval.lb + opnd1.interval.lb
                 ub: int = a.interval.ub + opnd1.interval.ub
-                a.replace(Future(a.ln, opnd1, lb, ub))
+                a.replace(Future(a.ln, opnd2, lb, ub))
             elif isinstance(opnd1, Global):
                 opnd2 = opnd1.get_operand()
                 if a.interval.lb == a.interval.ub:
@@ -1109,9 +1109,6 @@ def compile(
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
-    pre_memory = compute_scq_size(programs[0])
-    print(programs[0])
-
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
 
@@ -1124,14 +1121,6 @@ def compile(
     # common sub-expressions elimination
     if cse:
         optimize_cse(programs[0])
-
-    post_memory = compute_scq_size(programs[0])
-
-    # print(programs[0])
-    print(f"{pre_memory},{post_memory}")
-
-    return ReturnCode.SUCCESS.value
-
 
     # generate alias file
     # alias = gen_alias(programs[0])
@@ -1159,11 +1148,14 @@ def compile(
     return ReturnCode.SUCCESS.value
 
 
-def benchmark_rewrite_rules(input_filename: str, signals_filename: str) -> str: 
-
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+def benchmark_file_rewrite_rules(input_filename: str) -> str: 
     with open(input_filename, "r") as f:
-        programs: list[Program] = parse(f.read())
+        return benchmark_input_rewrite_rules(f.read())
+
+
+def benchmark_input_rewrite_rules(input: str) -> str: 
+    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+    programs: list[Program] = parse(input)
 
     if len(programs) < 1:
         logger.error(' Failed parsing.')
@@ -1176,5 +1168,6 @@ def benchmark_rewrite_rules(input_filename: str, signals_filename: str) -> str:
     optimize_rewrite_rules(programs[0])
 
     post_memory = compute_scq_size(programs[0])
+
 
     return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"
