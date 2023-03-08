@@ -249,7 +249,7 @@ def compute_scq_size(a: AST) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
     """
-    visited: list[AST] = []
+    visited: list[int] = []
     total: int = 0
 
     def compute_scq_size_util(a: AST) -> None:
@@ -259,24 +259,22 @@ def compute_scq_size(a: AST) -> int:
         if not isinstance(a, TLInstruction) or isinstance(a, Program):
             return
 
-        if a in visited:
+        if id(a) in visited:
             return
-        visited.append(a)
+        visited.append(id(a))
 
         if isinstance(a, Specification):
             a.scq_size = 1
             total += a.scq_size
             return
 
-        siblings: list[AST] = []
+        max_wpd: int = 0
         for p in a.get_parents():
             for s in p.get_children():
-                if not s == a:
-                    siblings.append(s)
+                if not id(s) == id(a):
+                    max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
 
-        wpd: int = max([s.wpd for s in siblings]+[0])
-
-        a.scq_size = max(wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        a.scq_size = max(max_wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
         total += a.scq_size
 
         # print(f"{a}: {a.scq_size}")
@@ -1166,6 +1164,47 @@ def benchmark_input_rewrite_rules(input: str) -> str:
     pre_memory = compute_scq_size(programs[0])
 
     optimize_rewrite_rules(programs[0])
+
+    post_memory = compute_scq_size(programs[0])
+
+
+    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"
+
+
+def benchmark_input_cse(input: str) -> str: 
+    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+    programs: list[Program] = parse(input)
+
+    if len(programs) < 1:
+        logger.error(' Failed parsing.')
+        return ""
+
+    programs[0].is_type_correct = True
+
+    pre_memory = compute_scq_size(programs[0])
+
+    optimize_cse(programs[0])
+
+    post_memory = compute_scq_size(programs[0])
+
+
+    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"
+
+
+def benchmark_input_rewrite_rules_cse(input: str) -> str: 
+    # parse input, programs is a list of configurations (each SPEC block is a configuration)
+    programs: list[Program] = parse(input)
+
+    if len(programs) < 1:
+        logger.error(' Failed parsing.')
+        return ""
+
+    programs[0].is_type_correct = True
+
+    pre_memory = compute_scq_size(programs[0])
+
+    optimize_rewrite_rules(programs[0])
+    optimize_cse(programs[0])
 
     post_memory = compute_scq_size(programs[0])
 
