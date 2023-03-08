@@ -13,6 +13,8 @@ from compiler.compiler import benchmark_rewrite_rules #type: ignore
 
 
 FORMULA_DIR: str = "formulasMLTL"
+REWRITE_FORMULA_DIR: str = "rewrite/"+FORMULA_DIR
+DYN_SET_FORMULA_DIR: str = "dyn-set/"+FORMULA_DIR
 REWRITE_DIR: str = "rewrite/"
 DYN_SET_DIR: str = "dyn-set/"
 COUNT_DIR: str = "count/"
@@ -81,8 +83,8 @@ def generate_dynamic_set_random_benchmark(n: int) -> None:
     prefix: str = generate_file_prefix(n+n*MAX_VARS)
 
     # generate random mltl formulas
-    if not Path("./" + FORMULA_DIR).is_dir():
-        run(["perl","generateRandomFormulas_MTLmax.pl"])
+    if not Path("./" + DYN_SET_FORMULA_DIR).is_dir():
+        run(["perl",DYN_SET_DIR+"genRandomMLTL.pl"])
 
     if not Path("./" + DYN_SET_DIR).is_dir():
         os.mkdir(DYN_SET_DIR)
@@ -91,11 +93,11 @@ def generate_dynamic_set_random_benchmark(n: int) -> None:
     spec_set: str = ""
     spec: str = ""
     k: int = 0
-    for filename in [f for f in Path("./" + FORMULA_DIR).iterdir()]:
+    for filename in [f for f in Path("./" + DYN_SET_FORMULA_DIR).iterdir()]:
         with open(filename, "r") as f0:
             spec_set = ""
-            num_vars = int(filename.stem[5])
-            # spec_set += prefix
+            num_vars = int(filename.stem[5]) if filename.stem[5] != "N" else int(filename.stem[6])
+            spec_set += prefix
             for formula in f0.read().splitlines():
                 spec = "("
                 for i in range(0,n):
@@ -106,7 +108,7 @@ def generate_dynamic_set_random_benchmark(n: int) -> None:
                 spec = spec[:-2]+");\n"
                 spec_set += spec
             with open(f"{DYN_SET_DIR}{filename.stem}.mltl","w") as f:
-                f.write(prefix+spec_set)
+                f.write(spec_set)
                 k += 1
         print(f"{filename.stem}")
 
@@ -165,7 +167,7 @@ def run_dynamic_set_benchmarks() -> None:
     with open(f"./{DYN_SET_RESULT_DIR}results.out", "w") as f1:
         for filename in [f for f in Path("./" + DYN_SET_DIR).iterdir()]:
             test_name = filename.stem
-            prob = float(test_name[1:4])
+            prob = float(test_name[1:4]) if test_name[4] == "N" else float(test_name[1:5])
             len = 0
             if test_name[8] == "M":
                 len = int(test_name[7])

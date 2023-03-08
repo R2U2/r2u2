@@ -247,7 +247,7 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
 
 def compute_scq_size(a: AST) -> int:
     """
-    Computes SCQ sizes for each node in 'program' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+    Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
     """
     visited: list[AST] = []
     total: int = 0
