@@ -643,7 +643,7 @@ def optimize_rewrite_rules(program: Program) -> None:
                 lb2: int = rhs.interval.lb
                 ub2: int = rhs.interval.ub
 
-                if p == q:
+                if str(p) == str(q): # check syntactic equivalence
                     # G[lb1,lb2]p && G[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
@@ -670,15 +670,25 @@ def optimize_rewrite_rules(program: Program) -> None:
             elif isinstance(lhs, Future) and isinstance(rhs, Future):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
-                if lhs_opnd == rhs_opnd:
+                if str(lhs_opnd) == str(rhs_opnd): # check for syntactic equivalence
                     # F[l1,u1]p && F[l2,u2]p = F[max(l1,l2),min(u1,u2)]p
-                    pass
+                    lb1 = lhs.interval.lb
+                    ub1 = lhs.interval.ub
+                    lb2 = rhs.interval.lb
+                    ub2 = rhs.interval.ub
+                    if lb1 >= lb2 and lb1 <= ub2:
+                        # l2 <= l1 <= u2
+                        a.replace(Future(a.ln, lhs_opnd, lb2, min(ub1,ub2)))
+                    elif lb2 >= lb1 and lb2 <= ub1:
+                        # l1 <= l2 <= u1
+                        a.replace(Future(a.ln, lhs_opnd, lb1, min(ub1,ub2)))
             elif isinstance(lhs, Until) and isinstance(rhs, Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
                 rhs_lhs = rhs.get_lhs()
                 rhs_rhs = rhs.get_rhs()
-                if lhs_rhs == rhs_rhs and lhs.interval.lb == rhs.interval.lb:
+                # check for syntactic equivalence
+                if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
                     a.replace(Until(a.ln, LogicalAnd(a.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb, 
                         min(lhs.interval.ub, rhs.interval.ub)))
@@ -694,7 +704,7 @@ def optimize_rewrite_rules(program: Program) -> None:
                 lb2: int = rhs.interval.lb
                 ub2: int = rhs.interval.ub
 
-                if p == q:
+                if str(p) == str(q):
                     # F[lb1,lb2]p || F[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
@@ -723,32 +733,41 @@ def optimize_rewrite_rules(program: Program) -> None:
             elif isinstance(lhs, Global) and isinstance(rhs, Global):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
-                if lhs_opnd == rhs_opnd:
+                if str(lhs_opnd) == str(rhs_opnd):
                     # G[l1,u1]p || G[l2,u2]p = G[max(l1,l2),min(u1,u2)]p
-                    pass
+                    lb1 = lhs.interval.lb
+                    ub1 = lhs.interval.ub
+                    lb2 = rhs.interval.lb
+                    ub2 = rhs.interval.ub
+                    if lb1 >= lb2 and lb1 <= ub2:
+                        # l2 <= l1 <= u2
+                        a.replace(Global(a.ln, lhs_opnd, lb2, min(ub1,ub2)))
+                    elif lb2 >= lb1 and lb2 <= ub1:
+                        # l1 <= l2 <= u1
+                        a.replace(Global(a.ln, lhs_opnd, lb1, min(ub1,ub2)))
             elif isinstance(lhs, Until) and isinstance(rhs, Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
                 rhs_lhs = rhs.get_lhs()
                 rhs_rhs = rhs.get_rhs()
-                if lhs_lhs == rhs_lhs and lhs.interval.lb == rhs.interval.lb:
+                if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
                     a.replace(Until(a.ln, LogicalOr(a.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb, 
                         min(lhs.interval.ub, rhs.interval.ub)))
         elif isinstance(a, Until):
             lhs = a.get_lhs()
             rhs = a.get_rhs()
-            if isinstance(rhs, Global) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
+            if isinstance(rhs, Global) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
                 a.replace(Global(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
-            elif isinstance(rhs, Future) and rhs.interval.lb == 0 and lhs == rhs.get_operand():
+            elif isinstance(rhs, Future) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
                 a.replace(Future(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
 
     postorder(program, optimize_rewrite_rules_util)
 
 
-def optimize_associative_operators(a: AST) -> None:
+def optimize_stratify_associative_operators(a: AST) -> None:
     
     def optimize_associative_operators_rec(a: AST) -> None:
         if isinstance(a, LogicalAnd) and len(a.get_children()) > 2:
@@ -758,11 +777,12 @@ def optimize_associative_operators(a: AST) -> None:
             wpds.sort(reverse=True)
 
             T = max(children, key=lambda c: c.wpd)
-            print('max:')
-            print(T)
+            # print('max:')
+            # print(T)
 
             if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in a.get_children() if c.wpd < wpds[0]]):
                 a.replace(LogicalAnd(a.ln, [LogicalAnd(a.ln, [c for c in children if c != children[0]]), children[0]]))
+                children[0].get_parents().remove(a)
 
         elif isinstance(a, LogicalOr):
             max_wpd: int = max([c.wpd for c in a.get_children()])
