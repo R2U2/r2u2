@@ -17,6 +17,7 @@ class R2U2Implementation(Enum):
     CPP = 1
     VHDL = 2
 
+
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
     if s.lower() == 'c':
         return R2U2Implementation.C
@@ -545,7 +546,7 @@ def rewrite_struct_access(program: Program) -> None:
     program.is_struct_access_free = True
 
 
-def optimize_rewrite_rules(program: Program) -> None:
+def optimize_rewrite_rules(program: AST) -> None:
 
     def optimize_rewrite_rules_util(a: AST) -> None:
         if isinstance(a, LogicalNegate):
@@ -881,9 +882,13 @@ def parse_signals(filename: str) -> dict[str,int]:
     
 
 def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
+    tlid_dict: dict[AST,int] = {}
+    bzid_dict: dict[AST,int] = {}
+    atid_dict: dict[AST,int] = {}
     tlid: int = 0
     bzid: int = 0
     atid: int = 0
+
 
     def assign_ids_util(a: AST) -> None:
         nonlocal signal_mapping
@@ -1165,68 +1170,3 @@ def compile(
 
     return ReturnCode.SUCCESS.value
 
-
-def benchmark_file_rewrite_rules(input_filename: str) -> str: 
-    with open(input_filename, "r") as f:
-        return benchmark_input_rewrite_rules(f.read())
-
-
-def benchmark_input_rewrite_rules(input: str) -> str: 
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
-    programs: list[Program] = parse(input)
-
-    if len(programs) < 1:
-        logger.error(' Failed parsing.')
-        return ""
-
-    programs[0].is_type_correct = True
-
-    pre_memory = compute_scq_size(programs[0])
-
-    optimize_rewrite_rules(programs[0])
-
-    post_memory = compute_scq_size(programs[0])
-
-
-    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"
-
-
-def benchmark_input_cse(input: str) -> str: 
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
-    programs: list[Program] = parse(input)
-
-    if len(programs) < 1:
-        logger.error(' Failed parsing.')
-        return ""
-
-    programs[0].is_type_correct = True
-
-    pre_memory = compute_scq_size(programs[0])
-
-    optimize_cse(programs[0])
-
-    post_memory = compute_scq_size(programs[0])
-
-
-    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"
-
-
-def benchmark_input_rewrite_rules_cse(input: str) -> str: 
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
-    programs: list[Program] = parse(input)
-
-    if len(programs) < 1:
-        logger.error(' Failed parsing.')
-        return ""
-
-    programs[0].is_type_correct = True
-
-    pre_memory = compute_scq_size(programs[0])
-
-    optimize_rewrite_rules(programs[0])
-    optimize_cse(programs[0])
-
-    post_memory = compute_scq_size(programs[0])
-
-
-    return f"{pre_memory},{post_memory},{(pre_memory-post_memory)/pre_memory}"

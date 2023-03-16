@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-#
 #by Kristin Y. Rozier
 #
 #     This program generates a test set of MTL formulas using methods inspired by those described in "Improved automata generation for linear temporal logic" by Daniele, Guinchiglia, and Vardi.
@@ -90,23 +88,25 @@ print OUT "F is $F\n";
 print "N is @N\n";
 print OUT "N is @N\n";
 
-@Llist = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100);
+#@Llist = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100);
+#@Llist = (5, 15, 25, 35, 50, 65, 75, 85, 100);
+@Llist = (3, 5, 8, 10, 12, 15);
 print "L = (@Llist)\n";
 print OUT "L = (@Llist)\n";
 
-#@Plist = (1/3, 0.5, 0.7, 0.95); #array of probabilities to try
-@Plist = (1.0); ##################Pei
+@Plist = (0.7); #array of probabilities to try
+#@Plist = (1.0); ##################Pei
 print "P = (@Plist)\n";
 print OUT "P = (@Plist)\n";
 
-$M = 4; #default value for M
+$M = 10; #default value for M
 
 $T = 4; #default value for T
 
 
 #Note: No R operator in MTL
-#@operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
-@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
+@operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
+#@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
 $num_unary_temporal_ops = 2;
 #$num_temporal_ops = 4;
 $num_temporal_ops = 3;#Pei################################################
@@ -201,7 +201,6 @@ sub generate_formula {
 	    #pick which temporal operator
 	    $i = int(rand($num_temporal_ops));
 	    $op = $operators[$i]; #because temporal operators are all first in the list
-	    $op = "U"; #Pei: force generate until####################################################remove this line later
 	    $this = $op; #save operator in this
 	    if ($op eq "U") { #binary operators
 		#choose S such that 1 <= S <= L - 2

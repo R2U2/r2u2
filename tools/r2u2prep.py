@@ -53,7 +53,7 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,'r').read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(mltl, args.sigs, output_path=args.output_dir, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, bz=args.booleanizer, cse=True, color=args.no_color, quiet=args.quiet)
+        return_code = compile(args.mltl, args.sigs, output_path=args.output_dir, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, bz=args.booleanizer, cse=True, color=args.no_color, quiet=args.quiet)
     else:
         print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
         return_code = 1
