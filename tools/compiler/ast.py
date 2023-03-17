@@ -461,7 +461,7 @@ class TLSignalLoad(TLInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self, tlid: int, sid: int) -> str:
+    def asm(self) -> str:
         return super().asm() + "load s" + str(self.get_load().sid)
 
 
@@ -480,9 +480,8 @@ class BZAtomicLoad(BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self, atid: int) -> str:
-        load = self.get_load()
-        return super().asm() + f"aload {atid}"
+    def asm(self) -> str:
+        return super().asm() + f"aload {self.get_load().atid}"
 
 
 # only used for assembly generation
@@ -521,8 +520,8 @@ class BZAtomicStore(UnaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self, atid: int) -> str:
-        return super().asm() + f"astore {atid}"
+    def asm(self) -> str:
+        return super().asm() + f"astore {self.atid}"
 
 
 # only used for assembly generation
