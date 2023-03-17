@@ -204,6 +204,25 @@ class BZInstruction(Instruction):
         return "BZ: "
 
 
+# Abstract base class for AST nodes that have valid AT assembly instructions
+class ATInstruction(Instruction):
+
+    def __init__(self, ln: int, n: str, r: RelationalOperator, c: Literal, a: list[Literal]) -> None:
+        super().__init__(ln, [r, c] + a)
+        self.filter: str = n
+        self.relop: RelationalOperator = r
+        self.compare: Literal = c
+        self.filter_args: list[Literal] = a
+
+    def asm(self) -> str:
+        s: str = f"AT: {self.filter} "
+        for arg in self.filter_args:
+            s += f"s{arg.sid} " if isinstance(arg, Signal) else f"{arg.name} "
+        s += f"{self.relop.name}"
+        s += f"s{self.compare.sid}" if isinstance(self.compare, Signal) else f" {self.compare.name}"
+        return s
+
+
 class Literal(AST):
 
     def __init__(self, ln: int, a: list[AST]) -> None:
@@ -432,6 +451,7 @@ class TLAtomicLoad(TLInstruction):
     def __init__(self, ln: int, l: BZInstruction) -> None:
         super().__init__(ln, [])
         self.atomic: BZInstruction = l
+        self.tlid = l.tlid
 
     def get_load(self) -> BZInstruction:
         return cast(BZInstruction, self.atomic)
@@ -442,7 +462,7 @@ class TLAtomicLoad(TLInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "load a" + str(self.atid)
+        return super().asm() + "load a" + str(self.get_load().atid)
 
 
 # only used for assembly generation
@@ -451,6 +471,7 @@ class TLSignalLoad(TLInstruction):
     def __init__(self, ln: int, l: Signal) -> None:
         super().__init__(ln, [])
         self.signal: Signal = l
+        self.tlid = l.tlid
         self.name = l.name
 
     def get_load(self) -> Signal:
@@ -521,7 +542,7 @@ class BZAtomicStore(UnaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + f"astore {self.atid}"
+        return super().asm() + f"astore {self.get_store().atid}"
 
 
 # only used for assembly generation
@@ -567,10 +588,10 @@ class RegisterLoad(UnaryOperator, BZInstruction):
 
 class Function(Operator):
 
-    def __init__(self, ln: int, n: str, r: Type, a: list[AST]) -> None:
+    def __init__(self, ln: int, n: str, a: list[AST]) -> None:
         super().__init__(ln, a)
         self.name: str = n
-        self.type: Type = r
+
 
 
 class SetAggOperator(Operator):
@@ -895,6 +916,7 @@ class RelationalOperator(BinaryOperator):
 
     def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
         super().__init__(ln, [lhs, rhs])
+        self.name = ""
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]

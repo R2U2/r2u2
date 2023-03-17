@@ -368,15 +368,13 @@ class C2POParser(Parser):
             if len(expr_list) == len(self.structs[symbol]):
                 for s in self.structs[symbol].keys():
                     members[s] = expr_list.pop(0)
-                return Struct(ln,symbol,members)
+                return Struct(ln, symbol, members)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
                 return AST(ln, [])
         else:
-            logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
-            self.status = False
-            return AST(ln, [])
+            return Function(ln, symbol, expr_list)
 
     # Function/struct constructor expression empty arguments
     @_('SYMBOL LPAREN RPAREN')
