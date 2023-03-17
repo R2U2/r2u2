@@ -1016,7 +1016,6 @@ def generate_assembly(program: Program, at: bool, bz: bool, signal_mapping: dict
             asm.append(a)
 
             if not a in visited and a.num_tl_parents > 0:
-                print(a.atid)
                 asm.append(BZAtomicStore(a.ln, a))
                 asm.append(TLAtomicLoad(a.ln, a))
 
