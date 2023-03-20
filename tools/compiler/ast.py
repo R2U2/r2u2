@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cmath import atan
 from copy import deepcopy
 import inspect
 # import inspect
@@ -172,8 +173,8 @@ class AST():
         return new
 
 
-# Abstract base class for module-specific instructions
 class Instruction(AST):
+    """Abstract base class for module-specific instructions"""
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -183,8 +184,8 @@ class Instruction(AST):
         return "ERROR"
 
 
-# Abstract base class for AST nodes that have valid TL assembly instructions
 class TLInstruction(Instruction):
+    """Abstract base class for AST nodes that have valid TL assembly instructions"""
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -193,8 +194,8 @@ class TLInstruction(Instruction):
         return f"TL: n{self.tlid} "
 
 
-# Abstract base class for AST nodes that have valid BZ assembly instructions
 class BZInstruction(Instruction):
+    """Abstract base class for AST nodes that have valid BZ assembly instructions"""
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
@@ -204,22 +205,37 @@ class BZInstruction(Instruction):
         return "BZ: "
 
 
-# Abstract base class for AST nodes that have valid AT assembly instructions
 class ATInstruction(Instruction):
+    """Class for AST nodes that have valid AT assembly instructions"""
 
     def __init__(self, ln: int, n: str, r: RelationalOperator, c: Literal, a: list[Literal]) -> None:
-        super().__init__(ln, [r, c] + a)
+        super().__init__(ln, [c] + a) # type: ignore
         self.filter: str = n
         self.relop: RelationalOperator = r
-        self.compare: Literal = c
-        self.filter_args: list[Literal] = a
+
+    def get_filter_args(self) -> list[Literal]:
+        return cast(list[Literal], self._children[1:])
+
+    def get_compare(self) -> Literal:
+        return cast(Literal, self.get_child(0))
+
+    def __str__(self) -> str:
+        s: str = f"{self.filter}("
+        for arg in self.get_filter_args():
+            s += f"{arg.name},"
+        s = s[:-1] + ") "
+        s += f"{self.relop.name} "
+        s += f"{self.get_compare().name}"
+        return s
 
     def asm(self) -> str:
-        s: str = f"AT: {self.filter} "
-        for arg in self.filter_args:
-            s += f"s{arg.sid} " if isinstance(arg, Signal) else f"{arg.name} "
-        s += f"{self.relop.name}"
-        s += f"s{self.compare.sid}" if isinstance(self.compare, Signal) else f" {self.compare.name}"
+        s: str = f"AT: a{self.atid} {self.filter}("
+        for arg in self.get_filter_args():
+            s += f"s{arg.sid}," if isinstance(arg, Signal) else f"{arg.name},"
+        s = s[:-1] + ") "
+        s += f"{self.relop.name} "
+        compare = self.get_compare()
+        s += f"s{compare.sid} " if isinstance(compare, Signal) else f" {compare.name}"
         return s
 
 
@@ -448,16 +464,19 @@ class Duplicate(UnaryOperator, BZInstruction):
 # only used for assembly generation
 class TLAtomicLoad(TLInstruction):
 
-    def __init__(self, ln: int, l: BZInstruction) -> None:
+    def __init__(self, ln: int, l: BZInstruction|ATInstruction) -> None:
         super().__init__(ln, [])
-        self.atomic: BZInstruction = l
+        self.atomic: BZInstruction|ATInstruction = l
         self.tlid = l.tlid
 
-    def get_load(self) -> BZInstruction:
-        return cast(BZInstruction, self.atomic)
+    def get_load(self) -> BZInstruction|ATInstruction:
+        if isinstance(self.atomic, BZInstruction):
+            return cast(BZInstruction, self.atomic)
+        else:
+            return cast(ATInstruction, self.atomic)
 
     def __deepcopy__(self, memo):
-        new = TLAtomicLoad(self.ln, cast(BZInstruction, self.atomic))
+        new = TLAtomicLoad(self.ln, self.atomic)
         self.copy_attrs(new)
         return new
 
