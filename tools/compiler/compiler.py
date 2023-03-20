@@ -36,6 +36,7 @@ class ReturnCode(Enum):
     PARSE_ERROR = 2
     TYPE_CHECK_ERROR = 3
     ASM_ERROR = 4
+    ENGINE_SELECT_ERROR = 5
 
 
 instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules['compiler.ast'], 
@@ -56,7 +57,12 @@ default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) f
             obj != BZInstruction) }
 
 
-def type_check(program: Program, bz: bool, st: StructDict) -> bool:
+at_filter_table: dict[str, tuple[Type, list[Type]]] = {
+    "rate": (FLOAT(), [FLOAT()])
+}
+
+
+def type_check(program: Program, at: bool, bz: bool, st: StructDict) -> bool:
     """
     Performs type checking of the argument program. Uses type inferences to assign correct types to each 
     AST node in the program and returns whether the program is properly type checked.
@@ -79,10 +85,6 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
         if a in explored:
             return
         explored.append(a)
-
-        if not bz and isinstance(a,BZInstruction) and not isinstance(a,Signal) and not isinstance(a,Bool):
-            status = False
-            logger.error('%d: Found BZ expression, but Booleanizer expressions disabled\n\t%s', a.ln, a)
 
         if isinstance(a,Signal) or isinstance(a,Constant):
             return
@@ -111,8 +113,41 @@ def type_check(program: Program, bz: bool, st: StructDict) -> bool:
                 status = False
                 logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
 
+            if at: # AT checkers restrict the usage of comparison operators
+                if not isinstance(lhs, Signal) and not isinstance(lhs, Function):
+                    status = False
+                    logger.error(f'{a.ln}: Left-hand argument for AT checker must be signal or filter (found {lhs}\n\t{a}')
+                if not isinstance(rhs, Literal):
+                    status = False
+                    logger.error(f'{a.ln}: Right-hand argument for AT checker must be signal or constant (found {rhs}\n\t{a}')
+
             a.type = BOOL()
+        elif isinstance(a, Function):
+            if not at: 
+                status = False
+                logger.error(f'{a.ln}: Found AT expression, but AT expressions disabled\n\t{a}')
+            
+            if a.name in at_filter_table:
+                if len(at_filter_table[a.name][1]) == len(a.get_children()):
+                    for i in range(0, len(a.get_children())):
+                        type_check_util(a.get_child(i))
+                        if at_filter_table[a.name][1][i] != a.get_child(i).type:
+                            status = False
+                            logger.error(f'{a.ln}: AT filter argument {i} mismatch (found {a.get_child(i).type}, expected {at_filter_table[a.name][1][i]}\n\t{a}')
+                    if status:
+                        a.type = at_filter_table[a.name][0]
+                else:
+                    status = False
+                    logger.error(f"{a.ln}: AT filter {a.name} argument number mismatch (found {len(a.get_children())}, expected {len(at_filter_table[a.name])})\n\t{a}")
+            else:
+                status = False
+                logger.error(f'{a.ln}: AT filter {a.name} not supported.\n\t{a}')
+
         elif isinstance(a, ArithmeticOperator):
+            if not bz:
+                status = False
+                logger.error(f'{a.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{a}')
+
             for c in a.get_children():
                 type_check_util(c)
             t: Type = a.get_child(0).type
@@ -257,7 +292,7 @@ def compute_scq_size(a: AST) -> int:
         nonlocal visited
         nonlocal total
 
-        if not isinstance(a, TLInstruction) or isinstance(a, Program):
+        if not (isinstance(a, Signal) or isinstance(a, TLInstruction)) or isinstance(a, Program):
             return
 
         if id(a) in visited:
@@ -284,6 +319,25 @@ def compute_scq_size(a: AST) -> int:
     a.total_scq_size = total
 
     return total
+
+
+def rewrite_at_filters(program: Program) -> None:
+
+    def rewrite_at_filters_util(a: AST):
+        if isinstance(a, RelationalOperator):
+            lhs = a.get_lhs()
+            rhs: Literal = cast(Literal, a.get_rhs())
+            filter_args = cast(list[Literal], lhs.get_children())
+
+            if isinstance(lhs, Function):
+                a.replace(ATInstruction(a.ln, lhs.name, a, rhs, filter_args))
+            elif isinstance(lhs, Signal):
+                a.replace(ATInstruction(a.ln, lhs.type.name, a, rhs, [lhs]))
+            else:
+                logger.error(f"{a.ln}: Internal error, AT type checker failed.")
+
+
+    postorder(program, rewrite_at_filters_util)
 
 
 def rewrite_extended_operators(program: Program) -> None:
@@ -831,7 +885,7 @@ def optimize_cse(program: Program) -> None:
                 a.get_child(c).replace(S[i])
             else:
                 S[i] = a.get_child(c)
-            
+    
     postorder(program, optimize_cse_util)
     program.is_cse_reduced = True
 
@@ -881,14 +935,10 @@ def parse_signals(filename: str) -> dict[str,int]:
     return mapping
     
 
-def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
-    tlid_dict: dict[AST,int] = {}
-    bzid_dict: dict[AST,int] = {}
-    atid_dict: dict[AST,int] = {}
+def assign_ids(program: Program, at: bool, bz: bool, signal_mapping: dict[str,int]) -> None:
     tlid: int = 0
     bzid: int = 0
     atid: int = 0
-
 
     def assign_ids_util(a: AST) -> None:
         nonlocal signal_mapping
@@ -896,30 +946,35 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
         nonlocal bzid
         nonlocal atid
 
-        if isinstance(a,Bool) or a.tlid > -1 or a.bzid > -1:
+        if isinstance(a, Bool) or a.tlid > -1 or a.bzid > -1 or a.atid > -1:
             return
 
-        if isinstance(a,TLInstruction):
+        if isinstance(a, TLInstruction):
             a.tlid = tlid
             tlid += 1
 
-        if isinstance(a,BZInstruction):
+        if bz and isinstance(a, BZInstruction):
             for p in a.get_parents():
-                if isinstance(p,TLInstruction):
+                if isinstance(p, TLInstruction):
                     a.atid = atid
                     atid += 1
                     a.tlid = tlid
                     tlid += 1
                     break
+        elif at and isinstance(a, ATInstruction):
+            a.atid = atid
+            atid += 1
+            a.tlid = tlid
+            tlid += 1
 
-        if isinstance(a,Signal):
+        if isinstance(a, Signal):
             if not a.name in signal_mapping.keys():
                 logger.error(f'{a.ln}: Signal \'{a}\' not referenced in signal mapping')
             else:
                 a.sid = signal_mapping[a.name]
-            
+
             for p in a.get_parents():
-                if isinstance(p,TLInstruction):
+                if isinstance(p, TLInstruction):
                     a.tlid = tlid
                     tlid += 1
                     break
@@ -927,23 +982,17 @@ def assign_ids(program: Program, signal_mapping: dict[str,int]) -> None:
     postorder(program,assign_ids_util)
 
 
-def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[Instruction]:
+def generate_assembly(program: Program, at: bool, bz: bool, signal_mapping: dict[str,int]) -> list[Instruction]:
     visited: set[AST] = set()
     available_registers: set[int] = set()
     max_register: int = 0
     asm: list[Instruction] = []
-
-    # logger.info(program)
 
     def generate_assembly_util(a: AST) -> None:
         nonlocal visited
         nonlocal available_registers
         nonlocal max_register
         nonlocal asm
-
-        # Visit each TL node exactly once
-        # Visit BZ literals as many times as necessary
-        # Visit all other BZ nodes once, store and load using registers
 
         if isinstance(a,TLInstruction):
             for c in a.get_children():
@@ -957,7 +1006,7 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[I
 
             asm.append(a)
             visited.add(a)
-        elif isinstance(a,BZInstruction):
+        elif bz and isinstance(a,BZInstruction):
             for c in a.get_children():
                 if isinstance(c, Signal):
                     asm.append(BZSignalLoad(c.ln, c))
@@ -971,10 +1020,15 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[I
                 asm.append(TLAtomicLoad(a.ln, a))
 
             visited.add(a)
+        elif at and isinstance(a, ATInstruction):
+            if not a in visited:
+                asm.append(a)
+                asm.append(TLAtomicLoad(a.ln, a))
+                visited.add(a)
         else:
             logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
-    assign_ids(program,signal_mapping)
+    assign_ids(program, at, bz, signal_mapping)
     
     generate_assembly_util(program)
     program.assembly = asm
@@ -985,20 +1039,27 @@ def generate_assembly(program: Program, signal_mapping: dict[str,int]) -> list[I
 def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     ret: list[tuple[int,int]] = []
     pos: int = 0
+    explored: list[AST] = []
 
     compute_scq_size(program)
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal ret
         nonlocal pos
+        nonlocal explored
 
-        if isinstance(a,Program) or not isinstance(a,TLInstruction):
+        if a in explored:
+            return
+
+        if not (isinstance(a,Signal) or isinstance(a,TLInstruction)) or isinstance(a,Program):
             return
 
         start_pos = pos
         end_pos = start_pos + a.scq_size
         pos = end_pos
         ret.append((start_pos,end_pos))
+
+        explored.append(a)
 
     postorder(program,gen_scq_assembly_util)
     program.scq_assembly = ret
@@ -1109,6 +1170,7 @@ def compile(
     int_signed: bool = False, 
     float_width: int = 32, 
     cse: bool = True, 
+    at: bool = False, 
     bz: bool = False, 
     extops: bool = True, 
     color: bool = True, 
@@ -1119,6 +1181,10 @@ def compile(
     INT.is_signed = int_signed
     FLOAT.width = float_width
 
+    if bz and at:
+        logger.error(f" Only one of AT and BZ can be enabled")
+        return ReturnCode.ENGINE_SELECT_ERROR.value
+
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     with open(input_filename, "r") as f:
         programs: list[Program] = parse(f.read())
@@ -1128,12 +1194,13 @@ def compile(
         return ReturnCode.PARSE_ERROR.value
 
     # type check
-    if not type_check(programs[0],bz,programs[0].structs):
+    if not type_check(programs[0], at, bz, programs[0].structs):
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 
     rewrite_set_aggregation(programs[0])
     rewrite_struct_access(programs[0])
+    rewrite_at_filters(programs[0])
 
     # rewrite without extended operators if enabled
     if not extops:
@@ -1152,10 +1219,10 @@ def compile(
     signal_mapping: dict[str,int] = parse_signals(signals_filename)
 
     # generate assembly
-    asm: list[Instruction] = generate_assembly(programs[0],signal_mapping)
+    asm: list[Instruction] = generate_assembly(programs[0], at, bz, signal_mapping)
     scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
 
-    if not validate_booleanizer_stack(asm):
+    if bz and not validate_booleanizer_stack(asm):
         logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
         return ReturnCode.ASM_ERROR.value
 

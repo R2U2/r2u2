@@ -1,0 +1,1 @@
+(TRUE ->  G[88606,100000] ((power & electricalpedalpos) <-> brakecmd)) & TRUE
