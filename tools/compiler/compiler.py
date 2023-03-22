@@ -1,7 +1,11 @@
 from argparse import PARSER
+from os import chdir
 import re
 from logging import getLogger
 from time import perf_counter
+from tkinter.tix import Form
+
+from requests import post
 
 from .logger import *
 from .ast import *
@@ -74,10 +78,10 @@ def type_check(program: Program, at: bool, bz: bool, st: StructDict) -> bool:
         - program is type correct
         - All descendants of program have a valid Type (i.e., none are NOTYPE)
     """
-    
     status: bool = True
     explored: list[AST] = []
     context: dict[str,Type] = {}
+    formula_type: FormulaType = FormulaType.PROP
 
     def type_check_util(a: AST) -> None:
         nonlocal status
@@ -182,28 +186,9 @@ def type_check(program: Program, at: bool, bz: bool, st: StructDict) -> bool:
                     status = False
                     logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
 
-            # check for mixed-time formulas
-            if isinstance(a, FutureTimeOperator):
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.PT:
-                        status = False
-                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
-                a.formula_type = FormulaType.FT
-            elif isinstance(a, PastTimeOperator):
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.FT:
-                        status = False
-                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
-                a.formula_type = FormulaType.PT
-            else:
-                # not a TL op, propagate formula type from children
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
-                        a.formula_type = c.formula_type
-
             if a.interval.lb > a.interval.ub:
                 status = status
-                logger.error(f'{a.ln}: Future time interval invalid, lower bound must less than or equal to upper bound (found [{a.interval.lb},{a.interval.ub}])')
+                logger.error(f'{a.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{a.interval.lb},{a.interval.ub}])')
 
             a.type = BOOL()
         elif isinstance(a,Set):
@@ -273,7 +258,38 @@ def type_check(program: Program, at: bool, bz: bool, st: StructDict) -> bool:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
 
+    def check_formula_type_util(ast: AST) -> None:
+        nonlocal status
+        nonlocal formula_type
+
+        if isinstance(ast, FutureTimeOperator):
+            if formula_type == FormulaType.PT:
+                logger.error(f" Mixed-time MLTL formulas not allowed\n\t{ast}")
+                status = False
+            else:
+                formula_type = FormulaType.FT
+        elif isinstance(ast, PastTimeOperator):
+            if formula_type == FormulaType.FT:
+                logger.error(f" Mixed-time MLTL formulas not allowed\n\t{ast}")
+                status = False
+            else:
+                formula_type = FormulaType.PT
+
+    def set_formula_type_util(ast: AST) -> None:
+        nonlocal formula_type
+        ast.formula_type = formula_type
+
     type_check_util(program)
+
+    # check mixed-time formulas, set each node to respective formula type
+    for spec in program.specs: 
+        formula_type = FormulaType.PROP
+        preorder(spec, check_formula_type_util)
+
+        # Set propositional formulas to FT by default
+        formula_type = FormulaType.FT if formula_type == FormulaType.PROP else formula_type
+
+        preorder(spec, set_formula_type_util)
 
     if status:
         program.is_type_correct = True
@@ -292,17 +308,18 @@ def compute_scq_size(a: AST) -> int:
         nonlocal visited
         nonlocal total
 
-        if not (isinstance(a, Signal) or isinstance(a, TLInstruction)) or isinstance(a, Program):
+        if not isinstance(a, TLInstruction) or isinstance(a, Program) or a.formula_type != FormulaType.FT:
             return
-
-        if id(a) in visited:
-            return
-        visited.append(id(a))
 
         if isinstance(a, Specification):
             a.scq_size = 1
             total += a.scq_size
             return
+
+        # if len(a.get_children()) > 1:
+        #     for child in a.get_children():
+        #         max_sibling_wpd: int = max([sib.wpd for sib in a.get_children() if id(sib) != id(child)])
+        #         child.scq_size = max(max_sibling_wpd - child.bpd, child.scq_size)
 
         max_wpd: int = 0
         for p in a.get_parents():
@@ -330,9 +347,9 @@ def rewrite_at_filters(program: Program) -> None:
             filter_args = cast(list[Literal], lhs.get_children())
 
             if isinstance(lhs, Function):
-                a.replace(ATInstruction(a.ln, lhs.name, a, rhs, filter_args))
+                a.replace(ATInstruction(a.ln, lhs.name, deepcopy(a), rhs, filter_args))
             elif isinstance(lhs, Signal):
-                a.replace(ATInstruction(a.ln, lhs.type.name, a, rhs, [lhs]))
+                a.replace(ATInstruction(a.ln, lhs.type.name, deepcopy(a), rhs, [lhs]))
             else:
                 logger.error(f"{a.ln}: Internal error, AT type checker failed.")
 
@@ -606,7 +623,7 @@ def optimize_rewrite_rules(program: AST) -> None:
         if isinstance(a, LogicalNegate):
             opnd1 = a.get_operand()
             if isinstance(opnd1, Bool):
-                if opnd1.val == True:
+                if opnd1.value == True:
                     # !true = false
                     a.replace(Bool(a.ln, False))
                 else:
@@ -642,7 +659,7 @@ def optimize_rewrite_rules(program: AST) -> None:
                 # G[0,0]p = p
                 a.replace(opnd1)
             if isinstance(opnd1, Bool):
-                if opnd1.val == True:
+                if opnd1.value == True:
                     # G[l,u]True = True
                     a.replace(Bool(a.ln, True))
                 else:
@@ -667,7 +684,7 @@ def optimize_rewrite_rules(program: AST) -> None:
                 # F[0,0]p = p
                 a.replace(opnd1)
             if isinstance(opnd1, Bool):
-                if opnd1.val == True:
+                if opnd1.value == True:
                     # F[l,u]True = True
                     a.replace(Bool(a.ln, True))
                 else:
@@ -903,14 +920,13 @@ def generate_alias(program: Program) -> str:
     s: str = ''
 
     for spec in program.specs:
-        if spec.name in [c.name for c in program.contracts.values()]: 
-            # then formula is part of contract, ignore
+        if isinstance(spec, Contract):
             continue
         s += 'F ' + spec.name + ' ' + str(spec.formula_number) + '\n'
 
-    for num,contract in program.contracts.items():
-        s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
-            str(num+1) + ' ' + str(num+2) + '\n'
+    for contract in program.contracts:
+        s += 'C ' + contract.name + ' ' + str(contract.formula_number) + ' ' + \
+            str(contract.formula_number+1) + ' ' + str(contract.formula_number+2) + '\n'
 
     return s
 
@@ -935,133 +951,138 @@ def parse_signals(filename: str) -> dict[str,int]:
     return mapping
     
 
+def rewrite_implicit_signal_loads(program: Program) -> None:
+
+    def rewrite_implicit_signal_loads_util(ast: AST) -> None:
+        if isinstance(ast, TLInstruction):
+            for child in ast.get_children():
+                if isinstance(child, Signal):
+                    one = Integer(child.ln, 1)
+                    child_copy = deepcopy(child)
+                    child.replace(ATInstruction(child.ln, "int", Equal(child.ln, child_copy, one), one, [child_copy]))
+
+    postorder(program, rewrite_implicit_signal_loads_util)
+
+
+def insert_stores_loads(program: Program, at: bool, bz: bool) -> None:
+
+    def insert_stores_loads_util(ast: AST) -> None:
+        if isinstance(ast, TLInstruction):
+            for child in ast.get_children():
+                if isinstance(child, BZInstruction):
+                    child.replace(TLAtomicLoad(child.ln, BZAtomicStore(child.ln, child)))
+                elif isinstance(child, ATInstruction):
+                    child.replace(TLAtomicLoad(child.ln, deepcopy(child)))
+
+    postorder(program, insert_stores_loads_util)
+
+
 def assign_ids(program: Program, at: bool, bz: bool, signal_mapping: dict[str,int]) -> None:
     tlid: int = 0
-    bzid: int = 0
     atid: int = 0
 
     def assign_ids_util(a: AST) -> None:
         nonlocal signal_mapping
         nonlocal tlid
-        nonlocal bzid
         nonlocal atid
 
-        if isinstance(a, Bool) or a.tlid > -1 or a.bzid > -1 or a.atid > -1:
+        if isinstance(a, Bool) or a.tlid > -1 or a.atid > -1:
             return
 
         if isinstance(a, TLInstruction):
             a.tlid = tlid
             tlid += 1
-
-        if bz and isinstance(a, BZInstruction):
-            for p in a.get_parents():
-                if isinstance(p, TLInstruction):
-                    a.atid = atid
-                    atid += 1
-                    a.tlid = tlid
-                    tlid += 1
-                    break
+        elif bz and isinstance(a, BZAtomicStore):
+            a.atid = atid
+            atid += 1
         elif at and isinstance(a, ATInstruction):
             a.atid = atid
             atid += 1
-            a.tlid = tlid
-            tlid += 1
-
-        if isinstance(a, Signal):
+        elif isinstance(a, Signal):
             if not a.name in signal_mapping.keys():
                 logger.error(f'{a.ln}: Signal \'{a}\' not referenced in signal mapping')
             else:
                 a.sid = signal_mapping[a.name]
-
-            for p in a.get_parents():
-                if isinstance(p, TLInstruction):
-                    a.tlid = tlid
-                    tlid += 1
-                    break
                     
     postorder(program,assign_ids_util)
 
 
 def generate_assembly(program: Program, at: bool, bz: bool, signal_mapping: dict[str,int]) -> list[Instruction]:
     visited: set[AST] = set()
-    available_registers: set[int] = set()
-    max_register: int = 0
     asm: list[Instruction] = []
+    status: bool = True
 
     def generate_assembly_util(a: AST) -> None:
         nonlocal visited
-        nonlocal available_registers
-        nonlocal max_register
         nonlocal asm
+        nonlocal status
 
-        if isinstance(a,TLInstruction):
-            for c in a.get_children():
-                if isinstance(c, Signal) and not c in visited:
-                    asm.append(TLSignalLoad(c.ln, c))
-                    visited.add(c)
-                elif isinstance(c, Bool) and not c in visited:
-                    visited.add(c)
-                elif not c in visited:
-                    generate_assembly_util(c)
-
-            asm.append(a)
-            visited.add(a)
-        elif bz and isinstance(a,BZInstruction):
-            for c in a.get_children():
-                if isinstance(c, Signal):
-                    asm.append(BZSignalLoad(c.ln, c))
-                else:
-                    generate_assembly_util(c)
-            
-            asm.append(a)
-
-            if not a in visited and a.num_tl_parents > 0:
-                asm.append(BZAtomicStore(a.ln, a))
-                asm.append(TLAtomicLoad(a.ln, a))
-
-            visited.add(a)
-        elif at and isinstance(a, ATInstruction):
+        if isinstance(a, TLInstruction):
+            # each TL instruction is generated exactly once
             if not a in visited:
+                # postorder traversal
+                for child in a.get_children():
+                    generate_assembly_util(child)
                 asm.append(a)
-                asm.append(TLAtomicLoad(a.ln, a))
                 visited.add(a)
+        elif at and isinstance(a, ATInstruction):
+            # each AT instruction is generated exactly once
+            if not a in visited:
+                # postorder traversal, only other AT instructions
+                for child in [c for c in a.get_children() if isinstance(c, ATInstruction)]:
+                    generate_assembly_util(child)
+                asm.append(a)
+                visited.add(a)
+        elif bz and isinstance(a, BZInstruction):
+            # each BZ instruction is generated as many times as needed
+            for child in a.get_children():
+                generate_assembly_util(child)
+            asm.append(a)
         else:
-            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+            logger.error(f'{a.ln}: Internal error, invalid node type for assembly generation ({type(a)})')
 
+    if at:
+        rewrite_implicit_signal_loads(program)
+    insert_stores_loads(program, at, bz)
     assign_ids(program, at, bz, signal_mapping)
     
+    # postorder(program, generate_assembly_util)
     generate_assembly_util(program)
     program.assembly = asm
     
-    return asm
+    return asm if status else []
 
 
 def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     ret: list[tuple[int,int]] = []
     pos: int = 0
-    explored: list[AST] = []
+    visited: set[AST] = set()
 
     compute_scq_size(program)
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal ret
         nonlocal pos
-        nonlocal explored
+        nonlocal visited
 
-        if a in explored:
+        if a in visited:
             return
 
-        if not (isinstance(a,Signal) or isinstance(a,TLInstruction)) or isinstance(a,Program):
+        if not isinstance(a, TLInstruction) or isinstance(a, Program) or a.formula_type != FormulaType.FT:
             return
+
+        # print(f"{type(a)}")
 
         start_pos = pos
         end_pos = start_pos + a.scq_size
         pos = end_pos
         ret.append((start_pos,end_pos))
 
-        explored.append(a)
+        # print(f"{a} : ({start_pos}, {end_pos})")
 
-    postorder(program,gen_scq_assembly_util)
+        visited.add(a)
+
+    postorder(program, gen_scq_assembly_util)
     program.scq_assembly = ret
 
     return ret
@@ -1193,47 +1214,66 @@ def compile(
         logger.error(' Failed parsing.')
         return ReturnCode.PARSE_ERROR.value
 
-    # type check
-    if not type_check(programs[0], at, bz, programs[0].structs):
-        logger.error(' Failed type check.')
-        return ReturnCode.TYPE_CHECK_ERROR.value
+    for program in programs:
+        # type check
+        if not type_check(program, at, bz, program.structs):
+            logger.error(' Failed type check.')
+            return ReturnCode.TYPE_CHECK_ERROR.value
 
-    rewrite_set_aggregation(programs[0])
-    rewrite_struct_access(programs[0])
-    rewrite_at_filters(programs[0])
+        # Separate FT/PT formulas
+        ft_specs = [spec for spec in program.specs if spec.formula_type == FormulaType.FT]
+        ft_program = Program(
+            program.ln, 
+            program.structs, 
+            ft_specs
+        )
+        ft_program.is_type_correct = True
 
-    # rewrite without extended operators if enabled
-    if not extops:
-        rewrite_extended_operators(programs[0])
+        pt_specs = [spec for spec in program.specs if spec.formula_type == FormulaType.PT]
+        pt_program = Program(
+            program.ln, 
+            program.structs, 
+            pt_specs
+        )
+        pt_program.is_type_correct = True
 
-    optimize_rewrite_rules(programs[0])
+        for prog in [ft_program, pt_program]:
+            rewrite_set_aggregation(prog)
+            rewrite_struct_access(prog)
+            rewrite_at_filters(prog)
 
-    # common sub-expressions elimination
-    if cse:
-        optimize_cse(programs[0])
+            # rewrite without extended operators if enabled
+            if not extops:
+                rewrite_extended_operators(prog)
 
-    # generate alias file
-    # alias = gen_alias(programs[0])
+            optimize_rewrite_rules(prog)
 
-    # parse csv/signals file
-    signal_mapping: dict[str,int] = parse_signals(signals_filename)
+            # common sub-expressions elimination
+            if cse:
+                optimize_cse(prog)
 
-    # generate assembly
-    asm: list[Instruction] = generate_assembly(programs[0], at, bz, signal_mapping)
-    scq_asm: list[tuple[int,int]] = generate_scq_assembly(programs[0])
+            # generate alias file
+            # alias = gen_alias(prog)
 
-    if bz and not validate_booleanizer_stack(asm):
-        logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
-        return ReturnCode.ASM_ERROR.value
+            # parse csv/signals file
+            signal_mapping: dict[str,int] = parse_signals(signals_filename)
 
-    # print asm if 'quiet' option not enabled
-    if not quiet:
-        print(Color.HEADER+'Generated Assembly'+Color.ENDC+':')
-        for a in asm:
-            print('\t'+a.asm())
-        print(Color.HEADER+'Generated SCQs'+Color.ENDC+':')
-        for s in scq_asm:
-            print('\t'+str(s))
+            # generate assembly
+            asm: list[Instruction] = generate_assembly(prog, at, bz, signal_mapping)
+            scq_asm: list[tuple[int,int]] = generate_scq_assembly(prog)
+
+            if bz and not validate_booleanizer_stack(asm):
+                logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
+                return ReturnCode.ASM_ERROR.value
+
+            # print asm if 'quiet' option not enabled
+            if not quiet:
+                print(f"{Color.HEADER}Generated Assembly{Color.ENDC}:")
+                for a in asm:
+                    print(f"\t{a.asm()}")
+                print(f"{Color.HEADER}Generated SCQs{Color.ENDC}:")
+                for s in scq_asm:
+                    print(f"\t{s}")
 
     return ReturnCode.SUCCESS.value
 

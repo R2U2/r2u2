@@ -123,6 +123,7 @@ class C2POParser(Parser):
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,AST] = {}
+        self.contracts: dict[str,tuple(int,int,int)] = {}
         self.spec_num: int = 0
         self.status = True
 
@@ -233,8 +234,7 @@ class C2POParser(Parser):
     def spec_block(self, p):
         ln = p.lineno
         p[1] += p[2]
-        contract_dict = {}
-        return Program(ln, self.structs, p[1], contract_dict)
+        return Program(ln, self.structs, p[1])
 
     @_('spec_list spec')
     def spec_list(self, p):
@@ -274,14 +274,15 @@ class C2POParser(Parser):
         ln = p.lineno
         label = p[0]
 
-        f1: AST = p[2]
-        f2: AST = LogicalImplies(ln,p[2],p[4])
-        f3: AST = LogicalAnd(ln,[p[2],p[4]])
+        assume: AST = p[2]
+        guarantee: AST = p[4]
+
+        # f2: AST = LogicalImplies(ln,p[2],p[4])
+        # f3: AST = LogicalAnd(ln,[p[2],p[4]])
 
         self.spec_num += 3
-        return [Specification(ln, label, self.spec_num-3, f1),
-                Specification(ln, label, self.spec_num-2, f2),
-                Specification(ln, label, self.spec_num-1, f3)]
+
+        return [Contract(ln, label, self.spec_num-3, assume, guarantee)]
 
     @_('expr_list COMMA expr')
     def expr_list(self, p):

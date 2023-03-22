@@ -88,10 +88,7 @@ class AST():
     def __init__(self, ln: int, c: list[AST]) -> None:
         self.ln: int = ln
         self.tlid: int = -1
-        self.bzid: int = -1
         self.atid: int = -1
-        self.num_bz_parents: int = 0
-        self.num_tl_parents: int = 0
         self.total_scq_size: int = 0
         self.scq_size: int = 0
         self.name: str = ""
@@ -108,10 +105,6 @@ class AST():
         for child in c:
             self._children.append(child)
             child._parents.append(self)
-            if isinstance(self, TLInstruction):
-                child.num_tl_parents += 1
-            elif isinstance(self, BZInstruction):
-                child.num_bz_parents += 1
 
     def get_children(self) -> list[AST]:
         return self._children
@@ -146,17 +139,13 @@ class AST():
 
             new._parents.append(p)
 
-            if isinstance(p, TLInstruction):
-                new.num_tl_parents += 1
-            elif isinstance(p, BZInstruction):
-                new.num_bz_parents += 1
+        new.formula_type = self.formula_type
 
     def __str__(self) -> str:
         return self.name
 
     def copy_attrs(self, new: AST) -> None:
         new.tlid = self.tlid
-        new.bzid = self.bzid
         new.atid = self.atid
         new.scq_size = self.scq_size
         new.name = self.name
@@ -189,6 +178,7 @@ class TLInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
+        self.scq_size = 1
 
     def asm(self) -> str:
         return f"TL: n{self.tlid} "
@@ -199,7 +189,6 @@ class BZInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
-        self.register: int = -1
 
     def asm(self) -> str:
         return "BZ: "
@@ -228,6 +217,17 @@ class ATInstruction(Instruction):
         s += f"{self.get_compare().name}"
         return s
 
+    def __deepcopy__(self, memo):
+        new = ATInstruction(
+            self.ln, 
+            self.filter, 
+            deepcopy(self.relop, memo), 
+            deepcopy(self.get_compare(), memo), 
+            deepcopy(self.get_filter_args(), memo)
+        )
+        self.copy_attrs(new)
+        return new
+
     def asm(self) -> str:
         s: str = f"AT: a{self.atid} {self.filter}("
         for arg in self.get_filter_args():
@@ -235,7 +235,7 @@ class ATInstruction(Instruction):
         s = s[:-1] + ") "
         s += f"{self.relop.name} "
         compare = self.get_compare()
-        s += f"s{compare.sid} " if isinstance(compare, Signal) else f" {compare.name}"
+        s += f"s{compare.sid}" if isinstance(compare, Signal) else f"{compare.name}"
         return s
 
 
@@ -255,11 +255,11 @@ class Constant(Literal):
         return self.value
 
 
-class Integer(Constant, BZInstruction):
+class Integer(Constant):
 
     def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln,[])
-        self.val: int = v
+        self.value: int = v
         self.name = str(v)
         self.type = INT()
 
@@ -270,20 +270,17 @@ class Integer(Constant, BZInstruction):
         return self.value
 
     def __deepcopy__(self, memo):
-        new = type(self)(self.ln, self.val)
+        new = Integer(self.ln, self.value)
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return super().asm() + "iconst " + self.name
 
-
-class Float(Constant, BZInstruction):
+class Float(Constant):
 
     def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln,[])
         self.type = FLOAT()
-        self.val: float = v
+        self.value: float = v
         self.name = str(v)
 
         if len(v.hex()[2:]) > FLOAT.width/2:
@@ -292,8 +289,10 @@ class Float(Constant, BZInstruction):
     def get_value(self) -> float:
         return self.value
 
-    def asm(self) -> str:
-        return super().asm() + "fconst " + str(self.name) + ""
+    def __deepcopy__(self, memo):
+        new = Float(self.ln, self.value)
+        self.copy_attrs(new)
+        return new
 
 
 class Variable(AST):
@@ -326,7 +325,7 @@ class Bool(Constant):
         self.type = BOOL()
         self.bpd: int = 0
         self.wpd: int = 0
-        self.val: bool = v
+        self.value: bool = v
         self.name = str(v)
 
     def tlid_name(self) -> str:
@@ -465,15 +464,17 @@ class Duplicate(UnaryOperator, BZInstruction):
 class TLAtomicLoad(TLInstruction):
 
     def __init__(self, ln: int, l: BZInstruction|ATInstruction) -> None:
-        super().__init__(ln, [])
+        super().__init__(ln, [l])
         self.atomic: BZInstruction|ATInstruction = l
-        self.tlid = l.tlid
 
     def get_load(self) -> BZInstruction|ATInstruction:
         if isinstance(self.atomic, BZInstruction):
             return cast(BZInstruction, self.atomic)
         else:
             return cast(ATInstruction, self.atomic)
+
+    def __str__(self) -> str:
+        return str(self.get_load())
 
     def __deepcopy__(self, memo):
         new = TLAtomicLoad(self.ln, self.atomic)
@@ -485,24 +486,52 @@ class TLAtomicLoad(TLInstruction):
 
 
 # only used for assembly generation
-class TLSignalLoad(TLInstruction):
+# class TLSignalLoad(TLInstruction):
 
-    def __init__(self, ln: int, l: Signal) -> None:
+#     def __init__(self, ln: int, l: Signal) -> None:
+#         super().__init__(ln, [])
+#         self.signal: Signal = l
+#         self.tlid = l.tlid
+#         self.name = l.name
+
+#     def get_load(self) -> Signal:
+#         return cast(Signal, self.signal)
+
+#     def __deepcopy__(self, memo):
+#         new = TLSignalLoad(self.ln, self.get_load())
+#         self.copy_attrs(new)
+#         return new
+
+#     def asm(self) -> str:
+#         return super().asm() + "load s" + str(self.get_load().sid)
+
+
+class BZIntegerLoad(BZInstruction):
+
+    def __init__(self, ln: int, i: Integer) -> None:
         super().__init__(ln, [])
-        self.signal: Signal = l
-        self.tlid = l.tlid
-        self.name = l.name
+        self.name: str = i.name
+        self.value: int = i.get_value()
 
-    def get_load(self) -> Signal:
-        return cast(Signal, self.signal)
-
-    def __deepcopy__(self, memo):
-        new = TLSignalLoad(self.ln, self.get_load())
-        self.copy_attrs(new)
-        return new
+    def __str__(self) -> str:
+        return str(self.value)
 
     def asm(self) -> str:
-        return super().asm() + "load s" + str(self.get_load().sid)
+        return super().asm() + "iconst " + self.name
+
+
+class BZFloatLoad(BZInstruction):
+
+    def __init__(self, ln: int, i: Float) -> None:
+        super().__init__(ln, [])
+        self.name: str = i.name
+        self.value: float = i.get_value()
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    def asm(self) -> str:
+        return super().asm() + "fconst " + self.name
 
 
 # only used for assembly generation
@@ -540,6 +569,9 @@ class BZSignalLoad(BZInstruction):
         self.copy_attrs(new)
         return new
 
+    def __str__(self) -> str:
+        return str(self.name)
+
     def asm(self) -> str:
         load = self.get_load()
         return super().asm() + f"sload {str(load.sid)}"
@@ -561,48 +593,48 @@ class BZAtomicStore(UnaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + f"astore {self.get_store().atid}"
+        return super().asm() + f"astore {self.atid}"
 
 
 # only used for assembly generation
-class RegisterStore(UnaryOperator, BZInstruction):
+# class RegisterStore(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, s: BZInstruction, r: int) -> None:
-        super().__init__(ln, [s])
-        self.register: int = r
-        s.register = r
+#     def __init__(self, ln: int, s: BZInstruction, r: int) -> None:
+#         super().__init__(ln, [s])
+#         self.register: int = r
+#         s.register = r
 
-    def get_store(self) -> BZInstruction:
-        return cast(BZInstruction, self.get_operand())
+#     def get_store(self) -> BZInstruction:
+#         return cast(BZInstruction, self.get_operand())
 
-    def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = RegisterStore(self.ln, cast(BZInstruction, children[0]), self.register)
-        self.copy_attrs(new)
-        return new
+#     def __deepcopy__(self, memo):
+#         children = [deepcopy(c, memo) for c in self._children]
+#         new = RegisterStore(self.ln, cast(BZInstruction, children[0]), self.register)
+#         self.copy_attrs(new)
+#         return new
 
-    def asm(self) -> str:
-        return super().asm() + f"rstore {self.register}"
+#     def asm(self) -> str:
+#         return super().asm() + f"rstore {self.register}"
 
 
 # only used for assembly generation
-class RegisterLoad(UnaryOperator, BZInstruction):
+# class RegisterLoad(UnaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, l: BZInstruction) -> None:
-        super().__init__(ln, [l])
-        self.register: int = l.register
+#     def __init__(self, ln: int, l: BZInstruction) -> None:
+#         super().__init__(ln, [l])
+#         self.register: int = l.register
 
-    def get_load(self) -> BZInstruction:
-        return cast(BZInstruction, self.get_operand())
+#     def get_load(self) -> BZInstruction:
+#         return cast(BZInstruction, self.get_operand())
 
-    def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = RegisterLoad(self.ln, cast(BZInstruction, children[0]))
-        self.copy_attrs(new)
-        return new
+#     def __deepcopy__(self, memo):
+#         children = [deepcopy(c, memo) for c in self._children]
+#         new = RegisterLoad(self.ln, cast(BZInstruction, children[0]))
+#         self.copy_attrs(new)
+#         return new
 
-    def asm(self) -> str:
-        return super().asm() + f"rload {self.register}"
+#     def asm(self) -> str:
+#         return super().asm() + f"rload {self.register}"
 
 
 class Function(Operator):
@@ -610,6 +642,20 @@ class Function(Operator):
     def __init__(self, ln: int, n: str, a: list[AST]) -> None:
         super().__init__(ln, a)
         self.name: str = n
+    
+    def __str__(self) -> str:
+        s = f"{self.name}("
+        for child in self.get_children():
+            s += f"{child},"
+        s = s[:-1] + ")"
+        return s
+
+    def __deepcopy__(self, memo):
+        return Function(
+            self.ln,
+            self.name,
+            deepcopy(self.get_children(), memo)
+        )
 
 
 
@@ -1278,6 +1324,7 @@ class Once(PastTimeUnaryOperator, TLInstruction):
         return super().asm() + "once " + self.get_operand().tlid_name() + " " + \
             str(self.interval.lb) + " " + str(self.interval.ub)
 
+
 class Specification(TLInstruction):
 
     def __init__(self, ln: int, lbl: str, f: int, e: AST) -> None:
@@ -1302,19 +1349,33 @@ class Specification(TLInstruction):
         return super().asm() + "end " + top.tlid_name() + " f" + str(self.formula_number) + ""
 
 
+class Contract(Specification):
+
+    def __init__(self, ln: int, lbl: str, f: int, a: AST, g: AST) -> None:
+        super().__init__(ln, lbl, f, LogicalImplies(ln, a, g))
+        self.assume = a
+        self.guarantee = g
+
+    def __str__(self) -> str:
+        s = ""
+        s += f"{self.formula_number}" if self.name == "" else self.name
+        s += f": {self.assume} => {self.guarantee}"
+        return s
+
+
 class Program(TLInstruction):
 
-    def __init__(self, ln: int, st: StructDict, s: list[Specification], c: dict[int, Specification]) -> None:
+    def __init__(self, ln: int, st: StructDict, s: list[Specification]) -> None:
         super().__init__(ln, [cast(AST,spec) for spec in s])
 
         # Data
         self.timestamp_width: int = 0
         self.structs: StructDict = st
         self.specs: list[Specification] = s
-        self.contracts: dict[int, Specification] = c
         self.assembly: list[Instruction]
         self.scq_assembly: list[tuple[int,int]]
         self.signal_mapping: dict[str,int]
+        self.contracts: list[Contract] = [c for c in self.specs if isinstance(c, Contract)]
 
         # Computable properties
         self.total_memory: int = -1
@@ -1337,14 +1398,7 @@ class Program(TLInstruction):
         return ret[:-1]
 
     def __deepcopy__(self, memo):
-        return Program(self.ln, deepcopy(self.structs), deepcopy(self.specs), deepcopy(self.contracts))
+        return Program(self.ln, deepcopy(self.structs), deepcopy(self.specs))
 
     def asm(self) -> str:
         return super().asm() + "endsequence"
-
-
-# Collect all classes that are Instructions and store in this list
-# instruction_list
-
-# print(inspect.getmembers(sys.modules[__name__], 
-#     lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and obj != Instruction and obj != TLInstruction and obj != BZInstruction))
