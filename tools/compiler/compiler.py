@@ -907,28 +907,28 @@ def optimize_cse(program: Program) -> None:
     program.is_cse_reduced = True
 
 
-def generate_alias(program: Program) -> str:
-    """
-    Generates string corresponding to the alias file for th argument program. The alias file is used by R2U2 to print formula labels and contract status.
+# def generate_alias(program: Program) -> str:
+#     """
+#     Generates string corresponding to the alias file for th argument program. The alias file is used by R2U2 to print formula labels and contract status.
 
-    Preconditions:
-        - program is type correct
+#     Preconditions:
+#         - program is type correct
 
-    Postconditions:
-        - None
-    """
-    s: str = ''
+#     Postconditions:
+#         - None
+#     """
+#     s: str = ''
 
-    for spec in program.specs:
-        if isinstance(spec, Contract):
-            continue
-        s += 'F ' + spec.name + ' ' + str(spec.formula_number) + '\n'
+#     for spec in program.specs:
+#         if isinstance(spec, Contract):
+#             continue
+#         s += 'F ' + spec.name + ' ' + str(spec.formula_number) + '\n'
 
-    for contract in program.contracts:
-        s += 'C ' + contract.name + ' ' + str(contract.formula_number) + ' ' + \
-            str(contract.formula_number+1) + ' ' + str(contract.formula_number+2) + '\n'
+#     for contract in program.contracts:
+#         s += 'C ' + contract.name + ' ' + str(contract.formula_number) + ' ' + \
+#             str(contract.formula_number+1) + ' ' + str(contract.formula_number+2) + '\n'
 
-    return s
+#     return s
 
 
 def parse_signals(filename: str) -> dict[str,int]:
@@ -967,6 +967,7 @@ def rewrite_implicit_signal_loads(program: Program) -> None:
 def insert_stores_loads(program: Program, at: bool, bz: bool) -> None:
 
     def insert_stores_loads_util(ast: AST) -> None:
+        # print(f"{type(ast)} : {id(ast)} : {ast}")
         if isinstance(ast, TLInstruction):
             for child in ast.get_children():
                 if isinstance(child, BZInstruction):
@@ -1038,11 +1039,9 @@ def generate_assembly(program: Program, at: bool, bz: bool, signal_mapping: dict
             for child in a.get_children():
                 generate_assembly_util(child)
             asm.append(a)
-        else:
+        elif not isinstance(a, Bool):
             logger.error(f'{a.ln}: Internal error, invalid node type for assembly generation ({type(a)})')
 
-    if at:
-        rewrite_implicit_signal_loads(program)
     insert_stores_loads(program, at, bz)
     assign_ids(program, at, bz, signal_mapping)
     
@@ -1222,17 +1221,33 @@ def compile(
 
         # Separate FT/PT formulas
         ft_specs = [spec for spec in program.specs if spec.formula_type == FormulaType.FT]
+
+        ft_contracts = {}
+        for label,(f1,f2,f3) in program.contracts.items():
+            for spec in ft_specs:
+                if spec.name == label:
+                    ft_contracts[label] = (f1,f2,f3)
+
         ft_program = Program(
             program.ln, 
             program.structs, 
+            ft_contracts,
             ft_specs
         )
         ft_program.is_type_correct = True
 
         pt_specs = [spec for spec in program.specs if spec.formula_type == FormulaType.PT]
+
+        pt_contracts = {}
+        for label,(f1,f2,f3) in program.contracts.items():
+            for spec in pt_specs:
+                if spec.name == label:
+                    pt_contracts[label] = (f1,f2,f3)
+
         pt_program = Program(
             program.ln, 
             program.structs, 
+            pt_contracts,
             pt_specs
         )
         pt_program.is_type_correct = True
@@ -1241,6 +1256,8 @@ def compile(
             rewrite_set_aggregation(prog)
             rewrite_struct_access(prog)
             rewrite_at_filters(prog)
+            if at:
+                rewrite_implicit_signal_loads(program)
 
             # rewrite without extended operators if enabled
             if not extops:

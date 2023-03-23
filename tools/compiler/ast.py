@@ -1349,33 +1349,19 @@ class Specification(TLInstruction):
         return super().asm() + "end " + top.tlid_name() + " f" + str(self.formula_number) + ""
 
 
-class Contract(Specification):
-
-    def __init__(self, ln: int, lbl: str, f: int, a: AST, g: AST) -> None:
-        super().__init__(ln, lbl, f, LogicalImplies(ln, a, g))
-        self.assume = a
-        self.guarantee = g
-
-    def __str__(self) -> str:
-        s = ""
-        s += f"{self.formula_number}" if self.name == "" else self.name
-        s += f": {self.assume} => {self.guarantee}"
-        return s
-
-
 class Program(TLInstruction):
 
-    def __init__(self, ln: int, st: StructDict, s: list[Specification]) -> None:
+    def __init__(self, ln: int, st: StructDict, c: dict[str, tuple[int,int,int]], s: list[Specification]) -> None:
         super().__init__(ln, [cast(AST,spec) for spec in s])
 
         # Data
         self.timestamp_width: int = 0
         self.structs: StructDict = st
+        self.contracts = c
         self.specs: list[Specification] = s
         self.assembly: list[Instruction]
         self.scq_assembly: list[tuple[int,int]]
         self.signal_mapping: dict[str,int]
-        self.contracts: list[Contract] = [c for c in self.specs if isinstance(c, Contract)]
 
         # Computable properties
         self.total_memory: int = -1
@@ -1398,7 +1384,7 @@ class Program(TLInstruction):
         return ret[:-1]
 
     def __deepcopy__(self, memo):
-        return Program(self.ln, deepcopy(self.structs), deepcopy(self.specs))
+        return Program(self.ln, deepcopy(self.structs), deepcopy(self.contracts), deepcopy(self.specs))
 
     def asm(self) -> str:
         return super().asm() + "endsequence"
