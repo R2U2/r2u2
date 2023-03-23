@@ -9,7 +9,7 @@ logger = getLogger(STANDARD_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_SPEC, 
+    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_SPEC, 
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
@@ -80,6 +80,7 @@ class C2POLexer(Lexer):
     SYMBOL['STRUCT'] = KW_STRUCT
     SYMBOL['INPUT'] = KW_INPUT
     SYMBOL['DEFINE'] = KW_DEFINE
+    SYMBOL['ATOMIC'] = KW_ATOMIC
     SYMBOL['SPEC'] = KW_SPEC
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
@@ -123,7 +124,8 @@ class C2POParser(Parser):
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
         self.defs: dict[str,AST] = {}
-        self.contracts: dict[str,tuple(int,int,int)] = {}
+        self.contracts: dict[str,int] = {}
+        self.atomics: dict[str,AST] = {}
         self.spec_num: int = 0
         self.status = True
 
@@ -137,7 +139,8 @@ class C2POParser(Parser):
 
     @_('block struct_block',
        'block input_block',
-       'block define_block')
+       'block define_block',
+       'block atomic_block')
     def block(self, p):
         return p[0]
 
@@ -230,11 +233,34 @@ class C2POParser(Parser):
         else:
             self.defs[variable] = expr
 
+    @_('KW_ATOMIC atomic atomic_list')
+    def atomic_block(self, p):
+        pass
+
+    @_('atomic_list atomic', '')
+    def atomic_list(self, p):
+        pass
+
+    @_('SYMBOL ASSIGN expr SEMI')
+    def atomic(self, p):
+        ln = p.lineno
+        atomic = p[0]
+        expr = p[2]
+
+        if atomic in self.vars.keys():
+            logger.error(f'{ln}: Atomic \'{atomic}\' name clashes with previously declared variable.')
+            self.status = False
+        elif atomic in self.atomics.keys():
+            logger.warning(f'{ln}: Atomic \'{atomic}\' defined twice, using last definition.')
+            self.atomics[atomic] = expr
+        else:
+            self.atomics[atomic] = expr
+
     @_('KW_SPEC spec_list spec')
     def spec_block(self, p):
         ln = p.lineno
         p[1] += p[2]
-        return Program(ln, self.structs, self.contracts, p[1])
+        return Program(ln, self.structs, self.contracts, self.atomics, p[1])
 
     @_('spec_list spec')
     def spec_list(self, p):
@@ -279,13 +305,9 @@ class C2POParser(Parser):
         f3: AST = LogicalAnd(ln,[p[2],p[4]])
 
         self.spec_num += 3
-
-        self.contracts[label] = (self.spec_num-3, self.spec_num-2, self.spec_num-1)
-
         return [Specification(ln, label, self.spec_num-3, f1),
                 Specification(ln, label, self.spec_num-2, f2),
                 Specification(ln, label, self.spec_num-1, f3)]
-
 
     @_('expr_list COMMA expr')
     def expr_list(self, p):
@@ -554,6 +576,8 @@ class C2POParser(Parser):
             return self.defs[symbol]
         elif symbol in self.vars.keys():
             return Signal(ln, symbol, self.vars[symbol])
+        elif symbol in self.atomics.keys():
+            return Atomic(ln, symbol, self.atomics[symbol])
         else:
             logger.error(f'{ln}: Variable \'{symbol}\' undefined')
             self.status = False
