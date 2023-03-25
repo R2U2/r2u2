@@ -116,10 +116,18 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
 
         if isinstance(a, Constant):
             return
-        if isinstance(a,Signal):
+        if isinstance(a, Signal):
             if at:
-                status = False
-                logger.error(f'{a.ln}: Signals not allowed in specifications when AT enabled.\n\t{a}')
+                if a.name in signal_mapping:
+                    a.sid = signal_mapping[a.name]
+                    one = Integer(a.ln, 1)
+                    a_copy = deepcopy(a)
+                    instr = ATInstruction(a.ln, a.name, 'int', [a_copy], Equal(a.ln, a_copy, one), one)
+                    program.atomics[a.name] = instr
+                    a.replace(Atomic(a.ln, a.name))
+                else:
+                    status = False
+                    logger.error(f'{a.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{a}')
             else:
                 if a.name in signal_mapping:
                     a.sid = signal_mapping[a.name]
@@ -391,7 +399,7 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                 return
 
             return ATInstruction(ast.ln, name, filter, filter_args, ast, rhs)
-        else:
+        elif not isinstance(ast, ATInstruction):
             status = False
             logger.error(f"{ast.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{ast}")
             return
@@ -410,7 +418,6 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
 
     for name,expr in program.atomics.items():
         atomic: ATInstruction|None = type_check_atomic(name, expr)
-        # replace general expr with ATInstruction if well-formed
         if atomic: 
             program.atomics[name] = atomic
 
@@ -454,7 +461,7 @@ def compute_scq_size(a: AST) -> int:
 
         # print(f"{a}: {a.scq_size}")
  
-    postorder(a ,compute_scq_size_util)
+    postorder(a, compute_scq_size_util)
     a.total_scq_size = total
 
     return total
@@ -952,8 +959,6 @@ def optimize_stratify_associative_operators(a: AST) -> None:
             wpds.sort(reverse=True)
 
             T = max(children, key=lambda c: c.wpd)
-            # print('max:')
-            # print(T)
 
             if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in a.get_children() if c.wpd < wpds[0]]):
                 a.replace(LogicalAnd(a.ln, [LogicalAnd(a.ln, [c for c in children if c != children[0]]), children[0]]))
@@ -1035,6 +1040,19 @@ def generate_alias(program: Program) -> str:
     return s
     
 
+def insert_stores_loads(program: Program) -> None:
+
+    def insert_stores_loads_util(ast: AST) -> None:
+        if isinstance(ast, TLInstruction):
+            for child in ast.get_children():
+                if isinstance(child, BZInstruction):
+                    child.replace(TLAtomicLoad(ast.ln, BZAtomicStore(ast.ln, deepcopy(child))))
+        elif isinstance(ast, Signal):
+            ast.replace(BZSignalLoad(ast.ln, deepcopy(ast)))
+
+    postorder(program, insert_stores_loads_util)
+
+
 def assign_ids(program: Program, at: bool, bz: bool) -> None:
     tlid: int = 0
     atid: int = 0
@@ -1067,17 +1085,11 @@ def assign_ids(program: Program, at: bool, bz: bool) -> None:
         if isinstance(a, TLInstruction):
             a.tlid = tlid
             tlid += 1
-
-        if bz and isinstance(a, BZInstruction):
-            for p in a.get_parents():
-                if isinstance(p, TLInstruction):
-                    a.atid = atid
-                    atid += 1
-                    a.tlid = tlid
-                    tlid += 1
-                    break
-
-        if isinstance(a, Signal):
+            if isinstance(a, TLAtomicLoad):
+                a.atid = atid
+                a.get_load().atid = atid
+                atid += 1
+        elif isinstance(a, Signal):
             for p in a.get_parents():
                 if isinstance(p, TLInstruction):
                     a.tlid = tlid
@@ -1085,50 +1097,56 @@ def assign_ids(program: Program, at: bool, bz: bool) -> None:
                     break
                     
     if at:
-        postorder(program,assign_ids_at_util)
+        postorder(program, assign_ids_at_util)
     elif bz:
-        postorder(program,assign_ids_bz_util)
+        insert_stores_loads(program)
+        postorder(program, assign_ids_bz_util)
 
 
 def generate_assembly(program: Program, at: bool, bz: bool) -> list[Instruction]:
     visited: set[AST] = set()
     asm: list[Instruction] = []
 
-    def generate_assembly_util(a: AST) -> None:
+    def generate_assembly_at_util(a: AST) -> None:
         nonlocal visited
         nonlocal asm
 
-        if isinstance(a,TLInstruction):
-            for c in a.get_children():
-                if isinstance(c, Signal) and not c in visited:
-                    pass
-                elif isinstance(c, Bool) and not c in visited:
-                    visited.add(c)
-                elif not c in visited:
-                    generate_assembly_util(c)
-
-            asm.append(a)
-            visited.add(a)
-        elif bz and isinstance(a,BZInstruction):
-            for c in a.get_children():
-                if isinstance(c, Signal):
-                    asm.append(BZSignalLoad(c.ln, c))
-                else:
-                    generate_assembly_util(c)
-            
-            asm.append(a)
-
-            visited.add(a)
-        elif at and isinstance(a, Atomic):
+        if isinstance(a, Bool):
+            return
+        elif isinstance(a,TLInstruction):
             if not a in visited:
-                asm.append(TLAtomicLoad(a.ln, a))
+                asm.append(a)
+                visited.add(a)
+        elif isinstance(a, Atomic):
+            if not a in visited:
+                load = TLAtomicLoad(a.ln, deepcopy(a))
+                asm.append(load)
+                a.replace(load)
                 visited.add(a)
         else:
             logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
+    def generate_assembly_bz_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal asm
+
+        if isinstance(a, Bool):
+            return
+        elif isinstance(a,TLInstruction):
+            if not a in visited:
+                asm.append(a)
+                visited.add(a)
+        elif isinstance(a, BZInstruction):
+            asm.append(a)
+            visited.add(a)
+        else:
+            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+
     assign_ids(program, at, bz)
-    
-    generate_assembly_util(program)
+    if at:
+        postorder(program, generate_assembly_at_util)
+    elif bz:
+        postorder(program, generate_assembly_bz_util)
     program.assembly = asm
     
     return asm
@@ -1138,7 +1156,9 @@ def generate_at_assembly(program: Program) -> list[ATInstruction]:
     asm: list[ATInstruction] = []
     
     for name,atomic in program.atomics.items():
-        if isinstance(atomic, ATInstruction):
+        if atomic.atid < 0:
+            continue
+        elif isinstance(atomic, ATInstruction):
             asm.append(atomic)
         else:
             logger.error(f" Internal error resolving atomics.")
@@ -1341,13 +1361,13 @@ def compile(
         if not quiet:
             print(Color.HEADER+'TL Assembly'+Color.ENDC+':')
             for a in asm:
-                print('\t'+a.asm())
+                print(f"\t{a.asm()}")
             print(Color.HEADER+'AT Assembly'+Color.ENDC+':')
             for s in at_asm:
-                print('\t'+s.asm())
+                print(f"\t{s.asm()}")
             print(Color.HEADER+'SCQ Assembly'+Color.ENDC+':')
             for s in scq_asm:
-                print('\t'+str(s))
+                print(f"\t{s}")
 
     return ReturnCode.SUCCESS.value
 

@@ -5,7 +5,7 @@ from .sly import Lexer, Parser
 from .ast import *
 from .logger import *
 
-logger = getLogger(STANDARD_LOGGER_NAME)
+logger = getLogger(COLOR_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
@@ -130,7 +130,7 @@ class C2POParser(Parser):
         self.status = True
 
         # Initialize special structs/functions
-        self.structs['Set'] = {'set':NOTYPE(),'size':INT()}
+        self.structs['Set'] = {'set':NOTYPE(), 'size':INT()}
 
     @_('block spec_block')
     def block(self, p):
@@ -577,7 +577,7 @@ class C2POParser(Parser):
         elif symbol in self.vars.keys():
             return Signal(ln, symbol, self.vars[symbol])
         elif symbol in self.atomics.keys():
-            return Atomic(ln, symbol, self.atomics[symbol])
+            return Atomic(ln, symbol)
         else:
             logger.error(f'{ln}: Variable \'{symbol}\' undefined')
             self.status = False

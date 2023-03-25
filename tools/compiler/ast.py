@@ -290,6 +290,7 @@ class Float(Constant):
 
 
 class Variable(AST):
+    """AST node representing a bound variable in set aggregation expressions"""
 
     def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln,[])
@@ -308,19 +309,26 @@ class Signal(Literal):
         self.sid = -1
 
     def __deepcopy__(self, memo):
-        return Signal(self.ln, self.name, self.type)
+        copy = Signal(self.ln, self.name, self.type)
+        copy.sid = self.sid
+        return copy
 
 
 class Atomic(Literal):
 
-    def __init__(self, ln: int, n: str, e: AST) -> None:
+    def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln, [])
         self.name: str = n
-        self.expr: AST = e
+        # self.expr: AST = e
         self.type: Type = BOOL()
 
-    def get_expr(self) -> AST:
-        return self.expr
+    # def get_expr(self) -> AST:
+    #     return self.expr
+
+    def __deepcopy__(self, memo):
+        copy = Atomic(self.ln, self.name)
+        self.copy_attrs(copy)
+        return copy
 
 
 class Bool(Constant):
@@ -469,13 +477,15 @@ class Duplicate(UnaryOperator, BZInstruction):
 class TLAtomicLoad(TLInstruction):
 
     def __init__(self, ln: int, l: BZInstruction|Atomic) -> None:
-        super().__init__(ln, [])
-        self._atomic: BZInstruction|Atomic = l
+        super().__init__(ln, [l])
         self.tlid = l.tlid
         self.atid = l.atid
 
+    def get_load(self) -> BZInstruction|Atomic:
+        return cast(BZInstruction|Atomic, self.get_child(0))
+
     def __deepcopy__(self, memo):
-        new = TLAtomicLoad(self.ln, self._atomic)
+        new = TLAtomicLoad(self.ln, self.get_load())
         self.copy_attrs(new)
         return new
 
@@ -529,11 +539,12 @@ class BZSignalLoad(BZInstruction):
 
     def __init__(self, ln: int, l: Signal) -> None:
         super().__init__(ln, [])
-        self.signal: Signal = l
+        self._signal: Signal = l
+        self.sid = l.sid
         self.name = l.name
 
     def get_load(self) -> Signal:
-        return cast(Signal, self.signal)
+        return cast(Signal, self._signal)
 
     def __deepcopy__(self, memo):
         new = BZSignalLoad(self.ln, self.get_load())
@@ -544,8 +555,7 @@ class BZSignalLoad(BZInstruction):
         return str(self.name)
 
     def asm(self) -> str:
-        load = self.get_load()
-        return super().asm() + f"sload {str(self.get_load().sid)}"
+        return super().asm() + f"sload {str(self.sid)}"
 
 
 # only used for assembly generation
@@ -613,6 +623,9 @@ class Function(Operator):
     def __init__(self, ln: int, n: str, a: list[AST]) -> None:
         super().__init__(ln, a)
         self.name: str = n
+
+    def __deepcopy__(self, memo):
+        return Function(self.ln, self.name, deepcopy(self.get_children(), memo))
 
 
 
