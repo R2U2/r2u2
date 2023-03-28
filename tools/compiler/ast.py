@@ -7,6 +7,8 @@ import sys
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
+from simplejson import load
+
 from .logger import *
 from .type import *
 
@@ -123,6 +125,12 @@ class AST():
     def get_parent(self, i: int) -> AST:
         return self._parents[i]
 
+    def add_child(self, c: AST) -> None:
+        self._children.append(c)
+
+    def remove_child(self, c: AST) -> None:
+        self._children.remove(c)
+
     def tlid_name(self) -> str:
         return 'n'+str(self.tlid)
 
@@ -179,7 +187,7 @@ class TLInstruction(Instruction):
         self.scq_size = 1
 
     def asm(self) -> str:
-        return f"TL: n{self.tlid} "
+        return f"n{self.tlid}"
 
 
 class BZInstruction(Instruction):
@@ -189,7 +197,7 @@ class BZInstruction(Instruction):
         super().__init__(ln, c)
 
     def asm(self) -> str:
-        return "BZ: "
+        return ""
 
 
 class ATInstruction(Instruction):
@@ -223,7 +231,7 @@ class ATInstruction(Instruction):
     #     return new
 
     def asm(self) -> str:
-        s: str = f"AT: a{self.atid} {self.filter}("
+        s: str = f"a{self.atid} {self.filter}("
         for arg in self.args:
             s += f"s{arg.sid}," if isinstance(arg, Signal) else f"{arg.name},"
         s = s[:-1] + ") "
@@ -300,7 +308,7 @@ class Variable(AST):
         return isinstance(__o, Variable) and __o.name == self.name
 
 
-class Signal(Literal):
+class Signal(Literal, BZInstruction):
 
     def __init__(self, ln: int, n: str, t: Type) -> None:
         super().__init__(ln,[])
@@ -313,22 +321,24 @@ class Signal(Literal):
         copy.sid = self.sid
         return copy
 
+    def asm(self) -> str:
+        return f"load s{self.sid}"
 
-class Atomic(Literal):
+
+class Atomic(Literal, TLInstruction):
 
     def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln, [])
         self.name: str = n
-        # self.expr: AST = e
         self.type: Type = BOOL()
-
-    # def get_expr(self) -> AST:
-    #     return self.expr
 
     def __deepcopy__(self, memo):
         copy = Atomic(self.ln, self.name)
         self.copy_attrs(copy)
         return copy
+
+    def asm(self) -> str:
+        return f"{super().asm()} load a{self.atid}" 
 
 
 class Bool(Constant):
@@ -470,152 +480,52 @@ class Duplicate(UnaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "dup"
+        return f"dup"
 
 
 # only used for assembly generation
 class TLAtomicLoad(TLInstruction):
 
-    def __init__(self, ln: int, l: BZInstruction|Atomic) -> None:
+    def __init__(self, ln: int, l: BZAtomicStore) -> None:
         super().__init__(ln, [l])
-        self.tlid = l.tlid
-        self.atid = l.atid
 
-    def get_load(self) -> BZInstruction|Atomic:
-        return cast(BZInstruction|Atomic, self.get_child(0))
+    def get_load(self) -> BZAtomicStore:
+        return cast(BZAtomicStore, self.get_child(0))
 
-    def __deepcopy__(self, memo):
-        new = TLAtomicLoad(self.ln, self.get_load())
-        self.copy_attrs(new)
-        return new
+    def __str__(self) -> str:
+        return f"TLLoad({self.get_load()})"
 
     def asm(self) -> str:
-        return super().asm() + "load a" + str(self.atid)
-
-
-# only used for assembly generation
-# class TLSignalLoad(TLInstruction):
-# class TLSignalLoad(TLInstruction):
-
-#     def __init__(self, ln: int, l: Signal) -> None:
-#         super().__init__(ln, [])
-#         self.signal: Signal = l
-#         self.tlid = l.tlid
-#         self.name = l.name
-
-#     def get_load(self) -> Signal:
-#         return cast(Signal, self.signal)
-
-#     def __deepcopy__(self, memo):
-#         new = TLSignalLoad(self.ln, self.get_load())
-#         self.copy_attrs(new)
-#         return new
-
-#     def asm(self) -> str:
-#         return super().asm() + "load s" + str(self.get_load().sid)
+        return f"{super().asm()} load a{self.get_load().atid}"
 
 
 # only used for assembly generation
 class BZAtomicLoad(BZInstruction):
 
     def __init__(self, ln: int, l: TLInstruction) -> None:
-        super().__init__(ln, [])
-        self.atomic: TLInstruction = l
+        super().__init__(ln, [l])
 
-    def get_load(self) -> TLInstruction:
-        return cast(TLInstruction, self.atomic)
-
-    def __deepcopy__(self, memo):
-        new = BZAtomicLoad(self.ln, cast(TLInstruction, self.atomic))
-        self.copy_attrs(new)
-        return new
+    def get_load(self) -> BZAtomicLoad:
+        return cast(BZAtomicLoad, self.get_child(0))
 
     def asm(self) -> str:
-        return super().asm() + f"aload {self.get_load().atid}"
+        return f"aload {self.atid}"
 
 
 # only used for assembly generation
-class BZSignalLoad(BZInstruction):
-
-    def __init__(self, ln: int, l: Signal) -> None:
-        super().__init__(ln, [])
-        self._signal: Signal = l
-        self.sid = l.sid
-        self.name = l.name
-
-    def get_load(self) -> Signal:
-        return cast(Signal, self._signal)
-
-    def __deepcopy__(self, memo):
-        new = BZSignalLoad(self.ln, self.get_load())
-        self.copy_attrs(new)
-        return new
-
-    def __str__(self) -> str:
-        return str(self.name)
-
-    def asm(self) -> str:
-        return super().asm() + f"sload {str(self.sid)}"
-
-
-# only used for assembly generation
-class BZAtomicStore(UnaryOperator, BZInstruction):
+class BZAtomicStore(BZInstruction):
 
     def __init__(self, ln: int, s: BZInstruction) -> None:
         super().__init__(ln, [s])
 
     def get_store(self) -> BZInstruction:
-        return cast(BZInstruction, self.get_operand())
+        return cast(BZInstruction, self.get_child(0))
 
-    def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = BZAtomicStore(self.ln, cast(BZInstruction, children[0]))
-        self.copy_attrs(new)
-        return new
+    def __str__(self) -> str:
+        return f"BZStore({self.get_store()})"
 
     def asm(self) -> str:
-        return super().asm() + f"astore {self.atid}"
-
-
-# only used for assembly generation
-# class RegisterStore(UnaryOperator, BZInstruction):
-
-#     def __init__(self, ln: int, s: BZInstruction, r: int) -> None:
-#         super().__init__(ln, [s])
-#         self.register: int = r
-#         s.register = r
-
-#     def get_store(self) -> BZInstruction:
-#         return cast(BZInstruction, self.get_operand())
-
-#     def __deepcopy__(self, memo):
-#         children = [deepcopy(c, memo) for c in self._children]
-#         new = RegisterStore(self.ln, cast(BZInstruction, children[0]), self.register)
-#         self.copy_attrs(new)
-#         return new
-
-#     def asm(self) -> str:
-#         return super().asm() + f"rstore {self.register}"
-
-
-# only used for assembly generation
-# class RegisterLoad(UnaryOperator, BZInstruction):
-
-#     def __init__(self, ln: int, l: BZInstruction) -> None:
-#         super().__init__(ln, [l])
-#         self.register: int = l.register
-
-#     def get_load(self) -> BZInstruction:
-#         return cast(BZInstruction, self.get_operand())
-
-#     def __deepcopy__(self, memo):
-#         children = [deepcopy(c, memo) for c in self._children]
-#         new = RegisterLoad(self.ln, cast(BZInstruction, children[0]))
-#         self.copy_attrs(new)
-#         return new
-
-#     def asm(self) -> str:
-#         return super().asm() + f"rload {self.register}"
+        return f"astore {self.atid}"
 
 
 class Function(Operator):
@@ -740,7 +650,7 @@ class Count(BZInstruction):
         return s[:-1] + ")"
 
     def asm(self) -> str:
-        return super().asm() + f"count {self.num}"
+        return f"count {self.num}"
 
 
 class BitwiseOperator(Operator):
@@ -762,7 +672,7 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "and"
+        return "and"
 
 
 class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
@@ -778,7 +688,7 @@ class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "or"
+        return "or"
 
 
 class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
@@ -794,7 +704,7 @@ class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "xor"
+        return "xor"
 
 
 class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
@@ -810,7 +720,7 @@ class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "lshift"
+        return "lshift"
 
 
 class BitwiseShiftRight(BitwiseOperator, BinaryOperator, BZInstruction):
@@ -826,7 +736,7 @@ class BitwiseShiftRight(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "rshift"
+        return "rshift"
 
 
 class BitwiseNegate(BitwiseOperator, UnaryOperator, BZInstruction):
@@ -842,7 +752,7 @@ class BitwiseNegate(BitwiseOperator, UnaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "bwneg"
+        return "bwneg"
 
 
 class ArithmeticOperator(Operator):
@@ -864,7 +774,7 @@ class ArithmeticAdd(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + ("f" if self.type == FLOAT() else "i") + "add"
+        return ("f" if self.type == FLOAT() else "i") + "add"
 
 
 class ArithmeticSubtract(ArithmeticOperator, BinaryOperator, BZInstruction):
@@ -880,7 +790,7 @@ class ArithmeticSubtract(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + ("f" if self.type == FLOAT() else "i") + "sub"
+        return ("f" if self.type == FLOAT() else "i") + "sub"
 
 
 class ArithmeticMultiply(ArithmeticOperator, BinaryOperator, BZInstruction):
@@ -896,7 +806,7 @@ class ArithmeticMultiply(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + ("f" if self.type == FLOAT() else "i") + "mul"
+        return ("f" if self.type == FLOAT() else "i") + "mul"
 
 
 class ArithmeticDivide(ArithmeticOperator, BinaryOperator, BZInstruction):
@@ -912,7 +822,7 @@ class ArithmeticDivide(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + ("f" if self.type == FLOAT() else "i") + "div"
+        return ("f" if self.type == FLOAT() else "i") + "div"
 
 
 class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
@@ -928,7 +838,7 @@ class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "mod"
+        return "mod"
 
 
 class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
@@ -944,7 +854,7 @@ class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + ("f" if self.type == FLOAT() else "i") + "neg"
+        return ("f" if self.type == FLOAT() else "i") + "neg"
 
 
 class RelationalOperator(BinaryOperator):
@@ -967,7 +877,7 @@ class Equal(RelationalOperator, BZInstruction):
         self.name: str = "=="
 
     def asm(self) -> str:
-        return super().asm() + "eq"
+        return "eq"
 
 
 class NotEqual(RelationalOperator, BZInstruction):
@@ -977,7 +887,7 @@ class NotEqual(RelationalOperator, BZInstruction):
         self.name: str = "!="
 
     def asm(self) -> str:
-        return super().asm() + "neq"
+        return "neq"
 
 
 class GreaterThan(RelationalOperator, BZInstruction):
@@ -987,7 +897,7 @@ class GreaterThan(RelationalOperator, BZInstruction):
         self.name: str = ">"
 
     def asm(self) -> str:
-        return super().asm() + ("i" if is_integer_type(self.get_lhs().type) else "f") + "gt"
+        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "gt"
 
 
 class LessThan(RelationalOperator, BZInstruction):
@@ -997,7 +907,7 @@ class LessThan(RelationalOperator, BZInstruction):
         self.name: str = "<"
 
     def asm(self) -> str:
-        return super().asm() + ("i" if is_integer_type(self.get_lhs().type) else "f") + "lt"
+        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "lt"
 
 
 class GreaterThanOrEqual(RelationalOperator, BZInstruction):
@@ -1007,7 +917,7 @@ class GreaterThanOrEqual(RelationalOperator, BZInstruction):
         self.name: str = ">="
 
     def asm(self) -> str:
-        return super().asm() + ("i" if is_integer_type(self.get_lhs().type) else "f") + "gte"
+        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "gte"
 
 
 class LessThanOrEqual(RelationalOperator, BZInstruction):
@@ -1017,7 +927,7 @@ class LessThanOrEqual(RelationalOperator, BZInstruction):
         self.name: str = "<="
 
     def asm(self) -> str:
-        return super().asm() + ("i" if is_integer_type(self.get_lhs().type) else "f") + "lte"
+        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "lte"
 
 
 class LogicalOperator(Operator):
@@ -1042,10 +952,10 @@ class LogicalOr(LogicalOperator, TLInstruction):
         return s[:-2]
 
     def asm(self, ) -> str:
-        s: str = super().asm() + "or"
+        s: str = f"{super().asm()} or"
         for c in self.get_children():
-            s += " " + c.tlid_name()
-        return s + ""
+            s += f" {c.tlid_name()}"
+        return s
 
 
 class LogicalAnd(LogicalOperator, TLInstruction):
@@ -1060,11 +970,11 @@ class LogicalAnd(LogicalOperator, TLInstruction):
             s += str(arg) + "&&"
         return s[:-2]
 
-    def asm(self) -> str:
-        s: str = super().asm() + "and"
+    def asm(self, ) -> str:
+        s: str = f"{super().asm()} and"
         for c in self.get_children():
-            s += " " + c.tlid_name()
-        return s + ""
+            s += f" {c.tlid_name()}"
+        return s
 
 
 class LogicalXor(LogicalOperator, BinaryOperator, TLInstruction):
@@ -1080,7 +990,7 @@ class LogicalXor(LogicalOperator, BinaryOperator, TLInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "xor " + self.get_lhs().tlid_name() + " " + self.get_rhs().tlid_name()
+        return f"{super().asm()} xor {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()}"
 
 
 class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
@@ -1096,7 +1006,7 @@ class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "impl " + self.get_lhs().tlid_name() + " " + self.get_rhs().tlid_name()
+        return f"{super().asm()} impl {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()}"
 
 
 class LogicalNegate(LogicalOperator, UnaryOperator, TLInstruction):
@@ -1112,7 +1022,7 @@ class LogicalNegate(LogicalOperator, UnaryOperator, TLInstruction):
         return new
 
     def asm(self) -> str:
-        return super().asm() + "not " + self.get_operand().tlid_name()
+        return f"{super().asm()} not {self.get_operand().tlid_name()}" 
 
 
 class TemporalOperator(Operator):
@@ -1166,8 +1076,7 @@ class Until(FutureTimeBinaryOperator, TLInstruction):
         self.name: str = "U"
 
     def asm(self) -> str:
-        return super().asm() + "until " + self.get_lhs().tlid_name() + " " + self.get_rhs().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} until {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class Release(FutureTimeBinaryOperator, TLInstruction):
@@ -1177,8 +1086,7 @@ class Release(FutureTimeBinaryOperator, TLInstruction):
         self.name: str = "R"
 
     def asm(self) -> str:
-        return super().asm() + "release " + self.get_lhs().tlid_name() + " " + self.get_rhs().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} release {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
@@ -1208,8 +1116,7 @@ class Global(FutureTimeUnaryOperator, TLInstruction):
         self.name: str = "G"
 
     def asm(self) -> str:
-        return super().asm() + "global " + self.get_operand().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} global {self.get_operand().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class Future(FutureTimeUnaryOperator, TLInstruction):
@@ -1219,8 +1126,7 @@ class Future(FutureTimeUnaryOperator, TLInstruction):
         self.name: str = "F"
 
     def asm(self) -> str:
-        return super().asm() + "future " + self.get_operand().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} future {self.get_operand().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
@@ -1251,8 +1157,7 @@ class Since(PastTimeBinaryOperator, TLInstruction):
         self.name: str = "S"
 
     def asm(self) -> str:
-        return super().asm() + "since " + self.get_lhs().tlid_name() + " " + self.get_rhs().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} since {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
@@ -1280,8 +1185,7 @@ class Historical(PastTimeUnaryOperator, TLInstruction):
         self.name: str = "H"
 
     def asm(self) -> str:
-        return super().asm() + "his " + self.get_operand().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} his {self.get_operand().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class Once(PastTimeUnaryOperator, TLInstruction):
@@ -1291,8 +1195,7 @@ class Once(PastTimeUnaryOperator, TLInstruction):
         self.name: str = "O"
 
     def asm(self) -> str:
-        return super().asm() + "once " + self.get_operand().tlid_name() + " " + \
-            str(self.interval.lb) + " " + str(self.interval.ub)
+        return f"{super().asm()} once {self.get_operand().tlid_name()} {self.interval.lb} {self.interval.ub}"
 
 
 class Specification(TLInstruction):
@@ -1315,25 +1218,51 @@ class Specification(TLInstruction):
         return (str(self.formula_number) if self.name == "" else self.name) + ": " + str(self.get_expr())
 
     def asm(self) -> str:
-        top: AST = self.get_child(0)
-        return super().asm() + "end " + top.tlid_name() + " f" + str(self.formula_number) + ""
+        return f"{super().asm()} end n{self.get_expr().tlid} f{self.formula_number}"
 
 
-class Program(TLInstruction):
+class Contract(AST):
 
-    def __init__(self, ln: int, st: StructDict, c: dict[int, Specification], a: dict[str, AST],  s: list[Specification]) -> None:
-        super().__init__(ln, [cast(AST,spec) for spec in s])
+    def __init__(self, ln: int, lbl: str, f1: int, f2: int, f3: int, a: TLInstruction, g: TLInstruction) -> None:
+        super().__init__(ln, [a, g])
+        self.name: str = lbl
+        self.formula_numbers: tuple[int,int,int] = (f1,f2,f3)
+
+    def get_assumption(self) -> TLInstruction:
+        return cast(TLInstruction, self.get_child(0))
+
+    def get_guarantee(self) -> TLInstruction:
+        return cast(TLInstruction, self.get_child(1))
+
+    def __str__(self) -> str:
+        return f"({self.get_assumption()})=>({self.get_guarantee()})"
+
+
+class SpecificationSet(TLInstruction):
+
+    def __init__(self, ln: int, t: FormulaType, s: list[Specification|Contract]) -> None:
+        super().__init__(ln, [cast(AST, spec) for spec in s])
+        self.formula_type = t
+
+    def asm(self) -> str:
+        return f"{super().asm()} endsequence"
+
+
+class Program(AST):
+
+    def __init__(self, ln: int, st: StructDict, a: dict[str, AST], fts: SpecificationSet, pts: SpecificationSet) -> None:
+        super().__init__(ln, [fts, pts])
 
         # Data
         self.timestamp_width: int = 0
         self.structs: StructDict = st
-        self.contracts = c
-        self.specs: list[Specification] = s
-        self.contracts: dict[int, Specification] = c
         self.atomics: dict[str, AST] = a
-        self.assembly: list[Instruction]
-        self.scq_assembly: list[tuple[int,int]]
-        self.signal_mapping: dict[str,int]
+        self.ft_spec_set: SpecificationSet = fts
+        self.pt_spec_set: SpecificationSet = pts
+        self.assembly: list[Instruction] = []
+        self.scq_assembly: list[tuple[int,int]] = []
+        self.signal_mapping: dict[str,int] = {}
+        self.contracts: dict[str,tuple[int,int,int]] = {}
 
         # Computable properties
         self.total_memory: int = -1
@@ -1342,11 +1271,15 @@ class Program(TLInstruction):
 
         # Predicates
         self.is_type_correct: bool = False
-        self.is_boolean_normal_form: bool = False
-        self.is_negative_normal_form: bool = False
         self.is_set_agg_free: bool = False
         self.is_struct_access_free: bool = False
         self.is_cse_reduced: bool = False
+
+    def get_ft_specs(self) -> SpecificationSet:
+        return cast(SpecificationSet, self.get_child(0))
+
+    def get_pt_specs(self) -> SpecificationSet:
+        return cast(SpecificationSet, self.get_child(1))
 
     def __str__(self) -> str:
         ret: str = ""
@@ -1359,10 +1292,7 @@ class Program(TLInstruction):
         return Program(
             self.ln, 
             deepcopy(self.structs, memo), 
-            deepcopy(self.contracts, memo),
             deepcopy(self.atomics, memo), 
-            deepcopy(self.specs, memo)
+            deepcopy(self.ft_spec_set, memo),
+            deepcopy(self.pt_spec_set, memo)
         )
-
-    def asm(self) -> str:
-        return super().asm() + "endsequence"

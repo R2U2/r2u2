@@ -9,7 +9,7 @@ logger = getLogger(COLOR_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_SPEC, 
+    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
@@ -81,7 +81,8 @@ class C2POLexer(Lexer):
     SYMBOL['INPUT'] = KW_INPUT
     SYMBOL['DEFINE'] = KW_DEFINE
     SYMBOL['ATOMIC'] = KW_ATOMIC
-    SYMBOL['SPEC'] = KW_SPEC
+    SYMBOL['FTSPEC'] = KW_FTSPEC
+    SYMBOL['PTSPEC'] = KW_PTSPEC
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
     SYMBOL['H'] = TL_HIST
@@ -127,14 +128,31 @@ class C2POParser(Parser):
         self.contracts: dict[str,int] = {}
         self.atomics: dict[str,AST] = {}
         self.spec_num: int = 0
+        self.has_ft = False
+        self.has_pt = False
         self.status = True
 
-        # Initialize special structs/functions
-        self.structs['Set'] = {'set':NOTYPE(), 'size':INT()}
+        # Initialize special structs
+        self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
 
-    @_('block spec_block')
+    @_('block ft_spec_block')
     def block(self, p):
-        p[0].append(p[1])
+        if self.has_ft:
+            logger.warning(f"{p.lineno}: Multiple FTSPEC blocks, ignoring and using first instance.")
+            return p[0]
+
+        self.has_ft = True
+        p[0][FormulaType.FT] = p[1]
+        return p[0]
+
+    @_('block pt_spec_block')
+    def block(self, p):
+        if self.has_pt:
+            logger.warning(f"{p.lineno}: Multiple PTSPEC blocks, ignoring and using first instance.")
+            return p[0]
+
+        self.has_pt = True
+        p[0][FormulaType.PT] = p[1]
         return p[0]
 
     @_('block struct_block',
@@ -146,7 +164,7 @@ class C2POParser(Parser):
 
     @_('')
     def block(self, p):
-        return []
+        return {}
 
     @_('KW_STRUCT struct struct_list')
     def struct_block(self, p):
@@ -256,11 +274,19 @@ class C2POParser(Parser):
         else:
             self.atomics[atomic] = expr
 
-    @_('KW_SPEC spec_list spec')
-    def spec_block(self, p):
+    # Future-time specification block
+    @_('KW_FTSPEC spec_list spec')
+    def ft_spec_block(self, p):
         ln = p.lineno
         p[1] += p[2]
-        return Program(ln, self.structs, self.contracts, self.atomics, p[1])
+        return SpecificationSet(ln, FormulaType.FT, p[1])
+
+    # Past-time specification block
+    @_('KW_PTSPEC spec_list spec')
+    def pt_spec_block(self, p):
+        ln = p.lineno
+        p[1] += p[2]
+        return SpecificationSet(ln, FormulaType.PT, p[1])
 
     @_('spec_list spec')
     def spec_list(self, p):
@@ -300,14 +326,8 @@ class C2POParser(Parser):
         ln = p.lineno
         label = p[0]
 
-        f1: AST = p[2]
-        f2: AST = LogicalImplies(ln,p[2],p[4])
-        f3: AST = LogicalAnd(ln,[p[2],p[4]])
-
         self.spec_num += 3
-        return [Specification(ln, label, self.spec_num-3, f1),
-                Specification(ln, label, self.spec_num-2, f2),
-                Specification(ln, label, self.spec_num-1, f3)]
+        return [Contract(ln, label, self.spec_num-3, self.spec_num-2, self.spec_num-1, p[2], p[4])]
 
     @_('expr_list COMMA expr')
     def expr_list(self, p):

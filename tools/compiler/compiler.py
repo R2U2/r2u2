@@ -45,7 +45,7 @@ class ReturnCode(Enum):
     ASM_ERROR = 4
     ENGINE_SELECT_ERROR = 5
 
-
+# Stores the sub-classes of Instruction from ast.py
 instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules['compiler.ast'], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
@@ -62,7 +62,6 @@ default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) f
             obj != Instruction and 
             obj != TLInstruction and 
             obj != BZInstruction) }
-
 
 at_filter_table: dict[str, tuple[Type, list[Type]]] = {
     "rate": (FLOAT(), [FLOAT()])
@@ -108,11 +107,14 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
     formula_type: FormulaType = FormulaType.PROP
 
     def type_check_util(a: AST) -> None:
+        nonlocal formula_type
         nonlocal status
 
         if a in explored:
             return
         explored.append(a)
+
+        a.formula_type = formula_type
 
         if isinstance(a, Constant):
             return
@@ -134,7 +136,7 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                 else:
                     status = False
                     logger.error(f'{a.ln}: Signal \'{a.name}\' not referenced in signal mapping.')
-        elif isinstance(a,Program):
+        elif isinstance(a, SpecificationSet):
             for c in a.get_children():
                 type_check_util(c)
         elif isinstance(a,Specification):
@@ -144,6 +146,20 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
             if not child.type == BOOL():
                 status = False
                 logger.error(f'{a.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{a}')
+        elif isinstance(a, Contract):
+            assume: TLInstruction = a.get_assumption()
+            guarantee: TLInstruction = a.get_guarantee()
+
+            type_check_util(assume)
+            type_check_util(guarantee)
+
+            if not assume.type == BOOL():
+                status = False
+                logger.error(f'{a.ln}: Assumption must be of boolean type (found \'{assume.type}\')\n\t{a}')
+
+            if not guarantee.type == BOOL():
+                status = False
+                logger.error(f'{a.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{a}')
         elif isinstance(a, Atomic):
             if not at:
                 status = False
@@ -213,22 +229,13 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
 
             # check for mixed-time formulas
             if isinstance(a, FutureTimeOperator):
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.PT:
-                        status = False
-                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
-                a.formula_type = FormulaType.FT
+                if formula_type == FormulaType.PT:
+                    status = False
+                    logger.error(f'{a.ln}: Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{a}')
             elif isinstance(a, PastTimeOperator):
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.FT:
-                        status = False
-                        logger.error(f'{a.ln}: Mixed-time formulas unsupported\n\t{a}')
-                a.formula_type = FormulaType.PT
-            else:
-                # not a TL op, propagate formula type from children
-                for c in a.get_children():
-                    if c.formula_type == FormulaType.FT or c.formula_type == FormulaType.PT:
-                        a.formula_type = c.formula_type
+                if formula_type == FormulaType.FT:
+                    status = False
+                    logger.error(f'{a.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{a}')
 
             if a.interval.lb > a.interval.ub:
                 status = status
@@ -301,27 +308,6 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
         else:
             logger.error(f'{a.ln}: Invalid expression\n\t{a}')
             status = False
-
-    def check_formula_type(ast: AST) -> None:
-        nonlocal status
-        nonlocal formula_type
-
-        if isinstance(ast, FutureTimeOperator):
-            if formula_type == FormulaType.PT:
-                logger.error(f" Mixed-time MLTL formulas not allowed\n\t{ast}")
-                status = False
-            else:
-                formula_type = FormulaType.FT
-        elif isinstance(ast, PastTimeOperator):
-            if formula_type == FormulaType.FT:
-                logger.error(f" Mixed-time MLTL formulas not allowed\n\t{ast}")
-                status = False
-            else:
-                formula_type = FormulaType.PT
-
-    def set_formula_type(ast: AST) -> None:
-        nonlocal formula_type
-        ast.formula_type = formula_type
 
     def type_check_atomic(name: str, ast: AST) -> ATInstruction|None:
         nonlocal status
@@ -403,20 +389,17 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
             status = False
             logger.error(f"{ast.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{ast}")
             return
+    
+    # Type check FTSPEC
+    formula_type = FormulaType.FT
+    type_check_util(program.get_ft_specs())
 
-    type_check_util(program)
+    # Type check PTSPEC
+    formula_type = FormulaType.PT
+    type_check_util(program.get_pt_specs())
 
-    # check mixed-time formulas, set each node to respective formula type
-    for spec in program.specs: 
-        formula_type = FormulaType.PROP
-        preorder(spec, check_formula_type)
-
-        # Set propositional formulas to FT by default
-        formula_type = FormulaType.FT if formula_type == FormulaType.PROP else formula_type
-
-        preorder(spec, set_formula_type)
-
-    for name,expr in program.atomics.items():
+    # Type check atomics
+    for name, expr in program.atomics.items():
         atomic: ATInstruction|None = type_check_atomic(name, expr)
         if atomic: 
             program.atomics[name] = atomic
@@ -425,6 +408,19 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
         program.is_type_correct = True
 
     return status
+
+
+def insert_load_stores(program: Program) -> None:
+    
+    def insert_load_stores_util(ast: AST) -> None:
+        if isinstance(ast, TLInstruction):
+            for child in ast.get_children():
+                if isinstance(child, BZInstruction):
+                    child.replace(
+                        TLAtomicLoad(ast.ln, BZAtomicStore(child.ln, deepcopy(child)))
+                    )
+
+    postorder(program, insert_load_stores_util)
 
 
 def compute_scq_size(a: AST) -> int:
@@ -530,8 +526,6 @@ def rewrite_boolean_normal_form(program: Program) -> None:
         logger.error(f' Program must be type checked before converting to boolean normal form.')
         return
 
-    # TODO check if not in nnf
-    
     def rewrite_boolean_normal_form_util(a: AST) -> None:
 
         if isinstance(a, LogicalOr):
@@ -570,7 +564,6 @@ def rewrite_boolean_normal_form(program: Program) -> None:
             rewrite_boolean_normal_form_util(child)
 
     rewrite_boolean_normal_form_util(program)
-    program.is_boolean_normal_form = True
 
 
 def rewrite_negative_normal_form(program: Program) -> None:
@@ -587,8 +580,6 @@ def rewrite_negative_normal_form(program: Program) -> None:
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before converting to negative normal form.')
         return
-
-    # TODO check if not in bnf
 
     def rewrite_negative_normal_form_util(a: AST) -> None:
 
@@ -639,7 +630,6 @@ def rewrite_negative_normal_form(program: Program) -> None:
             rewrite_negative_normal_form_util(child)
 
     rewrite_negative_normal_form_util(program)
-    program.is_negative_normal_form = True
 
 
 def rewrite_set_aggregation(program: Program) -> None:
@@ -981,43 +971,75 @@ def optimize_stratify_associative_operators(a: AST) -> None:
     optimize_associative_operators_rec(a)
 
 
+def rewrite_contracts(program: Program) -> None:
+    """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
+
+    for spec_set in program.get_children():
+        for contract in [c for c in spec_set.get_children() if isinstance(c, Contract)]:
+            spec_set.remove_child(contract)
+
+            spec_set.add_child(Specification(
+                contract.ln, 
+                contract.name, 
+                contract.formula_numbers[0], 
+                contract.get_assumption()
+            ))
+
+            spec_set.add_child(Specification(
+                contract.ln, 
+                contract.name, 
+                contract.formula_numbers[1], 
+                LogicalImplies(contract.ln, contract.get_assumption(), contract.get_guarantee())
+            ))
+
+            spec_set.add_child(Specification(
+                contract.ln, 
+                contract.name, 
+                contract.formula_numbers[2], 
+                LogicalAnd(contract.ln, [contract.get_assumption(), contract.get_guarantee()])
+            ))
+
+            program.contracts[contract.name] = contract.formula_numbers
+
+
 def optimize_cse(program: Program) -> None:
     """
-    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence.
+    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
 
     Preconditions:
-        - program is type correct
+        - program is type correct.
 
     Postconditions:
-        - program has no distinct, syntactically equivalent sub-expressions (i.e., is CSE reduced)
+        - Sets of FT/PT specifications have no distinct, syntactically equivalent sub-expressions (i.e., is CSE reduced).
+        - Some nodes in AST may have multiple parents.
     """
     
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before CSE.')
         return
 
-    S: dict[str,AST] = {}
+    S: dict[str, AST]
     
     def optimize_cse_util(a: AST) -> None:
         nonlocal S
-        c: int
-        i: str
 
-        for c in range(0,a.num_children()):
-            i = str(a.get_child(c))
+        if str(a) in S:
+            a.replace(S[str(a)])
+        else:
+            S[str(a)] = a
 
-            if i in S.keys():
-                a.get_child(c).replace(S[i])
-            else:
-                S[i] = a.get_child(c)
+    S = {}
+    postorder(program.get_ft_specs(), optimize_cse_util)
+
+    S = {}
+    postorder(program.get_pt_specs(), optimize_cse_util)
     
-    postorder(program, optimize_cse_util)
     program.is_cse_reduced = True
 
 
 def generate_alias(program: Program) -> str:
     """
-    Generates string corresponding to the alias file for th argument program. The alias file is used by R2U2 to print formula labels and contract status.
+    Generates string corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
 
     Preconditions:
         - program is type correct
@@ -1027,35 +1049,44 @@ def generate_alias(program: Program) -> str:
     """
     s: str = ''
 
-    for spec in program.specs:
-        if spec.name in [c.name for c in program.contracts.values()]: 
+    specs = [s for s in program.get_ft_specs().get_children() + program.get_pt_specs().get_children()]
+
+    for spec in specs:
+        if spec.name in program.contracts: 
             # then formula is part of contract, ignore
             continue
-        s += 'F ' + spec.name + ' ' + str(spec.formula_number) + '\n'
+        if isinstance(spec, Specification):
+            s += f"F {spec.name} {spec.formula_number}\n"
 
-    for num,contract in program.contracts.items():
-        s += 'C ' + contract.name + ' ' + str(num) + ' ' + \
-            str(num+1) + ' ' + str(num+2) + '\n'
+    for label,fnums in program.contracts.items():
+        s += f"C {label} {fnums[0]} {fnums[1]} {fnums[2]}\n"
 
     return s
+
+
+def generate_at_assembly(program: Program) -> list[ATInstruction]:
+    asm: list[ATInstruction] = []
     
+    for name,atomic in program.atomics.items():
+        if atomic.atid < 0:
+            logger.warning(f"{atomic.ln}: Unused atomic '{name}'.")
+        elif isinstance(atomic, ATInstruction):
+            asm.append(atomic)
+        else:
+            logger.error(f" Internal error resolving atomics.")
 
-def insert_stores_loads(program: Program) -> None:
-
-    def insert_stores_loads_util(ast: AST) -> None:
-        if isinstance(ast, TLInstruction):
-            for child in ast.get_children():
-                if isinstance(child, BZInstruction):
-                    child.replace(TLAtomicLoad(ast.ln, BZAtomicStore(ast.ln, deepcopy(child))))
-        elif isinstance(ast, Signal):
-            ast.replace(BZSignalLoad(ast.ln, deepcopy(ast)))
-
-    postorder(program, insert_stores_loads_util)
+    return asm
 
 
-def assign_ids(program: Program, at: bool, bz: bool) -> None:
+def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType, list[Instruction]]:
+    visited: set[AST] = set()
+    asm: dict[FormulaType, list[Instruction]] = {}
+    formula_type: FormulaType
     tlid: int = 0
     atid: int = 0
+
+    asm[FormulaType.FT] = []
+    asm[FormulaType.PT] = []
 
     def assign_ids_at_util(a: AST) -> None:
         nonlocal tlid
@@ -1069,11 +1100,26 @@ def assign_ids(program: Program, at: bool, bz: bool) -> None:
             tlid += 1
 
         if isinstance(a, Atomic):
-            a.atid = atid
-            program.atomics[a.name].atid = atid
-            atid += 1
-            a.tlid = tlid
-            tlid += 1
+            if program.atomics[a.name].atid > -1:
+                a.atid = program.atomics[a.name].atid
+            else:
+                a.atid = atid
+                program.atomics[a.name].atid = atid
+                atid += 1
+
+    def generate_assembly_at_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal asm
+        nonlocal formula_type
+
+        if isinstance(a, Bool):
+            return
+        elif isinstance(a,TLInstruction):
+            if not a in visited:
+                asm[formula_type].append(a)
+                visited.add(a)
+        else:
+            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
     def assign_ids_bz_util(a: AST) -> None:
         nonlocal tlid
@@ -1085,46 +1131,10 @@ def assign_ids(program: Program, at: bool, bz: bool) -> None:
         if isinstance(a, TLInstruction):
             a.tlid = tlid
             tlid += 1
+            
             if isinstance(a, TLAtomicLoad):
-                a.atid = atid
                 a.get_load().atid = atid
                 atid += 1
-        elif isinstance(a, Signal):
-            for p in a.get_parents():
-                if isinstance(p, TLInstruction):
-                    a.tlid = tlid
-                    tlid += 1
-                    break
-                    
-    if at:
-        postorder(program, assign_ids_at_util)
-    elif bz:
-        insert_stores_loads(program)
-        postorder(program, assign_ids_bz_util)
-
-
-def generate_assembly(program: Program, at: bool, bz: bool) -> list[Instruction]:
-    visited: set[AST] = set()
-    asm: list[Instruction] = []
-
-    def generate_assembly_at_util(a: AST) -> None:
-        nonlocal visited
-        nonlocal asm
-
-        if isinstance(a, Bool):
-            return
-        elif isinstance(a,TLInstruction):
-            if not a in visited:
-                asm.append(a)
-                visited.add(a)
-        elif isinstance(a, Atomic):
-            if not a in visited:
-                load = TLAtomicLoad(a.ln, deepcopy(a))
-                asm.append(load)
-                a.replace(load)
-                visited.add(a)
-        else:
-            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
     def generate_assembly_bz_util(a: AST) -> None:
         nonlocal visited
@@ -1132,36 +1142,36 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> list[Instruction]
 
         if isinstance(a, Bool):
             return
-        elif isinstance(a,TLInstruction):
+        elif isinstance(a, TLInstruction):
             if not a in visited:
-                asm.append(a)
+                asm[formula_type].append(a)
                 visited.add(a)
         elif isinstance(a, BZInstruction):
-            asm.append(a)
+            asm[formula_type].append(a)
             visited.add(a)
         else:
             logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
-    assign_ids(program, at, bz)
     if at:
-        postorder(program, generate_assembly_at_util)
+        tlid = 0
+        formula_type = FormulaType.FT
+        postorder(program.get_ft_specs(), assign_ids_at_util)
+        postorder(program.get_ft_specs(), generate_assembly_at_util)
+
+        tlid = 0
+        formula_type = FormulaType.PT
+        postorder(program.get_pt_specs(), assign_ids_at_util)
+        postorder(program.get_pt_specs(), generate_assembly_at_util)
     elif bz:
-        postorder(program, generate_assembly_bz_util)
-    program.assembly = asm
-    
-    return asm
-
-
-def generate_at_assembly(program: Program) -> list[ATInstruction]:
-    asm: list[ATInstruction] = []
-    
-    for name,atomic in program.atomics.items():
-        if atomic.atid < 0:
-            continue
-        elif isinstance(atomic, ATInstruction):
-            asm.append(atomic)
-        else:
-            logger.error(f" Internal error resolving atomics.")
+        tlid = 0
+        formula_type = FormulaType.FT
+        postorder(program.get_ft_specs(), assign_ids_bz_util)
+        postorder(program.get_ft_specs(), generate_assembly_bz_util)
+        
+        tlid = 0
+        formula_type = FormulaType.PT
+        postorder(program.get_pt_specs(), assign_ids_bz_util)
+        postorder(program.get_pt_specs(), generate_assembly_bz_util)
 
     return asm
 
@@ -1171,7 +1181,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     pos: int = 0
     explored: list[AST] = []
 
-    compute_scq_size(program)
+    compute_scq_size(program.get_ft_specs())
 
     def gen_scq_assembly_util(a: AST) -> None:
         nonlocal ret
@@ -1191,7 +1201,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
 
         explored.append(a)
 
-    postorder(program,gen_scq_assembly_util)
+    postorder(program.get_ft_specs(), gen_scq_assembly_util)
     program.scq_assembly = ret
 
     return ret
@@ -1285,11 +1295,27 @@ def validate_booleanizer_stack(asm: list[Instruction]) -> bool:
     return True
 
 
-def parse(input: str) -> list[Program]:
+def parse(input: str) -> Program|None:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
-    return parser.parse(lexer.tokenize(input))
+    specs: dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
 
+    if not parser.status:
+        return None
+
+    if not FormulaType.FT in specs:
+        specs[FormulaType.FT] = SpecificationSet(0, FormulaType.FT, [])
+
+    if not FormulaType.PT in specs:
+        specs[FormulaType.PT] = SpecificationSet(0, FormulaType.PT, [])
+
+    return Program(
+        0, 
+        parser.structs, 
+        parser.atomics, 
+        specs[FormulaType.FT], 
+        specs[FormulaType.PT]
+    )
 
 def compile(
     input_filename: str, 
@@ -1317,57 +1343,65 @@ def compile(
 
     # parse input, programs is a list of configurations (each SPEC block is a configuration)
     with open(input_filename, "r") as f:
-        programs: list[Program] = parse(f.read())
+        program: Program|None = parse(f.read())
 
-    if len(programs) < 1:
+    if not program:
         logger.error(' Failed parsing.')
         return ReturnCode.PARSE_ERROR.value
 
-    for program in programs:
-        # parse csv/signals file
-        signal_mapping: dict[str,int] = parse_signals(signals_filename)
+    # parse csv/signals file
+    signal_mapping: dict[str,int] = parse_signals(signals_filename)
 
-        # type check
-        if not type_check(program, at, bz, signal_mapping):
-            logger.error(' Failed type check.')
-            return ReturnCode.TYPE_CHECK_ERROR.value
+    # type check
+    if not type_check(program, at, bz, signal_mapping):
+        logger.error(' Failed type check.')
+        return ReturnCode.TYPE_CHECK_ERROR.value
 
-        rewrite_set_aggregation(program)
-        rewrite_struct_access(program)
+    if bz:
+        insert_load_stores(program)
 
-        # rewrite without extended operators if enabled
-        if not extops:
-            rewrite_extended_operators(program)
+    rewrite_set_aggregation(program)
+    rewrite_struct_access(program)
 
-        optimize_rewrite_rules(program)
+    # rewrite without extended operators if enabled
+    if not extops:
+        rewrite_extended_operators(program)
 
-        # common sub-expressions elimination
-        if cse:
-            optimize_cse(program)
+    optimize_rewrite_rules(program)
 
-        # generate alias file
-        # alias = gen_alias(program)
+    rewrite_contracts(program)
 
-        # generate assembly
-        asm: list[Instruction] = generate_assembly(program, at, bz)
-        scq_asm: list[tuple[int,int]] = generate_scq_assembly(program)
-        at_asm: list[ATInstruction] = generate_at_assembly(program)
+    # common sub-expressions elimination
+    if cse:
+        optimize_cse(program)
 
-        if bz and not validate_booleanizer_stack(asm):
-            logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
-            return ReturnCode.ASM_ERROR.value
+    # generate alias file
+    alias = generate_alias(program)
 
-        # print asm if 'quiet' option not enabled
-        if not quiet:
-            print(Color.HEADER+'TL Assembly'+Color.ENDC+':')
-            for a in asm:
-                print(f"\t{a.asm()}")
+    # generate assembly
+    asm: dict[FormulaType, list[Instruction]] = generate_assembly(program, at, bz)
+    at_asm: list[ATInstruction] = generate_at_assembly(program)
+    scq_asm: list[tuple[int,int]] = generate_scq_assembly(program)
+
+    if bz and (not validate_booleanizer_stack(asm[FormulaType.FT]) or not validate_booleanizer_stack(asm[FormulaType.PT])):
+        logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
+        return ReturnCode.ASM_ERROR.value
+
+    # print asm if 'quiet' option not enabled
+    if not quiet:
+        if at:
             print(Color.HEADER+'AT Assembly'+Color.ENDC+':')
             for s in at_asm:
                 print(f"\t{s.asm()}")
-            print(Color.HEADER+'SCQ Assembly'+Color.ENDC+':')
-            for s in scq_asm:
-                print(f"\t{s}")
+        print(Color.HEADER+'FT Assembly'+Color.ENDC+':')
+        for a in asm[FormulaType.FT]:
+            print(f"\t{a.asm()}")
+        print(Color.HEADER+'PT Assembly'+Color.ENDC+':')
+        for a in asm[FormulaType.PT]:
+            print(f"\t{a.asm()}")
+        print(Color.HEADER+'SCQ Assembly'+Color.ENDC+':')
+        for s in scq_asm:
+            print(f"\t{s}")
 
     return ReturnCode.SUCCESS.value
 
