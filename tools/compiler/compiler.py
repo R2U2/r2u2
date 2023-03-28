@@ -413,7 +413,7 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
 def insert_load_stores(program: Program) -> None:
     
     def insert_load_stores_util(ast: AST) -> None:
-        if isinstance(ast, TLInstruction):
+        if isinstance(ast, TLInstruction) and not isinstance(ast, TLAtomicLoad):
             for child in ast.get_children():
                 if isinstance(child, BZInstruction):
                     child.replace(
@@ -434,7 +434,7 @@ def compute_scq_size(a: AST) -> int:
         nonlocal visited
         nonlocal total
 
-        if not (isinstance(a, Signal) or isinstance(a, TLInstruction)) or isinstance(a, Program):
+        if not isinstance(a, TLInstruction) or isinstance(a, Program):
             return
 
         if id(a) in visited:
@@ -455,8 +455,6 @@ def compute_scq_size(a: AST) -> int:
         a.scq_size = max(max_wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
         total += a.scq_size
 
-        # print(f"{a}: {a.scq_size}")
- 
     postorder(a, compute_scq_size_util)
     a.total_scq_size = total
 
@@ -1191,7 +1189,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
         if a in explored:
             return
 
-        if not (isinstance(a,Signal) or isinstance(a,TLInstruction)) or isinstance(a,Program):
+        if not isinstance(a,TLInstruction) or isinstance(a,Program):
             return
 
         start_pos = pos
