@@ -1244,6 +1244,12 @@ class SpecificationSet(TLInstruction):
         super().__init__(ln, [cast(AST, spec) for spec in s])
         self.formula_type = t
 
+    def __str__(self) -> str:
+        ret: str = ""
+        for s in self.get_children():
+            ret += f"{s}\n"
+        return ret[:-1]
+
     def asm(self) -> str:
         return f"{super().asm()} endsequence"
 

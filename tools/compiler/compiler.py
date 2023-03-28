@@ -1087,11 +1087,13 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
     asm[FormulaType.PT] = []
 
     def assign_ids_at_util(a: AST) -> None:
+        nonlocal visited
         nonlocal tlid
         nonlocal atid
 
-        if isinstance(a, Bool) or a.tlid > -1 or a.atid > -1:
+        if isinstance(a, Bool) or a in visited:
             return
+        visited.add(a)
 
         if isinstance(a, TLInstruction):
             a.tlid = tlid
@@ -1120,11 +1122,13 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
             logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
 
     def assign_ids_bz_util(a: AST) -> None:
+        nonlocal visited
         nonlocal tlid
         nonlocal atid
 
-        if isinstance(a, Bool) or a.tlid > -1 or a.atid > -1:
+        if isinstance(a, Bool) or a in visited:
             return
+        visited.add(a)
 
         if isinstance(a, TLInstruction):
             a.tlid = tlid
@@ -1154,21 +1158,27 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
         tlid = 0
         formula_type = FormulaType.FT
         postorder(program.get_ft_specs(), assign_ids_at_util)
+        visited = set()
         postorder(program.get_ft_specs(), generate_assembly_at_util)
 
         tlid = 0
         formula_type = FormulaType.PT
+        visited = set()
         postorder(program.get_pt_specs(), assign_ids_at_util)
+        visited = set()
         postorder(program.get_pt_specs(), generate_assembly_at_util)
     elif bz:
         tlid = 0
         formula_type = FormulaType.FT
         postorder(program.get_ft_specs(), assign_ids_bz_util)
+        visited = set()
         postorder(program.get_ft_specs(), generate_assembly_bz_util)
         
         tlid = 0
         formula_type = FormulaType.PT
+        visited = set()
         postorder(program.get_pt_specs(), assign_ids_bz_util)
+        visited = set()
         postorder(program.get_pt_specs(), generate_assembly_bz_util)
 
     return asm
