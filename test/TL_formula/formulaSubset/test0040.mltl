@@ -1,4 +1,4 @@
 INPUT
 a0,a1:bool;
-SPEC
+PTSPEC
 a1 & O[5,10]a0;

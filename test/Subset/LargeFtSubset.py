@@ -51,7 +51,9 @@ def test_c():
     mltl_filename = __TLDir__+'LargeFtFormula.mltl'
     # print(formula)
     # For each formula within
-    subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    res = subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    print(f"{' '.join(res.args)}\n{open(res.args[2], 'r').read()}\n{res.stdout.decode()}")
+    raise SystemExit
     filename = 'LargeFT'+'.txt'
     subprocess.run([__CDir__+'bin/r2u2',__BinDir__,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
     subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
