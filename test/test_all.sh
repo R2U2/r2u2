@@ -23,6 +23,7 @@ echo "Large PT Subset"
 python3 Subset/LargePtSubset.py -v c
 python3 Report/LargePtReport.py
 
+rm -rf results/c_version
 echo "FT/PT Subset"
 python3 Subset/FT_PT_Subset.py -v c
 python3 Report/FT_PT_Report.py

@@ -1,6 +1,6 @@
 INPUT
 a0,a1:bool;
-SPEC
+FTSPEC
 !a0;
 !(!a0);
 G[5] a1;
