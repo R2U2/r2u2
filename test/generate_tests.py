@@ -16,7 +16,7 @@ def generate_file_prefix(n: int) -> str:
     for i in range(0, n):
         s += 'a' + str(i) + ','
     s = s[:-1]
-    s += ': bool;\nSPEC\n'
+    s += ': bool;\nFTSPEC\n'
     return s
 
 def generate_random_mltl(prefix: str) -> None:
