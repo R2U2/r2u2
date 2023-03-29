@@ -83,7 +83,7 @@ def parse_signals(filename: str) -> dict[str,int]:
     return mapping
 
 
-def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, int]) -> bool:
+def type_check(program: Program, at: bool, bz: bool) -> bool:
     """
     Performs type checking of the argument program. Uses type inferences to assign correct types to each 
     AST node in the program and returns whether the program is properly type checked.
@@ -115,8 +115,8 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
             return
         if isinstance(a, Signal):
             if at:
-                if a.name in signal_mapping:
-                    a.sid = signal_mapping[a.name]
+                if a.name in program.signal_mapping:
+                    a.sid = program.signal_mapping[a.name]
                     one = Integer(a.ln, 1)
                     a_copy = deepcopy(a)
                     instr = ATInstruction(a.ln, a.name, 'int', [a_copy], Equal(a.ln, a_copy, one), one)
@@ -126,11 +126,15 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                     status = False
                     logger.error(f'{a.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{a}')
             else:
-                if a.name in signal_mapping:
-                    a.sid = signal_mapping[a.name]
+                if a.name in program.signal_mapping:
+                    a.sid = program.signal_mapping[a.name]
                 else:
                     status = False
                     logger.error(f'{a.ln}: Signal \'{a.name}\' not referenced in signal mapping.')
+
+                if not bz: # neither at nor bz are enabled
+                    a.replace(Atomic(a.ln, a.name))
+
         elif isinstance(a, SpecificationSet):
             for c in a.get_children():
                 type_check_util(c)
@@ -327,8 +331,8 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                                     return
                                 
                                 if isinstance(arg, Signal):
-                                    if arg.name in signal_mapping:
-                                        arg.sid = signal_mapping[arg.name]
+                                    if arg.name in program.signal_mapping:
+                                        arg.sid = program.signal_mapping[arg.name]
                                     else:
                                         status = False
                                         logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
@@ -347,8 +351,8 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                     logger.error(f"{ast.ln}: Atomic '{name}' malformed, filter '{lhs.name}' undefined.\n\t{ast}")
                     return
             elif isinstance(lhs, Signal):
-                if lhs.name in signal_mapping:
-                    lhs.sid = signal_mapping[lhs.name]
+                if lhs.name in program.signal_mapping:
+                    lhs.sid = program.signal_mapping[lhs.name]
                 else:
                     status = False
                     logger.error(f'{lhs.ln}: Signal \'{lhs.name}\' not referenced in signal mapping.')
@@ -368,8 +372,8 @@ def type_check(program: Program, at: bool, bz: bool, signal_mapping: dict[str, i
                     return
                 
                 if isinstance(rhs, Signal):
-                    if rhs.name in signal_mapping:
-                        rhs.sid = signal_mapping[rhs.name]
+                    if rhs.name in program.signal_mapping:
+                        rhs.sid = program.signal_mapping[rhs.name]
                     else:
                         status = False
                         logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not referenced in signal mapping.')
@@ -489,6 +493,14 @@ def rewrite_extended_operators(program: Program) -> None:
                 rhs: AST = a.get_rhs()
                 # p -> q = !(p && !q)
                 a.replace(LogicalNegate(a.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
+            elif isinstance(a, LogicalIff):
+                lhs: AST = a.get_lhs()
+                rhs: AST = a.get_rhs()
+                # p <-> q = !(p && !q) && !(p && !q)
+                a.replace(LogicalAnd(a.ln, 
+                    [LogicalNegate(a.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])),
+                     LogicalNegate(a.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])
+                )
         elif isinstance(a, Release):
             lhs: AST = a.get_lhs()
             rhs: AST = a.get_rhs()
@@ -1081,6 +1093,36 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
     asm[FormulaType.FT] = []
     asm[FormulaType.PT] = []
 
+    def assign_ids_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal tlid
+        nonlocal atid
+
+        if isinstance(a, Bool) or a in visited:
+            return
+        visited.add(a)
+
+        if isinstance(a, TLInstruction):
+            a.tlid = tlid
+            tlid += 1
+
+        if isinstance(a, Atomic):
+            a.atid = program.signal_mapping[a.name]
+
+    def generate_assembly_util(a: AST) -> None:
+        nonlocal visited
+        nonlocal asm
+        nonlocal formula_type
+
+        if isinstance(a, Bool):
+            return
+        elif isinstance(a,TLInstruction):
+            if not a in visited:
+                asm[formula_type].append(a)
+                visited.add(a)
+        else:
+            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+
     def assign_ids_at_util(a: AST) -> None:
         nonlocal visited
         nonlocal tlid
@@ -1175,6 +1217,19 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
         postorder(program.get_pt_specs(), assign_ids_bz_util)
         visited = set()
         postorder(program.get_pt_specs(), generate_assembly_bz_util)
+    else:
+        tlid = 0
+        formula_type = FormulaType.FT
+        postorder(program.get_ft_specs(), assign_ids_util)
+        visited = set()
+        postorder(program.get_ft_specs(), generate_assembly_util)
+        
+        tlid = 0
+        formula_type = FormulaType.PT
+        visited = set()
+        postorder(program.get_pt_specs(), assign_ids_util)
+        visited = set()
+        postorder(program.get_pt_specs(), generate_assembly_util)
 
     return asm
 
@@ -1320,6 +1375,7 @@ def parse(input: str) -> Program|None:
         specs[FormulaType.PT]
     )
 
+
 def compile(
     input_filename: str, 
     signals_filename: str, 
@@ -1353,10 +1409,10 @@ def compile(
         return ReturnCode.PARSE_ERROR.value
 
     # parse csv/signals file
-    signal_mapping: dict[str,int] = parse_signals(signals_filename)
+    program.signal_mapping = parse_signals(signals_filename)
 
     # type check
-    if not type_check(program, at, bz, signal_mapping):
+    if not type_check(program, at, bz):
         logger.error(' Failed type check.')
         return ReturnCode.TYPE_CHECK_ERROR.value
 

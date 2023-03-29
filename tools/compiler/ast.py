@@ -980,6 +980,22 @@ class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
         return f"{super().asm()} impl {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()}"
 
 
+class LogicalIff(LogicalOperator, BinaryOperator, TLInstruction):
+
+    def __init__(self, ln: int, lhs: AST, rhs: AST) -> None:
+        super().__init__(ln, [lhs, rhs])
+        self.name: str = "<->"
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = LogicalIff(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
+    def asm(self) -> str:
+        return f"{super().asm()} iff {self.get_lhs().tlid_name()} {self.get_rhs().tlid_name()}"
+
+
 class LogicalNegate(LogicalOperator, UnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: AST):
