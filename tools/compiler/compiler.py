@@ -1,14 +1,9 @@
 from argparse import PARSER
+import inspect
+import sys
 import re
 from logging import getLogger
-from time import perf_counter
-from tkinter import E
-from traceback import print_tb
-
-from cairo import PSSurface
-from tkinter.tix import Form
-
-from requests import post
+# from time import perf_counter
 
 from .logger import *
 from .ast import *
@@ -1368,6 +1363,7 @@ def compile(
     if bz:
         insert_load_stores(program)
 
+    rewrite_contracts(program)
     rewrite_set_aggregation(program)
     rewrite_struct_access(program)
 
@@ -1376,8 +1372,6 @@ def compile(
         rewrite_extended_operators(program)
 
     optimize_rewrite_rules(program)
-
-    rewrite_contracts(program)
 
     # common sub-expressions elimination
     if cse:

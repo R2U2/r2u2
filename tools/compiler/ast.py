@@ -1,13 +1,7 @@
 from __future__ import annotations
-from cmath import atan
 from copy import deepcopy
-import inspect
-# import inspect
-import sys
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
-
-from simplejson import load
 
 from .logger import *
 from .type import *
@@ -195,9 +189,10 @@ class BZInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[AST]) -> None:
         super().__init__(ln, c)
+        self.bzid = -1
 
     def asm(self) -> str:
-        return ""
+        return f"b{self.bzid}"
 
 
 class ATInstruction(Instruction):
@@ -218,17 +213,6 @@ class ATInstruction(Instruction):
         s = s[:-1] + ") "
         s += f"{self.rel_op.name} {self.compare.name}"
         return s
-
-    # def __deepcopy__(self, memo):
-    #     new = ATInstruction(
-    #         self.ln, 
-    #         self.filter, 
-    #         deepcopy(self.relop, memo), 
-    #         deepcopy(self.get_compare(), memo), 
-    #         deepcopy(self.get_filter_args(), memo)
-    #     )
-    #     self.copy_attrs(new)
-    #     return new
 
     def asm(self) -> str:
         s: str = f"a{self.atid} {self.filter}("
@@ -256,7 +240,7 @@ class Constant(Literal):
         return self.value
 
 
-class Integer(Constant):
+class Integer(Constant, BZInstruction):
 
     def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln,[])
@@ -275,8 +259,11 @@ class Integer(Constant):
         self.copy_attrs(new)
         return new
 
+    def asm(self) -> str:
+        return f"{super().asm()} {self.value}"
 
-class Float(Constant):
+
+class Float(Constant, BZInstruction):
 
     def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln,[])
@@ -295,6 +282,9 @@ class Float(Constant):
         new = Float(self.ln, self.value)
         self.copy_attrs(new)
         return new
+
+    def asm(self) -> str:
+        return f"{super().asm()} {self.value}"
 
 
 class Variable(AST):
@@ -322,7 +312,7 @@ class Signal(Literal, BZInstruction):
         return copy
 
     def asm(self) -> str:
-        return f"load s{self.sid}"
+        return f"{super().asm()} load s{self.sid}"
 
 
 class Atomic(Literal, TLInstruction):
@@ -465,25 +455,6 @@ class BinaryOperator(Operator):
 
 
 # only used for assembly generation
-class Duplicate(UnaryOperator, BZInstruction):
-
-    def __init__(self, ln: int, d: AST) -> None:
-        super().__init__(ln, [d])
-
-    def get_dup(self) -> AST:
-        return self.get_operand()
-
-    def __deepcopy__(self, memo):
-        children = [deepcopy(c, memo) for c in self._children]
-        new = Duplicate(self.ln, children[0])
-        self.copy_attrs(new)
-        return new
-
-    def asm(self) -> str:
-        return f"dup"
-
-
-# only used for assembly generation
 class TLAtomicLoad(TLInstruction):
 
     def __init__(self, ln: int, l: BZAtomicStore) -> None:
@@ -509,7 +480,7 @@ class BZAtomicLoad(BZInstruction):
         return cast(BZAtomicLoad, self.get_child(0))
 
     def asm(self) -> str:
-        return f"aload {self.atid}"
+        return f"{super().asm()} load a{self.atid}"
 
 
 # only used for assembly generation
@@ -525,7 +496,7 @@ class BZAtomicStore(BZInstruction):
         return f"BZStore({self.get_store()})"
 
     def asm(self) -> str:
-        return f"astore {self.atid}"
+        return f"{super().asm()} store a{self.atid}"
 
 
 class Function(Operator):
