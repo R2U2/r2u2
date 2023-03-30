@@ -96,172 +96,172 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
         - All descendants of program have a valid Type (i.e., none are NOTYPE)
     """
     status: bool = True
-    explored: list[AST] = []
+    explored: list[Node] = []
     context: dict[str,Type] = {}
     st: StructDict = program.structs
     formula_type: FormulaType = FormulaType.PROP
 
-    def type_check_util(a: AST) -> None:
+    def type_check_util(node: Node) -> None:
         nonlocal formula_type
         nonlocal status
 
-        if a in explored:
+        if node in explored:
             return
-        explored.append(a)
+        explored.append(node)
 
-        a.formula_type = formula_type
+        node.formula_type = formula_type
 
-        if isinstance(a, Constant):
+        if isinstance(node, Constant):
             return
-        if isinstance(a, Signal):
+        if isinstance(node, Signal):
             if at:
-                if a.name in program.signal_mapping:
-                    a.sid = program.signal_mapping[a.name]
-                    one = Integer(a.ln, 1)
-                    a_copy = deepcopy(a)
-                    instr = ATInstruction(a.ln, a.name, 'int', [a_copy], Equal(a.ln, a_copy, one), one)
-                    program.atomics[a.name] = instr
-                    a.replace(Atomic(a.ln, a.name))
+                if node.name in program.signal_mapping:
+                    node.sid = program.signal_mapping[node.name]
+                    one = Integer(node.ln, 1)
+                    a_copy = deepcopy(node)
+                    instr = ATInstruction(node.ln, node.name, 'int', [a_copy], Equal(node.ln, a_copy, one), one)
+                    program.atomics[node.name] = instr
+                    node.replace(Atomic(node.ln, node.name))
                 else:
                     status = False
-                    logger.error(f'{a.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{a}')
+                    logger.error(f'{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}')
             else:
-                if a.name in program.signal_mapping:
-                    a.sid = program.signal_mapping[a.name]
+                if node.name in program.signal_mapping:
+                    node.sid = program.signal_mapping[node.name]
                 else:
                     status = False
-                    logger.error(f'{a.ln}: Signal \'{a.name}\' not referenced in signal mapping.')
+                    logger.error(f'{node.ln}: Signal \'{node.name}\' not referenced in signal mapping.')
 
                 if not bz: # neither at nor bz are enabled
-                    a.replace(Atomic(a.ln, a.name))
+                    node.replace(Atomic(node.ln, node.name))
 
-        elif isinstance(a, SpecificationSet):
-            for c in a.get_children():
+        elif isinstance(node, SpecificationSet):
+            for c in node.get_children():
                 type_check_util(c)
-        elif isinstance(a,Specification):
-            child = a.get_expr()
+        elif isinstance(node,Specification):
+            child = node.get_expr()
             type_check_util(child)
 
             if not child.type == BOOL():
                 status = False
-                logger.error(f'{a.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{a}')
-        elif isinstance(a, Contract):
-            assume: TLInstruction = a.get_assumption()
-            guarantee: TLInstruction = a.get_guarantee()
+                logger.error(f'{node.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{node}')
+        elif isinstance(node, Contract):
+            assume: TLInstruction = node.get_assumption()
+            guarantee: TLInstruction = node.get_guarantee()
 
             type_check_util(assume)
             type_check_util(guarantee)
 
             if not assume.type == BOOL():
                 status = False
-                logger.error(f'{a.ln}: Assumption must be of boolean type (found \'{assume.type}\')\n\t{a}')
+                logger.error(f'{node.ln}: Assumption must be of boolean type (found \'{assume.type}\')\n\t{node}')
 
             if not guarantee.type == BOOL():
                 status = False
-                logger.error(f'{a.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{a}')
-        elif isinstance(a, Atomic):
+                logger.error(f'{node.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{node}')
+        elif isinstance(node, Atomic):
             if not at:
                 status = False
-                logger.error(f"{a.ln}: Atomic '{a.name}' referenced, but atomic checker disabled.")
-        elif isinstance(a,RelationalOperator):
-            lhs = a.get_lhs()
-            rhs = a.get_rhs()
+                logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
+        elif isinstance(node,RelationalOperator):
+            lhs = node.get_lhs()
+            rhs = node.get_rhs()
             type_check_util(lhs)
             type_check_util(rhs)
 
-            if isinstance(a,Equal) or isinstance(a,NotEqual):
+            if isinstance(node,Equal) or isinstance(node,NotEqual):
                 if not is_integer_type(lhs.type) or not is_integer_type(rhs.type):
                     status = False
-                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
+                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
 
             if lhs.type != rhs.type:
                 status = False
-                logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{a}')
+                logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
 
             if at: # AT checkers restrict the usage of comparison operators
                 if not isinstance(lhs, Signal) and not isinstance(lhs, Function):
                     status = False
-                    logger.error(f'{a.ln}: Left-hand argument for AT checker must be signal or filter (found {lhs}\n\t{a}')
+                    logger.error(f'{node.ln}: Left-hand argument for AT checker must be signal or filter (found {lhs}\n\t{node}')
                 if not isinstance(rhs, Literal):
                     status = False
-                    logger.error(f'{a.ln}: Right-hand argument for AT checker must be signal or constant (found {rhs}\n\t{a}')
+                    logger.error(f'{node.ln}: Right-hand argument for AT checker must be signal or constant (found {rhs}\n\t{node}')
 
-            a.type = BOOL()
-        elif isinstance(a, ArithmeticOperator):
+            node.type = BOOL()
+        elif isinstance(node, ArithmeticOperator):
             if not bz:
                 status = False
-                logger.error(f'{a.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{a}')
+                logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
 
-            for c in a.get_children():
+            for c in node.get_children():
                 type_check_util(c)
-            t: Type = a.get_child(0).type
+            t: Type = node.get_child(0).type
 
-            if isinstance(a, ArithmeticDivide):
-                rhs: AST = a.get_rhs()
+            if isinstance(node, ArithmeticDivide):
+                rhs: Node = node.get_rhs()
                 if isinstance(rhs, Constant) and rhs.get_value() == 0:
                     status = False
-                    logger.error(f'{a.ln}: Divide by zero\n\t{a}')
+                    logger.error(f'{node.ln}: Divide by zero\n\t{node}')
 
-            for c in a.get_children():
+            for c in node.get_children():
                 if c.type != t:
                     status = False
-                    logger.error(f'{a.ln}: Operand of \'{a}\' must be of homogeneous type (found \'{c.type}\' and \'{t}\')')
+                    logger.error(f'{node.ln}: Operand of \'{node}\' must be of homogeneous type (found \'{c.type}\' and \'{t}\')')
 
-            a.type = t
-        elif isinstance(a, BitwiseOperator):
+            node.type = t
+        elif isinstance(node, BitwiseOperator):
             status = False
-            logger.error(f'{a.ln}: Bitwise operators unsupported.\n\t{a}')
-        elif isinstance(a, LogicalOperator):
-            for c in a.get_children():
+            logger.error(f'{node.ln}: Bitwise operators unsupported.\n\t{node}')
+        elif isinstance(node, LogicalOperator):
+            for c in node.get_children():
                 type_check_util(c)
                 if c.type != BOOL():
                     status = False
-                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
+                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
 
-            a.type = BOOL()
-        elif isinstance(a, TemporalOperator):
-            for c in a.get_children():
+            node.type = BOOL()
+        elif isinstance(node, TemporalOperator):
+            for c in node.get_children():
                 type_check_util(c)
                 if c.type != BOOL():
                     status = False
-                    logger.error(f'{a.ln}: Invalid operands for \'{a.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{a}')
+                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
 
             # check for mixed-time formulas
-            if isinstance(a, FutureTimeOperator):
+            if isinstance(node, FutureTimeOperator):
                 if formula_type == FormulaType.PT:
                     status = False
-                    logger.error(f'{a.ln}: Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{a}')
-            elif isinstance(a, PastTimeOperator):
+                    logger.error(f'{node.ln}: Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{node}')
+            elif isinstance(node, PastTimeOperator):
                 if formula_type == FormulaType.FT:
                     status = False
-                    logger.error(f'{a.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{a}')
+                    logger.error(f'{node.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{node}')
 
-            if a.interval.lb > a.interval.ub:
+            if node.interval.lb > node.interval.ub:
                 status = status
-                logger.error(f'{a.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{a.interval.lb},{a.interval.ub}])')
+                logger.error(f'{node.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{node.interval.lb},{node.interval.ub}])')
 
-            a.type = BOOL()
-        elif isinstance(a,Set):
+            node.type = BOOL()
+        elif isinstance(node,Set):
             t: Type = NOTYPE()
-            for m in a.get_children():
+            for m in node.get_children():
                 type_check_util(m)
                 t = m.type
 
-            for m in a.get_children():
+            for m in node.get_children():
                 if m.type != t:
                     status = False
-                    logger.error(f'{a.ln}: Set \'{a}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
+                    logger.error(f'{node.ln}: Set \'{node}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
-            a.type = SET(t)
-        elif isinstance(a,Variable):
-            if a.name in context.keys():
-                a.type = context[a.name]
+            node.type = SET(t)
+        elif isinstance(node,Variable):
+            if node.name in context.keys():
+                node.type = context[node.name]
             else:
                 status = False
-                logger.error(f'{a.ln}: Variable \'{a}\' not recognized')
-        elif isinstance(a,SetAggOperator):
-            s: Set = a.get_set()
-            boundvar: Variable = a.get_boundvar()
+                logger.error(f'{node.ln}: Variable \'{node}\' not recognized')
+        elif isinstance(node,SetAggOperator):
+            s: Set = node.get_set()
+            boundvar: Variable = node.get_boundvar()
 
             type_check_util(s)
 
@@ -269,65 +269,65 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 context[boundvar.name] = s.type.member_type
             else:
                 status = False
-                logger.error(f'{a.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
+                logger.error(f'{node.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
 
-            if isinstance(a, ForExactlyN) or isinstance(a, ForAtLeastN) or isinstance(a, ForAtMostN):
-                n: AST = a.num
+            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+                n: Node = node.num
                 type_check_util(n)
                 if not is_integer_type(n.type):
                     status = False
-                    logger.error(f'{a.ln}: Parameter for set aggregation must be integer type (found \'{n.type}\')')
+                    logger.error(f'{node.ln}: Parameter for set aggregation must be integer type (found \'{n.type}\')')
 
-            expr: AST = a.get_expr()
+            expr: Node = node.get_expr()
             type_check_util(expr)
 
             if expr.type != BOOL():
                 status = False
-                logger.error(f'{a.ln}: Set aggregation argument must be Boolean (found \'{expr.type}\')')
+                logger.error(f'{node.ln}: Set aggregation argument must be Boolean (found \'{expr.type}\')')
 
             del context[boundvar.name]
             explored.remove(boundvar)
-            a.type = BOOL()
-        elif isinstance(a,Struct):
-            for name,member in a.get_members().items():
+            node.type = BOOL()
+        elif isinstance(node,Struct):
+            for name,member in node.get_members().items():
                 type_check_util(member)
-                if st[a.name][name] != member.type:
-                    logger.error(f'{a.ln}: Member \'{name}\' invalid type for struct \'{a.name}\' (expected \'{st[a.name][name]}\' but got \'{member.type}\')')
+                if st[node.name][name] != member.type:
+                    logger.error(f'{node.ln}: Member \'{name}\' invalid type for struct \'{node.name}\' (expected \'{st[node.name][name]}\' but got \'{member.type}\')')
 
-            a.type = STRUCT(a.name)
-        elif isinstance(a,StructAccess):
-            type_check_util(a.get_struct())
+            node.type = STRUCT(node.name)
+        elif isinstance(node,StructAccess):
+            type_check_util(node.get_struct())
 
-            st_name = a.get_struct().type.name
-            if st_name in st.keys() and a.member in st[st_name].keys():
-                a.type = st[st_name][a.member]
+            st_name = node.get_struct().type.name
+            if st_name in st.keys() and node.member in st[st_name].keys():
+                node.type = st[st_name][node.member]
             else:
                 status = False
-                logger.error(f'{a.ln}: Member \'{a.member}\' invalid for struct \'{a.get_struct().name}\'')
+                logger.error(f'{node.ln}: Member \'{node.member}\' invalid for struct \'{node.get_struct().name}\'')
         else:
-            logger.error(f'{a.ln}: Invalid expression\n\t{a}')
+            logger.error(f'{node.ln}: Invalid expression\n\t{node}')
             status = False
 
-    def type_check_atomic(name: str, ast: AST) -> ATInstruction|None:
+    def type_check_atomic(name: str, node: Node) -> ATInstruction|None:
         nonlocal status
 
-        if isinstance(ast, RelationalOperator):
-            lhs: AST = ast.get_lhs()
-            rhs: AST = ast.get_rhs()
+        if isinstance(node, RelationalOperator):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
 
             filter: str = ""
-            filter_args: list[AST] = []
+            filter_args: list[Node] = []
 
             # type check left-hand side
             if isinstance(lhs, Function):
                 if lhs.name in at_filter_table:
                     if len(at_filter_table[lhs.name][1]) == len(lhs.get_children()):
                         for i in range(0, len(lhs.get_children())):
-                            arg: AST = lhs.get_child(i)
+                            arg: Node = lhs.get_child(i)
                             if isinstance(rhs, Signal) or isinstance(rhs, Constant):
                                 if arg.type != at_filter_table[lhs.name][1][i]:
                                     status = False
-                                    logger.error(f"{ast.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{at_filter_table[lhs.name][1][i]}').\n\t{ast}")
+                                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{at_filter_table[lhs.name][1][i]}').\n\t{node}")
                                     return
                                 
                                 if isinstance(arg, Signal):
@@ -338,17 +338,17 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                                         logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
                             else:
                                 status = False
-                                logger.error(f"{ast.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{ast}")
+                                logger.error(f"{node.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{node}")
                         filter = lhs.name
                         filter_args = lhs.get_children()
                         lhs.type = at_filter_table[lhs.name][0]
                     else:
                         status = False
-                        logger.error(f"{ast.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(at_filter_table[lhs.name][1])}, found {len(lhs.get_children())}).\n\t{ast}")
+                        logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(at_filter_table[lhs.name][1])}, found {len(lhs.get_children())}).\n\t{node}")
                         return
                 else:
                     status = False
-                    logger.error(f"{ast.ln}: Atomic '{name}' malformed, filter '{lhs.name}' undefined.\n\t{ast}")
+                    logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' undefined.\n\t{node}")
                     return
             elif isinstance(lhs, Signal):
                 if lhs.name in program.signal_mapping:
@@ -361,14 +361,14 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 filter_args = [lhs]
             elif not isinstance(lhs, Signal):
                 status = False
-                logger.error(f"{ast.ln}: Atomic '{name}' malformed, expected filter or signal for left-hand side.\n\t{ast}")
+                logger.error(f"{node.ln}: Atomic '{name}' malformed, expected filter or signal for left-hand side.\n\t{node}")
                 return
 
             # type check right-hand side
             if isinstance(rhs, Signal) or isinstance(rhs, Constant):
                 if lhs.type != rhs.type:
                     status = False
-                    logger.error(f"{ast.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{ast}")
+                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
                     return
                 
                 if isinstance(rhs, Signal):
@@ -380,13 +380,13 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             else:
                 status = False
-                logger.error(f"{ast.ln}: Atomic '{name}' malformed, expected signal or constant for right-hand side.\n\t{ast}")
+                logger.error(f"{node.ln}: Atomic '{name}' malformed, expected signal or constant for right-hand side.\n\t{node}")
                 return
 
-            return ATInstruction(ast.ln, name, filter, filter_args, ast, rhs)
-        elif not isinstance(ast, ATInstruction):
+            return ATInstruction(node.ln, name, filter, filter_args, node, rhs)
+        elif not isinstance(node, ATInstruction):
             status = False
-            logger.error(f"{ast.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{ast}")
+            logger.error(f"{node.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{node}")
             return
     
     # Type check FTSPEC
@@ -411,51 +411,49 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
 def insert_load_stores(program: Program) -> None:
     
-    def insert_load_stores_util(ast: AST) -> None:
-        if isinstance(ast, TLInstruction) and not isinstance(ast, TLAtomicLoad):
-            for child in ast.get_children():
+    def insert_load_stores_util(node: Node) -> None:
+        if isinstance(node, TLInstruction) and not isinstance(node, TLAtomicLoad):
+            for child in node.get_children():
                 if isinstance(child, BZInstruction):
-                    child.replace(
-                        TLAtomicLoad(ast.ln, BZAtomicStore(child.ln, deepcopy(child)))
-                    )
+                    child.replace(TLAtomicLoad(node.ln, deepcopy(child)))
 
     postorder(program, insert_load_stores_util)
 
 
-def compute_scq_size(a: AST) -> int:
+def compute_scq_size(node: Node) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
     """
     visited: list[int] = []
     total: int = 0
 
-    def compute_scq_size_util(a: AST) -> None:
+    def compute_scq_size_util(node: Node) -> None:
         nonlocal visited
         nonlocal total
 
-        if not isinstance(a, TLInstruction) or isinstance(a, Program):
+        if not isinstance(node, TLInstruction) or isinstance(node, Program):
             return
 
-        if id(a) in visited:
+        if id(node) in visited:
             return
-        visited.append(id(a))
+        visited.append(id(node))
 
-        if isinstance(a, Specification):
-            a.scq_size = 1
-            total += a.scq_size
+        if isinstance(node, Specification):
+            node.scq_size = 1
+            total += node.scq_size
             return
 
         max_wpd: int = 0
-        for p in a.get_parents():
+        for p in node.get_parents():
             for s in p.get_children():
-                if not id(s) == id(a):
+                if not id(s) == id(node):
                     max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
 
-        a.scq_size = max(max_wpd-a.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
-        total += a.scq_size
+        node.scq_size = max(max_wpd-node.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        total += node.scq_size
 
-    postorder(a, compute_scq_size_util)
-    a.total_scq_size = total
+    postorder(node, compute_scq_size_util)
+    node.total_scq_size = total
 
     return total
 
@@ -475,43 +473,43 @@ def rewrite_extended_operators(program: Program) -> None:
         logger.error(f' Program must be type checked before rewriting.')
         return
 
-    def rewrite_extended_operators_util(a: AST) -> None:
+    def rewrite_extended_operators_util(node: Node) -> None:
 
-        if isinstance(a, LogicalOperator):
-            if isinstance(a, LogicalOr):
+        if isinstance(node, LogicalOperator):
+            if isinstance(node, LogicalOr):
                 # p || q = !(!p && !q)
-                a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in a.get_children()])))
-            elif isinstance(a, LogicalXor):
-                lhs: AST = a.get_lhs()
-                rhs: AST = a.get_rhs()
+                node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in node.get_children()])))
+            elif isinstance(node, LogicalXor):
+                lhs: Node = node.get_lhs()
+                rhs: Node = node.get_rhs()
                 # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
-                a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(a.ln, \
-                    LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)])), LogicalNegate(a.ln, \
-                        LogicalAnd(a.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])))
-            elif isinstance(a, LogicalImplies):
-                lhs: AST = a.get_lhs()
-                rhs: AST = a.get_rhs()
+                node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(node.ln, \
+                    LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)])), LogicalNegate(node.ln, \
+                        LogicalAnd(node.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])))
+            elif isinstance(node, LogicalImplies):
+                lhs: Node = node.get_lhs()
+                rhs: Node = node.get_rhs()
                 # p -> q = !(p && !q)
-                a.replace(LogicalNegate(a.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
-            elif isinstance(a, LogicalIff):
-                lhs: AST = a.get_lhs()
-                rhs: AST = a.get_rhs()
+                node.replace(LogicalNegate(node.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
+            elif isinstance(node, LogicalIff):
+                lhs: Node = node.get_lhs()
+                rhs: Node = node.get_rhs()
                 # p <-> q = !(p && !q) && !(p && !q)
-                a.replace(LogicalAnd(a.ln, 
-                    [LogicalNegate(a.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])),
-                     LogicalNegate(a.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])
+                node.replace(LogicalAnd(node.ln, 
+                    [LogicalNegate(node.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])),
+                     LogicalNegate(node.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])
                 )
-        elif isinstance(a, Release):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
-            bounds: Interval = a.interval
+        elif isinstance(node, Release):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
+            bounds: Interval = node.interval
             # p R q = !(!p U !q)
-            a.replace(LogicalNegate(a.ln, Until(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
-        elif isinstance(a, Future):
-            operand: AST = a.get_operand()
-            bounds: Interval = a.interval
+            node.replace(LogicalNegate(node.ln, Until(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
+        elif isinstance(node, Future):
+            operand: Node = node.get_operand()
+            bounds: Interval = node.interval
             # F p = True U p
-            a.replace(Until(a.ln, Bool(a.ln, True), operand, bounds.lb, bounds.ub))
+            node.replace(Until(node.ln, Bool(node.ln, True), operand, bounds.lb, bounds.ub))
 
     postorder(program, rewrite_extended_operators_util)
 
@@ -531,41 +529,41 @@ def rewrite_boolean_normal_form(program: Program) -> None:
         logger.error(f' Program must be type checked before converting to boolean normal form.')
         return
 
-    def rewrite_boolean_normal_form_util(a: AST) -> None:
+    def rewrite_boolean_normal_form_util(node: Node) -> None:
 
-        if isinstance(a, LogicalOr):
+        if isinstance(node, LogicalOr):
             # p || q = !(!p && !q)
-            a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in a.get_children()])))
-        elif isinstance(a, LogicalImplies):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
+            node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in node.get_children()])))
+        elif isinstance(node, LogicalImplies):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
             # p -> q = !(p && !q)
-            a.replace(LogicalNegate(a.ln, LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
-        elif isinstance(a, LogicalXor):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
+            node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
+        elif isinstance(node, LogicalXor):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
             # p xor q = !(!p && !q) && !(p && q)
-            a.replace(LogicalAnd(a.ln, [LogicalNegate(a.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), \
+            node.replace(LogicalAnd(node.ln, [LogicalNegate(node.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), \
                 LogicalNegate(rhs.ln, rhs)])), LogicalNegate(lhs.ln, LogicalAnd(lhs.ln, [lhs, rhs]))]))
-        elif isinstance(a, Future):
-            operand: AST = a.get_operand()
-            bounds: Interval = a.interval
+        elif isinstance(node, Future):
+            operand: Node = node.get_operand()
+            bounds: Interval = node.interval
             # F p = True U p
-            a.replace(Until(a.ln, Bool(operand.ln, True), operand, bounds.lb, bounds.ub))
-        elif isinstance(a, Global):
-            operand: AST = a.get_operand()
-            bounds: Interval = a.interval
+            node.replace(Until(node.ln, Bool(operand.ln, True), operand, bounds.lb, bounds.ub))
+        elif isinstance(node, Global):
+            operand: Node = node.get_operand()
+            bounds: Interval = node.interval
             # G p = !(True U !p)
-            a.replace(LogicalNegate(a.ln, Until(a.ln, Bool(operand.ln, True), LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub)))
-        elif isinstance(a, Release):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
-            bounds: Interval = a.interval
+            node.replace(LogicalNegate(node.ln, Until(node.ln, Bool(operand.ln, True), LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub)))
+        elif isinstance(node, Release):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
+            bounds: Interval = node.interval
             # p R q = !(!p U !q)
-            a.replace(LogicalNegate(a.ln, Until(a.ln, LogicalNegate(lhs.ln, lhs), \
+            node.replace(LogicalNegate(node.ln, Until(node.ln, LogicalNegate(lhs.ln, lhs), \
                                                       LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
 
-        for child in a.get_children():
+        for child in node.get_children():
             rewrite_boolean_normal_form_util(child)
 
     rewrite_boolean_normal_form_util(program)
@@ -586,52 +584,52 @@ def rewrite_negative_normal_form(program: Program) -> None:
         logger.error(f' Program must be type checked before converting to negative normal form.')
         return
 
-    def rewrite_negative_normal_form_util(a: AST) -> None:
+    def rewrite_negative_normal_form_util(node: Node) -> None:
 
-        if isinstance(a, LogicalNegate):
-            operand = a.get_operand()
+        if isinstance(node, LogicalNegate):
+            operand = node.get_operand()
             if isinstance(operand, LogicalNegate):
                 # !!p = p
-                a.replace(operand.get_operand())
+                node.replace(operand.get_operand())
             if isinstance(operand, LogicalOr):
                 # !(p || q) = !p && !q
-                a.replace(LogicalAnd(a.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
+                node.replace(LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
             if isinstance(operand, LogicalAnd):
                 # !(p && q) = !p || !q
-                a.replace(LogicalOr(a.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
+                node.replace(LogicalOr(node.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
             elif isinstance(operand, Future):
                 bounds: Interval = operand.interval
                 # !F p = G !p
-                a.replace(Global(a.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
+                node.replace(Global(node.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
             elif isinstance(operand, Global):
                 bounds: Interval = operand.interval
                 # !G p = F !p
-                a.replace(Future(a.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
+                node.replace(Future(node.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
             elif isinstance(operand, Until):
-                lhs: AST = operand.get_lhs()
-                rhs: AST = operand.get_rhs()
+                lhs: Node = operand.get_lhs()
+                rhs: Node = operand.get_rhs()
                 bounds: Interval = operand.interval
                 # !(p U q) = !p R !q 
-                a.replace(Release(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
+                node.replace(Release(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
             elif isinstance(operand, Release):
-                lhs: AST = operand.get_lhs()
-                rhs: AST = operand.get_rhs()
+                lhs: Node = operand.get_lhs()
+                rhs: Node = operand.get_rhs()
                 bounds: Interval = operand.interval
                 # !(p R q) = !p U !q
-                a.replace(Until(a.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
-        elif isinstance(a, LogicalImplies):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
+                node.replace(Until(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
+        elif isinstance(node, LogicalImplies):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
             # p -> q = !p || q
-            a.replace(LogicalOr(a.ln, [LogicalNegate(lhs.ln, lhs), rhs]))
-        elif isinstance(a, LogicalXor):
-            lhs: AST = a.get_lhs()
-            rhs: AST = a.get_rhs()
+            node.replace(LogicalOr(node.ln, [LogicalNegate(lhs.ln, lhs), rhs]))
+        elif isinstance(node, LogicalXor):
+            lhs: Node = node.get_lhs()
+            rhs: Node = node.get_rhs()
             # p xor q = (p && !q) || (!p && q)
-            a.replace(LogicalOr(a.ln, [LogicalAnd(a.ln, [lhs, LogicalNegate(rhs.ln, rhs)]),\
-                                       LogicalAnd(a.ln, [LogicalNegate(lhs.ln, lhs), rhs])]))
+            node.replace(LogicalOr(node.ln, [LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)]),\
+                                       LogicalAnd(node.ln, [LogicalNegate(lhs.ln, lhs), rhs])]))
 
-        for child in a.get_children():
+        for child in node.get_children():
             rewrite_negative_normal_form_util(child)
 
     rewrite_negative_normal_form_util(program)
@@ -652,16 +650,16 @@ def rewrite_set_aggregation(program: Program) -> None:
     # could be done far more efficiently...currently traverses each set agg
     # expression sub tree searching for struct accesses. better approach: keep
     # track of these accesses on the frontend
-    def rewrite_struct_access_util(a: AST) -> None:
-        for c in a.get_children():
+    def rewrite_struct_access_util(node: Node) -> None:
+        for c in node.get_children():
             rewrite_struct_access_util(c)
 
-        if isinstance(a,StructAccess) and not isinstance(a.get_struct(),Variable):
-            s: Struct = a.get_struct()
-            a.replace(s.members[a.member])
+        if isinstance(node,StructAccess) and not isinstance(node.get_struct(),Variable):
+            s: Struct = node.get_struct()
+            node.replace(s.members[node.member])
     
-    def rewrite_set_aggregation_util(a: AST) -> None:
-        cur: AST = a
+    def rewrite_set_aggregation_util(a: Node) -> None:
+        cur: Node = a
 
         if isinstance(a, ForEach):
             cur = LogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
@@ -713,105 +711,105 @@ def rewrite_struct_access(program: Program) -> None:
         logger.error(f' Program must be free of set aggregation operators before rewriting struct accesses.')
         return
 
-    def rewrite_struct_access_util(a: AST) -> None:
-        if isinstance(a, StructAccess):
-            s: Struct = a.get_struct()
-            a.replace(s.members[a.member])
+    def rewrite_struct_access_util(node: Node) -> None:
+        if isinstance(node, StructAccess):
+            s: Struct = node.get_struct()
+            node.replace(s.members[node.member])
 
     postorder(program, rewrite_struct_access_util)
     program.is_struct_access_free = True
 
 
-def optimize_rewrite_rules(program: AST) -> None:
+def optimize_rewrite_rules(program: Node) -> None:
 
-    def optimize_rewrite_rules_util(a: AST) -> None:
-        if isinstance(a, LogicalNegate):
-            opnd1 = a.get_operand()
+    def optimize_rewrite_rules_util(node: Node) -> None:
+        if isinstance(node, LogicalNegate):
+            opnd1 = node.get_operand()
             if isinstance(opnd1, Bool):
                 if opnd1.value == True:
                     # !true = false
-                    a.replace(Bool(a.ln, False))
+                    node.replace(Bool(node.ln, False))
                 else:
                     # !false = true
-                    a.replace(Bool(a.ln, True))
+                    node.replace(Bool(node.ln, True))
             elif isinstance(opnd1, LogicalNegate):
                 # !!p = p
-                a.replace(opnd1.get_operand())
+                node.replace(opnd1.get_operand())
             elif isinstance(opnd1, Global):
                 opnd2 = opnd1.get_operand()
                 if isinstance(opnd2, LogicalNegate):
                     # !(G[l,u](!p)) = F[l,u]p
-                    a.replace(Future(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
+                    node.replace(Future(node.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
             elif isinstance(opnd1, Future):
                 opnd2 = opnd1.get_operand()
                 if isinstance(opnd2, LogicalNegate):
                     # !(F[l,u](!p)) = G[l,u]p
-                    a.replace(Global(a.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
-        elif isinstance(a, Equal):
-            lhs = a.get_lhs()
-            rhs = a.get_rhs()
+                    node.replace(Global(node.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
+        elif isinstance(node, Equal):
+            lhs = node.get_lhs()
+            rhs = node.get_rhs()
             if isinstance(lhs, Bool) and isinstance(rhs, Bool):
                 pass
             elif isinstance(lhs, Bool):
                 # (true == p) = p
-                a.replace(rhs)
+                node.replace(rhs)
             elif isinstance(rhs, Bool):
                 # (p == true) = p
-                a.replace(lhs)
-        elif isinstance(a, Global):
-            opnd1 = a.get_operand()
-            if a.interval.lb == 0 and a.interval.ub == 0:
+                node.replace(lhs)
+        elif isinstance(node, Global):
+            opnd1 = node.get_operand()
+            if node.interval.lb == 0 and node.interval.ub == 0:
                 # G[0,0]p = p
-                a.replace(opnd1)
+                node.replace(opnd1)
             if isinstance(opnd1, Bool):
                 if opnd1.value == True:
                     # G[l,u]True = True
-                    a.replace(Bool(a.ln, True))
+                    node.replace(Bool(node.ln, True))
                 else:
                     # G[l,u]False = False
-                    a.replace(Bool(a.ln, False))
+                    node.replace(Bool(node.ln, False))
             elif isinstance(opnd1, Global):
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
                 opnd2 = opnd1.get_operand()
-                lb: int = a.interval.lb + opnd1.interval.lb
-                ub: int = a.interval.ub + opnd1.interval.ub
-                a.replace(Global(a.ln, opnd2, lb, ub))
+                lb: int = node.interval.lb + opnd1.interval.lb
+                ub: int = node.interval.ub + opnd1.interval.ub
+                node.replace(Global(node.ln, opnd2, lb, ub))
             elif isinstance(opnd1, Future):
                 opnd2 = opnd1.get_operand()
-                if a.interval.lb == a.interval.ub:
+                if node.interval.lb == node.interval.ub:
                     # G[a,a](F[l,u]p) = F[l+a,u+a]p
-                    lb: int = a.interval.lb + opnd1.interval.lb
-                    ub: int = a.interval.ub + opnd1.interval.ub
-                    a.replace(Future(a.ln, opnd2, lb, ub))
-        elif isinstance(a, Future):
-            opnd1 = a.get_operand()
-            if a.interval.lb == 0 and a.interval.ub == 0:
+                    lb: int = node.interval.lb + opnd1.interval.lb
+                    ub: int = node.interval.ub + opnd1.interval.ub
+                    node.replace(Future(node.ln, opnd2, lb, ub))
+        elif isinstance(node, Future):
+            opnd1 = node.get_operand()
+            if node.interval.lb == 0 and node.interval.ub == 0:
                 # F[0,0]p = p
-                a.replace(opnd1)
+                node.replace(opnd1)
             if isinstance(opnd1, Bool):
                 if opnd1.value == True:
                     # F[l,u]True = True
-                    a.replace(Bool(a.ln, True))
+                    node.replace(Bool(node.ln, True))
                 else:
                     # F[l,u]False = False
-                    a.replace(Bool(a.ln, False))
+                    node.replace(Bool(node.ln, False))
             elif isinstance(opnd1, Future):
                 # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
                 opnd2 = opnd1.get_operand()
-                lb: int = a.interval.lb + opnd1.interval.lb
-                ub: int = a.interval.ub + opnd1.interval.ub
-                a.replace(Future(a.ln, opnd2, lb, ub))
+                lb: int = node.interval.lb + opnd1.interval.lb
+                ub: int = node.interval.ub + opnd1.interval.ub
+                node.replace(Future(node.ln, opnd2, lb, ub))
             elif isinstance(opnd1, Global):
                 opnd2 = opnd1.get_operand()
-                if a.interval.lb == a.interval.ub:
+                if node.interval.lb == node.interval.ub:
                     # F[a,a](G[l,u]p) = G[l+a,u+a]p
-                    lb: int = a.interval.lb + opnd1.interval.lb
-                    ub: int = a.interval.ub + opnd1.interval.ub
-                    a.replace(Global(a.ln, opnd2, lb, ub))
-        elif isinstance(a, LogicalAnd):
+                    lb: int = node.interval.lb + opnd1.interval.lb
+                    ub: int = node.interval.ub + opnd1.interval.ub
+                    node.replace(Global(node.ln, opnd2, lb, ub))
+        elif isinstance(node, LogicalAnd):
             # Assume binary for now
-            lhs = a.get_child(0)
-            rhs = a.get_child(1)
+            lhs = node.get_child(0)
+            rhs = node.get_child(1)
             if isinstance(lhs, Global) and isinstance(rhs, Global):
                 p = lhs.get_operand()
                 q = rhs.get_operand()
@@ -824,26 +822,26 @@ def optimize_rewrite_rules(program: AST) -> None:
                     # G[lb1,lb2]p && G[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        a.replace(Global(a.ln, p, lb1, ub1))
+                        node.replace(Global(node.ln, p, lb1, ub1))
                         return
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        a.replace(Global(a.ln, p, lb2, ub2))
+                        node.replace(Global(node.ln, p, lb2, ub2))
                         return
                     elif lb1 <= lb2 and lb2 <= ub1+1:
                         # lb1 <= lb2 <= ub1+1
-                        a.replace(Global(a.ln, p, lb1, max(ub1,ub2)))
+                        node.replace(Global(node.ln, p, lb1, max(ub1,ub2)))
                         return
                     elif lb2 <= lb1 and lb1 <= ub2+1:
                         # lb2 <= lb1 <= ub2+1
-                        a.replace(Global(a.ln, p, lb2, max(ub1,ub2)))
+                        node.replace(Global(node.ln, p, lb2, max(ub1,ub2)))
                         return
 
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
 
-                a.replace(Global(a.ln, LogicalAnd(a.ln, 
-                        [Global(a.ln, p, lb1-lb3, ub1-ub3), Global(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+                node.replace(Global(node.ln, LogicalAnd(node.ln, 
+                        [Global(node.ln, p, lb1-lb3, ub1-ub3), Global(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Future) and isinstance(rhs, Future):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
@@ -855,10 +853,10 @@ def optimize_rewrite_rules(program: AST) -> None:
                     ub2 = rhs.interval.ub
                     if lb1 >= lb2 and lb1 <= ub2:
                         # l2 <= l1 <= u2
-                        a.replace(Future(a.ln, lhs_opnd, lb2, min(ub1,ub2)))
+                        node.replace(Future(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
                     elif lb2 >= lb1 and lb2 <= ub1:
                         # l1 <= l2 <= u1
-                        a.replace(Future(a.ln, lhs_opnd, lb1, min(ub1,ub2)))
+                        node.replace(Future(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
             elif isinstance(lhs, Until) and isinstance(rhs, Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
@@ -867,12 +865,12 @@ def optimize_rewrite_rules(program: AST) -> None:
                 # check for syntactic equivalence
                 if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
-                    a.replace(Until(a.ln, LogicalAnd(a.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb, 
+                    node.replace(Until(node.ln, LogicalAnd(node.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb, 
                         min(lhs.interval.ub, rhs.interval.ub)))
-        elif isinstance(a, LogicalOr):
+        elif isinstance(node, LogicalOr):
             # Assume binary for now
-            lhs = a.get_child(0)
-            rhs = a.get_child(1)
+            lhs = node.get_child(0)
+            rhs = node.get_child(1)
             if isinstance(lhs, Future) and isinstance(rhs, Future):
                 p = lhs.get_operand()
                 q = rhs.get_operand()
@@ -885,19 +883,19 @@ def optimize_rewrite_rules(program: AST) -> None:
                     # F[lb1,lb2]p || F[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        a.replace(Future(a.ln, p, lb1, ub1))
+                        node.replace(Future(node.ln, p, lb1, ub1))
                         return
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        a.replace(Future(a.ln, p, lb2, ub2))
+                        node.replace(Future(node.ln, p, lb2, ub2))
                         return
                     elif lb1 <= lb2 and lb2 <= ub1+1:
                         # lb1 <= lb2 <= ub1+1
-                        a.replace(Future(a.ln, p, lb1, max(ub1,ub2)))
+                        node.replace(Future(node.ln, p, lb1, max(ub1,ub2)))
                         return
                     elif lb2 <= lb1 and lb1 <= ub2+1:
                         # lb2 <= lb1 <= ub2+1
-                        a.replace(Future(a.ln, p, lb2, max(ub1,ub2)))
+                        node.replace(Future(node.ln, p, lb2, max(ub1,ub2)))
                         return
 
                 # TODO: check for when lb==ub==0
@@ -905,8 +903,8 @@ def optimize_rewrite_rules(program: AST) -> None:
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
 
-                a.replace(Future(a.ln, LogicalOr(a.ln, 
-                        [Future(a.ln, p, lb1-lb3, ub1-ub3), Future(a.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
+                node.replace(Future(node.ln, LogicalOr(node.ln, 
+                        [Future(node.ln, p, lb1-lb3, ub1-ub3), Future(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Global) and isinstance(rhs, Global):
                 lhs_opnd = lhs.get_operand()
                 rhs_opnd = rhs.get_operand()
@@ -918,10 +916,10 @@ def optimize_rewrite_rules(program: AST) -> None:
                     ub2 = rhs.interval.ub
                     if lb1 >= lb2 and lb1 <= ub2:
                         # l2 <= l1 <= u2
-                        a.replace(Global(a.ln, lhs_opnd, lb2, min(ub1,ub2)))
+                        node.replace(Global(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
                     elif lb2 >= lb1 and lb2 <= ub1:
                         # l1 <= l2 <= u1
-                        a.replace(Global(a.ln, lhs_opnd, lb1, min(ub1,ub2)))
+                        node.replace(Global(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
             elif isinstance(lhs, Until) and isinstance(rhs, Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
@@ -929,51 +927,52 @@ def optimize_rewrite_rules(program: AST) -> None:
                 rhs_rhs = rhs.get_rhs()
                 if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
-                    a.replace(Until(a.ln, LogicalOr(a.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb, 
+                    node.replace(Until(node.ln, LogicalOr(node.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb, 
                         min(lhs.interval.ub, rhs.interval.ub)))
-        elif isinstance(a, Until):
-            lhs = a.get_lhs()
-            rhs = a.get_rhs()
+        elif isinstance(node, Until):
+            lhs = node.get_lhs()
+            rhs = node.get_rhs()
             if isinstance(rhs, Global) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
-                a.replace(Global(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
+                node.replace(Global(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
             elif isinstance(rhs, Future) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
-                a.replace(Future(a.ln, lhs, a.interval.lb, a.interval.lb+rhs.interval.ub))
+                node.replace(Future(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
 
     postorder(program, optimize_rewrite_rules_util)
 
 
-def optimize_stratify_associative_operators(a: AST) -> None:
+def optimize_stratify_associative_operators(node: Node) -> None:
+    """TODO"""
     
-    def optimize_associative_operators_rec(a: AST) -> None:
-        if isinstance(a, LogicalAnd) and len(a.get_children()) > 2:
-            n: int = len(a.get_children())
-            children = [c for c in a.get_children()]
+    def optimize_associative_operators_rec(node: Node) -> None:
+        if isinstance(node, LogicalAnd) and len(node.get_children()) > 2:
+            n: int = len(node.get_children())
+            children = [c for c in node.get_children()]
             wpds = [c.wpd for c in children]
             wpds.sort(reverse=True)
 
             T = max(children, key=lambda c: c.wpd)
 
-            if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in a.get_children() if c.wpd < wpds[0]]):
-                a.replace(LogicalAnd(a.ln, [LogicalAnd(a.ln, [c for c in children if c != children[0]]), children[0]]))
-                children[0].get_parents().remove(a)
+            if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in node.get_children() if c.wpd < wpds[0]]):
+                node.replace(LogicalAnd(node.ln, [LogicalAnd(node.ln, [c for c in children if c != children[0]]), children[0]]))
+                children[0].get_parents().remove(node)
 
-        elif isinstance(a, LogicalOr):
-            max_wpd: int = max([c.wpd for c in a.get_children()])
-            target: AST = next(c for c in a.get_children() if c.wpd == max_wpd)
+        elif isinstance(node, LogicalOr):
+            max_wpd: int = max([c.wpd for c in node.get_children()])
+            target: Node = next(c for c in node.get_children() if c.wpd == max_wpd)
 
-            new_children = [c for c in a.get_children() if c != target]
-            new_ast = LogicalOr(a.ln, [LogicalOr(a.ln, new_children), target])
+            new_children = [c for c in node.get_children() if c != target]
+            new_ast = LogicalOr(node.ln, [LogicalOr(node.ln, new_children), target])
 
-            if compute_scq_size(new_ast) < compute_scq_size(a):
+            if compute_scq_size(new_ast) < compute_scq_size(node):
                 # (a0 && a1 && ... && an) = ((a1 && a2 && ... && an-1) && an)
-                a.replace(new_ast)
+                node.replace(new_ast)
 
-        for c in a.get_children():
+        for c in node.get_children():
             optimize_associative_operators_rec(c)
 
-    optimize_associative_operators_rec(a)
+    optimize_associative_operators_rec(node)
 
 
 def rewrite_contracts(program: Program) -> None:
@@ -1023,15 +1022,15 @@ def optimize_cse(program: Program) -> None:
         logger.error(f' Program must be type checked before CSE.')
         return
 
-    S: dict[str, AST]
+    S: dict[str, Node]
     
-    def optimize_cse_util(a: AST) -> None:
+    def optimize_cse_util(node: Node) -> None:
         nonlocal S
 
-        if str(a) in S:
-            a.replace(S[str(a)])
+        if str(node) in S:
+            node.replace(S[str(node)])
         else:
-            S[str(a)] = a
+            S[str(node)] = node
 
     S = {}
     postorder(program.get_ft_specs(), optimize_cse_util)
@@ -1084,7 +1083,7 @@ def generate_at_assembly(program: Program) -> list[ATInstruction]:
 
 
 def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType, list[Instruction]]:
-    visited: set[AST] = set()
+    visited: set[Node] = set()
     asm: dict[FormulaType, list[Instruction]] = {}
     formula_type: FormulaType
     tlid: int = 0
@@ -1093,103 +1092,124 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
     asm[FormulaType.FT] = []
     asm[FormulaType.PT] = []
 
-    def assign_ids_util(a: AST) -> None:
+    def assign_ids(ast: Node) -> None:
+        nonlocal tlid, atid
+
+        if ast in visited:
+            return
+        visited.add(ast)
+        
+        if isinstance(ast, TLInstruction):
+            ast.tlid = tlid
+            tlid += 1
+        
+        if isinstance(ast, BZInstruction):
+            ast.atid = atid
+            atid += 1
+
+        if isinstance(ast, ATInstruction):
+            pass
+        
+
+
+
+    def assign_ids_util(node: Node) -> None:
         nonlocal visited
         nonlocal tlid
         nonlocal atid
 
-        if isinstance(a, Bool) or a in visited:
+        if isinstance(node, Bool) or node in visited:
             return
-        visited.add(a)
+        visited.add(node)
 
-        if isinstance(a, TLInstruction):
-            a.tlid = tlid
+        if isinstance(node, TLInstruction):
+            node.tlid = tlid
             tlid += 1
 
-        if isinstance(a, Atomic):
-            a.atid = program.signal_mapping[a.name]
+        if isinstance(node, Atomic):
+            node.atid = program.signal_mapping[node.name]
 
-    def generate_assembly_util(a: AST) -> None:
+    def generate_assembly_util(node: Node) -> None:
         nonlocal visited
         nonlocal asm
         nonlocal formula_type
 
-        if isinstance(a, Bool):
+        if isinstance(node, Bool):
             return
-        elif isinstance(a,TLInstruction):
-            if not a in visited:
-                asm[formula_type].append(a)
-                visited.add(a)
+        elif isinstance(node,TLInstruction):
+            if not node in visited:
+                asm[formula_type].append(node)
+                visited.add(node)
         else:
-            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
 
-    def assign_ids_at_util(a: AST) -> None:
+    def assign_ids_at_util(node: Node) -> None:
         nonlocal visited
         nonlocal tlid
         nonlocal atid
 
-        if isinstance(a, Bool) or a in visited:
+        if isinstance(node, Bool) or node in visited:
             return
-        visited.add(a)
+        visited.add(node)
 
-        if isinstance(a, TLInstruction):
-            a.tlid = tlid
+        if isinstance(node, TLInstruction):
+            node.tlid = tlid
             tlid += 1
 
-        if isinstance(a, Atomic):
-            if program.atomics[a.name].atid > -1:
-                a.atid = program.atomics[a.name].atid
+        if isinstance(node, Atomic):
+            if program.atomics[node.name].atid > -1:
+                node.atid = program.atomics[node.name].atid
             else:
-                a.atid = atid
-                program.atomics[a.name].atid = atid
+                node.atid = atid
+                program.atomics[node.name].atid = atid
                 atid += 1
 
-    def generate_assembly_at_util(a: AST) -> None:
+    def generate_assembly_at_util(node: Node) -> None:
         nonlocal visited
         nonlocal asm
         nonlocal formula_type
 
-        if isinstance(a, Bool):
+        if isinstance(node, Bool):
             return
-        elif isinstance(a,TLInstruction):
-            if not a in visited:
-                asm[formula_type].append(a)
-                visited.add(a)
+        elif isinstance(node,TLInstruction):
+            if not node in visited:
+                asm[formula_type].append(node)
+                visited.add(node)
         else:
-            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
 
-    def assign_ids_bz_util(a: AST) -> None:
+    def assign_ids_bz_util(node: Node) -> None:
         nonlocal visited
         nonlocal tlid
         nonlocal atid
 
-        if isinstance(a, Bool) or a in visited:
+        if isinstance(node, Bool) or node in visited:
             return
-        visited.add(a)
+        visited.add(node)
 
-        if isinstance(a, TLInstruction):
-            a.tlid = tlid
+        if isinstance(node, TLInstruction):
+            node.tlid = tlid
             tlid += 1
             
-            if isinstance(a, TLAtomicLoad):
-                a.get_load().atid = atid
+            if isinstance(node, TLAtomicLoad):
+                node.get_load().atid = atid
                 atid += 1
 
-    def generate_assembly_bz_util(a: AST) -> None:
+    def generate_assembly_bz_util(node: Node) -> None:
         nonlocal visited
         nonlocal asm
 
-        if isinstance(a, Bool):
+        if isinstance(node, Bool):
             return
-        elif isinstance(a, TLInstruction):
-            if not a in visited:
-                asm[formula_type].append(a)
-                visited.add(a)
-        elif isinstance(a, BZInstruction):
-            asm[formula_type].append(a)
-            visited.add(a)
+        elif isinstance(node, TLInstruction):
+            if not node in visited:
+                asm[formula_type].append(node)
+                visited.add(node)
+        elif isinstance(node, BZInstruction):
+            asm[formula_type].append(node)
+            visited.add(node)
         else:
-            logger.error(f'{a.ln}: Invalid node type for assembly generation ({type(a)})')
+            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
 
     if at:
         tlid = 0
@@ -1237,11 +1257,11 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType,
 def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     ret: list[tuple[int,int]] = []
     pos: int = 0
-    explored: list[AST] = []
+    explored: list[Node] = []
 
     compute_scq_size(program.get_ft_specs())
 
-    def gen_scq_assembly_util(a: AST) -> None:
+    def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
         nonlocal pos
         nonlocal explored
@@ -1279,7 +1299,7 @@ def compute_cpu_wcet(program: Program, latency_table: dict[str, int], clk: int) 
     """
     wcet: int = 0
 
-    def compute_cpu_wcet_util(a: AST) -> int:
+    def compute_cpu_wcet_util(a: Node) -> int:
         nonlocal latency_table
 
         classname: str = type(a).__name__
@@ -1308,7 +1328,7 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, fl
     """
     wcet: float = 0
 
-    def compute_fpga_wcet_util(a: AST) -> float:
+    def compute_fpga_wcet_util(a: Node) -> float:
         nonlocal latency_table
 
         classname: str = type(a).__name__
