@@ -1,10 +1,7 @@
 from __future__ import annotations
 from copy import deepcopy
-from tkinter.tix import TList
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
-
-from pyparsing import ParseAction
 
 from .logger import *
 from .type import *
@@ -93,11 +90,12 @@ class Node():
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
+        self.tlid: int = -1
+        self.atid: int = -1
 
         self._children: list[Node] = []
         self._parents: list[Node] = []
 
-        child: Node
         for child in c:
             self._children.append(child)
             child._parents.append(self)
@@ -140,6 +138,26 @@ class Node():
 
         new.formula_type = self.formula_type
 
+    def tl_asm(self) -> str:
+        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'tl_asm'")
+        return "ERROR"
+
+    def bz_asm(self) -> str:
+        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'bz_asm'")
+        return "ERROR"
+
+    def at_asm(self) -> str:
+        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'at_asm'")
+        return "ERROR"
+    
+    def tlid_str(self) -> str:
+        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'tlid_str'")
+        return "ERROR"
+    
+    def atid_str(self) -> str:
+        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'atid_str'")
+        return "ERROR"
+
     def __str__(self) -> str:
         return self.name
 
@@ -171,15 +189,11 @@ class TLInstruction(Instruction):
     def __init__(self, ln: int, c: list[Node]) -> None:
         super().__init__(ln, c)
         self.scq_size = 1
-        self.tlid: int = -1
 
     def tlid_str(self) -> str:
-        return f"n{self.tlid}"
-
-    def tl_asm(self) -> str:
         if self.tlid < 0:
-            logger.error(f" Internal error generating assembly, TLInstruction has no tlid.")
-
+            logger.error(f" Internal error, node '{self}' never assigned tlid.")
+            return ""
         return f"n{self.tlid}"
 
 
@@ -188,23 +202,17 @@ class BZInstruction(Instruction):
 
     def __init__(self, ln: int, c: list[Node]) -> None:
         super().__init__(ln, c)
-        self.tlid: int = -1
-        self.atid: int = -1
 
-    
-
-    def tl_asm(self) -> str:
+    def tlid_str(self) -> str:
         if self.tlid < 0:
-            logger.error(f" Internal error generating assembly, BZInstruction has no tlid.")
+            logger.error(f" Internal error, node '{self}' never assigned tlid.")
+            return ""
+        return f"n{self.tlid}"
+    
+    def atid_str(self) -> str:
         if self.atid < 0:
-            logger.error(f" Internal error generating assembly, BZInstruction has no atid.")
-
-        return f"n{self.tlid} load a{self.atid}" if self.tlid > -1 else "ERROR"
-
-    def bz_asm(self) -> str:
-        if self.atid < 0:
-            logger.error(f" Internal error generating assembly, BZInstruction has no atid.")
-
+            logger.error(f" Internal error, node '{self}' never assigned atid.")
+            return ""
         return f"a{self.atid}"
 
 
@@ -218,7 +226,6 @@ class ATInstruction(Instruction):
         self.args: list[Node] = a
         self.rel_op: RelationalOperator = r
         self.compare: Node = c
-        self.atid = -1
 
     def __str__(self) -> str:
         s: str = f"{self.filter}("
@@ -236,6 +243,12 @@ class ATInstruction(Instruction):
         s += f"{self.rel_op.name} "
         s += f"s{self.compare.sid} " if isinstance(self.compare, Signal) else f"{self.compare.name}"
         return s
+    
+    def atid_str(self) -> str:
+        if self.atid < 0:
+            logger.error(f" Internal error, node '{self}' never assigned atid.")
+            return ""
+        return f"a{self.atid}"
 
 
 class Literal(Node):
@@ -298,7 +311,7 @@ class Float(Constant, BZInstruction):
         return new
 
     def bz_asm(self) -> str:
-        return f"{super().bz_asm()} {self.value}"
+        return f"{self.atid_str()} {self.value}"
 
 
 class Variable(Node):
@@ -326,10 +339,10 @@ class Signal(Literal, TLInstruction, BZInstruction):
         return copy
 
     def tl_asm(self) -> str:
-        return f"{super().tl_asm()} load a{self.sid}"
+        return f"{self.tlid_str()} load a{self.sid}"
     
     def bz_asm(self) -> str:
-        return f"{super().bz_asm()} load s{self.sid}"
+        return f"{self.atid_str()} load s{self.sid}"
     
 
 class Atomic(Literal, TLInstruction):
@@ -338,7 +351,6 @@ class Atomic(Literal, TLInstruction):
         super().__init__(ln, [])
         self.name: str = n
         self.type: Type = BOOL()
-        self.atid = -1
 
     def __deepcopy__(self, memo):
         copy = Atomic(self.ln, self.name)
@@ -346,7 +358,7 @@ class Atomic(Literal, TLInstruction):
         return copy
 
     def tl_asm(self) -> str:
-        return f"{super().tl_asm()} load a{self.atid}" 
+        return f"{self.tlid_str()} load a{self.atid}" 
 
 
 class Bool(Constant):
@@ -472,35 +484,6 @@ class BinaryOperator(Operator):
         return f"({self.get_lhs()}){self.name}({self.get_rhs()})"
 
 
-# only used for assembly generation
-class TLAtomicLoad(TLInstruction):
-
-    def __init__(self, ln: int, l: BZInstruction) -> None:
-        super().__init__(ln, [l])
-
-    def get_load(self) -> BZInstruction:
-        return cast(BZInstruction, self.get_child(0))
-
-    def __str__(self) -> str:
-        return f"TLLoad({self.get_load()})"
-
-    def tl_asm(self) -> str:
-        return f"{super().tl_asm()} load a{self.get_load().atid}"
-
-
-# only used for assembly generation
-class BZAtomicLoad(BZInstruction):
-
-    def __init__(self, ln: int, l: TLInstruction) -> None:
-        super().__init__(ln, [l])
-
-    def get_load(self) -> BZAtomicLoad:
-        return cast(BZAtomicLoad, self.get_child(0))
-
-    def bz_asm(self) -> str:
-        return f"{super().bz_asm()} load a{self.atid}"
-
-
 class Function(Operator):
 
     def __init__(self, ln: int, n: str, a: list[Node]) -> None:
@@ -622,7 +605,8 @@ class Count(BZInstruction):
         return s[:-1] + ")"
 
     def bz_asm(self) -> str:
-        return f"{super().bz_asm()} count {self.num}"
+        return f"TODO {type(self)}"
+        return f"a{self.atid} count {self.num}"
 
 
 class BitwiseOperator(Operator):
@@ -644,7 +628,15 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
         return new
 
     def bz_asm(self) -> str:
-        return f"{super().bz_asm()} and ERROR"
+        s = f"{self.atid_str()} and "
+
+        for child in self.get_children():
+            if isinstance(child, TLInstruction):
+                s += f"{child.tlid_str()} "
+            else:
+                s += f"{child.atid_str()} "
+
+        return s[:-1]
 
 
 class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):

@@ -21,14 +21,14 @@ class R2U2Implementation(Enum):
 
 
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
-    if s.lower() == 'c':
+    if s.lower() == "c":
         return R2U2Implementation.C
-    elif s.lower() == 'c++' or s.lower() == 'cpp':
+    elif s.lower() == "c++" or s.lower() == "cpp":
         return R2U2Implementation.CPP
-    elif s.lower() == 'fpga' or s.lower() == 'vhdl':
+    elif s.lower() == "fpga" or s.lower() == "vhdl":
         return R2U2Implementation.VHDL
     else:
-        logger.error(f' R2U2 implementation \'{s}\' unsupported. Defaulting to C.')
+        logger.error(f" R2U2 implementation '{s}' unsupported. Defaulting to C.")
         return R2U2Implementation.C
 
 
@@ -41,18 +41,18 @@ class ReturnCode(Enum):
     ENGINE_SELECT_ERROR = 5
 
 # Stores the sub-classes of Instruction from ast.py
-instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules['compiler.ast'], 
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
 default_cpu_latency_table: dict[str, int] = { name:10 for (name,value) in 
-    inspect.getmembers(sys.modules['compiler.ast'], 
+    inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
             obj != BZInstruction) }
 
 default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) for (name,value) in 
-    inspect.getmembers(sys.modules['compiler.ast'], 
+    inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
@@ -65,16 +65,16 @@ at_filter_table: dict[str, tuple[Type, list[Type]]] = {
 
 def parse_signals(filename: str) -> dict[str,int]:
     mapping: dict[str,int] = {}
-    if re.match('.*\\.csv',filename):
-        with open(filename,'r') as f:
+    if re.match(".*\\.csv",filename):
+        with open(filename,"r") as f:
             text: str = f.read()
             lines: list[str] = text.splitlines()
             if len(lines) < 1:
-                logger.error(f' Not enough data in file \'{filename}\'')
+                logger.error(f" Not enough data in file '{filename}'")
                 return {}
             cnt: int = 0
-            header = lines[0][1:] if lines[0][0] == '#' else lines[0]
-            for id in [s.strip() for s in header.split(',')]:
+            header = lines[0][1:] if lines[0][0] == "#" else lines[0]
+            for id in [s.strip() for s in header.split(",")]:
                 mapping[id] = cnt
                 cnt += 1
     else: # TODO, implement signal mapping file format
@@ -119,21 +119,18 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     node.sid = program.signal_mapping[node.name]
                     one = Integer(node.ln, 1)
                     a_copy = deepcopy(node)
-                    instr = ATInstruction(node.ln, node.name, 'int', [a_copy], Equal(node.ln, a_copy, one), one)
+                    instr = ATInstruction(node.ln, node.name, "int", [a_copy], Equal(node.ln, a_copy, one), one)
                     program.atomics[node.name] = instr
                     node.replace(Atomic(node.ln, node.name))
                 else:
                     status = False
-                    logger.error(f'{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}')
+                    logger.error(f"{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}")
             else:
                 if node.name in program.signal_mapping:
                     node.sid = program.signal_mapping[node.name]
                 else:
                     status = False
                     logger.error(f'{node.ln}: Signal \'{node.name}\' not referenced in signal mapping.')
-
-                if not bz: # neither at nor bz are enabled
-                    node.replace(Atomic(node.ln, node.name))
 
         elif isinstance(node, SpecificationSet):
             for c in node.get_children():
@@ -1082,176 +1079,61 @@ def generate_at_assembly(program: Program) -> list[ATInstruction]:
     return asm
 
 
-def generate_assembly(program: Program, at: bool, bz: bool) -> dict[FormulaType, list[Instruction]]:
+def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruction], list[Instruction], list[Instruction]]:
     visited: set[Node] = set()
-    asm: dict[FormulaType, list[Instruction]] = {}
     formula_type: FormulaType
     tlid: int = 0
     atid: int = 0
 
-    asm[FormulaType.FT] = []
-    asm[FormulaType.PT] = []
+    ft_asm = []
+    pt_asm = []
+    bz_asm = []
+    at_asm = []
 
-    def assign_ids(ast: Node) -> None:
+    def assign_ids(node: Node) -> None:
         nonlocal tlid, atid
 
-        if ast in visited:
+        if node in visited:
             return
-        visited.add(ast)
+        visited.add(node)
         
-        if isinstance(ast, TLInstruction):
-            ast.tlid = tlid
+        if isinstance(node, TLInstruction):
+            for child in node.get_children():
+                if isinstance(child, BZInstruction):
+                    child.tlid = tlid
+                    tlid += 1
+
+            node.tlid = tlid
             tlid += 1
         
-        if isinstance(ast, BZInstruction):
-            ast.atid = atid
+        if isinstance(node, BZInstruction):
+            node.atid = atid
             atid += 1
 
-        if isinstance(ast, ATInstruction):
-            pass
-        
-
-
-
-    def assign_ids_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal tlid
-        nonlocal atid
-
-        if isinstance(node, Bool) or node in visited:
-            return
-        visited.add(node)
-
-        if isinstance(node, TLInstruction):
-            node.tlid = tlid
-            tlid += 1
-
-        if isinstance(node, Atomic):
-            node.atid = program.signal_mapping[node.name]
-
     def generate_assembly_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal asm
         nonlocal formula_type
 
-        if isinstance(node, Bool):
-            return
-        elif isinstance(node,TLInstruction):
-            if not node in visited:
-                asm[formula_type].append(node)
-                visited.add(node)
+        if isinstance(node, Instruction):
+            if node.tlid > 0:
+                if formula_type == FormulaType.FT:
+                    ft_asm.append(node)
+                else:
+                    pt_asm.append(node)
+            if node.atid > 0 and isinstance(node, BZInstruction):
+                bz_asm.append(node)
         else:
-            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
+            logger.error(f" Internal error, invald node type for assembly generation (found '{type(node)}').")
 
-    def assign_ids_at_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal tlid
-        nonlocal atid
+    postorder(program.get_ft_specs(), assign_ids)
+    tlid = 0
+    postorder(program.get_pt_specs(), assign_ids)
 
-        if isinstance(node, Bool) or node in visited:
-            return
-        visited.add(node)
+    formula_type = FormulaType.FT
+    postorder(program.get_ft_specs(), generate_assembly_util)
+    formula_type = FormulaType.PT
+    postorder(program.get_pt_specs(), generate_assembly_util)
 
-        if isinstance(node, TLInstruction):
-            node.tlid = tlid
-            tlid += 1
-
-        if isinstance(node, Atomic):
-            if program.atomics[node.name].atid > -1:
-                node.atid = program.atomics[node.name].atid
-            else:
-                node.atid = atid
-                program.atomics[node.name].atid = atid
-                atid += 1
-
-    def generate_assembly_at_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal asm
-        nonlocal formula_type
-
-        if isinstance(node, Bool):
-            return
-        elif isinstance(node,TLInstruction):
-            if not node in visited:
-                asm[formula_type].append(node)
-                visited.add(node)
-        else:
-            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
-
-    def assign_ids_bz_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal tlid
-        nonlocal atid
-
-        if isinstance(node, Bool) or node in visited:
-            return
-        visited.add(node)
-
-        if isinstance(node, TLInstruction):
-            node.tlid = tlid
-            tlid += 1
-            
-            if isinstance(node, TLAtomicLoad):
-                node.get_load().atid = atid
-                atid += 1
-
-    def generate_assembly_bz_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal asm
-
-        if isinstance(node, Bool):
-            return
-        elif isinstance(node, TLInstruction):
-            if not node in visited:
-                asm[formula_type].append(node)
-                visited.add(node)
-        elif isinstance(node, BZInstruction):
-            asm[formula_type].append(node)
-            visited.add(node)
-        else:
-            logger.error(f'{node.ln}: Invalid node type for assembly generation ({type(node)})')
-
-    if at:
-        tlid = 0
-        formula_type = FormulaType.FT
-        postorder(program.get_ft_specs(), assign_ids_at_util)
-        visited = set()
-        postorder(program.get_ft_specs(), generate_assembly_at_util)
-
-        tlid = 0
-        formula_type = FormulaType.PT
-        visited = set()
-        postorder(program.get_pt_specs(), assign_ids_at_util)
-        visited = set()
-        postorder(program.get_pt_specs(), generate_assembly_at_util)
-    elif bz:
-        tlid = 0
-        formula_type = FormulaType.FT
-        postorder(program.get_ft_specs(), assign_ids_bz_util)
-        visited = set()
-        postorder(program.get_ft_specs(), generate_assembly_bz_util)
-        
-        tlid = 0
-        formula_type = FormulaType.PT
-        visited = set()
-        postorder(program.get_pt_specs(), assign_ids_bz_util)
-        visited = set()
-        postorder(program.get_pt_specs(), generate_assembly_bz_util)
-    else:
-        tlid = 0
-        formula_type = FormulaType.FT
-        postorder(program.get_ft_specs(), assign_ids_util)
-        visited = set()
-        postorder(program.get_ft_specs(), generate_assembly_util)
-        
-        tlid = 0
-        formula_type = FormulaType.PT
-        visited = set()
-        postorder(program.get_pt_specs(), assign_ids_util)
-        visited = set()
-        postorder(program.get_pt_specs(), generate_assembly_util)
-
-    return asm
+    return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
 def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
@@ -1344,33 +1226,33 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, fl
     return wcet
 
 
-def validate_booleanizer_stack(asm: list[Instruction]) -> bool:
-    """
-    Performs basic validation of the Booleanizer instructions of the generated assembly. Returns False if the stack size ever goes below 0 or above its maximum size.
-    """
-    max_stack_size: int = 32
-    stack_size: int = 0
+# def validate_booleanizer_stack(asm: list[Instruction]) -> bool:
+#     """
+#     Performs basic validation of the Booleanizer instructions of the generated assembly. Returns False if the stack size ever goes below 0 or above its maximum size.
+#     """
+#     max_stack_size: int = 32
+#     stack_size: int = 0
 
-    def is_invalid_stack_size(size: int) -> bool:
-        return size < 0 and size >= max_stack_size
+#     def is_invalid_stack_size(size: int) -> bool:
+#         return size < 0 and size >= max_stack_size
 
-    for instruction in [a for a in asm if isinstance(a, BZInstruction)]:
-        if is_invalid_stack_size(stack_size):
-            return False
+#     for instruction in [a for a in asm if isinstance(a, BZInstruction)]:
+#         if is_invalid_stack_size(stack_size):
+#             return False
 
-        # Pop all instruction operands 
-        stack_size -= len(instruction.get_children())
+#         # Pop all instruction operands 
+#         stack_size -= len(instruction.get_children())
 
-        if is_invalid_stack_size(stack_size):
-            return False
+#         if is_invalid_stack_size(stack_size):
+#             return False
 
-        # Push result
-        stack_size += 1
+#         # Push result
+#         stack_size += 1
 
-        if is_invalid_stack_size(stack_size):
-            return False
+#         if is_invalid_stack_size(stack_size):
+#             return False
 
-    return True
+#     return True
 
 
 def parse(input: str) -> Program|None:
@@ -1457,27 +1339,33 @@ def compile(
     alias = generate_alias(program)
 
     # generate assembly
-    asm: dict[FormulaType, list[Instruction]] = generate_assembly(program, at, bz)
-    at_asm: list[ATInstruction] = generate_at_assembly(program)
+    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
     scq_asm: list[tuple[int,int]] = generate_scq_assembly(program)
 
-    if bz and (not validate_booleanizer_stack(asm[FormulaType.FT]) or not validate_booleanizer_stack(asm[FormulaType.PT])):
-        logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
-        return ReturnCode.ASM_ERROR.value
+    # if bz and (not validate_booleanizer_stack(asm[FormulaType.FT]) or not validate_booleanizer_stack(asm[FormulaType.PT])):
+    #     logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
+    #     return ReturnCode.ASM_ERROR.value
 
     # print asm if 'quiet' option not enabled
     if not quiet:
         if at:
-            print(Color.HEADER+'AT Assembly'+Color.ENDC+':')
+            print(Color.HEADER+"AT Assembly"+Color.ENDC+":")
             for s in at_asm:
-                print(f"\t{s.asm()}")
-        print(Color.HEADER+'FT Assembly'+Color.ENDC+':')
-        for a in asm[FormulaType.FT]:
-            print(f"\t{a.asm()}")
-        print(Color.HEADER+'PT Assembly'+Color.ENDC+':')
-        for a in asm[FormulaType.PT]:
-            print(f"\t{a.asm()}")
-        print(Color.HEADER+'SCQ Assembly'+Color.ENDC+':')
+                print(f"\t{s.at_asm()}")
+        if bz:
+            print(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
+            for s in bz_asm:
+                print(f"\t{s.bz_asm()}")
+
+        print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
+        for a in ft_asm:
+            print(f"\t{a.tl_asm()}")
+
+        print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
+        for a in pt_asm:
+            print(f"\t{a.tl_asm()}")
+
+        print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:
             print(f"\t{s}")
 
