@@ -4,8 +4,6 @@ from copy import deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
-from numpy import append
-
 from .logger import *
 from .type import *
 
@@ -129,8 +127,6 @@ class Node():
     def replace(self, new: Node) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that'self' is orphaned as a result."""
 
-        print(f"replacing {self} with {new}")
-
         # Special case: if trying to replace this with itself
         if id(self) == id(new):
             return
@@ -142,7 +138,8 @@ class Node():
             new._parents.append(parent)
 
         for child in self.get_children():
-            child.get_parents().remove(self)
+            if self in child.get_parents():
+                child.get_parents().remove(self)
 
         new.formula_type = self.formula_type
 
@@ -228,7 +225,10 @@ class BZInstruction(Instruction):
             logger.error(f" Internal error, node '{self}' never assigned atid.")
             return ""
         return f"a{self.atid}"
-
+    
+    def tl_asm(self) -> str:
+        return f"{self.tlid_str()} load a{self.atid}"
+ 
     def bz_asm(self) -> str:
         s = f"{self.atid_str()} {self.name} "
         for child in self.get_children():
@@ -309,8 +309,8 @@ class Integer(Constant, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    # def bz_asm(self) -> str:
-    #     return f"{self.atid_str()} {self.value}"
+    def bz_asm(self) -> str:
+        return f"{self.atid_str()} iconst {self.value}"
 
 
 class Float(Constant, BZInstruction):
@@ -333,8 +333,8 @@ class Float(Constant, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    # def bz_asm(self) -> str:
-    #     return f"{self.atid_str()} {self.value}"
+    def bz_asm(self) -> str:
+        return f"{self.atid_str()} fconst {self.value}"
 
 
 class Variable(Node):
@@ -1162,7 +1162,7 @@ class Specification(TLInstruction):
         return (str(self.formula_number) if self.name == "" else self.name) + ": " + str(self.get_expr())
 
     def tl_asm(self) -> str:
-        return f"{self.tlid_str()} end f{self.formula_number}"
+        return f"{self.tlid_str()} end {self.get_expr().tlid_str()} f{self.formula_number}"
 
 
 class Contract(Node):

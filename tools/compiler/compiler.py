@@ -1124,17 +1124,12 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
 def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     ret: list[tuple[int,int]] = []
     pos: int = 0
-    explored: list[Node] = []
 
     compute_scq_size(program.get_ft_specs())
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
         nonlocal pos
-        nonlocal explored
-
-        if a in explored:
-            return
 
         if not isinstance(a,TLInstruction) or isinstance(a,Program):
             return
@@ -1143,8 +1138,6 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
         end_pos = start_pos + a.scq_size
         pos = end_pos
         ret.append((start_pos,end_pos))
-
-        explored.append(a)
 
     postorder_iterative(program.get_ft_specs(), gen_scq_assembly_util)
     program.scq_assembly = ret
