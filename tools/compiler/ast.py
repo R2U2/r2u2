@@ -1,7 +1,10 @@
 from __future__ import annotations
+from ast import Continue
 from copy import deepcopy
 from typing import Any, Callable, NamedTuple, NewType, cast
 from logging import getLogger
+
+from numpy import append
 
 from .logger import *
 from .type import *
@@ -15,43 +18,41 @@ class Interval(NamedTuple):
 StructDict = NewType("StructDict", dict[str, dict[str, Type]])
 
 
-def postorder(a: Node, func: Callable[[Node], Any]) -> None:
-    """Performs a postorder traversal of a, calling func on each node."""
+def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
+    """Performs a postorder traversal of 'node', calling 'func' on each node."""
     c: Node
-    for c in a.get_children():
-        postorder(c, func)
-    func(a)
+    for c in node.get_children():
+        postorder_recursive(c, func)
+    func(node)
 
 
-def postorder_iter(a: Node, func: Callable[[Node], Any]) -> None:
-    ast_stack: list[Node] = []
-    int_stack: list[int] = []
-    cur_ast: Node|None = a
-    cur_int: int = 0
-    
-    while not len(ast_stack) == 0 or cur_ast != None:
-        if cur_ast != None:
-            ast_stack.append(cur_ast)
-            int_stack.append(cur_int+1)
-            cur_ast = None if cur_int >= len(cur_ast.get_children()) else cur_ast.get_child(cur_int)
-        else:
-            peek_ast: Node = ast_stack[len(ast_stack)-1]
-            peek_int: int = int_stack[len(int_stack)-1]
-            if peek_int < len(peek_ast.get_children()):
-                int_stack[len(int_stack)-1] += 1
-                cur_ast = peek_ast.get_child(peek_int)
-                cur_int = 0
-            else:
-                func(peek_ast)
-                ast_stack.pop()
-                int_stack.pop()
+def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
+    """Performs an iterative postorder traversal of 'node', calling 'func' on each node."""
+    stack: list[tuple[bool, Node]] = []
+    visited: set[Node] = set()
+
+    stack.append((False, node))
+
+    while len(stack) > 0:
+        cur = stack.pop()
+
+        if cur[0]:
+            func(cur[1])
+            continue
+        elif cur[1] in visited:
+            continue
+
+        visited.add(cur[1])
+        stack.append((True, cur[1]))
+        for child in cur[1].get_children():
+            stack.append((False, child))
 
 
-def preorder(a: Node, func: Callable[[Node], Any]) -> None:
+def preorder(node: Node, func: Callable[[Node], Any]) -> None:
     """Performs a preorder traversal of a, calling func on each node. func must not alter the children of its argument node"""
     c: Node
-    func(a)
-    for c in a.get_children():
+    func(node)
+    for c in node.get_children():
         preorder(c, func)
 
 
@@ -74,7 +75,7 @@ def rename(v: Node, repl: Node, expr: Node) -> Node:
         if v == a:
             a.replace(repl)
 
-    postorder(new, rename_util)
+    postorder_recursive(new, rename_util)
     return new
 
 
@@ -86,6 +87,7 @@ class Node():
         self.total_scq_size: int = 0
         self.scq_size: int = 0
         self.name: str = ""
+        self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
@@ -125,16 +127,22 @@ class Node():
         self._children.remove(child)
 
     def replace(self, new: Node) -> None:
+        """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that'self' is orphaned as a result."""
+
+        print(f"replacing {self} with {new}")
+
         # Special case: if trying to replace this with itself
         if id(self) == id(new):
             return
 
-        for p in self.get_parents():
-            for i in range(0, len(p._children)):
-                if id(p._children[i]) == id(self):
-                    p._children[i] = new
+        for parent in self.get_parents():
+            for i in range(0, len(parent._children)):
+                if id(parent._children[i]) == id(self):
+                    parent._children[i] = new
+            new._parents.append(parent)
 
-            new._parents.append(p)
+        for child in self.get_children():
+            child.get_parents().remove(self)
 
         new.formula_type = self.formula_type
 
@@ -196,6 +204,12 @@ class TLInstruction(Instruction):
             return ""
         return f"n{self.tlid}"
 
+    def tl_asm(self) -> str:
+        s = f"{self.tlid_str()} {self.name} "
+        for child in self.get_children():
+            s += f"{child.tlid_str()} "
+        return s
+
 
 class BZInstruction(Instruction):
     """Abstract base class for AST nodes that have valid BZ assembly instructions"""
@@ -214,6 +228,15 @@ class BZInstruction(Instruction):
             logger.error(f" Internal error, node '{self}' never assigned atid.")
             return ""
         return f"a{self.atid}"
+
+    def bz_asm(self) -> str:
+        s = f"{self.atid_str()} {self.name} "
+        for child in self.get_children():
+            if isinstance(child, TLInstruction):
+                s += f"{child.tlid_str()} "
+            else:
+                s += f"{child.atid_str()} "
+        return s
 
 
 class ATInstruction(Instruction):
@@ -286,8 +309,8 @@ class Integer(Constant, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def bz_asm(self) -> str:
-        return f"{super().bz_asm()} {self.value}"
+    # def bz_asm(self) -> str:
+    #     return f"{self.atid_str()} {self.value}"
 
 
 class Float(Constant, BZInstruction):
@@ -310,8 +333,8 @@ class Float(Constant, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def bz_asm(self) -> str:
-        return f"{self.atid_str()} {self.value}"
+    # def bz_asm(self) -> str:
+    #     return f"{self.atid_str()} {self.value}"
 
 
 class Variable(Node):
@@ -458,21 +481,23 @@ class Operator(Node):
 class UnaryOperator(Operator):
 
     def __init__(self, ln: int, o: list[Node]) -> None:
+        if len(o) != 1:
+            logger.error(f" Internal error, '{type(self)}' requires exactly one child node")
         super().__init__(ln, o)
-        assert len(o) == 1
 
     def get_operand(self) -> Node:
         return self.get_child(0)
 
     def __str__(self) -> str:
-        return f"{self.name}({self.get_operand()})"
+        return f"{self.symbol}({self.get_operand()})"
 
 
 class BinaryOperator(Operator):
 
     def __init__(self, ln: int, l: list[Node]) -> None:
+        if len(l) != 2:
+            logger.error(f" Internal error, '{type(self)}' requires exactly two child nodes")
         super().__init__(ln, l)
-        assert len(l) == 2
 
     def get_lhs(self) -> Node:
         return self.get_child(0)
@@ -481,7 +506,7 @@ class BinaryOperator(Operator):
         return self.get_child(1)
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()}){self.name}({self.get_rhs()})"
+        return f"({self.get_lhs()}){self.symbol}({self.get_rhs()})"
 
 
 class Function(Operator):
@@ -588,6 +613,7 @@ class Count(BZInstruction):
         super().__init__(ln, c)
         self.num: Node = n
         self.type = INT()
+        self.name = "count"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -604,10 +630,6 @@ class Count(BZInstruction):
             s += str(c) + ","
         return s[:-1] + ")"
 
-    def bz_asm(self) -> str:
-        return f"TODO {type(self)}"
-        return f"a{self.atid} count {self.num}"
-
 
 class BitwiseOperator(Operator):
 
@@ -619,7 +641,8 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "&"
+        self.name = "and"
+        self.symbol = "&"
 
     def __deepcopy__(self, memo):
         children = [cast(BZInstruction, deepcopy(c, memo)) for c in self._children]
@@ -627,23 +650,13 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def bz_asm(self) -> str:
-        s = f"{self.atid_str()} and "
-
-        for child in self.get_children():
-            if isinstance(child, TLInstruction):
-                s += f"{child.tlid_str()} "
-            else:
-                s += f"{child.atid_str()} "
-
-        return s[:-1]
-
 
 class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "|"
+        self.name = "or"
+        self.symbol = "|"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -651,15 +664,13 @@ class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return "or"
-
 
 class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "^"
+        self.name = "xor"
+        self.symbol = "^"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -667,15 +678,12 @@ class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return "xor"
-
-
 class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "<<"
+        self.name = "lshift"
+        self.symbol = "<<"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -683,15 +691,13 @@ class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return "lshift"
-
 
 class BitwiseShiftRight(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = ">>"
+        self.name = "rshift"
+        self.symbol = ">>"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -699,24 +705,19 @@ class BitwiseShiftRight(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return "rshift"
-
 
 class BitwiseNegate(BitwiseOperator, UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, o: Node) -> None:
         super().__init__(ln, [o])
-        self.name: str = "~"
+        self.name = "bwneg"
+        self.symbol = "~"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
         new = BitwiseNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
-
-    def asm(self) -> str:
-        return "bwneg"
 
 
 class ArithmeticOperator(Operator):
@@ -729,7 +730,8 @@ class ArithmeticAdd(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "+"
+        self.name = "add"
+        self.symbol = "+"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -737,15 +739,13 @@ class ArithmeticAdd(ArithmeticOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return ("f" if self.type == FLOAT() else "i") + "add"
-
 
 class ArithmeticSubtract(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "-"
+        self.name = "sub"
+        self.symbol = "-"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -753,15 +753,13 @@ class ArithmeticSubtract(ArithmeticOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return ("f" if self.type == FLOAT() else "i") + "sub"
-
 
 class ArithmeticMultiply(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "+"
+        self.name = "mul"
+        self.symbol = "*"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -769,15 +767,13 @@ class ArithmeticMultiply(ArithmeticOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return ("f" if self.type == FLOAT() else "i") + "mul"
-
 
 class ArithmeticDivide(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "/"
+        self.name = "div"
+        self.symbol = "/"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -785,15 +781,13 @@ class ArithmeticDivide(ArithmeticOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return ("f" if self.type == FLOAT() else "i") + "div"
-
 
 class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "%"
+        self.name = "mod"
+        self.symbol = "%"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -801,15 +795,13 @@ class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return "mod"
-
 
 class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
 
     def __init__(self, ln: int, o: Node) -> None:
         super().__init__(ln, [o])
-        self.name: str = "-"
+        self.name: str = "neg"
+        self.symbol = "-"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -817,15 +809,11 @@ class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return ("f" if self.type == FLOAT() else "i") + "neg"
-
 
 class RelationalOperator(BinaryOperator):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name = ""
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -838,60 +826,48 @@ class Equal(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = "=="
-
-    def asm(self) -> str:
-        return "eq"
+        self.name = "eq"
+        self.symbol = "=="
 
 
 class NotEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = "!="
-
-    def asm(self) -> str:
-        return "neq"
+        self.name = "neq"
+        self.symbol = "!="
 
 
 class GreaterThan(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = ">"
-
-    def asm(self) -> str:
-        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "gt"
+        self.name = "gt"
+        self.symbol = ">"
 
 
 class LessThan(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = "<"
-
-    def asm(self) -> str:
-        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "lt"
+        self.name = "lt"
+        self.symbol = "<"
 
 
 class GreaterThanOrEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = ">="
-
-    def asm(self) -> str:
-        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "gte"
+        self.name = "geq"
+        self.symbol = ">="
 
 
 class LessThanOrEqual(RelationalOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, lhs, rhs)
-        self.name: str = "<="
-
-    def asm(self) -> str:
-        return ("i" if is_integer_type(self.get_lhs().type) else "f") + "lte"
+        self.name = "leq"
+        self.symbol = "<="
 
 
 class LogicalOperator(Operator):
@@ -905,9 +881,9 @@ class LogicalOperator(Operator):
 class LogicalOr(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[Node]) -> None:
-        assert len(c) > 1
         super().__init__(ln, c)
-        self.name: str = "||"
+        self.name = "or"
+        self.symbol = "||"
 
     def __str__(self) -> str:
         s: str = ""
@@ -915,18 +891,13 @@ class LogicalOr(LogicalOperator, TLInstruction):
             s += str(arg) + "||"
         return s[:-2]
 
-    def asm(self, ) -> str:
-        s: str = f"{super().asm()} or"
-        for c in self.get_children():
-            s += f" {c.tlid_str()}"
-        return s
-
 
 class LogicalAnd(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[Node]) -> None:
         super().__init__(ln, c)
-        self.name: str = "&&"
+        self.name = "and"
+        self.symbol = "&&"
 
     def __str__(self) -> str:
         s: str = ""
@@ -934,18 +905,13 @@ class LogicalAnd(LogicalOperator, TLInstruction):
             s += str(arg) + "&&"
         return s[:-2]
 
-    def asm(self, ) -> str:
-        s: str = f"{super().asm()} and"
-        for c in self.get_children():
-            s += f" {c.tlid_str()}"
-        return s
-
 
 class LogicalXor(LogicalOperator, BinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "^^"
+        self.name = "xor"
+        self.symbol = "^^"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -953,15 +919,13 @@ class LogicalXor(LogicalOperator, BinaryOperator, TLInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return f"{super().asm()} xor {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()}"
-
 
 class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "->"
+        self.name = "impl"
+        self.symbol = "->"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -969,15 +933,13 @@ class LogicalImplies(LogicalOperator, BinaryOperator, TLInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return f"{super().asm()} impl {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()}"
-
 
 class LogicalIff(LogicalOperator, BinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name: str = "<->"
+        self.name = "iff"
+        self.symbol = "<->"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -985,24 +947,19 @@ class LogicalIff(LogicalOperator, BinaryOperator, TLInstruction):
         self.copy_attrs(new)
         return new
 
-    def asm(self) -> str:
-        return f"{super().asm()} iff {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()}"
-
 
 class LogicalNegate(LogicalOperator, UnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: Node):
         super().__init__(ln, [o])
-        self.name: str = "!"
+        self.name = "not"
+        self.symbol = "!"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
         new = LogicalNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
-
-    def asm(self) -> str:
-        return f"{super().asm()} not {self.get_operand().tlid_str()}" 
 
 
 class TemporalOperator(Operator):
@@ -1046,27 +1003,29 @@ class FutureTimeBinaryOperator(TemporalOperator):
         return new
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()!s}){self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
+        return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
 
 
 class Until(FutureTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = "U"
+        self.name = "until"
+        self.symbol = "U"
 
-    def asm(self) -> str:
-        return f"{super().asm()} until {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Release(FutureTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = "R"
+        self.name = "release"
+        self.symbol = "R"
 
-    def asm(self) -> str:
-        return f"{super().asm()} release {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
@@ -1093,20 +1052,22 @@ class Global(FutureTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: Node, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = "G"
+        self.name = "global"
+        self.symbol = "G"
 
-    def asm(self) -> str:
-        return f"{super().asm()} global {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Future(FutureTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: Node, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = "F"
+        self.name = "future"
+        self.symbol = "F"
 
-    def asm(self) -> str:
-        return f"{super().asm()} future {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
@@ -1134,10 +1095,11 @@ class Since(PastTimeBinaryOperator, TLInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
-        self.name: str = "S"
+        self.name = "since"
+        self.symbol = "S"
 
-    def asm(self) -> str:
-        return f"{super().asm()} since {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
@@ -1162,20 +1124,22 @@ class Historical(PastTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: Node, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = "H"
+        self.name = "hist"
+        self.symbol = "H"
 
-    def asm(self) -> str:
-        return f"{super().asm()} his {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Once(PastTimeUnaryOperator, TLInstruction):
 
     def __init__(self, ln: int, o: Node, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
-        self.name: str = "O"
+        self.name = "once"
+        self.symbol = "O"
 
-    def asm(self) -> str:
-        return f"{super().asm()} once {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Specification(TLInstruction):
@@ -1197,8 +1161,8 @@ class Specification(TLInstruction):
     def __str__(self) -> str:
         return (str(self.formula_number) if self.name == "" else self.name) + ": " + str(self.get_expr())
 
-    def asm(self) -> str:
-        return f"{super().asm()} end n{self.get_expr().tlid} f{self.formula_number}"
+    def tl_asm(self) -> str:
+        return f"{self.tlid_str()} end f{self.formula_number}"
 
 
 class Contract(Node):
@@ -1230,8 +1194,8 @@ class SpecificationSet(TLInstruction):
             ret += f"{s}\n"
         return ret[:-1]
 
-    def asm(self) -> str:
-        return f"{super().asm()} endsequence"
+    def tl_asm(self) -> str:
+        return f"{super().tlid_str()} endsequence"
 
 
 class Program(Node):

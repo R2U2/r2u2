@@ -406,17 +406,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     return status
 
 
-def insert_load_stores(program: Program) -> None:
-    
-    def insert_load_stores_util(node: Node) -> None:
-        if isinstance(node, TLInstruction) and not isinstance(node, TLAtomicLoad):
-            for child in node.get_children():
-                if isinstance(child, BZInstruction):
-                    child.replace(TLAtomicLoad(node.ln, deepcopy(child)))
-
-    postorder(program, insert_load_stores_util)
-
-
 def compute_scq_size(node: Node) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
@@ -449,7 +438,7 @@ def compute_scq_size(node: Node) -> int:
         node.scq_size = max(max_wpd-node.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
         total += node.scq_size
 
-    postorder(node, compute_scq_size_util)
+    postorder_iterative(node, compute_scq_size_util)
     node.total_scq_size = total
 
     return total
@@ -508,7 +497,7 @@ def rewrite_extended_operators(program: Program) -> None:
             # F p = True U p
             node.replace(Until(node.ln, Bool(node.ln, True), operand, bounds.lb, bounds.ub))
 
-    postorder(program, rewrite_extended_operators_util)
+    postorder_iterative(program, rewrite_extended_operators_util)
 
 
 def rewrite_boolean_normal_form(program: Program) -> None:
@@ -713,7 +702,7 @@ def rewrite_struct_access(program: Program) -> None:
             s: Struct = node.get_struct()
             node.replace(s.members[node.member])
 
-    postorder(program, rewrite_struct_access_util)
+    postorder_iterative(program, rewrite_struct_access_util)
     program.is_struct_access_free = True
 
 
@@ -936,7 +925,7 @@ def optimize_rewrite_rules(program: Node) -> None:
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
                 node.replace(Future(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
 
-    postorder(program, optimize_rewrite_rules_util)
+    postorder_iterative(program, optimize_rewrite_rules_util)
 
 
 def optimize_stratify_associative_operators(node: Node) -> None:
@@ -1030,10 +1019,10 @@ def optimize_cse(program: Program) -> None:
             S[str(node)] = node
 
     S = {}
-    postorder(program.get_ft_specs(), optimize_cse_util)
+    postorder_iterative(program.get_ft_specs(), optimize_cse_util)
 
     S = {}
-    postorder(program.get_pt_specs(), optimize_cse_util)
+    postorder_iterative(program.get_pt_specs(), optimize_cse_util)
     
     program.is_cse_reduced = True
 
@@ -1065,20 +1054,6 @@ def generate_alias(program: Program) -> str:
     return s
 
 
-def generate_at_assembly(program: Program) -> list[ATInstruction]:
-    asm: list[ATInstruction] = []
-    
-    for name,atomic in program.atomics.items():
-        if atomic.atid < 0:
-            logger.warning(f"{atomic.ln}: Unused atomic '{name}'.")
-        elif isinstance(atomic, ATInstruction):
-            asm.append(atomic)
-        else:
-            logger.error(f" Internal error resolving atomics.")
-
-    return asm
-
-
 def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruction], list[Instruction], list[Instruction]]:
     visited: set[Node] = set()
     formula_type: FormulaType
@@ -1096,10 +1071,11 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
         if node in visited:
             return
         visited.add(node)
-        
+
         if isinstance(node, TLInstruction):
             for child in node.get_children():
-                if isinstance(child, BZInstruction):
+                if isinstance(child, BZInstruction) and child.tlid < 0:
+                    print(child)
                     child.tlid = tlid
                     tlid += 1
 
@@ -1110,28 +1086,37 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
             node.atid = atid
             atid += 1
 
+        if isinstance(node, Atomic):
+            node.atid = atid
+            if node.name in program.atomics:
+                program.atomics[node.name].atid = atid
+            atid += 1
+
     def generate_assembly_util(node: Node) -> None:
         nonlocal formula_type
 
         if isinstance(node, Instruction):
-            if node.tlid > 0:
+            if node.tlid > -1:
                 if formula_type == FormulaType.FT:
                     ft_asm.append(node)
                 else:
                     pt_asm.append(node)
-            if node.atid > 0 and isinstance(node, BZInstruction):
+            if node.atid > -1 and isinstance(node, BZInstruction):
                 bz_asm.append(node)
         else:
-            logger.error(f" Internal error, invald node type for assembly generation (found '{type(node)}').")
+            logger.error(f" Internal error, invalid node type for assembly generation (found '{type(node)}').")
 
-    postorder(program.get_ft_specs(), assign_ids)
+    postorder_iterative(program.get_ft_specs(), assign_ids)
     tlid = 0
-    postorder(program.get_pt_specs(), assign_ids)
+    postorder_iterative(program.get_pt_specs(), assign_ids)
 
     formula_type = FormulaType.FT
-    postorder(program.get_ft_specs(), generate_assembly_util)
+    postorder_iterative(program.get_ft_specs(), generate_assembly_util)
     formula_type = FormulaType.PT
-    postorder(program.get_pt_specs(), generate_assembly_util)
+    postorder_iterative(program.get_pt_specs(), generate_assembly_util)
+
+    for at_instr in program.atomics.values():
+        at_asm.append(at_instr)
 
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
@@ -1161,7 +1146,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
 
         explored.append(a)
 
-    postorder(program.get_ft_specs(), gen_scq_assembly_util)
+    postorder_iterative(program.get_ft_specs(), gen_scq_assembly_util)
     program.scq_assembly = ret
 
     return ret
@@ -1226,35 +1211,6 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, fl
     return wcet
 
 
-# def validate_booleanizer_stack(asm: list[Instruction]) -> bool:
-#     """
-#     Performs basic validation of the Booleanizer instructions of the generated assembly. Returns False if the stack size ever goes below 0 or above its maximum size.
-#     """
-#     max_stack_size: int = 32
-#     stack_size: int = 0
-
-#     def is_invalid_stack_size(size: int) -> bool:
-#         return size < 0 and size >= max_stack_size
-
-#     for instruction in [a for a in asm if isinstance(a, BZInstruction)]:
-#         if is_invalid_stack_size(stack_size):
-#             return False
-
-#         # Pop all instruction operands 
-#         stack_size -= len(instruction.get_children())
-
-#         if is_invalid_stack_size(stack_size):
-#             return False
-
-#         # Push result
-#         stack_size += 1
-
-#         if is_invalid_stack_size(stack_size):
-#             return False
-
-#     return True
-
-
 def parse(input: str) -> Program|None:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
@@ -1307,7 +1263,7 @@ def compile(
         program: Program|None = parse(f.read())
 
     if not program:
-        logger.error(' Failed parsing.')
+        logger.error(" Failed parsing.")
         return ReturnCode.PARSE_ERROR.value
 
     # parse csv/signals file
@@ -1315,11 +1271,8 @@ def compile(
 
     # type check
     if not type_check(program, at, bz):
-        logger.error(' Failed type check.')
+        logger.error(" Failed type check.")
         return ReturnCode.TYPE_CHECK_ERROR.value
-
-    if bz:
-        insert_load_stores(program)
 
     rewrite_contracts(program)
     rewrite_set_aggregation(program)
@@ -1341,10 +1294,6 @@ def compile(
     # generate assembly
     (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
     scq_asm: list[tuple[int,int]] = generate_scq_assembly(program)
-
-    # if bz and (not validate_booleanizer_stack(asm[FormulaType.FT]) or not validate_booleanizer_stack(asm[FormulaType.PT])):
-    #     logger.error(f' Internal error: Booleanizer stack size potentially invalid during execution.')
-    #     return ReturnCode.ASM_ERROR.value
 
     # print asm if 'quiet' option not enabled
     if not quiet:

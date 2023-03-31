@@ -10,7 +10,7 @@ DEFINE
          Test2({Test1(b4,b5),Test1(b6,b7)})};
     n = 1;
 
-SPEC
+FTSPEC
     foreach(s:X)(foreach(t:s.M)(t.m1 && t.m2));
     forsome(s:X)(foreach(t:s.M)(t.m1 && t.m2));
     forexactlyn(s:X,n)(foreach(t:s.M)(t.m1 && t.m2));

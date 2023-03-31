@@ -3,7 +3,7 @@ INPUT
     i0,i1: int;
     f0,f1: float;
 
-SPEC
+FTSPEC
     i0 == i1;
     i0 != i1;
     i0 > i1;

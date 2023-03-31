@@ -5,7 +5,7 @@ DEFINE
     X = {b0,b1,b2,b3};
     n = 1;
 
-SPEC
+FTSPEC
     foreach(b:X)(b);
     forsome(b:X)(b);
     forexactlyn(b:X,n)(b);

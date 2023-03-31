@@ -135,6 +135,10 @@ class C2POParser(Parser):
         # Initialize special structs
         self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
 
+    def error(self, token):
+        self.status = False
+        return super().error(token)
+
     @_('block ft_spec_block')
     def block(self, p):
         if self.has_ft:
