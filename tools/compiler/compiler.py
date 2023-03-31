@@ -269,6 +269,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 logger.error(f'{node.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
 
             if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+                if not bz:
+                    status = False
+                    logger.error(f'{node.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.')
+
                 n: Node = node.num
                 type_check_util(n)
                 if not is_integer_type(n.type):
@@ -1055,7 +1059,6 @@ def generate_alias(program: Program) -> str:
 
 
 def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruction], list[Instruction], list[Instruction]]:
-    visited: set[Node] = set()
     formula_type: FormulaType
     tlid: int = 0
     atid: int = 0
@@ -1068,14 +1071,9 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
     def assign_ids(node: Node) -> None:
         nonlocal tlid, atid
 
-        if node in visited:
-            return
-        visited.add(node)
-
         if isinstance(node, TLInstruction):
             for child in node.get_children():
                 if isinstance(child, BZInstruction) and child.tlid < 0:
-                    print(child)
                     child.tlid = tlid
                     tlid += 1
 
@@ -1104,7 +1102,7 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
             if node.atid > -1 and isinstance(node, BZInstruction):
                 bz_asm.append(node)
         else:
-            logger.error(f" Internal error, invalid node type for assembly generation (found '{type(node)}').")
+            logger.critical(f" Internal error, invalid node type for assembly generation (found '{type(node)}').")
 
     postorder_iterative(program.get_ft_specs(), assign_ids)
     tlid = 0
@@ -1251,7 +1249,6 @@ def compile(
         logger.error(f" Only one of AT and BZ can be enabled")
         return ReturnCode.ENGINE_SELECT_ERROR.value
 
-    # parse input, programs is a list of configurations (each SPEC block is a configuration)
     with open(input_filename, "r") as f:
         program: Program|None = parse(f.read())
 

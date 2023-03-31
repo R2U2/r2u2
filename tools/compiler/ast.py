@@ -144,23 +144,23 @@ class Node():
         new.formula_type = self.formula_type
 
     def tl_asm(self) -> str:
-        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'tl_asm'")
+        logger.critical(f" Node type '{type(self)}' does not implement 'tl_asm'.")
         return "ERROR"
 
     def bz_asm(self) -> str:
-        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'bz_asm'")
+        logger.critical(f" Node type '{type(self)}' does not implement 'bz_asm'.")
         return "ERROR"
 
     def at_asm(self) -> str:
-        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'at_asm'")
+        logger.critical(f" Node type '{type(self)}' does not implement 'at_asm'.")
         return "ERROR"
     
     def tlid_str(self) -> str:
-        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'tlid_str'")
+        logger.critical(f" Node type '{type(self)}' does not implement 'tlid_str'.")
         return "ERROR"
     
     def atid_str(self) -> str:
-        logger.error(f" Internal error, Node type '{type(self)}' does not implement 'atid_str'")
+        logger.critical(f" Node type '{type(self)}' does not implement 'atid_str'.")
         return "ERROR"
 
     def __str__(self) -> str:
@@ -197,7 +197,7 @@ class TLInstruction(Instruction):
 
     def tlid_str(self) -> str:
         if self.tlid < 0:
-            logger.error(f" Internal error, node '{self}' never assigned tlid.")
+            logger.critical(f" Node '{self}' never assigned tlid.")
             return ""
         return f"n{self.tlid}"
 
@@ -216,13 +216,13 @@ class BZInstruction(Instruction):
 
     def tlid_str(self) -> str:
         if self.tlid < 0:
-            logger.error(f" Internal error, node '{self}' never assigned tlid.")
+            logger.critical(f" Node '{self}' never assigned tlid.")
             return ""
         return f"n{self.tlid}"
     
     def atid_str(self) -> str:
         if self.atid < 0:
-            logger.error(f" Internal error, node '{self}' never assigned atid.")
+            logger.critical(f" Node '{self}' never assigned atid.")
             return ""
         return f"a{self.atid}"
     
@@ -269,7 +269,7 @@ class ATInstruction(Instruction):
     
     def atid_str(self) -> str:
         if self.atid < 0:
-            logger.error(f" Internal error, node '{self}' never assigned atid.")
+            logger.critical(f" Node '{self}' never assigned atid.")
             return ""
         return f"a{self.atid}"
 
@@ -482,7 +482,7 @@ class UnaryOperator(Operator):
 
     def __init__(self, ln: int, o: list[Node]) -> None:
         if len(o) != 1:
-            logger.error(f" Internal error, '{type(self)}' requires exactly one child node")
+            logger.critical(f" '{type(self)}' requires exactly one child node.")
         super().__init__(ln, o)
 
     def get_operand(self) -> Node:
@@ -496,7 +496,7 @@ class BinaryOperator(Operator):
 
     def __init__(self, ln: int, l: list[Node]) -> None:
         if len(l) != 2:
-            logger.error(f" Internal error, '{type(self)}' requires exactly two child nodes")
+            logger.critical(f" '{type(self)}' requires exactly two child nodes.")
         super().__init__(ln, l)
 
     def get_lhs(self) -> Node:
