@@ -6,12 +6,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef union bz_val {
-    bool b;
-    uint32_t i;
-    float f;
-} bz_val_t;
-
 typedef struct bz_stack {
     bz_val_t stack[BZ_STACK_SIZE];
     uint32_t size;

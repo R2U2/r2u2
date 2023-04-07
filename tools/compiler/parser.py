@@ -124,9 +124,9 @@ class C2POParser(Parser):
         super().__init__()
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
-        self.defs: dict[str,AST] = {}
+        self.defs: dict[str,Node] = {}
         self.contracts: dict[str,int] = {}
-        self.atomics: dict[str,AST] = {}
+        self.atomics: dict[str,Node] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
@@ -134,6 +134,10 @@ class C2POParser(Parser):
 
         # Initialize special structs
         self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
+
+    def error(self, token):
+        self.status = False
+        return super().error(token)
 
     @_('block ft_spec_block')
     def block(self, p):
@@ -370,7 +374,7 @@ class C2POParser(Parser):
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Set aggregation expression
     @_('SYMBOL LPAREN SYMBOL bind_rule COLON expr RPAREN LPAREN expr RPAREN')
@@ -391,7 +395,7 @@ class C2POParser(Parser):
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Stub rule for binding a set agg variable
     @_('')
@@ -410,7 +414,7 @@ class C2POParser(Parser):
         symbol = p[0]
 
         if symbol in self.structs.keys():
-            members: dict[str,AST] = {}
+            members: dict[str,Node] = {}
             if len(expr_list) == len(self.structs[symbol]):
                 for s in self.structs[symbol].keys():
                     members[s] = expr_list.pop(0)
@@ -418,7 +422,7 @@ class C2POParser(Parser):
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
-                return AST(ln, [])
+                return Node(ln, [])
         else:
             return Function(ln, symbol, expr_list)
 
@@ -434,11 +438,11 @@ class C2POParser(Parser):
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
-                return AST(ln, [])
+                return Node(ln, [])
         else:
             logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Struct member access
     @_('expr DOT SYMBOL')
@@ -462,7 +466,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Binary expressions
     @_('expr LOG_IMPL expr',
@@ -534,7 +538,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Unary temporal expressions
     @_('TL_GLOBAL interval expr',
@@ -556,7 +560,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Binary temporal expressions
     @_('expr TL_UNTIL interval expr',
@@ -575,7 +579,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Parentheses
     @_('LPAREN expr RPAREN')
@@ -601,7 +605,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Variable \'{symbol}\' undefined')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Integer
     @_('INT')

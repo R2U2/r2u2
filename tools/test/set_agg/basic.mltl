@@ -4,7 +4,7 @@ INPUT
 DEFINE
     n = 1;
 
-SPEC
+FTSPEC
     foreach(b:{b0,b1,b2,b3})(b);
     forsome(b:{b0,b1,b2,b3})(b);
     forexactlyn(b:{b0,b1,b2,b3},n)(b);

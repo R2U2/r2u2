@@ -8,7 +8,7 @@ DEFINE
     X = {Test(b0,b1),Test(b2,b3)};
     n = 1;
 
-SPEC
+FTSPEC
     foreach(s:X)(s.m1 && s.m2);
     forsome(s:X)(s.m1 && s.m2);
     forexactlyn(s:X,n)(s.m1 && s.m2);
