@@ -5,7 +5,6 @@
 #include <stdbool.h>
 
 #include "R2U2.h"
-#include "bz_stack.h"
 #include "bz_instruction.h"
 
 #define MAX_BZ_INSTR 256
@@ -14,14 +13,9 @@
 
 /*
  * A booleanizer is an engine that converts input signals
- * into booleans according to the given specification. It functions
- * as a stack machine by using a stack to keep track of its internal
- * state. 
+ * into booleans according to the given specification.
  */
 typedef struct bz_booleanizer {
-    bz_stack_t stack;
-    bz_val_t reg[MAX_REG];
-    uint32_t cur_reg;
     bz_instruction_t instructions[MAX_BZ_INSTR];
     uint32_t num_instr;
     bz_val_t sig_vector[N_SIGS];

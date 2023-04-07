@@ -19,12 +19,6 @@ void bz_init(void)
     for(i = 0; i < MAX_BZ; ++i) {
         bz.bz_vector[i] = false;
     }
-
-    for(i = 0; i < MAX_REG; ++i) {
-        bz.reg[i].b = false;
-    }
-
-    bz.cur_reg = 0;
 }
 
 void bz_update(void)
@@ -44,13 +38,7 @@ void bz_execute(uint32_t i)
     switch(bz.instructions[i].opcode) {
         case BZ_NONE: 
             break;
-        /* Load/Store */
-        case BZ_STORE:
-            i1 = bz.instructions[i].param.i; // atomic idx
-            b = bz_stack_pop(&bz.stack).b;
-            // store in atomics vector
-            printf("%hhu\n",b);
-            break;
+        /* Load */
         case BZ_ILOAD:
             i1 = bz.instructions[i].param.i; // signal idx
             i2 = bz.sig_vector[i1].i;

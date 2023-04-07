@@ -3,10 +3,18 @@
 
 #include <stdbool.h>
 
+typedef uint8_t bz_int_t;
+typedef float bz_float_t;
+
+typedef union bz_val {
+    bool b;
+    bz_int_t i;
+    bz_float_t f;
+} bz_val_t;
+
 typedef enum bz_opcode {
     BZ_NONE    = 0b000000,
-    /* Load/Store */
-    BZ_STORE   = 0b000001,
+    /* Loads */
     BZ_ILOAD   = 0b000010,
     BZ_FLOAD   = 0b000011,
     BZ_ICONST  = 0b000100,
@@ -45,14 +53,11 @@ typedef enum bz_opcode {
     BZ_IDIV    = 0b100000,
     BZ_FDIV    = 0b100001,
     BZ_MOD     = 0b100010,
-    /* Set Aggregation */
-    BZ_FOREACH = 0b100011,
-    BZ_ATLEASTONEOF = 0b100100,
     /* Auxiliary */
-    BZ_AUX1    = 0b100101,
-    BZ_AUX2    = 0b100111,
-    BZ_AUX3    = 0b101000,
-    BZ_AUX4    = 0b101001,
+    BZ_AUX1    = 0b100011,
+    BZ_AUX2    = 0b100100,
+    BZ_AUX3    = 0b100101,
+    BZ_AUX4    = 0b100110,
 } bz_opcode_t;
 
 typedef struct bz_instruction {
