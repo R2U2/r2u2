@@ -46,17 +46,18 @@ Note: You must 'make' the R2U2 file within the R2U2_C/ directory prior to runnin
 '''
 def test_c():
     __OutputDIR__ = __ResultDIR__+__ResultCDir__
-    _input = 'LargeTestInput.csv'
+    signal_filename = __InputDir__+'LargeTestInput.csv'
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
     # For all formula files within the formulaFiles directory
-    _formulaFile = __TLDir__+'LargePtFormula.mltl'
-    formula = open(_formulaFile,'r').read()
+    mltl_filename = __TLDir__+'LargePtFormula.mltl'
     # print(formula)
     # For each formula within
-    subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    res = subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    print(f"{' '.join(res.args)}\n{open(res.args[2], 'r').read()}\n{res.stdout.decode()}")
+    raise SystemExit
     filename = 'LargePT'+'.txt'
-    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
     subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
     # Split the multi-formula run into individual files.
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)

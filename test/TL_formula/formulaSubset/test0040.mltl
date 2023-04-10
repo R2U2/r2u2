@@ -1,1 +1,4 @@
-a1 & O[5,10]a0;
+INPUT
+a0,a1:bool;
+PTSPEC
+a1 && O[5,10]a0;

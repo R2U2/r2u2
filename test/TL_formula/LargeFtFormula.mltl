@@ -1,3 +1,6 @@
+INPUT
+a0,a1:bool;
+FTSPEC
 F[0,3] a0;
 F[2,4] a1;
 G[1,2] a1;

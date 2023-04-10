@@ -264,7 +264,10 @@ TSWLatexianTemp*
 # VSCode config
 .vscode/
 
-# Input test files
+# pyright config
+pyrightconfig.json
+
+# # Input test files
 *.csv
 *.mltl
 
@@ -279,3 +282,7 @@ test/*Results.txt
 gen_files/
 __pycache__/
 codechecker/
+tmp/
+
+# python virtual environment
+r2u2env/

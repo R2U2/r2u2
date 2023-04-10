@@ -205,16 +205,14 @@ def main():
 		shutil.rmtree(__ResultDIR__+__ResultVHDLDir__, ignore_errors=True)
 
 	# If not, then test the specified version of R2U2
-	elif(args['version']):
-		formulaFiles,inputFiles = list_file()
-		elif(args['version'].lower()=='c'):
-			test_c(formulaFiles,inputFiles)
-		elif(args['version'].lower()=='cpp'):
-			test_cpp(formulaFiles,inputFiles)
-		elif(args['version'].lower()=='vhdl'):
-			test_vhdl(formulaFiles,inputFiles)
-		else:
-			print('unknown argument')
+	formulaFiles,inputFiles = list_file()
+
+	if(args['version'].lower()=='c'):
+		test_c(formulaFiles,inputFiles)
+	elif(args['version'].lower()=='cpp'):
+		test_cpp(formulaFiles,inputFiles)
+	elif(args['version'].lower()=='vhdl'):
+		test_vhdl(formulaFiles,inputFiles)
 	# Else, throw an error message
 	else:
 		print('ERROR: Invalid arguement flags or missing input arguement after flag')

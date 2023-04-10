@@ -26,7 +26,7 @@
 use FileHandle;      #for open() 
 
 #Set the directory where all of the formulas will be stored
-$formula_dir = "./formulasMTL";
+$formula_dir = "./formulasMLTL";
 
 #If the formula directory doesn't exist, create it
 if (! (-d $formula_dir) ) {
@@ -65,7 +65,7 @@ if (@ARGV == 4) {
 	|| ($P < 0)
 	|| ($P > 1) 
 	|| ($M < 1)
-	|| ($T < 1)
+	# || ($T < 1)
 	) {
 	die "Require 5 numerical arguments: L, N, P, M, T\n";
     } #end if

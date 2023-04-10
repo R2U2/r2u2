@@ -1,1 +1,4 @@
-!(a1 | a0);
+INPUT
+a0,a1:bool;
+FTSPEC
+!(a1 || a0);

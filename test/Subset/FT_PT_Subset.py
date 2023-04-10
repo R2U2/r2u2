@@ -56,21 +56,26 @@ Note: You must 'make' the R2U2 file within the R2U2_C/ directory prior to runnin
 '''
 def test_c(formulaFiles,inputFiles):
     __OutputDIR__ = __ResultDIR__+__ResultCDir__
-    _input = 'input0053.csv'
+    signal_filename = __InputDir__+'input0053.csv'
     if not os.path.exists(__OutputDIR__):
         os.makedirs(__OutputDIR__)
+    log_filename = 'R2U2.log'
     # For all formula files within the formulaFiles directory
     for _formulaFile in formulaFiles:
-        formula = open(__TLDir__+_formulaFile,'r').read()
-        subprocess.run(['python3', __toolsDir__+'r2u2prep.py',formula],stdout=subprocess.PIPE)
+        mltl_filename = __TLDir__+_formulaFile
+        res = subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)
+        print(f"{' '.join(res.args)}\n{open(res.args[2], 'r').read()}\n{res.stdout.decode()}")
+        continue
         form   = _formulaFile.replace('.mltl','')
-        trace  = _input.replace('.csv','')
-        filename = __OutputDIR__+form+'_'+trace+'.txt'
-        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+_input],stdout=subprocess.PIPE)
-        subprocess.run(['mv','R2U2.log',filename],stdout=subprocess.PIPE)
+        trace  = signal_filename.replace('.csv','')
+        log_filename = __OutputDIR__+form+'_'+trace+'.txt'
+        print(__BinDir__)
+        subprocess.run([__CDir__+'bin/r2u2',__BinDir__,__InputDir__+signal_filename],stdout=subprocess.PIPE)
+        subprocess.run(['mv','R2U2.log',log_filename],stdout=subprocess.PIPE)
+    raise SystemExit
     # For the last run, which should be a concatenation of all the formulas, copy the name
     # back to R2U2.log
-    subprocess.run(['mv',filename,__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
+    subprocess.run(['mv',log_filename,__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
     # Split the multi-formula run into individual files.
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+'R2U2.log'],stdout=subprocess.PIPE)
     # Move all the newly split files to the results directory.
