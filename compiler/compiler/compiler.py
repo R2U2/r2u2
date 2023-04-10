@@ -43,21 +43,21 @@ class ReturnCode(Enum):
     ENGINE_SELECT_ERROR = 5
 
 # Stores the sub-classes of Instruction from ast.py
-instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"], 
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
 default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"], 
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
-            obj != Instruction and 
-            obj != TLInstruction and 
+    inspect.getmembers(sys.modules["compiler.ast"],
+        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
+            obj != Instruction and
+            obj != TLInstruction and
             obj != BZInstruction) }
 
 default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"], 
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
-            obj != Instruction and 
-            obj != TLInstruction and 
+    inspect.getmembers(sys.modules["compiler.ast"],
+        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
+            obj != Instruction and
+            obj != TLInstruction and
             obj != BZInstruction) }
 
 at_filter_table: Dict[str, Tuple[Type, List[Type]]] = {
@@ -87,13 +87,13 @@ def parse_signals(filename: str) -> Dict[str,int]:
 
 def type_check(program: Program, at: bool, bz: bool) -> bool:
     """
-    Performs type checking of the argument program. Uses type inferences to assign correct types to each 
+    Performs type checking of the argument program. Uses type inferences to assign correct types to each
     AST node in the program and returns whether the program is properly type checked.
 
-    Preconditions: 
+    Preconditions:
         - None
 
-    Postconditions: 
+    Postconditions:
         - program is type correct
         - All descendants of program have a valid Type (i.e., none are NOTYPE)
     """
@@ -332,7 +332,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                                     status = False
                                     logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{at_filter_table[lhs.name][1][i]}').\n\t{node}")
                                     return
-                                
+
                                 if isinstance(arg, Signal):
                                     if arg.name in program.signal_mapping:
                                         arg.sid = program.signal_mapping[arg.name]
@@ -373,7 +373,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     status = False
                     logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
                     return
-                
+
                 if isinstance(rhs, Signal):
                     if rhs.name in program.signal_mapping:
                         rhs.sid = program.signal_mapping[rhs.name]
@@ -391,7 +391,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             status = False
             logger.error(f"{node.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{node}")
             return
-    
+
     # Type check FTSPEC
     formula_type = FormulaType.FT
     type_check_util(program.get_ft_specs())
@@ -403,7 +403,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     # Type check atomics
     for name, expr in program.atomics.items():
         atomic: ATInstruction|None = type_check_atomic(name, expr)
-        if atomic: 
+        if atomic:
             program.atomics[name] = atomic
 
     if status:
@@ -460,7 +460,7 @@ def rewrite_extended_operators(program: Program) -> None:
     Postconditions:
         - program formulas only have negation, conjunction, until, and global TL operators.
     """
-    
+
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before rewriting.')
         return
@@ -487,7 +487,7 @@ def rewrite_extended_operators(program: Program) -> None:
                 lhs: Node = node.get_lhs()
                 rhs: Node = node.get_rhs()
                 # p <-> q = !(p && !q) && !(p && !q)
-                node.replace(LogicalAnd(node.ln, 
+                node.replace(LogicalAnd(node.ln,
                     [LogicalNegate(node.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])),
                      LogicalNegate(node.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])
                 )
@@ -509,14 +509,14 @@ def rewrite_extended_operators(program: Program) -> None:
 def rewrite_boolean_normal_form(program: Program) -> None:
     """
     Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators.
-    
+
     Preconditions:
         - program is type checked
 
     Postconditions:
         - program formulas are in boolean normal form
     """
-    
+
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before converting to boolean normal form.')
         return
@@ -564,14 +564,14 @@ def rewrite_boolean_normal_form(program: Program) -> None:
 def rewrite_negative_normal_form(program: Program) -> None:
     """
     Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals.
-    
+
     Preconditions:
         - program is type checked
 
     Postconditions:
         - program formulas are in negative normal form
     """
-    
+
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before converting to negative normal form.')
         return
@@ -601,7 +601,7 @@ def rewrite_negative_normal_form(program: Program) -> None:
                 lhs: Node = operand.get_lhs()
                 rhs: Node = operand.get_rhs()
                 bounds: Interval = operand.interval
-                # !(p U q) = !p R !q 
+                # !(p U q) = !p R !q
                 node.replace(Release(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
             elif isinstance(operand, Release):
                 lhs: Node = operand.get_lhs()
@@ -649,7 +649,7 @@ def rewrite_set_aggregation(program: Program) -> None:
         if isinstance(node,StructAccess) and not isinstance(node.get_struct(),Variable):
             s: Struct = node.get_struct()
             node.replace(s.members[node.member])
-    
+
     def rewrite_set_aggregation_util(a: Node) -> None:
         cur: Node = a
 
@@ -695,7 +695,7 @@ def rewrite_struct_access(program: Program) -> None:
     Postconditions:
         - program has no struct access operations
     """
-    
+
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before rewriting struct accesses.')
         return
@@ -832,7 +832,7 @@ def optimize_rewrite_rules(program: Node) -> None:
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
 
-                node.replace(Global(node.ln, LogicalAnd(node.ln, 
+                node.replace(Global(node.ln, LogicalAnd(node.ln,
                         [Global(node.ln, p, lb1-lb3, ub1-ub3), Global(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Future) and isinstance(rhs, Future):
                 lhs_opnd = lhs.get_operand()
@@ -857,7 +857,7 @@ def optimize_rewrite_rules(program: Node) -> None:
                 # check for syntactic equivalence
                 if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
-                    node.replace(Until(node.ln, LogicalAnd(node.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb, 
+                    node.replace(Until(node.ln, LogicalAnd(node.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb,
                         min(lhs.interval.ub, rhs.interval.ub)))
         elif isinstance(node, LogicalOr):
             # Assume binary for now
@@ -895,7 +895,7 @@ def optimize_rewrite_rules(program: Node) -> None:
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
 
-                node.replace(Future(node.ln, LogicalOr(node.ln, 
+                node.replace(Future(node.ln, LogicalOr(node.ln,
                         [Future(node.ln, p, lb1-lb3, ub1-ub3), Future(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
             elif isinstance(lhs, Global) and isinstance(rhs, Global):
                 lhs_opnd = lhs.get_operand()
@@ -919,7 +919,7 @@ def optimize_rewrite_rules(program: Node) -> None:
                 rhs_rhs = rhs.get_rhs()
                 if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
-                    node.replace(Until(node.ln, LogicalOr(node.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb, 
+                    node.replace(Until(node.ln, LogicalOr(node.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb,
                         min(lhs.interval.ub, rhs.interval.ub)))
         elif isinstance(node, Until):
             lhs = node.get_lhs()
@@ -936,7 +936,7 @@ def optimize_rewrite_rules(program: Node) -> None:
 
 def optimize_stratify_associative_operators(node: Node) -> None:
     """TODO"""
-    
+
     def optimize_associative_operators_rec(node: Node) -> None:
         if isinstance(node, LogicalAnd) and len(node.get_children()) > 2:
             n: int = len(node.get_children())
@@ -975,23 +975,23 @@ def rewrite_contracts(program: Program) -> None:
             spec_set.remove_child(contract)
 
             spec_set.add_child(Specification(
-                contract.ln, 
-                contract.name, 
-                contract.formula_numbers[0], 
+                contract.ln,
+                contract.name,
+                contract.formula_numbers[0],
                 contract.get_assumption()
             ))
 
             spec_set.add_child(Specification(
-                contract.ln, 
-                contract.name, 
-                contract.formula_numbers[1], 
+                contract.ln,
+                contract.name,
+                contract.formula_numbers[1],
                 LogicalImplies(contract.ln, contract.get_assumption(), contract.get_guarantee())
             ))
 
             spec_set.add_child(Specification(
-                contract.ln, 
-                contract.name, 
-                contract.formula_numbers[2], 
+                contract.ln,
+                contract.name,
+                contract.formula_numbers[2],
                 LogicalAnd(contract.ln, [contract.get_assumption(), contract.get_guarantee()])
             ))
 
@@ -1009,13 +1009,13 @@ def optimize_cse(program: Program) -> None:
         - Sets of FT/PT specifications have no distinct, syntactically equivalent sub-expressions (i.e., is CSE reduced).
         - Some nodes in AST may have multiple parents.
     """
-    
+
     if not program.is_type_correct:
         logger.error(f' Program must be type checked before CSE.')
         return
 
     S: Dict[str, Node]
-    
+
     def optimize_cse_util(node: Node) -> None:
         nonlocal S
 
@@ -1029,7 +1029,7 @@ def optimize_cse(program: Program) -> None:
 
     S = {}
     postorder_iterative(program.get_pt_specs(), optimize_cse_util)
-    
+
     program.is_cse_reduced = True
 
 
@@ -1048,7 +1048,7 @@ def generate_alias(program: Program) -> str:
     specs = [s for s in program.get_ft_specs().get_children() + program.get_pt_specs().get_children()]
 
     for spec in specs:
-        if spec.name in program.contracts: 
+        if spec.name in program.contracts:
             # then formula is part of contract, ignore
             continue
         if isinstance(spec, Specification):
@@ -1081,16 +1081,23 @@ def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruc
 
             node.tlid = tlid
             tlid += 1
-        
+
         if isinstance(node, BZInstruction):
             node.atid = atid
             atid += 1
 
         if isinstance(node, Atomic):
-            node.atid = atid
-            if node.name in program.atomics:
+            # Retrieve cached atomic number from program.atomics, assign from
+            # atid counter on first lookup
+            #
+            # Key exception possible if atomic node does not appear in atomics
+            if program.atomics[node.name].atid == -1:
+                node.atid = atid
                 program.atomics[node.name].atid = atid
-            atid += 1
+                atid += 1
+            else:
+                node.atid = program.atomics[node.name].atid
+
 
     def generate_assembly_util(node: Node) -> None:
         nonlocal formula_type
@@ -1219,27 +1226,27 @@ def parse(input: str) -> Program|None:
         specs[FormulaType.PT] = SpecificationSet(0, FormulaType.PT, [])
 
     return Program(
-        0, 
-        parser.structs, 
-        parser.atomics, 
-        specs[FormulaType.FT], 
+        0,
+        parser.structs,
+        parser.atomics,
+        specs[FormulaType.FT],
         specs[FormulaType.PT]
     )
 
 
 def compile(
-    input_filename: str, 
-    signals_filename: str, 
-    output_path: str = 'config/', 
-    impl: str = 'c', 
-    int_width: int = 8, 
-    int_signed: bool = False, 
-    float_width: int = 32, 
-    cse: bool = True, 
-    at: bool = False, 
-    bz: bool = False, 
-    extops: bool = True, 
-    color: bool = True, 
+    input_filename: str,
+    signals_filename: str,
+    output_path: str = 'config/',
+    impl: str = 'c',
+    int_width: int = 8,
+    int_signed: bool = False,
+    float_width: int = 32,
+    cse: bool = True,
+    at: bool = False,
+    bz: bool = False,
+    extops: bool = True,
+    color: bool = True,
     quiet: bool = False
 ) -> int:
     """Compiles a C2PO input file and outputs generated R2U2 assembly/binaries"""
@@ -1309,6 +1316,10 @@ def compile(
         print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:
             print(f"\t{s}")
+
+        print(Color.HEADER+"Aliases"+Color.ENDC+":")
+        for line in alias.splitlines():
+            print(f"\t{line}")
 
     return ReturnCode.SUCCESS.value
 
