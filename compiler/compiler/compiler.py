@@ -11,6 +11,7 @@ from .logger import *
 from .ast import *
 from .parser import C2POLexer
 from .parser import C2POParser
+from .assembler import assemble
 
 
 logger = getLogger(COLOR_LOGGER_NAME)
@@ -1033,9 +1034,9 @@ def optimize_cse(program: Program) -> None:
     program.is_cse_reduced = True
 
 
-def generate_alias(program: Program) -> str:
+def generate_aliases(program: Program) -> List[str]:
     """
-    Generates string corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
+    Generates strings corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
 
     Preconditions:
         - program is type correct
@@ -1043,7 +1044,7 @@ def generate_alias(program: Program) -> str:
     Postconditions:
         - None
     """
-    s: str = ''
+    s: List[str] = []
 
     specs = [s for s in program.get_ft_specs().get_children() + program.get_pt_specs().get_children()]
 
@@ -1052,10 +1053,10 @@ def generate_alias(program: Program) -> str:
             # then formula is part of contract, ignore
             continue
         if isinstance(spec, Specification):
-            s += f"F {spec.name} {spec.formula_number}\n"
+            s.append(f"F {spec.name} {spec.formula_number}")
 
     for label,fnums in program.contracts.items():
-        s += f"C {label} {fnums[0]} {fnums[1]} {fnums[2]}\n"
+        s.append(f"C {label} {fnums[0]} {fnums[1]} {fnums[2]}")
 
     return s
 
@@ -1288,7 +1289,7 @@ def compile(
         optimize_cse(program)
 
     # generate alias file
-    alias = generate_alias(program)
+    aliases = generate_aliases(program)
 
     # generate assembly
     (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
@@ -1318,8 +1319,11 @@ def compile(
             print(f"\t{s}")
 
         print(Color.HEADER+"Aliases"+Color.ENDC+":")
-        for line in alias.splitlines():
-            print(f"\t{line}")
+        for a in aliases:
+            print(f"\t{a}")
+
+    assemble(output_path + 'r2u2_spec.bin', at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+
 
     return ReturnCode.SUCCESS.value
 

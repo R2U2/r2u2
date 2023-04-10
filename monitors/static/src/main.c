@@ -10,9 +10,6 @@
 #include "memory/instruction.h"
 #include "memory/csv_trace.h"
 
-// TODO(bckempa): REMOVE when C2PO is ready
-#include "tmp_spec.h"
-
 // R2U2 Reference Implmentation
 // Provides example of library usage and "offline" monitoring
 //
@@ -31,10 +28,8 @@ r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
 int main(int argc, char const *argv[]) {
 
   r2u2_status_t err_cond;
-  #if 0 // TODO(bckempa): ENABLE when C2PO is ready
   int spec_file = -1;
   struct stat fd_stat;
-  #endif
   // TODO(bckempa): fstat size is off_t, but we need size_t for mmap
   //                convert and check for overflow on downcast
 
@@ -60,7 +55,6 @@ int main(int argc, char const *argv[]) {
   //
   // Note: We're being lazy and using the R2U2_DEFAULT_MONITOR macro which
   // allocates a buffer for the instuction mem, but we replace it with the file
-  #if 0 // TODO(bckempa): ENABLE when C2PO is ready - Disable memory-mapped outside spec file while using embedded Spec
   if (access(argv[1], F_OK) == 0) {
       // Use a raw open to get an unbuffered FD for mapping
       spec_file = open(argv[1], O_RDONLY, 0);
@@ -96,13 +90,6 @@ int main(int argc, char const *argv[]) {
 
   // Reset monitor and build instuction table from spec binary
   r2u2_init(&r2u2_monitor);
-  #endif
-
-  #if 1 // TODO(bckempa): REMOVE when C2PO is ready - load embedded spec
-    r2u2_monitor_clock_reset(&r2u2_monitor);
-    load_temp_spec(&r2u2_monitor);
-    config_temp_spec(&r2u2_monitor);
-  #endif
 
   // Open output File
   // TODO(bckempa): Formula set name or time? Take an optional path?
@@ -157,11 +144,9 @@ int main(int argc, char const *argv[]) {
     //                if and only if it is zero
   }
 
-  #if 0 // TODO(bckempa): ENABLE when C2PO is ready
   if (munmap(r2u2_monitor.instruction_mem, fd_stat.st_size) != 0) {
     perror("Spec memory mapping did not close cleanly");
   }
-  #endif
 
   // if (err_cond != R2U2_OK) {
   //   /* Prints R2U2 Status string if built with debugging enabled */

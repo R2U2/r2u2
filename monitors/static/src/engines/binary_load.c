@@ -28,7 +28,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
     // Currently, only MLTL needs config commands, so we'll just check
     if ((data[offset+1] == R2U2_ENG_CG) && (data[offset+2] == R2U2_ENG_TL)) {
       // Process configuration command
-      if (r2u2_mltl_instruction_dispatch(monitor,  (r2u2_mltl_instruction_t *) &(data[offset+2])) != R2U2_OK) {
+      if (r2u2_mltl_instruction_dispatch(monitor,  (r2u2_mltl_instruction_t *) &(data[offset+3])) != R2U2_OK) {
         // TODO(bckempa): Better error handeling with logging here
         return R2U2_ERR_OTHER;
       }
