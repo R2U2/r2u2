@@ -1,0 +1,14 @@
+# Example 8
+# -----------------------------------------------------------------------------
+# In this example we see the use of signal aliases.
+#
+# Note that the input file must have the corresponding signal aliases in the
+# first row of the csv file i.e., the header.
+#
+# This requires R2U2 to be compiled with the CSV header option enabled.
+# -----------------------------------------------------------------------------
+
+G[3] (atom_1 & atom_2);
+
+atom_1 := int(InputSignal0) < 5;
+atom_2 := int(InputSignal1) < 3;

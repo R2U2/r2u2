@@ -1,0 +1,9 @@
+# Example 1
+# -----------------------------------------------------------------------------
+# A basic .mltl file: a single MLTL formula with a single atomic.
+#
+# The atomic a0 corresponds to the boolean value of the data in column 0
+# of the input file.
+# -----------------------------------------------------------------------------
+
+a0;

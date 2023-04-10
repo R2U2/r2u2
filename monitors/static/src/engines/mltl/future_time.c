@@ -1,0 +1,385 @@
+#include "r2u2.h"
+
+#include "future_time.h"
+
+#define max(x,y) (((x)>(y))?(x):(y))
+#define min(x,y) (((x)<(y))?(x):(y))
+
+static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
+
+    r2u2_bool res;
+    r2u2_time *rd_ptr;
+    r2u2_mltl_operand_t *op;
+    r2u2_scq_t *source_scq, *target_scq;
+
+    #if R2U2_DEBUG
+      // TODO(bckempa): Debug build bounds checking
+      // assert();
+    #endif
+    if (n == 0) {
+      op = &(instr->op1);
+    } else {
+      op = &(instr->op2);
+    }
+
+    switch (op->opnd_type) {
+      case R2U2_FT_OP_DIRECT:
+        res = true;
+        break;
+
+      case R2U2_FT_OP_ATOMIC:
+        // Only load in atomics on first loop of time step
+        res = (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
+        break;
+
+      case R2U2_FT_OP_SUBFORMULA:
+        source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
+        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
+
+        if (n==0) {
+          rd_ptr = &(source_scq->rd_ptr);
+        } else {
+          rd_ptr = &(source_scq->rd_ptr2);
+        }
+
+        res = !r2u2_scq_is_empty(target_scq, rd_ptr, &(source_scq->desired_time_stamp));
+        break;
+
+      case R2U2_FT_OP_NOT_SET:
+          // TODO(bckempa): This should set R2U2 error?
+          res = false;
+          break;
+    }
+
+    return res;
+}
+
+static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
+
+    r2u2_verdict res;
+    r2u2_time *rd_ptr;
+    r2u2_mltl_operand_t *op;
+    r2u2_scq_t *source_scq, *target_scq;
+
+    #if R2U2_DEBUG
+      // TODO(bckempa): Debug build bounds checking
+      // assert();
+    #endif
+    if (n == 0) {
+      op = &(instr->op1);
+    } else {
+      op = &(instr->op2);
+    }
+
+    switch (op->opnd_type) {
+      case R2U2_FT_OP_DIRECT:
+          res = (r2u2_verdict){op->value, monitor->time_stamp};
+          break;
+
+      case R2U2_FT_OP_ATOMIC:
+          // TODO(bckempa) This might remove the need for load...
+          res = (r2u2_verdict){(*(monitor->atomic_buffer[0]))[op->value], monitor->time_stamp};
+          break;
+
+      case R2U2_FT_OP_SUBFORMULA:
+        source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
+        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
+
+        if (n==0) {
+          rd_ptr = &(source_scq->rd_ptr);
+        } else {
+          rd_ptr = &(source_scq->rd_ptr2);
+        }
+
+        res = r2u2_scq_pop(target_scq, rd_ptr);
+        break;
+
+      case R2U2_FT_OP_NOT_SET:
+          // TODO(bckempa): This should set R2U2 error?
+          res = (r2u2_verdict){0};
+          break;
+    }
+
+    return res;
+}
+
+static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_verdict *res) {
+  // Pushes result to SCQ, sets tau and flags progress if nedded
+  r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
+
+  r2u2_scq_push(scq, res);
+
+  scq->desired_time_stamp = (res->time)+1;
+
+  // TODO(bckempa): Inline or macro this
+  if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+
+  return R2U2_OK;
+}
+
+r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
+
+  r2u2_verdict op0, op1, res;
+  r2u2_status_t error_cond;
+  r2u2_bool op0_rdy, op1_rdy;
+
+  r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
+
+  switch (instr->opcode) {
+    case R2U2_MLTL_OP_FT_NOP: {
+      R2U2_DEBUG_PRINT("\tFT NOP\n");
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_CONFIGURE: {
+      R2U2_DEBUG_PRINT("\tFT Configure\n");
+
+      // Configuration store target SCQ index in first operand instead
+      scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
+
+      switch (instr->op2.opnd_type) {
+        case R2U2_FT_OP_DIRECT: {
+          scq->length = instr->op2.value;
+          r2u2_verdict *elements = ((r2u2_verdict*)(*(monitor->future_time_queue_mem)));
+          // TODO(bckempa): need better sizing of array extents when switch elements
+          // TODO(bckempa): ANSAN requires offset due to global layout shadow, fix and remove "+ 50"
+          scq->queue = &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + 50)]);
+          R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %d\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, scq->queue);
+
+          // Rise/Fall edge detection initialization
+          switch (instr->opcode) {
+            case R2U2_MLTL_OP_FT_GLOBALLY:
+                scq->previous = (r2u2_verdict) { false, -1 };
+                break;
+            case R2U2_MLTL_OP_FT_UNTIL:
+                scq->previous = (r2u2_verdict) { true, -1 };
+                break;
+            default:
+                scq->previous = (r2u2_verdict) { true, 0 };
+          }
+
+          break;
+        }
+        case R2U2_FT_OP_ATOMIC: {
+          // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
+          if (instr->op2.value) {
+            scq->interval_end = (r2u2_time) instr->memory_reference;
+          } else {
+            scq->interval_start = (r2u2_time) instr->memory_reference;
+          }
+          break;
+        }
+        default: {
+          break;
+        }
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_LOAD: {
+      R2U2_DEBUG_PRINT("\tFT LOAD\n");
+
+      if (operand_data_ready(monitor, instr, 0)) {
+        res = get_operand(monitor, instr, 0);
+        push_result(monitor, instr, &res);
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_RETURN: {
+      R2U2_DEBUG_PRINT("\tFT RETURN\n");
+
+      if (operand_data_ready(monitor, instr, 0)) {
+        res = get_operand(monitor, instr, 0);
+        scq->desired_time_stamp = (res.time)+1;
+
+        if (monitor->out_file != NULL) {
+          fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2.value, res.time, res.truth ? "T" : "F");
+        }
+
+        if (monitor->out_func != NULL) {
+          // TODO(bckempa): Use callback once signiture is set
+        }
+
+        if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+
+    case R2U2_MLTL_OP_FT_EVENTUALLY: {
+      R2U2_DEBUG_PRINT("\tFT EVENTUALLY\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_GLOBALLY: {
+      R2U2_DEBUG_PRINT("\tFT GLOBALLY\n");
+
+      if (operand_data_ready(monitor, instr, 0)) {
+        op0 = get_operand(monitor, instr, 0);
+
+        // We only need to see every timesetp once, even if we don't output
+        scq->desired_time_stamp = (op0.time)+1;
+
+        // interval compression aware rising edge detection
+        if(op0.truth && !scq->previous.truth) {
+          scq->edge = scq->previous.time + 1;
+        }
+
+        if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
+          res = (r2u2_verdict){true, op0.time - scq->interval_end};
+          r2u2_scq_push(scq, &res);
+          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+        } else if (op0.time >= scq->interval_start) {
+          res = (r2u2_verdict){false, op0.time - scq->interval_start};
+          r2u2_scq_push(scq, &res);
+          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+        }
+
+        scq->previous = op0;
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_UNTIL: {
+      R2U2_DEBUG_PRINT("\tFT UNTIL\n");
+
+      if (operand_data_ready(monitor, instr, 0) && operand_data_ready(monitor, instr, 1)) {
+        op0 = get_operand(monitor, instr, 0);
+        op1 = get_operand(monitor, instr, 1);
+        r2u2_time tau = min(op0.time, op1.time);
+
+        // We need to see every timesetp as an op0 op1 pair
+        scq->desired_time_stamp = tau+1;
+
+        // interval compression aware falling edge detection on op1
+        if(!op1.truth && scq->previous.truth) {
+          // TODO(bckempa): Not clear why this isn't stil pre.time+1
+          scq->edge = scq->previous.time;
+        }
+
+        if (op1.truth) {
+          res = (r2u2_verdict){true, tau - scq->interval_start};
+          // TODO(bckempa): Factor this out, we're avoiding signed comparisons
+          if (res.time >= scq->max_out) {
+            r2u2_scq_push(scq, &res);
+            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+            scq->max_out = res.time +1;
+          }
+        } else if (!op0.truth) {
+          res = (r2u2_verdict){false, tau - scq->interval_start};
+          if (res.time >= scq->max_out) {
+            r2u2_scq_push(scq, &res);
+            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+            scq->max_out = res.time +1;
+          }
+        } else if (tau >= scq->interval_end - scq->interval_start + scq->edge) {
+          res = (r2u2_verdict){false, tau - scq->interval_end};
+          if (res.time >= scq->max_out) {
+            r2u2_scq_push(scq, &res);
+            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+            scq->max_out = res.time +1;
+          }
+        }
+
+        scq->previous = op1;
+
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_RELEASE: {
+      R2U2_DEBUG_PRINT("\tFT RELEASE\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+
+    case R2U2_MLTL_OP_FT_NOT: {
+      R2U2_DEBUG_PRINT("\tFT NOT\n");
+
+      if (operand_data_ready(monitor, instr, 0)) {
+        res = get_operand(monitor, instr, 0);
+        push_result(monitor, instr, &(r2u2_verdict){!res.truth, res.time});
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_AND: {
+      R2U2_DEBUG_PRINT("\tFT AND\n");
+
+      op0_rdy = operand_data_ready(monitor, instr, 0);
+      op1_rdy = operand_data_ready(monitor, instr, 1);
+
+      if (op0_rdy && op1_rdy) {
+        op0 = get_operand(monitor, instr, 0);
+        op1 = get_operand(monitor, instr, 1);
+        if (op0.truth && op1.truth){
+          push_result(monitor, instr, &(r2u2_verdict){true, min(op0.time, op1.time)});
+        } else if (!op0.truth && !op1.truth) {
+          push_result(monitor, instr, &(r2u2_verdict){false, max(op0.time, op1.time)});
+        } else if (op0.truth) {
+          push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
+        } else {
+          push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
+        }
+      } else if (op0_rdy) {
+        op0 = get_operand(monitor, instr, 0);
+        if(!op0.truth) {
+          push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
+        }
+      } else if (op1_rdy) {
+        op1 = get_operand(monitor, instr, 1);
+        if(!op1.truth) {
+          push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
+        }
+      }
+
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_OR: {
+      R2U2_DEBUG_PRINT("\tFT OR\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_IMPLIES: {
+      R2U2_DEBUG_PRINT("\tFT IMPLIES\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+
+    case R2U2_MLTL_OP_FT_NAND: {
+      R2U2_DEBUG_PRINT("\tFT NAND\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_NOR: {
+      R2U2_DEBUG_PRINT("\tFT NOR\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_XOR: {
+      R2U2_DEBUG_PRINT("\tFT XOR\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_EQUIVALENT: {
+      R2U2_DEBUG_PRINT("\tFT EQUIVALENT\n");
+      error_cond = R2U2_UNIMPL;
+      break;
+    }
+    default: {
+      // Somehow got into wrong tense dispatch
+      error_cond = R2U2_INVALID_INST;
+      break;
+    }
+  }
+
+  return error_cond;
+}

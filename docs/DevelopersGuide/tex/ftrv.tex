@@ -1,0 +1,40 @@
+\chapter{Mission-Time Linear Temporal Logic}
+\addcontentsline{toc}{chapter}{Future Time Runtime Verification}
+\markboth{Mission-Time Linear Temporal Logic}{ft-RV}
+
+\section{Definition of Future Time Runtime Verification}
+
+
+\subsection{Mission-Time Linear Temporal Logic} Mission-Time Linear Temporal Logic (MLTL) \cite{r2u2} is future-time specification logic resembling Linear Temporal Logic, with finite integer bounds on the temporal operators.
+An (closed) interval over naturals $I = [a, b]$ ($0\leq a\leq b$ are natural numbers) is a set of naturals
+$\{i\ |\ a\leq i\leq b\}$.
+%$I$ is \emph{bounded} iff $b < +\infty$, otherwise $I$ is \emph{unbounded}.
+%\mltl involves only bounded intervals.
+Unlike the Metric Temporal Logic (\textsf{MTL}) in \cite{AH94a}, it is not necessary to introduce open or half-open intervals over the natural domain; every open or half-open bounded interval corresponds to an equivalent closed bounded interval, e.g. (1,2) = $\emptyset$, (1,3) = [2,2], (1,3] = [2,3] and etc. Let $\mathcal{P}$ be a set of propositions, the syntax of a formula in Mission-time LTL (abbreviated as \mltl) is as follows.
+\begin{center}
+   	$\phi ::= \tt\ |\ \ff\ |\ p\ |\ \neg\phi\ |\ \phi\wedge\phi\ |\ \phi \U_I\phi\ |\ \phi \R_I\phi$;
+\end{center}
+%
+where $I$ is a bounded interval, and $p\in\mathcal{P}$ is called an atom.
+%We call $l$ is a \emph{literal} if $l$ is an atom or the negation of an atom.
+The Until ($\U$) and Release ($\R$) are two temporal operators in \mltl.
+Specially, we denote $F_I\phi$ to be $\tt$ $\U_I \phi$ (or $\Diamond_I \phi$) and $G_I\phi$ (or $\Box_I \phi$) to be $\ff$ $\mathcal{R}_I\phi$.
+Notably, \mltl omits the Next (X) operator, which is essential in \ltl, due to the fact that
+every Next formula $X\phi$ can be replaced by $G_{[1,1]}\phi$.
+
+The semantics of \mltl formulas is interpreted over finite traces.
+Let $\xi$ be a finite trace in which every point $\xi[i] (i\geq 0)$ is over $2^{\mathcal{P}}$, and $|\xi|$ denotes the length of
+$\xi$ ($|\xi|<+\infty$ when
+$\xi$ is a finite trace).
+We use $\xi_i (i\geq 0)$ to represent the suffix of $\xi$ starting from position $i$ (including $i$). In particular, $\xi_i = \emptyset$ if $i\geq |\xi|$.
+Now we define $\xi$ models (satisfies) an \mltl formula $\phi$, denoted as $\xi\models \phi$, as follows:
+
+\begin{itemize}
+	\item $\xi\models p$ iff $p\in\xi[0]$;
+    \item $\xi\models \neg \phi$ iff $\xi\not\models\phi$;
+    \item $\xi\models\phi_1\wedge\phi_2$ iff $\xi\models\phi_1$ and $\xi\models\phi_2$;
+    \item $\xi\models \phi_1\U_I\phi_2$ iff there exists $i\in I$ such that, $\xi_i\models\phi_2$ and for every $j\in I$ s.t. $j<i$ it holds that $\xi_j\models\phi_1$;
+    \item $\xi\models \phi_1\mathcal{R}_I\phi_2$ iff for every $i\in I$, either  $\xi_i\models\phi_2$ holds or there exists $j\in I$ and $j < i$ such that $\xi_j\models\phi_1$.
+\end{itemize}
+
+\subsection{From Gaped Results to Continued}

@@ -1,0 +1,12 @@
+# Example 10
+# -----------------------------------------------------------------------------
+# In this example we utilize the assume guarantee contract reporting capability.
+#
+# This capaiblity will report the status of whether each contract is active,
+# inactive, valid, or invalid.
+#
+# We can also optionally label our contracts.
+# -----------------------------------------------------------------------------
+
+a0 => a1;
+Contract2: (a2 & a3) => a4;
