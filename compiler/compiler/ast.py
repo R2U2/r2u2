@@ -1,7 +1,7 @@
 from __future__ import annotations
 from ast import Continue
 from copy import deepcopy
-from typing import Any, Callable, NamedTuple, NewType, cast
+from typing import Any, Dict, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
 from .logger import *
@@ -13,7 +13,7 @@ class Interval(NamedTuple):
     lb: int
     ub: int
 
-StructDict = NewType("StructDict", dict[str, dict[str, Type]])
+StructDict = NewType("StructDict", Dict[str, Dict[str, Type]])
 
 
 def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
@@ -428,13 +428,13 @@ class Set(Node):
 
 class Struct(Node):
 
-    def __init__(self, ln: int, n: str, m: dict[str, Node]) -> None:
+    def __init__(self, ln: int, n: str, m: Dict[str, Node]) -> None:
         super().__init__(ln, [mem for mem in m.values()])
         self.type: Type = STRUCT(n)
         self.name: str = n
-        self.members: dict[str, Node] = m
+        self.members: Dict[str, Node] = m
 
-    def get_members(self) -> dict[str, Node]:
+    def get_members(self) -> Dict[str, Node]:
         return self.members
 
     def __deepcopy__(self, memo):
@@ -1200,19 +1200,19 @@ class SpecificationSet(TLInstruction):
 
 class Program(Node):
 
-    def __init__(self, ln: int, st: StructDict, a: dict[str, Node], fts: SpecificationSet, pts: SpecificationSet) -> None:
+    def __init__(self, ln: int, st: StructDict, a: Dict[str, Node], fts: SpecificationSet, pts: SpecificationSet) -> None:
         super().__init__(ln, [fts, pts])
 
         # Data
         self.timestamp_width: int = 0
         self.structs: StructDict = st
-        self.atomics: dict[str, Node] = a
+        self.atomics: Dict[str, Node] = a
         self.ft_spec_set: SpecificationSet = fts
         self.pt_spec_set: SpecificationSet = pts
         self.assembly: list[Instruction] = []
         self.scq_assembly: list[tuple[int,int]] = []
-        self.signal_mapping: dict[str,int] = {}
-        self.contracts: dict[str,tuple[int,int,int]] = {}
+        self.signal_mapping: Dict[str,int] = {}
+        self.contracts: Dict[str,tuple[int,int,int]] = {}
 
         # Computable properties
         self.total_memory: int = -1

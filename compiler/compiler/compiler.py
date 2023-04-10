@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Dict, List, Tuple
 from argparse import PARSER
 import inspect
 import sys
@@ -44,31 +46,31 @@ class ReturnCode(Enum):
 instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
-default_cpu_latency_table: dict[str, int] = { name:10 for (name,value) in 
+default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
     inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
             obj != BZInstruction) }
 
-default_fpga_latency_table: dict[str, tuple[float,float]] = { name:(10.0,10.0) for (name,value) in 
+default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
     inspect.getmembers(sys.modules["compiler.ast"], 
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and 
             obj != Instruction and 
             obj != TLInstruction and 
             obj != BZInstruction) }
 
-at_filter_table: dict[str, tuple[Type, list[Type]]] = {
+at_filter_table: Dict[str, Tuple[Type, List[Type]]] = {
     "rate": (FLOAT(), [FLOAT()])
 }
 
 
-def parse_signals(filename: str) -> dict[str,int]:
-    mapping: dict[str,int] = {}
+def parse_signals(filename: str) -> Dict[str,int]:
+    mapping: Dict[str,int] = {}
     if re.match(".*\\.csv",filename):
         with open(filename,"r") as f:
             text: str = f.read()
-            lines: list[str] = text.splitlines()
+            lines: List[str] = text.splitlines()
             if len(lines) < 1:
                 logger.error(f" Not enough data in file '{filename}'")
                 return {}
@@ -96,8 +98,8 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
         - All descendants of program have a valid Type (i.e., none are NOTYPE)
     """
     status: bool = True
-    explored: list[Node] = []
-    context: dict[str,Type] = {}
+    explored: List[Node] = []
+    context: Dict[str,Type] = {}
     st: StructDict = program.structs
     formula_type: FormulaType = FormulaType.PROP
 
@@ -317,7 +319,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             rhs: Node = node.get_rhs()
 
             filter: str = ""
-            filter_args: list[Node] = []
+            filter_args: List[Node] = []
 
             # type check left-hand side
             if isinstance(lhs, Function):
@@ -414,7 +416,7 @@ def compute_scq_size(node: Node) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
     """
-    visited: list[int] = []
+    visited: List[int] = []
     total: int = 0
 
     def compute_scq_size_util(node: Node) -> None:
@@ -1012,7 +1014,7 @@ def optimize_cse(program: Program) -> None:
         logger.error(f' Program must be type checked before CSE.')
         return
 
-    S: dict[str, Node]
+    S: Dict[str, Node]
     
     def optimize_cse_util(node: Node) -> None:
         nonlocal S
@@ -1058,7 +1060,7 @@ def generate_alias(program: Program) -> str:
     return s
 
 
-def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruction], list[Instruction], list[Instruction]]:
+def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruction], List[Instruction], List[Instruction]]:
     formula_type: FormulaType
     tlid: int = 0
     atid: int = 0
@@ -1119,8 +1121,8 @@ def generate_assembly(program: Program) -> tuple[list[Instruction], list[Instruc
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
-def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
-    ret: list[tuple[int,int]] = []
+def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
+    ret: List[Tuple[int,int]] = []
     pos: int = 0
 
     compute_scq_size(program.get_ft_specs())
@@ -1143,7 +1145,7 @@ def generate_scq_assembly(program: Program) -> list[tuple[int,int]]:
     return ret
 
 
-def compute_cpu_wcet(program: Program, latency_table: dict[str, int], clk: int) -> int:
+def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: int) -> int:
     """
     Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
 
@@ -1172,7 +1174,7 @@ def compute_cpu_wcet(program: Program, latency_table: dict[str, int], clk: int) 
     return wcet
 
 
-def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, float]], clk: float) -> float:
+def compute_fpga_wcet(program: Program, latency_table: Dict[str, Tuple[float, float]], clk: float) -> float:
     """
     Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
 
@@ -1205,7 +1207,7 @@ def compute_fpga_wcet(program: Program, latency_table: dict[str, tuple[float, fl
 def parse(input: str) -> Program|None:
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
-    specs: dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
+    specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
 
     if not parser.status:
         return None
@@ -1283,7 +1285,7 @@ def compile(
 
     # generate assembly
     (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
-    scq_asm: list[tuple[int,int]] = generate_scq_assembly(program)
+    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
     # print asm if 'quiet' option not enabled
     if not quiet:
