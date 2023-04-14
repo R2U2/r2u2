@@ -49,7 +49,7 @@ typedef struct {
 
 } r2u2_monitor_t;
 
-// Shortcut for getting a montior of predefined extents
+// Shortcut for getting a monitor of predefined extents
 // Should only be used at file scope because:
 //  1) C99 compound literals are used for memory domains and adopt enclosing scope
 //     unless at file scope, where they get static lifetime

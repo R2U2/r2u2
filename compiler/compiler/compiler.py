@@ -1061,7 +1061,7 @@ def generate_aliases(program: Program) -> List[str]:
     return s
 
 
-def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruction], List[Instruction], List[Instruction]]:
+def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
     formula_type: FormulaType
     tlid: int = 0
     atid: int = 0
@@ -1111,8 +1111,8 @@ def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruc
                     pt_asm.append(node)
             if node.atid > -1 and isinstance(node, BZInstruction):
                 bz_asm.append(node)
-        else:
-            logger.critical(f" Internal error, invalid node type for assembly generation (found '{type(node)}').")
+        elif not isinstance(node, Bool):
+            logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
 
     postorder_iterative(program.get_ft_specs(), assign_ids)
     tlid = 0

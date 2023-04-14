@@ -3,11 +3,11 @@
 
 #include "internals/types.h"
 
-// Insturction memeory is a large data blob, to avoid parsing the varible
+// Instruction memory is a large data blob, to avoid parsing the variable
 // width sections each time, we can cache a {tag, ptr} program table
 
 typedef struct {
-  // To avoid the chicken-and-egg stand-up of the execution engines and inst memrory,
+  // To avoid the chicken-and-egg stand-up of the execution engines and inst memory,
   // and to allow plugin compilation of engines, we use an int instead of enum for the engine tag here
   // C99 section 6.7.2.2 §2: "The expression that defines the value of an enumeration constant shall be an integer constant expression that has a value representable as an int."
   int engine_tag;
