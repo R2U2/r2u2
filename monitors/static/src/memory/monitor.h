@@ -42,6 +42,7 @@ typedef struct {
   // Buffers are already just pairs of pointers, so we use those directly
   // TODO(bckempa): Can that be more transparent/ergonomic?
   r2u2_signal_vector_t    *signal_vector;
+  r2u2_value_buffer_t     *value_buffer;
   r2u2_atomic_buffer_t    atomic_buffer;
   r2u2_atomic_buffer_t    past_time_result_buffer;
   r2u2_box_queue_memory_t *past_time_queue_mem;
@@ -63,6 +64,7 @@ typedef struct {
     &(r2u2_instruction_t [R2U2_MAX_INSTRUCTIONS]){0}, \
     NULL, NULL, \
     &(void*[R2U2_MAX_SIGNALS]){0}, \
+    &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     &(uint8_t [R2U2_MAX_BOXQ_BYTES]){0}, \

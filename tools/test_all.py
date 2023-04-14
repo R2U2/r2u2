@@ -30,10 +30,10 @@ def print_test_fail(filename: str) -> None:
     print(filename + ": " + Color.RED + "FAIL" + Color.ENDC)
 
 def run_with_booleanizer(filename: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["python","r2u2prep.py","--booleanizer",filename,INPUT_FILE],capture_output=True,text=True)
+    return subprocess.run(["r2u2env/bin/python3.10","r2u2prep.py","--booleanizer",filename,INPUT_FILE],capture_output=True,text=True)
 
 def run_without_booleanizer(filename: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["python","r2u2prep.py",filename,INPUT_FILE],capture_output=True,text=True)
+    return subprocess.run(["r2u2env/bin/python3.10","r2u2prep.py",filename,INPUT_FILE],capture_output=True,text=True)
 
 def test_files(files: list[str], bz: bool, ret_code: int) -> bool:
     status = True
