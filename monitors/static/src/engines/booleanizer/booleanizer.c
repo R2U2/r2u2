@@ -11,13 +11,12 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
     switch(instr->opcode) {
         case R2U2_BZ_OP_NONE: 
             break;
-        case R2U2_BZ_OP_STORE:
-            (*(monitor->atomic_buffer)[0])[instr->param.bz_int] = (*monitor->value_buffer)[instr->addr].b;
-            break;
         /* Load */
         case R2U2_BZ_OP_ILOAD:
             sscanf((*(monitor->signal_vector))[instr->param.bz_int], "%d", &i1);
             (*monitor->value_buffer)[instr->addr].i = i1;
+            R2U2_DEBUG_PRINT("\tBZ LOAD\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d (b%d)\n", instr->addr, i1, instr->param.bz_int);
             break;
         case R2U2_BZ_OP_FLOAD:
             sscanf((*(monitor->signal_vector))[instr->param.bz_int], "%f", &f1);
@@ -78,6 +77,11 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[instr->param.bz_addr[1]].i;
             b = i1 > i2;
             (*monitor->value_buffer)[instr->addr].b = b;
+            R2U2_DEBUG_PRINT("\tBZ GT\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d > %d (b%d > b%d)\n", instr->addr, 
+                (*monitor->value_buffer)[instr->param.bz_addr[0]].i, 
+                (*monitor->value_buffer)[instr->param.bz_addr[1]].i,
+                instr->param.bz_addr[0], instr->param.bz_addr[1]);
             break;
         case R2U2_BZ_OP_FGT:
             f1 = (*monitor->value_buffer)[instr->param.bz_addr[0]].f;
@@ -176,6 +180,11 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             break;
         default:
             break;
+    }
+
+    if(instr->store) {
+        monitor->atomic_buffer[instr->at_addr] = &(*monitor->value_buffer)[instr->addr].b;
+        R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", instr->at_addr, (*monitor->value_buffer)[instr->addr].b, instr->addr);
     }
 
     return R2U2_OK;

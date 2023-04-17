@@ -6,6 +6,7 @@
 
 #include "engines/engines.h"
 #include "engines/atomic_checker/atomic_checker.h"
+#include "engines/booleanizer/booleanizer.h"
 #include "engines/mltl/mltl.h"
 
 #include "memory/register.h" // For buffer flip
@@ -28,12 +29,14 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
           case R2U2_MONITOR_PROGRESS_FIRST_LOOP: {
             // First pass complete, rerun program counter to check for progress
             monitor->prog_count = 0;
+            R2U2_DEBUG_PRINT("Resetting prog_count 1\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
             break;
           }
           case R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS: {
             // Progress made this loop, rerun program counter
             monitor->prog_count = 0;
+            R2U2_DEBUG_PRINT("Resetting prog_count 2\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
             break;
           }
@@ -70,6 +73,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
             // Update Vector Clock for next timestep
             monitor->time_stamp++;
             monitor->prog_count = 0;
+            R2U2_DEBUG_PRINT("Resetting prog_count 3\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
             break;
           }
@@ -103,8 +107,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
         break;
       }
       case R2U2_ENG_BZ: {
-        R2U2_DEBUG_PRINT("Got BZ Inst\n");
-        error_cond = R2U2_OK;
+        error_cond = r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
         break;
       }
       default: {

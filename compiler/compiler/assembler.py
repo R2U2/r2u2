@@ -15,36 +15,35 @@ class ENGINE_TAGS(Enum):
 
 class BZOpcode(Enum):
     NONE    = 0b000000
-    STORE   = 0b000001
-    ILOAD   = 0b000010
-    FLOAD   = 0b000011
-    ICONST  = 0b000100
-    FCONST  = 0b000101
-    BWNEG   = 0b000110
-    BWAND   = 0b000111
-    BWOR    = 0b001000
-    BWXOR   = 0b001001
-    IEQ     = 0b001010
-    FEQ     = 0b001011
-    INEQ    = 0b001100
-    FNEQ    = 0b001101
-    IGT     = 0b001110
-    FGT     = 0b001111
-    IGTE    = 0b010000
-    ILT     = 0b010010
-    FLT     = 0b010011
-    ILTE    = 0b010100
-    INEG    = 0b010110
-    FNEG    = 0b010111
-    IADD    = 0b011000
-    FADD    = 0b011001
-    ISUB    = 0b011010
-    FSUB    = 0b011011
-    IMUL    = 0b011100
-    FMUL    = 0b011101
-    IDIV    = 0b011110
-    FDIV    = 0b011111
-    MOD     = 0b100000
+    ILOAD   = 0b000001
+    FLOAD   = 0b000010
+    ICONST  = 0b000011
+    FCONST  = 0b000100
+    BWNEG   = 0b000101
+    BWAND   = 0b000110
+    BWOR    = 0b000111
+    BWXOR   = 0b001000
+    IEQ     = 0b001001
+    FEQ     = 0b001010
+    INEQ    = 0b001011
+    FNEQ    = 0b001100
+    IGT     = 0b001101
+    FGT     = 0b001110
+    IGTE    = 0b001111
+    ILT     = 0b010000
+    FLT     = 0b010001
+    ILTE    = 0b010010
+    INEG    = 0b010011
+    FNEG    = 0b010100
+    IADD    = 0b010101
+    FADD    = 0b010110
+    ISUB    = 0b010111
+    FSUB    = 0b011000
+    IMUL    = 0b011001
+    FMUL    = 0b011010
+    IDIV    = 0b011011
+    FDIV    = 0b011100
+    MOD     = 0b011101
 
 class ATCond(Enum):
     EQ  = 0b000
@@ -96,8 +95,14 @@ class PTOpcode(Enum):
     EQUIVALENT   = 0b00000
 
 
-def assemble_bz(id: int, opcode: BZOpcode, param):
-    pass
+def assemble_bz(bzid: int, opcode: BZOpcode, param1: bytes, param2: bytes|None, store_at: bool, atid: int) -> bytes:
+    if param2 is None:
+        bz_instruction = cStruct("iiBB4sxxxx")
+        return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1)
+    else:
+        bz_instruction = cStruct("iiBB4s4s")
+        return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
+
 
 
 def assemble_at(conditional: ATCond, filter: ATFilter, sig_addr: int, atom_addr: int, comp_is_sig: bool, comparison: bytes):
@@ -188,8 +193,26 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             raise NotImplementedError
     # end atasm
 
+
+    for instr in bzasm:
+        if isinstance(instr, Signal):
+            if is_integer_type(instr.type):
+                param = cStruct("B").pack(instr.sid)
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, param, None, instr.atid > -1, instr.atid))
+            elif is_float_type(instr.type):
+                param = cStruct("B").pack(instr.sid)
+                rtm_instrs.append(assemble_bz(instr.bzid, BZOpcode.FLOAD, param, None, instr.atid > -1, instr.atid))
+            else:
+                raise NotImplementedError
+        elif isinstance(instr, GreaterThan):
+            param1 = cStruct("B").pack(instr.get_lhs().bzid)
+            param2 = cStruct("B").pack(instr.get_rhs().bzid)
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, param1, param2, instr.atid > -1, instr.atid))
+
+
     for instr in ftasm:
-        if isinstance(instr, Atomic):  # Load
+        if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.tlid))
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().tlid), (TLOperandType.DIRECT, instr.formula_number), instr.tlid))

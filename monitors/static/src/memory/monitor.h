@@ -5,6 +5,7 @@
 
 // A "Header-only" library, contains modification functions for associated type
 #include "internals/types.h"
+#include "internals/debug.h"
 
 #include "memory/instruction.h"
 #include "memory/register.h"

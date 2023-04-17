@@ -226,11 +226,8 @@ class BZInstruction(Instruction):
     def bz_asm(self) -> str:
         s = f"{self.bzid_str()} {self.name} "
         for child in self.get_children():
-            if isinstance(child, TLInstruction):
-                s += f"{child.tlid_str()} "
-            else:
-                s += f"{child.bzid_str()} "
-        s += f" {self.atid_str()}" if self.atid >= 0 else ""
+            s += f"{child.bzid_str()} "
+        s += f"{self.atid_str()}" if self.atid >= 0 else ""
         return s
 
 
@@ -357,7 +354,7 @@ class Signal(Literal, TLInstruction, BZInstruction):
         return copy
 
     def tl_asm(self) -> str:
-        return f"{self.tlid_str()} load a{self.sid}"
+        return f"{self.tlid_str()} load {self.atid_str()}"
     
     def bz_asm(self) -> str:
         s = f"{self.bzid_str()} load s{self.sid}"

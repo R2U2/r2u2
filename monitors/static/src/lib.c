@@ -59,6 +59,7 @@ r2u2_status_t r2u2_step(r2u2_monitor_t *monitor){
 
   err_cond = r2u2_instruction_dispatch(monitor);
   monitor->prog_count++;
+  R2U2_DEBUG_PRINT("Incrementing prog_count\n");
 
   return err_cond;
 }

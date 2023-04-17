@@ -1062,7 +1062,7 @@ def generate_aliases(program: Program) -> List[str]:
     return s
 
 
-def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
+def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
     formula_type: FormulaType
     tlid: int = 0
     bzid: int = 0
@@ -1076,7 +1076,7 @@ def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLIns
     def assign_ids(node: Node) -> None:
         nonlocal tlid, bzid, atid
 
-        if isinstance(node, TLInstruction):
+        if isinstance(node, TLInstruction) and not (isinstance(node, Signal) and bz):
             for child in node.get_children():
                 if isinstance(child, BZInstruction):
                     if child.tlid < 0:
@@ -1132,6 +1132,7 @@ def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLIns
     for at_instr in program.atomics.values():
         at_asm.append(at_instr)
 
+    at_asm.sort(key=lambda n: n.atid)
     bz_asm.sort(key=lambda n: n.bzid)
     ft_asm.sort(key=lambda n: n.tlid)
     pt_asm.sort(key=lambda n: n.tlid)
@@ -1316,7 +1317,7 @@ def compile(
     aliases = generate_aliases(program)
 
     # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
+    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
     scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
     # print asm if 'quiet' option not enabled
