@@ -5,6 +5,7 @@ import inspect
 import sys
 import re
 from logging import getLogger
+from typing_extensions import Self
 # from time import perf_counter
 
 from .logger import *
@@ -1028,7 +1029,7 @@ def optimize_cse(program: Program) -> None:
     S = {}
     postorder_iterative(program.get_ft_specs(), optimize_cse_util)
 
-    S = {}
+    S = {k:v for (k,v) in S.items() if isinstance(v, BZInstruction)}
     postorder_iterative(program.get_pt_specs(), optimize_cse_util)
 
     program.is_cse_reduced = True
@@ -1064,6 +1065,7 @@ def generate_aliases(program: Program) -> List[str]:
 def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
     formula_type: FormulaType
     tlid: int = 0
+    bzid: int = 0
     atid: int = 0
 
     ft_asm = []
@@ -1072,20 +1074,24 @@ def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLIns
     at_asm = []
 
     def assign_ids(node: Node) -> None:
-        nonlocal tlid, atid
+        nonlocal tlid, bzid, atid
 
         if isinstance(node, TLInstruction):
             for child in node.get_children():
-                if isinstance(child, BZInstruction) and child.tlid < 0:
-                    child.tlid = tlid
-                    tlid += 1
+                if isinstance(child, BZInstruction):
+                    if child.tlid < 0:
+                        child.tlid = tlid
+                        tlid += 1
+                    if child.atid < 0:
+                        child.atid = atid
+                        atid += 1
 
             node.tlid = tlid
             tlid += 1
 
-        if isinstance(node, BZInstruction):
-            node.atid = atid
-            atid += 1
+        if isinstance(node, BZInstruction) and node.bzid < 0:
+            node.bzid = bzid
+            bzid += 1
 
         if isinstance(node, Atomic):
             # Retrieve cached atomic number from program.atomics, assign from
@@ -1109,7 +1115,7 @@ def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLIns
                     ft_asm.append(node)
                 else:
                     pt_asm.append(node)
-            if node.atid > -1 and isinstance(node, BZInstruction):
+            if node.bzid > -1 and not node in bz_asm:
                 bz_asm.append(node)
         elif not isinstance(node, Bool):
             logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
@@ -1125,6 +1131,10 @@ def generate_assembly(program: Program) -> Tuple[List[TLInstruction], List[TLIns
 
     for at_instr in program.atomics.values():
         at_asm.append(at_instr)
+
+    bz_asm.sort(key=lambda n: n.bzid)
+    ft_asm.sort(key=lambda n: n.tlid)
+    pt_asm.sort(key=lambda n: n.tlid)
 
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
@@ -1250,10 +1260,24 @@ def compile(
     color: bool = True,
     quiet: bool = False
 ) -> int:
-    """Compiles a C2PO input file and outputs generated R2U2 assembly/binaries"""
-    INT.width = int_width
-    INT.is_signed = int_signed
-    FLOAT.width = float_width
+    """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
+    
+    Args:
+        input_filename: Name of a C2PO input file.
+        signals_filename: Name of a csv trace file or C2PO signals file.
+        output_path: Path where the binary file will be outputted.
+        impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'. 
+        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64.
+        int_signed: If true sets INT type to signed. 
+        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64.
+        cse: If true performs Common Subexpression Elimination.
+        at: If true enables and outputs Atomic Checker instructions.
+        bz: If true enables and outputs Booleanizer instructions.
+        extops: If true enables TL extended operators.
+        color: If true enables color in logging output.
+        quiet: If true disables assembly output.
+    """
+    set_types(int_width, int_signed, float_width)
 
     if bz and at:
         logger.error(f" Only one of AT and BZ can be enabled")

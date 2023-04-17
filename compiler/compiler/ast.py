@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import Continue
 from copy import deepcopy
 from typing import Any, Dict, Callable, NamedTuple, NewType, cast
 from logging import getLogger
@@ -17,7 +16,7 @@ StructDict = NewType("StructDict", Dict[str, Dict[str, Type]])
 
 
 def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs a postorder traversal of 'node', calling 'func' on each node."""
+    """Perform a postorder traversal of node, calling func on each node."""
     c: Node
     for c in node.get_children():
         postorder_recursive(c, func)
@@ -25,7 +24,7 @@ def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
 
 
 def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs an iterative postorder traversal of 'node', calling 'func' on each node."""
+    """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: list[tuple[bool, Node]] = []
     visited: set[Node] = set()
 
@@ -47,22 +46,15 @@ def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
 
 
 def preorder(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs a preorder traversal of a, calling func on each node. func must not alter the children of its argument node"""
+    """Perform a preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
     c: Node
     func(node)
     for c in node.get_children():
         preorder(c, func)
 
 
-def traverse(a: Node, pre: Callable[[Node], Any], post: Callable[[Node], Any]) -> None:
-    c: Node
-    pre(a)
-    for c in a.get_children():
-        traverse(c, pre, post)
-    post(a)
-
-
 def rename(v: Node, repl: Node, expr: Node) -> Node:
+    """Traverse expr and replace each node equal to v with repl."""
     # Special case: when expr is v
     if expr == v:
         return repl
@@ -91,6 +83,7 @@ class Node():
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
         self.tlid: int = -1
+        self.bzid: int = -1
         self.atid: int = -1
 
         self._children: list[Node] = []
@@ -144,24 +137,25 @@ class Node():
         new.formula_type = self.formula_type
 
     def tl_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'tl_asm'.")
-        return "ERROR"
+        raise NotImplementedError
 
     def bz_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'bz_asm'.")
-        return "ERROR"
+        raise NotImplementedError
 
     def at_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'at_asm'.")
-        return "ERROR"
+        raise NotImplementedError
     
     def tlid_str(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'tlid_str'.")
-        return "ERROR"
+        raise NotImplementedError
+    
+    def bzid_str(self) -> str:
+        raise NotImplementedError
     
     def atid_str(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'atid_str'.")
-        return "ERROR"
+        if self.atid < 0:
+            logger.critical(f" Node '{self}' never assigned atid.")
+            return ""
+        return f"a{self.atid}"
 
     def __str__(self) -> str:
         return self.name
@@ -220,22 +214,23 @@ class BZInstruction(Instruction):
             return ""
         return f"n{self.tlid}"
     
-    def atid_str(self) -> str:
-        if self.atid < 0:
-            logger.critical(f" Node '{self}' never assigned atid.")
+    def bzid_str(self) -> str:
+        if self.bzid < 0:
+            logger.critical(f" Node '{self}' never assigned bzid.")
             return ""
-        return f"a{self.atid}"
+        return f"b{self.bzid}"
     
     def tl_asm(self) -> str:
-        return f"{self.tlid_str()} load a{self.atid}"
+        return f"{self.tlid_str()} load {self.atid_str()}"
  
     def bz_asm(self) -> str:
-        s = f"{self.atid_str()} {self.name} "
+        s = f"{self.bzid_str()} {self.name} "
         for child in self.get_children():
             if isinstance(child, TLInstruction):
                 s += f"{child.tlid_str()} "
             else:
-                s += f"{child.atid_str()} "
+                s += f"{child.bzid_str()} "
+        s += f" {self.atid_str()}" if self.atid >= 0 else ""
         return s
 
 
@@ -365,7 +360,9 @@ class Signal(Literal, TLInstruction, BZInstruction):
         return f"{self.tlid_str()} load a{self.sid}"
     
     def bz_asm(self) -> str:
-        return f"{self.atid_str()} load s{self.sid}"
+        s = f"{self.bzid_str()} load s{self.sid}"
+        s += f" {self.atid_str()}" if self.atid >= 0 else ""
+        return s
     
 
 class Atomic(Literal, TLInstruction):
