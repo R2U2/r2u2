@@ -95,13 +95,9 @@ class PTOpcode(Enum):
     EQUIVALENT   = 0b00000
 
 
-def assemble_bz(bzid: int, opcode: BZOpcode, param1: bytes, param2: bytes|None, store_at: bool, atid: int) -> bytes:
-    if param2 is None:
-        bz_instruction = cStruct("iiBB4sxxxx")
-        return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1)
-    else:
-        bz_instruction = cStruct("iiBB4s4s")
-        return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
+def assemble_bz(bzid: int, opcode: BZOpcode, param1: int, param2: int, store_at: bool, atid: int) -> bytes:
+    bz_instruction = cStruct("iiBBii")
+    return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
 
 
 
@@ -193,22 +189,19 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             raise NotImplementedError
     # end atasm
 
-
+    rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(0, BZOpcode.NONE, 0, 0, False, 0))
     for instr in bzasm:
         if isinstance(instr, Signal):
             if is_integer_type(instr.type):
-                param = cStruct("B").pack(instr.sid)
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, param, None, instr.atid > -1, instr.atid))
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, instr.sid, 0, instr.atid > -1, instr.atid))
             elif is_float_type(instr.type):
-                param = cStruct("B").pack(instr.sid)
-                rtm_instrs.append(assemble_bz(instr.bzid, BZOpcode.FLOAD, param, None, instr.atid > -1, instr.atid))
+                rtm_instrs.append(assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid))
             else:
                 raise NotImplementedError
         elif isinstance(instr, GreaterThan):
-            param1 = cStruct("B").pack(instr.get_lhs().bzid)
-            param2 = cStruct("B").pack(instr.get_rhs().bzid)
+            param2 = cStruct("i").pack(instr.get_rhs().bzid)
             if is_integer_type(instr.get_lhs().type):
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, param1, param2, instr.atid > -1, instr.atid))
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
 
 
     for instr in ftasm:

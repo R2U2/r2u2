@@ -50,7 +50,7 @@ typedef enum r2u2_bz_opcode {
 // (2) a constant int
 // (3) a constant float
 typedef union r2u2_bz_param {
-    uint8_t bz_addr[2];
+    uint8_t bz_addr;
     r2u2_int bz_int;
     r2u2_float bz_float;
 } r2u2_bz_param_t;
@@ -60,7 +60,8 @@ typedef struct r2u2_bz_instruction {
     r2u2_bz_opcode_t opcode;
     uint8_t store;
     uint8_t at_addr;
-    r2u2_bz_param_t param;
+    r2u2_bz_param_t param1;
+    r2u2_bz_param_t param2;
 } r2u2_bz_instruction_t;
 
 r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *, r2u2_bz_instruction_t *);
