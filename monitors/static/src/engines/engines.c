@@ -15,6 +15,8 @@
 
 // TODO(bckempa): This should be refactored to seperate out the raw dispatch
 // case statement for use by immediate commands in binary_load.c
+//
+// Assumption: Program counter points at next instruction to execute
 r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
     r2u2_status_t error_cond;
 
@@ -112,5 +114,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
       }
     }
 
+    // Standard return increments PC, any other action like resets return early
+    monitor->prog_count++;
     return error_cond;
 }
