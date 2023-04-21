@@ -1283,8 +1283,8 @@ def parse(input: str) -> Program|None:
 def compile(
     input_filename: str,
     signals_filename: str,
-    output_path: str = 'config/',
-    impl: str = 'c',
+    output_filename: str = "r2u2_spec.bin",
+    impl: str = "c",
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
@@ -1298,19 +1298,19 @@ def compile(
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
-        input_filename: Name of a C2PO input file.
-        signals_filename: Name of a csv trace file or C2PO signals file.
-        output_path: Path where the binary file will be outputted.
-        impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'. 
-        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64.
-        int_signed: If true sets INT type to signed. 
-        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64.
-        cse: If true performs Common Subexpression Elimination.
-        at: If true enables and outputs Atomic Checker instructions.
-        bz: If true enables and outputs Booleanizer instructions.
-        extops: If true enables TL extended operators.
-        color: If true enables color in logging output.
-        quiet: If true disables assembly output.
+        input_filename: Name of a C2PO input file
+        signals_filename: Name of a csv trace file or C2PO signals file
+        output_filename: Name of binary output file
+        impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'
+        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
+        int_signed: If true sets INT type to signed
+        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
+        cse: If true performs Common Subexpression Elimination
+        at: If true enables and outputs Atomic Checker instructions
+        bz: If true enables and outputs Booleanizer instructions
+        extops: If true enables TL extended operators
+        color: If true enables color in logging output
+        quiet: If true disables assembly output
     """
     set_types(int_width, int_signed, float_width)
 
@@ -1381,7 +1381,7 @@ def compile(
         for a in aliases:
             print(f"\t{a}")
 
-    assemble(output_path + 'r2u2_spec.bin', at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+    assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
 
     return ReturnCode.SUCCESS.value

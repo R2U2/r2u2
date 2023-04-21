@@ -95,8 +95,8 @@ class PTOpcode(Enum):
     EQUIVALENT   = 0b00000
 
 
-def assemble_bz(bzid: int, opcode: BZOpcode, param1: int, param2: int, store_at: bool, atid: int) -> bytes:
-    bz_instruction = cStruct("BiBBqq")
+def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, store_at: bool, atid: int) -> bytes:
+    bz_instruction = cStruct("BiBBqq") if isinstance(param1, int) else  cStruct("BiBBdq")
     return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
 
 
@@ -144,9 +144,6 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     rtm_instrs: List[bytes] = []
     cfg_instrs: List[bytes] = []
 
-    if len(atasm) > 0:
-        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(ATCond.EQ, ATFilter.BOOL, 0, 0, False, cStruct("Bxxxxxxx").pack(0)))
-
     for instr in atasm:
 
         if isinstance(instr.rel_op, Equal):
@@ -161,6 +158,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             conditional = ATCond.GEQ
         elif isinstance(instr.rel_op, LessThanOrEqual):
             conditional = ATCond.LEQ
+        else:
+            raise NotImplementedError
 
         if instr.filter == "bool":
             filter = ATFilter.BOOL
@@ -171,19 +170,24 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif instr.filter == "float":
             filter = ATFilter.FLOAT
             format = "d"
+        else:
+            raise NotImplementedError
+        
+        if isinstance(instr.args[0], Signal):
+            sid = instr.args[0].sid
+        else:
+            raise NotImplementedError
 
         comp_to_sig = isinstance(instr.compare, Signal)
-        if comp_to_sig:
+        if isinstance(instr.compare, Signal):
             argument = cStruct("Bxxxxxxx").pack(instr.compare.sid)
-        else:
+        elif isinstance(instr.compare, Constant):
             argument = cStruct(format).pack(instr.compare.value)
+        else:
+            raise NotImplementedError
 
-        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, instr.args[0].sid, instr.atid, comp_to_sig, argument))
-
-
-
-    if len(bzasm) > 0:
-        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(0, BZOpcode.NONE, 0, 0, False, 0))
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, argument))
+    
     for instr in bzasm:
         if isinstance(instr, Signal):
             if is_integer_type(instr.type):
