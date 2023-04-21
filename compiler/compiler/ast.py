@@ -302,7 +302,7 @@ class Integer(Constant, BZInstruction):
         return new
 
     def bz_asm(self) -> str:
-        return f"{self.atid_str()} iconst {self.value}"
+        return f"{self.bzid_str()} iconst {self.value}"
 
 
 class Float(Constant, BZInstruction):
@@ -340,7 +340,7 @@ class Variable(Node):
         return isinstance(__o, Variable) and __o.name == self.name
 
 
-class Signal(Literal, TLInstruction, BZInstruction):
+class Signal(Literal, BZInstruction):
 
     def __init__(self, ln: int, n: str, t: Type) -> None:
         super().__init__(ln,[])

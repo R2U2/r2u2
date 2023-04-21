@@ -19,7 +19,7 @@
 #endif
 
 #ifndef r2u2_float
-    #define r2u2_float float
+    #define r2u2_float double
 #endif
 
 #ifndef r2u2_time

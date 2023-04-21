@@ -50,7 +50,7 @@ typedef enum r2u2_bz_opcode {
 // (2) a constant int
 // (3) a constant float
 typedef union r2u2_bz_param {
-    uint8_t bz_addr;
+    r2u2_int bz_addr;
     r2u2_int bz_int;
     r2u2_float bz_float;
 } r2u2_bz_param_t;

@@ -96,12 +96,12 @@ class PTOpcode(Enum):
 
 
 def assemble_bz(bzid: int, opcode: BZOpcode, param1: int, param2: int, store_at: bool, atid: int) -> bytes:
-    bz_instruction = cStruct("iiBBii")
+    bz_instruction = cStruct("iiBBqq")
     return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
 
 
 
-def assemble_at(conditional: ATCond, filter: ATFilter, sig_addr: int, atom_addr: int, comp_is_sig: bool, comparison: bytes):
+def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison):
     at_instruction = cStruct('iiBBBxxxxx8sd')
     return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, 0.00001)
 
@@ -145,6 +145,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     rtm_instrs: List[bytes] = []
     cfg_instrs: List[bytes] = []
 
+    if len(atasm) > 0:
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(ATCond.EQ, ATFilter.BOOL, 0, 0, False, cStruct("Bxxxxxxx").pack(0)))
+
     for instr in atasm:
 
         if isinstance(instr.rel_op, Equal):
@@ -159,8 +162,6 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             conditional = ATCond.GEQ
         elif isinstance(instr.rel_op, LessThanOrEqual):
             conditional = ATCond.LEQ
-        else:
-            raise NotImplementedError
 
         if instr.filter == "bool":
             filter = ATFilter.BOOL
@@ -171,37 +172,46 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif instr.filter == "float":
             filter = ATFilter.FLOAT
             format = "d"
-        else: 
-            raise NotImplementedError
 
         comp_to_sig = isinstance(instr.compare, Signal)
-        if isinstance(instr.compare, Signal):
+        if comp_to_sig:
             argument = cStruct("Bxxxxxxx").pack(instr.compare.sid)
-        elif isinstance(instr.compare, Constant):
+        else:
             argument = cStruct(format).pack(instr.compare.value)
-        else:
-            raise NotImplementedError
 
-        if isinstance(instr.args[0], Signal):
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, instr.args[0].sid, instr.atid, comp_to_sig, argument))
-        else:
-            # first arg to filter needs to be signal, should be caught by type checker
-            raise NotImplementedError
-    # end atasm
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, instr.args[0].sid, instr.atid, comp_to_sig, argument))
 
-    rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(0, BZOpcode.NONE, 0, 0, False, 0))
+
+
+    if len(bzasm) > 0:
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(0, BZOpcode.NONE, 0, 0, False, 0))
     for instr in bzasm:
         if isinstance(instr, Signal):
             if is_integer_type(instr.type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, instr.sid, 0, instr.atid > -1, instr.atid))
             elif is_float_type(instr.type):
-                rtm_instrs.append(assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid))
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid))
+            else:
+                raise NotImplementedError
+        elif isinstance(instr, Integer):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ICONST, instr.value, 0, instr.atid > -1, instr.atid))
+        # elif isinstance(instr, Float):
+        #     rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FCONST, instr.value, 0, instr.atid > -1, instr.atid))
+        elif isinstance(instr, Equal):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                raise NotImplementedError
+        elif isinstance(instr, NotEqual):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 raise NotImplementedError
         elif isinstance(instr, GreaterThan):
-            param2 = cStruct("i").pack(instr.get_rhs().bzid)
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                raise NotImplementedError
 
 
     for instr in ftasm:
@@ -218,10 +228,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -229,10 +237,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op2 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.UNTIL, op1, op2, instr.tlid))
             pass
@@ -243,10 +249,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
+
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.tlid))
         elif isinstance(instr, LogicalAnd): # And
             child = instr.get_children()[0]
@@ -255,10 +260,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -266,10 +269,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op2 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.AND, op1, op2, instr.tlid))
         elif isinstance(instr, SpecificationSet):
@@ -286,7 +287,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     boxqs = 1 # Number of boxqueus for running offsets
     for instr in ptasm:
-        if isinstance(instr, Atomic):  # Load
+        if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.tlid))
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().tlid), (TLOperandType.DIRECT, instr.formula_number), instr.tlid))
@@ -301,10 +302,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -312,10 +311,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op2 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.SINCE, op1, op2, instr.tlid))
             pass
@@ -326,10 +323,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
+
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.tlid))
         elif isinstance(instr, LogicalAnd): # And
             child = instr.get_children()[0]
@@ -338,10 +334,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op1 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -349,10 +343,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
-            elif isinstance(child, TLInstruction): # This is a bit overly permissive but we're assuming the compiler did its job
+            else: # This is a bit overly permissive but we're assuming the compiler did its job
                 op2 = (TLOperandType.SUBFORMULA, child.tlid)
-            else:
-                raise NotImplementedError
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.AND, op1, op2, instr.tlid))
         elif isinstance(instr, SpecificationSet):

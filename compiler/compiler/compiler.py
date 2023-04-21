@@ -417,6 +417,8 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 def compute_scq_size(node: Node) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+
+    Must be called *after* tlids have been assigned.
     """
     visited: List[int] = []
     total: int = 0
@@ -425,7 +427,7 @@ def compute_scq_size(node: Node) -> int:
         nonlocal visited
         nonlocal total
 
-        if not isinstance(node, TLInstruction) or isinstance(node, Program):
+        if node.tlid < 0 or isinstance(node, Program):
             return
 
         if id(node) in visited:
@@ -1129,7 +1131,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     formula_type = FormulaType.PT
     postorder_iterative(program.get_pt_specs(), generate_assembly_util)
 
-    for at_instr in program.atomics.values():
+    for at_instr in [a for a in program.atomics.values() if a.atid >= 0]:
         at_asm.append(at_instr)
 
     at_asm.sort(key=lambda n: n.atid)
@@ -1150,7 +1152,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
         nonlocal ret
         nonlocal pos
 
-        if not isinstance(a,TLInstruction) or isinstance(a,Program):
+        if a.tlid < 0 or isinstance(a,Program):
             return
 
         start_pos = pos

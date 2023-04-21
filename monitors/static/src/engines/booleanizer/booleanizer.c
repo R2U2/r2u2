@@ -305,7 +305,8 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
     }
 
     if(instr->store) {
-        monitor->atomic_buffer[instr->at_addr] = &(*monitor->value_buffer)[instr->addr].b;
+        R2U2_DEBUG_PRINT("%d\n", instr->at_addr);
+        (*(monitor->atomic_buffer)[0])[instr->at_addr] = &(*monitor->value_buffer)[instr->addr].b;
 
         R2U2_DEBUG_PRINT("\tAT STORE\n");
         R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", instr->at_addr, (*monitor->value_buffer)[instr->addr].b, instr->addr);
