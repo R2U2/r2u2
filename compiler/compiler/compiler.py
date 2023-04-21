@@ -77,7 +77,10 @@ def parse_signals(filename: str) -> Dict[str,int]:
                 logger.error(f" Not enough data in file '{filename}'")
                 return {}
             cnt: int = 0
-            header = lines[0][1:] if lines[0][0] == "#" else lines[0]
+            if lines[0][0] != "#":
+                logger.error(f" Header missing in signals file.")
+                return {}
+            header = lines[0][1:]
             for id in [s.strip() for s in header.split(",")]:
                 mapping[id] = cnt
                 cnt += 1
