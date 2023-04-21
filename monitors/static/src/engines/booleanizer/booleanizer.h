@@ -46,7 +46,7 @@ typedef enum r2u2_bz_opcode {
 } r2u2_bz_opcode_t;
 
 // Booleanizer parameters are one of:
-// (1) a pair of addresses in Booleanizer memory
+// (1) an address in Booleanizer memory
 // (2) a constant int
 // (3) a constant float
 typedef union r2u2_bz_param {
