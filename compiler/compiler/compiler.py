@@ -5,7 +5,6 @@ import inspect
 import sys
 import re
 from logging import getLogger
-from typing_extensions import Self
 # from time import perf_counter
 
 from .logger import *
