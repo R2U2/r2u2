@@ -216,11 +216,11 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     for instr in ftasm:
         if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, Specification):  # End
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().tlid), (TLOperandType.DIRECT, instr.formula_number), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
         elif isinstance(instr, Global): # Globally
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.GLOBALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].tlid), (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.GLOBALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].ftid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, Until):  # Until
             child = instr.get_children()[0]
             if isinstance(child, Bool):
@@ -229,7 +229,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -238,9 +238,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op2 = (TLOperandType.SUBFORMULA, child.tlid)
+                op2 = (TLOperandType.SUBFORMULA, child.ftid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.UNTIL, op1, op2, instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.UNTIL, op1, op2, instr.ftid))
             pass
         elif isinstance(instr, LogicalNegate):  # Not
             child = instr.get_children()[0]
@@ -250,9 +250,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, LogicalAnd): # And
             child = instr.get_children()[0]
             if isinstance(child, Bool):
@@ -261,7 +261,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -270,9 +270,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op2 = (TLOperandType.SUBFORMULA, child.tlid)
+                op2 = (TLOperandType.SUBFORMULA, child.ftid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.AND, op1, op2, instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.AND, op1, op2, instr.ftid))
         elif isinstance(instr, SpecificationSet):
             # We no longer need these in V3
             continue
@@ -280,21 +280,21 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             raise NotImplementedError
 
         # Configure SCQ size and, if temporal, interval bounds
-        cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.DIRECT, ftscqasm[instr.tlid][1] - ftscqasm[instr.tlid][0]), ftscqasm[instr.tlid][0]))
+        cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.DIRECT, ftscqasm[instr.ftid][1] - ftscqasm[instr.ftid][0]), ftscqasm[instr.ftid][0]))
         if isinstance(instr, TemporalOperator):
-            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
-            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
 
     boxqs = 1 # Number of boxqueus for running offsets
     for instr in ptasm:
         if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, Specification):  # End
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().tlid), (TLOperandType.DIRECT, instr.formula_number), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ptid), (TLOperandType.DIRECT, instr.formula_number), instr.ptid))
         elif isinstance(instr, Once): # Once
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.ONCE, (TLOperandType.SUBFORMULA, instr.get_children()[0].tlid), (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.ONCE, (TLOperandType.SUBFORMULA, instr.get_children()[0].ptid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, Historical): # Historically
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.HISTORICALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].tlid), (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.HISTORICALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].ptid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, Since):  # Since
             child = instr.get_children()[0]
             if isinstance(child, Bool):
@@ -303,7 +303,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -312,9 +312,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op2 = (TLOperandType.SUBFORMULA, child.tlid)
+                op2 = (TLOperandType.SUBFORMULA, child.ptid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.SINCE, op1, op2, instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.SINCE, op1, op2, instr.ptid))
             pass
         elif isinstance(instr, LogicalNegate):  # Not
             child = instr.get_children()[0]
@@ -324,9 +324,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, LogicalAnd): # And
             child = instr.get_children()[0]
             if isinstance(child, Bool):
@@ -335,7 +335,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op1 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op1 = (TLOperandType.SUBFORMULA, child.tlid)
+                op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
             child = instr.get_children()[1]
             if isinstance(child, Bool):
@@ -344,9 +344,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             # elif isinstance(child, Atomic):
             #     op2 = (TL_OPERAND_TYPES.ATOMIC, child.atid)
             else: # This is a bit overly permissive but we're assuming the compiler did its job
-                op2 = (TLOperandType.SUBFORMULA, child.tlid)
+                op2 = (TLOperandType.SUBFORMULA, child.ptid)
 
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.AND, op1, op2, instr.tlid))
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.AND, op1, op2, instr.ptid))
         elif isinstance(instr, SpecificationSet):
             # We no longer need these in V3
             continue
@@ -354,10 +354,10 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             raise NotImplementedError
 
         if isinstance(instr, TemporalOperator):
-            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.DIRECT, 64), 64*boxqs))
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.DIRECT, 64), 64*boxqs))
             boxqs += 1
-            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
-            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.tlid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
 
     # for alias in aliases:
     #     cfg_instrs.append()

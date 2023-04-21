@@ -5,7 +5,7 @@ import sys
 
 from compiler.compiler import compile
 
-__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
+__AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+"/"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("mltl",
@@ -14,20 +14,20 @@ parser.add_argument("sigs",
                     help="csv or sig file where variable names are mapped to memory locations")
 parser.add_argument("-q","--quiet", action="store_true",
                     help="enable to disable output")
-parser.add_argument("--config-file", default=__AbsolutePath__+'r2u2.conf',
+parser.add_argument("--config-file", default=__AbsolutePath__+"r2u2.conf",
                     help="path to configuration file")
 parser.add_argument("--header-file",
-                    default=__AbsolutePath__+'gen_files/config_files/R2U2Config.h',
+                    default=__AbsolutePath__+"gen_files/config_files/R2U2Config.h",
                     help="path to configuration header file, uses this file to detect if recompilation is needed")
-parser.add_argument("--output-dir", default=__AbsolutePath__+'gen_files/',
+parser.add_argument("--output-dir", default=__AbsolutePath__+"gen_files/",
                     help="location where files will be generated")
-parser.add_argument("--compiler-dir", default=__AbsolutePath__+'Compiler/',
+parser.add_argument("--compiler-dir", default=__AbsolutePath__+"Compiler/",
                     help="location where compiler programs will be called from")
-parser.add_argument("--assembler-dir",default=__AbsolutePath__+'Assembler/',
+parser.add_argument("--assembler-dir",default=__AbsolutePath__+"Assembler/",
                     help="location where assembly and configuration programs will be called from")
 parser.add_argument("--int-width", default=8,
                     help="bit width for integer types")
-parser.add_argument("--int-signed", action='store_true',
+parser.add_argument("--int-signed", action="store_true",
                     help="set int types to signed")
 parser.add_argument("--float-width", default=32,
                     help="bit width for floating point types")
@@ -43,7 +43,7 @@ parser.add_argument("--no-color", action="store_false",
                     help="disable color in logging")
 args = parser.parse_args()
 
-binary_dir = args.output_dir + '/binary_files/'
+binary_dir = args.output_dir + "/binary_files/"
 
 if not os.path.isdir(args.output_dir):
     os.mkdir(args.output_dir)
@@ -55,14 +55,14 @@ if os.path.isdir(binary_dir):
 # If the argument is a valid file,
 return_code = 0
 if(os.path.isfile(args.mltl)):
-    mltl = open(args.mltl,'r').read()
+    mltl = open(args.mltl,"r").read()
     if(os.path.isfile(args.sigs)):
         return_code = compile(args.mltl, args.sigs, output_path=args.output_dir, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, at=args.atomic_checker, bz=args.booleanizer, cse=True, extops=args.extops, color=args.no_color, quiet=args.quiet)
     else:
-        print(f'Signal mapping argument \'{args.sigs}\' not a valid file')
+        print(f"Signal mapping argument '{args.sigs}' not a valid file")
         return_code = 1
 else:
-    print(f'MLTL file \'{args.sigs}\' not a valid file')
+    print(f"MLTL file \"{args.sigs}\" not a valid file")
     return_code = 1
 
 sys.exit(return_code)

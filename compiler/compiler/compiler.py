@@ -427,7 +427,7 @@ def compute_scq_size(node: Node) -> int:
         nonlocal visited
         nonlocal total
 
-        if node.tlid < 0 or isinstance(node, Program):
+        if node.ftid < 0 or isinstance(node, Program):
             return
 
         if id(node) in visited:
@@ -1066,7 +1066,8 @@ def generate_aliases(program: Program) -> List[str]:
 
 def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
     formula_type: FormulaType
-    tlid: int = 0
+    ftid: int = 0
+    ptid: int = 0
     bzid: int = 0
     atid: int = 0
 
@@ -1075,25 +1076,55 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     bz_asm = []
     at_asm = []
 
-    def assign_ids(node: Node) -> None:
-        nonlocal tlid, bzid, atid
+    def assign_ftids(node: Node) -> None:
+        nonlocal ftid, bzid, atid
 
-        if isinstance(node, TLInstruction) and not (isinstance(node, Signal) and bz):
-            for child in node.get_children():
-                if isinstance(child, BZInstruction):
-                    if child.tlid < 0:
-                        child.tlid = tlid
-                        tlid += 1
-                    if child.atid < 0:
-                        child.atid = atid
-                        atid += 1
+        if isinstance(node, TLInstruction):
+            node.ftid = ftid
+            ftid += 1
 
-            node.tlid = tlid
-            tlid += 1
+        if isinstance(node, BZInstruction):
+            if node.bzid < 0:
+                node.bzid = bzid
+                bzid += 1
 
-        if isinstance(node, BZInstruction) and node.bzid < 0:
-            node.bzid = bzid
-            bzid += 1
+            if node.has_tl_parent():
+                node.ftid = ftid
+                ftid += 1
+                if node.atid < 0:
+                    node.atid = atid
+                    atid += 1
+
+        if isinstance(node, Atomic):
+            # Retrieve cached atomic number from program.atomics, assign from
+            # atid counter on first lookup
+            #
+            # Key exception possible if atomic node does not appear in atomics
+            if program.atomics[node.name].atid == -1:
+                node.atid = atid
+                program.atomics[node.name].atid = atid
+                atid += 1
+            else:
+                node.atid = program.atomics[node.name].atid
+
+    def assign_ptids(node: Node) -> None:
+        nonlocal ptid, bzid, atid
+
+        if isinstance(node, TLInstruction):
+            node.ptid = ptid
+            ptid += 1
+
+        if isinstance(node, BZInstruction):
+            if node.bzid < 0:
+                node.bzid = bzid
+                bzid += 1
+
+            if node.has_tl_parent():
+                node.ptid = ptid
+                ptid += 1
+                if node.atid < 0:
+                    node.atid = atid
+                    atid += 1
 
         if isinstance(node, Atomic):
             # Retrieve cached atomic number from program.atomics, assign from
@@ -1112,19 +1143,17 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
         nonlocal formula_type
 
         if isinstance(node, Instruction):
-            if node.tlid > -1:
-                if formula_type == FormulaType.FT:
-                    ft_asm.append(node)
-                else:
-                    pt_asm.append(node)
+            if formula_type == FormulaType.FT and node.ftid > -1:
+                ft_asm.append(node)
+            elif formula_type == FormulaType.PT and node.ptid > -1:
+                pt_asm.append(node)
             if node.bzid > -1 and not node in bz_asm:
                 bz_asm.append(node)
         elif not isinstance(node, Bool):
             logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
 
-    postorder_iterative(program.get_ft_specs(), assign_ids)
-    tlid = 0
-    postorder_iterative(program.get_pt_specs(), assign_ids)
+    postorder_iterative(program.get_ft_specs(), assign_ftids)
+    postorder_iterative(program.get_pt_specs(), assign_ptids)
 
     formula_type = FormulaType.FT
     postorder_iterative(program.get_ft_specs(), generate_assembly_util)
@@ -1136,8 +1165,8 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
 
     at_asm.sort(key=lambda n: n.atid)
     bz_asm.sort(key=lambda n: n.bzid)
-    ft_asm.sort(key=lambda n: n.tlid)
-    pt_asm.sort(key=lambda n: n.tlid)
+    ft_asm.sort(key=lambda n: n.ftid)
+    pt_asm.sort(key=lambda n: n.ptid)
 
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
@@ -1152,7 +1181,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
         nonlocal ret
         nonlocal pos
 
-        if a.tlid < 0 or isinstance(a,Program):
+        if a.ftid < 0 or isinstance(a,Program):
             return
 
         start_pos = pos
@@ -1335,11 +1364,11 @@ def compile(
 
         print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
         for a in ft_asm:
-            print(f"\t{a.tl_asm()}")
+            print(f"\t{a.ft_asm()}")
 
         print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
         for a in pt_asm:
-            print(f"\t{a.tl_asm()}")
+            print(f"\t{a.pt_asm()}")
 
         print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:

@@ -29,14 +29,12 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
           case R2U2_MONITOR_PROGRESS_FIRST_LOOP: {
             // First pass complete, rerun program counter to check for progress
             monitor->prog_count = 0;
-            R2U2_DEBUG_PRINT("Resetting prog_count 1\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
             break;
           }
           case R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS: {
             // Progress made this loop, rerun program counter
             monitor->prog_count = 0;
-            R2U2_DEBUG_PRINT("Resetting prog_count 2\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
             break;
           }
@@ -73,7 +71,6 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
             // Update Vector Clock for next timestep
             monitor->time_stamp++;
             monitor->prog_count = 0;
-            R2U2_DEBUG_PRINT("Resetting prog_count 3\n");
             monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
             break;
           }
