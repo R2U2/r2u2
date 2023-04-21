@@ -198,23 +198,67 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 raise NotImplementedError
         elif isinstance(instr, Integer):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ICONST, instr.value, 0, instr.atid > -1, instr.atid))
-        # elif isinstance(instr, Float):
-        #     rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FCONST, instr.value, 0, instr.atid > -1, instr.atid))
+        elif isinstance(instr, Float):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FCONST, instr.value, 0, instr.atid > -1, instr.atid))
+        elif isinstance(instr, BitwiseAnd):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWAND, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, BitwiseOr):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWOR, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, BitwiseXor):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWXOR, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, BitwiseNegate):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticAdd):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticSubtract):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ISUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FSUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticMultiply):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IMUL, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FMUL, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticDivide):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IDIV, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FDIV, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticModulo):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.MOD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticNegate):
+            if is_integer_type(instr.get_operand().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, Equal):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
-                raise NotImplementedError
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
         elif isinstance(instr, NotEqual):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
-                raise NotImplementedError
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FNEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
         elif isinstance(instr, GreaterThan):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
-                raise NotImplementedError
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, LessThan):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FLT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, GreaterThanOrEqual):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGTE, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, LessThanOrEqual):
+            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILTE, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
 
 
     for instr in ftasm:

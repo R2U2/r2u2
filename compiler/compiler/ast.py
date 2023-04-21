@@ -715,6 +715,7 @@ class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
         self.copy_attrs(new)
         return new
 
+
 class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:

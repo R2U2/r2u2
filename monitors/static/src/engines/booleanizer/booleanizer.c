@@ -26,6 +26,18 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ LOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", instr->addr, f1, instr->param1.bz_int);
             break;
+        case R2U2_BZ_OP_ICONST:
+            (*monitor->value_buffer)[instr->addr].i = instr->param1.bz_int;
+
+            R2U2_DEBUG_PRINT("\tBZ ICONST\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d\n", instr->addr, instr->param1.bz_int);
+            break;
+        case R2U2_BZ_OP_FCONST:
+            (*monitor->value_buffer)[instr->addr].f = instr->param1.bz_float;
+
+            R2U2_DEBUG_PRINT("\tBZ FCONST\n");
+            R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr->addr, instr->param1.bz_float);
+            break;
         /* Bitwise */
         case R2U2_BZ_OP_BWNEG:
             i1 = (*monitor->value_buffer)[instr->param1.bz_addr].i;
