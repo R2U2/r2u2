@@ -96,9 +96,8 @@ class PTOpcode(Enum):
 
 
 def assemble_bz(bzid: int, opcode: BZOpcode, param1: int, param2: int, store_at: bool, atid: int) -> bytes:
-    bz_instruction = cStruct("iiBBqq")
+    bz_instruction = cStruct("BiBBqq")
     return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
-
 
 
 def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison):
