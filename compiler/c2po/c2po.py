@@ -5,6 +5,7 @@ import inspect
 import sys
 import re
 from logging import getLogger
+from typing_extensions import Self
 # from time import perf_counter
 
 from .logger import *
@@ -44,18 +45,18 @@ class ReturnCode(Enum):
     ENGINE_SELECT_ERROR = 5
 
 # Stores the sub-classes of Instruction from ast.py
-instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"],
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
 default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"],
+    inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
             obj != BZInstruction) }
 
 default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"],
+    inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and

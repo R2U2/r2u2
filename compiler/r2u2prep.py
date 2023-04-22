@@ -3,7 +3,7 @@ import shutil
 import argparse
 import sys
 
-from compiler.compiler import compile
+from c2po.c2po import compile
 
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+"/"
 
