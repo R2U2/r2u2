@@ -6,6 +6,7 @@
 
 #include "engines/engines.h"
 #include "engines/atomic_checker/atomic_checker.h"
+#include "engines/booleanizer/booleanizer.h"
 #include "engines/mltl/mltl.h"
 
 #include "memory/register.h" // For buffer flip
@@ -105,8 +106,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
         break;
       }
       case R2U2_ENG_BZ: {
-        R2U2_DEBUG_PRINT("Got BZ Inst\n");
-        error_cond = R2U2_OK;
+        error_cond = r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
         break;
       }
       default: {

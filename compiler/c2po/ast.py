@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import Continue
 from copy import deepcopy
 from typing import Any, Dict, Callable, NamedTuple, NewType, cast
 from logging import getLogger
@@ -17,7 +16,7 @@ StructDict = NewType("StructDict", Dict[str, Dict[str, Type]])
 
 
 def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs a postorder traversal of 'node', calling 'func' on each node."""
+    """Perform a postorder traversal of node, calling func on each node."""
     c: Node
     for c in node.get_children():
         postorder_recursive(c, func)
@@ -25,7 +24,7 @@ def postorder_recursive(node: Node, func: Callable[[Node], Any]) -> None:
 
 
 def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs an iterative postorder traversal of 'node', calling 'func' on each node."""
+    """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: list[tuple[bool, Node]] = []
     visited: set[Node] = set()
 
@@ -47,22 +46,15 @@ def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
 
 
 def preorder(node: Node, func: Callable[[Node], Any]) -> None:
-    """Performs a preorder traversal of a, calling func on each node. func must not alter the children of its argument node"""
+    """Perform a preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
     c: Node
     func(node)
     for c in node.get_children():
         preorder(c, func)
 
 
-def traverse(a: Node, pre: Callable[[Node], Any], post: Callable[[Node], Any]) -> None:
-    c: Node
-    pre(a)
-    for c in a.get_children():
-        traverse(c, pre, post)
-    post(a)
-
-
 def rename(v: Node, repl: Node, expr: Node) -> Node:
+    """Traverse expr and replace each node equal to v with repl."""
     # Special case: when expr is v
     if expr == v:
         return repl
@@ -90,7 +82,9 @@ class Node():
         self.wpd: int = 0
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
-        self.tlid: int = -1
+        self.ftid: int = -1
+        self.ptid: int = -1
+        self.bzid: int = -1
         self.atid: int = -1
 
         self._children: list[Node] = []
@@ -105,6 +99,12 @@ class Node():
 
     def get_parents(self) -> list[Node]:
         return self._parents
+        
+    def has_tl_parent(self) -> bool:
+        for p in self._parents:
+            if isinstance(p, TLInstruction):
+                return True
+        return False
 
     def num_children(self) -> int:
         return len(self._children)
@@ -143,25 +143,32 @@ class Node():
 
         new.formula_type = self.formula_type
 
-    def tl_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'tl_asm'.")
-        return "ERROR"
+    def ft_asm(self) -> str:
+        raise NotImplementedError
+
+    def pt_asm(self) -> str:
+        raise NotImplementedError
 
     def bz_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'bz_asm'.")
-        return "ERROR"
+        raise NotImplementedError
 
     def at_asm(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'at_asm'.")
-        return "ERROR"
+        raise NotImplementedError
     
-    def tlid_str(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'tlid_str'.")
-        return "ERROR"
+    def ftid_str(self) -> str:
+        raise NotImplementedError
+    
+    def ptid_str(self) -> str:
+        raise NotImplementedError
+    
+    def bzid_str(self) -> str:
+        raise NotImplementedError
     
     def atid_str(self) -> str:
-        logger.critical(f" Node type '{type(self)}' does not implement 'atid_str'.")
-        return "ERROR"
+        if self.atid < 0:
+            logger.critical(f" Node '{self}' never assigned atid.")
+            return ""
+        return f"a{self.atid}"
 
     def __str__(self) -> str:
         return self.name
@@ -195,16 +202,28 @@ class TLInstruction(Instruction):
         super().__init__(ln, c)
         self.scq_size = 1
 
-    def tlid_str(self) -> str:
-        if self.tlid < 0:
-            logger.critical(f" Node '{self}' never assigned tlid.")
+    def ftid_str(self) -> str:
+        if self.ftid < 0:
+            logger.critical(f" Node '{self}' never assigned ftid.")
             return ""
-        return f"n{self.tlid}"
+        return f"n{self.ftid}"
 
-    def tl_asm(self) -> str:
-        s = f"{self.tlid_str()} {self.name} "
+    def ptid_str(self) -> str:
+        if self.ptid < 0:
+            logger.critical(f" Node '{self}' never assigned ptid.")
+            return ""
+        return f"n{self.ptid}"
+    
+    def ft_asm(self) -> str:
+        s = f"{self.ftid_str()} {self.name} "
         for child in self.get_children():
-            s += f"{child.tlid_str()} "
+            s += f"{child.ftid_str()} "
+        return s
+    
+    def pt_asm(self) -> str:
+        s = f"{self.ptid_str()} {self.name} "
+        for child in self.get_children():
+            s += f"{child.ptid_str()} "
         return s
 
 
@@ -214,28 +233,35 @@ class BZInstruction(Instruction):
     def __init__(self, ln: int, c: list[Node]) -> None:
         super().__init__(ln, c)
 
-    def tlid_str(self) -> str:
-        if self.tlid < 0:
-            logger.critical(f" Node '{self}' never assigned tlid.")
+    def ftid_str(self) -> str:
+        if self.ftid < 0:
+            logger.critical(f" Node '{self}' never assigned ftid.")
             return ""
-        return f"n{self.tlid}"
-    
-    def atid_str(self) -> str:
-        if self.atid < 0:
-            logger.critical(f" Node '{self}' never assigned atid.")
+        return f"n{self.ftid}"
+
+    def ptid_str(self) -> str:
+        if self.ptid < 0:
+            logger.critical(f" Node '{self}' never assigned ptid.")
             return ""
-        return f"a{self.atid}"
+        return f"n{self.ptid}"
     
-    def tl_asm(self) -> str:
-        return f"{self.tlid_str()} load a{self.atid}"
+    def bzid_str(self) -> str:
+        if self.bzid < 0:
+            logger.critical(f" Node '{self}' never assigned bzid.")
+            return ""
+        return f"b{self.bzid}"
+    
+    def ft_asm(self) -> str:
+        return f"{self.ftid_str()} load {self.atid_str()}"
+    
+    def pt_asm(self) -> str:
+        return f"{self.ptid_str()} load {self.atid_str()}"
  
     def bz_asm(self) -> str:
-        s = f"{self.atid_str()} {self.name} "
+        s = f"{self.bzid_str()} {self.name} "
         for child in self.get_children():
-            if isinstance(child, TLInstruction):
-                s += f"{child.tlid_str()} "
-            else:
-                s += f"{child.atid_str()} "
+            s += f"{child.bzid_str()} "
+        s += f"{self.atid_str()}" if self.atid >= 0 else ""
         return s
 
 
@@ -310,7 +336,7 @@ class Integer(Constant, BZInstruction):
         return new
 
     def bz_asm(self) -> str:
-        return f"{self.atid_str()} iconst {self.value}"
+        return f"{self.bzid_str()} iconst {self.value}"
 
 
 class Float(Constant, BZInstruction):
@@ -348,7 +374,7 @@ class Variable(Node):
         return isinstance(__o, Variable) and __o.name == self.name
 
 
-class Signal(Literal, TLInstruction, BZInstruction):
+class Signal(Literal, BZInstruction):
 
     def __init__(self, ln: int, n: str, t: Type) -> None:
         super().__init__(ln,[])
@@ -361,11 +387,16 @@ class Signal(Literal, TLInstruction, BZInstruction):
         copy.sid = self.sid
         return copy
 
-    def tl_asm(self) -> str:
-        return f"{self.tlid_str()} load a{self.sid}"
+    def ft_asm(self) -> str:
+        return f"{self.ftid_str()} load {self.atid_str()}"
+
+    def pt_asm(self) -> str:
+        return f"{self.ptid_str()} load {self.atid_str()}"
     
     def bz_asm(self) -> str:
-        return f"{self.atid_str()} load s{self.sid}"
+        s = f"{self.bzid_str()} load s{self.sid}"
+        s += f" {self.atid_str()}" if self.atid >= 0 else ""
+        return s
     
 
 class Atomic(Literal, TLInstruction):
@@ -380,8 +411,11 @@ class Atomic(Literal, TLInstruction):
         self.copy_attrs(copy)
         return copy
 
-    def tl_asm(self) -> str:
-        return f"{self.tlid_str()} load a{self.atid}" 
+    def ft_asm(self) -> str:
+        return f"{self.ftid_str()} load a{self.atid}" 
+
+    def pt_asm(self) -> str:
+        return f"{self.ptid_str()} load a{self.atid}" 
 
 
 class Bool(Constant):
@@ -394,7 +428,10 @@ class Bool(Constant):
         self.value: bool = v
         self.name = str(v)
 
-    def tlid_str(self) -> str:
+    def ftid_str(self) -> str:
+        return self.name
+
+    def ptid_str(self) -> str:
         return self.name
 
     # def asm(self) -> str:
@@ -677,6 +714,7 @@ class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
         new = BitwiseXor(self.ln, children[0], children[1])
         self.copy_attrs(new)
         return new
+
 
 class BitwiseShiftLeft(BitwiseOperator, BinaryOperator, BZInstruction):
 
@@ -1013,8 +1051,8 @@ class Until(FutureTimeBinaryOperator, TLInstruction):
         self.name = "until"
         self.symbol = "U"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def ft_asm(self) -> str:
+        return f"{super().ftid_str()} {self.name} {self.get_lhs().ftid_str()} {self.get_rhs().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Release(FutureTimeBinaryOperator, TLInstruction):
@@ -1024,8 +1062,8 @@ class Release(FutureTimeBinaryOperator, TLInstruction):
         self.name = "release"
         self.symbol = "R"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def ft_asm(self) -> str:
+        return f"{super().ftid_str()} {self.name} {self.get_lhs().ftid_str()} {self.get_rhs().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
@@ -1055,8 +1093,8 @@ class Global(FutureTimeUnaryOperator, TLInstruction):
         self.name = "global"
         self.symbol = "G"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def ft_asm(self) -> str:
+        return f"{super().ftid_str()} {self.name} {self.get_operand().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Future(FutureTimeUnaryOperator, TLInstruction):
@@ -1066,8 +1104,8 @@ class Future(FutureTimeUnaryOperator, TLInstruction):
         self.name = "future"
         self.symbol = "F"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def ft_asm(self) -> str:
+        return f"{super().ftid_str()} {self.name} {self.get_operand().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
@@ -1098,8 +1136,8 @@ class Since(PastTimeBinaryOperator, TLInstruction):
         self.name = "since"
         self.symbol = "S"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_lhs().tlid_str()} {self.get_rhs().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def pt_asm(self) -> str:
+        return f"{super().ptid_str()} {self.name} {self.get_lhs().ptid_str()} {self.get_rhs().ptid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
@@ -1117,7 +1155,7 @@ class PastTimeUnaryOperator(PastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
 
 
 class Historical(PastTimeUnaryOperator, TLInstruction):
@@ -1127,8 +1165,8 @@ class Historical(PastTimeUnaryOperator, TLInstruction):
         self.name = "hist"
         self.symbol = "H"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def pt_asm(self) -> str:
+        return f"{super().ptid_str()} {self.name} {self.get_operand().ptid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Once(PastTimeUnaryOperator, TLInstruction):
@@ -1138,8 +1176,8 @@ class Once(PastTimeUnaryOperator, TLInstruction):
         self.name = "once"
         self.symbol = "O"
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} {self.name} {self.get_operand().tlid_str()} {self.interval.lb} {self.interval.ub}"
+    def pt_asm(self) -> str:
+        return f"{super().ptid_str()} {self.name} {self.get_operand().ptid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class Specification(TLInstruction):
@@ -1161,8 +1199,11 @@ class Specification(TLInstruction):
     def __str__(self) -> str:
         return (str(self.formula_number) if self.name == "" else self.name) + ": " + str(self.get_expr())
 
-    def tl_asm(self) -> str:
-        return f"{self.tlid_str()} end {self.get_expr().tlid_str()} f{self.formula_number}"
+    def ft_asm(self) -> str:
+        return f"{self.ftid_str()} end {self.get_expr().ftid_str()} f{self.formula_number}"
+
+    def pt_asm(self) -> str:
+        return f"{self.ptid_str()} end {self.get_expr().ptid_str()} f{self.formula_number}"
 
 
 class Contract(Node):
@@ -1194,8 +1235,11 @@ class SpecificationSet(TLInstruction):
             ret += f"{s}\n"
         return ret[:-1]
 
-    def tl_asm(self) -> str:
-        return f"{super().tlid_str()} endsequence"
+    def ft_asm(self) -> str:
+        return f"{super().ftid_str()} endsequence"
+
+    def pt_asm(self) -> str:
+        return f"{super().ptid_str()} endsequence"
 
 
 class Program(Node):

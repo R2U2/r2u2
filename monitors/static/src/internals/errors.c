@@ -1,4 +1,4 @@
-#include "R2U2Errors.h"
+#include "errors.h"
 
 #if R2U2_DEBUG
 

@@ -3,11 +3,11 @@
 
 #include "r2u2.h"
 
-// Reads from spec binary, filling out instruciton memory and instuciton table
+// Reads from spec binary, filling out instruction memory and instruction table
 
 // Because instructions aren't read form inst mem sequentially but are directed
 // by the inst table instead, we can just place the whole binary into the inst
-// mem instead of having a seperate, largly identical, blob array
+// mem instead of having a separate, largely identical, blob array
 
 /// @brief      Populate inst table from inst memory, processing monitor cmds
 /// @param[in]  monitor  Pointer to monitor loaded with spec binary in inst mem

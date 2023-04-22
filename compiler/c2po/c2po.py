@@ -5,6 +5,7 @@ import inspect
 import sys
 import re
 from logging import getLogger
+from typing_extensions import Self
 # from time import perf_counter
 
 from .logger import *
@@ -44,18 +45,18 @@ class ReturnCode(Enum):
     ENGINE_SELECT_ERROR = 5
 
 # Stores the sub-classes of Instruction from ast.py
-instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["compiler.ast"],
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
 default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"],
+    inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
             obj != BZInstruction) }
 
 default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
-    inspect.getmembers(sys.modules["compiler.ast"],
+    inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
@@ -76,7 +77,10 @@ def parse_signals(filename: str) -> Dict[str,int]:
                 logger.error(f" Not enough data in file '{filename}'")
                 return {}
             cnt: int = 0
-            header = lines[0][1:] if lines[0][0] == "#" else lines[0]
+            if lines[0][0] != "#":
+                logger.error(f" Header missing in signals file.")
+                return {}
+            header = lines[0][1:]
             for id in [s.strip() for s in header.split(",")]:
                 mapping[id] = cnt
                 cnt += 1
@@ -416,6 +420,8 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 def compute_scq_size(node: Node) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+
+    Must be called *after* tlids have been assigned.
     """
     visited: List[int] = []
     total: int = 0
@@ -424,7 +430,7 @@ def compute_scq_size(node: Node) -> int:
         nonlocal visited
         nonlocal total
 
-        if not isinstance(node, TLInstruction) or isinstance(node, Program):
+        if node.ftid < 0 or isinstance(node, Program):
             return
 
         if id(node) in visited:
@@ -1028,7 +1034,7 @@ def optimize_cse(program: Program) -> None:
     S = {}
     postorder_iterative(program.get_ft_specs(), optimize_cse_util)
 
-    S = {}
+    S = {k:v for (k,v) in S.items() if isinstance(v, BZInstruction)}
     postorder_iterative(program.get_pt_specs(), optimize_cse_util)
 
     program.is_cse_reduced = True
@@ -1061,9 +1067,11 @@ def generate_aliases(program: Program) -> List[str]:
     return s
 
 
-def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruction], List[Instruction], List[Instruction]]:
+def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
     formula_type: FormulaType
-    tlid: int = 0
+    ftid: int = 0
+    ptid: int = 0
+    bzid: int = 0
     atid: int = 0
 
     ft_asm = []
@@ -1071,21 +1079,55 @@ def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruc
     bz_asm = []
     at_asm = []
 
-    def assign_ids(node: Node) -> None:
-        nonlocal tlid, atid
+    def assign_ftids(node: Node) -> None:
+        nonlocal ftid, bzid, atid
 
         if isinstance(node, TLInstruction):
-            for child in node.get_children():
-                if isinstance(child, BZInstruction) and child.tlid < 0:
-                    child.tlid = tlid
-                    tlid += 1
-
-            node.tlid = tlid
-            tlid += 1
+            node.ftid = ftid
+            ftid += 1
 
         if isinstance(node, BZInstruction):
-            node.atid = atid
-            atid += 1
+            if node.bzid < 0:
+                node.bzid = bzid
+                bzid += 1
+
+            if node.has_tl_parent():
+                node.ftid = ftid
+                ftid += 1
+                if node.atid < 0:
+                    node.atid = atid
+                    atid += 1
+
+        if isinstance(node, Atomic):
+            # Retrieve cached atomic number from program.atomics, assign from
+            # atid counter on first lookup
+            #
+            # Key exception possible if atomic node does not appear in atomics
+            if program.atomics[node.name].atid == -1:
+                node.atid = atid
+                program.atomics[node.name].atid = atid
+                atid += 1
+            else:
+                node.atid = program.atomics[node.name].atid
+
+    def assign_ptids(node: Node) -> None:
+        nonlocal ptid, bzid, atid
+
+        if isinstance(node, TLInstruction):
+            node.ptid = ptid
+            ptid += 1
+
+        if isinstance(node, BZInstruction):
+            if node.bzid < 0:
+                node.bzid = bzid
+                bzid += 1
+
+            if node.has_tl_parent():
+                node.ptid = ptid
+                ptid += 1
+                if node.atid < 0:
+                    node.atid = atid
+                    atid += 1
 
         if isinstance(node, Atomic):
             # Retrieve cached atomic number from program.atomics, assign from
@@ -1104,27 +1146,30 @@ def generate_assembly(program: Program) -> Tuple[List[Instruction], List[Instruc
         nonlocal formula_type
 
         if isinstance(node, Instruction):
-            if node.tlid > -1:
-                if formula_type == FormulaType.FT:
-                    ft_asm.append(node)
-                else:
-                    pt_asm.append(node)
-            if node.atid > -1 and isinstance(node, BZInstruction):
+            if formula_type == FormulaType.FT and node.ftid > -1:
+                ft_asm.append(node)
+            elif formula_type == FormulaType.PT and node.ptid > -1:
+                pt_asm.append(node)
+            if node.bzid > -1 and not node in bz_asm:
                 bz_asm.append(node)
-        else:
-            logger.critical(f" Internal error, invalid node type for assembly generation (found '{type(node)}').")
+        elif not isinstance(node, Bool):
+            logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
 
-    postorder_iterative(program.get_ft_specs(), assign_ids)
-    tlid = 0
-    postorder_iterative(program.get_pt_specs(), assign_ids)
+    postorder_iterative(program.get_ft_specs(), assign_ftids)
+    postorder_iterative(program.get_pt_specs(), assign_ptids)
 
     formula_type = FormulaType.FT
     postorder_iterative(program.get_ft_specs(), generate_assembly_util)
     formula_type = FormulaType.PT
     postorder_iterative(program.get_pt_specs(), generate_assembly_util)
 
-    for at_instr in program.atomics.values():
+    for at_instr in [a for a in program.atomics.values() if a.atid >= 0]:
         at_asm.append(at_instr)
+
+    at_asm.sort(key=lambda n: n.atid)
+    bz_asm.sort(key=lambda n: n.bzid)
+    ft_asm.sort(key=lambda n: n.ftid)
+    pt_asm.sort(key=lambda n: n.ptid)
 
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
@@ -1139,7 +1184,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
         nonlocal ret
         nonlocal pos
 
-        if not isinstance(a,TLInstruction) or isinstance(a,Program):
+        if a.ftid < 0 or isinstance(a,Program):
             return
 
         start_pos = pos
@@ -1238,8 +1283,8 @@ def parse(input: str) -> Program|None:
 def compile(
     input_filename: str,
     signals_filename: str,
-    output_path: str = 'config/',
-    impl: str = 'c',
+    output_filename: str = "r2u2_spec.bin",
+    impl: str = "c",
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
@@ -1250,10 +1295,24 @@ def compile(
     color: bool = True,
     quiet: bool = False
 ) -> int:
-    """Compiles a C2PO input file and outputs generated R2U2 assembly/binaries"""
-    INT.width = int_width
-    INT.is_signed = int_signed
-    FLOAT.width = float_width
+    """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
+    
+    Args:
+        input_filename: Name of a C2PO input file
+        signals_filename: Name of a csv trace file or C2PO signals file
+        output_filename: Name of binary output file
+        impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'
+        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
+        int_signed: If true sets INT type to signed
+        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
+        cse: If true performs Common Subexpression Elimination
+        at: If true enables and outputs Atomic Checker instructions
+        bz: If true enables and outputs Booleanizer instructions
+        extops: If true enables TL extended operators
+        color: If true enables color in logging output
+        quiet: If true disables assembly output
+    """
+    set_types(int_width, int_signed, float_width)
 
     if bz and at:
         logger.error(f" Only one of AT and BZ can be enabled")
@@ -1292,7 +1351,7 @@ def compile(
     aliases = generate_aliases(program)
 
     # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program)
+    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
     scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
     # print asm if 'quiet' option not enabled
@@ -1308,11 +1367,11 @@ def compile(
 
         print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
         for a in ft_asm:
-            print(f"\t{a.tl_asm()}")
+            print(f"\t{a.ft_asm()}")
 
         print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
         for a in pt_asm:
-            print(f"\t{a.tl_asm()}")
+            print(f"\t{a.pt_asm()}")
 
         print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:
@@ -1322,7 +1381,7 @@ def compile(
         for a in aliases:
             print(f"\t{a}")
 
-    assemble(output_path + 'r2u2_spec.bin', at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+    assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
 
     return ReturnCode.SUCCESS.value

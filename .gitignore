@@ -270,6 +270,7 @@ pyrightconfig.json
 # # Input test files
 *.csv
 *.mltl
+*.bin
 
 R2U2_C/bin/
 R2U2_C/doc/

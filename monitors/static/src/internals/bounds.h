@@ -6,6 +6,8 @@
 #define R2U2_MAX_ATOMICS 256
 #define R2U2_MAX_INST_LEN 8192
 
+#define R2U2_MAX_BZ_INSTRUCTIONS 256
+
 // Past Time Memory
 //  MAX_BOXQ_BYTES: arena size in bytes
 #define R2U2_MAX_BOXQ_BYTES (256 * 1024)

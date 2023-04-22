@@ -16,13 +16,14 @@ class BaseType(Enum):
 
 
 class Type():
+    """Abstract base class representing a C2PO type."""
 
     def __init__(self, t: BaseType, n: str) -> None:
         self.value: BaseType = t
         self.name: str = n
 
     def __eq__(self, arg: object) -> bool:
-        if isinstance(arg,Type):
+        if isinstance(arg, Type):
             return self.value == arg.value
         return False
 
@@ -31,18 +32,21 @@ class Type():
 
 
 class NOTYPE(Type):
+    """An invalid C2PO type."""
 
     def __init__(self) -> None:
         super().__init__(BaseType.NOTYPE,'none')
 
 
 class BOOL(Type):
+    """Boolean C2PO type."""
 
     def __init__(self) -> None:
         super().__init__(BaseType.BOOL,'bool')
 
 
 class INT(Type):
+    """Integer C2PO type with configurable width and signedness."""
     width: int = 8
     is_signed: bool = False
 
@@ -51,6 +55,7 @@ class INT(Type):
 
 
 class FLOAT(Type):
+    """Floating point C2PO type with configurable width."""
     width: int = 32
 
     def __init__(self) -> None:
@@ -58,9 +63,10 @@ class FLOAT(Type):
 
 
 class STRUCT(Type):
+    """Structured date C2PO type represented via a name."""
 
     def __init__(self, n: str) -> None:
-        super().__init__(BaseType.STRUCT,n)
+        super().__init__(BaseType.STRUCT, n)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
@@ -70,6 +76,7 @@ class STRUCT(Type):
 
 
 class SET(Type):
+    """Parameterized set C2PO type."""
 
     def __init__(self, m: Type) -> None:
         super().__init__(BaseType.SET,'set<'+str(m)+'>')
@@ -83,11 +90,11 @@ class SET(Type):
 
 
 def is_integer_type(t: Type) -> bool:
-    return isinstance(t,INT) or isinstance(t,BOOL)
+    return isinstance(t, INT) or isinstance(t, BOOL)
 
 
 def is_float_type(t: Type) -> bool:
-    return isinstance(t,FLOAT)
+    return isinstance(t, FLOAT)
 
 
 class FormulaType(Enum):
@@ -95,3 +102,17 @@ class FormulaType(Enum):
     FT = 1
     PT = 2
 
+
+def set_types(int_width: int, int_signed: bool, float_width: int):
+    """Check for valid int and float widths and configure types accordingly."""
+    INT.is_signed = int_signed
+
+    if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
+        INT.width = int_width
+    else:
+        logger.error(f" Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).")
+
+    if float_width == 32 or float_width == 64:
+        FLOAT.width = float_width
+    else:
+        logger.error(f" Invalid float width, must correspond to a C standard float width (32 or 64).")

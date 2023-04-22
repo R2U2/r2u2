@@ -13,7 +13,7 @@
 #endif
 
 #ifndef r2u2_int
-    // Meant to define a signal / AT int size
+    // Meant to define a signal / AT or BZ int size
     // TODO(bckempa): in use by Box Queues, to be changed....
     #define r2u2_int int32_t
 #endif
@@ -46,6 +46,12 @@ typedef struct {
     r2u2_bool truth;
     r2u2_time time;
 } r2u2_verdict;
+
+typedef union r2u2_value {
+    r2u2_bool b;
+    r2u2_int i;
+    r2u2_float f;
+} r2u2_value_t;
 
 
 #endif /* R2U2_TYPES_H */
