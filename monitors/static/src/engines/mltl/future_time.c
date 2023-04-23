@@ -91,6 +91,8 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
           rd_ptr = &(source_scq->rd_ptr2);
         }
 
+        // NOTE: Must always check if queue is empty before poping
+        // in tis case we always call operand_data_ready first
         res = r2u2_scq_pop(target_scq, rd_ptr);
         break;
 
@@ -108,6 +110,7 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
 
   r2u2_scq_push(scq, res);
+  R2U2_DEBUG_PRINT("\t(%d,%d)\n", res->time, res->truth);
 
   scq->desired_time_stamp = (res->time)+1;
 
@@ -163,8 +166,10 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         case R2U2_FT_OP_ATOMIC: {
           // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
           if (instr->op2.value) {
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %d\n", instr->op1.value, instr->memory_reference);
             scq->interval_end = (r2u2_time) instr->memory_reference;
           } else {
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %d\n", instr->op1.value, instr->memory_reference);
             scq->interval_start = (r2u2_time) instr->memory_reference;
           }
           break;
@@ -193,6 +198,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       if (operand_data_ready(monitor, instr, 0)) {
         res = get_operand(monitor, instr, 0);
+        R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
         scq->desired_time_stamp = (res.time)+1;
 
         if (monitor->out_file != NULL) {
@@ -232,10 +238,12 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
           res = (r2u2_verdict){true, op0.time - scq->interval_end};
           r2u2_scq_push(scq, &res);
+          R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
         } else if (op0.time >= scq->interval_start) {
           res = (r2u2_verdict){false, op0.time - scq->interval_start};
           r2u2_scq_push(scq, &res);
+          R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
         }
 
@@ -267,6 +275,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           // TODO(bckempa): Factor this out, we're avoiding signed comparisons
           if (res.time >= scq->max_out) {
             r2u2_scq_push(scq, &res);
+            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
             if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
             scq->max_out = res.time +1;
           }
@@ -274,6 +283,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           res = (r2u2_verdict){false, tau - scq->interval_start};
           if (res.time >= scq->max_out) {
             r2u2_scq_push(scq, &res);
+            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
             if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
             scq->max_out = res.time +1;
           }
@@ -281,6 +291,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           res = (r2u2_verdict){false, tau - scq->interval_end};
           if (res.time >= scq->max_out) {
             r2u2_scq_push(scq, &res);
+            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
             if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
             scq->max_out = res.time +1;
           }
