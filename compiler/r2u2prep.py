@@ -19,7 +19,7 @@ parser.add_argument("--config-file", default=__AbsolutePath__+"r2u2.conf",
 parser.add_argument("--header-file",
                     default=__AbsolutePath__+"gen_files/config_files/R2U2Config.h",
                     help="path to configuration header file, uses this file to detect if recompilation is needed")
-parser.add_argument("--output-file", default=__AbsolutePath__+"r2u2_spec.bin",
+parser.add_argument("--output-file", default="r2u2_spec.bin",
                     help="location where output file will be generated")
 parser.add_argument("--compiler-dir", default=__AbsolutePath__+"Compiler/",
                     help="location where compiler programs will be called from")
@@ -35,6 +35,8 @@ parser.add_argument("--no-binaries", action="store_true",
                     help="generate config.c file in place of binaries")
 parser.add_argument("--booleanizer", action="store_true",
                     help="enable booleanizer")
+parser.add_argument("--cse", action="store_true",
+                    help="enable CSE optimization")
 parser.add_argument("--extops", action="store_true",
                     help="enable extended operations")
 parser.add_argument("--rewrite", action="store_true",
