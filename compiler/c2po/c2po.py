@@ -1291,7 +1291,7 @@ def compile(
     cse: bool = True,
     at: bool = False,
     bz: bool = False,
-    extops: bool = True,
+    extops: bool = False,
     color: bool = True,
     quiet: bool = False
 ) -> int:
@@ -1337,11 +1337,12 @@ def compile(
     rewrite_set_aggregation(program)
     rewrite_struct_access(program)
 
+    optimize_rewrite_rules(program)
+
     # rewrite without extended operators if enabled
     if not extops:
         rewrite_extended_operators(program)
 
-    optimize_rewrite_rules(program)
 
     # common sub-expressions elimination
     if cse:

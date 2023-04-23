@@ -93,7 +93,7 @@ TST_BIN_TRGT := $(addprefix $(TST_BIN_PATH)/,$(basename $(subst $(TST_SRC_PATH)/
 DISTCLEAN_LIST := $(OBJ_PATH) \
 				  $(DBG_PATH) \
 				  $(TST_OBJ_PATH)
-CLEAN_LIST := $(LIB_RELS) $(LIB_DBUG) \
+CLEAN_LIST := $(LIB_RELS).* $(LIB_DBUG).* \
 			  $(BIN_RELS) $(BIN_DBUG) \
 			  $(TST_BIN_PATH) $(TST_RPT_PATH) \
 			  $(DISTCLEAN_LIST)

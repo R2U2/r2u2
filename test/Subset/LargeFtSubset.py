@@ -18,12 +18,12 @@ Paths needed to navigate across the r2u2 directory
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'../TL_formula/'
 __InputDir__     = __AbsolutePath__+'../Inputs/'
-__CDir__          = __AbsolutePath__+'../../R2U2_C/'
+__CDir__          = __AbsolutePath__+'../../monitors/static/'
 __ResultDIR__    = __AbsolutePath__+'../results/'
 __testDir__     = __AbsolutePath__+'../'
 __toolsDir__     = __AbsolutePath__+'../../tools/'
-__CompilerDir__  = __toolsDir__+'Compiler/'
-__BinDir__       = __toolsDir__+'gen_files/binary_files/'
+__compilerDir__  = __AbsolutePath__+'../../compiler/'
+__binPath__       = __compilerDir__+'r2u2_spec.bin'
 
 
 # Names of the directories where the results for each version are stored
@@ -51,11 +51,10 @@ def test_c():
     mltl_filename = __TLDir__+'LargeFtFormula.mltl'
     # print(formula)
     # For each formula within
-    res = subprocess.run(['python3', __toolsDir__+'r2u2prep.py',mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
-    print(f"{' '.join(res.args)}\n{open(res.args[2], 'r').read()}\n{res.stdout.decode()}")
-    raise SystemExit
+    res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker',mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    print(f"{' '.join(res.args)}\n{open(res.args[3], 'r').read()}\n{res.stdout.decode()}")
     filename = 'LargeFT'+'.txt'
-    subprocess.run([__CDir__+'bin/r2u2',__BinDir__,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
+    subprocess.run([__CDir__+'build/r2u2',__binPath__,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
     subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])
     # Split the multi-formula run into individual files.
     subprocess.run([__toolsDir__+'split_verdicts.sh',__OutputDIR__+filename],stdout=subprocess.PIPE)
