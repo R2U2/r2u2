@@ -5,11 +5,11 @@ from .sly import Lexer, Parser
 from .ast import *
 from .logger import *
 
-logger = getLogger(STANDARD_LOGGER_NAME)
+logger = getLogger(COLOR_LOGGER_NAME)
 
 class C2POLexer(Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_SPEC, 
+    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
@@ -80,7 +80,9 @@ class C2POLexer(Lexer):
     SYMBOL['STRUCT'] = KW_STRUCT
     SYMBOL['INPUT'] = KW_INPUT
     SYMBOL['DEFINE'] = KW_DEFINE
-    SYMBOL['SPEC'] = KW_SPEC
+    SYMBOL['ATOMIC'] = KW_ATOMIC
+    SYMBOL['FTSPEC'] = KW_FTSPEC
+    SYMBOL['PTSPEC'] = KW_PTSPEC
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
     SYMBOL['H'] = TL_HIST
@@ -101,6 +103,7 @@ class C2POLexer(Lexer):
 class C2POParser(Parser):
     tokens = C2POLexer.tokens
 
+    # Using C operator precedence as a guide
     precedence = (
         ('left', LOG_IMPL, LOG_IFF),
         ('left', LOG_OR),
@@ -122,27 +125,51 @@ class C2POParser(Parser):
         super().__init__()
         self.structs: StructDict = {}
         self.vars: dict[str,Type] = {}
-        self.defs: dict[str,AST] = {}
+        self.defs: dict[str,Node] = {}
+        self.contracts: dict[str,int] = {}
+        self.atomics: dict[str,Node] = {}
         self.spec_num: int = 0
+        self.has_ft = False
+        self.has_pt = False
         self.status = True
 
-        # Initialize special structs/functions
-        self.structs['Set'] = {'set':NOTYPE(),'size':INT()}
+        # Initialize special structs
+        self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
 
-    @_('block spec_block')
+    def error(self, token):
+        self.status = False
+        return super().error(token)
+
+    @_('block ft_spec_block')
     def block(self, p):
-        p[0].append(p[1])
+        if self.has_ft:
+            logger.warning(f"{p.lineno}: Multiple FTSPEC blocks, ignoring and using first instance.")
+            return p[0]
+
+        self.has_ft = True
+        p[0][FormulaType.FT] = p[1]
+        return p[0]
+
+    @_('block pt_spec_block')
+    def block(self, p):
+        if self.has_pt:
+            logger.warning(f"{p.lineno}: Multiple PTSPEC blocks, ignoring and using first instance.")
+            return p[0]
+
+        self.has_pt = True
+        p[0][FormulaType.PT] = p[1]
         return p[0]
 
     @_('block struct_block',
        'block input_block',
-       'block define_block')
+       'block define_block',
+       'block atomic_block')
     def block(self, p):
         return p[0]
 
     @_('')
     def block(self, p):
-        return []
+        return {}
 
     @_('KW_STRUCT struct struct_list')
     def struct_block(self, p):
@@ -229,12 +256,42 @@ class C2POParser(Parser):
         else:
             self.defs[variable] = expr
 
-    @_('KW_SPEC spec_list spec')
-    def spec_block(self, p):
+    @_('KW_ATOMIC atomic atomic_list')
+    def atomic_block(self, p):
+        pass
+
+    @_('atomic_list atomic', '')
+    def atomic_list(self, p):
+        pass
+
+    @_('SYMBOL ASSIGN expr SEMI')
+    def atomic(self, p):
+        ln = p.lineno
+        atomic = p[0]
+        expr = p[2]
+
+        if atomic in self.vars.keys():
+            logger.error(f'{ln}: Atomic \'{atomic}\' name clashes with previously declared variable.')
+            self.status = False
+        elif atomic in self.atomics.keys():
+            logger.warning(f'{ln}: Atomic \'{atomic}\' defined twice, using last definition.')
+            self.atomics[atomic] = expr
+        else:
+            self.atomics[atomic] = expr
+
+    # Future-time specification block
+    @_('KW_FTSPEC spec_list spec')
+    def ft_spec_block(self, p):
         ln = p.lineno
         p[1] += p[2]
-        contract_dict = {}
-        return Program(ln, self.structs, p[1], contract_dict)
+        return SpecificationSet(ln, FormulaType.FT, p[1])
+
+    # Past-time specification block
+    @_('KW_PTSPEC spec_list spec')
+    def pt_spec_block(self, p):
+        ln = p.lineno
+        p[1] += p[2]
+        return SpecificationSet(ln, FormulaType.PT, p[1])
 
     @_('spec_list spec')
     def spec_list(self, p):
@@ -274,14 +331,8 @@ class C2POParser(Parser):
         ln = p.lineno
         label = p[0]
 
-        f1: AST = p[2]
-        f2: AST = LogicalImplies(ln,p[2],p[4])
-        f3: AST = LogicalAnd(ln,p[2],p[4])
-
         self.spec_num += 3
-        return [Specification(ln, label, self.spec_num-3, f1),
-                Specification(ln, label, self.spec_num-2, f2),
-                Specification(ln, label, self.spec_num-1, f3)]
+        return [Contract(ln, label, self.spec_num-3, self.spec_num-2, self.spec_num-1, p[2], p[4])]
 
     @_('expr_list COMMA expr')
     def expr_list(self, p):
@@ -324,7 +375,7 @@ class C2POParser(Parser):
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Set aggregation expression
     @_('SYMBOL LPAREN SYMBOL bind_rule COLON expr RPAREN LPAREN expr RPAREN')
@@ -345,7 +396,7 @@ class C2POParser(Parser):
         else:
             self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Stub rule for binding a set agg variable
     @_('')
@@ -364,19 +415,17 @@ class C2POParser(Parser):
         symbol = p[0]
 
         if symbol in self.structs.keys():
-            members: dict[str,AST] = {}
+            members: dict[str,Node] = {}
             if len(expr_list) == len(self.structs[symbol]):
                 for s in self.structs[symbol].keys():
                     members[s] = expr_list.pop(0)
-                return Struct(ln,symbol,members)
+                return Struct(ln, symbol, members)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
-                return AST(ln, [])
+                return Node(ln, [])
         else:
-            logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
-            self.status = False
-            return AST(ln, [])
+            return Function(ln, symbol, expr_list)
 
     # Function/struct constructor expression empty arguments
     @_('SYMBOL LPAREN RPAREN')
@@ -390,11 +439,11 @@ class C2POParser(Parser):
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
-                return AST(ln, [])
+                return Node(ln, [])
         else:
             logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Struct member access
     @_('expr DOT SYMBOL')
@@ -418,7 +467,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Binary expressions
     @_('expr LOG_IMPL expr',
@@ -450,7 +499,7 @@ class C2POParser(Parser):
         if operator == '->':
             return LogicalImplies(ln, lhs, rhs)
         elif operator == '<->':
-            return LogicalAnd(ln,[ LogicalImplies(ln, lhs, rhs), LogicalImplies(ln, rhs, lhs)])
+            return LogicalIff(ln, lhs, rhs)
         elif operator == '||':
             return LogicalOr(ln, [lhs, rhs])
         elif operator == '&&':
@@ -490,7 +539,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Unary temporal expressions
     @_('TL_GLOBAL interval expr',
@@ -512,7 +561,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Binary temporal expressions
     @_('expr TL_UNTIL interval expr',
@@ -531,7 +580,7 @@ class C2POParser(Parser):
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Parentheses
     @_('LPAREN expr RPAREN')
@@ -552,25 +601,27 @@ class C2POParser(Parser):
             return self.defs[symbol]
         elif symbol in self.vars.keys():
             return Signal(ln, symbol, self.vars[symbol])
+        elif symbol in self.atomics.keys():
+            return Atomic(ln, symbol)
         else:
             logger.error(f'{ln}: Variable \'{symbol}\' undefined')
             self.status = False
-            return AST(ln, [])
+            return Node(ln, [])
 
     # Integer
     @_('INT')
     def expr(self, p):
-        return Integer(0, int(p.INT))
+        return Integer(p.lineno, int(p.INT))
 
     # Float
     @_('FLOAT')
     def expr(self, p):
-        return Float(0, float(p.FLOAT))
+        return Float(p.lineno, float(p.FLOAT))
         
     # Shorthand interval
     @_('LBRACK INT RBRACK')
     def interval(self, p):
-        return Interval(0, p[1].get_value())
+        return Interval(0, int(p[1]))
 
     # Standard interval
     @_('LBRACK INT COMMA INT RBRACK')

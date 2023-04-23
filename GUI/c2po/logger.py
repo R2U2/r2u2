@@ -3,6 +3,7 @@ import logging
 
 STANDARD_LOGGER_NAME: str = 'c2po_standard_logger'
 COLOR_LOGGER_NAME: str = 'c2po_color_logger'
+MAINTAINER_EMAIL: str = 'cgjohann@iastate.edu'
 
 class Color:
     HEADER = '\033[95m'
@@ -24,7 +25,7 @@ class StandardFormatter(logging.Formatter):
         logging.INFO: format_str + ':%(message)s',
         logging.WARNING: format_str + ':%(message)s',
         logging.ERROR: format_str + ':%(message)s',
-        logging.CRITICAL: format_str + ':%(message)s',
+        logging.CRITICAL: 'INTERNAL' + ':%(message)s',
     }
 
     def format(self, record):
@@ -41,7 +42,8 @@ class ColorFormatter(logging.Formatter):
         logging.INFO: Color.BOLD + Color.OKCYAN + format_str + Color.ENDC + ':%(message)s',
         logging.WARNING: Color.BOLD + Color.WARNING + format_str + Color.ENDC + ':%(message)s',
         logging.ERROR: Color.BOLD + Color.FAIL + format_str + Color.ENDC + ':%(message)s',
-        logging.CRITICAL: Color.BOLD + Color.FAIL + format_str + Color.ENDC + ':%(message)s',
+        logging.CRITICAL: Color.UNDERLINE + Color.BOLD + Color.FAIL + 'INTERNAL' + Color.ENDC + \
+            ':%(message)s' + '\n\tPlease contact ' + MAINTAINER_EMAIL,
     }
 
     def format(self, record):
