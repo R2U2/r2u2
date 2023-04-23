@@ -360,7 +360,7 @@ class Float(Constant, BZInstruction):
         return new
 
     def bz_asm(self) -> str:
-        return f"{self.atid_str()} fconst {self.value}"
+        return f"{self.bzid_str()} fconst {self.value}"
 
 
 class Variable(Node):
