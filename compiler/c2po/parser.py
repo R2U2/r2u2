@@ -103,6 +103,7 @@ class C2POLexer(Lexer):
 class C2POParser(Parser):
     tokens = C2POLexer.tokens
 
+    # Using C operator precedence as a guide
     precedence = (
         ('left', LOG_IMPL, LOG_IFF),
         ('left', LOG_OR),

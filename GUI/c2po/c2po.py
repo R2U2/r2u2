@@ -1,4 +1,6 @@
 from __future__ import annotations
+import contextlib
+import io
 from typing import Dict, List, Tuple
 from argparse import PARSER
 import inspect
@@ -1292,14 +1294,14 @@ def compile(
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    cse: bool = True,
+    cse: bool = False,
     at: bool = False,
     bz: bool = False,
     extops: bool = False,
     rewrite: bool = False,
     color: bool = True,
     quiet: bool = False
-) -> int:
+) -> tuple[int,str,str,str,Program]:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
@@ -1318,78 +1320,75 @@ def compile(
         color: If true enables color in logging output
         quiet: If true disables assembly output
     """
-    set_types(int_width, int_signed, float_width)
+    log_stream.truncate(0)
 
-    if bz and at:
-        logger.error(f" Only one of AT and BZ can be enabled")
-        return ReturnCode.ENGINE_SELECT_ERROR.value
+    with contextlib.redirect_stderr(io.StringIO()) as stderr:
+        set_types(int_width, int_signed, float_width)
 
-    with open(input_filename, "r") as f:
-        program: Program|None = parse(f.read())
+        if bz and at:
+            logger.error(f" Only one of AT and BZ can be enabled")
+            return (ReturnCode.ENGINE_SELECT_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    if not program:
-        logger.error(" Failed parsing.")
-        return ReturnCode.PARSE_ERROR.value
+        with open(input_filename, "r") as f:
+            program: Program|None = parse(f.read())
 
-    # parse csv/signals file
-    program.signal_mapping = parse_signals(signals_filename)
+        if not program:
+            logger.error(" Failed parsing.")
+            return (ReturnCode.PARSE_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    # type check
-    if not type_check(program, at, bz):
-        logger.error(" Failed type check.")
-        return ReturnCode.TYPE_CHECK_ERROR.value
+        # parse csv/signals file
+        program.signal_mapping = parse_signals(signals_filename)
 
-    rewrite_contracts(program)
-    rewrite_set_aggregation(program)
-    rewrite_struct_access(program)
+        # type check
+        if not type_check(program, at, bz):
+            logger.error(" Failed type check.")
+            return (ReturnCode.TYPE_CHECK_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    if rewrite:
-        optimize_rewrite_rules(program)
+        rewrite_contracts(program)
+        rewrite_set_aggregation(program)
+        rewrite_struct_access(program)
 
-    # rewrite without extended operators if enabled
-    if not extops:
-        rewrite_extended_operators(program)
+        if rewrite:
+            optimize_rewrite_rules(program)
 
-    # common sub-expressions elimination
-    if cse:
-        optimize_cse(program)
+        # rewrite without extended operators if enabled
+        if not extops:
+            rewrite_extended_operators(program)
 
-    # generate alias file
-    aliases = generate_aliases(program)
+        # common sub-expressions elimination
+        if cse:
+            optimize_cse(program)
 
-    # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
-    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+        # generate alias file
+        aliases = generate_aliases(program)
 
-    # print asm if 'quiet' option not enabled
-    if not quiet:
-        if at:
-            print(Color.HEADER+"AT Assembly"+Color.ENDC+":")
-            for s in at_asm:
-                print(f"\t{s.at_asm()}")
-        if bz:
-            print(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
-            for s in bz_asm:
-                print(f"\t{s.bz_asm()}")
+        # generate assembly
+        (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
+        scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
-        print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
-        for a in ft_asm:
-            print(f"\t{a.ft_asm()}")
+        # print asm if 'quiet' option not enabled
+        asm = ""
+        if not quiet:
+            if at:
+                asm += "AT Assembly:\n"
+                for s in at_asm:
+                    asm += f"\t{s.at_asm()}\n"
+            if bz:
+                asm += "BZ Assembly:\n"
+                for s in bz_asm:
+                    asm += f"\t{s.bz_asm()}\n"
 
-        print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
-        for a in pt_asm:
-            print(f"\t{a.pt_asm()}")
+            asm += "FT Assembly:\n"
+            for a in ft_asm:
+                asm += f"\t{a.ft_asm()}\n"
 
-        print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
-        for s in scq_asm:
-            print(f"\t{s}")
+            asm += "PT Assembly:\n"
+            for a in pt_asm:
+                asm += f"\t{a.pt_asm()}\n"
 
-        print(Color.HEADER+"Aliases"+Color.ENDC+":")
-        for a in aliases:
-            print(f"\t{a}")
+            asm += "SCQ Assembly:\n"
+            for s in scq_asm:
+                asm += f"\t{s}\n"
 
-    assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
-
-
-    return ReturnCode.SUCCESS.value
+        return (ReturnCode.SUCCESS.value,log_stream.getvalue(),stderr.getvalue(),asm,program)
 
