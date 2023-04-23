@@ -167,16 +167,11 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             if not at:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
-        elif isinstance(node,RelationalOperator):
+        elif isinstance(node, RelationalOperator):
             lhs = node.get_lhs()
             rhs = node.get_rhs()
             type_check_util(lhs)
             type_check_util(rhs)
-
-            if isinstance(node,Equal) or isinstance(node,NotEqual):
-                if not is_integer_type(lhs.type) or not is_integer_type(rhs.type):
-                    status = False
-                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of integer type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
 
             if lhs.type != rhs.type:
                 status = False
@@ -213,8 +208,17 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = t
         elif isinstance(node, BitwiseOperator):
-            status = False
-            logger.error(f'{node.ln}: Bitwise operators unsupported.\n\t{node}')
+            if not bz:
+                status = False
+                logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
+
+            for c in node.get_children():
+                type_check_util(c)
+                if c.type != INT():
+                    status = False
+                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'int\'\n\t{node}')
+
+            node.type = INT()
         elif isinstance(node, LogicalOperator):
             for c in node.get_children():
                 type_check_util(c)
