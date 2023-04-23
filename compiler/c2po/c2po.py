@@ -1292,7 +1292,7 @@ def compile(
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    cse: bool = True,
+    cse: bool = False,
     at: bool = False,
     bz: bool = False,
     extops: bool = False,
