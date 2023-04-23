@@ -37,6 +37,8 @@ parser.add_argument("--booleanizer", action="store_true",
                     help="enable booleanizer")
 parser.add_argument("--extops", action="store_true",
                     help="enable extended operations")
+parser.add_argument("--rewrite", action="store_true",
+                    help="enable MLTL rewrite rule optimizations")
 parser.add_argument("--atomic-checker", action="store_true",
                     help="enable atomic checkers")
 parser.add_argument("--no-color", action="store_false",
@@ -48,7 +50,7 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,"r").read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(args.mltl, args.sigs, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, at=args.atomic_checker, bz=args.booleanizer, cse=True, extops=args.extops, color=args.no_color, quiet=args.quiet)
+        return_code = compile(args.mltl, args.sigs, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, at=args.atomic_checker, bz=args.booleanizer, cse=True, extops=args.extops, rewrite=args.rewrite, color=args.no_color, quiet=args.quiet)
     else:
         print(f"Signal mapping argument '{args.sigs}' not a valid file")
         return_code = 1

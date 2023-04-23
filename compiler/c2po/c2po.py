@@ -1296,6 +1296,7 @@ def compile(
     at: bool = False,
     bz: bool = False,
     extops: bool = False,
+    rewrite: bool = False,
     color: bool = True,
     quiet: bool = False
 ) -> int:
@@ -1313,6 +1314,7 @@ def compile(
         at: If true enables and outputs Atomic Checker instructions
         bz: If true enables and outputs Booleanizer instructions
         extops: If true enables TL extended operators
+        rewrite: If true enables MLTL rewrite rule optimizations
         color: If true enables color in logging output
         quiet: If true disables assembly output
     """
@@ -1341,7 +1343,8 @@ def compile(
     rewrite_set_aggregation(program)
     rewrite_struct_access(program)
 
-    optimize_rewrite_rules(program)
+    if rewrite:
+        optimize_rewrite_rules(program)
 
     # rewrite without extended operators if enabled
     if not extops:
