@@ -63,12 +63,12 @@ def test_c(formulaFiles,inputFiles):
     # For all formula files within the formulaFiles directory
     for _formulaFile in formulaFiles:
         mltl_filename = __TLDir__+_formulaFile
-        res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker',mltl_filename,__InputDir__+signal_filename],stdout=subprocess.PIPE)
-        print(f"{' '.join(res.args)}\n{open(res.args[3], 'r').read()}\n{res.stdout.decode()}")
+        res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker',"--output-file",__binPath__,mltl_filename,__InputDir__+signal_filename],stdout=subprocess.PIPE)
+        print(f"{' '.join(res.args)}\n{open(res.args[5], 'r').read()}\n{res.stdout.decode()}")
         form   = _formulaFile.replace('.mltl','')
         trace  = signal_filename.replace('.csv','')
         log_filename = __OutputDIR__+form+'_'+trace+'.txt'
-        subprocess.run([__CDir__+'build/r2u2_debug',__binPath__,__InputDir__+signal_filename],stdout=subprocess.PIPE)
+        subprocess.run([__CDir__+'build/r2u2',__binPath__,__InputDir__+signal_filename],stdout=subprocess.PIPE)
         subprocess.run(['mv','R2U2.log',log_filename],stdout=subprocess.PIPE)
     # For the last run, which should be a concatenation of all the formulas, copy the name
     # back to R2U2.log
