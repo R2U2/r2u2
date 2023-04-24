@@ -69,26 +69,19 @@ at_filter_table: Dict[str, Tuple[Type, List[Type]]] = {
 }
 
 
-def parse_signals(filename: str) -> Dict[str,int]:
+def collect_signals(program: Program) -> Dict[str,int]:
     mapping: Dict[str,int] = {}
-    if re.match(".*\\.csv",filename):
-        with open(filename,"r") as f:
-            text: str = f.read()
-            lines: List[str] = text.splitlines()
-            if len(lines) < 1:
-                logger.error(f" Not enough data in file '{filename}'")
-                return {}
-            cnt: int = 0
-            if lines[0][0] != "#":
-                logger.error(f" Header missing in signals file.")
-                return {}
-            header = lines[0][1:]
-            for id in [s.strip() for s in header.split(",")]:
-                mapping[id] = cnt
-                cnt += 1
-    else: # TODO, implement signal mapping file format
-        return {}
+    sid: int = 0
 
+    def collect_signals_util(node: Node) -> None:
+        nonlocal mapping
+        nonlocal sid
+
+        if isinstance(node, Signal):
+            mapping[node.name] = sid
+            sid += 1
+
+    postorder_iterative(program, collect_signals_util)
     return mapping
 
 
@@ -1185,6 +1178,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     pos: int = 0
 
     compute_scq_size(program.get_ft_specs())
+    program.total_scq_size = program.get_ft_specs().total_scq_size
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -1287,7 +1281,7 @@ def parse(input: str) -> Program|None:
 
 
 def compile(
-    input_filename: str,
+    input: str,
     signals_filename: str,
     output_filename: str = "r2u2_spec.bin",
     impl: str = "c",
@@ -1305,7 +1299,7 @@ def compile(
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
-        input_filename: Name of a C2PO input file
+        input: Source code of a C2PO input file
         signals_filename: Name of a csv trace file or C2PO signals file
         output_filename: Name of binary output file
         impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'
@@ -1329,15 +1323,14 @@ def compile(
             logger.error(f" Only one of AT and BZ can be enabled")
             return (ReturnCode.ENGINE_SELECT_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-        with open(input_filename, "r") as f:
-            program: Program|None = parse(f.read())
+        program: Program|None = parse(input)
 
         if not program:
             logger.error(" Failed parsing.")
             return (ReturnCode.PARSE_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
         # parse csv/signals file
-        program.signal_mapping = parse_signals(signals_filename)
+        program.signal_mapping = collect_signals(program)
 
         # type check
         if not type_check(program, at, bz):
@@ -1365,6 +1358,7 @@ def compile(
         # generate assembly
         (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
         scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+        program.assembly = ft_asm + pt_asm # type: ignore
 
         # print asm if 'quiet' option not enabled
         asm = ""

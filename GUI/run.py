@@ -27,7 +27,7 @@ app.title = "R2U2 Resource Estimator"
 
 default_stylesheet = [ 
     {
-        "selector": "[type = ""+cls.__name__+""]",
+        "selector": "[type = \""+cls.__name__+"\"]",
         "style": {
             "background-color": "#cc00cc",
             "label": "data(name)"
@@ -36,7 +36,7 @@ default_stylesheet = [
     for cls in instruction_list if issubclass(cls, TemporalOperator)
 ] + [
     {
-        "selector": "[type = ""+cls.__name__+""]",
+        "selector": "[type = \""+cls.__name__+"\"]",
         "style": {
             "background-color": "#66ff99",
             "label": "data(name)"
@@ -45,7 +45,7 @@ default_stylesheet = [
     for cls in instruction_list if issubclass(cls, LogicalOperator)
 ] + [
     {
-        "selector": "[type = ""+cls.__name__+""]",
+        "selector": "[type = \""+cls.__name__+"\"]",
         "style": {
             "background-color": "#BFD7B5",
             "label": "data(name)"
@@ -63,51 +63,6 @@ default_stylesheet = [
         }
     }
 ]
-
-# default_stylesheet = [
-#     {
-#         "selector": "[type = "Signal"]",
-#         "style": {
-#             "background-color": "#ff9900",
-#             "label": "data(name)"
-#         }
-#     },
-#     {
-#         "selector": "[type = "Bool"]",
-#         "style": {
-#             "background-color": "#BFD7B5",
-#             "label": "data(name)"
-#         }
-#     },
-#     {
-#         "selector": "[type = "LogicalNegate"]",
-#         "style": {
-#             "background-color": "#66ff99",
-#             "label": "data(name)"
-#         }
-#     },
-#     {
-#         "selector": "[type = "Global"]",
-#         "style": {
-#             "background-color": "#6699ff",
-#             "label": "data(name)",
-#         }
-#     },
-#     {
-#         "selector": "[type = "LogicalAnd"]",
-#         "style": {
-#             "background-color": "#ff6666",
-#             "label": "data(name)"
-#         }
-#     },
-#     {
-#         "selector": "[type = "Until"]",
-#         "style": {
-#             "background-color": "#cc00cc",
-#             "label": "data(name)"
-#         }
-#     },
-# ]
 
 styles = {
     "json-output": {
@@ -143,7 +98,7 @@ app.layout = html.Div(
                     html.Div("C2PO Input"),
                     dcc.Textarea(
                         id="formula",
-                        value="INPUT\n  a0,a1,a2: bool;\n  b0,b1,b2: bool;\n\nDEFINE\n  c = a1 || a2;\n\nSPEC\n  s0: a0;\n  s1: c;\n  s2: b0 U[0,5] b1;\n  s3: G[1,3] b2;\n  s4: s2 && s3;" ,
+                        value="INPUT\n  a0,a1,a2: bool;\n  b0,b1,b2: bool;\n\nDEFINE\n  c = a1 || a2;\n\nFTSPEC\n  s0: a0;\n  s1: c;\n  s2: b0 U[0,5] b1;\n  s3: G[1,3] b2;\n  s4: s2 && s3;" ,
                         style={"width": "100%", "height": "350px", "font-family": "monospace"},
                     ),
                     # html.Div("Int type"),
@@ -177,9 +132,9 @@ app.layout = html.Div(
                         options=[
                             {"label": "Common Subexpression Elimination", "value": "cse"},
                             {"label": "Booleanizer", "value": "bz"},
-                            {"label": "Extended Operators", "value": "ext-ops"}
+                            {"label": "Extended Operators", "value": "extops"}
                         ],
-                        value=["cse","bz","ext-ops"]
+                        value=["cse","bz","extops"]
                     ),
                     dbc.Button(
                         "Compile", id="run-compile", className="ms-auto", n_clicks=0
@@ -537,7 +492,7 @@ def speed_unit_conversion(clk):
 def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type, resource_type, cpu_clk, cpu_close, fpga_close, input, options, int_type, float_type, *argv):
     cse = True if "cse" in options else False
     bz = True if "bz" in options else False
-    ext_ops = True if "ext-ops" in options else False
+    extops = True if "extops" in options else False
 
     int_width = 8
     int_is_signed = False
@@ -572,7 +527,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
     elif float_type == "double":
         float_width = 64
 
-    status,logout,stderr,asm_str,program = compile(input, int_width=int_width, int_signed=int_is_signed, float_width=float_width, cse=cse, bz=bz, ext_ops=ext_ops)
+    status,logout,stderr,asm_str,program = compile(input, "", int_width=int_width, int_signed=int_is_signed, float_width=float_width, cse=cse, bz=bz, extops=extops)
 
     compile_output = stderr+logout
 
@@ -586,11 +541,11 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
         cpu_wcet_str = "NA"
         total_memory = "NA"
         resource_fig = data_process.RF
-        select_fig = resource_fig.get_LUT_fig()
+        select_fig = resource_fig.get_LUT_fig(0,0)
     else:
         compile_status += "ok"
 
-        asm = [a for a in program.assembly if not isinstance(a, Program) and not isinstance(a, Specification)]
+        asm = [a for a in program.assembly if not isinstance(a, Program) and not isinstance(a, Specification) and not isinstance(a, SpecificationSet)]
 
         node = [
             {"data":{"id": str(node), "num": 0, "type": type(node).__name__, "str":str(node), "name":node.name,"bpd":node.bpd, "wpd":node.wpd, "scq_size":node.scq_size} }
@@ -598,16 +553,12 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
         ]
 
         edge = []
-        # signals = []
         for src in asm:
             for child in src.get_children():
                 edge.append({"data":{"source":str(src), "target":str(child)}})
 
-            # if isinstance(src,Signal):
-            #     signals.append(src)
-
         elements = node + edge
-        style = {"color":"green"}
+        style = {"color": "green"}
         
         total_memory = str((program.total_scq_size*int(timestamp_length))/8/1024)+"KB" #KB
 
