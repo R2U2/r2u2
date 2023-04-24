@@ -330,27 +330,34 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       op0_rdy = operand_data_ready(monitor, instr, 0);
       op1_rdy = operand_data_ready(monitor, instr, 1);
 
-      R2U2_DEBUG_PRINT("\tLeft Data Ready: %d\n\rRight Data Ready: %d\n", op0_rdy, op1_rdy);
+      R2U2_DEBUG_PRINT("\tData Ready: %d\t%d\n", op0_rdy, op1_rdy);
 
       if (op0_rdy && op1_rdy) {
         op0 = get_operand(monitor, instr, 0);
         op1 = get_operand(monitor, instr, 1);
+        R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", op0.truth, op0.time, op1.truth, op1.time);
         if (op0.truth && op1.truth){
+          R2U2_DEBUG_PRINT("\tBoth True\n");
           push_result(monitor, instr, &(r2u2_verdict){true, min(op0.time, op1.time)});
         } else if (!op0.truth && !op1.truth) {
+          R2U2_DEBUG_PRINT("\tBoth False\n");
           push_result(monitor, instr, &(r2u2_verdict){false, max(op0.time, op1.time)});
         } else if (op0.truth) {
+          R2U2_DEBUG_PRINT("\tOnly Left True\n");
           push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
         } else {
+          R2U2_DEBUG_PRINT("\tOnly Right True\n");
           push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
         }
       } else if (op0_rdy) {
         op0 = get_operand(monitor, instr, 0);
+        R2U2_DEBUG_PRINT("\tOnly Left Ready: (%d, %d)\n", op0.truth, op0.time);
         if(!op0.truth) {
           push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
         }
       } else if (op1_rdy) {
         op1 = get_operand(monitor, instr, 1);
+        R2U2_DEBUG_PRINT("\tOnly Right Ready: (%d, %d)\n", op1.truth, op1.time);
         if(!op1.truth) {
           push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
         }
