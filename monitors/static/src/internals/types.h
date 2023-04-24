@@ -24,7 +24,7 @@
 
 #ifndef r2u2_time
     // R2U2 timestamp type, assumed to be an unsigned integer
-    #define r2u2_time int
+    #define r2u2_time unsigned int
 #endif
 
 #ifndef r2u2_infinity

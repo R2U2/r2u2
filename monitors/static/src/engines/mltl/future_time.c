@@ -142,11 +142,13 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       switch (instr->op2.opnd_type) {
         case R2U2_FT_OP_DIRECT: {
+          // TODO(bckempa): Lots of queue logic here, move to `shared_connection_queue.c`
           scq->length = instr->op2.value;
           r2u2_verdict *elements = ((r2u2_verdict*)(*(monitor->future_time_queue_mem)));
           // TODO(bckempa): need better sizing of array extents when switch elements
           // TODO(bckempa): ANSAN requires offset due to global layout shadow, fix and remove "+ 50"
           scq->queue = &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + 50)]);
+          scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
           R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %d\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, scq->queue);
 
           // Rise/Fall edge detection initialization
