@@ -151,13 +151,18 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
           R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %d\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, scq->queue);
 
+          #if R2U2_DEBUG
+          // Check for SCQ memory arena collision
+          assert(scq+1 < &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + scq->length + 50)]));
+          #endif
+
           // Rise/Fall edge detection initialization
           switch (instr->opcode) {
             case R2U2_MLTL_OP_FT_GLOBALLY:
-                scq->previous = (r2u2_verdict) { false, -1 };
+                scq->previous = (r2u2_verdict) { false, r2u2_infinity };
                 break;
             case R2U2_MLTL_OP_FT_UNTIL:
-                scq->previous = (r2u2_verdict) { true, -1 };
+                scq->previous = (r2u2_verdict) { true, r2u2_infinity };
                 break;
             default:
                 scq->previous = (r2u2_verdict) { true, 0 };
@@ -262,42 +267,40 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       if (operand_data_ready(monitor, instr, 0) && operand_data_ready(monitor, instr, 1)) {
         op0 = get_operand(monitor, instr, 0);
         op1 = get_operand(monitor, instr, 1);
-        r2u2_time tau = min(op0.time, op1.time);
 
         // We need to see every timesetp as an op0 op1 pair
+        r2u2_time tau = min(op0.time, op1.time);
         scq->desired_time_stamp = tau+1;
 
         // interval compression aware falling edge detection on op1
         if(!op1.truth && scq->previous.truth) {
           // TODO(bckempa): Not clear why this isn't stil pre.time+1
           scq->edge = scq->previous.time;
+          R2U2_DEBUG_PRINT("\tRight operand falling edge at t=%d\n", scq->edge);
         }
 
-        if (op1.truth) {
+        if (op1.truth && (tau >= scq->max_out + scq->interval_start)) {
+          // TODO(bckempa): Factor out repeated outuput logic
+          R2U2_DEBUG_PRINT("\tRight Op True\n");
           res = (r2u2_verdict){true, tau - scq->interval_start};
-          // TODO(bckempa): Factor this out, we're avoiding signed comparisons
-          if (res.time >= scq->max_out) {
-            r2u2_scq_push(scq, &res);
-            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-            scq->max_out = res.time +1;
-          }
-        } else if (!op0.truth) {
+          r2u2_scq_push(scq, &res);
+          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
+          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+          scq->max_out = res.time +1;
+        } else if (!op0.truth && (tau >= scq->max_out + scq->interval_start)) {
+          R2U2_DEBUG_PRINT("\tLeft Op False\n");
           res = (r2u2_verdict){false, tau - scq->interval_start};
-          if (res.time >= scq->max_out) {
-            r2u2_scq_push(scq, &res);
-            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-            scq->max_out = res.time +1;
-          }
-        } else if (tau >= scq->interval_end - scq->interval_start + scq->edge) {
+          r2u2_scq_push(scq, &res);
+          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
+          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+          scq->max_out = res.time +1;
+        } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->max_out + scq->interval_end)) {
+          R2U2_DEBUG_PRINT("\tTime Elapsed\n");
           res = (r2u2_verdict){false, tau - scq->interval_end};
-          if (res.time >= scq->max_out) {
-            r2u2_scq_push(scq, &res);
-            R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-            if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-            scq->max_out = res.time +1;
-          }
+          r2u2_scq_push(scq, &res);
+          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
+          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+          scq->max_out = res.time +1;
         }
 
         scq->previous = op1;
@@ -330,27 +333,34 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       op0_rdy = operand_data_ready(monitor, instr, 0);
       op1_rdy = operand_data_ready(monitor, instr, 1);
 
-      R2U2_DEBUG_PRINT("\tLeft Data Ready: %d\n\rRight Data Ready: %d\n", op0_rdy, op1_rdy);
+      R2U2_DEBUG_PRINT("\tData Ready: %d\t%d\n", op0_rdy, op1_rdy);
 
       if (op0_rdy && op1_rdy) {
         op0 = get_operand(monitor, instr, 0);
         op1 = get_operand(monitor, instr, 1);
+        R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", op0.truth, op0.time, op1.truth, op1.time);
         if (op0.truth && op1.truth){
+          R2U2_DEBUG_PRINT("\tBoth True\n");
           push_result(monitor, instr, &(r2u2_verdict){true, min(op0.time, op1.time)});
         } else if (!op0.truth && !op1.truth) {
+          R2U2_DEBUG_PRINT("\tBoth False\n");
           push_result(monitor, instr, &(r2u2_verdict){false, max(op0.time, op1.time)});
         } else if (op0.truth) {
+          R2U2_DEBUG_PRINT("\tOnly Left True\n");
           push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
         } else {
+          R2U2_DEBUG_PRINT("\tOnly Right True\n");
           push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
         }
       } else if (op0_rdy) {
         op0 = get_operand(monitor, instr, 0);
+        R2U2_DEBUG_PRINT("\tOnly Left Ready: (%d, %d)\n", op0.truth, op0.time);
         if(!op0.truth) {
           push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
         }
       } else if (op1_rdy) {
         op1 = get_operand(monitor, instr, 1);
+        R2U2_DEBUG_PRINT("\tOnly Right Ready: (%d, %d)\n", op1.truth, op1.time);
         if(!op1.truth) {
           push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
         }

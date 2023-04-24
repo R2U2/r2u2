@@ -16,7 +16,7 @@ r2u2_status_t r2u2_boxq_push(r2u2_boxq_t *boxq, r2u2_boxq_intvl_t interval) {
     }
   #endif
 
-  boxq->queue[boxq->head] = interval;
+  boxq->queue[-(ptrdiff_t)boxq->head] = interval;
 
   boxq->head = (boxq->head + 1) % boxq->length;
 
@@ -28,7 +28,7 @@ r2u2_boxq_intvl_t r2u2_boxq_peek(r2u2_boxq_t *boxq) {
   if (r2u2_boxq_is_empty(boxq)) {
     return (r2u2_boxq_intvl_t){r2u2_infinity, r2u2_infinity};
   } else {
-    return boxq->queue[boxq->tail];
+    return boxq->queue[-(ptrdiff_t)boxq->tail];
   }
 }
 
@@ -40,8 +40,8 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_head(r2u2_boxq_t *boxq) {
     #endif
     return (r2u2_boxq_intvl_t){r2u2_infinity, r2u2_infinity};
   } else {
-    boxq->head = (boxq->head - 1) % boxq->length;
-    return boxq->queue[boxq->head];
+    boxq->head = (boxq->head == 0) ? boxq->length-1 : boxq->head-1;
+    return boxq->queue[-(ptrdiff_t)boxq->head];
   }
 }
 
@@ -56,7 +56,7 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_tail(r2u2_boxq_t *boxq) {
   } else {
     res_index = boxq->tail;
     boxq->tail = (boxq->tail + 1) % boxq->length;
-    return boxq->queue[res_index];
+    return boxq->queue[-(ptrdiff_t)res_index];
   }
 }
 
