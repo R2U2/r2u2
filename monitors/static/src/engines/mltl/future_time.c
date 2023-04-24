@@ -151,13 +151,18 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
           R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %d\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, scq->queue);
 
+          #if R2U2_DEBUG
+          // Check for SCQ memory arena collision
+          assert(scq+1 < &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + scq->length + 50)]));
+          #endif
+
           // Rise/Fall edge detection initialization
           switch (instr->opcode) {
             case R2U2_MLTL_OP_FT_GLOBALLY:
-                scq->previous = (r2u2_verdict) { false, -1 };
+                scq->previous = (r2u2_verdict) { false, r2u2_infinity };
                 break;
             case R2U2_MLTL_OP_FT_UNTIL:
-                scq->previous = (r2u2_verdict) { true, -1 };
+                scq->previous = (r2u2_verdict) { true, r2u2_infinity };
                 break;
             default:
                 scq->previous = (r2u2_verdict) { true, 0 };
