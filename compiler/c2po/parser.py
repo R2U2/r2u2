@@ -280,17 +280,15 @@ class C2POParser(Parser):
             self.atomics[atomic] = expr
 
     # Future-time specification block
-    @_('KW_FTSPEC spec_list spec')
+    @_('KW_FTSPEC spec_list')
     def ft_spec_block(self, p):
         ln = p.lineno
-        p[1] += p[2]
         return SpecificationSet(ln, FormulaType.FT, p[1])
 
     # Past-time specification block
-    @_('KW_PTSPEC spec_list spec')
+    @_('KW_PTSPEC spec_list')
     def pt_spec_block(self, p):
         ln = p.lineno
-        p[1] += p[2]
         return SpecificationSet(ln, FormulaType.PT, p[1])
 
     @_('spec_list spec')
