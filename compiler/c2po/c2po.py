@@ -1188,7 +1188,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
         nonlocal ret
         nonlocal pos
 
-        if a.ftid < 0 or isinstance(a,Program):
+        if a.ftid < 0 or isinstance(a, SpecificationSet):
             return
 
         start_pos = pos
