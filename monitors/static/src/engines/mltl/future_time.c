@@ -235,6 +235,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         // interval compression aware rising edge detection
         if(op0.truth && !scq->previous.truth) {
           scq->edge = scq->previous.time + 1;
+          R2U2_DEBUG_PRINT("\tRising edge at t= %d\n", scq->edge);
         }
 
         if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
@@ -242,7 +243,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-        } else if (op0.time >= scq->interval_start) {
+        } else if (!op0.truth && (op0.time >= scq->interval_start)) {
           res = (r2u2_verdict){false, op0.time - scq->interval_start};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
@@ -328,6 +329,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       op0_rdy = operand_data_ready(monitor, instr, 0);
       op1_rdy = operand_data_ready(monitor, instr, 1);
+
+      R2U2_DEBUG_PRINT("\tLeft Data Ready: %d\n\rRight Data Ready: %d\n", op0_rdy, op1_rdy);
 
       if (op0_rdy && op1_rdy) {
         op0 = get_operand(monitor, instr, 0);
