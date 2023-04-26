@@ -43,7 +43,7 @@ def postorder_iterative(node: Node, func: Callable[[Node], Any]) -> None:
 
         visited.add(cur[1])
         stack.append((True, cur[1]))
-        for child in cur[1].get_children():
+        for child in reversed(cur[1].get_children()):
             stack.append((False, child))
 
 
