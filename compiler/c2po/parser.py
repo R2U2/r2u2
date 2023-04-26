@@ -15,7 +15,7 @@ class C2POLexer(Lexer):
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, FLOAT, INT, SEMI, COLON, DOT, COMMA, #QUEST,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -24,8 +24,8 @@ class C2POLexer(Lexer):
     ignore_newline = r'\n+'
 
     REL_NEQ = r'!=|≠' # longer tokens must come first
-    FLOAT   = r'-?\d*\.\d+'
-    INT     = r'-?[1-9][0-9]*|0'
+    DECIMAL   = r'-?\d*\.\d+'
+    NUMERAL     = r'-?[1-9][0-9]*|0'
 
     # Propositional logic ops/literals
     LOG_NEG  = r'!|¬'
@@ -607,21 +607,21 @@ class C2POParser(Parser):
             return Node(ln, [])
 
     # Integer
-    @_('INT')
+    @_('NUMERAL')
     def expr(self, p):
-        return Integer(p.lineno, int(p.INT))
+        return Integer(p.lineno, int(p.NUMERAL))
 
     # Float
-    @_('FLOAT')
+    @_('DECIMAL')
     def expr(self, p):
-        return Float(p.lineno, float(p.FLOAT))
+        return Float(p.lineno, float(p.DECIMAL))
         
     # Shorthand interval
-    @_('LBRACK INT RBRACK')
+    @_('LBRACK NUMERAL RBRACK')
     def interval(self, p):
         return Interval(0, int(p[1]))
 
     # Standard interval
-    @_('LBRACK INT COMMA INT RBRACK')
+    @_('LBRACK NUMERAL COMMA NUMERAL RBRACK')
     def interval(self, p):
         return Interval(int(p[1]), int(p[3]))

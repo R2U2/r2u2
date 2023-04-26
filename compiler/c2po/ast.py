@@ -3,6 +3,8 @@ from copy import deepcopy
 from typing import Any, Dict, Callable, NamedTuple, NewType, cast
 from logging import getLogger
 
+from .type import R2U2Implementation
+
 from .logger import *
 from .type import *
 
@@ -1257,6 +1259,7 @@ class Program(Node):
         self.scq_assembly: list[tuple[int,int]] = []
         self.signal_mapping: Dict[str,int] = {}
         self.contracts: Dict[str,tuple[int,int,int]] = {}
+        self.implementation: R2U2Implementation = R2U2Implementation.C
 
         # Computable properties
         self.total_memory: int = -1

@@ -6,6 +6,24 @@ from .logger import STANDARD_LOGGER_NAME, COLOR_LOGGER_NAME
 logger = getLogger(COLOR_LOGGER_NAME)
 
 
+class R2U2Implementation(Enum):
+    C = 0
+    CPP = 1
+    VHDL = 2
+
+
+def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
+    if s.lower() == "c":
+        return R2U2Implementation.C
+    elif s.lower() == "c++" or s.lower() == "cpp":
+        return R2U2Implementation.CPP
+    elif s.lower() == "fpga" or s.lower() == "vhdl":
+        return R2U2Implementation.VHDL
+    else:
+        logger.error(f" R2U2 implementation '{s}' unsupported. Defaulting to C.")
+        return R2U2Implementation.C
+
+
 class BaseType(Enum):
     NOTYPE = 0
     BOOL = 1
@@ -103,16 +121,26 @@ class FormulaType(Enum):
     PT = 2
 
 
-def set_types(int_width: int, int_signed: bool, float_width: int):
-    """Check for valid int and float widths and configure types accordingly."""
+def set_types(impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int):
+    """Check for valid int and float widths and configure program types accordingly."""
     INT.is_signed = int_signed
 
-    if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
-        INT.width = int_width
-    else:
-        logger.error(f" Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).")
+    if int_width < 1:
+        logger.error(f" Invalid int width, must be greater than 0 (found {int_width})")
 
-    if float_width == 32 or float_width == 64:
-        FLOAT.width = float_width
+    if float_width < 1:
+        logger.error(f" Invalid float_width width, must be greater than 0 (found {float_width})")
+
+    if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
+        if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
+            INT.width = int_width
+        else:
+            logger.error(f" Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).")
+
+        if float_width == 32 or float_width == 64:
+            FLOAT.width = float_width
+        else:
+            logger.error(f" Invalid float width, must correspond to a C standard float width (32 or 64).")
     else:
-        logger.error(f" Invalid float width, must correspond to a C standard float width (32 or 64).")
+        INT.width = int_width
+        FLOAT.width = float_width

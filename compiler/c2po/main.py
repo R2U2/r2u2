@@ -1,4 +1,5 @@
 from __future__ import annotations
+from token import EXACT_TOKEN_TYPES
 from typing import Dict, List, Tuple
 from argparse import PARSER
 import inspect
@@ -10,6 +11,7 @@ from typing_extensions import Self
 
 from .logger import *
 from .ast import *
+from .rewrite import *
 from .parser import C2POLexer
 from .parser import C2POParser
 from .assembler import assemble
@@ -18,31 +20,14 @@ from .assembler import assemble
 logger = getLogger(COLOR_LOGGER_NAME)
 
 
-class R2U2Implementation(Enum):
-    C = 0
-    CPP = 1
-    VHDL = 2
-
-
-def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
-    if s.lower() == "c":
-        return R2U2Implementation.C
-    elif s.lower() == "c++" or s.lower() == "cpp":
-        return R2U2Implementation.CPP
-    elif s.lower() == "fpga" or s.lower() == "vhdl":
-        return R2U2Implementation.VHDL
-    else:
-        logger.error(f" R2U2 implementation '{s}' unsupported. Defaulting to C.")
-        return R2U2Implementation.C
-
-
 class ReturnCode(Enum):
     SUCCESS = 0
     ERROR = 1
     PARSE_ERROR = 2
     TYPE_CHECK_ERROR = 3
     ASM_ERROR = 4
-    ENGINE_SELECT_ERROR = 5
+    INVALID_OPTIONS = 5
+
 
 # Stores the sub-classes of Instruction from ast.py
 instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
@@ -62,30 +47,63 @@ default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) f
             obj != TLInstruction and
             obj != BZInstruction) }
 
+
 at_filter_table: Dict[str, Tuple[Type, List[Type]]] = {
     "rate": (FLOAT(), [FLOAT()])
 }
 
 
 def parse_signals(filename: str) -> Dict[str,int]:
+    """Opens filename and constructs a dictionary mapping signal names to their order in the file. If filename is a csv file, uses the header for signal mapping. Otherwise filename is treated as a map file and uses the given order for signal mapping.
+    
+    Args:
+        filename: Name of file to be read
+
+    Returns:
+        dict mapping signal names to their oder in the csv or mapping file
+    """
     mapping: Dict[str,int] = {}
+
     if re.match(".*\\.csv",filename):
         with open(filename,"r") as f:
             text: str = f.read()
             lines: List[str] = text.splitlines()
+
             if len(lines) < 1:
                 logger.error(f" Not enough data in file '{filename}'")
                 return {}
+
             cnt: int = 0
+
             if lines[0][0] != "#":
                 logger.error(f" Header missing in signals file.")
                 return {}
+
             header = lines[0][1:]
+
             for id in [s.strip() for s in header.split(",")]:
+                if id in mapping:
+                    logger.warning(f" Signal ID '{id}' found multiple times in csv, using right-most value.")
                 mapping[id] = cnt
                 cnt += 1
-    else: # TODO, implement signal mapping file format
-        return {}
+    else: 
+        with open(filename,"r") as f:
+            text: str = f.read()
+            cnt: int = 0
+
+            for line in text.splitlines():
+                if re.match("[a-zA-Z_]\\w*:\\d+", line):
+                    strs = line.split(":")
+                    id = strs[0]
+                    sid = int(strs[1])
+
+                    if id in mapping:
+                        logger.warning(f" Signal ID '{id}' found multiple times in map file, using latest value.")
+
+                    mapping[id] = sid
+                else:
+                    logger.error(f" Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
+                    return {}
 
     return mapping
 
@@ -150,6 +168,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = False
                 logger.error(f'{node.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{node}')
         elif isinstance(node, Contract):
+            if program.implementation != R2U2Implementation.C:
+                status = False
+                logger.error(f"{node.ln}: Contracts only support in C version of R2U2.\n\t{node}")
+
             assume: TLInstruction = node.get_assumption()
             guarantee: TLInstruction = node.get_guarantee()
 
@@ -164,10 +186,17 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = False
                 logger.error(f'{node.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{node}')
         elif isinstance(node, Atomic):
+            if program.implementation != R2U2Implementation.C:
+                status = False
+                logger.error(f"{node.ln}: Atomics only support in C version of R2U2.\n\t{node}")
             if not at:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
         elif isinstance(node, RelationalOperator):
+            if program.implementation != R2U2Implementation.C:
+                status = False
+                logger.error(f"{node.ln}: Relational operators only support in C version of R2U2.\n\t{node}")
+
             lhs = node.get_lhs()
             rhs = node.get_rhs()
             type_check_util(lhs)
@@ -187,6 +216,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = BOOL()
         elif isinstance(node, ArithmeticOperator):
+            if program.implementation != R2U2Implementation.C:
+                status = False
+                logger.error(f"{node.ln}: Arithmetic operators only support in C version of R2U2.\n\t{node}")
+
             if not bz:
                 status = False
                 logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
@@ -208,6 +241,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = t
         elif isinstance(node, BitwiseOperator):
+            if program.implementation != R2U2Implementation.C:
+                status = False
+                logger.error(f"{node.ln}: Bitwise operators only support in C version of R2U2.\n\t{node}")
+
             if not bz:
                 status = False
                 logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
@@ -240,6 +277,9 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     status = False
                     logger.error(f'{node.ln}: Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{node}')
             elif isinstance(node, PastTimeOperator):
+                if program.implementation != R2U2Implementation.C:
+                    status = False
+                    logger.error(f"{node.ln}: Past-time operators only support in C version of R2U2.\n\t{node}")
                 if formula_type == FormulaType.FT:
                     status = False
                     logger.error(f'{node.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{node}')
@@ -421,594 +461,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     return status
 
 
-def compute_scq_size(node: Node) -> int:
-    """
-    Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
-
-    Must be called *after* tlids have been assigned.
-    """
-    visited: List[int] = []
-    total: int = 0
-
-    def compute_scq_size_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal total
-
-        if node.ftid < 0 or isinstance(node, Program):
-            return
-
-        if id(node) in visited:
-            return
-        visited.append(id(node))
-
-        if isinstance(node, Specification):
-            node.scq_size = 1
-            total += node.scq_size
-            return
-
-        max_wpd: int = 0
-        for p in node.get_parents():
-            for s in p.get_children():
-                if not id(s) == id(node):
-                    max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
-
-        node.scq_size = max(max_wpd-node.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
-        total += node.scq_size
-
-    postorder_iterative(node, compute_scq_size_util)
-    node.total_scq_size = total
-
-    return total
-
-
-def rewrite_extended_operators(program: Program) -> None:
-    """
-    Rewrites program formulas without extended operators i.e., formulas with only negation, conjunction, until, global, and future.
-
-    Preconditions:
-        - program is type correct.
-
-    Postconditions:
-        - program formulas only have negation, conjunction, until, and global TL operators.
-    """
-
-    if not program.is_type_correct:
-        logger.error(f' Program must be type checked before rewriting.')
-        return
-
-    def rewrite_extended_operators_util(node: Node) -> None:
-
-        if isinstance(node, LogicalOperator):
-            if isinstance(node, LogicalOr):
-                # p || q = !(!p && !q)
-                node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in node.get_children()])))
-            elif isinstance(node, LogicalXor):
-                lhs: Node = node.get_lhs()
-                rhs: Node = node.get_rhs()
-                # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
-                node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(node.ln, \
-                    LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)])), LogicalNegate(node.ln, \
-                        LogicalAnd(node.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])))
-            elif isinstance(node, LogicalImplies):
-                lhs: Node = node.get_lhs()
-                rhs: Node = node.get_rhs()
-                # p -> q = !(p && !q)
-                node.replace(LogicalNegate(node.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
-            elif isinstance(node, LogicalIff):
-                lhs: Node = node.get_lhs()
-                rhs: Node = node.get_rhs()
-                # p <-> q = !(p && !q) && !(p && !q)
-                node.replace(LogicalAnd(node.ln,
-                    [LogicalNegate(node.ln, LogicalAnd(lhs.ln, [lhs, LogicalNegate(rhs.ln, rhs)])),
-                     LogicalNegate(node.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), rhs]))])
-                )
-        elif isinstance(node, Release):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            bounds: Interval = node.interval
-            # p R q = !(!p U !q)
-            node.replace(LogicalNegate(node.ln, Until(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
-        elif isinstance(node, Future):
-            operand: Node = node.get_operand()
-            bounds: Interval = node.interval
-            # F p = True U p
-            node.replace(Until(node.ln, Bool(node.ln, True), operand, bounds.lb, bounds.ub))
-
-    postorder_iterative(program, rewrite_extended_operators_util)
-
-
-def rewrite_boolean_normal_form(program: Program) -> None:
-    """
-    Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators.
-
-    Preconditions:
-        - program is type checked
-
-    Postconditions:
-        - program formulas are in boolean normal form
-    """
-
-    if not program.is_type_correct:
-        logger.error(f' Program must be type checked before converting to boolean normal form.')
-        return
-
-    def rewrite_boolean_normal_form_util(node: Node) -> None:
-
-        if isinstance(node, LogicalOr):
-            # p || q = !(!p && !q)
-            node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in node.get_children()])))
-        elif isinstance(node, LogicalImplies):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            # p -> q = !(p && !q)
-            node.replace(LogicalNegate(node.ln, LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)])))
-        elif isinstance(node, LogicalXor):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            # p xor q = !(!p && !q) && !(p && q)
-            node.replace(LogicalAnd(node.ln, [LogicalNegate(node.ln, LogicalAnd(lhs.ln, [LogicalNegate(lhs.ln, lhs), \
-                LogicalNegate(rhs.ln, rhs)])), LogicalNegate(lhs.ln, LogicalAnd(lhs.ln, [lhs, rhs]))]))
-        elif isinstance(node, Future):
-            operand: Node = node.get_operand()
-            bounds: Interval = node.interval
-            # F p = True U p
-            node.replace(Until(node.ln, Bool(operand.ln, True), operand, bounds.lb, bounds.ub))
-        elif isinstance(node, Global):
-            operand: Node = node.get_operand()
-            bounds: Interval = node.interval
-            # G p = !(True U !p)
-            node.replace(LogicalNegate(node.ln, Until(node.ln, Bool(operand.ln, True), LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub)))
-        elif isinstance(node, Release):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            bounds: Interval = node.interval
-            # p R q = !(!p U !q)
-            node.replace(LogicalNegate(node.ln, Until(node.ln, LogicalNegate(lhs.ln, lhs), \
-                                                      LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
-
-        for child in node.get_children():
-            rewrite_boolean_normal_form_util(child)
-
-    rewrite_boolean_normal_form_util(program)
-
-
-def rewrite_negative_normal_form(program: Program) -> None:
-    """
-    Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals.
-
-    Preconditions:
-        - program is type checked
-
-    Postconditions:
-        - program formulas are in negative normal form
-    """
-
-    if not program.is_type_correct:
-        logger.error(f' Program must be type checked before converting to negative normal form.')
-        return
-
-    def rewrite_negative_normal_form_util(node: Node) -> None:
-
-        if isinstance(node, LogicalNegate):
-            operand = node.get_operand()
-            if isinstance(operand, LogicalNegate):
-                # !!p = p
-                node.replace(operand.get_operand())
-            if isinstance(operand, LogicalOr):
-                # !(p || q) = !p && !q
-                node.replace(LogicalAnd(node.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
-            if isinstance(operand, LogicalAnd):
-                # !(p && q) = !p || !q
-                node.replace(LogicalOr(node.ln, [LogicalNegate(c.ln, c) for c in operand.get_children()]))
-            elif isinstance(operand, Future):
-                bounds: Interval = operand.interval
-                # !F p = G !p
-                node.replace(Global(node.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
-            elif isinstance(operand, Global):
-                bounds: Interval = operand.interval
-                # !G p = F !p
-                node.replace(Future(node.ln, LogicalNegate(operand.ln, operand), bounds.lb, bounds.ub))
-            elif isinstance(operand, Until):
-                lhs: Node = operand.get_lhs()
-                rhs: Node = operand.get_rhs()
-                bounds: Interval = operand.interval
-                # !(p U q) = !p R !q
-                node.replace(Release(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
-            elif isinstance(operand, Release):
-                lhs: Node = operand.get_lhs()
-                rhs: Node = operand.get_rhs()
-                bounds: Interval = operand.interval
-                # !(p R q) = !p U !q
-                node.replace(Until(node.ln, LogicalNegate(lhs.ln, lhs), LogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub))
-        elif isinstance(node, LogicalImplies):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            # p -> q = !p || q
-            node.replace(LogicalOr(node.ln, [LogicalNegate(lhs.ln, lhs), rhs]))
-        elif isinstance(node, LogicalXor):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-            # p xor q = (p && !q) || (!p && q)
-            node.replace(LogicalOr(node.ln, [LogicalAnd(node.ln, [lhs, LogicalNegate(rhs.ln, rhs)]),\
-                                       LogicalAnd(node.ln, [LogicalNegate(lhs.ln, lhs), rhs])]))
-
-        for child in node.get_children():
-            rewrite_negative_normal_form_util(child)
-
-    rewrite_negative_normal_form_util(program)
-
-
-def rewrite_set_aggregation(program: Program) -> None:
-    """
-    Rewrites set aggregation operators into corresponding BZ and TL operations e.g., foreach is rewritten into a conjunction.
-
-    Preconditions:
-        - program is type correct
-
-    Postconditions:
-        - program has no struct access operations
-        - program has no variables
-    """
-
-    # could be done far more efficiently...currently traverses each set agg
-    # expression sub tree searching for struct accesses. better approach: keep
-    # track of these accesses on the frontend
-    def rewrite_struct_access_util(node: Node) -> None:
-        for c in node.get_children():
-            rewrite_struct_access_util(c)
-
-        if isinstance(node,StructAccess) and not isinstance(node.get_struct(),Variable):
-            s: Struct = node.get_struct()
-            node.replace(s.members[node.member])
-
-    def rewrite_set_aggregation_util(a: Node) -> None:
-        cur: Node = a
-
-        if isinstance(a, ForEach):
-            cur = LogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
-            a.replace(cur)
-            rewrite_struct_access_util(cur)
-        elif isinstance(a, ForSome):
-            cur = LogicalOr(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
-            a.replace(cur)
-            rewrite_struct_access_util(cur)
-        elif isinstance(a, ForExactlyN):
-            s: Set = a.get_set()
-            cur = Equal(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
-            a.replace(cur)
-            rewrite_struct_access_util(cur)
-        elif isinstance(a, ForAtLeastN):
-            s: Set = a.get_set()
-            cur = GreaterThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
-            a.replace(cur)
-            rewrite_struct_access_util(cur)
-        elif isinstance(a, ForAtMostN):
-            s: Set = a.get_set()
-            cur = LessThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
-            a.replace(cur)
-            rewrite_struct_access_util(cur)
-
-        for c in cur.get_children():
-            rewrite_set_aggregation_util(c)
-
-    rewrite_set_aggregation_util(program)
-    program.is_set_agg_free = True
-
-
-def rewrite_struct_access(program: Program) -> None:
-    """
-    Rewrites struct access operations to the references member expression.
-
-    Preconditions:
-        - program is type correct
-        - program has no set aggregation operators
-
-    Postconditions:
-        - program has no struct access operations
-    """
-
-    if not program.is_type_correct:
-        logger.error(f' Program must be type checked before rewriting struct accesses.')
-        return
-    if not program.is_set_agg_free:
-        logger.error(f' Program must be free of set aggregation operators before rewriting struct accesses.')
-        return
-
-    def rewrite_struct_access_util(node: Node) -> None:
-        if isinstance(node, StructAccess):
-            s: Struct = node.get_struct()
-            node.replace(s.members[node.member])
-
-    postorder_iterative(program, rewrite_struct_access_util)
-    program.is_struct_access_free = True
-
-
-def optimize_rewrite_rules(program: Node) -> None:
-
-    def optimize_rewrite_rules_util(node: Node) -> None:
-        if isinstance(node, LogicalNegate):
-            opnd1 = node.get_operand()
-            if isinstance(opnd1, Bool):
-                if opnd1.value == True:
-                    # !true = false
-                    node.replace(Bool(node.ln, False))
-                else:
-                    # !false = true
-                    node.replace(Bool(node.ln, True))
-            elif isinstance(opnd1, LogicalNegate):
-                # !!p = p
-                node.replace(opnd1.get_operand())
-            elif isinstance(opnd1, Global):
-                opnd2 = opnd1.get_operand()
-                if isinstance(opnd2, LogicalNegate):
-                    # !(G[l,u](!p)) = F[l,u]p
-                    node.replace(Future(node.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
-            elif isinstance(opnd1, Future):
-                opnd2 = opnd1.get_operand()
-                if isinstance(opnd2, LogicalNegate):
-                    # !(F[l,u](!p)) = G[l,u]p
-                    node.replace(Global(node.ln, opnd2.get_operand(), opnd1.interval.lb, opnd1.interval.ub))
-        elif isinstance(node, Equal):
-            lhs = node.get_lhs()
-            rhs = node.get_rhs()
-            if isinstance(lhs, Bool) and isinstance(rhs, Bool):
-                pass
-            elif isinstance(lhs, Bool):
-                # (true == p) = p
-                node.replace(rhs)
-            elif isinstance(rhs, Bool):
-                # (p == true) = p
-                node.replace(lhs)
-        elif isinstance(node, Global):
-            opnd1 = node.get_operand()
-            if node.interval.lb == 0 and node.interval.ub == 0:
-                # G[0,0]p = p
-                node.replace(opnd1)
-            if isinstance(opnd1, Bool):
-                if opnd1.value == True:
-                    # G[l,u]True = True
-                    node.replace(Bool(node.ln, True))
-                else:
-                    # G[l,u]False = False
-                    node.replace(Bool(node.ln, False))
-            elif isinstance(opnd1, Global):
-                # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
-                opnd2 = opnd1.get_operand()
-                lb: int = node.interval.lb + opnd1.interval.lb
-                ub: int = node.interval.ub + opnd1.interval.ub
-                node.replace(Global(node.ln, opnd2, lb, ub))
-            elif isinstance(opnd1, Future):
-                opnd2 = opnd1.get_operand()
-                if node.interval.lb == node.interval.ub:
-                    # G[a,a](F[l,u]p) = F[l+a,u+a]p
-                    lb: int = node.interval.lb + opnd1.interval.lb
-                    ub: int = node.interval.ub + opnd1.interval.ub
-                    node.replace(Future(node.ln, opnd2, lb, ub))
-        elif isinstance(node, Future):
-            opnd1 = node.get_operand()
-            if node.interval.lb == 0 and node.interval.ub == 0:
-                # F[0,0]p = p
-                node.replace(opnd1)
-            if isinstance(opnd1, Bool):
-                if opnd1.value == True:
-                    # F[l,u]True = True
-                    node.replace(Bool(node.ln, True))
-                else:
-                    # F[l,u]False = False
-                    node.replace(Bool(node.ln, False))
-            elif isinstance(opnd1, Future):
-                # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
-                opnd2 = opnd1.get_operand()
-                lb: int = node.interval.lb + opnd1.interval.lb
-                ub: int = node.interval.ub + opnd1.interval.ub
-                node.replace(Future(node.ln, opnd2, lb, ub))
-            elif isinstance(opnd1, Global):
-                opnd2 = opnd1.get_operand()
-                if node.interval.lb == node.interval.ub:
-                    # F[a,a](G[l,u]p) = G[l+a,u+a]p
-                    lb: int = node.interval.lb + opnd1.interval.lb
-                    ub: int = node.interval.ub + opnd1.interval.ub
-                    node.replace(Global(node.ln, opnd2, lb, ub))
-        elif isinstance(node, LogicalAnd):
-            # Assume binary for now
-            lhs = node.get_child(0)
-            rhs = node.get_child(1)
-            if isinstance(lhs, Global) and isinstance(rhs, Global):
-                p = lhs.get_operand()
-                q = rhs.get_operand()
-                lb1: int = lhs.interval.lb
-                ub1: int = lhs.interval.ub
-                lb2: int = rhs.interval.lb
-                ub2: int = rhs.interval.ub
-
-                if str(p) == str(q): # check syntactic equivalence
-                    # G[lb1,lb2]p && G[lb2,ub2]p
-                    if lb1 <= lb2 and ub1 >= ub2:
-                        # lb1 <= lb2 <= ub2 <= ub1
-                        node.replace(Global(node.ln, p, lb1, ub1))
-                        return
-                    elif lb2 <= lb1 and ub2 >= ub1:
-                        # lb2 <= lb1 <= ub1 <= ub2
-                        node.replace(Global(node.ln, p, lb2, ub2))
-                        return
-                    elif lb1 <= lb2 and lb2 <= ub1+1:
-                        # lb1 <= lb2 <= ub1+1
-                        node.replace(Global(node.ln, p, lb1, max(ub1,ub2)))
-                        return
-                    elif lb2 <= lb1 and lb1 <= ub2+1:
-                        # lb2 <= lb1 <= ub2+1
-                        node.replace(Global(node.ln, p, lb2, max(ub1,ub2)))
-                        return
-
-                lb3: int = min(lb1, lb2)
-                ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
-
-                node.replace(Global(node.ln, LogicalAnd(node.ln,
-                        [Global(node.ln, p, lb1-lb3, ub1-ub3), Global(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
-            elif isinstance(lhs, Future) and isinstance(rhs, Future):
-                lhs_opnd = lhs.get_operand()
-                rhs_opnd = rhs.get_operand()
-                if str(lhs_opnd) == str(rhs_opnd): # check for syntactic equivalence
-                    # F[l1,u1]p && F[l2,u2]p = F[max(l1,l2),min(u1,u2)]p
-                    lb1 = lhs.interval.lb
-                    ub1 = lhs.interval.ub
-                    lb2 = rhs.interval.lb
-                    ub2 = rhs.interval.ub
-                    if lb1 >= lb2 and lb1 <= ub2:
-                        # l2 <= l1 <= u2
-                        node.replace(Future(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
-                    elif lb2 >= lb1 and lb2 <= ub1:
-                        # l1 <= l2 <= u1
-                        node.replace(Future(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
-            elif isinstance(lhs, Until) and isinstance(rhs, Until):
-                lhs_lhs = lhs.get_lhs()
-                lhs_rhs = lhs.get_rhs()
-                rhs_lhs = rhs.get_lhs()
-                rhs_rhs = rhs.get_rhs()
-                # check for syntactic equivalence
-                if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
-                    # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
-                    node.replace(Until(node.ln, LogicalAnd(node.ln, [lhs_lhs, rhs_lhs]), lhs_rhs, lhs.interval.lb,
-                        min(lhs.interval.ub, rhs.interval.ub)))
-        elif isinstance(node, LogicalOr):
-            # Assume binary for now
-            lhs = node.get_child(0)
-            rhs = node.get_child(1)
-            if isinstance(lhs, Future) and isinstance(rhs, Future):
-                p = lhs.get_operand()
-                q = rhs.get_operand()
-                lb1: int = lhs.interval.lb
-                ub1: int = lhs.interval.ub
-                lb2: int = rhs.interval.lb
-                ub2: int = rhs.interval.ub
-
-                if str(p) == str(q):
-                    # F[lb1,lb2]p || F[lb2,ub2]p
-                    if lb1 <= lb2 and ub1 >= ub2:
-                        # lb1 <= lb2 <= ub2 <= ub1
-                        node.replace(Future(node.ln, p, lb1, ub1))
-                        return
-                    elif lb2 <= lb1 and ub2 >= ub1:
-                        # lb2 <= lb1 <= ub1 <= ub2
-                        node.replace(Future(node.ln, p, lb2, ub2))
-                        return
-                    elif lb1 <= lb2 and lb2 <= ub1+1:
-                        # lb1 <= lb2 <= ub1+1
-                        node.replace(Future(node.ln, p, lb1, max(ub1,ub2)))
-                        return
-                    elif lb2 <= lb1 and lb1 <= ub2+1:
-                        # lb2 <= lb1 <= ub2+1
-                        node.replace(Future(node.ln, p, lb2, max(ub1,ub2)))
-                        return
-
-                # TODO: check for when lb==ub==0
-                # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
-                lb3: int = min(lb1, lb2)
-                ub3: int = lb3 + min(ub1-lb1,ub2-lb2)
-
-                node.replace(Future(node.ln, LogicalOr(node.ln,
-                        [Future(node.ln, p, lb1-lb3, ub1-ub3), Future(node.ln, q, lb2-lb3, ub2-ub3)]), lb3, ub3))
-            elif isinstance(lhs, Global) and isinstance(rhs, Global):
-                lhs_opnd = lhs.get_operand()
-                rhs_opnd = rhs.get_operand()
-                if str(lhs_opnd) == str(rhs_opnd):
-                    # G[l1,u1]p || G[l2,u2]p = G[max(l1,l2),min(u1,u2)]p
-                    lb1 = lhs.interval.lb
-                    ub1 = lhs.interval.ub
-                    lb2 = rhs.interval.lb
-                    ub2 = rhs.interval.ub
-                    if lb1 >= lb2 and lb1 <= ub2:
-                        # l2 <= l1 <= u2
-                        node.replace(Global(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
-                    elif lb2 >= lb1 and lb2 <= ub1:
-                        # l1 <= l2 <= u1
-                        node.replace(Global(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
-            elif isinstance(lhs, Until) and isinstance(rhs, Until):
-                lhs_lhs = lhs.get_lhs()
-                lhs_rhs = lhs.get_rhs()
-                rhs_lhs = rhs.get_lhs()
-                rhs_rhs = rhs.get_rhs()
-                if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
-                    # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
-                    node.replace(Until(node.ln, LogicalOr(node.ln, [lhs_rhs, rhs_rhs]), lhs_lhs, lhs.interval.lb,
-                        min(lhs.interval.ub, rhs.interval.ub)))
-        elif isinstance(node, Until):
-            lhs = node.get_lhs()
-            rhs = node.get_rhs()
-            if isinstance(rhs, Global) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
-                # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
-                node.replace(Global(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
-            elif isinstance(rhs, Future) and rhs.interval.lb == 0 and str(lhs) == str(rhs.get_operand()):
-                # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
-                node.replace(Future(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
-
-    postorder_iterative(program, optimize_rewrite_rules_util)
-
-
-def optimize_stratify_associative_operators(node: Node) -> None:
-    """TODO"""
-
-    def optimize_associative_operators_rec(node: Node) -> None:
-        if isinstance(node, LogicalAnd) and len(node.get_children()) > 2:
-            n: int = len(node.get_children())
-            children = [c for c in node.get_children()]
-            wpds = [c.wpd for c in children]
-            wpds.sort(reverse=True)
-
-            T = max(children, key=lambda c: c.wpd)
-
-            if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in node.get_children() if c.wpd < wpds[0]]):
-                node.replace(LogicalAnd(node.ln, [LogicalAnd(node.ln, [c for c in children if c != children[0]]), children[0]]))
-                children[0].get_parents().remove(node)
-
-        elif isinstance(node, LogicalOr):
-            max_wpd: int = max([c.wpd for c in node.get_children()])
-            target: Node = next(c for c in node.get_children() if c.wpd == max_wpd)
-
-            new_children = [c for c in node.get_children() if c != target]
-            new_ast = LogicalOr(node.ln, [LogicalOr(node.ln, new_children), target])
-
-            if compute_scq_size(new_ast) < compute_scq_size(node):
-                # (a0 && a1 && ... && an) = ((a1 && a2 && ... && an-1) && an)
-                node.replace(new_ast)
-
-        for c in node.get_children():
-            optimize_associative_operators_rec(c)
-
-    optimize_associative_operators_rec(node)
-
-
-def rewrite_contracts(program: Program) -> None:
-    """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
-
-    for spec_set in program.get_children():
-        for contract in [c for c in spec_set.get_children() if isinstance(c, Contract)]:
-            spec_set.remove_child(contract)
-
-            spec_set.add_child(Specification(
-                contract.ln,
-                contract.name,
-                contract.formula_numbers[0],
-                contract.get_assumption()
-            ))
-
-            spec_set.add_child(Specification(
-                contract.ln,
-                contract.name,
-                contract.formula_numbers[1],
-                LogicalImplies(contract.ln, contract.get_assumption(), contract.get_guarantee())
-            ))
-
-            spec_set.add_child(Specification(
-                contract.ln,
-                contract.name,
-                contract.formula_numbers[2],
-                LogicalAnd(contract.ln, [contract.get_assumption(), contract.get_guarantee()])
-            ))
-
-            program.contracts[contract.name] = contract.formula_numbers
-
-
 def optimize_cse(program: Program) -> None:
     """
     Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
@@ -1178,6 +630,46 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
+def compute_scq_size(node: Node) -> int:
+    """
+    Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
+
+    Must be called *after* tlids have been assigned.
+    """
+    visited: List[int] = []
+    total: int = 0
+
+    def compute_scq_size_util(node: Node) -> None:
+        nonlocal visited
+        nonlocal total
+
+        if node.ftid < 0 or isinstance(node, Program):
+            return
+
+        if id(node) in visited:
+            return
+        visited.append(id(node))
+
+        if isinstance(node, Specification):
+            node.scq_size = 1
+            total += node.scq_size
+            return
+
+        max_wpd: int = 0
+        for p in node.get_parents():
+            for s in p.get_children():
+                if not id(s) == id(node):
+                    max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
+
+        node.scq_size = max(max_wpd-node.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        total += node.scq_size
+
+    postorder_iterative(node, compute_scq_size_util)
+    node.total_scq_size = total
+
+    return total
+
+
 def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
@@ -1262,6 +754,7 @@ def compute_fpga_wcet(program: Program, latency_table: Dict[str, Tuple[float, fl
 
 
 def parse(input: str) -> Program|None:
+    """Parse contents of input and returns corresponding program on success, else returns None."""
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
     specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
@@ -1284,20 +777,71 @@ def parse(input: str) -> Program|None:
     )
 
 
+def set_options(
+    program: Program,
+    impl_str: str, 
+    int_width: int, 
+    int_is_signed: bool, 
+    float_width: int,
+    at: bool, 
+    bz: bool, 
+    extops: bool
+) -> bool:
+    """Checks that the options are valid for the given implementation.
+    
+    Args:
+        program: Target program for compilation
+        impl_str: String representing one of the R2U2 implementation 
+            (should be one of 'c', 'c++'/'cpp', or 'fpga'/'vhdl')
+        int_width: Width to set C2PO INT type to
+        int_is_signed: If true sets INT type to signed
+        float_width: Width to set C2PO FLOAT type to
+        enable_at: If true enables Atomic Checker instructions
+        enable_bz: If true enables Booleanizer instructions
+    """
+    status: bool = True
+    
+    impl: R2U2Implementation = str_to_r2u2_implementation(impl_str)
+    program.implementation = impl
+
+    set_types(impl, int_width, int_is_signed, float_width)
+
+    if bz and at:
+        logger.error(f" Only one of AT and BZ can be enabled")
+        status = False
+    
+    if impl == R2U2Implementation.C:
+        if not ((not bz and at) or (bz and not at)):
+            logger.error(f" Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
+            status = False
+    else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
+        if bz:
+            logger.error(f" Booleanizer not available for hardware implementation.")
+            status = False
+
+    if impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL:
+        if extops:
+            logger.error(f" Extended operators only support for C implementation.")
+            status = False
+
+    return status
+
+
 def compile(
     input_filename: str,
     signals_filename: str,
-    output_filename: str = "r2u2_spec.bin",
     impl: str = "c",
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    cse: bool = True,
-    at: bool = False,
-    bz: bool = False,
-    extops: bool = False,
-    rewrite: bool = False,
-    color: bool = True,
+    output_filename: str = "r2u2_spec.bin",
+    enable_assemble: bool = True,
+    enable_cse: bool = True,
+    enable_at: bool = False,
+    enable_bz: bool = False,
+    enable_extops: bool = False,
+    enable_rewrite: bool = False,
+    enable_color: bool = True,
     quiet: bool = False
 ) -> int:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
@@ -1305,25 +849,20 @@ def compile(
     Args:
         input_filename: Name of a C2PO input file
         signals_filename: Name of a csv trace file or C2PO signals file
-        output_filename: Name of binary output file
-        impl: An R2U2 implementation to target. Should be one of 'c', 'cpp', or 'vhdl'
+        impl: An R2U2 implementation to target. Should be one of 'c', 'c++', 'cpp', 'fpga', or 'vhdl'
         int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
         int_signed: If true sets INT type to signed
         float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
-        cse: If true performs Common Subexpression Elimination
-        at: If true enables and outputs Atomic Checker instructions
-        bz: If true enables and outputs Booleanizer instructions
-        extops: If true enables TL extended operators
-        rewrite: If true enables MLTL rewrite rule optimizations
-        color: If true enables color in logging output
+        output_filename: Name of binary output file
+        enable_assemble: If true outputs binary to output_filename
+        enable_cse: If true performs Common Subexpression Elimination
+        enable_at: If true enables Atomic Checker instructions
+        enable_bz: If true enables Booleanizer instructions
+        enable_extops: If true enables TL extended operators
+        enable_rewrite: If true enables MLTL rewrite rule optimizations
+        enable_color: If true enables color in logging output
         quiet: If true disables assembly output
     """
-    set_types(int_width, int_signed, float_width)
-
-    if bz and at:
-        logger.error(f" Only one of AT and BZ can be enabled")
-        return ReturnCode.ENGINE_SELECT_ERROR.value
-
     with open(input_filename, "r") as f:
         program: Program|None = parse(f.read())
 
@@ -1331,11 +870,16 @@ def compile(
         logger.error(" Failed parsing.")
         return ReturnCode.PARSE_ERROR.value
 
+    if not set_options(program, impl, int_width, int_signed, float_width, 
+                            enable_at, enable_bz, enable_extops):
+        logger.error(" Invalid configuration options.")
+        return ReturnCode.INVALID_OPTIONS.value
+
     # parse csv/signals file
     program.signal_mapping = parse_signals(signals_filename)
 
     # type check
-    if not type_check(program, at, bz):
+    if not type_check(program, enable_at, enable_bz):
         logger.error(" Failed type check.")
         return ReturnCode.TYPE_CHECK_ERROR.value
 
@@ -1343,31 +887,31 @@ def compile(
     rewrite_set_aggregation(program)
     rewrite_struct_access(program)
 
-    if rewrite:
+    if enable_rewrite:
         optimize_rewrite_rules(program)
 
     # rewrite without extended operators if enabled
-    if not extops:
+    if not enable_extops:
         rewrite_extended_operators(program)
 
     # common sub-expressions elimination
-    if cse:
+    if enable_cse:
         optimize_cse(program)
 
     # generate alias file
     aliases = generate_aliases(program)
 
     # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, at, bz)
+    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
     scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
-    # print asm if 'quiet' option not enabled
+    # print assembly if 'quiet' option not enabled
     if not quiet:
-        if at:
+        if enable_at:
             print(Color.HEADER+"AT Assembly"+Color.ENDC+":")
             for s in at_asm:
                 print(f"\t{s.at_asm()}")
-        if bz:
+        if enable_bz:
             print(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
             for s in bz_asm:
                 print(f"\t{s.bz_asm()}")
@@ -1388,8 +932,8 @@ def compile(
         for a in aliases:
             print(f"\t{a}")
 
-    assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
-
+    if enable_assemble:
+        assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
     return ReturnCode.SUCCESS.value
 
