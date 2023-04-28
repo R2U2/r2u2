@@ -43,7 +43,7 @@ DBGFLAG := -g -O0 \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
 --coverage\
 -DR2U2_DEBUG
-CCOBJFLAG := $(CFLAGS) -c -DR2U2_AT_Extra_Filters=1
+CCOBJFLAG := $(CFLAGS) -c -DR2U2_AT_EXTRA_FILTERS=1
 ARFLAGS := -rcus
 LDFLAGS := $(LNK_LIBS)
 
