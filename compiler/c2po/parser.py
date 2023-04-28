@@ -304,7 +304,6 @@ class C2POParser(Parser):
     def spec(self, p):
         ln = p.lineno
         expr = p[0]
-        print(expr.__class__)
         self.spec_num += 1
         return [Specification(ln, '', self.spec_num-1, expr)]
 
@@ -459,7 +458,6 @@ class C2POParser(Parser):
         elif operator == '~':
             return BitwiseNegate(ln, p[1])
         elif operator == '-':
-            print(f"negate {p[1]}")
             return ArithmeticNegate(ln, p[1])
         else:
             logger.error(f'{ln}: Bad expression')
@@ -512,7 +510,6 @@ class C2POParser(Parser):
         elif operator == '!=':
             return NotEqual(ln, lhs, rhs)
         elif operator == '>':
-            print(f"Greater than {p[0]} {p[2]}")
             return GreaterThan(ln, lhs, rhs)
         elif operator == '<':
             return LessThan(ln, lhs, rhs)
@@ -583,7 +580,6 @@ class C2POParser(Parser):
     # Parentheses
     @_('LPAREN expr RPAREN')
     def expr(self, p):
-        print(f"parens {p[1].__class__}")
         return p[1]
 
     # Symbol
@@ -599,7 +595,6 @@ class C2POParser(Parser):
         elif symbol in self.defs.keys():
             return self.defs[symbol]
         elif symbol in self.signals.keys():
-            print(f"signal {symbol}")
             return Signal(ln, symbol, self.signals[symbol])
         elif symbol in self.atomics.keys():
             return Atomic(ln, symbol)

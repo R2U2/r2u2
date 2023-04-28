@@ -798,8 +798,10 @@ class ArithmeticAdd(ArithmeticOperator, BZInstruction):
             for i in range(2,len(c)-1):
                 prev = ArithmeticAdd(ln, [prev,c[i]])
             super().__init__(ln, [prev,c[len(c)-1]])
+            self.type = c[0].type
         else:
             super().__init__(ln, c)
+            self.type = c[0].type
 
         self.name = "add"
         self.symbol = "+"
