@@ -90,6 +90,8 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
   r2u2_boxq_intvl_t intrvl;
   r2u2_bool *res = &((*(monitor->past_time_result_buffer[0]))[instr->memory_reference]);
 
+  // TODO(bckempa): We can split these out to static inline functions for
+  // easier reading and debugging (breakpoints, stack frames, etc.)
   switch (instr->opcode) {
     case R2U2_MLTL_OP_PT_NOP: {
       R2U2_DEBUG_PRINT("\tPT[%zu] NOP\n", instr->memory_reference);
@@ -193,26 +195,58 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     case R2U2_MLTL_OP_PT_HISTORICALLY: {
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%zu] H[%d,%d] PT[%d]\t", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%zu] H[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
       intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end + boxq->interval.start) < monitor->time_stamp) {
+      if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
           intrvl = r2u2_boxq_pop_tail(boxq);
+          R2U2_DEBUG_PRINT("\t\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
       edge = get_operand_edge(monitor, instr, 0);
       if (edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) {
+          // Start new open interval on rising edge
+          R2U2_DEBUG_PRINT("\t\tRising edge detected, pushing to queue\n");
           r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
       }
       else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) && !r2u2_boxq_is_empty(boxq)) {
+          // Here we can close the interval
+          // However, as an optimization, we discard intervals too short to ever be considered
+          R2U2_DEBUG_PRINT("\t\tFalling edge detected, closing interval\n");
           intrvl = r2u2_boxq_pop_head(boxq);
-          if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
-          }
+          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
+          // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
+          //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          //     R2U2_DEBUG_PRINT("\t\tAdding valid interval to queue: [%d, %d]\n", intrvl.start, monitor->time_stamp - 1);
+          // }
       }
 
       intrvl = r2u2_boxq_peek(boxq);
-      *res = ((boxq->interval.end > monitor->time_stamp)?(intrvl.start <= 0):(intrvl.start + boxq->interval.end <= monitor->time_stamp )) && ((boxq->interval.start > monitor->time_stamp)?(1):(intrvl.end + boxq->interval.start >= monitor->time_stamp));
-      R2U2_DEBUG_PRINT("= %d\n", *res);
+
+      if (intrvl.start != r2u2_infinity) {
+        R2U2_DEBUG_PRINT("\tChecking interval start\n");
+        if (boxq->interval.end > monitor->time_stamp) {
+            R2U2_DEBUG_PRINT("\t  Startup behavior: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
+            *res = intrvl.start == 0;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+        }
+
+        R2U2_DEBUG_PRINT("\tChecking interval end:\n");
+        if ((intrvl.end == r2u2_infinity) || (boxq->interval.start > monitor->time_stamp)) {
+            R2U2_DEBUG_PRINT("\t  Startup behavior: T\n");
+            *res &= true;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+        }
+      } else {
+        R2U2_DEBUG_PRINT("\tNo interval to check\n");
+        *res = false;
+      }
+
+      R2U2_DEBUG_PRINT("\tPT[%zu] = %d\n", instr->memory_reference, *res);
 
       error_cond = R2U2_OK;
       break;
