@@ -11,6 +11,8 @@
 #include "memory/box_queue.h"
 #include "memory/shared_connection_queue.h"
 
+#include "engines/atomic_checker/aux_data.h"
+
 typedef enum {
   R2U2_MONITOR_PROGRESS_FIRST_LOOP,
   R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS,
@@ -26,7 +28,7 @@ typedef struct {
   size_t    prog_count; // TODO(bckempa): type justification and bounds check
   r2u2_monitor_progress_state_t progress; // TODO(bckempa): Track value in debug
 
-  // Specificaion Instructions
+  // Specification Instructions
   r2u2_instruction_memory_t  *instruction_mem;
   r2u2_instruction_table_t *instruction_tbl;
 
@@ -47,6 +49,11 @@ typedef struct {
   r2u2_atomic_buffer_t    past_time_result_buffer;
   r2u2_box_queue_memory_t *past_time_queue_mem;
   r2u2_scq_queue_memory_t *future_time_queue_mem;
+
+  // TODO
+  // #if R2U2_AT_EXTRA_FILTERS
+  r2u2_at_filter_aux_data_t *at_aux_buffer;
+  // #endif
 
 } r2u2_monitor_t;
 
@@ -69,7 +76,9 @@ typedef struct {
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     &(uint8_t [R2U2_MAX_BOXQ_BYTES]){0}, \
     &(uint8_t [R2U2_MAX_SCQ_BYTES]){0}, \
+    &(r2u2_at_filter_aux_data_t [R2U2_MAX_AT_INSTRUCTIONS]){0}, \
   }
+
 
 // As Java as this looks, our external API shouldn't rest on variable access
 

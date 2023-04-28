@@ -4,7 +4,7 @@
 #include "r2u2.h"
 #include "internals/errors.h"
 
-#if R2U2_AT_Extra_Filters
+#if R2U2_AT_EXTRA_FILTERS
 #include "extra_filters/filter_movavg.h"
 #endif
 
@@ -21,7 +21,7 @@ typedef enum {
     R2U2_AT_OP_BOOL           = 0b0001,
     R2U2_AT_OP_INT            = 0b0010,
     R2U2_AT_OP_FLOAT         = 0b0011,
-    #if R2U2_AT_Extra_Filters
+    #if R2U2_AT_EXTRA_FILTERS
     R2U2_AT_OP_RATE           = 0b0100,
     R2U2_AT_OP_ABS_DIFF_ANGLE = 0b0101,
     R2U2_AT_OP_MOVAVG         = 0b0110,
@@ -37,19 +37,9 @@ typedef union {
     // TODO(bckempa): Pun these to types.h
     int8_t s;
     r2u2_bool b;
-    int32_t i;
+    r2u2_int i;
     r2u2_float d;
-} r2u2_at_comparison_arg_t;
-
-typedef union {
-    r2u2_float epsilon;     /* epsilon value for float comparsions */
-    #if R2U2_AT_Extra_Filters
-    r2u2_float diff_angle;  /* abs_diff_angle filter */
-    r2u2_float prev;                /* rate filter */
-    // TODO(bckempa): the movAvg type is waaaaaay bigger than anything else....
-    movavg_t *movavg;       /* movavg filter */
-    #endif
-} r2u2_at_filter_aux_data_t;
+} r2u2_at_arg_t;
 
 typedef struct {
     r2u2_at_conditional_t conditional;
@@ -57,8 +47,9 @@ typedef struct {
     uint8_t sig_addr;
     uint8_t atom_addr;
     bool comp_is_sig;
-    r2u2_at_comparison_arg_t comparison;
-    r2u2_at_filter_aux_data_t filt_data_struct;
+    r2u2_at_arg_t comparison;
+    r2u2_at_arg_t filter_arg;
+    uint8_t aux_addr;
 } r2u2_at_instruction_t;
 
 r2u2_status_t r2u2_at_instruction_dispatch(r2u2_monitor_t*, r2u2_at_instruction_t *);

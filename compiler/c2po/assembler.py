@@ -100,9 +100,9 @@ def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, sto
     return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
 
 
-def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison):
-    at_instruction = cStruct('iiBBBxxxxx8sd')
-    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, 0.00001)
+def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr):
+    at_instruction = cStruct('iiBBBxxxxx8s8sB')
+    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr)
 
 
 def assemble_ft(opcode, operand_1, operand_2, ref):
@@ -164,12 +164,33 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         if instr.filter == "bool":
             filter = ATFilter.BOOL
             format = "?xxxxxxx"
+            filter_arg = cStruct("xxxxxxxx").pack()
         elif instr.filter == "int":
             filter = ATFilter.INT
             format = "q"
+            filter_arg = cStruct("xxxxxxxx").pack()
         elif instr.filter == "float":
             filter = ATFilter.FLOAT
             format = "d"
+            filter_arg = cStruct("xxxxxxxx").pack()
+        elif instr.filter == "rate":
+            filter = ATFilter.RATE
+            format = "d"
+            filter_arg = cStruct("xxxxxxxx").pack()
+        elif instr.filter == "movavg":
+            filter = ATFilter.MOVAVG
+            format = "d"
+            if isinstance(instr.args[1], Integer):
+                filter_arg = cStruct("q").pack(instr.args[1].value)
+            else:
+                raise NotImplementedError
+        elif instr.filter == "abs_diff_angle":
+            filter = ATFilter.ABS_DIFF_ANGLE
+            format = "d"
+            if isinstance(instr.args[1], Float):
+                filter_arg = cStruct("d").pack(instr.args[1].value)
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
         
@@ -180,13 +201,13 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
         comp_to_sig = isinstance(instr.compare, Signal)
         if isinstance(instr.compare, Signal):
-            argument = cStruct("Bxxxxxxx").pack(instr.compare.sid)
+            comparison = cStruct("Bxxxxxxx").pack(instr.compare.sid)
         elif isinstance(instr.compare, Constant):
-            argument = cStruct(format).pack(instr.compare.value)
+            comparison = cStruct(format).pack(instr.compare.value)
         else:
             raise NotImplementedError
 
-        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, argument))
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, comparison, filter_arg, instr.atid))
     
     for instr in bzasm:
         if isinstance(instr, Signal):
@@ -209,7 +230,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif isinstance(instr, BitwiseNegate):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, ArithmeticAdd):
-            if is_integer_type(instr.get_child(0).type):
+            if is_integer_type(instr.type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))

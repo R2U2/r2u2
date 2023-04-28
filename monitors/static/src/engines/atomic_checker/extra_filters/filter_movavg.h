@@ -1,5 +1,5 @@
 /*=======================================================================================
-** File Name: filter_fft.h
+** File Name: filter_movavg.h
 **
 ** Title: header for moving average filter
 **
@@ -29,7 +29,6 @@ typedef struct mov_avg {
 	r2u2_float avg;
     uint8_t head;
 	uint8_t num_elems;
-    uint8_t size;
 } movavg_t;
 
 /* returns a moving average with the window size defined in the
@@ -38,6 +37,5 @@ typedef struct mov_avg {
  * initially the average of the number of included elements is calculated
  * once the windows size has been reached, the average is calculated over the whole window
  * */
-void filter_movavg_init(movavg_t *, uint8_t);
-r2u2_float filter_movavg_update_data(movavg_t *, r2u2_float);
+r2u2_float filter_movavg_update_data(movavg_t *, r2u2_int,  r2u2_float);
 #endif

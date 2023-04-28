@@ -1,12 +1,12 @@
-#ifndef R2U2_ENGINES_AT_OPERATIONS_H
-#define R2U2_ENGINES_AT_OPERATIONS_H
+#ifndef R2U2_ENGINES_OPERATIONS_H
+#define R2U2_ENGINES_OPERATIONS_H
 
 #include "r2u2.h"
 
 #include "atomic_checker.h"
 #include "internals/errors.h"
 
-#if R2U2_AT_Extra_Filters
+#if R2U2_AT_EXTRA_FILTERS
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_movavg(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_rate(r2u2_monitor_t *, r2u2_at_instruction_t *);

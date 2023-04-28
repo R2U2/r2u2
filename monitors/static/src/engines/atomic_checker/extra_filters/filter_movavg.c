@@ -28,25 +28,13 @@
 
 #include "filter_movavg.h"
 
-void filter_movavg_init(movavg_t *movavg, uint8_t size) {
-    uint8_t i = 0;
-    for(i = 0; i < MAX_WINDOW_SIZE; ++i) {
-        movavg->buffer[i] = 0;
-    }
-	movavg->sum = 0;
-	movavg->avg = 0;
-	movavg->head = 0;
-	movavg->num_elems = 0;
-    movavg->size = size;
-}
-
 //----------------------------------------------------------------
 //	update moving avg filter with new data "data"
 //----------------------------------------------------------------
-r2u2_float filter_movavg_update_data(movavg_t *movavg, r2u2_float new_data) {
+r2u2_float filter_movavg_update_data(movavg_t *movavg, r2u2_int size, r2u2_float new_data) {
 	r2u2_float old_data;
 
-	if(movavg->num_elems == movavg->size) {
+	if(movavg->num_elems == size) {
 		// Buffer is full
 		old_data = movavg->buffer[movavg->head];
 		movavg->sum -= old_data;
@@ -59,7 +47,7 @@ r2u2_float filter_movavg_update_data(movavg_t *movavg, r2u2_float new_data) {
 	movavg->sum += new_data;
 
 	movavg->avg = ((r2u2_float)movavg->sum) / ((r2u2_float)movavg->num_elems);
-	movavg->head = (movavg->head + 1) % movavg->size;
+	movavg->head = (movavg->head + 1) % size;
 
     return movavg->avg;
 }
