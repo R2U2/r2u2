@@ -124,10 +124,11 @@ class C2POParser(Parser):
     def __init__(self) -> None:
         super().__init__()
         self.structs: StructDict = {}
-        self.vars: dict[str,Type] = {}
-        self.defs: dict[str,Node] = {}
-        self.contracts: dict[str,int] = {}
-        self.atomics: dict[str,Node] = {}
+        self.signals: Dict[str,Type] = {}
+        self.vars: Dict[str,Type] = {}
+        self.defs: Dict[str,Node] = {}
+        self.contracts: Dict[str,int] = {}
+        self.atomics: Dict[str,Node] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
@@ -138,7 +139,8 @@ class C2POParser(Parser):
 
     def error(self, token):
         self.status = False
-        return super().error(token)
+        lineno = getattr(token, 'lineno', 0)
+        logger.error(f"{lineno}: Syntax error, token='{token.value}'")
 
     @_('block ft_spec_block')
     def block(self, p):
@@ -190,7 +192,7 @@ class C2POParser(Parser):
     def input_block(self, p):
         for variables, type in [p[1]]+p[2]:
             for v in variables:
-                self.vars[v] = type
+                self.signals[v] = type
 
     @_('variable_declaration_list variable_declaration')
     def variable_declaration_list(self, p):
@@ -247,7 +249,7 @@ class C2POParser(Parser):
         variable = p[0]
         expr = p[2]
 
-        if variable in self.vars.keys():
+        if variable in self.signals.keys():
             logger.error(f'{ln}: Variable \'{variable}\' already declared.')
             self.status = False
         elif variable in self.defs.keys():
@@ -270,7 +272,7 @@ class C2POParser(Parser):
         atomic = p[0]
         expr = p[2]
 
-        if atomic in self.vars.keys():
+        if atomic in self.signals.keys():
             logger.error(f'{ln}: Atomic \'{atomic}\' name clashes with previously declared variable.')
             self.status = False
         elif atomic in self.atomics.keys():
@@ -413,7 +415,7 @@ class C2POParser(Parser):
         symbol = p[0]
 
         if symbol in self.structs.keys():
-            members: dict[str,Node] = {}
+            members: Dict[str,Node] = {}
             if len(expr_list) == len(self.structs[symbol]):
                 for s in self.structs[symbol].keys():
                     members[s] = expr_list.pop(0)
@@ -439,9 +441,7 @@ class C2POParser(Parser):
                 self.status = False
                 return Node(ln, [])
         else:
-            logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
-            self.status = False
-            return Node(ln, [])
+            return Function(ln, symbol, [])
 
     # Struct member access
     @_('expr DOT SYMBOL')
@@ -597,8 +597,8 @@ class C2POParser(Parser):
             return Bool(ln, False)
         elif symbol in self.defs.keys():
             return self.defs[symbol]
-        elif symbol in self.vars.keys():
-            return Signal(ln, symbol, self.vars[symbol])
+        elif symbol in self.signals.keys():
+            return Signal(ln, symbol, self.signals[symbol])
         elif symbol in self.atomics.keys():
             return Atomic(ln, symbol)
         else:

@@ -216,6 +216,12 @@ class TLInstruction(Instruction):
             return ""
         return f"n{self.ptid}"
     
+    def bzid_str(self) -> str:
+        if self.bzid < 0:
+            logger.critical(f" Node '{self}' never assigned bzid.")
+            return ""
+        return f"b{self.bzid}"
+    
     def ft_asm(self) -> str:
         s = f"{self.ftid_str()} {self.name} "
         for child in self.get_children():
@@ -226,6 +232,13 @@ class TLInstruction(Instruction):
         s = f"{self.ptid_str()} {self.name} "
         for child in self.get_children():
             s += f"{child.ptid_str()} "
+        return s
+ 
+    def bz_asm(self) -> str:
+        s = f"{self.bzid_str()} {self.name} "
+        for child in self.get_children():
+            s += f"{child.bzid_str()} "
+        s += f"{self.atid_str()}" if self.atid >= 0 else ""
         return s
 
 
@@ -557,6 +570,12 @@ class Function(Operator):
     def __deepcopy__(self, memo):
         return Function(self.ln, self.name, deepcopy(self.get_children(), memo))
 
+    def __str__(self) -> str:
+        s = f"{self.name}("
+        for arg in self._children:
+            s += f"{arg},"
+        return s[:-1] + ")"
+
 
 class SetAggOperator(Operator):
 
@@ -680,7 +699,7 @@ class BitwiseAnd(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name = "and"
+        self.name = "bwand"
         self.symbol = "&"
 
     def __deepcopy__(self, memo):
@@ -694,7 +713,7 @@ class BitwiseOr(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name = "or"
+        self.name = "bwor"
         self.symbol = "|"
 
     def __deepcopy__(self, memo):
@@ -708,7 +727,7 @@ class BitwiseXor(BitwiseOperator, BinaryOperator, BZInstruction):
 
     def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
         super().__init__(ln, [lhs, rhs])
-        self.name = "xor"
+        self.name = "bwxor"
         self.symbol = "^"
 
     def __deepcopy__(self, memo):
@@ -765,17 +784,31 @@ class ArithmeticOperator(Operator):
     def __init__(self, ln: int, c: list[Node]) -> None:
         super().__init__(ln, c)
 
+    def __str__(self) -> str:
+        s = f"{self.get_child(0)}"
+        for c in range(1,len(self._children)):
+            s += f"{self.symbol}{self.get_child(c)}"
+        return s
 
-class ArithmeticAdd(ArithmeticOperator, BinaryOperator, BZInstruction):
 
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+class ArithmeticAdd(ArithmeticOperator, BZInstruction):
+
+    def __init__(self, ln: int, c: list[Node]) -> None:
+        # force binary operator for now
+        if len(c) > 2:
+            prev = ArithmeticAdd(ln, c[0:2])
+            for i in range(2,len(c)-1):
+                prev = ArithmeticAdd(ln, [prev,c[i]])
+            super().__init__(ln, [prev,c[len(c)-1]])
+        else:
+            super().__init__(ln, c)
+
         self.name = "add"
         self.symbol = "+"
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = ArithmeticAdd(self.ln, children[0], children[1])
+        new = ArithmeticAdd(self.ln, children)
         self.copy_attrs(new)
         return new
 
@@ -921,6 +954,15 @@ class LogicalOperator(Operator):
 class LogicalOr(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[Node]) -> None:
+        # force binary operator for now
+        if len(c) > 2:
+            prev = LogicalOr(ln, c[0:2])
+            for i in range(2,len(c)-1):
+                prev = LogicalOr(ln, [prev,c[i]])
+            super().__init__(ln, [prev,c[len(c)-1]])
+        else:
+            super().__init__(ln, c)
+
         super().__init__(ln, c)
         self.name = "or"
         self.symbol = "||"
@@ -935,7 +977,15 @@ class LogicalOr(LogicalOperator, TLInstruction):
 class LogicalAnd(LogicalOperator, TLInstruction):
 
     def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+        # force binary operator for now
+        if len(c) > 2:
+            prev = LogicalAnd(ln, c[0:2])
+            for i in range(2,len(c)-1):
+                prev = LogicalAnd(ln, [prev,c[i]])
+            super().__init__(ln, [prev,c[len(c)-1]])
+        else:
+            super().__init__(ln, c)
+
         self.name = "and"
         self.symbol = "&&"
 

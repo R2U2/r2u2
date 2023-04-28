@@ -1,6 +1,4 @@
-from ast import arg
 import os
-import shutil
 import argparse
 import sys
 
@@ -23,18 +21,16 @@ parser.add_argument("--int-signed", action="store_true",
                     help="set int types to signed")
 parser.add_argument("--float-width", default=32,
                     help="bit width for floating point types")
-parser.add_argument("--booleanizer", action="store_true",
-                    help="enable booleanizer")
-parser.add_argument("--cse", action="store_true",
-                    help="enable CSE optimization")
-parser.add_argument("--extops", action="store_true",
-                    help="enable extended operations")
-parser.add_argument("--rewrite", action="store_true",
-                    help="enable MLTL rewrite rule optimizations")
 parser.add_argument("--atomic-checker", action="store_true",
                     help="enable atomic checkers")
-parser.add_argument("--disable-color", action="store_false",
-                    help="disable color in logging")
+parser.add_argument("--booleanizer", action="store_true",
+                    help="enable booleanizer")
+parser.add_argument("--disable-cse", action="store_false",
+                    help="disable CSE optimization")
+parser.add_argument("--extops", action="store_true",
+                    help="enable extended operations")
+parser.add_argument("--disable-rewrite", action="store_false",
+                    help="disable MLTL rewrite rule optimizations")
 parser.add_argument("--disable-assemble", action="store_false",
                     help="disable assembly generation")
 args = parser.parse_args()
@@ -44,12 +40,12 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,"r").read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(args.mltl, args.sigs, impl=args.implementation, enable_assemble=(not args.disable_assemble), output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.cse, enable_extops=args.extops, enable_rewrite=args.rewrite, enable_color=args.disable_color, quiet=args.quiet)
+        return_code = compile(args.mltl, args.sigs, impl=args.implementation, enable_assemble=args.disable_assemble, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.disable_cse, enable_extops=args.extops, enable_rewrite=args.disable_rewrite, quiet=args.quiet)[0]
     else:
         print(f"Signal mapping argument '{args.sigs}' not a valid file")
         return_code = 1
 else:
-    print(f"MLTL file \"{args.sigs}\" not a valid file")
+    print(f"MLTL file \"{args.mltl}\" not a valid file")
     return_code = 1
 
 sys.exit(return_code)

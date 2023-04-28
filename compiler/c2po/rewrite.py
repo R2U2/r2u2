@@ -204,26 +204,31 @@ def rewrite_set_aggregation(program: Program) -> None:
         cur: Node = a
 
         if isinstance(a, ForEach):
+            rewrite_struct_access_util(a.get_set())
             cur = LogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
-            a.replace(cur)
+            a.replace(cur) 
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForSome):
+            rewrite_struct_access_util(a.get_set())
             cur = LogicalOr(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForExactlyN):
             s: Set = a.get_set()
-            cur = Equal(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            rewrite_struct_access_util(a.get_set())
+            cur = Equal(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtLeastN):
             s: Set = a.get_set()
-            cur = GreaterThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            rewrite_struct_access_util(s)
+            cur = GreaterThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtMostN):
             s: Set = a.get_set()
-            cur = LessThanOrEqual(a.ln, Count(a.ln, Integer(a.ln, s.get_max_size()), [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            rewrite_struct_access_util(s)
+            cur = LessThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
             a.replace(cur)
             rewrite_struct_access_util(cur)
 

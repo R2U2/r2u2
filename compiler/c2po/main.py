@@ -28,6 +28,8 @@ class ReturnCode(Enum):
     ASM_ERROR = 4
     INVALID_OPTIONS = 5
 
+COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]] = lambda rc: (rc,[],[],[],[],[])
+
 
 # Stores the sub-classes of Instruction from ast.py
 instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
@@ -48,8 +50,10 @@ default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) f
             obj != BZInstruction) }
 
 
-at_filter_table: Dict[str, Tuple[Type, List[Type]]] = {
-    "rate": (FLOAT(), [FLOAT()])
+AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
+    "rate": ([FLOAT()], FLOAT()),
+    "movavg": ([FLOAT(),INT()], FLOAT()),
+    "abs_diff_angle": ([FLOAT(),FLOAT()], FLOAT())
 }
 
 
@@ -125,10 +129,12 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     context: Dict[str,Type] = {}
     st: StructDict = program.structs
     formula_type: FormulaType = FormulaType.PROP
+    in_parameterized_set_agg: bool = False
 
     def type_check_util(node: Node) -> None:
         nonlocal formula_type
         nonlocal status
+        nonlocal in_parameterized_set_agg
 
         if node in explored:
             return
@@ -192,6 +198,9 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             if not at:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
+        elif isinstance(node, Function):
+            status = False
+            logger.error(f"{node.ln}: Functions unsupported.\n\t{node}")
         elif isinstance(node, RelationalOperator):
             if program.implementation != R2U2Implementation.C:
                 status = False
@@ -205,14 +214,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             if lhs.type != rhs.type:
                 status = False
                 logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
-
-            if at: # AT checkers restrict the usage of comparison operators
-                if not isinstance(lhs, Signal) and not isinstance(lhs, Function):
-                    status = False
-                    logger.error(f'{node.ln}: Left-hand argument for AT checker must be signal or filter (found {lhs}\n\t{node}')
-                if not isinstance(rhs, Literal):
-                    status = False
-                    logger.error(f'{node.ln}: Right-hand argument for AT checker must be signal or constant (found {rhs}\n\t{node}')
 
             node.type = BOOL()
         elif isinstance(node, ArithmeticOperator):
@@ -249,13 +250,17 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = False
                 logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
 
+            t: Type = NOTYPE()
             for c in node.get_children():
                 type_check_util(c)
-                if c.type != INT():
-                    status = False
-                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'int\'\n\t{node}')
+                t = c.type
 
-            node.type = INT()
+            for c in node.get_children():
+                if c.type != t or not is_integer_type(c.type):
+                    status = False
+                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'{node.get_child(0).type}\'\n\t{node}')
+
+            node.type = t
         elif isinstance(node, LogicalOperator):
             for c in node.get_children():
                 type_check_util(c)
@@ -301,13 +306,13 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     logger.error(f'{node.ln}: Set \'{node}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
             node.type = SET(t)
-        elif isinstance(node,Variable):
+        elif isinstance(node, Variable):
             if node.name in context.keys():
                 node.type = context[node.name]
             else:
                 status = False
                 logger.error(f'{node.ln}: Variable \'{node}\' not recognized')
-        elif isinstance(node,SetAggOperator):
+        elif isinstance(node, SetAggOperator):
             s: Set = node.get_set()
             boundvar: Variable = node.get_boundvar()
 
@@ -320,6 +325,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 logger.error(f'{node.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
 
             if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+                in_parameterized_set_agg = True
                 if not bz:
                     status = False
                     logger.error(f'{node.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.')
@@ -335,11 +341,13 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             if expr.type != BOOL():
                 status = False
-                logger.error(f'{node.ln}: Set aggregation argument must be Boolean (found \'{expr.type}\')')
+                logger.error(f"{node.ln}: Set aggregation expression must be 'bool' (found '{expr.type}')")
 
             del context[boundvar.name]
-            explored.remove(boundvar)
+            if boundvar in explored:
+                explored.remove(boundvar)
             node.type = BOOL()
+            in_parameterized_set_agg = False
         elif isinstance(node,Struct):
             for name,member in node.get_members().items():
                 type_check_util(member)
@@ -360,6 +368,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             logger.error(f'{node.ln}: Invalid expression\n\t{node}')
             status = False
 
+        if isinstance(node, TLInstruction) and in_parameterized_set_agg:
+            status = False
+            logger.error(f'{node.ln}: Parameterized set aggregation expressions only accept Booleanizer operators.\n\tConsider using bit-wise operators in place of logical operators.\n\t{node}')
+
     def type_check_atomic(name: str, node: Node) -> ATInstruction|None:
         nonlocal status
 
@@ -372,14 +384,14 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             # type check left-hand side
             if isinstance(lhs, Function):
-                if lhs.name in at_filter_table:
-                    if len(at_filter_table[lhs.name][1]) == len(lhs.get_children()):
+                if lhs.name in AT_FILTER_TABLE:
+                    if len(AT_FILTER_TABLE[lhs.name][0]) == len(lhs.get_children()):
                         for i in range(0, len(lhs.get_children())):
                             arg: Node = lhs.get_child(i)
                             if isinstance(rhs, Signal) or isinstance(rhs, Constant):
-                                if arg.type != at_filter_table[lhs.name][1][i]:
+                                if arg.type != AT_FILTER_TABLE[lhs.name][0][i]:
                                     status = False
-                                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{at_filter_table[lhs.name][1][i]}').\n\t{node}")
+                                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
                                     return
 
                                 if isinstance(arg, Signal):
@@ -393,10 +405,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                                 logger.error(f"{node.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{node}")
                         filter = lhs.name
                         filter_args = lhs.get_children()
-                        lhs.type = at_filter_table[lhs.name][0]
+                        lhs.type = AT_FILTER_TABLE[lhs.name][1]
                     else:
                         status = False
-                        logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(at_filter_table[lhs.name][1])}, found {len(lhs.get_children())}).\n\t{node}")
+                        logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(AT_FILTER_TABLE[lhs.name][0])}, found {len(lhs.get_children())}).\n\t{node}")
                         return
                 else:
                     status = False
@@ -793,6 +805,7 @@ def set_options(
         program: Target program for compilation
         impl_str: String representing one of the R2U2 implementation 
             (should be one of 'c', 'c++'/'cpp', or 'fpga'/'vhdl')
+        movavg_size: Maximum size for moving average AT filter
         int_width: Width to set C2PO INT type to
         int_is_signed: If true sets INT type to signed
         float_width: Width to set C2PO FLOAT type to
@@ -836,14 +849,13 @@ def compile(
     float_width: int = 32,
     output_filename: str = "r2u2_spec.bin",
     enable_assemble: bool = True,
-    enable_cse: bool = True,
+    enable_cse: bool = False,
     enable_at: bool = False,
     enable_bz: bool = False,
     enable_extops: bool = False,
     enable_rewrite: bool = False,
-    enable_color: bool = True,
     quiet: bool = False
-) -> int:
+) -> tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
@@ -855,25 +867,24 @@ def compile(
         float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
         output_filename: Name of binary output file
         enable_assemble: If true outputs binary to output_filename
-        enable_cse: If true performs Common Subexpression Elimination
+        enable_cse: If true enables Common Subexpression Elimination
         enable_at: If true enables Atomic Checker instructions
         enable_bz: If true enables Booleanizer instructions
         enable_extops: If true enables TL extended operators
         enable_rewrite: If true enables MLTL rewrite rule optimizations
-        enable_color: If true enables color in logging output
-        quiet: If true disables assembly output
+        quiet: If true disables assembly output to stdout
     """
     with open(input_filename, "r") as f:
         program: Program|None = parse(f.read())
 
     if not program:
         logger.error(" Failed parsing.")
-        return ReturnCode.PARSE_ERROR.value
+        return COMPILE_ERR_RETURN_VAL(ReturnCode.PARSE_ERROR.value)
 
     if not set_options(program, impl, int_width, int_signed, float_width, 
                             enable_at, enable_bz, enable_extops):
         logger.error(" Invalid configuration options.")
-        return ReturnCode.INVALID_OPTIONS.value
+        return COMPILE_ERR_RETURN_VAL(ReturnCode.INVALID_OPTIONS.value)
 
     # parse csv/signals file
     program.signal_mapping = parse_signals(signals_filename)
@@ -881,7 +892,7 @@ def compile(
     # type check
     if not type_check(program, enable_at, enable_bz):
         logger.error(" Failed type check.")
-        return ReturnCode.TYPE_CHECK_ERROR.value
+        return COMPILE_ERR_RETURN_VAL(ReturnCode.TYPE_CHECK_ERROR.value)
 
     rewrite_contracts(program)
     rewrite_set_aggregation(program)
@@ -935,5 +946,5 @@ def compile(
     if enable_assemble:
         assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
-    return ReturnCode.SUCCESS.value
+    return (ReturnCode.SUCCESS.value, ft_asm, pt_asm, bz_asm, at_asm, scq_asm)
 
