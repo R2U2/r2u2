@@ -163,32 +163,64 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
 
     case R2U2_MLTL_OP_PT_ONCE: {
+      // We use the queue to track intervals of all false values.
+      // as long as the region of interest isn't entirely within this interval.
+      // then the operator evaluates true
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%zu] O[%d,%d] PT[%d]\t", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%zu] O[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
 
       intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end + boxq->interval.start) < monitor->time_stamp) {
+      if ((intrvl.end != r2u2_infinity) && ((intrvl.end + boxq->interval.start) < monitor->time_stamp)) {
           // Garbage collection
           intrvl = r2u2_boxq_pop_tail(boxq);
+          R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
       // for falling edge
       edge = get_operand_edge(monitor, instr, 0);
       if (edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) {
-          //R2U2_DEBUG_PRINT("***** Falling Edge of Op *****\n");
+          R2U2_DEBUG_PRINT("\tFalling edge detected, pushing to queue\n");
           r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
       } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_boxq_is_empty(boxq)) {
-          //R2U2_DEBUG_PRINT("***** Rising Edge of Op *****\n");
+          R2U2_DEBUG_PRINT("\tRising edge detected, closing interval\n");
           intrvl = r2u2_boxq_pop_head(boxq);
-          if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
-              //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
-          }
+          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
+          // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
+          //     //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
+          //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          // }
       }
 
+      // Since this logic is identical to the historically operator, we use the
+      // same conditionals before inverting the result
+
       intrvl = r2u2_boxq_peek(boxq);
-      *res = !(((boxq->interval.end > monitor->time_stamp)?(intrvl.start <= 0):(intrvl.start + boxq->interval.end <= monitor->time_stamp )) && ((boxq->interval.start > monitor->time_stamp)?(1):(intrvl.end + boxq->interval.start >= monitor->time_stamp)));
-      R2U2_DEBUG_PRINT("= %d\n", *res);
+      if (intrvl.start != r2u2_infinity) {
+        R2U2_DEBUG_PRINT("\tChecking interval start\n");
+        if (boxq->interval.end > monitor->time_stamp) {
+            R2U2_DEBUG_PRINT("\t  Startup behavior: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
+            *res = intrvl.start == 0;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+        }
+
+        R2U2_DEBUG_PRINT("\tChecking interval end:\n");
+        if ((intrvl.end == r2u2_infinity) || (boxq->interval.start > monitor->time_stamp)) {
+            R2U2_DEBUG_PRINT("\t  Startup behavior: T\n");
+            *res &= true;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+        }
+      } else {
+        R2U2_DEBUG_PRINT("\tNo interval to check\n");
+        *res = false;
+      }
+
+      *res = !*res;
+      R2U2_DEBUG_PRINT("\tPT[%zu] = %d\n", instr->memory_reference, *res);
 
       error_cond = R2U2_OK;
       break;
@@ -199,19 +231,19 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       intrvl = r2u2_boxq_peek(boxq);
       if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
           intrvl = r2u2_boxq_pop_tail(boxq);
-          R2U2_DEBUG_PRINT("\t\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
+          R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
       edge = get_operand_edge(monitor, instr, 0);
       if (edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) {
           // Start new open interval on rising edge
-          R2U2_DEBUG_PRINT("\t\tRising edge detected, pushing to queue\n");
+          R2U2_DEBUG_PRINT("\tRising edge detected, pushing to queue\n");
           r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
       }
       else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) && !r2u2_boxq_is_empty(boxq)) {
           // Here we can close the interval
-          // However, as an optimization, we discard intervals too short to ever be considered
-          R2U2_DEBUG_PRINT("\t\tFalling edge detected, closing interval\n");
+          // However, as an optimization, we discard infeasible intervals
+          R2U2_DEBUG_PRINT("\tFalling edge detected, closing interval\n");
           intrvl = r2u2_boxq_pop_head(boxq);
           r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
           // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
