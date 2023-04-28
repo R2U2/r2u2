@@ -1,0 +1,8 @@
+INPUT
+    f0,f1: float;
+
+ATOMIC
+    a := abs_diff_angle(f0,f1) < 5.0;
+
+FTSPEC
+    a;

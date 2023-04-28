@@ -1,0 +1,8 @@
+INPUT
+    b: bool;
+
+ATOMIC
+    a := (b == true);
+
+FTSPEC
+    a;

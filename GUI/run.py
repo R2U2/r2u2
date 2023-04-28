@@ -54,6 +54,15 @@ default_stylesheet = [
     for cls in instruction_list if issubclass(cls, BZInstruction)
 ] + [
     {
+        "selector": "[type = \""+cls.__name__+"\"]",
+        "style": {
+            "background-color": "#BFD722",
+            "label": "data(name)"
+        }
+    }
+    for cls in instruction_list if issubclass(cls, Atomic)
+] + [
+    {
         "selector": "edge",
         "style": {
             "curve-style": "bezier",
@@ -131,6 +140,7 @@ app.layout = html.Div(
                         style = {"font-size": "70%"},
                         options=[
                             {"label": "Common Subexpression Elimination", "value": "cse"},
+                            {"label": "Atomic Checker", "value": "at"},
                             {"label": "Booleanizer", "value": "bz"},
                             {"label": "Extended Operators", "value": "extops"}
                         ],
@@ -491,6 +501,7 @@ def speed_unit_conversion(clk):
 )
 def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type, resource_type, cpu_clk, cpu_close, fpga_close, input, options, int_type, float_type, *argv):
     cse = True if "cse" in options else False
+    at = True if "at" in options else False
     bz = True if "bz" in options else False
     extops = True if "extops" in options else False
 
@@ -527,7 +538,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
     elif float_type == "double":
         float_width = 64
 
-    status,logout,stderr,asm_str,program = compile(input, "", int_width=int_width, int_signed=int_is_signed, float_width=float_width, cse=cse, bz=bz, extops=extops)
+    status,logout,stderr,asm_str,program = compile(input, "", int_width=int_width, int_signed=int_is_signed, float_width=float_width, cse=cse, at=at, bz=bz, extops=extops)
 
     compile_output = stderr+logout
 

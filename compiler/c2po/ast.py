@@ -337,7 +337,7 @@ class Integer(Constant, BZInstruction):
         super().__init__(ln,[])
         self.value: int = v
         self.name = str(v)
-        self.type = INT()
+        self.type = INT(True)
 
         if v.bit_length() > INT.width:
             logger.error(f"{ln} Constant \"{v}\" not representable in configured int width (\"{INT.width}\").")
@@ -358,7 +358,7 @@ class Float(Constant, BZInstruction):
 
     def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln,[])
-        self.type = FLOAT()
+        self.type = FLOAT(True)
         self.value: float = v
         self.name = str(v)
 
@@ -419,7 +419,7 @@ class Atomic(Literal, TLInstruction):
     def __init__(self, ln: int, n: str) -> None:
         super().__init__(ln, [])
         self.name: str = n
-        self.type: Type = BOOL()
+        self.type: Type = BOOL(False)
 
     def __deepcopy__(self, memo):
         copy = Atomic(self.ln, self.name)
@@ -437,7 +437,7 @@ class Bool(Constant):
 
     def __init__(self, ln: int, v: bool) -> None:
         super().__init__(ln,[])
-        self.type = BOOL()
+        self.type = BOOL(True)
         self.bpd: int = 0
         self.wpd: int = 0
         self.value: bool = v
@@ -482,7 +482,6 @@ class Struct(Node):
 
     def __init__(self, ln: int, n: str, m: Dict[str, Node]) -> None:
         super().__init__(ln, [mem for mem in m.values()])
-        self.type: Type = STRUCT(n)
         self.name: str = n
         self.members: Dict[str, Node] = m
 
@@ -670,7 +669,6 @@ class Count(BZInstruction):
         # Note: all members of c must be of type Boolean
         super().__init__(ln, c)
         self.num: Node = n
-        self.type = INT()
         self.name = "count"
 
     def __deepcopy__(self, memo):
@@ -869,7 +867,7 @@ class ArithmeticModulo(ArithmeticOperator, BinaryOperator, BZInstruction):
         return new
 
 
-class ArithmeticNegate(ArithmeticOperator, UnaryOperator, BZInstruction):
+class ArithmeticNegate(UnaryOperator, ArithmeticOperator, BZInstruction):
 
     def __init__(self, ln: int, o: Node) -> None:
         super().__init__(ln, [o])

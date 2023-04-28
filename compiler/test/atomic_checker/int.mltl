@@ -1,0 +1,10 @@
+INPUT
+    i0,i1: int;
+
+ATOMIC
+    a0 := (i0 > 5);
+    a1 := (i0 > i1);
+
+FTSPEC
+    a0;
+    a1;

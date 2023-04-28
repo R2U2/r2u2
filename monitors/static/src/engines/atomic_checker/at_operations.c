@@ -22,7 +22,7 @@
 #endif
 
 #if R2U2_AT_Extra_Filters
-r2u2_status_t op_abs_diff_angle(r2u2_at_instruction_t *instr) {
+r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
     double diff_angle = (double)abs_diff_angle(signal, instr->filt_data_struct.diff_angle);
@@ -40,11 +40,10 @@ r2u2_status_t op_abs_diff_angle(r2u2_at_instruction_t *instr) {
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
 }
 
-r2u2_status_t op_movavg(r2u2_at_instruction_t *instr) {
+r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     int32_t signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%d", &signal);
-    filter_movavg_update_data(instr->filt_data_struct.movavg, signal);
-    double avg = filter_movavg_get(instr->filt_data_struct.movavg);
+    double avg = filter_movavg_update_data(instr->filt_data_struct.movavg, signal);
 
     if (instr->comp_is_sig) {
         double comp_sig;
@@ -59,7 +58,7 @@ r2u2_status_t op_movavg(r2u2_at_instruction_t *instr) {
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
 }
 
-r2u2_status_t op_rate(r2u2_at_instruction_t *instr) {
+r2u2_status_t op_rate(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
     double rate = filter_rate_update_data(signal, &instr->filt_data_struct.prev);

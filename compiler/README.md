@@ -23,21 +23,21 @@ MLTL files are used as input to C2PO and use C2PO's specification language. They
 - **PTSPEC**: Where past-time MLTL specifications are defined. The specifications will use box queues for their memory.
 - **STRUCT**: Where C-like structs are defined.
 - **DEFINE**: Where macros can be defined.
-- **ATOMICS**: Where atomics used by the AT checker are defined.
+- **ATOMIC**: Where atomics used by the atomic checker are defined.
 
 See `syntax.md` for a formal description of the input file format and `examples/` directory for sample files.
 
 ## CSV File Format
 
-A CSV file given to C2PO as input requires a header denoted with a '#' character as the first character of the line. For instance:
+A CSV file given to C2PO as input has a `.csv` file extension and requires a header denoted with a '#' character as the first character of the line. For instance:
 
     # sig0,sig1
     0,1
 
 is a valid csv file.
 
-## Map File Format
+## Signal Map File Format
 
-Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL` corresponds to a signal identifier in the MLTL file, its signal ID is set to the integer value of `NUMERAL`.
+A signal map file has a `.map` file extension. Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL` corresponds to a signal identifier in the MLTL file, its signal ID is set to the integer value of `NUMERAL`.
 
 Note that if `SYMBOL` is not present in the MLTL file, the line is ignored.

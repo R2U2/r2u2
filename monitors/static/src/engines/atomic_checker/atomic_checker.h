@@ -4,6 +4,10 @@
 #include "r2u2.h"
 #include "internals/errors.h"
 
+#if R2U2_AT_Extra_Filters
+#include "extra_filters/filter_movavg.h"
+#endif
+
 typedef enum {
     R2U2_AT_COND_EQ  = 0b000,
     R2U2_AT_COND_NEQ = 0b001,
@@ -43,7 +47,7 @@ typedef union {
     r2u2_float diff_angle;  /* abs_diff_angle filter */
     r2u2_float prev;                /* rate filter */
     // TODO(bckempa): the movAvg type is waaaaaay bigger than anything else....
-    movAvg_t *movavg;       /* movavg filter */
+    movavg_t *movavg;       /* movavg filter */
     #endif
 } r2u2_at_filter_aux_data_t;
 

@@ -209,10 +209,10 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif isinstance(instr, BitwiseNegate):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, ArithmeticAdd):
-            if is_integer_type(instr.get_lhs().type):
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            if is_integer_type(instr.get_child(0).type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
             else:
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
         elif isinstance(instr, ArithmeticSubtract):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ISUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))

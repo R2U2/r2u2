@@ -62,7 +62,7 @@ class C2POLexer(Lexer):
 
     # Others
     CONTRACT_ASSIGN = r'=>'
-    ASSIGN  = r'='
+    ASSIGN  = r':='
     SYMBOL  = r'[a-zA-Z_][a-zA-Z0-9_]*'
     # QUEST   = r'\?'
     SEMI    = r';'
@@ -133,9 +133,6 @@ class C2POParser(Parser):
         self.has_ft = False
         self.has_pt = False
         self.status = True
-
-        # Initialize special structs
-        self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
 
     def error(self, token):
         self.status = False
@@ -221,15 +218,15 @@ class C2POParser(Parser):
         symbol = p[0]
 
         if symbol == 'bool':
-            return BOOL()
+            return BOOL(False)
         elif symbol == 'int':
-            return INT()
+            return INT(False)
         elif symbol == 'float':
-            return FLOAT()
+            return FLOAT(False)
         elif symbol == 'set':
-            return SET(p[2])
+            return SET(False, p[2])
         elif symbol in self.structs.keys():
-            return STRUCT(symbol)
+            return STRUCT(False, symbol)
 
         logger.error(f'{p.lineno}: Type \'{p[0]}\' not recognized')
         self.status = False
@@ -307,6 +304,7 @@ class C2POParser(Parser):
     def spec(self, p):
         ln = p.lineno
         expr = p[0]
+        print(expr.__class__)
         self.spec_num += 1
         return [Specification(ln, '', self.spec_num-1, expr)]
 
@@ -461,6 +459,7 @@ class C2POParser(Parser):
         elif operator == '~':
             return BitwiseNegate(ln, p[1])
         elif operator == '-':
+            print(f"negate {p[1]}")
             return ArithmeticNegate(ln, p[1])
         else:
             logger.error(f'{ln}: Bad expression')
@@ -513,6 +512,7 @@ class C2POParser(Parser):
         elif operator == '!=':
             return NotEqual(ln, lhs, rhs)
         elif operator == '>':
+            print(f"Greater than {p[0]} {p[2]}")
             return GreaterThan(ln, lhs, rhs)
         elif operator == '<':
             return LessThan(ln, lhs, rhs)
@@ -525,7 +525,7 @@ class C2POParser(Parser):
         elif operator == '>>':
             return BitwiseShiftRight(ln, lhs, rhs)
         elif operator == '+':
-            return ArithmeticAdd(ln, lhs, rhs)
+            return ArithmeticAdd(ln, [lhs, rhs])
         elif operator == '-':
             return ArithmeticSubtract(ln, lhs, rhs)
         elif operator == '*':
@@ -583,6 +583,7 @@ class C2POParser(Parser):
     # Parentheses
     @_('LPAREN expr RPAREN')
     def expr(self, p):
+        print(f"parens {p[1].__class__}")
         return p[1]
 
     # Symbol
@@ -598,6 +599,7 @@ class C2POParser(Parser):
         elif symbol in self.defs.keys():
             return self.defs[symbol]
         elif symbol in self.signals.keys():
+            print(f"signal {symbol}")
             return Signal(ln, symbol, self.signals[symbol])
         elif symbol in self.atomics.keys():
             return Atomic(ln, symbol)

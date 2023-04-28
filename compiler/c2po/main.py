@@ -51,9 +51,9 @@ default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) f
 
 
 AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
-    "rate": ([FLOAT()], FLOAT()),
-    "movavg": ([FLOAT(),INT()], FLOAT()),
-    "abs_diff_angle": ([FLOAT(),FLOAT()], FLOAT())
+    "rate": ([FLOAT(False)], FLOAT(False)),
+    "movavg": ([FLOAT(False),INT(True)], FLOAT(False)),
+    "abs_diff_angle": ([FLOAT(False),FLOAT(True)], FLOAT(False))
 }
 
 
@@ -170,7 +170,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             child = node.get_expr()
             type_check_util(child)
 
-            if not child.type == BOOL():
+            if not child.type == BOOL(False):
                 status = False
                 logger.error(f'{node.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{node}')
         elif isinstance(node, Contract):
@@ -184,13 +184,15 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             type_check_util(assume)
             type_check_util(guarantee)
 
-            if not assume.type == BOOL():
+            if not assume.type == BOOL(False):
                 status = False
                 logger.error(f'{node.ln}: Assumption must be of boolean type (found \'{assume.type}\')\n\t{node}')
 
-            if not guarantee.type == BOOL():
+            if not guarantee.type == BOOL(False):
                 status = False
                 logger.error(f'{node.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{node}')
+
+            node.type = BOOL(assume.type.is_const and guarantee.type.is_const)
         elif isinstance(node, Atomic):
             if program.implementation != R2U2Implementation.C:
                 status = False
@@ -215,8 +217,10 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = False
                 logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
 
-            node.type = BOOL()
+            node.type = BOOL(lhs.type.is_const and rhs.type.is_const)
         elif isinstance(node, ArithmeticOperator):
+            is_const: bool = True
+
             if program.implementation != R2U2Implementation.C:
                 status = False
                 logger.error(f"{node.ln}: Arithmetic operators only support in C version of R2U2.\n\t{node}")
@@ -227,7 +231,9 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             for c in node.get_children():
                 type_check_util(c)
+                is_const = is_const and c.type.is_const
             t: Type = node.get_child(0).type
+            t.is_const = is_const
 
             if isinstance(node, ArithmeticDivide):
                 rhs: Node = node.get_rhs()
@@ -242,6 +248,8 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = t
         elif isinstance(node, BitwiseOperator):
+            is_const: bool = True
+
             if program.implementation != R2U2Implementation.C:
                 status = False
                 logger.error(f"{node.ln}: Bitwise operators only support in C version of R2U2.\n\t{node}")
@@ -253,7 +261,9 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             t: Type = NOTYPE()
             for c in node.get_children():
                 type_check_util(c)
+                is_const = is_const and c.type.is_const
                 t = c.type
+            t.is_const = is_const
 
             for c in node.get_children():
                 if c.type != t or not is_integer_type(c.type):
@@ -262,17 +272,23 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = t
         elif isinstance(node, LogicalOperator):
+            is_const: bool = True
+
             for c in node.get_children():
                 type_check_util(c)
-                if c.type != BOOL():
+                is_const = is_const and c.type.is_const
+                if c.type != BOOL(False):
                     status = False
                     logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
 
-            node.type = BOOL()
+            node.type = BOOL(is_const)
         elif isinstance(node, TemporalOperator):
+            is_const: bool = True
+
             for c in node.get_children():
                 type_check_util(c)
-                if c.type != BOOL():
+                is_const = is_const and c.type.is_const
+                if c.type != BOOL(False):
                     status = False
                     logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
 
@@ -293,11 +309,14 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = status
                 logger.error(f'{node.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{node.interval.lb},{node.interval.ub}])')
 
-            node.type = BOOL()
+            node.type = BOOL(is_const)
         elif isinstance(node,Set):
             t: Type = NOTYPE()
+            is_const: bool = True
+
             for m in node.get_children():
                 type_check_util(m)
+                is_const = is_const and m.type.is_const
                 t = m.type
 
             for m in node.get_children():
@@ -305,7 +324,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     status = False
                     logger.error(f'{node.ln}: Set \'{node}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
-            node.type = SET(t)
+            node.type = SET(is_const, t)
         elif isinstance(node, Variable):
             if node.name in context.keys():
                 node.type = context[node.name]
@@ -339,22 +358,26 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             expr: Node = node.get_expr()
             type_check_util(expr)
 
-            if expr.type != BOOL():
+            if expr.type != BOOL(False):
                 status = False
                 logger.error(f"{node.ln}: Set aggregation expression must be 'bool' (found '{expr.type}')")
 
             del context[boundvar.name]
             if boundvar in explored:
                 explored.remove(boundvar)
-            node.type = BOOL()
+
+            node.type = BOOL(expr.type.is_const and s.type.is_const)
             in_parameterized_set_agg = False
         elif isinstance(node,Struct):
+            is_const: bool = True
+
             for name,member in node.get_members().items():
                 type_check_util(member)
+                is_const = is_const and member.type.is_const
                 if st[node.name][name] != member.type:
                     logger.error(f'{node.ln}: Member \'{name}\' invalid type for struct \'{node.name}\' (expected \'{st[node.name][name]}\' but got \'{member.type}\')')
 
-            node.type = STRUCT(node.name)
+            node.type = STRUCT(is_const, node.name)
         elif isinstance(node,StructAccess):
             type_check_util(node.get_struct())
 
