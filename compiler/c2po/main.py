@@ -167,7 +167,11 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             elif node.name in context:
                 pass
             elif node.name in program.definitions:
-                node.replace(program.definitions[node.name])
+                define = program.definitions[node.name]
+                if isinstance(define, Specification):
+                    node.replace(define.get_expr())
+                else:
+                    node.replace(define)
             else:
                 status = False
                 logger.error(f"{node.ln}: Variable '{node}' not recognized.")
