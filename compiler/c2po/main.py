@@ -1,4 +1,5 @@
 from __future__ import annotations
+from curses import nonl
 from typing import Dict, List, Tuple
 import inspect
 import sys
@@ -29,17 +30,17 @@ COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLI
 
 
 # Stores the sub-classes of Instruction from ast.py
-instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
+INSTRUCTION_LIST = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
-default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
+DEFAULT_CPU_LATENCY_TABLE: Dict[str, int] = { name:10 for (name,value) in
     inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
             obj != BZInstruction) }
 
-default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
+DEFAULT_FPGA_LATENCY_TABLE: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
     inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
@@ -128,38 +129,73 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     formula_type: FormulaType = FormulaType.PROP
     in_parameterized_set_agg: bool = False
 
+    def resolve_variables_util(node: Node) -> None:
+        """Recursively replace any Variable instances to Atomic, Signal, or definitions, unless it is a set aggregation variable."""
+        nonlocal status
+
+        if isinstance(node, Variable):
+            if node.name in program.atomics:
+                if program.implementation != R2U2Implementation.C:
+                    status = False
+                    logger.error(f"{node.ln}: Atomics only support in C version of R2U2.\n\t{node}")
+                if not at:
+                    status = False
+                    logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
+                node.replace(Atomic(node.ln, node.name))
+            elif node.name in program.signals:
+                if at:
+                    if not node.name in program.signal_mapping:
+                        status = False
+                        logger.error(f"{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}")
+
+                    sig = Signal(node.ln, node.name, program.signals[node.name])
+                    sig.sid = program.signal_mapping[sig.name]
+                    one = Integer(sig.ln, 1)
+                    a_copy = deepcopy(sig)
+                    instr = ATInstruction(sig.ln, sig.name, "int", [a_copy], Equal(sig.ln, a_copy, one), one)
+                    program.atomics[sig.name] = instr
+                    node.replace(Atomic(sig.ln, sig.name))
+                else:
+                    if not node.name in program.signal_mapping:
+                        status = False
+                        logger.error(f'{node.ln}: Signal \'{node}\' not referenced in signal mapping.')
+
+                    sig = Signal(node.ln, node.name, program.signals[node.name])
+                    sig.sid = program.signal_mapping[sig.name]
+                    node.replace(sig)
+            elif node.name in context:
+                pass
+            elif node.name in program.definitions:
+                node.replace(program.definitions[node.name])
+            else:
+                status = False
+                logger.error(f"{node.ln}: Variable '{node}' not recognized.")
+        elif isinstance(node, SetAggOperator):
+            context[node.get_boundvar().name] = node.get_boundvar().type
+            resolve_variables_util(node.get_set())
+            resolve_variables_util(node.get_expr())
+            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+                resolve_variables_util(node.get_num())
+            del context[node.get_boundvar().name]
+        else:
+            for child in node.get_children():
+                resolve_variables_util(child)
+
     def type_check_util(node: Node) -> None:
         nonlocal formula_type
         nonlocal status
         nonlocal in_parameterized_set_agg
 
-        if node in explored:
-            return
-        explored.append(node)
-
         node.formula_type = formula_type
 
         if isinstance(node, Constant):
             return
-        if isinstance(node, Signal):
-            if at:
-                if node.name in program.signal_mapping:
-                    node.sid = program.signal_mapping[node.name]
-                    one = Integer(node.ln, 1)
-                    a_copy = deepcopy(node)
-                    instr = ATInstruction(node.ln, node.name, "int", [a_copy], Equal(node.ln, a_copy, one), one)
-                    program.atomics[node.name] = instr
-                    node.replace(Atomic(node.ln, node.name))
-                else:
-                    status = False
-                    logger.error(f"{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}")
-            else:
-                if node.name in program.signal_mapping:
-                    node.sid = program.signal_mapping[node.name]
-                else:
-                    status = False
-                    logger.error(f'{node.ln}: Signal \'{node.name}\' not referenced in signal mapping.')
-
+        elif isinstance(node, Signal):
+            return
+        elif isinstance(node, Atomic):
+            return
+        elif isinstance(node, Variable):
+            node.type = context[node.name]
         elif isinstance(node, SpecificationSet):
             for c in node.get_children():
                 type_check_util(c)
@@ -190,13 +226,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 logger.error(f'{node.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{node}')
 
             node.type = BOOL(assume.type.is_const and guarantee.type.is_const)
-        elif isinstance(node, Atomic):
-            if program.implementation != R2U2Implementation.C:
-                status = False
-                logger.error(f"{node.ln}: Atomics only support in C version of R2U2.\n\t{node}")
-            if not at:
-                status = False
-                logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
         elif isinstance(node, Function):
             status = False
             logger.error(f"{node.ln}: Functions unsupported.\n\t{node}")
@@ -322,12 +351,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     logger.error(f'{node.ln}: Set \'{node}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
 
             node.type = SET(is_const, t)
-        elif isinstance(node, Variable):
-            if node.name in context.keys():
-                node.type = context[node.name]
-            else:
-                status = False
-                logger.error(f'{node.ln}: Variable \'{node}\' not recognized')
         elif isinstance(node, SetAggOperator):
             s: Set = node.get_set()
             boundvar: Variable = node.get_boundvar()
@@ -346,7 +369,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     status = False
                     logger.error(f'{node.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.')
 
-                n: Node = node.num
+                n: Node = node.get_num()
                 type_check_util(n)
                 if not is_integer_type(n.type):
                     status = False
@@ -365,22 +388,31 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             node.type = BOOL(expr.type.is_const and s.type.is_const)
             in_parameterized_set_agg = False
-        elif isinstance(node,Struct):
+        elif isinstance(node, Struct):
             is_const: bool = True
 
-            for name,member in node.get_members().items():
+            for member in node.get_children():
                 type_check_util(member)
                 is_const = is_const and member.type.is_const
-                if st[node.name][name] != member.type:
-                    logger.error(f'{node.ln}: Member \'{name}\' invalid type for struct \'{node.name}\' (expected \'{st[node.name][name]}\' but got \'{member.type}\')')
+
+            for (m,t) in st[node.name]:
+                if node.get_member(m).type != t:
+                    logger.error(f'{node.ln}: Member \'{m}\' invalid type for struct \'{node.name}\' (expected \'{t}\' but got \'{node.get_member(m).type}\')')
 
             node.type = STRUCT(is_const, node.name)
-        elif isinstance(node,StructAccess):
+        elif isinstance(node, StructAccess):
             type_check_util(node.get_struct())
 
             st_name = node.get_struct().type.name
-            if st_name in st.keys() and node.member in st[st_name].keys():
-                node.type = st[st_name][node.member]
+            if st_name in st.keys():
+                valid_member: bool = False
+                for (m,t) in st[st_name]:
+                    if node.member == m:
+                        node.type = t
+                        valid_member = True
+                if not valid_member:
+                    status = False
+                    logger.error(f'{node.ln}: Member \'{node.member}\' invalid for struct \'{node.get_struct().name}\'')
             else:
                 status = False
                 logger.error(f'{node.ln}: Member \'{node.member}\' invalid for struct \'{node.get_struct().name}\'')
@@ -404,64 +436,86 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
             # type check left-hand side
             if isinstance(lhs, Function):
-                if lhs.name in AT_FILTER_TABLE:
-                    if len(AT_FILTER_TABLE[lhs.name][0]) == len(lhs.get_children()):
-                        for i in range(0, len(lhs.get_children())):
-                            arg: Node = lhs.get_child(i)
-                            if isinstance(rhs, Signal) or isinstance(rhs, Constant):
-                                if arg.type != AT_FILTER_TABLE[lhs.name][0][i]:
-                                    status = False
-                                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
-                                    return
-
-                                if isinstance(arg, Signal):
-                                    if arg.name in program.signal_mapping:
-                                        arg.sid = program.signal_mapping[arg.name]
-                                    else:
-                                        status = False
-                                        logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
-                            else:
-                                status = False
-                                logger.error(f"{node.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{node}")
-                        filter = lhs.name
-                        filter_args = lhs.get_children()
-                        lhs.type = AT_FILTER_TABLE[lhs.name][1]
-                    else:
-                        status = False
-                        logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(AT_FILTER_TABLE[lhs.name][0])}, found {len(lhs.get_children())}).\n\t{node}")
-                        return
-                else:
+                if not lhs.name in AT_FILTER_TABLE:
                     status = False
                     logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' undefined.\n\t{node}")
                     return
-            elif isinstance(lhs, Signal):
+
+                if not len(AT_FILTER_TABLE[lhs.name][0]) == len(lhs.get_children()):
+                    status = False
+                    logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(AT_FILTER_TABLE[lhs.name][0])}, found {len(lhs.get_children())}).\n\t{node}")
+                    return
+
+                for i in range(0, len(lhs.get_children())):
+                    arg: Node = lhs.get_child(i)
+
+                    if isinstance(arg, Variable):
+                        if arg.name in program.signals:
+                            sig = Signal(arg.ln, arg.name, program.signals[arg.name])
+                            if arg.name in program.signal_mapping:
+                                sig.sid = program.signal_mapping[arg.name]
+                                arg.replace(sig)
+                            else:
+                                status = False
+                                logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
+
+                            if sig.type != AT_FILTER_TABLE[lhs.name][0][i]:
+                                status = False
+                                logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{sig.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
+                                return
+                    elif isinstance(arg, Constant):
+                        if arg.type != AT_FILTER_TABLE[lhs.name][0][i]:
+                            status = False
+                            logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
+                            return
+                    else:
+                        status = False
+                        logger.error(f"{node.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{node}")
+
+                filter = lhs.name
+                filter_args = lhs.get_children()
+                lhs.type = AT_FILTER_TABLE[lhs.name][1]
+            elif isinstance(lhs, Variable) and lhs.name in program.signals:
+                sig = Signal(lhs.ln, lhs.name, program.signals[lhs.name])
                 if lhs.name in program.signal_mapping:
-                    lhs.sid = program.signal_mapping[lhs.name]
+                    sig.sid = program.signal_mapping[lhs.name]
+                    lhs.replace(sig)
+                    lhs.type = sig.type
                 else:
                     status = False
                     logger.error(f'{lhs.ln}: Signal \'{lhs.name}\' not referenced in signal mapping.')
 
-                filter = lhs.type.name
-                filter_args = [lhs]
-            elif not isinstance(lhs, Signal):
+                filter = sig.type.name
+                filter_args = [sig]
+            else:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{name}' malformed, expected filter or signal for left-hand side.\n\t{node}")
                 return
 
             # type check right-hand side
-            if isinstance(rhs, Signal) or isinstance(rhs, Constant):
-                if lhs.type != rhs.type:
+            if isinstance(rhs, Variable):
+                if not rhs.name in program.signals:
+                    status = False
+                    logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not declared.')
+
+                if not rhs.name in program.signal_mapping:
+                    status = False
+                    logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not referenced in signal mapping.')
+
+                if program.signals[rhs.name] != lhs.type:
                     status = False
                     logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
                     return
 
-                if isinstance(rhs, Signal):
-                    if rhs.name in program.signal_mapping:
-                        rhs.sid = program.signal_mapping[rhs.name]
-                    else:
-                        status = False
-                        logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not referenced in signal mapping.')
-
+                sig = Signal(rhs.ln, rhs.name, program.signals[rhs.name])
+                sig.sid = program.signal_mapping[sig.name]
+                rhs.replace(sig)
+                rhs = sig
+            elif isinstance(rhs, Constant):
+                if lhs.type != rhs.type:
+                    status = False
+                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
+                    return
             else:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{name}' malformed, expected signal or constant for right-hand side.\n\t{node}")
@@ -473,6 +527,19 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             logger.error(f"{node.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{node}")
             return
 
+    resolve_variables_util(program)
+    explored = []
+
+    for definition in program.definitions.values():
+        resolve_variables_util(definition)
+        type_check_util(definition)
+
+    # Type check atomics
+    for name, expr in program.atomics.items():
+        atomic: ATInstruction|None = type_check_atomic(name, expr)
+        if atomic:
+            program.atomics[name] = atomic
+
     # Type check FTSPEC
     formula_type = FormulaType.FT
     type_check_util(program.get_ft_specs())
@@ -480,12 +547,6 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     # Type check PTSPEC
     formula_type = FormulaType.PT
     type_check_util(program.get_pt_specs())
-
-    # Type check atomics
-    for name, expr in program.atomics.items():
-        atomic: ATInstruction|None = type_check_atomic(name, expr)
-        if atomic:
-            program.atomics[name] = atomic
 
     if status:
         program.is_type_correct = True
@@ -802,6 +863,8 @@ def parse(input: str) -> Program|None:
 
     return Program(
         0,
+        parser.signals,
+        parser.defs,
         parser.structs,
         parser.atomics,
         specs[FormulaType.FT],

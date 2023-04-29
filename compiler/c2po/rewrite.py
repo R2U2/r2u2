@@ -198,7 +198,7 @@ def rewrite_set_aggregation(program: Program) -> None:
 
         if isinstance(node,StructAccess) and not isinstance(node.get_struct(),Variable):
             s: Struct = node.get_struct()
-            node.replace(s.members[node.member])
+            node.replace(s.get_member(node.member))
 
     def rewrite_set_aggregation_util(a: Node) -> None:
         cur: Node = a
@@ -216,19 +216,19 @@ def rewrite_set_aggregation(program: Program) -> None:
         elif isinstance(a, ForExactlyN):
             s: Set = a.get_set()
             rewrite_struct_access_util(a.get_set())
-            cur = Equal(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            cur = Equal(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtLeastN):
             s: Set = a.get_set()
             rewrite_struct_access_util(s)
-            cur = GreaterThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            cur = GreaterThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())
             a.replace(cur)
             rewrite_struct_access_util(cur)
         elif isinstance(a, ForAtMostN):
             s: Set = a.get_set()
             rewrite_struct_access_util(s)
-            cur = LessThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.num)
+            cur = LessThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())
             a.replace(cur)
             rewrite_struct_access_util(cur)
 
@@ -261,7 +261,7 @@ def rewrite_struct_access(program: Program) -> None:
     def rewrite_struct_access_util(node: Node) -> None:
         if isinstance(node, StructAccess):
             s: Struct = node.get_struct()
-            node.replace(s.members[node.member])
+            node.replace(s.get_member(node.member))
 
     postorder_iterative(program, rewrite_struct_access_util)
     program.is_struct_access_free = True

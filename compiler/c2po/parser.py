@@ -125,7 +125,6 @@ class C2POParser(Parser):
         super().__init__()
         self.structs: StructDict = {}
         self.signals: Dict[str,Type] = {}
-        self.vars: Dict[str,Type] = {}
         self.defs: Dict[str,Node] = {}
         self.contracts: Dict[str,int] = {}
         self.atomics: Dict[str,Node] = {}
@@ -180,10 +179,10 @@ class C2POParser(Parser):
 
     @_('SYMBOL COLON LBRACE variable_declaration_list RBRACE SEMI')
     def struct(self, p):
-        self.structs[p[0]] = {}
+        self.structs[p[0]] = []
         for variables, type in p[3]:
             for v in variables:
-                self.structs[p[0]][v] = type
+                self.structs[p[0]].append((v,type))
 
     @_('KW_INPUT variable_declaration variable_declaration_list')
     def input_block(self, p):
@@ -411,12 +410,14 @@ class C2POParser(Parser):
         expr_list = [p[2]]+p[3]
         symbol = p[0]
 
-        if symbol in self.structs.keys():
-            members: Dict[str,Node] = {}
+        if symbol in self.structs:
+            member_map: Dict[str,int] = {}
             if len(expr_list) == len(self.structs[symbol]):
-                for s in self.structs[symbol].keys():
-                    members[s] = expr_list.pop(0)
-                return Struct(ln, symbol, members)
+                idx: int = 0
+                for (m,t) in self.structs[symbol]:
+                    member_map[m] = idx
+                    idx += 1
+                return Struct(ln, symbol, member_map, expr_list)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
@@ -592,16 +593,8 @@ class C2POParser(Parser):
             return Bool(ln, True)
         elif symbol == 'false':
             return Bool(ln, False)
-        elif symbol in self.defs.keys():
-            return self.defs[symbol]
-        elif symbol in self.signals.keys():
-            return Signal(ln, symbol, self.signals[symbol])
-        elif symbol in self.atomics.keys():
-            return Atomic(ln, symbol)
         else:
-            logger.error(f'{ln}: Variable \'{symbol}\' undefined')
-            self.status = False
-            return Node(ln, [])
+            return Variable(ln, symbol)
 
     # Integer
     @_('NUMERAL')
