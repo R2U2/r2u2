@@ -237,7 +237,7 @@ r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) 
 
     // Our sig_addr here is the program counter value of the target instruction
     // First, get the instr pointer from the program table
-    r2u2_instruction_t *target = &((*monitor->instruction_tbl)[monitor->prog_count]);
+    r2u2_instruction_t *target = &((*monitor->instruction_tbl)[instr->sig_addr]);
     // Right we only supported reading from TL engine so we can cast to mltl inst
     // in the future this will require a switch on the engine tag similar to dispatch
     r2u2_mltl_instruction_t *mltl_inst = ((r2u2_mltl_instruction_t*)(target->instruction_data));
@@ -245,8 +245,11 @@ r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) 
   if (mltl_inst->opcode & 0b10000) {
     // FT: Read SCQ
     r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
+    R2U2_DEBUG_PRINT("\t\tReading from FT SCQ <%p> ", (void*)scq);
     r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
+    R2U2_DEBUG_PRINT("slot %d ", rd_ptr);
     r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
+    R2U2_DEBUG_PRINT("= (%d, %d)\n", res.time, res.truth);
     formula_val = (res.time != r2u2_infinity) ? res.truth : false;
   } else {
     // FT: Read from vector
