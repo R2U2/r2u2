@@ -196,10 +196,15 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       // same conditionals before inverting the result
 
       intrvl = r2u2_boxq_peek(boxq);
-      if (intrvl.start != r2u2_infinity) {
+
+      if (boxq->interval.start > monitor->time_stamp) {
+        // Insufficient data, true by definition
+        R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
+        *res = true;
+      } else if (intrvl.start != r2u2_infinity) {
         R2U2_DEBUG_PRINT("\tChecking interval start\n");
         if (boxq->interval.end > monitor->time_stamp) {
-            R2U2_DEBUG_PRINT("\t  Startup behavior: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
+            R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
             *res = intrvl.start == 0;
         } else {
             R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
@@ -207,8 +212,8 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
 
         R2U2_DEBUG_PRINT("\tChecking interval end:\n");
-        if ((intrvl.end == r2u2_infinity) || (boxq->interval.start > monitor->time_stamp)) {
-            R2U2_DEBUG_PRINT("\t  Startup behavior: T\n");
+        if (intrvl.end == r2u2_infinity) {
+            R2U2_DEBUG_PRINT("\t  Open interval: T\n");
             *res &= true;
         } else {
             R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
@@ -255,10 +260,14 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       intrvl = r2u2_boxq_peek(boxq);
 
-      if (intrvl.start != r2u2_infinity) {
+      if (boxq->interval.start > monitor->time_stamp) {
+        // Insufficient data, true by definition
+        R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
+        *res = true;
+      } else if (intrvl.start != r2u2_infinity) {
         R2U2_DEBUG_PRINT("\tChecking interval start\n");
         if (boxq->interval.end > monitor->time_stamp) {
-            R2U2_DEBUG_PRINT("\t  Startup behavior: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
+            R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
             *res = intrvl.start == 0;
         } else {
             R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
@@ -266,8 +275,8 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
 
         R2U2_DEBUG_PRINT("\tChecking interval end:\n");
-        if ((intrvl.end == r2u2_infinity) || (boxq->interval.start > monitor->time_stamp)) {
-            R2U2_DEBUG_PRINT("\t  Startup behavior: T\n");
+        if (intrvl.end == r2u2_infinity) {
+            R2U2_DEBUG_PRINT("\t  Open interval: T\n");
             *res &= true;
         } else {
             R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
@@ -285,27 +294,38 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     case R2U2_MLTL_OP_PT_SINCE: {
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%zu] S[%d,%d] PT[%d] PT[%d]\t", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%zu] S[%d,%d] PT[%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value, instr->op2.value);
       intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end + boxq->interval.start) < monitor->time_stamp) {
+      if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
           intrvl = r2u2_boxq_pop_tail(boxq);
+          R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
       if (get_operand(monitor, instr, 0)) {
+          R2U2_DEBUG_PRINT("\tLeft operand holds, testing right operand edge\n");
           edge = get_operand_edge(monitor, instr, 1);
           if (edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) {
+              R2U2_DEBUG_PRINT("\tFalling edge detected on right operand, pushing to queue\n");
               r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
           } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_boxq_is_empty(boxq)) {
+              R2U2_DEBUG_PRINT("\tRising edge detected on right operand, closing interval\n");
               intrvl = r2u2_boxq_pop_head(boxq);
-              if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
-                  r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
-              }
+              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+              // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
+              // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
+              //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+              // }
           }
       } else { // p1 does not hold
+          R2U2_DEBUG_PRINT("\tLeft operand false, resetting based on right operand\n");
           if (get_operand(monitor, instr, 1)) {
-              intrvl = r2u2_boxq_pop_tail(boxq);
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){0, monitor->time_stamp - 1});
+              R2U2_DEBUG_PRINT("\tRight operand holds, setting queue\n");
+              r2u2_boxq_reset(boxq);
+              if (monitor->time_stamp != 0) {
+                r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){0, monitor->time_stamp - 1});
+              }
           } else {
+              R2U2_DEBUG_PRINT("\tRight operand false, resetting queue\n");
               intrvl = r2u2_boxq_pop_tail(boxq);
               r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){0, r2u2_infinity});
           }
@@ -313,7 +333,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       intrvl = r2u2_boxq_peek(boxq);
 
       *res = ((boxq->interval.end > monitor->time_stamp)?(intrvl.start > 0):(intrvl.start + boxq->interval.end > monitor->time_stamp )) || ((boxq->interval.start > monitor->time_stamp)?(0):(intrvl.end + boxq->interval.start < monitor->time_stamp));
-      R2U2_DEBUG_PRINT("= %d\n", *res);
+      R2U2_DEBUG_PRINT("\tPT[%zu] = %d\n", instr->memory_reference, *res);
 
       error_cond = R2U2_OK;
       break;
