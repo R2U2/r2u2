@@ -19,7 +19,7 @@ TST_PATH := test
 RPT_PATH := report
 DOC_PATH := doc
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/engines $(SRC_PATH)/engines/atomic_checker $(SRC_PATH)/engines/booleanizer $(SRC_PATH)/engines/mltl $(SRC_PATH)/memory
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/engines $(SRC_PATH)/engines/atomic_checker $(SRC_PATH)/engines/atomic_checker/extra_filters $(SRC_PATH)/engines/booleanizer $(SRC_PATH)/engines/mltl $(SRC_PATH)/memory
 INC_DIRS := $(SRC_DIRS)
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
@@ -43,7 +43,7 @@ DBGFLAG := -g -O0 \
 -Wno-switch-enum -Wno-unknown-warning-option -Wno-gnu-binary-literal \
 --coverage\
 -DR2U2_DEBUG
-CCOBJFLAG := $(CFLAGS) -c
+CCOBJFLAG := $(CFLAGS) -c -DR2U2_AT_EXTRA_FILTERS=1
 ARFLAGS := -rcus
 LDFLAGS := $(LNK_LIBS)
 

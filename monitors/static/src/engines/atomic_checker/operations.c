@@ -1,7 +1,7 @@
 #include "internals/errors.h"
 #include "r2u2.h"
-#include "at_operations.h"
-#include "at_compare.h"
+#include "operations.h"
+#include "compare.h"
 
 
 // #include <stdio.h>
@@ -9,7 +9,7 @@
 // #include <stdbool.h>
 // #include <float.h>
 
-#if R2U2_AT_Extra_Filters
+#if R2U2_AT_EXTRA_FILTERS
 #include "extra_filters/filter_abs_diff_angle.h"
 #include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
@@ -21,62 +21,74 @@
 #include "signal_set_filters/filter_all_of.h"
 #endif
 
-#if R2U2_AT_Extra_Filters
-r2u2_status_t op_abs_diff_angle(r2u2_at_instruction_t *instr) {
+// #if R2U2_AT_EXTRA_FILTERS
+r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    double diff_angle = (double)abs_diff_angle(signal, instr->filt_data_struct.diff_angle);
+    r2u2_float diff_angle = (r2u2_float) abs_diff_angle(signal, instr->filter_arg.d);
+
+    R2U2_DEBUG_PRINT("\tabs_diff_angle(s%d, %lf) = %lf\n", instr->sig_addr, instr->filter_arg.d, diff_angle);
 
     if (instr->comp_is_sig) {
-        double comp_sig;
+        r2u2_float comp_sig;
         sscanf((*(monitor->signal_vector))[instr->comparison.s], "%lf", &comp_sig);
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](diff_angle, comp_sig, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](diff_angle, comp_sig, R2U2_FLOAT_EPSILON);
     } else {
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](diff_angle, instr->comparison.d, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](diff_angle, instr->comparison.d, R2U2_FLOAT_EPSILON);
     }
 
+
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
 
-r2u2_status_t op_movavg(r2u2_at_instruction_t *instr) {
+r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     int32_t signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%d", &signal);
-    filter_movavg_update_data(instr->filt_data_struct.movavg, signal);
-    double avg = filter_movavg_get(instr->filt_data_struct.movavg);
+    r2u2_float avg = filter_movavg_update_data(&((monitor->at_aux_buffer)[instr->aux_addr].movavg), instr->filter_arg.i, signal);
+
+    R2U2_DEBUG_PRINT("\tmovavg(s%d, %d) = %lf\n", instr->sig_addr, instr->filter_arg.i, avg);
 
     if (instr->comp_is_sig) {
-        double comp_sig;
+        r2u2_float comp_sig;
         sscanf((*(monitor->signal_vector))[instr->comparison.s], "%lf", &comp_sig);
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](avg, comp_sig, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](avg, comp_sig, R2U2_FLOAT_EPSILON);
     } else {
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](avg, instr->comparison.d, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](avg, instr->comparison.d, R2U2_FLOAT_EPSILON);
     }
 
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
 
-r2u2_status_t op_rate(r2u2_at_instruction_t *instr) {
-    double signal;
+r2u2_status_t op_rate(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
+    r2u2_float signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    double rate = filter_rate_update_data(signal, &instr->filt_data_struct.prev);
+    r2u2_float rate = filter_rate_update_data(signal, &(monitor->at_aux_buffer)[instr->aux_addr].prev);
+
+    R2U2_DEBUG_PRINT("\trate(s%d) = %lf\n", instr->sig_addr, rate);
 
     if (instr->comp_is_sig) {
-        double comp_sig;
+        r2u2_float comp_sig;
         sscanf((*(monitor->signal_vector))[instr->comparison.s], "%lf", &comp_sig);
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](rate, comp_sig, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](rate, comp_sig, R2U2_FLOAT_EPSILON);
     } else {
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](rate, instr->comparison.d, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](rate, instr->comparison.d, R2U2_FLOAT_EPSILON);
     }
 
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
-#endif
+// #endif
 
 #if R2U2_AT_Signal_Sets
 r2u2_status_t op_exactly_one_of(r2u2_at_instruction_t *instr) {
@@ -99,6 +111,8 @@ r2u2_status_t op_exactly_one_of(r2u2_at_instruction_t *instr) {
     }
 
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
 
 
@@ -122,6 +136,8 @@ r2u2_status_t op_none_of(r2u2_at_instruction_t *instr) {
     }
 
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
 
 
@@ -145,6 +161,8 @@ r2u2_status_t op_all_of(r2u2_at_instruction_t *instr) {
     }
 
     R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
 }
 #endif
 
@@ -153,7 +171,7 @@ r2u2_status_t op_bool(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     r2u2_bool signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%hhu", &signal);
 
-    R2U2_DEBUG_PRINT("\tOp Bool\n\tSignal: %hhu\n", signal);
+    R2U2_DEBUG_PRINT("\tbool(s%d) = %hhu\n", instr->sig_addr, signal);
 
     if (instr->comp_is_sig) {
         bool comp_sig;
@@ -174,7 +192,7 @@ r2u2_status_t op_int(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     int32_t signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%d", &signal);
 
-    R2U2_DEBUG_PRINT("\tOp Int\n\tSignal: %d\n", signal);
+    R2U2_DEBUG_PRINT("\tint(s%d) = %d\n", instr->sig_addr, signal);
 
     if (instr->comp_is_sig) {
         int32_t comp_sig;
@@ -195,13 +213,13 @@ r2u2_status_t op_float(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
 
-    R2U2_DEBUG_PRINT("\tOp Dub\n\tSignal: %lf\n", signal);
+    R2U2_DEBUG_PRINT("\tfloat(s%d) = %lf\n", instr->sig_addr, signal);
 
     if (instr->comp_is_sig) {
         double comp_sig;
         sscanf((*(monitor->signal_vector))[instr->comparison.s], "%lf", &comp_sig);
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
-            r2u2_at_compare_float[instr->conditional](signal, comp_sig, instr->filt_data_struct.epsilon);
+            r2u2_at_compare_float[instr->conditional](signal, comp_sig, R2U2_FLOAT_EPSILON);
     } else {
         (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
             r2u2_at_compare_float[instr->conditional](signal, instr->comparison.d, R2U2_FLOAT_EPSILON);
@@ -223,7 +241,7 @@ r2u2_status_t (*r2u2_at_decode[])(r2u2_monitor_t *, r2u2_at_instruction_t*) = { 
     op_bool,
     op_int,
     op_float,
-#if R2U2_AT_Extra_Filters
+#if R2U2_AT_EXTRA_FILTERS
     op_rate,
     op_abs_diff_angle,
     op_movavg,

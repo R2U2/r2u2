@@ -34,9 +34,9 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_AT_Extra_Filters
+#ifndef R2U2_AT_EXTRA_FILTERS
     /* Enables the Rate, Angle difference, and moving average AT filters */
-    #define R2U2_AT_Extra_Filters INHIBIT
+    #define R2U2_AT_EXTRA_FILTERS INHIBIT
 #endif
 
 #ifndef R2U2_AT_FFT_Filter
@@ -94,7 +94,7 @@
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    #define R2U2_AT_Extra_Filters INHIBIT
+    #define R2U2_AT_EXTRA_FILTERS INHIBIT
     #define R2U2_AT_FFT_Filter INHIBIT
     #define R2U2_Prognostics INHIBIT
 #elif defined(_WIN32)

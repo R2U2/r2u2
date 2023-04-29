@@ -17,7 +17,7 @@ from .parser import C2POParser
 from .assembler import assemble
 
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(STANDARD_LOGGER_NAME)
 
 
 class R2U2Implementation(Enum):

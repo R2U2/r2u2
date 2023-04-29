@@ -6,7 +6,7 @@ from logging import getLogger
 from .logger import *
 from .type import *
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(STANDARD_LOGGER_NAME)
 
 class Interval(NamedTuple):
     lb: int
@@ -1083,7 +1083,7 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"{self.name!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
 
 
 class Global(FutureTimeUnaryOperator, TLInstruction):

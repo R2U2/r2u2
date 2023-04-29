@@ -1,5 +1,5 @@
-#ifndef R2U2_ENGINES_AT_COMPARE_H
-#define R2U2_ENGINES_AT_COMPARE_H
+#ifndef R2U2_ENGINES_COMPARE_H
+#define R2U2_ENGINES_COMPARE_H
 
 #include "r2u2.h"
 
