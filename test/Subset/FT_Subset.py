@@ -54,8 +54,8 @@ def test_c():
     # formula = open(mltl_filename,'r').read()
     # print(formula)
     # For each formula within
-    res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker',"--output-file",__binPath__,mltl_filename,signal_filename],stdout=subprocess.PIPE)
-    print(f"{' '.join(res.args)}\n{open(res.args[5], 'r').read()}\n{res.stdout.decode()}")
+    res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker', "--disable-rewrite", "--output-file",__binPath__,mltl_filename,signal_filename],stdout=subprocess.PIPE)
+    print(f"{' '.join(res.args)}\n{open(res.args[6], 'r').read()}\n{res.stdout.decode()}")
     log_filename = 'R2U2.log'
     subprocess.run([__CDir__+'build/r2u2',__binPath__,signal_filename],stdout=subprocess.PIPE)
     subprocess.run(['mv',log_filename,__OutputDIR__+log_filename])

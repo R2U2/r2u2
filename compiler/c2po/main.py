@@ -754,7 +754,7 @@ def compute_scq_size(node: Node) -> int:
                 if not id(s) == id(node):
                     max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
 
-        node.scq_size = max(max_wpd-node.bpd,0)+1 # works for +3 b/c of some bug -- ask Brian
+        node.scq_size = max(max_wpd-node.bpd,0)+3 # works for +3 b/c of some bug -- ask Brian
         total += node.scq_size
 
     postorder_iterative(node, compute_scq_size_util)
