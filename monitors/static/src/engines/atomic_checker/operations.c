@@ -230,6 +230,27 @@ r2u2_status_t op_float(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     return R2U2_OK;
 }
 
+r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
+    bool formula_val = true;
+
+    //formula_val = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data
+    // R2U2_DEBUG_PRINT("\tformula(s%d) = %lf\n", instr->sig_addr, signal);
+
+    if (instr->comp_is_sig) {
+        bool comp_sig;
+        sscanf((*(monitor->signal_vector))[instr->comparison.s], "%hhu", &comp_sig);
+        (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
+            r2u2_at_compare_int[instr->conditional](formula_val, comp_sig);
+    } else {
+        (*(monitor->atomic_buffer)[0])[instr->atom_addr] =
+            r2u2_at_compare_int[instr->conditional](formula_val, instr->comparison.b);
+    }
+
+    R2U2_DEBUG_PRINT("\tResult: %hhu\n", (*(monitor->atomic_buffer)[0])[instr->atom_addr]);
+
+    return R2U2_OK;
+}
+
 r2u2_status_t op_error(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     UNUSED(monitor);
     UNUSED(instr);
@@ -241,6 +262,7 @@ r2u2_status_t (*r2u2_at_decode[])(r2u2_monitor_t *, r2u2_at_instruction_t*) = { 
     op_bool,
     op_int,
     op_float,
+    op_formula,
 #if R2U2_AT_EXTRA_FILTERS
     op_rate,
     op_abs_diff_angle,

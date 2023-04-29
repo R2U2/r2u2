@@ -1,10 +1,10 @@
 INPUT
-    b0,b1,b2: bool;
+    b0,b1: bool;
 
 ATOMIC
     a0 := b0 == true;
-    a1 := b0 == f0;
+    a2 := f0 == b1;
 
 FTSPEC
-    f0: a0 && b2;
-    f1: a1;
+    f0: a0;
+    f1: a2;

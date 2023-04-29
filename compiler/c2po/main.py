@@ -141,6 +141,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 if not at:
                     status = False
                     logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
+
                 node.replace(Atomic(node.ln, node.name))
             elif node.name in program.signals:
                 if at:
@@ -475,18 +476,24 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 filter = lhs.name
                 filter_args = lhs.get_children()
                 lhs.type = AT_FILTER_TABLE[lhs.name][1]
-            elif isinstance(lhs, Variable) and lhs.name in program.signals:
-                sig = Signal(lhs.ln, lhs.name, program.signals[lhs.name])
-                if lhs.name in program.signal_mapping:
-                    sig.sid = program.signal_mapping[lhs.name]
-                    lhs.replace(sig)
-                    lhs.type = sig.type
-                else:
-                    status = False
-                    logger.error(f'{lhs.ln}: Signal \'{lhs.name}\' not referenced in signal mapping.')
+            elif isinstance(lhs, Variable):
+                if lhs.name in program.signals:
+                    sig = Signal(lhs.ln, lhs.name, program.signals[lhs.name])
+                    if lhs.name in program.signal_mapping:
+                        sig.sid = program.signal_mapping[lhs.name]
+                        lhs.replace(sig)
+                        lhs.type = sig.type
+                    else:
+                        status = False
+                        logger.error(f'{lhs.ln}: Signal \'{lhs.name}\' not referenced in signal mapping.')
 
-                filter = sig.type.name
-                filter_args = [sig]
+                    filter = sig.type.name
+                    filter_args = [sig]
+                elif lhs.name in program.definitions and isinstance(program.definitions[lhs.name], Specification):
+                    lhs.replace(program.definitions[lhs.name])
+                    filter = "formula"
+                    filter_args = [program.definitions[lhs.name]]
+                    lhs.type = BOOL(False)
             else:
                 status = False
                 logger.error(f"{node.ln}: Atomic '{name}' malformed, expected filter or signal for left-hand side.\n\t{node}")
@@ -504,7 +511,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
 
                 if program.signals[rhs.name] != lhs.type:
                     status = False
-                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
+                    logger.error(f"{node.ln}: 1 Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
                     return
 
                 sig = Signal(rhs.ln, rhs.name, program.signals[rhs.name])
@@ -530,7 +537,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     resolve_variables_util(program)
     explored = []
 
-    for definition in program.definitions.values():
+    for definition in [d for d in program.definitions.values() if not isinstance(d, Specification)]:
         resolve_variables_util(definition)
         type_check_util(definition)
 
@@ -539,7 +546,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
         atomic: ATInstruction|None = type_check_atomic(name, expr)
         if atomic:
             program.atomics[name] = atomic
-
+        
     # Type check FTSPEC
     formula_type = FormulaType.FT
     type_check_util(program.get_ft_specs())
