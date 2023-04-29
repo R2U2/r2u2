@@ -328,9 +328,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
                     if isinstance(at_instr.args[0], Specification):
                         if at_instr.args[0].formula_type == FormulaType.FT:
-                            sid = at_instr.args[0].ftid
+                            sid = at_instr.args[0].get_expr().ftid
                         else:
-                            sid = at_instr.args[0].ptid
+                            sid = at_instr.args[0].get_expr().ptid
                     else:
                         raise NotImplementedError
 
@@ -444,9 +444,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
                     if isinstance(at_instr.args[0], Specification):
                         if at_instr.args[0].formula_type == FormulaType.FT:
-                            sid = at_instr.args[0].ftid
+                            sid = at_instr.args[0].get_expr().ftid
                         else:
-                            sid = at_instr.args[0].ptid
+                            sid = at_instr.args[0].get_expr().ptid
                     else:
                         raise NotImplementedError
 
