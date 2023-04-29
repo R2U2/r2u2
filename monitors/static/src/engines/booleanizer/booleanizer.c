@@ -16,15 +16,15 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             sscanf((*(monitor->signal_vector))[instr->param1.bz_addr], "%d", &i1);
             (*monitor->value_buffer)[instr->addr].i = i1;
 
-            R2U2_DEBUG_PRINT("\tBZ LOAD\n");
+            R2U2_DEBUG_PRINT("\tBZ ILOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", instr->addr, i1, instr->param1.bz_addr);
             break;
         case R2U2_BZ_OP_FLOAD:
-            sscanf((*(monitor->signal_vector))[instr->param1.bz_int], "%f", &f1);
+            sscanf((*(monitor->signal_vector))[instr->param1.bz_addr], "%lf", &f1);
             (*monitor->value_buffer)[instr->addr].f = f1;
 
-            R2U2_DEBUG_PRINT("\tBZ LOAD\n");
-            R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", instr->addr, f1, instr->param1.bz_int);
+            R2U2_DEBUG_PRINT("\tBZ FLOAD\n");
+            R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", instr->addr, f1, instr->param1.bz_addr);
             break;
         case R2U2_BZ_OP_ICONST:
             (*monitor->value_buffer)[instr->addr].i = instr->param1.bz_int;
