@@ -71,7 +71,7 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_head(r2u2_boxq_t *boxq) {
   //
   if (r2u2_boxq_is_empty(boxq)) {
     #if R2U2_DEBUG
-      R2U2_DEBUG_PRINT("\tWARNING: PT Box Queue Underflow\n");
+      R2U2_DEBUG_PRINT("\tWARNING: PT Box Queue Head Underflow\n");
     #endif
     R2U2_DEBUG_PRINT("\t\tEmpty queue, returning (inf, inf)\n");
     return (r2u2_boxq_intvl_t){r2u2_infinity, r2u2_infinity};
@@ -86,7 +86,7 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_tail(r2u2_boxq_t *boxq) {
   r2u2_int res_index;
   if (r2u2_boxq_is_empty(boxq)) {
     #if R2U2_DEBUG
-      R2U2_DEBUG_PRINT("\tWARNING: PT Box Queue Underflow\n");
+      R2U2_DEBUG_PRINT("\tWARNING: PT Box Queue Tail Underflow\n");
     #endif
     R2U2_DEBUG_PRINT("\t\tEmpty queue, returning (inf, inf)\n");
     return (r2u2_boxq_intvl_t){r2u2_infinity, r2u2_infinity};

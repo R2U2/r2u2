@@ -9,6 +9,8 @@
 // #include <stdbool.h>
 // #include <float.h>
 
+#include "engines/mltl/mltl.h"
+
 #if R2U2_AT_EXTRA_FILTERS
 #include "extra_filters/filter_abs_diff_angle.h"
 #include "extra_filters/filter_rate.h"
@@ -232,6 +234,24 @@ r2u2_status_t op_float(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
 
 r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     bool formula_val = true;
+
+    // Our sig_addr here is the program counter value of the target instruction
+    // First, get the instr pointer from the program table
+    r2u2_instruction_t *target = &((*monitor->instruction_tbl)[monitor->prog_count]);
+    // Right we only supported reading from TL engine so we can cast to mltl inst
+    // in the future this will require a switch on the engine tag similar to dispatch
+    r2u2_mltl_instruction_t *mltl_inst = ((r2u2_mltl_instruction_t*)(target->instruction_data));
+
+  if (mltl_inst->opcode & 0b10000) {
+    // FT: Read SCQ
+    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
+    r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
+    r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
+    formula_val = (res.time != r2u2_infinity) ? res.truth : false;
+  } else {
+    // FT: Read from vector
+    formula_val = (*(monitor->past_time_result_buffer[0]))[mltl_inst->memory_reference];
+  }
 
     //formula_val = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data
     // R2U2_DEBUG_PRINT("\tformula(s%d) = %lf\n", instr->sig_addr, signal);
