@@ -213,7 +213,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
 
         if (monitor->out_func != NULL) {
-          // TODO(bckempa): Use callback once signiture is set
+          (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &res);
         }
 
         if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}

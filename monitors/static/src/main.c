@@ -9,6 +9,10 @@
 #include "internals/errors.h"
 #include "memory/instruction.h"
 #include "memory/csv_trace.h"
+#if R2U2_TL_Contract_Status
+#include "memory/contract_status.h"
+#endif
+
 
 // R2U2 Reference Implmentation
 // Provides example of library usage and "offline" monitoring
@@ -24,6 +28,11 @@ const char *help = "<configuration> [trace]\n"
 // Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
+// Contract status reporting, if enabled
+#if R2U2_TL_Contract_Status
+r2u2_contract_status_reporter_t r2u2_contact_status = {0};
+r2u2_status_t contract_status_callback(r2u2_instruction_t inst, r2u2_verdict *res);
+#endif
 
 int main(int argc, char const *argv[]) {
 
@@ -99,6 +108,13 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
+  // Configure contract status reporting, if enabled
+  #if R2U2_TL_Contract_Status
+    r2u2_contact_status.out_file = r2u2_monitor.out_file;
+    r2u2_contract_status_load_mapping(&r2u2_contact_status, &r2u2_monitor);
+    r2u2_monitor.out_func = contract_status_callback;
+  #endif
+
   // Select CSV reader input file
   if(argc > 2) {
     // The trace file was specified
@@ -156,3 +172,11 @@ int main(int argc, char const *argv[]) {
 
   return (int) err_cond;
 }
+
+#if R2U2_TL_Contract_Status
+r2u2_status_t contract_status_callback(r2u2_instruction_t inst, r2u2_verdict *res) {
+  // Curry `r2u2_contract_status_report` with a reference to the r2u2_contact_status
+  // struct for use by the montior output callback interface
+  return r2u2_contract_status_report(&r2u2_contact_status, &inst, res);
+}
+#endif

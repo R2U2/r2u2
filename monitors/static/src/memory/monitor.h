@@ -35,7 +35,7 @@ typedef struct {
 
   // Output handlers
   FILE *out_file;         // R2U2 Logfile pointer, always written if not NULL
-  void (*out_func)(void); // R2U2 output callback pointer, used if not NULL
+  r2u2_status_t (*out_func)(r2u2_instruction_t, r2u2_verdict*); // R2U2 output callback pointer, used if not NULL
   // TODO(bckempa): Set callback type
 
   // Memory domain pointers

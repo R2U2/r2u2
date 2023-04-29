@@ -64,7 +64,7 @@ def test_c(formulaFiles,inputFiles):
     for _formulaFile in formulaFiles:
         mltl_filename = __TLDir__+_formulaFile
         res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker', "--disable-rewrite", "--output-file",__binPath__,mltl_filename,__InputDir__+signal_filename],stdout=subprocess.PIPE)
-        print(f"{' '.join(res.args)}\n{open(res.args[6], 'r').read()}\n{res.stdout.decode()}")
+        # print(f"{' '.join(res.args)}\n{open(res.args[6], 'r').read()}\n{res.stdout.decode()}")
         form   = _formulaFile.replace('.mltl','')
         trace  = signal_filename.replace('.csv','')
         log_filename = __OutputDIR__+form+'_'+trace+'.txt'
