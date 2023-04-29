@@ -294,6 +294,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif isinstance(instr, LessThanOrEqual):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILTE, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
 
+    ft_offset = len(rtm_instrs)
 
     for instr in ftasm:
         if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
@@ -303,7 +304,6 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
             for at_instr in at_formula_instr:
                 if instr == at_instr.args[0]:
-                    print("here")
                     if isinstance(at_instr.rel_op, Equal):
                         conditional = ATCond.EQ
                     elif isinstance(at_instr.rel_op, NotEqual):
@@ -327,10 +327,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                         raise NotImplementedError
 
                     if isinstance(at_instr.args[0], Specification):
-                        if at_instr.args[0].formula_type == FormulaType.FT:
-                            sid = at_instr.args[0].get_expr().ftid
-                        else:
-                            sid = at_instr.args[0].get_expr().ptid
+                        sid = at_instr.args[0].get_expr().ftid + ft_offset
                     else:
                         raise NotImplementedError
 
@@ -411,6 +408,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
 
+    pt_offset = len(rtm_instrs)
+
     boxqs = 1 # Number of boxqueus for running offsets
     for instr in ptasm:
         if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
@@ -443,10 +442,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                         raise NotImplementedError
 
                     if isinstance(at_instr.args[0], Specification):
-                        if at_instr.args[0].formula_type == FormulaType.FT:
-                            sid = at_instr.args[0].get_expr().ftid
-                        else:
-                            sid = at_instr.args[0].get_expr().ptid
+                        sid = at_instr.args[0].get_expr().ptid + pt_offset
                     else:
                         raise NotImplementedError
 
