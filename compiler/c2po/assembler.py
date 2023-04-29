@@ -144,6 +144,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     # Create a list of runtime instructions and config instructions
     rtm_instrs: List[bytes] = []
     cfg_instrs: List[bytes] = []
+    alias_defs: List[bytes] = []
 
     at_formula_instr: List[ATInstruction] = []
 
@@ -528,15 +529,17 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
 
-    # for alias in aliases:
-    #     cfg_instrs.append()
+    for alias in aliases:
+        alias_defs.append(alias.encode('ascii'))
 
     spec_bin = bytearray()
     spec_header = b'C2P0 Version 0.0.0 Beta for R2U2 V3 Beta\x00'
     spec_bin.extend(cStruct('B').pack(len(spec_header)+1) + spec_header)
     [spec_bin.extend(cStruct('B').pack(len(x)+1) + x) for x in rtm_instrs]
     [spec_bin.extend(cStruct('B').pack(len(x)+1) + x) for x in cfg_instrs]
-    spec_bin.extend(b'\x00')
+    spec_bin.extend(b'\x00') # End of instruction segment
+    [spec_bin.extend(x + b'\x00') for x in alias_defs]
+    spec_bin.extend(b'\x00') # End of aux defs segment
 
     with open(filename,'wb') as f:
         f.write(spec_bin)
