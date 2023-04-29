@@ -313,13 +313,16 @@ class C2POParser(Parser):
         label = p[0]
         expr = p[2]
 
+        self.spec_num += 1
+        spec = Specification(ln, label, self.spec_num-1, expr)
+
         if label in self.defs.keys():
             logger.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
+            self.spec_num -= 1
         else:
-            self.defs[label] = expr
+            self.defs[label] = spec
 
-        self.spec_num += 1
-        return [Specification(ln, label, self.spec_num-1, expr)]
+        return [spec]
 
     # Contract
     @_('SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI')

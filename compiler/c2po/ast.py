@@ -1291,9 +1291,11 @@ class SpecificationSet(TLInstruction):
         self.formula_type = t
 
     def __str__(self) -> str:
-        ret: str = ""
+        ret: str = f"{self.formula_type.name} Specs:\n"
         for s in self.get_children():
-            ret += f"{s}\n"
+            ret += f"\t{s}\n"
+        if len(self._children) == 0:
+            ret += f"\tempty\n"
         return ret[:-1]
 
     def ft_asm(self) -> str:

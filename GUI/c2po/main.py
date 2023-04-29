@@ -1,5 +1,7 @@
 from __future__ import annotations
+import contextlib
 from curses import nonl
+import io
 from typing import Dict, List, Tuple
 import inspect
 import sys
@@ -15,7 +17,7 @@ from .parser import C2POParser
 from .assembler import assemble
 
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(STANDARD_LOGGER_NAME)
 
 
 class ReturnCode(Enum):
@@ -30,23 +32,22 @@ COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLI
 
 
 # Stores the sub-classes of Instruction from ast.py
-INSTRUCTION_LIST = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
+instruction_list = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
 
-DEFAULT_CPU_LATENCY_TABLE: Dict[str, int] = { name:10 for (name,value) in
+default_cpu_latency_table: Dict[str, int] = { name:10 for (name,value) in
     inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
             obj != BZInstruction) }
 
-DEFAULT_FPGA_LATENCY_TABLE: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
+default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
     inspect.getmembers(sys.modules["c2po.ast"],
         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
             obj != Instruction and
             obj != TLInstruction and
             obj != BZInstruction) }
-
 
 AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
     "rate": ([FLOAT(False)], FLOAT(False)),
@@ -55,57 +56,13 @@ AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
 }
 
 
-def parse_signals(filename: str) -> Dict[str,int]:
-    """Opens filename and constructs a dictionary mapping signal names to their order in the file. If filename is a csv file, uses the header for signal mapping. Otherwise filename is treated as a map file and uses the given order for signal mapping.
-    
-    Args:
-        filename: Name of file to be read
-
-    Returns:
-        dict mapping signal names to their oder in the csv or mapping file
-    """
+def collect_signals(program: Program) -> Dict[str,int]:
     mapping: Dict[str,int] = {}
+    sid: int = 0
 
-    if re.match(".*\\.csv",filename):
-        with open(filename,"r") as f:
-            text: str = f.read()
-            lines: List[str] = text.splitlines()
-
-            if len(lines) < 1:
-                logger.error(f" Not enough data in file '{filename}'")
-                return {}
-
-            cnt: int = 0
-
-            if lines[0][0] != "#":
-                logger.error(f" Header missing in signals file.")
-                return {}
-
-            header = lines[0][1:]
-
-            for id in [s.strip() for s in header.split(",")]:
-                if id in mapping:
-                    logger.warning(f" Signal ID '{id}' found multiple times in csv, using right-most value.")
-                mapping[id] = cnt
-                cnt += 1
-    else: 
-        with open(filename,"r") as f:
-            text: str = f.read()
-            cnt: int = 0
-
-            for line in text.splitlines():
-                if re.match("[a-zA-Z_]\\w*:\\d+", line):
-                    strs = line.split(":")
-                    id = strs[0]
-                    sid = int(strs[1])
-
-                    if id in mapping:
-                        logger.warning(f" Signal ID '{id}' found multiple times in map file, using latest value.")
-
-                    mapping[id] = sid
-                else:
-                    logger.error(f" Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
-                    return {}
+    for signal in program.signals:
+        mapping[signal] = sid
+        sid += 1
 
     return mapping
 
@@ -935,7 +892,7 @@ def set_options(
 
 
 def compile(
-    input_filename: str,
+    input: str,
     signals_filename: str,
     impl: str = "c",
     int_width: int = 8,
@@ -949,11 +906,11 @@ def compile(
     enable_extops: bool = False,
     enable_rewrite: bool = False,
     quiet: bool = False
-) -> tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]:
+) -> tuple[int,str,str,str,Program]:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
-        input_filename: Name of a C2PO input file
+        input: Source code of a C2PO input file
         signals_filename: Name of a csv trace file or C2PO signals file
         impl: An R2U2 implementation to target. Should be one of 'c', 'c++', 'cpp', 'fpga', or 'vhdl'
         int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
@@ -968,77 +925,76 @@ def compile(
         enable_rewrite: If true enables MLTL rewrite rule optimizations
         quiet: If true disables assembly output to stdout
     """
-    with open(input_filename, "r") as f:
-        program: Program|None = parse(f.read())
+    log_stream.truncate(0)
 
-    if not program:
-        logger.error(" Failed parsing.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.PARSE_ERROR.value)
+    with contextlib.redirect_stderr(io.StringIO()) as stderr:
 
-    if not set_options(program, impl, int_width, int_signed, float_width, 
-                            enable_at, enable_bz, enable_extops):
-        logger.error(" Invalid configuration options.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.INVALID_OPTIONS.value)
+        program: Program|None = parse(input)
 
-    # parse csv/signals file
-    program.signal_mapping = parse_signals(signals_filename)
+        if not program:
+            logger.error(" Failed parsing.")
+            return (ReturnCode.PARSE_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    # type check
-    if not type_check(program, enable_at, enable_bz):
-        logger.error(" Failed type check.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.TYPE_CHECK_ERROR.value)
+        if not set_options(program, impl, int_width, int_signed, float_width, 
+                                enable_at, enable_bz, enable_extops):
+            logger.error(" Invalid configuration options.")
+            return (ReturnCode.INVALID_OPTIONS.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    rewrite_contracts(program)
-    rewrite_set_aggregation(program)
-    rewrite_struct_access(program)
+        # parse csv/signals file
+        program.signal_mapping = collect_signals(program)
 
-    if enable_rewrite:
-        optimize_rewrite_rules(program)
+        # type check
+        if not type_check(program, enable_at, enable_bz):
+            logger.error(" Failed type check.")
+            return (ReturnCode.TYPE_CHECK_ERROR.value,log_stream.getvalue(),stderr.getvalue(),'',Program(0,{},{},{},{},SpecificationSet(0, FormulaType.FT, []),SpecificationSet(0, FormulaType.FT, []))) # type: ignore
 
-    # rewrite without extended operators if enabled
-    if not enable_extops:
-        rewrite_extended_operators(program)
+        rewrite_contracts(program)
+        rewrite_set_aggregation(program)
+        rewrite_struct_access(program)
 
-    # common sub-expressions elimination
-    if enable_cse:
-        optimize_cse(program)
+        if enable_rewrite:
+            optimize_rewrite_rules(program)
 
-    # generate alias file
-    aliases = generate_aliases(program)
+        # rewrite without extended operators if enabled
+        if not enable_extops:
+            rewrite_extended_operators(program)
 
-    # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
-    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+        # common sub-expressions elimination
+        if enable_cse:
+            optimize_cse(program)
 
-    # print assembly if 'quiet' option not enabled
-    if not quiet:
-        if enable_at:
-            print(Color.HEADER+"AT Assembly"+Color.ENDC+":")
-            for s in at_asm:
-                print(f"\t{s.at_asm()}")
-        if enable_bz:
-            print(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
-            for s in bz_asm:
-                print(f"\t{s.bz_asm()}")
+        # generate alias file
+        aliases = generate_aliases(program)
 
-        print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
-        for a in ft_asm:
-            print(f"\t{a.ft_asm()}")
+        # generate assembly
+        (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
+        scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+        program.assembly = ft_asm + pt_asm # type: ignore
 
-        print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
-        for a in pt_asm:
-            print(f"\t{a.pt_asm()}")
 
-        print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
-        for s in scq_asm:
-            print(f"\t{s}")
+        # print asm if 'quiet' option not enabled
+        asm = ""
+        if not quiet:
+            if enable_at:
+                asm += "AT Assembly:\n"
+                for s in at_asm:
+                    asm += f"\t{s.at_asm()}\n"
+            if enable_bz:
+                asm += "BZ Assembly:\n"
+                for s in bz_asm:
+                    asm += f"\t{s.bz_asm()}\n"
 
-        print(Color.HEADER+"Aliases"+Color.ENDC+":")
-        for a in aliases:
-            print(f"\t{a}")
+            asm += "FT Assembly:\n"
+            for a in ft_asm:
+                asm += f"\t{a.ft_asm()}\n"
 
-    if enable_assemble:
-        assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+            asm += "PT Assembly:\n"
+            for a in pt_asm:
+                asm += f"\t{a.pt_asm()}\n"
 
-    return (ReturnCode.SUCCESS.value, ft_asm, pt_asm, bz_asm, at_asm, scq_asm)
+            asm += "SCQ Assembly:\n"
+            for s in scq_asm:
+                asm += f"\t{s}\n"
+
+        return (ReturnCode.SUCCESS.value,log_stream.getvalue(),stderr.getvalue(),asm,program)
 

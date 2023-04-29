@@ -11,7 +11,7 @@ from dash.dependencies import Input, Output, State
 from textwrap import dedent as d
 
 import plotly.graph_objects as go
-from c2po.c2po import *
+from c2po.main import *
 from c2po.ast import *
 import data_process
 
@@ -107,7 +107,7 @@ app.layout = html.Div(
                     html.Div("C2PO Input"),
                     dcc.Textarea(
                         id="formula",
-                        value="INPUT\n  a0,a1,a2: bool;\n  b0,b1,b2: bool;\n\nDEFINE\n  c = a1 || a2;\n\nFTSPEC\n  s0: a0;\n  s1: c;\n  s2: b0 U[0,5] b1;\n  s3: G[1,3] b2;\n  s4: s2 && s3;" ,
+                        value="INPUT\n  a0,a1,a2: bool;\n  b0,b1,b2: bool;\n\nDEFINE\n  c := a1 || a2;\n\nFTSPEC\n  s0: a0;\n  s1: c;\n  s2: b0 U[0,5] b1;\n  s3: G[1,3] b2;\n  s4: s2 && s3;" ,
                         style={"width": "100%", "height": "350px", "font-family": "monospace"},
                     ),
                     # html.Div("Int type"),
@@ -538,7 +538,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
     elif float_type == "double":
         float_width = 64
 
-    status,logout,stderr,asm_str,program = compile(input, "", int_width=int_width, int_signed=int_is_signed, float_width=float_width, cse=cse, at=at, bz=bz, extops=extops)
+    status,logout,stderr,asm_str,program = compile(input, "", int_width=int_width, int_signed=int_is_signed, float_width=float_width, enable_cse=cse, enable_at=at, enable_bz=bz, enable_extops=extops)
 
     compile_output = stderr+logout
 
@@ -578,7 +578,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
 
         fpga_vals = []
         for i in range(0,int(len(fpga_vals_list)/2)):
-            fpga_vals.append((fpga_vals_list[i*2],fpga_vals_list[i*2+1]))
+            fpga_vals.append((fpga_vals_list[i],fpga_vals_list[int(len(fpga_vals_list)/2)+i]))
 
         cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [int(val) for val in cpu_vals])))
         fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [(float(init),float(eval)) for (init,eval) in fpga_vals])))

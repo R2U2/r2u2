@@ -20,16 +20,17 @@ typedef enum {
 typedef enum {
     R2U2_AT_OP_BOOL           = 0b0001,
     R2U2_AT_OP_INT            = 0b0010,
-    R2U2_AT_OP_FLOAT         = 0b0011,
+    R2U2_AT_OP_FLOAT          = 0b0011,
+    R2U2_AT_OP_FORMULA        = 0b0100,
     #if R2U2_AT_EXTRA_FILTERS
-    R2U2_AT_OP_RATE           = 0b0100,
-    R2U2_AT_OP_ABS_DIFF_ANGLE = 0b0101,
-    R2U2_AT_OP_MOVAVG         = 0b0110,
+    R2U2_AT_OP_RATE           = 0b0101,
+    R2U2_AT_OP_ABS_DIFF_ANGLE = 0b0110,
+    R2U2_AT_OP_MOVAVG         = 0b0111,
     #endif
     #if R2U2_AT_Signal_Sets
-    R2U2_AT_OP_EXACTLY_ONE_OF = 0b0111, // NOTE: sig_addr stores set_addr
-    R2U2_AT_OP_NONE_OF        = 0b1000,
-    R2U2_AT_OP_ALL_OF         = 0b1001
+    R2U2_AT_OP_EXACTLY_ONE_OF = 0b1000, // NOTE: sig_addr stores set_addr
+    R2U2_AT_OP_NONE_OF        = 0b1001,
+    R2U2_AT_OP_ALL_OF         = 0b1010
     #endif
 } r2u2_at_filter_t;
 
