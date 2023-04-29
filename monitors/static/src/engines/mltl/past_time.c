@@ -293,6 +293,8 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
     case R2U2_MLTL_OP_PT_SINCE: {
+      // Works similar to Once, but with additional reset logic when
+
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
       R2U2_DEBUG_PRINT("\tPT[%zu] S[%d,%d] PT[%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value, instr->op2.value);
       intrvl = r2u2_boxq_peek(boxq);
@@ -332,7 +334,34 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       }
       intrvl = r2u2_boxq_peek(boxq);
 
-      *res = ((boxq->interval.end > monitor->time_stamp)?(intrvl.start > 0):(intrvl.start + boxq->interval.end > monitor->time_stamp )) || ((boxq->interval.start > monitor->time_stamp)?(0):(intrvl.end + boxq->interval.start < monitor->time_stamp));
+      if (boxq->interval.start > monitor->time_stamp) {
+        // Insufficient data, true by definition
+        R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
+        *res = true;
+      } else if (intrvl.start != r2u2_infinity) {
+        R2U2_DEBUG_PRINT("\tChecking interval start\n");
+        if (boxq->interval.end > monitor->time_stamp) {
+            R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
+            *res = intrvl.start == 0;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+        }
+
+        R2U2_DEBUG_PRINT("\tChecking interval end:\n");
+        if (intrvl.end == r2u2_infinity) {
+            R2U2_DEBUG_PRINT("\t  Open interval: T\n");
+            *res &= true;
+        } else {
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+        }
+      } else {
+        R2U2_DEBUG_PRINT("\tNo interval to check\n");
+        *res = false;
+      }
+
+      *res = !*res;
       R2U2_DEBUG_PRINT("\tPT[%zu] = %d\n", instr->memory_reference, *res);
 
       error_cond = R2U2_OK;
