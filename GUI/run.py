@@ -563,8 +563,6 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
             for node in asm
         ]
 
-        print(asm)
-
         edge = []
         for src in asm:
             for child in src.get_children():
@@ -580,7 +578,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
 
         fpga_vals = []
         for i in range(0,int(len(fpga_vals_list)/2)):
-            fpga_vals.append((fpga_vals_list[i*2],fpga_vals_list[i*2+1]))
+            fpga_vals.append((fpga_vals_list[i],fpga_vals_list[int(len(fpga_vals_list)/2)+i]))
 
         cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [int(val) for val in cpu_vals])))
         fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [(float(init),float(eval)) for (init,eval) in fpga_vals])))

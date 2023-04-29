@@ -49,7 +49,6 @@ default_fpga_latency_table: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) f
             obj != TLInstruction and
             obj != BZInstruction) }
 
-
 AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
     "rate": ([FLOAT(False)], FLOAT(False)),
     "movavg": ([FLOAT(False),INT(True)], FLOAT(False)),
