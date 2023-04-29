@@ -57,12 +57,13 @@ class ATFilter(Enum):
     BOOL           = 0b0001
     INT            = 0b0010
     FLOAT          = 0b0011
-    RATE           = 0b0100
-    ABS_DIFF_ANGLE = 0b0101
-    MOVAVG         = 0b0110
-    EXACTLY_ONE_OF = 0b0111
-    NONE_OF        = 0b1000
-    ALL_OF         = 0b1001
+    FORMULA        = 0b0100
+    RATE           = 0b0101
+    ABS_DIFF_ANGLE = 0b0110
+    MOVAVG         = 0b0111
+    EXACTLY_ONE_OF = 0b1000
+    NONE_OF        = 0b1001
+    ALL_OF         = 0b1010
 
 class TLOperandType(Enum):
     DIRECT      = 0b01
@@ -100,9 +101,9 @@ def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, sto
     return bz_instruction.pack(bzid, opcode.value, store_at, atid if atid >= 0 else 0, param1, param2)
 
 
-def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison):
-    at_instruction = cStruct('iiBBBxxxxx8sd')
-    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, 0.00001)
+def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr):
+    at_instruction = cStruct('iiBBBxxxxx8s8sB')
+    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr)
 
 
 def assemble_ft(opcode, operand_1, operand_2, ref):
@@ -144,6 +145,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     rtm_instrs: List[bytes] = []
     cfg_instrs: List[bytes] = []
 
+    at_formula_instr: List[ATInstruction] = []
+
     for instr in atasm:
 
         if isinstance(instr.rel_op, Equal):
@@ -164,29 +167,59 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         if instr.filter == "bool":
             filter = ATFilter.BOOL
             format = "?xxxxxxx"
+            filter_arg = cStruct("xxxxxxxx").pack()
         elif instr.filter == "int":
             filter = ATFilter.INT
             format = "q"
+            filter_arg = cStruct("xxxxxxxx").pack()
         elif instr.filter == "float":
             filter = ATFilter.FLOAT
             format = "d"
+            filter_arg = cStruct("xxxxxxxx").pack()
+        elif instr.filter == "formula":
+            at_formula_instr.append(instr)
+            continue
+        elif instr.filter == "rate":
+            filter = ATFilter.RATE
+            format = "d"
+            filter_arg = cStruct("xxxxxxxx").pack()
+        elif instr.filter == "movavg":
+            filter = ATFilter.MOVAVG
+            format = "d"
+            if isinstance(instr.args[1], Integer):
+                filter_arg = cStruct("q").pack(instr.args[1].value)
+            else:
+                raise NotImplementedError
+        elif instr.filter == "abs_diff_angle":
+            filter = ATFilter.ABS_DIFF_ANGLE
+            format = "d"
+            if isinstance(instr.args[1], Float):
+                filter_arg = cStruct("d").pack(instr.args[1].value)
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
         
         if isinstance(instr.args[0], Signal):
             sid = instr.args[0].sid
+        elif isinstance(instr.args[0], Specification):
+            if instr.args[0].formula_type == FormulaType.FT:
+                sid = instr.args[0].ftid
+            else:
+                sid = instr.args[0].ptid
         else:
             raise NotImplementedError
 
         comp_to_sig = isinstance(instr.compare, Signal)
+
         if isinstance(instr.compare, Signal):
-            argument = cStruct("Bxxxxxxx").pack(instr.compare.sid)
+            comparison = cStruct("Bxxxxxxx").pack(instr.compare.sid)
         elif isinstance(instr.compare, Constant):
-            argument = cStruct(format).pack(instr.compare.value)
+            comparison = cStruct(format).pack(instr.compare.value)
         else:
             raise NotImplementedError
 
-        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, argument))
+        rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, comparison, filter_arg, instr.atid))
     
     for instr in bzasm:
         if isinstance(instr, Signal):
@@ -209,10 +242,10 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif isinstance(instr, BitwiseNegate):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, ArithmeticAdd):
-            if is_integer_type(instr.get_lhs().type):
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            if is_integer_type(instr.type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
             else:
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
         elif isinstance(instr, ArithmeticSubtract):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ISUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
@@ -266,6 +299,51 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
+
+            for at_instr in at_formula_instr:
+                if instr == at_instr.args[0]:
+                    print("here")
+                    if isinstance(at_instr.rel_op, Equal):
+                        conditional = ATCond.EQ
+                    elif isinstance(at_instr.rel_op, NotEqual):
+                        conditional = ATCond.NEQ
+                    elif isinstance(at_instr.rel_op, GreaterThan):
+                        conditional = ATCond.GT
+                    elif isinstance(at_instr.rel_op, LessThan):
+                        conditional = ATCond.LT
+                    elif isinstance(at_instr.rel_op, GreaterThanOrEqual):
+                        conditional = ATCond.GEQ
+                    elif isinstance(at_instr.rel_op, LessThanOrEqual):
+                        conditional = ATCond.LEQ
+                    else:
+                        raise NotImplementedError
+                        
+                    if at_instr.filter == "formula":
+                        filter = ATFilter.FORMULA
+                        format = "q"
+                        filter_arg = cStruct("xxxxxxxx").pack()
+                    else:
+                        raise NotImplementedError
+
+                    if isinstance(at_instr.args[0], Specification):
+                        if at_instr.args[0].formula_type == FormulaType.FT:
+                            sid = at_instr.args[0].ftid
+                        else:
+                            sid = at_instr.args[0].ptid
+                    else:
+                        raise NotImplementedError
+
+                    comp_to_sig = isinstance(at_instr.compare, Signal)
+
+                    if isinstance(at_instr.compare, Signal):
+                        comparison = cStruct("Bxxxxxxx").pack(at_instr.compare.sid)
+                    elif isinstance(at_instr.compare, Constant):
+                        comparison = cStruct(format).pack(at_instr.compare.value)
+                    else:
+                        raise NotImplementedError
+
+                    rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, at_instr.atid, comp_to_sig, comparison, filter_arg, at_instr.atid))
+
         elif isinstance(instr, Global): # Globally
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.GLOBALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].ftid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, Until):  # Until
@@ -338,6 +416,50 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ptid), (TLOperandType.DIRECT, instr.formula_number), instr.ptid))
+
+            for at_instr in at_formula_instr:
+                if instr == at_instr:
+                    if isinstance(at_instr.rel_op, Equal):
+                        conditional = ATCond.EQ
+                    elif isinstance(at_instr.rel_op, NotEqual):
+                        conditional = ATCond.NEQ
+                    elif isinstance(at_instr.rel_op, GreaterThan):
+                        conditional = ATCond.GT
+                    elif isinstance(at_instr.rel_op, LessThan):
+                        conditional = ATCond.LT
+                    elif isinstance(at_instr.rel_op, GreaterThanOrEqual):
+                        conditional = ATCond.GEQ
+                    elif isinstance(at_instr.rel_op, LessThanOrEqual):
+                        conditional = ATCond.LEQ
+                    else:
+                        raise NotImplementedError
+                        
+                    if at_instr.filter == "formula":
+                        filter = ATFilter.FORMULA
+                        format = "q"
+                        filter_arg = cStruct("xxxxxxxx").pack()
+                    else:
+                        raise NotImplementedError
+
+                    if isinstance(at_instr.args[0], Specification):
+                        if at_instr.args[0].formula_type == FormulaType.FT:
+                            sid = at_instr.args[0].ftid
+                        else:
+                            sid = at_instr.args[0].ptid
+                    else:
+                        raise NotImplementedError
+
+                    comp_to_sig = isinstance(at_instr.compare, Signal)
+
+                    if isinstance(at_instr.compare, Signal):
+                        comparison = cStruct("Bxxxxxxx").pack(at_instr.compare.sid)
+                    elif isinstance(at_instr.compare, Constant):
+                        comparison = cStruct(format).pack(at_instr.compare.value)
+                    else:
+                        raise NotImplementedError
+
+                    rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, at_instr.atid, comp_to_sig, comparison, filter_arg, at_instr.atid))
+
         elif isinstance(instr, Once): # Once
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.ONCE, (TLOperandType.SUBFORMULA, instr.get_children()[0].ptid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, Historical): # Historically

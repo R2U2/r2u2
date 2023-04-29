@@ -15,7 +15,7 @@ class C2POLexer(Lexer):
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, FLOAT, INT, SEMI, COLON, DOT, COMMA, #QUEST,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -24,8 +24,8 @@ class C2POLexer(Lexer):
     ignore_newline = r'\n+'
 
     REL_NEQ = r'!=|≠' # longer tokens must come first
-    FLOAT   = r'-?\d*\.\d+'
-    INT     = r'-?[1-9][0-9]*|0'
+    DECIMAL   = r'-?\d*\.\d+'
+    NUMERAL     = r'-?[1-9][0-9]*|0'
 
     # Propositional logic ops/literals
     LOG_NEG  = r'!|¬'
@@ -62,7 +62,7 @@ class C2POLexer(Lexer):
 
     # Others
     CONTRACT_ASSIGN = r'=>'
-    ASSIGN  = r'='
+    ASSIGN  = r':='
     SYMBOL  = r'[a-zA-Z_][a-zA-Z0-9_]*'
     # QUEST   = r'\?'
     SEMI    = r';'
@@ -124,21 +124,19 @@ class C2POParser(Parser):
     def __init__(self) -> None:
         super().__init__()
         self.structs: StructDict = {}
-        self.vars: dict[str,Type] = {}
-        self.defs: dict[str,Node] = {}
-        self.contracts: dict[str,int] = {}
-        self.atomics: dict[str,Node] = {}
+        self.signals: Dict[str,Type] = {}
+        self.defs: Dict[str,Node] = {}
+        self.contracts: Dict[str,int] = {}
+        self.atomics: Dict[str,Node] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
         self.status = True
 
-        # Initialize special structs
-        self.structs['Set'] = {'set': NOTYPE(), 'size': INT()}
-
     def error(self, token):
         self.status = False
-        return super().error(token)
+        lineno = getattr(token, 'lineno', 0)
+        logger.error(f"{lineno}: Syntax error, token='{token.value}'")
 
     @_('block ft_spec_block')
     def block(self, p):
@@ -181,16 +179,16 @@ class C2POParser(Parser):
 
     @_('SYMBOL COLON LBRACE variable_declaration_list RBRACE SEMI')
     def struct(self, p):
-        self.structs[p[0]] = {}
+        self.structs[p[0]] = []
         for variables, type in p[3]:
             for v in variables:
-                self.structs[p[0]][v] = type
+                self.structs[p[0]].append((v,type))
 
     @_('KW_INPUT variable_declaration variable_declaration_list')
     def input_block(self, p):
         for variables, type in [p[1]]+p[2]:
             for v in variables:
-                self.vars[v] = type
+                self.signals[v] = type
 
     @_('variable_declaration_list variable_declaration')
     def variable_declaration_list(self, p):
@@ -219,15 +217,15 @@ class C2POParser(Parser):
         symbol = p[0]
 
         if symbol == 'bool':
-            return BOOL()
+            return BOOL(False)
         elif symbol == 'int':
-            return INT()
+            return INT(False)
         elif symbol == 'float':
-            return FLOAT()
+            return FLOAT(False)
         elif symbol == 'set':
-            return SET(p[2])
+            return SET(False, p[2])
         elif symbol in self.structs.keys():
-            return STRUCT(symbol)
+            return STRUCT(False, symbol)
 
         logger.error(f'{p.lineno}: Type \'{p[0]}\' not recognized')
         self.status = False
@@ -247,7 +245,7 @@ class C2POParser(Parser):
         variable = p[0]
         expr = p[2]
 
-        if variable in self.vars.keys():
+        if variable in self.signals.keys():
             logger.error(f'{ln}: Variable \'{variable}\' already declared.')
             self.status = False
         elif variable in self.defs.keys():
@@ -270,7 +268,7 @@ class C2POParser(Parser):
         atomic = p[0]
         expr = p[2]
 
-        if atomic in self.vars.keys():
+        if atomic in self.signals.keys():
             logger.error(f'{ln}: Atomic \'{atomic}\' name clashes with previously declared variable.')
             self.status = False
         elif atomic in self.atomics.keys():
@@ -280,17 +278,15 @@ class C2POParser(Parser):
             self.atomics[atomic] = expr
 
     # Future-time specification block
-    @_('KW_FTSPEC spec_list spec')
+    @_('KW_FTSPEC spec_list')
     def ft_spec_block(self, p):
         ln = p.lineno
-        p[1] += p[2]
         return SpecificationSet(ln, FormulaType.FT, p[1])
 
     # Past-time specification block
-    @_('KW_PTSPEC spec_list spec')
+    @_('KW_PTSPEC spec_list')
     def pt_spec_block(self, p):
         ln = p.lineno
-        p[1] += p[2]
         return SpecificationSet(ln, FormulaType.PT, p[1])
 
     @_('spec_list spec')
@@ -317,13 +313,16 @@ class C2POParser(Parser):
         label = p[0]
         expr = p[2]
 
+        self.spec_num += 1
+        spec = Specification(ln, label, self.spec_num-1, expr)
+
         if label in self.defs.keys():
             logger.warning(f'{ln}: Spec label identifier \'{label}\' previously declared, not storing')
+            self.spec_num -= 1
         else:
-            self.defs[label] = expr
+            self.defs[label] = spec
 
-        self.spec_num += 1
-        return [Specification(ln, label, self.spec_num-1, expr)]
+        return [spec]
 
     # Contract
     @_('SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI')
@@ -414,12 +413,14 @@ class C2POParser(Parser):
         expr_list = [p[2]]+p[3]
         symbol = p[0]
 
-        if symbol in self.structs.keys():
-            members: dict[str,Node] = {}
+        if symbol in self.structs:
+            member_map: Dict[str,int] = {}
             if len(expr_list) == len(self.structs[symbol]):
-                for s in self.structs[symbol].keys():
-                    members[s] = expr_list.pop(0)
-                return Struct(ln, symbol, members)
+                idx: int = 0
+                for (m,t) in self.structs[symbol]:
+                    member_map[m] = idx
+                    idx += 1
+                return Struct(ln, symbol, member_map, expr_list)
             else:
                 logger.error(f'{ln}: Member mismatch for struct \'{symbol}\', number of members do not match')
                 self.status = False
@@ -441,9 +442,7 @@ class C2POParser(Parser):
                 self.status = False
                 return Node(ln, [])
         else:
-            logger.error(f'{ln}: Symbol \'{symbol}\' not recognized')
-            self.status = False
-            return Node(ln, [])
+            return Function(ln, symbol, [])
 
     # Struct member access
     @_('expr DOT SYMBOL')
@@ -527,7 +526,7 @@ class C2POParser(Parser):
         elif operator == '>>':
             return BitwiseShiftRight(ln, lhs, rhs)
         elif operator == '+':
-            return ArithmeticAdd(ln, lhs, rhs)
+            return ArithmeticAdd(ln, [lhs, rhs])
         elif operator == '-':
             return ArithmeticSubtract(ln, lhs, rhs)
         elif operator == '*':
@@ -597,33 +596,25 @@ class C2POParser(Parser):
             return Bool(ln, True)
         elif symbol == 'false':
             return Bool(ln, False)
-        elif symbol in self.defs.keys():
-            return self.defs[symbol]
-        elif symbol in self.vars.keys():
-            return Signal(ln, symbol, self.vars[symbol])
-        elif symbol in self.atomics.keys():
-            return Atomic(ln, symbol)
         else:
-            logger.error(f'{ln}: Variable \'{symbol}\' undefined')
-            self.status = False
-            return Node(ln, [])
+            return Variable(ln, symbol)
 
     # Integer
-    @_('INT')
+    @_('NUMERAL')
     def expr(self, p):
-        return Integer(p.lineno, int(p.INT))
+        return Integer(p.lineno, int(p.NUMERAL))
 
     # Float
-    @_('FLOAT')
+    @_('DECIMAL')
     def expr(self, p):
-        return Float(p.lineno, float(p.FLOAT))
+        return Float(p.lineno, float(p.DECIMAL))
         
     # Shorthand interval
-    @_('LBRACK INT RBRACK')
+    @_('LBRACK NUMERAL RBRACK')
     def interval(self, p):
         return Interval(0, int(p[1]))
 
     # Standard interval
-    @_('LBRACK INT COMMA INT RBRACK')
+    @_('LBRACK NUMERAL COMMA NUMERAL RBRACK')
     def interval(self, p):
         return Interval(int(p[1]), int(p[3]))
