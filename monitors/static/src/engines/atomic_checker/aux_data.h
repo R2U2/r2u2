@@ -11,4 +11,6 @@ typedef union {
     movavg_t movavg;       /* movavg filter */
 } r2u2_at_filter_aux_data_t;
 
+typedef r2u2_at_filter_aux_data_t (r2u2_at_filter_aux_data_buffer_t)[];
+
 #endif

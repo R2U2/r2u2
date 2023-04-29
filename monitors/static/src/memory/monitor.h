@@ -11,6 +11,7 @@
 #include "memory/box_queue.h"
 #include "memory/shared_connection_queue.h"
 
+// TODO(bckempa): This is a smell, there sholnd't be any engine stuff in here, only memory...
 #include "engines/atomic_checker/aux_data.h"
 
 typedef enum {
@@ -52,7 +53,7 @@ typedef struct {
 
   // TODO
   // #if R2U2_AT_EXTRA_FILTERS
-  r2u2_at_filter_aux_data_t *at_aux_buffer;
+  r2u2_at_filter_aux_data_buffer_t *at_aux_buffer;
   // #endif
 
 } r2u2_monitor_t;

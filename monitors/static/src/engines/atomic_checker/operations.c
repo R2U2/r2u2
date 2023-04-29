@@ -48,7 +48,7 @@ r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *
 r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     int32_t signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%d", &signal);
-    r2u2_float avg = filter_movavg_update_data(&((monitor->at_aux_buffer)[instr->aux_addr].movavg), instr->filter_arg.i, signal);
+    r2u2_float avg = filter_movavg_update_data(&((*(monitor->at_aux_buffer))[instr->aux_addr].movavg), instr->filter_arg.i, signal);
 
     R2U2_DEBUG_PRINT("\tmovavg(s%d, %d) = %lf\n", instr->sig_addr, instr->filter_arg.i, avg);
 
@@ -70,7 +70,7 @@ r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
 r2u2_status_t op_rate(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     r2u2_float signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    r2u2_float rate = filter_rate_update_data(signal, &(monitor->at_aux_buffer)[instr->aux_addr].prev);
+    r2u2_float rate = filter_rate_update_data(signal, &((*(monitor->at_aux_buffer))[instr->aux_addr].prev));
 
     R2U2_DEBUG_PRINT("\trate(s%d) = %lf\n", instr->sig_addr, rate);
 
