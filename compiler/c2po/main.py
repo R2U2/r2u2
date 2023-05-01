@@ -1,5 +1,4 @@
 from __future__ import annotations
-from curses import nonl
 from typing import Dict, List, Tuple
 import inspect
 import sys
