@@ -4,13 +4,13 @@ C2PO (Configuration Compiler for Property Organization) is the formula compiler 
 
 ## Usage
 
-C2PO requires an input MLTL file and a file for generating a signal mapping.
+C2PO requires an input MLTL file and a file for generating a signal mapping (i.e., to tell which variable each input corresponds to during runtime).
 
 To compile an MLTL file, run the `r2u2prep.py` script with a `.csv` or `.map` file as argument. One of the `--booleanizer` or `--atomic-checker` flags must be set. For instance, to run an example:
 
     python r2u2prep.py --booleanizer examples/cav.mltl examples/cav.csv 
 
-For full compiler options:
+The assembled binary should be at `r2u2_spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
 
     python r2u2prep.py -h
 
@@ -23,7 +23,7 @@ MLTL files are used as input to C2PO and use C2PO's specification language. They
 - **PTSPEC**: Where past-time MLTL specifications are defined. The specifications will use box queues for their memory.
 - **STRUCT**: Where C-like structs are defined.
 - **DEFINE**: Where macros can be defined.
-- **ATOMIC**: Where atomics used by the atomic checker are defined.
+- **ATOMIC**: Where atomics used by the atomic checker are defined. *Must compile with `--atomic-checker` flag.*
 
 See `syntax.md` for a formal description of the input file format and `examples/` directory for sample files.
 
@@ -41,3 +41,20 @@ is a valid csv file.
 A signal map file has a `.map` file extension. Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL` corresponds to a signal identifier in the MLTL file, its signal ID is set to the integer value of `NUMERAL`.
 
 Note that if `SYMBOL` is not present in the MLTL file, the line is ignored.
+
+## Booleanizer
+
+The booleanizer is a general purpose engine that can perform arithmetic, bitwise operations, parameterized set aggregation (`foratleastn`, etc.), and other such capabilities. 
+
+## Atomic Checker
+
+Atomic checkers are the names for the relational expression seen in `examples/atomic_checker.mltl`. They allow for the filtering of signals and then comparing the output of that signal to a constant or other signal. This is particularly useful in hardware, but is available in the software version of R2U2 as well.
+
+### Available Filters:
+
+- `rate`: `(float)` -> `float`
+    - Rate of change between time steps
+- `movavg`: `(float,int)` -> `float`
+    - Moving average with window size `int` (max window size is 5 by default)
+- `abs_diff_angle`: `(float,float)` -> `float`
+    - Absolute difference between the arguments if both treated as angles.

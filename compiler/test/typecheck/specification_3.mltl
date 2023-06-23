@@ -1,0 +1,5 @@
+INPUT
+    i0: int;
+
+FTSPEC
+    i0;
