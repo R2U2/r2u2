@@ -101,8 +101,10 @@ int main(int argc, char const *argv[]) {
   r2u2_init(&r2u2_monitor);
 
   // Open output File
-  // TODO(bckempa): Formula set name or time? Take an optional path?
-  r2u2_monitor.out_file = fopen("./R2U2.log", "w+");
+  // TODO(cgjohann): Set to stdout for now, can always redirect as needed
+  // optimal solution is probably taking an optional path to outfile,
+  // but the arg parsing we have currently is pretty difficult to change
+  r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
     return 1;
