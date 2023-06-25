@@ -124,6 +124,7 @@ def run_suite(r2u2prep: str,
     cleandir(f"{resultsdir}/{suite}", False)
 
     logfile = open(f"{resultsdir}/{suite}/{suite}.log", "w")
+    print(f"Executing suite {suite} at {datetime.datetime.now()}")
     logfile.write(f"Executing suite {suite} at {datetime.datetime.now()}\n")
 
     # validate suite config file
