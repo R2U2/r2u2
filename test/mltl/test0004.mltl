@@ -1,0 +1,4 @@
+INPUT
+a0,a1:bool;
+FTSPEC
+G[0,0] (a0);

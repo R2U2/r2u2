@@ -1,0 +1,14 @@
+suite = "ft_subset"
+
+[options]
+booleanizer = true
+disable-cse = true
+disable-rewrite = true
+implemenation = "c"
+
+[tests]
+
+    [tests.ft_subset]
+    mltl = "ft_subset.mltl"
+    trace = "input0052.csv"
+    oracle = "ft_subset.log"
