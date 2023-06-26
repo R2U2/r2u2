@@ -1,11 +1,21 @@
-import argparse
-import datetime
+from __future__ import annotations
 from glob import glob
 from io import TextIOWrapper
+from pathlib import Path
+from typing import Any
+
+import argparse
+import datetime
+import re
 import shutil
+import sys
 import tomllib
 import os
 import subprocess
+import logging
+from typing_extensions import Self
+from xml.dom.pulldom import parseString
+from xmlrpc.client import FastParser
 
 CWD = os.getcwd()
 SUITES_DIR = CWD+"/suites/"
@@ -26,50 +36,71 @@ class Color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def print_warning(msg: str):
-    print(f"{Color.WARNING}WARNING{Color.ENDC}: {msg}")
+class Formatter(logging.Formatter):
+    format_str = '%(levelname)s'
 
-def print_error(msg: str):
-    print(f"{Color.FAIL}ERROR{Color.ENDC}: {msg}")
+    FORMATS = {
+        logging.DEBUG: format_str + ': %(message)s',
+        logging.INFO: '%(message)s',
+        logging.WARNING: format_str + ': %(message)s',
+        logging.ERROR: format_str + ': %(message)s',
+        logging.CRITICAL: format_str + ': %(message)s',
+    }
 
-def print_suite_fail(logfile: TextIOWrapper, suite: str):
-    print(f"Suite {suite} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
-    logfile.write(f"Suite {suite} finished with status FAIL\n")
+    def format(self, record) -> str:
+        record.msg = re.sub(r"\033\[\d\d?m", "", record.msg) # removes color from msg
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
-def print_suite_pass(logfile: TextIOWrapper, suite: str):
-    print(f"Suite {suite} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
-    logfile.write(f"Suite {suite} finished with status PASS\n")
+class ColorFormatter(logging.Formatter):
+    format_str = '%(levelname)s'
 
-def print_test_fail(logfile: TextIOWrapper, testname: str, msg: str):
-    print(f"{testname} [{Color.FAIL}FAIL{Color.ENDC}] {msg}") 
-    logfile.write(f"{testname} [FAIL] {msg}\n") 
+    FORMATS = {
+        logging.DEBUG: Color.OKBLUE + format_str + Color.ENDC + ': %(message)s',
+        logging.INFO: '%(message)s',
+        logging.WARNING: Color.WARNING + format_str + Color.ENDC + ': %(message)s',
+        logging.ERROR: Color.FAIL + format_str + Color.ENDC + ': %(message)s',
+        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ': %(message)s'
+    }
 
-def print_test_pass(logfile: TextIOWrapper, testname: str, msg: str):
-    print(f"{testname} [{Color.PASS}PASS{Color.ENDC}] {msg}") 
-    logfile.write(f"{testname} [PASS] {msg}\n") 
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+toplevel_logger = logging.getLogger(__name__)
+toplevel_logger.setLevel(logging.DEBUG)
+
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(ColorFormatter())
+toplevel_logger.addHandler(stream_handler)
 
 def cleandir(dir: str, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
     if os.path.isfile(dir):
         if not quiet:
-            print_warning(f"Overwriting '{dir}'")
+            toplevel_logger.warning(f"Overwriting '{dir}'")
         os.remove(dir)
     elif os.path.isdir(dir):
         if not quiet:
-            print_warning(f"Overwriting '{dir}'")
+            toplevel_logger.warning(f"Overwriting '{dir}'")
         shutil.rmtree(dir)
 
     os.mkdir(dir)
+
 
 def mkdir(dir: str, quiet: bool):
     """Remove dir if it is a file then create dir, print a warning if quiet is False"""
     if os.path.isfile(dir):
         if not quiet:
-            print_warning(f"Overwriting '{dir}'")
+            toplevel_logger.warning(f"Overwriting '{dir}'")
         os.remove(dir)
 
     if not os.path.isdir(dir):
         os.mkdir(dir)
+
 
 def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
     """Filter all r2u2prep options from suite and return options in a cli-suitable list."""
@@ -110,150 +141,236 @@ def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
 
     return r2u2prep_options
 
-def run_suite(r2u2prep: str, 
-         r2u2bin: str, 
-         resultsdir: str, 
-         suite: str,
-         copyback: bool
-) -> None:
-    suite_status = True
 
-    # clean up directory structure
-    cleandir(WORK_DIR, True)
-    mkdir(resultsdir, False)
-    cleandir(f"{resultsdir}/{suite}", False)
+class TestCase():
 
-    logfile = open(f"{resultsdir}/{suite}/{suite}.log", "w")
-    print(f"Executing suite {suite} at {datetime.datetime.now()}")
-    logfile.write(f"Executing suite {suite} at {datetime.datetime.now()}\n")
+    def __init__(self, 
+                 suite_name: str, 
+                 test_name: str, 
+                 mltl_filename: str, 
+                 trace_filename: str, 
+                 oracle_filename: str, 
+                 r2u2prep_options: list[str],
+                 top_results_dir: str):
+        self.status = True
+        self.suite_name: str = suite_name
+        self.test_name: str = test_name
+        self.r2u2prep_options: list[str] = r2u2prep_options
+        self.top_results_dir: str = top_results_dir
+        self.suite_results_dir: str = f"{top_results_dir}/{suite_name}"
+        self.test_results_dir: str = f"{self.suite_results_dir}/{test_name}"
 
-    # validate suite config file
-    suite_config_filename = SUITES_DIR + suite + ".toml"
-    if not os.path.isfile(suite_config_filename):
-        print_error( f"Suite configuration file '{suite_config_filename}' does not exist")
-        print_suite_fail(logfile, suite)
-        return
-    
-    with open(suite_config_filename, "rb") as f:
-        config = tomllib.load(f)
+        self.clean()
+        self.configure_logger()
 
-        spec_bin = WORK_DIR + "r2u2_spec.bin"
-        r2u2_log = WORK_DIR + "__r2u2.log"
+        if mltl_filename == "":
+            pass
+        if trace_filename == "":
+            pass
+        if oracle_filename == "":
+            pass
 
-        # will be handed off to subprocess.run later
-        r2u2prep_options = collect_r2u2prep_options(config["options"]) 
+        self.mltl_path = Path(f"{MLTL_DIR}/{mltl_filename}")
+        self.trace_path = Path(f"{TRACE_DIR}/{trace_filename}")
+        self.oracle_path = Path(f"{ORACLE_DIR}/{oracle_filename}")
+        self.spec_bin = Path(f"{WORK_DIR}/r2u2_spec.bin")
+        self.r2u2_log = Path(f"{WORK_DIR}/r2u2.log")
 
-        if not config["tests"]:
-            print_error(f"No 'tests' specified for suite '{suite}'")
-            print_suite_fail(logfile, suite)
+
+    def clean(self):
+        cleandir(self.test_results_dir, False)
+
+
+    def configure_logger(self):
+        self.logger = logging.getLogger(f"{__name__}_{self.suite_name}_{self.test_name}")
+        self.logger.setLevel(logging.DEBUG)
+
+        # note the order matters here -- if we add file_handler first the color
+        # gets disabled...unsure why
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(ColorFormatter())
+        self.logger.addHandler(stream_handler)
+
+        file_handler = logging.FileHandler(f"{self.test_results_dir}/{self.test_name}.log")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(Formatter())
+        self.logger.addHandler(file_handler)
+
+
+    def test_fail(self, msg: str):
+        self.logger.info(f"{self.test_name} [{Color.FAIL}FAIL{Color.ENDC}] {msg}")
+        self.status = False
+
+
+    def test_pass(self, msg: str):
+        self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}] {msg}")
+
+
+    def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
+        proc = subprocess.run(["python3", r2u2prep] + self.r2u2prep_options + 
+                ["--output-file", self.spec_bin, self.mltl_path, self.trace_path], capture_output=True)
+
+        with open(f"{self.test_results_dir}/r2u2_spec.asm", "wb") as f:
+            f.write(proc.stdout)
+
+        if proc.stderr != b"":
+            with open(f"{self.test_results_dir}/r2u2prep.py.stderr", "wb") as f:
+                f.write(proc.stderr)
+
+        if proc.returncode != 0:
+            self.test_fail(f"r2u2prep.py returned with code {proc.returncode}")
             return
 
-        for testname,testcase in config["tests"].items():
-            test_status = True
+        proc = subprocess.run([r2u2bin, self.spec_bin, self.trace_path], capture_output=True)
 
-            testresultsdir = f"{resultsdir}/{suite}/{testname}"
-            cleandir(testresultsdir, False)
+        with open(f"{self.test_results_dir}/r2u2.log", "wb") as f:
+            f.write(proc.stdout)
 
-            if "mltl" not in testcase:
-                print_test_fail(logfile, testname, f"No mltl file specified in '{suite_config_filename}'")
-                suite_status = False
-                continue
-            mltl = MLTL_DIR + testcase["mltl"]
+        if proc.stderr != b"":
+            with open(f"{self.test_results_dir}/r2u2.stderr", "wb") as f:
+                f.write(proc.stderr)
 
-            if "trace" not in testcase:
-                print_test_fail(logfile, testname, f"No trace file specified in '{suite_config_filename}'")
-                suite_status = False
-                continue
-            trace = TRACE_DIR + testcase["trace"]
+        if proc.returncode != 0:
+            self.test_fail(f"r2u2bin returned with code {proc.returncode}")
+            return
 
-            if "oracle" not in testcase:
-                print_test_fail(logfile, testname, f"No oracle file specified in '{suite_config_filename}'")
-                suite_status = False
-                continue
-            oracle = ORACLE_DIR + testcase["oracle"]
+        with open(self.r2u2_log, "wb") as f:
+            f.write(proc.stdout)
 
-            proc = subprocess.run(["python3", r2u2prep] + r2u2prep_options + 
-                ["--output-file", spec_bin, mltl, trace], capture_output=True)
+        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
+        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
 
-            with open(f"{testresultsdir}/r2u2_spec.asm", "wb") as f:
-                f.write(proc.stdout)
+        for i in range(len(glob(f"{self.r2u2_log}.[0-9]*"))):
+            formula_r2u2_log = f"{self.r2u2_log}.{i}"
+            formula_oracle =  f"{WORK_DIR}/{self.oracle_path.name}.{i}"
 
-            if proc.stderr != b"":
-                with open(f"{testresultsdir}/r2u2prep.py.stderr", "wb") as f:
-                    f.write(proc.stderr)
+            # note that we are walking thru each generated .log files,
+            # NOT the oracle files, so if we have extra oracles we do nothing
+            if not os.path.isfile(formula_oracle):
+                with open(formula_oracle, "w") as f: pass
+
+            proc = subprocess.run(["diff", formula_r2u2_log, formula_oracle], capture_output=True)
 
             if proc.returncode != 0:
-                print_test_fail(logfile, testname, f"r2u2prep.py returned with code {proc.returncode}")
-                suite_status = False
-                continue
+                self.test_fail(f"Difference with oracle for formula {i}")
+                with open(f"{self.test_results_dir}/{self.test_name}.{i}.diff", "wb") as f:
+                    f.write(proc.stdout)
 
-            proc = subprocess.run([r2u2bin, spec_bin, trace], capture_output=True)
+        if self.status:
+            self.test_pass("")
 
-            with open(f"{testresultsdir}/r2u2.log", "wb") as f:
-                f.write(proc.stdout)
+        if copyback:
+            shutil.copy(self.mltl_path, self.test_results_dir)
+            shutil.copy(self.trace_path, self.test_results_dir)
+            shutil.copy(self.oracle_path, self.test_results_dir)
+            shutil.copy(self.spec_bin, self.test_results_dir)
 
-            if proc.stderr != b"":
-                with open(f"{testresultsdir}/r2u2.stderr", "wb") as f:
-                    f.write(proc.stderr)
+        for f in glob(f"{WORK_DIR}/*"):
+            os.remove(f)
 
-            if proc.returncode != 0:
-                print_test_fail(logfile, testname, f"r2u2bin returned with code {proc.returncode}")
-                suite_status = False
-                continue
 
-            with open(r2u2_log, "wb") as f:
-                f.write(proc.stdout)
+class TestSuite():
 
-            proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, r2u2_log, WORK_DIR])
-            proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, oracle, WORK_DIR])
+    def __init__(self, name: str, top_results_dir: str) -> None:
+        """Initialize TestSuite by cleaning directories and loading TOML data."""
+        self.status: bool = True
+        self.suite_name: str = name
+        self.tests: list[TestCase] = []
+        self.top_results_dir: str = top_results_dir
+        self.suite_results_dir: str = f"{top_results_dir}/{self.suite_name}"
+        
+        self.clean()
+        self.configure_logger()
+        self.configure_tests()
 
-            for i in range(len(glob(r2u2_log+".[0-9]*"))):
-                formula_r2u2_log = r2u2_log + f".{i}"
-                formula_oracle = WORK_DIR + testcase["oracle"] + f".{i}"
+    def clean(self):
+        """Clean/create work, results, and suite results directories. 
+        Must run this before calling get_suite_logger."""
+        cleandir(WORK_DIR, True)
+        mkdir(self.top_results_dir, False)
+        cleandir(self.suite_results_dir, False)
 
-                # note that we are walking thru each generated .log files,
-                # NOT the oracle files, so if we have extra oracles we do nothing
-                if not os.path.isfile(formula_oracle):
-                    with open(formula_oracle, "w") as f: pass
+    def configure_logger(self):
+        self.logger = logging.getLogger(f"{__name__}_{self.suite_name}")
+        self.logger.setLevel(logging.DEBUG)
 
-                proc = subprocess.run(["diff", formula_r2u2_log, formula_oracle], capture_output=True)
+        # note the order matters here -- if we add file_handler first the color
+        # gets disabled...unsure why
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.DEBUG)
+        stream_handler.setFormatter(ColorFormatter())
+        self.logger.addHandler(stream_handler)
 
-                if proc.returncode != 0:
-                    print_test_fail(logfile, testname, f"Difference with oracle for formula {i}")
-                    test_status = False
-                    with open(f"{testresultsdir}/{testcase['oracle']}.{i}.diff", "wb") as f:
-                        f.write(proc.stdout)
+        file_handler = logging.FileHandler(f"{self.suite_results_dir}/{self.suite_name}.log")
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(Formatter())
+        self.logger.addHandler(file_handler)
 
-            if test_status:
-                print_test_pass(logfile, testname, "")
-            else:
-                suite_status = False
+    def suite_fail_msg(self, msg: str):
+        self.logger.error(msg)
+        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
 
-            if copyback:
-                shutil.copy(mltl, testresultsdir)
-                shutil.copy(trace, testresultsdir)
-                shutil.copy(oracle, testresultsdir)
-                shutil.copy(spec_bin, testresultsdir)
+    def suite_fail(self):
+        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
 
-            for f in glob(f"{WORK_DIR}/*"):
-                os.remove(f)
-    
-    if suite_status:
-        print_suite_pass(logfile, suite)
-    else:
-        print_suite_fail(logfile, suite)
+    def suite_pass(self):
+        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
 
-    logfile.close()
+    def configure_tests(self):
+        """Configure test suite according to TOML file."""
+        config_filename = SUITES_DIR + self.suite_name + ".toml"
+
+        if not os.path.isfile(config_filename):
+            self.suite_fail_msg(f"Suite configuration file '{config_filename}' does not exist")
+            return
+
+        with open(config_filename, "rb") as f:
+            config: dict[str, Any] = tomllib.load(f)
+
+        # will be handed off to subprocess.run later
+        if "options" not in config:
+            self.suite_fail_msg(f"No options specified for suite '{self.suite_name}'")
+            return
+
+        self.r2u2prep_options: list[str] = collect_r2u2prep_options(config["options"]) 
+
+        if "tests" not in config:
+            self.suite_fail_msg(f"No tests specified for suite '{self.suite_name}'")
+            return
+
+        for test_name,testcase in config["tests"].items():
+            mltl: str = "" if "mltl" not in testcase else testcase["mltl"]
+            trace: str = "" if "trace" not in testcase else testcase["trace"]
+            oracle: str = "" if "oracle" not in testcase else testcase["oracle"]
+
+            self.tests.append(TestCase(self.suite_name, test_name, mltl, trace, oracle, self.r2u2prep_options, self.top_results_dir))
+
+    def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
+        if not self.status:
+            return
+
+        for test in self.tests:
+            test.run(r2u2prep, r2u2bin, copyback)
+            self.status = test.status and self.status
+
+        if not self.status:
+            self.suite_fail()
+        else:
+            self.suite_pass()
 
 
 def main(r2u2prep: str, 
          r2u2bin: str, 
-         resultsdir: str, 
-         suites: list[str],
-         copyback: bool
-) -> None:
+         results_dir: str, 
+         suite_names: list[str],
+         copyback: bool):
+    suites: list[TestSuite] = []
+    for suite_name in suite_names:
+        suites.append(TestSuite(suite_name, results_dir))
+
     for suite in suites:
-        run_suite(r2u2prep, r2u2bin, resultsdir, suite, copyback)
+        suite.run(r2u2prep, r2u2bin, copyback)
 
 
 if __name__ == "__main__":
