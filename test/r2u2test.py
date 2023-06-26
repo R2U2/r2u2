@@ -164,11 +164,11 @@ class TestCase():
         self.configure_logger()
 
         if mltl_filename == "":
-            pass
+            self.test_fail(f"Invalid MLTL file")
         if trace_filename == "":
-            pass
+            self.test_fail(f"Invalid trace file")
         if oracle_filename == "":
-            pass
+            self.test_fail(f"Invalid oracle file")
 
         self.mltl_path = Path(f"{MLTL_DIR}/{mltl_filename}")
         self.trace_path = Path(f"{TRACE_DIR}/{trace_filename}")
