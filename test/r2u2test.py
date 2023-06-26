@@ -1,11 +1,9 @@
 from __future__ import annotations
 from glob import glob
-from io import TextIOWrapper
 from pathlib import Path
 from typing import Any
 
 import argparse
-import datetime
 import re
 import shutil
 import sys
@@ -13,9 +11,6 @@ import tomllib
 import os
 import subprocess
 import logging
-from typing_extensions import Self
-from xml.dom.pulldom import parseString
-from xmlrpc.client import FastParser
 
 CWD = os.getcwd()
 SUITES_DIR = CWD+"/suites/"
@@ -76,6 +71,7 @@ stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setLevel(logging.DEBUG)
 stream_handler.setFormatter(ColorFormatter())
 toplevel_logger.addHandler(stream_handler)
+
 
 def cleandir(dir: str, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
