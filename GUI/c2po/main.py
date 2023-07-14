@@ -969,7 +969,7 @@ def compile(
         # generate assembly
         (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
         scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
-        program.assembly = ft_asm + pt_asm # type: ignore
+        program.assembly = bz_asm + ft_asm + pt_asm # type: ignore
 
 
         # print asm if 'quiet' option not enabled

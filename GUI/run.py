@@ -598,7 +598,7 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
     return elements, asm_str, compile_status, style, compile_output, fpga_wcet_str, cpu_wcet_str, program.total_scq_size, total_memory, select_fig
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0', debug=True)
 
 
 

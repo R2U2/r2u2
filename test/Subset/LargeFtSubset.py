@@ -18,7 +18,7 @@ Paths needed to navigate across the r2u2 directory
 __AbsolutePath__ = os.path.dirname(os.path.abspath(__file__))+'/'
 __TLDir__        = __AbsolutePath__+'../TL_formula/'
 __InputDir__     = __AbsolutePath__+'../Inputs/'
-__CDir__          = __AbsolutePath__+'../../monitors/static/'
+__CDir__          = __AbsolutePath__+'../../monitor/'
 __ResultDIR__    = __AbsolutePath__+'../results/'
 __testDir__     = __AbsolutePath__+'../'
 __toolsDir__     = __AbsolutePath__+'../../tools/'
@@ -52,7 +52,7 @@ def test_c():
     # print(formula)
     # For each formula within
     res = subprocess.run(['python3', __compilerDir__+'r2u2prep.py','--atomic-checker', "--disable-rewrite", "--output-file",__binPath__,mltl_filename,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
-    # print(f"{' '.join(res.args)}\n{open(res.args[6], 'r').read()}\n{res.stdout.decode()}")
+    print(f"{' '.join(res.args)}\n{open(res.args[6], 'r').read()}\n{res.stdout.decode()}")
     filename = 'LargeFT'+'.txt'
     subprocess.run([__CDir__+'build/r2u2',__binPath__,signal_filename],stdout=subprocess.PIPE)#,stdout=subprocess.PIPE)
     subprocess.run(['mv','R2U2.log',__OutputDIR__+filename])

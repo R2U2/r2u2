@@ -12,6 +12,8 @@
 - **Structural**: `'STRUCT'`, `'INPUT'`, `'DEFINE'`, `'ATOMIC'`, `'FTSPEC'`, `'PTSPEC'`
 - **Type**: `set`, `int`, `float`, `bool`
 - **AT Filters** (Only if AT checker enabled): `movavg`, `abs_diff_angle`, `rate`
+- **Set Aggregation**: `foreach`, `forsome`, `forexactlyn`, `foratleastn`, `foratmostn`
+- **Boolean Literals**: `true`, `false`
 
 # Parse Rules
 - `program`
@@ -40,11 +42,11 @@
 - `define_block`
     - `'DEFINE' definition*`
 - `definition`
-    - `SYMBOL '=' expr ';'`
+    - `SYMBOL ':=' expr ';'`
 - `atomic_block`
     - `'ATOMIC' atomic*`
 - `atomic`
-    - `SYMBOL '=' expr ';'`
+    - `SYMBOL ':=' expr ';'`
 - `ft_spec_block`
     - `'FTSPEC' spec*`
 - `pt_spec_block`
