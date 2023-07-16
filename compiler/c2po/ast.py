@@ -8,7 +8,7 @@ from .type import R2U2Implementation
 from .logger import *
 from .type import *
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(LOGGER_NAME)
 
 class Interval(NamedTuple):
     lb: int

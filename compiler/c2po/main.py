@@ -14,7 +14,7 @@ from .parser import C2POParser
 from .assembler import assemble
 
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(LOGGER_NAME)
 
 
 class ReturnCode(Enum):
@@ -777,7 +777,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    compute_scq_size(program.get_ft_specs())
+    program.total_scq_size = compute_scq_size(program.get_ft_specs())
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -1012,29 +1012,29 @@ def compile(
     # print assembly if 'quiet' option not enabled
     if not quiet:
         if enable_at:
-            print(Color.HEADER+"AT Assembly"+Color.ENDC+":")
+            logger.info(Color.HEADER+"AT Assembly"+Color.ENDC+":")
             for s in at_asm:
-                print(f"\t{s.at_asm()}")
+                logger.info(f"\t{s.at_asm()}")
         if enable_bz:
-            print(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
+            logger.info(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
             for s in bz_asm:
-                print(f"\t{s.bz_asm()}")
+                logger.info(f"\t{s.bz_asm()}")
 
-        print(Color.HEADER+"FT Assembly"+Color.ENDC+":")
+        logger.info(Color.HEADER+"FT Assembly"+Color.ENDC+":")
         for a in ft_asm:
-            print(f"\t{a.ft_asm()}")
+            logger.info(f"\t{a.ft_asm()}")
 
-        print(Color.HEADER+"PT Assembly"+Color.ENDC+":")
+        logger.info(Color.HEADER+"PT Assembly"+Color.ENDC+":")
         for a in pt_asm:
-            print(f"\t{a.pt_asm()}")
+            logger.info(f"\t{a.pt_asm()}")
 
-        print(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
+        logger.info(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:
-            print(f"\t{s}")
+            logger.info(f"\t{s}")
 
-        print(Color.HEADER+"Aliases"+Color.ENDC+":")
+        logger.info(Color.HEADER+"Aliases"+Color.ENDC+":")
         for a in aliases:
-            print(f"\t{a}")
+            logger.info(f"\t{a}")
 
     if enable_assemble:
         assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)

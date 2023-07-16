@@ -1,48 +1,47 @@
 import logging
+import re
+import sys
 
-STANDARD_LOGGER_NAME: str = 'c2po_standard_logger'
-COLOR_LOGGER_NAME: str = 'c2po_color_logger'
-MAINTAINER_EMAIL: str = 'cgjohann@iastate.edu'
+LOGGER_NAME: str = "__c2po_logger__"
+MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 
 class Color:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
 
 class StandardFormatter(logging.Formatter):
-
     format_str = '%(levelname)s'
 
     FORMATS = {
-        logging.DEBUG: format_str + ':%(message)s',
-        logging.INFO: format_str + ':%(message)s',
-        logging.WARNING: format_str + ':%(message)s',
-        logging.ERROR: format_str + ':%(message)s',
-        logging.CRITICAL: 'INTERNAL' + ':%(message)s',
+        logging.DEBUG: format_str + ': %(message)s',
+        logging.INFO: '%(message)s',
+        logging.WARNING: format_str + ': %(message)s',
+        logging.ERROR: format_str + ': %(message)s',
+        logging.CRITICAL: format_str + ': %(message)s',
     }
 
-    def format(self, record):
+    def format(self, record) -> str:
+        record.msg = re.sub(r"\033\[\d\d?m", "", record.msg) # removes color from msg
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
 class ColorFormatter(logging.Formatter):
-
     format_str = '%(levelname)s'
 
     FORMATS = {
-        logging.DEBUG: Color.BOLD + Color.OKBLUE + format_str + Color.ENDC + ':%(message)s',
-        logging.INFO: Color.BOLD + Color.OKCYAN + format_str + Color.ENDC + ':%(message)s',
-        logging.WARNING: Color.BOLD + Color.WARNING + format_str + Color.ENDC + ':%(message)s',
-        logging.ERROR: Color.BOLD + Color.FAIL + format_str + Color.ENDC + ':%(message)s',
-        logging.CRITICAL: Color.UNDERLINE + Color.BOLD + Color.FAIL + 'INTERNAL' + Color.ENDC + \
-            ':%(message)s' + '\n\tPlease contact ' + MAINTAINER_EMAIL,
+        logging.DEBUG: Color.OKBLUE + format_str + Color.ENDC + ': %(message)s',
+        logging.INFO: '%(message)s',
+        logging.WARNING: Color.WARNING + format_str + Color.ENDC + ': %(message)s',
+        logging.ERROR: Color.FAIL + format_str + Color.ENDC + ': %(message)s',
+        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ': %(message)s'
     }
 
     def format(self, record):
@@ -51,23 +50,11 @@ class ColorFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-standard_logger = logging.getLogger(STANDARD_LOGGER_NAME)
-standard_logger.setLevel(logging.DEBUG)
+logger = logging.getLogger(LOGGER_NAME)
+logger.setLevel(logging.DEBUG)
 
-standard_logger_handler = logging.StreamHandler()
-standard_logger_handler.setLevel(logging.DEBUG)
+logger_handler = logging.StreamHandler(sys.stderr)
+logger_handler.setLevel(logging.DEBUG)
+logger_handler.setFormatter(ColorFormatter())
 
-standard_logger_handler.setFormatter(StandardFormatter())
-
-standard_logger.addHandler(standard_logger_handler)
-
-
-color_logger = logging.getLogger(COLOR_LOGGER_NAME)
-color_logger.setLevel(logging.DEBUG)
-
-color_logger_handler = logging.StreamHandler()
-color_logger_handler.setLevel(logging.DEBUG)
-
-color_logger_handler.setFormatter(ColorFormatter())
-
-color_logger.addHandler(color_logger_handler)
+logger.addHandler(logger_handler)

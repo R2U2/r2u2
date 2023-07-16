@@ -1,9 +1,9 @@
 from enum import Enum
 from logging import getLogger
 
-from .logger import STANDARD_LOGGER_NAME, COLOR_LOGGER_NAME
+from .logger import LOGGER_NAME
 
-logger = getLogger(COLOR_LOGGER_NAME)
+logger = getLogger(LOGGER_NAME)
 
 
 class R2U2Implementation(Enum):
