@@ -733,7 +733,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    compute_scq_size(program.get_ft_specs())
+    program.total_scq_size = compute_scq_size(program.get_ft_specs())
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -753,7 +753,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     return ret
 
 
-def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: int) -> int:
+def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: float) -> float:
     """
     Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
 
@@ -765,9 +765,12 @@ def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: int) 
     Postconditions:
         - None
     """
-    wcet: int = 0
+    if clk == 0:
+        return 0
 
-    def compute_cpu_wcet_util(a: Node) -> int:
+    wcet: float = 0
+
+    def compute_cpu_wcet_util(a: Node) -> float:
         nonlocal latency_table
 
         classname: str = type(a).__name__
@@ -775,7 +778,7 @@ def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: int) 
             logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
             return 0
         else:
-            return int((latency_table[classname] * a.scq_size) / clk)
+            return float((latency_table[classname] * a.scq_size) / clk)
 
     wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
     program.cpu_wcet = wcet

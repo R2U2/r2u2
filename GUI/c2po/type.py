@@ -1,7 +1,7 @@
 from enum import Enum
 from logging import getLogger
 
-from .logger import STANDARD_LOGGER_NAME, COLOR_LOGGER_NAME
+from .logger import STANDARD_LOGGER_NAME, LOGGER_NAME
 
 logger = getLogger(STANDARD_LOGGER_NAME)
 

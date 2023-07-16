@@ -1326,7 +1326,7 @@ class Program(Node):
 
         # Computable properties
         self.total_memory: int = -1
-        self.cpu_wcet: int = -1
+        self.cpu_wcet: float = -1
         self.fpga_wcet: float = -1
 
         # Predicates

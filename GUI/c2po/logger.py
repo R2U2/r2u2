@@ -2,7 +2,7 @@ from io import StringIO
 import logging
 
 STANDARD_LOGGER_NAME: str = 'c2po_standard_logger'
-COLOR_LOGGER_NAME: str = 'c2po_color_logger'
+LOGGER_NAME: str = 'c2po_color_logger'
 MAINTAINER_EMAIL: str = 'cgjohann@iastate.edu'
 
 class Color:
@@ -65,7 +65,7 @@ standard_logger_handler.setFormatter(StandardFormatter())
 standard_logger.addHandler(standard_logger_handler)
 
 
-color_logger = logging.getLogger(COLOR_LOGGER_NAME)
+color_logger = logging.getLogger(LOGGER_NAME)
 color_logger.setLevel(logging.DEBUG)
 
 color_logger_handler = logging.StreamHandler(log_stream)

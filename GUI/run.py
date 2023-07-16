@@ -54,13 +54,29 @@ default_stylesheet = [
     for cls in instruction_list if issubclass(cls, BZInstruction)
 ] + [
     {
+        "selector": "[type = \"Atomic\"]",
+        "style": {
+            "background-color": "#FFD7B5",
+            "label": "data(name)"
+        }
+    }
+] + [
+    {
         "selector": "[type = \""+cls.__name__+"\"]",
         "style": {
             "background-color": "#BFD722",
             "label": "data(name)"
         }
     }
-    for cls in instruction_list if issubclass(cls, Atomic)
+    for cls in instruction_list if issubclass(cls, Constant)
+] + [
+    {
+        "selector": "[type = \"Bool\"]",
+        "style": {
+            "background-color": "#BFD722",
+            "label": "data(name)"
+        }
+    }
 ] + [
     {
         "selector": "edge",
@@ -97,7 +113,7 @@ app.layout = html.Div(
         className = "row",
         children= [
             html.Div(
-                className = "two columns",
+                className = "three columns",
                 children = [
                     # dcc.Markdown(d("""
                     #         ###### C2PO Input
@@ -188,7 +204,7 @@ app.layout = html.Div(
                                     # style = {"width": "500px"},
                                     children = [
                                         dbc.ModalHeader(dbc.ModalTitle(
-                                            children = [ dcc.Markdown(d("**CPU Operator Latencies**")), ]
+                                            children = [ dcc.Markdown(d("**CPU Operator Latencies (Clock Cycles)**")), ]
                                         )),
                                         dbc.ModalBody(
                                             [html.Div(
@@ -214,7 +230,7 @@ app.layout = html.Div(
                                 # dcc.Input(style={"backgroundColor": "#A2F0E4"}, id="at_exe_time", value="10", type="text", size="5"),
                                 dcc.Markdown(d("**Worst-case Exec. Time**")),
                                 html.Div(id="comp_speed_CPU",),
-                                dcc.Markdown(d("**Est. SCQ Memory**")),
+                                dcc.Markdown(d("**Est. Config. Memory**")),
                                 html.Div(id="tot_memory",),
                             ]
                         ),
@@ -274,7 +290,7 @@ app.layout = html.Div(
                             # style = {"width": "500px"},
                             children = [
                                 dbc.ModalHeader(dbc.ModalTitle(
-                                    children = [ dcc.Markdown(d("**FPGA Operator Latencies**")), ]
+                                    children = [ dcc.Markdown(d("**FPGA Operator Latencies (Microseconds)**")), ]
                                 )),
                                 dbc.ModalBody(
                                     [html.Div(
@@ -563,6 +579,11 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
             for node in asm
         ]
 
+        for n in asm:
+            for child in n.get_children():
+                if isinstance(child, Bool):
+                    node.append({"data":{"id": str(child), "num": 0, "type": type(child).__name__, "str":str(child), "name":child.name,"bpd":child.bpd, "wpd":child.wpd, "scq_size":child.scq_size} })
+
         edge = []
         for src in asm:
             for child in src.get_children():
@@ -580,20 +601,21 @@ def update_element(run_compile, hw_clk, timestamp_length, comps, adds, LUT_type,
         for i in range(0,int(len(fpga_vals_list)/2)):
             fpga_vals.append((fpga_vals_list[i],fpga_vals_list[int(len(fpga_vals_list)/2)+i]))
 
-        cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [int(val) for val in cpu_vals])))
+        cpu_latency_table.update(dict(zip(list(default_cpu_latency_table), [float(val) for val in cpu_vals])))
         fpga_latency_table.update(dict(zip(list(default_fpga_latency_table), [(float(init),float(eval)) for (init,eval) in fpga_vals])))
 
-        compute_cpu_wcet(program, cpu_latency_table, int(cpu_clk))
+        compute_cpu_wcet(program, cpu_latency_table, float(cpu_clk))
         cpu_wcet_str = speed_unit_conversion(program.cpu_wcet)
 
         # scq_size_str = str(scq_size) # + "(" + str()+ ")"
         # tmp = pg.tot_time/int(hw_clk)
-        compute_fpga_wcet(program, fpga_latency_table, int(hw_clk))
+        compute_fpga_wcet(program, fpga_latency_table, float(hw_clk))
         fpga_wcet_str = speed_unit_conversion(program.fpga_wcet)
         resource_fig = data_process.RF
 
         resource_fig.config(LUT_type, program.total_scq_size, int(timestamp_length))
         select_fig = resource_fig.get_LUT_fig(comps, adds) if resource_type == "LUT" else resource_fig.get_BRAM_fig()
+
 
     return elements, asm_str, compile_status, style, compile_output, fpga_wcet_str, cpu_wcet_str, program.total_scq_size, total_memory, select_fig
 
