@@ -153,7 +153,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
           #if R2U2_DEBUG
           // Check for SCQ memory arena collision
-          assert(scq+1 < &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + scq->length + 50)]));
+          assert(scq+1 < (r2u2_scq_t*)&(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + scq->length + 50)]));
           #endif
 
           // Rise/Fall edge detection initialization

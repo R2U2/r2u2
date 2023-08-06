@@ -6,6 +6,8 @@
 #include "atomic_checker.h"
 #include "internals/errors.h"
 
+//TODO(bckempa): Almost everthing can be static since they are used by decode
+
 #if R2U2_AT_EXTRA_FILTERS
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_movavg(r2u2_monitor_t *, r2u2_at_instruction_t *);
@@ -21,6 +23,8 @@ r2u2_status_t op_all_of(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_bool(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_int(r2u2_monitor_t *, r2u2_at_instruction_t *);
 r2u2_status_t op_float(r2u2_monitor_t *, r2u2_at_instruction_t *);
+
+r2u2_status_t op_formula(r2u2_monitor_t *, r2u2_at_instruction_t *);
 
 r2u2_status_t op_error(r2u2_monitor_t *, r2u2_at_instruction_t *);
 
