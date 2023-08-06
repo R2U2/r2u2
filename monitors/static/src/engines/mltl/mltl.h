@@ -3,6 +3,8 @@
 
 #include "r2u2.h"
 
+#define R2U2_MLTL_TENSE_FUTURE 0b10000
+
 typedef enum {
     // Future Tense: 1xxxx
 
