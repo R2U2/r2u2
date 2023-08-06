@@ -16,7 +16,7 @@
 static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 
   if (rd_ptr != NULL) {
-    R2U2_DEBUG_PRINT("\t\t\t%*cR\n", (((6 * (ptrdiff_t)scq->length)-3)-(6 * (*rd_ptr))), ' ');
+    R2U2_DEBUG_PRINT("\t\t\t%*cR\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (*rd_ptr))), ' ');
   }
 
   R2U2_DEBUG_PRINT("\t\t\t|");
@@ -27,14 +27,14 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
   for (unsigned int i = 0; i < scq->length; ++i) {
     R2U2_DEBUG_PRINT("  %1d  |", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].truth);
   }
-  R2U2_DEBUG_PRINT(" <%p>\n", scq->queue);
-  R2U2_DEBUG_PRINT("\t\t\t%*cW\n", (((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->wr_ptr))), ' ');
+  R2U2_DEBUG_PRINT(" <%p>\n", (void*)scq->queue);
+  R2U2_DEBUG_PRINT("\t\t\t%*cW\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->wr_ptr))), ' ');
 }
 #endif
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res) {
-  R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Lenght: (%d)\n", scq->queue, scq->length);
-  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, &((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
+  R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Lenght: (%d)\n", (void*)scq->queue, scq->length);
+  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
   #if R2U2_DEBUG
   r2u2_scq_print(scq, NULL);
   #endif
@@ -46,7 +46,7 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res) {
     R2U2_DEBUG_PRINT("\t\tInitial Write\n");
     (scq->queue)[-((ptrdiff_t)scq->wr_ptr)] = *res;
     scq->wr_ptr = (scq->wr_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, &((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -59,7 +59,7 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res) {
     // Ternary conditional handles pointer decriment modulo SCQ length without casting to and back from signed integers
     (scq->queue)[-((ptrdiff_t)((scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1))] = *res;
 
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, &((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -69,7 +69,7 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res) {
     R2U2_DEBUG_PRINT("\t\tStandard Write\n");
     (scq->queue)[-((ptrdiff_t)scq->wr_ptr)] = *res;
     scq->wr_ptr = (scq->wr_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, &((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -93,7 +93,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
   // this ensureds CSE works by allowing many readers
 
   R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");
-  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d)\n", *rd_ptr, &((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
+  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
   #if R2U2_DEBUG
   r2u2_scq_print(scq, rd_ptr);
   #endif

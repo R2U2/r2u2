@@ -79,7 +79,7 @@ int main(int argc, char const *argv[]) {
         return 1;
       }
       // map read-only mirror of the file to memory - great for execution perf
-      r2u2_monitor.instruction_mem = mmap(NULL, fd_stat.st_size, PROT_READ, MAP_PRIVATE, spec_file, 0);
+      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ, MAP_PRIVATE, spec_file, 0);
       if (r2u2_monitor.instruction_mem == MAP_FAILED) {
         PRINT_USAGE();
         perror("Error memory mapping specification file");
@@ -160,7 +160,7 @@ int main(int argc, char const *argv[]) {
     //                if and only if it is zero
   }
 
-  if (munmap(r2u2_monitor.instruction_mem, fd_stat.st_size) != 0) {
+  if (munmap(r2u2_monitor.instruction_mem, (size_t)fd_stat.st_size) != 0) {
     perror("Spec memory mapping did not close cleanly");
   }
 

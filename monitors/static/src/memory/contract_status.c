@@ -58,7 +58,7 @@ r2u2_status_t r2u2_contract_status_load_mapping(r2u2_contract_status_reporter_t 
   } while (length != 0);
 
   status_reporter->aux_con_max = c_num;
-  R2U2_DEBUG_PRINT("Loaded %d contracts\n", c_num);
+  R2U2_DEBUG_PRINT("Loaded %zu contracts\n", c_num);
 
   return R2U2_OK;
 }

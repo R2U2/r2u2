@@ -149,7 +149,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           // TODO(bckempa): ANSAN requires offset due to global layout shadow, fix and remove "+ 50"
           scq->queue = &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + 50)]);
           scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
-          R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %d\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, scq->queue);
+          R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %zu\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, (void*)scq->queue);
 
           #if R2U2_DEBUG
           // Check for SCQ memory arena collision
@@ -173,10 +173,10 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         case R2U2_FT_OP_ATOMIC: {
           // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
           if (instr->op2.value) {
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %d\n", instr->op1.value, instr->memory_reference);
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %zu\n", instr->op1.value, instr->memory_reference);
             scq->interval_end = (r2u2_time) instr->memory_reference;
           } else {
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %d\n", instr->op1.value, instr->memory_reference);
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %zu\n", instr->op1.value, instr->memory_reference);
             scq->interval_start = (r2u2_time) instr->memory_reference;
           }
           break;

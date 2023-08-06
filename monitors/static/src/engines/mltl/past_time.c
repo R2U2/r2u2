@@ -418,7 +418,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
     case R2U2_MLTL_OP_PT_EQUIVALENT: {
-      R2U2_DEBUG_PRINT("\tPT[%zu] EQUIVALENT PT[%d] PT[%d]\t", instr->memory_reference, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%zu] EQUIVALENT PT[%d] PT[%d]\t", instr->memory_reference, instr->op1.value, instr->op2.value);
       *res = (get_operand(monitor, instr, 0) == get_operand(monitor, instr, 1));
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;

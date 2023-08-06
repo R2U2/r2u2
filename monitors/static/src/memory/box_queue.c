@@ -9,7 +9,7 @@
 #if R2U2_DEBUG
 static void r2u2_boxq_print(r2u2_boxq_t *boxq) {
 
-  R2U2_DEBUG_PRINT("\t\t\t%*cH\n", (((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->head))), ' ');
+  R2U2_DEBUG_PRINT("\t\t\t%*cH\n", (int)(((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->head))), ' ');
 
   R2U2_DEBUG_PRINT("\t\t\t|");
   for (unsigned int i = 0; i < boxq->length; ++i) {
@@ -27,8 +27,8 @@ static void r2u2_boxq_print(r2u2_boxq_t *boxq) {
       R2U2_DEBUG_PRINT(" %03d |", boxq->queue[(1 - (ptrdiff_t)boxq->length) + i].end);
     }
   }
-  R2U2_DEBUG_PRINT(" <%p>\n", boxq->queue);
-  R2U2_DEBUG_PRINT("\t\t\t%*cT\n", (((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->tail))), ' ');
+  R2U2_DEBUG_PRINT(" <%p>\n", (void*)boxq->queue);
+  R2U2_DEBUG_PRINT("\t\t\t%*cT\n", (int)(((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->tail))), ' ');
 }
 #endif
 
