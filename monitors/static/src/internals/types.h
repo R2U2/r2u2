@@ -4,6 +4,7 @@
 #include <stddef.h>   // For size_t (used elsewhere but assumed in types.h)
 #include <stdbool.h>  // For booleans
 #include <stdint.h>
+#include <string.h> // memcpy
 
 #include "internals/bounds.h"
 
