@@ -155,7 +155,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       }
 
       if (monitor->out_func != NULL) {
-        (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &(r2u2_verdict){get_operand(monitor, instr, 0), monitor->time_stamp});
+        (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &(r2u2_verdict){monitor->time_stamp, get_operand(monitor, instr, 0)});
       }
 
       error_cond = R2U2_OK;

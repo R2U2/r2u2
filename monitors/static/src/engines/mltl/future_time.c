@@ -73,12 +73,12 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
 
     switch (op->opnd_type) {
       case R2U2_FT_OP_DIRECT:
-          res = (r2u2_verdict){op->value, monitor->time_stamp};
+          res = (r2u2_verdict){monitor->time_stamp, op->value};
           break;
 
       case R2U2_FT_OP_ATOMIC:
           // TODO(bckempa) This might remove the need for load...
-          res = (r2u2_verdict){(*(monitor->atomic_buffer[0]))[op->value], monitor->time_stamp};
+          res = (r2u2_verdict){monitor->time_stamp, (*(monitor->atomic_buffer[0]))[op->value]};
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
@@ -159,13 +159,13 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           // Rise/Fall edge detection initialization
           switch (instr->opcode) {
             case R2U2_MLTL_OP_FT_GLOBALLY:
-                scq->previous = (r2u2_verdict) { false, r2u2_infinity };
+                scq->previous = (r2u2_verdict) {r2u2_infinity, false};
                 break;
             case R2U2_MLTL_OP_FT_UNTIL:
-                scq->previous = (r2u2_verdict) { true, r2u2_infinity };
+                scq->previous = (r2u2_verdict) {r2u2_infinity, true};
                 break;
             default:
-                scq->previous = (r2u2_verdict) { true, 0 };
+                scq->previous = (r2u2_verdict) {0, true};
           }
 
           break;
@@ -244,12 +244,12 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
 
         if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
-          res = (r2u2_verdict){true, op0.time - scq->interval_end};
+          res = (r2u2_verdict){op0.time - scq->interval_end, true};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
         } else if (!op0.truth && (op0.time >= scq->interval_start)) {
-          res = (r2u2_verdict){false, op0.time - scq->interval_start};
+          res = (r2u2_verdict){op0.time - scq->interval_start, false};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
@@ -282,21 +282,21 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         if (op1.truth && (tau >= scq->max_out + scq->interval_start)) {
           // TODO(bckempa): Factor out repeated outuput logic
           R2U2_DEBUG_PRINT("\tRight Op True\n");
-          res = (r2u2_verdict){true, tau - scq->interval_start};
+          res = (r2u2_verdict){tau - scq->interval_start, true};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
           scq->max_out = res.time +1;
         } else if (!op0.truth && (tau >= scq->max_out + scq->interval_start)) {
           R2U2_DEBUG_PRINT("\tLeft Op False\n");
-          res = (r2u2_verdict){false, tau - scq->interval_start};
+          res = (r2u2_verdict){tau - scq->interval_start, false};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
           scq->max_out = res.time +1;
         } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->max_out + scq->interval_end)) {
           R2U2_DEBUG_PRINT("\tTime Elapsed\n");
-          res = (r2u2_verdict){false, tau - scq->interval_end};
+          res = (r2u2_verdict){tau - scq->interval_end, false};
           r2u2_scq_push(scq, &res);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
@@ -321,7 +321,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       if (operand_data_ready(monitor, instr, 0)) {
         res = get_operand(monitor, instr, 0);
-        push_result(monitor, instr, &(r2u2_verdict){!res.truth, res.time});
+        push_result(monitor, instr, &(r2u2_verdict){res.time, !res.truth});
       }
 
       error_cond = R2U2_OK;
@@ -338,31 +338,31 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       if (op0_rdy && op1_rdy) {
         op0 = get_operand(monitor, instr, 0);
         op1 = get_operand(monitor, instr, 1);
-        R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", op0.truth, op0.time, op1.truth, op1.time);
+        R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", op0.time, op0.truth, op1.time, op1.truth);
         if (op0.truth && op1.truth){
           R2U2_DEBUG_PRINT("\tBoth True\n");
-          push_result(monitor, instr, &(r2u2_verdict){true, min(op0.time, op1.time)});
+          push_result(monitor, instr, &(r2u2_verdict){min(op0.time, op1.time), true});
         } else if (!op0.truth && !op1.truth) {
           R2U2_DEBUG_PRINT("\tBoth False\n");
-          push_result(monitor, instr, &(r2u2_verdict){false, max(op0.time, op1.time)});
+          push_result(monitor, instr, &(r2u2_verdict){max(op0.time, op1.time), false});
         } else if (op0.truth) {
           R2U2_DEBUG_PRINT("\tOnly Left True\n");
-          push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
+          push_result(monitor, instr, &(r2u2_verdict){op1.time, false});
         } else {
           R2U2_DEBUG_PRINT("\tOnly Right True\n");
-          push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
+          push_result(monitor, instr, &(r2u2_verdict){op0.time, false});
         }
       } else if (op0_rdy) {
         op0 = get_operand(monitor, instr, 0);
-        R2U2_DEBUG_PRINT("\tOnly Left Ready: (%d, %d)\n", op0.truth, op0.time);
+        R2U2_DEBUG_PRINT("\tOnly Left Ready: (%d, %d)\n", op0.time, op0.truth);
         if(!op0.truth) {
-          push_result(monitor, instr, &(r2u2_verdict){false, op0.time});
+          push_result(monitor, instr, &(r2u2_verdict){op0.time, false});
         }
       } else if (op1_rdy) {
         op1 = get_operand(monitor, instr, 1);
-        R2U2_DEBUG_PRINT("\tOnly Right Ready: (%d, %d)\n", op1.truth, op1.time);
+        R2U2_DEBUG_PRINT("\tOnly Right Ready: (%d, %d)\n", op1.time, op1.truth);
         if(!op1.truth) {
-          push_result(monitor, instr, &(r2u2_verdict){false, op1.time});
+          push_result(monitor, instr, &(r2u2_verdict){op1.time, false});
         }
       }
 
