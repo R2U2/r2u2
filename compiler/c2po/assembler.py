@@ -102,8 +102,8 @@ def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, sto
 
 
 def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr):
-    at_instruction = cStruct('iiBBBxxxxx8s8sB')
-    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr)
+    at_instruction = cStruct('8s8siiBBBB')
+    return at_instruction.pack(comparison, filter_arg, conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, aux_addr)
 
 
 def assemble_ft(opcode, operand_1, operand_2, ref):

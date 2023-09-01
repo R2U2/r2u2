@@ -43,13 +43,13 @@ typedef union {
 } r2u2_at_arg_t;
 
 typedef struct {
+    r2u2_at_arg_t comparison;
+    r2u2_at_arg_t filter_arg;
     r2u2_at_conditional_t conditional;
     r2u2_at_filter_t filter;
     uint8_t sig_addr;
     uint8_t atom_addr;
     bool comp_is_sig;
-    r2u2_at_arg_t comparison;
-    r2u2_at_arg_t filter_arg;
     uint8_t aux_addr;
 } r2u2_at_instruction_t;
 
