@@ -1,24 +1,26 @@
 from __future__ import annotations
 from glob import glob
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import argparse
 import re
 import shutil
 import sys
-import tomllib
 import os
 import subprocess
 import logging
+import json
 
-CWD = os.getcwd()
-SUITES_DIR = CWD+"/suites/"
-MLTL_DIR = CWD+"/mltl/"
-TRACE_DIR = CWD+"/input/"
-ORACLE_DIR = CWD+"/oracle/"
-WORK_DIR = CWD+"/__workdir/"
-SPLIT_VERDICTS_SCRIPT = CWD+"/split_verdicts.sh"
+
+TEST_DIR = Path(__file__).parent
+SUITES_DIR = TEST_DIR / "suites"
+MLTL_DIR = TEST_DIR / "mltl"
+TRACE_DIR = TEST_DIR / "input"
+ORACLE_DIR = TEST_DIR / "oracle"
+WORK_DIR = TEST_DIR / "__workdir"
+SPLIT_VERDICTS_SCRIPT = TEST_DIR / "split_verdicts.sh"
+
 
 class Color:
     HEADER = '\033[95m'
@@ -73,13 +75,13 @@ stream_handler.setFormatter(ColorFormatter())
 toplevel_logger.addHandler(stream_handler)
 
 
-def cleandir(dir: str, quiet: bool):
+def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
-    if os.path.isfile(dir):
+    if dir.is_file():
         if not quiet:
             toplevel_logger.warning(f"Overwriting '{dir}'")
         os.remove(dir)
-    elif os.path.isdir(dir):
+    elif dir.is_dir():
         if not quiet:
             toplevel_logger.warning(f"Overwriting '{dir}'")
         shutil.rmtree(dir)
@@ -87,14 +89,14 @@ def cleandir(dir: str, quiet: bool):
     os.mkdir(dir)
 
 
-def mkdir(dir: str, quiet: bool):
+def mkdir(dir: Path, quiet: bool):
     """Remove dir if it is a file then create dir, print a warning if quiet is False"""
-    if os.path.isfile(dir):
+    if dir.is_file():
         if not quiet:
             toplevel_logger.warning(f"Overwriting '{dir}'")
         os.remove(dir)
 
-    if not os.path.isdir(dir):
+    if not dir.is_dir():
         os.mkdir(dir)
 
 
@@ -142,40 +144,48 @@ class TestCase():
 
     def __init__(self, 
                  suite_name: str, 
-                 test_name: str, 
-                 mltl_filename: str, 
-                 trace_filename: str, 
-                 oracle_filename: str, 
+                 test_name: Optional[str], 
+                 mltl_path: Optional[Path], 
+                 trace_path: Optional[Path], 
+                 oracle_path: Optional[Path], 
                  r2u2prep_options: list[str],
-                 top_results_dir: str):
+                 top_results_dir: Path):
         self.status = True
         self.suite_name: str = suite_name
+
+        if not test_name:
+            self.test_fail("No test name given")
+            return
         self.test_name: str = test_name
+
         self.r2u2prep_options: list[str] = r2u2prep_options
-        self.top_results_dir: str = top_results_dir
-        self.suite_results_dir: str = f"{top_results_dir}/{suite_name}"
-        self.test_results_dir: str = f"{self.suite_results_dir}/{test_name}"
+        self.top_results_dir: Path = top_results_dir
+        self.suite_results_dir: Path = self.top_results_dir / suite_name
+        self.test_results_dir: Path = self.suite_results_dir / self.test_name
 
         self.clean()
         self.configure_logger()
 
-        if mltl_filename == "":
+        if not mltl_path:
             self.test_fail(f"Invalid MLTL file")
-        if trace_filename == "":
+        else:
+            self.mltl_path = mltl_path
+
+        if not trace_path:
             self.test_fail(f"Invalid trace file")
-        if oracle_filename == "":
+        else:
+            self.trace_path = trace_path
+
+        if not oracle_path:
             self.test_fail(f"Invalid oracle file")
+        else:
+            self.oracle_path = oracle_path
 
-        self.mltl_path = Path(f"{MLTL_DIR}/{mltl_filename}")
-        self.trace_path = Path(f"{TRACE_DIR}/{trace_filename}")
-        self.oracle_path = Path(f"{ORACLE_DIR}/{oracle_filename}")
-        self.spec_bin = Path(f"{WORK_DIR}/r2u2_spec.bin")
-        self.r2u2_log = Path(f"{WORK_DIR}/r2u2.log")
-
+        self.spec_bin = WORK_DIR / "spec.bin"
+        self.r2u2_log = WORK_DIR / "r2u2.log"
 
     def clean(self):
         cleandir(self.test_results_dir, False)
-
 
     def configure_logger(self):
         self.logger = logging.getLogger(f"{__name__}_{self.suite_name}_{self.test_name}")
@@ -193,15 +203,12 @@ class TestCase():
         file_handler.setFormatter(Formatter())
         self.logger.addHandler(file_handler)
 
-
     def test_fail(self, msg: str):
         self.logger.info(f"{self.test_name} [{Color.FAIL}FAIL{Color.ENDC}] {msg}")
         self.status = False
 
-
-    def test_pass(self, msg: str):
-        self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}] {msg}")
-
+    def test_pass(self):
+        self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}]")
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         proc = subprocess.run(["python3", r2u2prep] + self.r2u2prep_options + 
@@ -254,7 +261,7 @@ class TestCase():
                     f.write(proc.stdout)
 
         if self.status:
-            self.test_pass("")
+            self.test_pass()
 
         if copyback:
             shutil.copy(self.mltl_path, self.test_results_dir)
@@ -268,13 +275,13 @@ class TestCase():
 
 class TestSuite():
 
-    def __init__(self, name: str, top_results_dir: str) -> None:
+    def __init__(self, name: str, top_results_dir: Path) -> None:
         """Initialize TestSuite by cleaning directories and loading TOML data."""
         self.status: bool = True
         self.suite_name: str = name
         self.tests: list[TestCase] = []
-        self.top_results_dir: str = top_results_dir
-        self.suite_results_dir: str = f"{top_results_dir}/{self.suite_name}"
+        self.top_results_dir: Path = top_results_dir
+        self.suite_results_dir: Path = self.top_results_dir / self.suite_name
         
         self.clean()
         self.configure_logger()
@@ -306,23 +313,25 @@ class TestSuite():
     def suite_fail_msg(self, msg: str):
         self.logger.error(msg)
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.status = False
 
     def suite_fail(self):
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.status = False
 
     def suite_pass(self):
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
 
     def configure_tests(self):
-        """Configure test suite according to TOML file."""
-        config_filename = SUITES_DIR + self.suite_name + ".toml"
+        """Configure test suite according to JSON file."""
+        config_filename = SUITES_DIR / (self.suite_name + ".json")
 
         if not os.path.isfile(config_filename):
             self.suite_fail_msg(f"Suite configuration file '{config_filename}' does not exist")
             return
 
         with open(config_filename, "rb") as f:
-            config: dict[str, Any] = tomllib.load(f)
+            config: dict[str, Any] = json.load(f)
 
         # will be handed off to subprocess.run later
         if "options" not in config:
@@ -335,18 +344,19 @@ class TestSuite():
             self.suite_fail_msg(f"No tests specified for suite '{self.suite_name}'")
             return
 
-        for test_name,testcase in config["tests"].items():
-            mltl: str = "" if "mltl" not in testcase else testcase["mltl"]
-            trace: str = "" if "trace" not in testcase else testcase["trace"]
-            oracle: str = "" if "oracle" not in testcase else testcase["oracle"]
+        for testcase in config["tests"]:
+            name: Optional[str] = testcase["name"] if "name" in testcase else None
+            mltl: Optional[Path] = MLTL_DIR / testcase["mltl"] if "mltl" in testcase else None
+            trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
+            oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 
-            self.tests.append(TestCase(self.suite_name, test_name, mltl, trace, oracle, self.r2u2prep_options, self.top_results_dir))
+            self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.r2u2prep_options, self.top_results_dir))
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         if not self.status:
             return
 
-        for test in self.tests:
+        for test in [t for t in self.tests if t.status]:
             test.run(r2u2prep, r2u2bin, copyback)
             self.status = test.status and self.status
 
@@ -358,12 +368,12 @@ class TestSuite():
 
 def main(r2u2prep: str, 
          r2u2bin: str, 
-         results_dir: str, 
+         resultsdir: Path, 
          suite_names: list[str],
          copyback: bool):
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, results_dir))
+        suites.append(TestSuite(suite_name, resultsdir))
 
     for suite in suites:
         suite.run(r2u2prep, r2u2bin, copyback)
@@ -383,4 +393,6 @@ if __name__ == "__main__":
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
 
-    main(args.r2u2prep, args.r2u2bin, args.resultsdir, args.suites, args.copyback)
+    resultsdir = Path(args.resultsdir)
+
+    main(args.r2u2prep, args.r2u2bin, resultsdir, args.suites, args.copyback)
