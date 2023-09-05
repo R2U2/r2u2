@@ -16,7 +16,7 @@ import json
 TEST_DIR = Path(__file__).parent
 SUITES_DIR = TEST_DIR / "suites"
 MLTL_DIR = TEST_DIR / "mltl"
-TRACE_DIR = TEST_DIR / "input"
+TRACE_DIR = TEST_DIR / "trace"
 ORACLE_DIR = TEST_DIR / "oracle"
 WORK_DIR = TEST_DIR / "__workdir"
 SPLIT_VERDICTS_SCRIPT = TEST_DIR / "split_verdicts.sh"
