@@ -454,19 +454,23 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                     arg: Node = lhs.get_child(i)
 
                     if isinstance(arg, Variable):
-                        if arg.name in program.signals:
-                            sig = Signal(arg.ln, arg.name, program.signals[arg.name])
-                            if arg.name in program.signal_mapping:
-                                sig.sid = program.signal_mapping[arg.name]
-                                arg.replace(sig)
-                            else:
-                                status = False
-                                logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
+                        if arg.name not in program.signals:
+                            status = False
+                            logger.error(f"{node.ln}: Atomic '{name}' malformed, {arg.name} not a valid signal.\n\t{node}")
+                            return
 
-                            if sig.type != AT_FILTER_TABLE[lhs.name][0][i]:
-                                status = False
-                                logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{sig.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
-                                return
+                        sig = Signal(arg.ln, arg.name, program.signals[arg.name])
+                        if arg.name not in program.signal_mapping:
+                            status = False
+                            logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
+
+                        sig.sid = program.signal_mapping[arg.name]
+                        arg.replace(sig)
+
+                        if sig.type != AT_FILTER_TABLE[lhs.name][0][i]:
+                            status = False
+                            logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{sig.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
+                            return
                     elif isinstance(arg, Constant):
                         if arg.type != AT_FILTER_TABLE[lhs.name][0][i]:
                             status = False
