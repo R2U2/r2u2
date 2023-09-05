@@ -1,0 +1,21 @@
+{
+    "suite":  "ft_long_trace",
+    "options": {
+        "booleanizer":  true,
+        "atomic_checker":  false
+    },
+    "tests": [
+        {
+            "name": "FT",
+            "mltl":  "ft_long_trace.mltl",
+            "trace":  "long_trace.csv",
+            "oracle":  "ft_long_trace.log"
+        },
+        {
+            "name": "PT",
+            "mltl":  "pt_long_trace.mltl",
+            "trace":  "long_trace.csv",
+            "oracle":  "pt_long_trace.log"
+        }
+    ]
+}

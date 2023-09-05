@@ -267,8 +267,11 @@ TSWLatexianTemp*
 # pyright config
 pyrightconfig.json
 
-# # Input test files
+# Input test files
 *.bin
+
+# test suite workdir
+__workdir/
 
 test/Inputs/inputFiles/
 test/Inputs/inputImages/

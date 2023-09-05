@@ -1,0 +1,4 @@
+INPUT
+a0,a1:bool;
+FTSPEC
+a1 && (G[0,8] a0);
