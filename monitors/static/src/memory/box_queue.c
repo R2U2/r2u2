@@ -9,26 +9,26 @@
 #if R2U2_DEBUG
 static void r2u2_boxq_print(r2u2_boxq_t *boxq) {
 
-  R2U2_DEBUG_PRINT("\t\t\t%*cH\n", (((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->head))), ' ');
+  R2U2_DEBUG_PRINT("\t\t\t%*cH\n", (int)(((6 * (ptrdiff_t)boxq->length)-3)-(6 * (ptrdiff_t)(boxq->head))), ' ');
 
   R2U2_DEBUG_PRINT("\t\t\t|");
-  for (unsigned int i = 0; i < boxq->length; ++i) {
-    if (boxq->queue[(1 - (ptrdiff_t)boxq->length) + i].start == r2u2_infinity) {
+  for (size_t i = 0; i < boxq->length; ++i) {
+    if ((r2u2_time)boxq->queue[(1 - (ptrdiff_t)boxq->length) + (ptrdiff_t)i].start == r2u2_infinity) {
       R2U2_DEBUG_PRINT(" INF |");
     } else {
-      R2U2_DEBUG_PRINT(" %03d |", boxq->queue[(1 - (ptrdiff_t)boxq->length) + i].start);
+      R2U2_DEBUG_PRINT(" %03u |", boxq->queue[(1 - (ptrdiff_t)boxq->length) + (ptrdiff_t)i].start);
     }
   }
   R2U2_DEBUG_PRINT("\n\t\t\t|");
-  for (unsigned int i = 0; i < boxq->length; ++i) {
-    if (boxq->queue[(1 - (ptrdiff_t)boxq->length) + i].end == r2u2_infinity) {
+  for (size_t i = 0; i < boxq->length; ++i) {
+    if ((r2u2_time)boxq->queue[(1 - (ptrdiff_t)boxq->length) + (ptrdiff_t)i].end == r2u2_infinity) {
       R2U2_DEBUG_PRINT(" INF |");
     } else {
-      R2U2_DEBUG_PRINT(" %03d |", boxq->queue[(1 - (ptrdiff_t)boxq->length) + i].end);
+      R2U2_DEBUG_PRINT(" %03u |", boxq->queue[(1 - (ptrdiff_t)boxq->length) + (ptrdiff_t)i].end);
     }
   }
-  R2U2_DEBUG_PRINT(" <%p>\n", boxq->queue);
-  R2U2_DEBUG_PRINT("\t\t\t%*cT\n", (((6 * (ptrdiff_t)boxq->length)-3)-(6 * (boxq->tail))), ' ');
+  R2U2_DEBUG_PRINT(" <%p>\n", (void*)boxq->queue);
+  R2U2_DEBUG_PRINT("\t\t\t%*cT\n", (int)(((6 * (ptrdiff_t)boxq->length)-3)-(6 * (ptrdiff_t)(boxq->tail))), ' ');
 }
 #endif
 
@@ -83,7 +83,7 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_head(r2u2_boxq_t *boxq) {
 
 r2u2_boxq_intvl_t r2u2_boxq_pop_tail(r2u2_boxq_t *boxq) {
   //
-  r2u2_int res_index;
+  size_t res_index;
   if (r2u2_boxq_is_empty(boxq)) {
     #if R2U2_DEBUG
       R2U2_DEBUG_PRINT("\tWARNING: PT Box Queue Tail Underflow\n");
@@ -97,7 +97,7 @@ r2u2_boxq_intvl_t r2u2_boxq_pop_tail(r2u2_boxq_t *boxq) {
   }
 }
 
-// TODO(bckempa): Great inlining candidate
+// TODO(bckempa): Great inlining candidates
 r2u2_bool r2u2_boxq_is_empty(r2u2_boxq_t *boxq) {
   return boxq->head == boxq->tail;
 }

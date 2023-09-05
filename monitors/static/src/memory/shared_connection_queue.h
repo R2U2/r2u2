@@ -8,7 +8,6 @@ typedef uint8_t (r2u2_scq_queue_memory_t)[];
 
 typedef struct {
   // TODO(bckempa): Need better types for this
-  r2u2_verdict *queue;
   r2u2_time length;
   r2u2_time wr_ptr;
   r2u2_time rd_ptr;
@@ -19,6 +18,7 @@ typedef struct {
   r2u2_time interval_start;
   r2u2_time interval_end;
   r2u2_verdict previous;
+  r2u2_verdict *queue;
 } r2u2_scq_t;
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res);

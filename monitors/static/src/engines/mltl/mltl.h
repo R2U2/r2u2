@@ -3,6 +3,8 @@
 
 #include "r2u2.h"
 
+#define R2U2_MLTL_TENSE_FUTURE 0b10000
+
 typedef enum {
     // Future Tense: 1xxxx
 
@@ -73,10 +75,10 @@ typedef struct {
 //  OPC:5 op1:10 op2:10 intvl:8 scratch:7
 //
 typedef struct {
-    r2u2_mltl_opcode_t    opcode;
     r2u2_mltl_operand_t   op1;
     r2u2_mltl_operand_t   op2;
-    size_t memory_reference;
+    uint32_t              memory_reference;
+    r2u2_mltl_opcode_t    opcode;
 } r2u2_mltl_instruction_t;
 
 // data structure for address info of SCQ

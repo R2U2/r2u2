@@ -95,6 +95,11 @@ class PTOpcode(Enum):
     IMPLIES      = 0b00100
     EQUIVALENT   = 0b00000
 
+def check_sizes():
+    mem_ref_size = cStruct("I").size
+    if mem_ref_size != 4:
+        import warnings
+        warnings.warn(f"MLTL memory refernce is 32-bit by default, but platform spcifies {mem_ref_size} bytes".format(), BytesWarning)
 
 def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, store_at: bool, atid: int) -> bytes:
     bz_instruction = cStruct("BiBBqq") if isinstance(param1, int) else  cStruct("BiBBdq")
@@ -102,8 +107,8 @@ def assemble_bz(bzid: int, opcode: BZOpcode, param1: int|float, param2: int, sto
 
 
 def assemble_at(conditional, filter, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr):
-    at_instruction = cStruct('iiBBBxxxxx8s8sB')
-    return at_instruction.pack(conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, comparison, filter_arg, aux_addr)
+    at_instruction = cStruct('8s8siiBBBB')
+    return at_instruction.pack(comparison, filter_arg, conditional.value, filter.value, sig_addr, atom_addr, comp_is_sig, aux_addr)
 
 
 def assemble_ft(opcode, operand_1, operand_2, ref):
@@ -112,11 +117,11 @@ def assemble_ft(opcode, operand_1, operand_2, ref):
     # The module memoizes these by their description string so this isn't as
     # wasteful as it initially appears
     operand = cStruct('iBxxx')
-    ft_instruction = cStruct(f"i{operand.size}s{operand.size}sN")
-    return ft_instruction.pack(opcode.value,
+    ft_instruction = cStruct(f"{operand.size}s{operand.size}sIi")
+    return ft_instruction.pack(
                         operand.pack(operand_1[0].value,operand_1[1]),
                         operand.pack(operand_2[0].value,operand_2[1]),
-                        ref)
+                        ref, opcode.value)
 
 
 def assemble_pt(opcode, operand_1, operand_2, ref) -> bytes:
@@ -125,11 +130,11 @@ def assemble_pt(opcode, operand_1, operand_2, ref) -> bytes:
     # The module memoizes these by their description string so this isn't as
     # wasteful as it initially appears
     operand = cStruct('iBxxx')
-    ft_instruction = cStruct(f"i{operand.size}s{operand.size}sN")
-    return ft_instruction.pack(opcode.value,
+    ft_instruction = cStruct(f"{operand.size}s{operand.size}sIi")
+    return ft_instruction.pack(
                         operand.pack(operand_1[0].value,operand_1[1]),
                         operand.pack(operand_2[0].value,operand_2[1]),
-                        ref)
+                        ref, opcode.value)
 
 
 def assemble_alias() -> None:
@@ -140,6 +145,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     # Concatenate runtime instructions, assume V2 ordering
     # foo: List[Instruction] = atasm + bzasm + ftasm + ptasm
+
+    check_sizes()
 
     # Create a list of runtime instructions and config instructions
     rtm_instrs: List[bytes] = []
@@ -529,7 +536,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         alias_defs.append(alias.encode('ascii'))
 
     spec_bin = bytearray()
-    spec_header = b'C2P0 Version 0.0.0 Beta for R2U2 V3 Beta\x00'
+    spec_header = b'C2P0 Version 1.0.0 for R2U2 V3\x00'
     spec_bin.extend(cStruct('B').pack(len(spec_header)+1) + spec_header)
     [spec_bin.extend(cStruct('B').pack(len(x)+1) + x) for x in rtm_instrs]
     [spec_bin.extend(cStruct('B').pack(len(x)+1) + x) for x in cfg_instrs]

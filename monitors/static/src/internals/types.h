@@ -4,6 +4,7 @@
 #include <stddef.h>   // For size_t (used elsewhere but assumed in types.h)
 #include <stdbool.h>  // For booleans
 #include <stdint.h>
+#include <string.h> // memcpy
 
 #include "internals/bounds.h"
 
@@ -42,9 +43,9 @@
 // Common Derived Types
 
 typedef struct {
-    // Truth & Time
-    r2u2_bool truth;
+    // Time & Truth
     r2u2_time time;
+    r2u2_bool truth;
 } r2u2_verdict;
 
 typedef union r2u2_value {

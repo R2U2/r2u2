@@ -19,12 +19,12 @@ typedef size_t aux_con_max_t;
 
 // #if R2U2_TL_Contract_Status
 typedef struct {
-  FILE *out_file;
-
   aux_con_map_t   aux_con_map;
   aux_con_arena_t aux_con_arena;
   aux_con_forms_t aux_con_forms;
   aux_con_max_t   aux_con_max;
+
+  FILE *out_file;
 
 } r2u2_contract_status_reporter_t;
 

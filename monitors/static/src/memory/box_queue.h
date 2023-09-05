@@ -17,11 +17,11 @@ typedef struct {
 
 typedef struct {
   // TODO(bckempa): Need better types for this
-  r2u2_int   head;
-  r2u2_int   tail;
-  r2u2_int   length;
-  r2u2_boxq_intvl_t *queue;
   r2u2_boxq_intvl_t interval;
+  r2u2_boxq_intvl_t *queue;
+  size_t   head;
+  size_t   tail;
+  size_t   length;
 } r2u2_boxq_t;
 
 r2u2_status_t r2u2_boxq_reset(r2u2_boxq_t *boxq);
