@@ -6,15 +6,15 @@ The R2U2 test suite is intended to test a given `r2u2prep.py` script and `r2u2` 
 
 To run the test suite, run the `r2u2test.py` script as follows:
 ```bash
-python r2u2test.py path/to/r2u2prep.py path/to/r2u2bin path/to/resultsdir SUITE1 SUITE2 ...
+python r2u2test.py path/to/r2u2prep.py path/to/r2u2bin SUITE1 SUITE2 ...
 ```
-where `path/to/r2u2prep.py` is the relative or absolute path to the r2u2prep.py script to use for compiling specifications, `path/to/r2u2bin` is the relative or absolute path to the r2u2 binary to run, `/path/to/resultsdir` is the relative or absolute path to where the results will be dumped (should be an existing or non-existing directory), and `SUITE1 SUITE2 ...` is a non-empty list of suite names to run.
+where `path/to/r2u2prep.py` is the relative or absolute path to the r2u2prep.py script to use for compiling specifications, `path/to/r2u2bin` is the relative or absolute path to the r2u2 binary to run, and `SUITE1 SUITE2 ...` is a non-empty list of suite names to run.
 
 An example command to run the regression test suite from the top-level `r2u2/` directory is as follows:
 ```bash
-python test/r2u2test.py compiler/r2u2prep.py monitors/static/build/r2u2 test/resultsdir regression
+python test/r2u2test.py compiler/r2u2prep.py monitors/static/build/r2u2 regression
 ```
-assuming that the C version of the `r2u2` binary has been built.
+assuming that the C version of the `r2u2` binary has been built. The test results can be seen in the `test/results` directory by default.
 
 ## Suites
 

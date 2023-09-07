@@ -19,6 +19,7 @@ MLTL_DIR = TEST_DIR / "mltl"
 TRACE_DIR = TEST_DIR / "trace"
 ORACLE_DIR = TEST_DIR / "oracle"
 WORK_DIR = TEST_DIR / "__workdir"
+DEFAULT_RESULTS_DIR = TEST_DIR / "results"
 SPLIT_VERDICTS_SCRIPT = TEST_DIR / "split_verdicts.sh"
 
 
@@ -385,10 +386,10 @@ if __name__ == "__main__":
                         help="r2u2_prep.py file to use for tests")
     parser.add_argument("r2u2bin",
                         help="r2u2 binary to use for tests")
-    parser.add_argument("resultsdir",
-                        help="directory to output test logs and copyback data")
     parser.add_argument("suites", nargs="+",
                         help="names of test suites to run, should be .toml files in suites/")
+    parser.add_argument("--resultsdir", default=DEFAULT_RESULTS_DIR,
+                        help="directory to output test logs and copyback data")
     parser.add_argument("--copyback", action="store_true",
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
