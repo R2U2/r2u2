@@ -33,6 +33,8 @@ parser.add_argument("--disable-rewrite", action="store_false",
                     help="disable MLTL rewrite rule optimizations")
 parser.add_argument("--disable-assemble", action="store_false",
                     help="disable assembly generation")
+parser.add_argument("--mission-time", default=-1, type=int,
+                    help="define mission time")
 args = parser.parse_args()
 
 # If the argument is a valid file,
@@ -40,7 +42,7 @@ return_code = 0
 if(os.path.isfile(args.mltl)):
     mltl = open(args.mltl,"r").read()
     if(os.path.isfile(args.sigs)):
-        return_code = compile(args.mltl, args.sigs, impl=args.implementation, enable_assemble=args.disable_assemble, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.disable_cse, enable_extops=args.extops, enable_rewrite=args.disable_rewrite, quiet=args.quiet)[0]
+        return_code = compile(args.mltl, args.sigs, impl=args.implementation, enable_assemble=args.disable_assemble, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.disable_cse, enable_extops=args.extops, enable_rewrite=args.disable_rewrite, quiet=args.quiet, mission_time=args.mission_time)[0]
     else:
         print(f"Signal mapping argument '{args.sigs}' not a valid file")
         return_code = 1
