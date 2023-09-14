@@ -620,7 +620,7 @@ class C2POParser(Parser):
     # Standard interval
     @_('LBRACK bound COMMA bound RBRACK')
     def interval(self, p):
-        return Interval(int(p[1]), p[3])
+        return Interval(p[1], p[3])
 
     @_('NUMERAL')
     def bound(self, p):
@@ -634,3 +634,5 @@ class C2POParser(Parser):
             return self.mission_time
         else:
             logger.error(f"{ln}: Mission-time not defined.")
+            self.status = False
+            return -1
