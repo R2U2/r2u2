@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import copy
 from glob import glob
 from pathlib import Path
 from typing import Any, Optional
@@ -149,7 +150,7 @@ class TestCase():
                  mltl_path: Optional[Path], 
                  trace_path: Optional[Path], 
                  oracle_path: Optional[Path], 
-                 r2u2prep_options: list[str],
+                 r2u2prep_options: dict[str,str|bool],
                  top_results_dir: Path):
         self.status = True
         self.suite_name: str = suite_name
@@ -159,7 +160,7 @@ class TestCase():
             return
         self.test_name: str = test_name
 
-        self.r2u2prep_options: list[str] = r2u2prep_options
+        self.r2u2prep_options: dict[str,str|bool] = r2u2prep_options
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / suite_name
         self.test_results_dir: Path = self.suite_results_dir / self.test_name
@@ -212,7 +213,8 @@ class TestCase():
         self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}]")
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
-        proc = subprocess.run(["python3", r2u2prep] + self.r2u2prep_options + 
+        cli_options = collect_r2u2prep_options(self.r2u2prep_options)
+        proc = subprocess.run(["python3", r2u2prep] + cli_options + 
                 ["--output-file", self.spec_bin, self.mltl_path, self.trace_path], capture_output=True)
 
         with open(f"{self.test_results_dir}/r2u2_spec.asm", "wb") as f:
@@ -339,7 +341,7 @@ class TestSuite():
             self.suite_fail_msg(f"No options specified for suite '{self.suite_name}'")
             return
 
-        self.r2u2prep_options: list[str] = collect_r2u2prep_options(config["options"]) 
+        self.r2u2prep_options: dict[str,str|bool] = config["options"]
 
         if "tests" not in config:
             self.suite_fail_msg(f"No tests specified for suite '{self.suite_name}'")
@@ -351,7 +353,11 @@ class TestSuite():
             trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
             oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 
-            self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.r2u2prep_options, self.top_results_dir))
+            options = copy(self.r2u2prep_options)
+            if "options" in testcase:
+                options.update(testcase["options"])
+
+            self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, options, self.top_results_dir))
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         if not self.status:

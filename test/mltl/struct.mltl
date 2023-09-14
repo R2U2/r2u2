@@ -1,0 +1,12 @@
+STRUCT
+    Test: { m1,m2: bool; };
+
+INPUT
+    b0,b1: bool;
+
+DEFINE
+    t := Test(b0,b1);
+
+FTSPEC
+    t.m1;
+    t.m2;

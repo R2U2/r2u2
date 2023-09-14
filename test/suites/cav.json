@@ -1,0 +1,64 @@
+{
+    "suite": "cav",
+    "options": {
+        "booleanizer": true
+    },
+    "tests": [
+        {
+            "name": "agc",
+            "mltl": "agc.mltl",
+            "trace": "agc.csv",
+            "oracle": "agc.log"
+        },
+        {
+            "name": "arb_dataflow",
+            "mltl": "arb_dataflow.mltl",
+            "trace": "arb_dataflow.csv",
+            "oracle": "arb_dataflow.log",
+            "options": {
+                "booleanizer": false,
+                "atomic-checker": true
+            }
+        },
+        {
+            "name": "atomic_checker",
+            "mltl": "atomic_checker.mltl",
+            "trace": "atomic_checker.csv",
+            "oracle": "atomic_checker.log",
+            "options": {
+                "booleanizer": false,
+                "atomic-checker": true
+            }
+        },
+        {
+            "name": "cav",
+            "mltl": "cav.mltl",
+            "trace": "cav.csv",
+            "oracle": "cav.log"
+        },
+        {
+            "name": "set_agg",
+            "mltl": "set_agg.mltl",
+            "trace": "set_agg.csv",
+            "oracle": "set_agg.log"
+        },
+        {
+            "name": "sets",
+            "mltl": "sets.mltl",
+            "trace": "sets.csv",
+            "oracle": "sets.log"
+        },
+        {
+            "name": "simple",
+            "mltl": "simple.mltl",
+            "trace": "simple.csv",
+            "oracle": "simple.log"
+        },
+        {
+            "name": "struct",
+            "mltl": "struct.mltl",
+            "trace": "struct.csv",
+            "oracle": "struct.log"
+        }
+    ]
+}
