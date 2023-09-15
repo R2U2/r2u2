@@ -1,0 +1,6 @@
+INPUT
+	LiVar359,LiVar731,LiVar743,LiVar745,LiVar322,LiVar357,LiVar375,LiVar356,LiVar374,LiVar730: bool;
+
+FTSPEC
+	(true -> ( G[68058,71905] (LiVar743 -> LiVar322) &&  G[68025,100000] (LiVar730 -> LiVar359))) && (true -> ( G[46321,100000] (LiVar743 -> LiVar356) &&  G[15319,99715] (LiVar730 -> LiVar374))) && (true -> ( G[83381,100000] (LiVar745 -> LiVar357) &&  G[76222,100000] (LiVar731 -> LiVar375))) && true
+;

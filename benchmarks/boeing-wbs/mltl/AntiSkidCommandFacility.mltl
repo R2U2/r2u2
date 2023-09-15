@@ -1,0 +1,6 @@
+INPUT
+	power,LiVar808,ascmd,wheelrolling: bool;
+
+FTSPEC
+	(true ->  G[27656,42129] (((power && LiVar808) && !wheelrolling) <-> ascmd)) && true
+;
