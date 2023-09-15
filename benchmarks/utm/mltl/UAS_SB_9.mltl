@@ -1,0 +1,5 @@
+INPUT
+	Lat_lt_90,Lon_lt_180,Lat_gr_90,Lon_gt_180: bool;
+
+FTSPEC
+	G[0,M] (Lat_gr_90 && Lat_lt_90 && Lon_gt_180 && Lon_lt_180);

@@ -1,0 +1,5 @@
+INPUT
+	Vel_leq_VelUB,Vel_geq_0: bool;
+
+FTSPEC
+	G[0,3] (Vel_leq_VelUB && Vel_geq_0);

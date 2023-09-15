@@ -1,0 +1,5 @@
+INPUT
+	Lon_leq_MaxLonUB,Lon_geq_MinLonLB: bool;
+
+FTSPEC
+	!G[0,M] !(Lon_leq_MaxLonUB && Lon_geq_MinLonLB);

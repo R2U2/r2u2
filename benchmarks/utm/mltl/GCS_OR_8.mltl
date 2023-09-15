@@ -1,0 +1,5 @@
+INPUT
+	wpLonLat_eq_fpLon_Lat: bool;
+
+FTSPEC
+	wpLonLat_eq_fpLon_Lat;

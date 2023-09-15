@@ -1,3 +1,9 @@
+"""
+Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifact.tar.xz) to C2PO input. Recurses thru argument directory, turns files with '.smv.ltlf' extensions to ones with '.mltl' extensions suitable as input to C2PO and generates CSV headers.
+
+usage:python ltlf2mltl.py path/to/dir mission-time
+"""
+
 import re
 import sys
 import random
@@ -39,7 +45,7 @@ for file in files:
     formulas[file] = (props, mltl)
 
     new_file = file.with_stem(file.stem[:-4]) # remove .smv
-    with open(MLTLDIR / new_file.with_suffix(".mltl").name, "w") as f:
+    with open(MLTLDIR / new_file.with_suffix(f".M{sys.argv[2]}.mltl").name, "w") as f:
         f.write("INPUT\n\t")
         f.write(",".join(props))
         f.write(": bool;\n\n")
@@ -47,11 +53,11 @@ for file in files:
         f.write("FTSPEC\n\t")
         f.write(mltl + ";")
         
-    with open(CSVDIR / new_file.with_suffix(".random.csv").name, "w") as f:
+    with open(CSVDIR / new_file.with_suffix(".csv").name, "w") as f:
         f.write("# ")
         f.write(",".join(props))
         f.write("\n")
-        for i in range(0,100):
-            row = [random.randint(0,1) for r in props]
-            f.write(str(row) + "\n")
+        # for i in range(0,int(sys.argv[2])):
+        #     row = ",".join([str(random.randint(0,1)) for r in props])
+        #     f.write(row + "\n")
 

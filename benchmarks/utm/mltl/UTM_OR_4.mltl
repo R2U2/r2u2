@@ -1,0 +1,5 @@
+INPUT
+	fpLat_leq_LatUB,fpLat_geq_LatLB: bool;
+
+FTSPEC
+	fpLat_leq_LatUB && fpLat_geq_LatLB;

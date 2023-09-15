@@ -1,0 +1,5 @@
+INPUT
+	Status_eq_Accepted,Status_eq_Replaced,Status_eq_Rejected: bool;
+
+FTSPEC
+	Status_eq_Accepted || Status_eq_Rejected || Status_eq_Replaced;

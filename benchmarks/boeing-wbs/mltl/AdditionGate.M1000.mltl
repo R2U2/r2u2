@@ -1,0 +1,6 @@
+INPUT
+	LiVar938,LiVar801,LiVar803,LiVar802: bool;
+
+FTSPEC
+	(true -> ( G[276,435] (LiVar938 <-> LiVar802) &&  G[89,991] (LiVar801 <-> LiVar803))) && true
+;
