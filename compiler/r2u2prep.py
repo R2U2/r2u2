@@ -34,7 +34,7 @@ parser.add_argument("--disable-rewrite", action="store_false",
 parser.add_argument("--disable-assemble", action="store_false",
                     help="disable assembly generation")
 parser.add_argument("--mission-time", default=-1, type=int,
-                    help="define mission time")
+                    help="define mission time (overriding any inference from a simulated input trace)")
 args = parser.parse_args()
 
 # If the argument is a valid file,
