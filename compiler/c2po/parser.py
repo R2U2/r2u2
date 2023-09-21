@@ -10,7 +10,7 @@ logger = getLogger(LOGGER_NAME)
 class C2POLexer(Lexer):
 
     tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
-               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE,
+               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_MISSION_TIME,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
@@ -90,6 +90,7 @@ class C2POLexer(Lexer):
     SYMBOL['U'] = TL_UNTIL
     SYMBOL['R'] = TL_RELEASE
     SYMBOL['S'] = TL_SINCE
+    SYMBOL['M'] = TL_MISSION_TIME
 
     # Extra action for newlines
     def ignore_newline(self, t):
@@ -121,8 +122,10 @@ class C2POParser(Parser):
         ('right', LPAREN, DOT)
     )
 
-    def __init__(self) -> None:
+    def __init__(self, mission_time: int) -> None:
         super().__init__()
+        self.mission_time: int = mission_time
+
         self.structs: StructDict = {}
         self.signals: Dict[str,Type] = {}
         self.defs: Dict[str,Node] = {}
@@ -610,11 +613,26 @@ class C2POParser(Parser):
         return Float(p.lineno, float(p.DECIMAL))
         
     # Shorthand interval
-    @_('LBRACK NUMERAL RBRACK')
+    @_('LBRACK bound RBRACK')
     def interval(self, p):
-        return Interval(0, int(p[1]))
+        return Interval(0, p[1])
 
     # Standard interval
-    @_('LBRACK NUMERAL COMMA NUMERAL RBRACK')
+    @_('LBRACK bound COMMA bound RBRACK')
     def interval(self, p):
-        return Interval(int(p[1]), int(p[3]))
+        return Interval(p[1], p[3])
+
+    @_('NUMERAL')
+    def bound(self, p):
+        return int(p[0])
+
+    @_('TL_MISSION_TIME')
+    def bound(self, p):
+        ln = p.lineno
+
+        if self.mission_time >= 0:
+            return self.mission_time
+        else:
+            logger.error(f"{ln}: Mission-time not defined.")
+            self.status = False
+            return -1

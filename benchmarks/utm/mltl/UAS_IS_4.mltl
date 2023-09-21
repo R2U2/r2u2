@@ -1,0 +1,5 @@
+INPUT
+	VelN_gt_PrevVA_minus_Error,VelD_lt_PrevVA_plus_Error: bool;
+
+FTSPEC
+	!G[0,3] !(VelD_lt_PrevVA_plus_Error && VelN_gt_PrevVA_minus_Error);

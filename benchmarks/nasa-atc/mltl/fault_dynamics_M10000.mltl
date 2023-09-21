@@ -1,0 +1,6 @@
+INPUT
+	: bool;
+
+FTSPEC
+	true
+;

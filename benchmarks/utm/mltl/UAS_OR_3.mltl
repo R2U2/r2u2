@@ -1,0 +1,5 @@
+INPUT
+	Pitch_geq_45,Pitch_leq_45: bool;
+
+FTSPEC
+	!G[0,3] !(Pitch_geq_45 && Pitch_leq_45);

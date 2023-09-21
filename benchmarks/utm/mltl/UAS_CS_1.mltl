@@ -1,0 +1,5 @@
+INPUT
+	RefVelN_eq_0,Subphase_eq_TestActuators,Phase_eq_Test,RefVelD_eq_0,RefVelE_eq_0,RefYawdot_eq_0,RefYaw_eq_0: bool;
+
+FTSPEC
+	G[0,M] ((Phase_eq_Test || Subphase_eq_TestActuators) -> (RefVelN_eq_0 && RefVelE_eq_0 && RefVelD_eq_0 && RefYaw_eq_0 && RefYawdot_eq_0));

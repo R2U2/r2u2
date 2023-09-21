@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import inspect
 import sys
 import re
@@ -860,10 +860,10 @@ def compute_fpga_wcet(program: Program, latency_table: Dict[str, Tuple[float, fl
     return wcet
 
 
-def parse(input: str) -> Program|None:
+def parse(input: str, mission_time: int) -> Program|None:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     lexer: C2POLexer = C2POLexer()
-    parser: C2POParser = C2POParser()
+    parser: C2POParser = C2POParser(mission_time)
     specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
 
     if not parser.status:
@@ -941,6 +941,7 @@ def compile(
     input_filename: str,
     signals_filename: str,
     impl: str = "c",
+    mission_time: int = -1,
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
@@ -960,6 +961,7 @@ def compile(
         signals_filename: Name of a csv trace file or C2PO signals file
         impl: An R2U2 implementation to target. Should be one of 'c', 'c++', 'cpp', 'fpga', or 'vhdl'
         int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
+        mission_time: Value of mission-time to replace "M" with in specs
         int_signed: If true sets INT type to signed
         float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
         output_filename: Name of binary output file
@@ -972,7 +974,7 @@ def compile(
         quiet: If true disables assembly output to stdout
     """
     with open(input_filename, "r") as f:
-        program: Program|None = parse(f.read())
+        program: Program|None = parse(f.read(), mission_time)
 
     if not program:
         logger.error(" Failed parsing.")

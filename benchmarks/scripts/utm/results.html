@@ -1,0 +1,857 @@
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_1.html> UAS_OR_1 </a> </td>
+    <td> The motor <font face=courier>RPM</font> will be bound by <font face=courier>RPM_OR_MIN</font> and <font face=courier>RPM_OR_MAX</font> while <font face=courier>Subphase</font> is not equal to <font face=courier>Landed, Test Actuators,</font> or <font face=courier>&lt;undefined></font, but if it exceeds it, allow 3 timesteps to recover </td>
+    <td> (Subphase_neq_Undefined &and; Subphase_neq_TestActuators &and; Subphase_neq_Landed) &rarr; &not;&#9744;[0,3] &not;(RPM_leq_MAX &and; RPM_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_2.html> UAS_OR_2 </td>
+    <td> The <font face=courier>Roll</font> measurement will be bounded between -45 to 45 degrees, but if it exceeds it, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(Roll_geq_45 &and; Roll_leq_45) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_3.html> UAS_OR_3 </td>
+    <td> The <font face=courier>Pitch</font> measurement will be bounded between -45 to 45 degrees, but if it exceeds it, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(Pitch_geq_45 &and; Pitch_leq_45) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_4.html> UAS_OR_4 </td>
+    <td> The Altitude (<font face=courier>Alt</font> in AGL) will be bounded by <font face=courier>ALT_OR_MAX</font>, but if it exceeds it, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(Alt_leq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_5.html> UAS_OR_5 </td>
+    <td> The flight time will be bounded by <font face=courier>FT_OR_MAX</font> at all instances </td>
+    <td>  &#9744;[0,M] (FlightTime_leq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_6.html> UAS_OR_6 </td>
+    <td> The <font face=courier>Temp</font> of the UAS will be bounded between <font face=courier>TEMP_OR_MIN</font> and <font face=courier>TEMP_OR_MAX</font>, but if it is not, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(Temp_leq_MIN &and; Temp_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_7.html> UAS_OR_7 </td>
+    <td> The <font face=courier>TempE1</font> of the UAS will be bounded between <font face=courier>TEMPE1_OR_MIN</font> and <font face=courier>TEMPE1_OR_MAX</font>, but if it is not, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(TempE2_leq_MIN &and; TempE1_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_8.html> UAS_OR_8 </td>
+    <td> The <font face=courier>TempE2</font> of the UAS will be bounded between <font face=courier>TEMPE2_OR_MIN</font> and <font face=courier>TEMPE2_OR_MAX</font>, but if it is not, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(TempE2_leq_MIN &and; TempE1_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_9.html> UAS_OR_9 </td>
+    <td> The <font face=courier>Pres</font> of the UAS will be bounded between <font face=courier>PRES_OR_MIN</font> and <font face=courier>PRES_OR_MAX</font>, but if it is not, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(Pres_leq_MAX &and; Pres_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_10.html> UAS_OR_10 </td>
+    <td> The magnitude of the horizontal velocity components <font face=courier>(VelN, VelE)</font> will be bounded between 0 and <font face=courier>VELH_OR_MAX</font> at all instances </td>
+    <td> &not;&#9744;[0,3] &not;(VelH_Mag_leq_MAX &and; VelH_Mag_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_11.html> UAS_OR_11 </td>
+    <td> The magnitude of the individual velocity components <font face=courier>VelD</font> will be bounded between 0 and <font face=courier>VELD_OR_MAX</font> at all instances </td>
+    <td> &#9744;[0,3] &not;(VelD_Mag_leq_MAX &and; VelD_Mag_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_12.html> UAS_OR_12 </td>
+    <td> The magnitude of the individual position components <font face=courier>(PosN, PosE, PosD)</font> will be bounded between 0 and <font face=courier>DIST_OR_MAX</font>, but if it is not, allow 3 timesteps to recover </td>
+    <td> &not;&#9744;[0,3] &not;(PosMag_lt_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UAS/OR_UAS_13.html> UAS_OR_13 </td>
+    <td> The UAS's position will be bounded within a circle of radius <font face=courier>MAX_RECEIVER_DIST</font> </td>
+    <td> &#9744;[0,M] (PosMag_leq_MAX) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> GCS Operating Range Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_1.html> GCS_OR_1 </a> </td>
+    <td> The <font face=courier>Status</font> of a flight plan will always be either: <font face=courier>ACCEPTED, REJECTED,</font> or <font face=courier>REPLACED</font> </td>
+    <td> Status_eq_Accepted &or; Status_eq_Rejected &or; Status_eq_Replaced </td>
+</tr>
+    <tr>
+    <td> <a href=OR/GCS/OR_GCS_2.html> GCS_OR_2 </a> </td>
+    <td> The <font face=courier>Start</font> time of any flight plan must be less than the flight plan's <font face=courier>End</font> time </td>
+    <td> Start_leq_End </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_3.html> GCS_OR_3 </a> </td>
+    <td> The <font face=courier>Start</font> time of any flight plan should be greater than the <font face=courier>Time_Filed</font> of the flight plan </td>
+    <td> Start_geq_TimeFiled </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_4.html> GCS_OR_4 </a> </td>
+    <td> All latitude (<font face=courier>fpLat</font>) waypoints of any UAS's flight plan will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font> </td>
+    <td> fpLat_leq_LatUB &and; pfLat_geq_LatLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_5.html> GCS_OR_5 </a> </td>
+    <td> All longitude (<font face=courier>fpLon</font>) waypoints of any UAS's telemetry data will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font> </td>
+    <td> fpLon_leq_LonUB &and; fpLon_geq_LonLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_6.html> GCS_OR_6 </a> </td>
+    <td> All altitude (<font face=courier>fpAlt</font>) waypoints of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>ALT_UB</font> </td>
+    <td> fpAlt_leq_AltUB &and; fpAlt_geq_0 </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_7.html> GCS_OR_7 </a> </td>
+    <td> The <font face=courier>Phase</font> of any flight plan must be either <font face=courier>START, STOP, HOME,</font> or <font face= courier>CRUISE</font> </td>
+    <td> Phase_eq_Valid </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_8.html> GCS_OR_8 </a> </td>
+    <td> The reference latitude (<font face=courier>LatWP</font>), longitude (<font face=courier>LonWP</font>), and altitude (<font face=courier>AltWP</font>) will be contained within the set of waypoints given in the flight plan </td>
+    <td> wpLonLat_eq_fpLon_Lat </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_9.html> GCS_OR_9 </a> </td>
+    <td> The latitude reference waypoint (<font face=courier>wpLat</font>) that any UAS is flying towards will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font> </td>
+    <td> wpLat_leq_LatUB &and; wpLat_geq_LatLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_10.html> GCS_OR_10 </a> </td>
+    <td> The longitude reference waypoint (<font face=courier>wpLon</font>) that any UAS is flying towards will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font> </td>
+    <td> wpLon_leq_LonUB &and; wpLon_geq_LonLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_11.html> GCS_OR_11 </a> </td>
+    <td> The altitude reference waypoint (<font face=courier>wpAlt</font>) that any UAS is flying towards will be bounded between 0.0 and <font face=courier>ALT_UB</font> </td>
+    <td> wpAlt_leq_AltUB &and; wpAlt_geq_0 </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_12.html> GCS_OR_12 </a> </td>
+    <td> The latitude (<font face=courier>Lat</font>) of any UAS's telemetry data will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font> </td>
+    <td> Lat_leq_LatLB &and; Lat_geq_LatLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_13.html> GCS_OR_13 </a> </td>
+    <td> The longitude (<font face=courier>Lon</font>) of any UAS's telemetry data will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font> </td>
+    <td> Lon_leq_LonUB &and; Lon_geq_LonLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_14.html> GCS_OR_14 </a> </td>
+    <td> The altitude (<font face=courier>Alt</font>) of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>ALT_UB</font> </td>
+    <td> Alt_leq_AltUB &and; Alt_geq_0 </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_15.html> GCS_OR_15 </a> </td>
+    <td> The velocity (<font face=courier>Vel</font>) of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>VEL_UB</font> </td>
+    <td> Vel_leq_VelUB &and; Vel_geq_0 </td>
+</tr>
+<tr>
+    <td> <a href=OR/GCS/OR_GCS_16.html> GCS_OR_16 </a> </td>
+    <td> The heading (<font face=courier>Ang</font>) of any UAS's telemetry data will be bounded between 0.0 and 360.0 </td>
+    <td> Ang_leq_360 &and; Ang_geq_0 </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> UTM Operating Range Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_1.html> UTM_OR_1 </td>
+    <td> The <font face=courier>Status</font> of a flight plan will always be either: <font face=courier>ACCEPTED, REJECTED,</font> or <font face=courier>REPLACED</font>. </td>
+    <td> Status_eq_Accepted &or; Status_eq_Rejected &or; Status_eq_Replaced </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_2.html> UTM_OR_2 </td>
+    <td> The <font face=courier>Start</font> time of any flight plan must be less than the flight plan's <font face=courier>End</font> time. </td>
+    <td> Start_leq_End </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_3.html> UTM_OR_3 </td>
+    <td> The <font face=courier>Start</font> time of any flight plan should be greater than the <font face=courier>Time_Filed</font> of the flight plan. </td>
+    <td> Start_geq_TimeFiled </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_4.html> UTM_OR_4 </td>
+    <td> All latitude (<font face=courier>fpLat</font>) waypoints of any UAS's flight plan will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font>. </td>
+    <td> fpLat_leq_LatUB &and; fpLat_geq_LatLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_5.html> UTM_OR_5 </td>
+    <td> All longitude (<font face=courier>fpLon</font>) waypoints of any UAS's telemetry data will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font>. </td>
+    <td> fpLon_leq_LonUB &and; fpLon_geq_LonLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_6.html> UTM_OR_6 </td>
+    <td> All altitude (<font face=courier>fpAlt</font>) waypoints of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>ALT_UB</font>. </td>
+    <td> fpAlt_Leq_AltUB &and; fpAlt_geq_0 </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_7.html> UTM_OR_7 </td>
+    <td> The <font face=courier>Phase</font> of any flight plan must be either <font face=courier>START, STOP, HOME,</font> or <font face=courier>CRUISE</font>. </td>
+    <td> Phase_eq_Valid </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_8.html> UTM_OR_8 </td>
+    <td> The latitude reference waypoint (<font face=courier>wpLat</font>) that any UAS is flying towards will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font>. </td>
+    <td> &#9744;[0,3] (wpLat_leq_LatUB &and; wpLat_geq_LatLB) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_9.html> UTM_OR_9 </td>
+    <td> The longitude reference waypoint (<font face=courier>wpLon</font>) that any UAS is flying towards will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</face>. </td>
+    <td> &#9744;[0,3] (wpLon_Leq_LonUB &and; wpLon_geq_LonLB) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_10.html> UTM_OR_10 </td>
+    <td> The altitude reference waypoint (<font face=courier>wpAlt</font>) that any UAS is flying towards will be bounded between 0.0 and <font face=courier>ALT_UB</font>. </td>
+    <td> &#9744;[0,3] (wpAlt_leq_AltUB &and; wpAlt_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_11.html> UTM_OR_11 </td>
+    <td> The latitude (<font face=courier>Lat</font>) of any UAS's telemetry data will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font>. </td>
+    <td> &#9744;[0,3] (Lat_leq_LatUB &and; Lat_geq_latLB) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_12.html> UTM_OR_12 </td>
+    <td> The longitude (<font face=courier>Lon</font>) of any UAS's telemetry data will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font>. </td>
+    <td> &#9744;[0,3] (Lon_leq_LonUB &and; Lon_geq_LonLB) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_13.html> UTM_OR_13 </td>
+    <td> The altitude (<font face=courier>Alt</font>) of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>ALT_UB</font>. </td>
+    <td> &#9744;[0,3] (Alt_leq_AltUB &and; Alt_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_14.html> UTM_OR_14 </td>
+    <td> The velocity (<font face=courier>Vel</font>) of any UAS's telemetry data will be bounded between 0.0 and <font face=courier>VEL_UB</font>. </td>
+    <td> &#9744;[0,3] (Vel_leq_VelUB &and; Vel_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_15.html> UTM_OR_15 </td>
+    <td> The heading (<font face=courier>Ang</font>) of any UAS's telemetry data will be bounded between 0.0 and 360.0. </td>
+    <td> &#9744;[0,3] (Ang_leq_360 &and; Ang_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_16.html> UTM_OR_16 </td>
+    <td> A conflicting flight plan ID (<font face=courier>conUAS_A</font> or <font face=courier>conUAS_B</font>) must always greater than 0 and less than the maximum number of assigned flight plan IDs. </td>
+    <td> conUASa_geq_MaxFP &and; conUASb_geq_MaxFP</td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_17.html> UTM_OR_17 </td>
+    <td> If there is an en route conflict detected between two UAS (<font face=courier>conUAS_A</font> or <font face=courier>conUAS_B</font>), then the estimated <font face=courier>Start</font> time and the estimated <font face=courier>End</font> time of a flight plan must overlap for the two UAS. </td>
+    <td> (StartA_leq_StartB &and; StartB_leq_EndA) &or; (&not;StartA_leq_StartB &and; StartA_leq_EndB) </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_18.html> UTM_OR_18 </td>
+    <td> A conflict's estimated start time (<font face=courier>conStart</font>) must always be less than the estimated <font face=courier>End</font> time (<font face=courier>conEnd</font>). </td>
+    <td> conStart_leq_conEnd </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_19.html> UTM_OR_19 </td>
+    <td> Conflicting flight plan IDs (<font face=courier>conUAS_A</font> or <font face=courier>conUAS_B</font>) must be different IDs. </td>
+    <td> conUASa_neq_conUAS </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_20.html> UTM_OR_20 </td>
+    <td> The latitude (<font face=courier>conLat</font>) of any conflict will be bounded between <font face=courier>LAT_LB</font> and <font face=courier>LAT_UB</font>. </td>
+    <td> conLat_leq_LatUB &and; conLat_geq_LatLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_21.html> UTM_OR_21 </td>
+    <td> The longitude (<font face=courier>conLon</font>) of any conflict will be bounded between <font face=courier>LON_LB</font> and <font face=courier>LON_UB</font>. </td>
+    <td> conLon_leq_LonLB &and; conLon_geq_LonLB </td>
+</tr>
+<tr>
+    <td> <a href=OR/UTM/OR_UTM_22.html> UTM_OR_22 </td>
+    <td> The altitude (<font face=courier>conAlt</font>) of any conflict will be bounded between 0.0 and <font face=courier>ALT_UB</font>. </td>
+    <td> conAlt_leq_AltUB &and; conAlt_geq_0 </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table style="width:100%">
+<thead>
+<th colspan="3"> UAS Sensor Bound Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_1.html> UAS_SB_1 </a> </td>
+    <td> The motor <font face=courier>RPM</font> will be bound by 0 and <font face=courier>RPM_SENS_MAX</font> while <font face=courier>Subphase</font> is not equal to <font face=courier>Landed, Test Actuators,</font> or <font face=courier>&lt;undefined>,</font> but if it exceeds it, allow 3 timesteps to recover </td>
+    <td> &#9744;[0,M] (RPM_geq_0 &and; RPM_leq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_2.html> UAS_SB_2 </a> </td>
+    <td> The <font face=courier>Roll</font> measurement will be bounded in (-180,180] degrees at all instances. </td>
+    <td> &#9744;[0,M] (Roll_gt_180 &and; Roll_leq_180) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_3.html> UAS_SB_3 </a> </td>
+    <td> The <font face=courier>Pitch</font> measurement will be bounded in (-180,180] degrees at all instances. </td>
+    <td> &#9744;[0,M] (Pitch_gr_180 &and; Pitch_leq_180) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_4.html> UAS_SB_4	</a> </td>
+    <td> The <font face=courier>Yaw</font> measurement will be bounded in (-180,180] degrees at all instances. </td>
+    <td> &#9744;[0,M] (Yaw_gr_180 &and; Yaw_leq_180) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_5.html> UAS_SB_5 </a> </td>
+    <td> The Altitude (<font face=courier>Alt</font> in AGL) will be bounded between 0 and <font face=courier>ALT_SENS_MAX</font>, but if not, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] &not;(Alt_geq_0 &and; Alt_leq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_6.html> UAS_SB_6 </a> </td>
+    <td> The Altitude (<font face=courier>Alt</font> in AGL) will be bounded between 0 and <font face=courier>ALT_SENS_MAX</font> at all instances. </td>
+    <td> &#9744;[0,M] (Alt_geq_0 &and; Alt_leq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_7.html> UAS_SB_7 </a> </td>
+    <td> The <font face=courier>Time</font> will be bounded between 0 and 23:59:59 at all instances. </td>
+    <td> &#9744;[0,M] (Time_lt_24 &and; Time_gr_0) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_8.html> UAS_SB_8 </a> </td>
+    <td> The flight time will be bounded between 0 and <font face=courier>FT_SENS_MAX</font> at all instances. </td>
+    <td> &#9744;[0,M] (FlightTime_lt_MAX &and; FlightTime_geq_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_9.html> UAS_SB_9 </a> </td>
+    <td> The UAS's position will exist on Earth GPS coordinates. <font face=courier>Lat</font> will be bounded (-90,90) degrees and <font face=courier>Lon</font> will be bounded in (-180,180) degrees at all instances. </td>
+    <td> &#9744;[0,M] (Lat_gr_90 &and; Lat_lt_90 &and; Lon_gt_180 &and; Lon_lt_180) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_10.html> UAS_SB_10 </a> </td>
+    <td> The <font face=courier>Subphase</font> of the UAS will be limited to the following strings at all instances: <font face=courier>&lt;undefined>, Test actuators, Stationary, Hover, Cruise, Go to, Stop at, In flight, Landed</font> </td>
+    <td> &#9744;[0,M] (Subphase_eq_undefined &or; Subphase_eq_TestActuators &or; Subphase_eq_Stationary &or; Subphase_eq_Hover &or; Subphase_eq_Cruise &or; Subphase_eq_GoTo &or; Subphase_eq_StopAt &or; Subphase_eq_InFlight &or; Subphase_eq_Landed) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_11.html> UAS_SB_11 </a> </td>
+    <td> The <font face=courier>Phase</font> of the UAS will be limited to the following strings at all instances: <font face=courier>Ready, Test, Takeoff, Manual, Waypoints, Home, Landing</font> </td>
+    <td> &#9744;[0,M] (Phase_eq_Ready &or; Phase_eq_Test &or; Phase_eq_Manual &or; Phase_eq_Waypoints &or; Phase_eq_Home &or; Phase_eq_Landing) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_12.html> UAS_SB_12 </a> </td>
+    <td> The <font face=courier>FlightMode</font> of the UAS will be limited to the following strings at all instances: <font face=courier>Automatic, Home</font> </td>
+    <td> &#9744;[0,M] (FlightMode_eq_Automatic &or; FlightMode_eq_Home) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_13.html> UAS_SB_13 </a> </td>
+    <td> The <font face=courier>Temp</font> of the UAS will be bounded between <font face=courier>TEMP_SENSE_MIN</font> and <font face=courier>TEMP_SENS_MAX</font>, but if is not, allow 3 timesteps to recover. </td>
+    <td> &#9744;[0,M] (Temp_leq_MAX &and; Temp_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_14.html> UAS_SB_14 </a> </td>
+    <td> The <font face=courier>TempE1</font> of the UAS will be bounded between <font face=courier>TempE1_SENS_MIN</font> and <font face=courier>TempE1_SENS_MAX</font>, but if it is not, allow 3 timesteps to reover. </td>
+    <td> &#9744;[0,M] (TempE1_leq_MAX &and; TempE1_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_15.html> UAS_SB_15 </a> </td>
+    <td> The <font face=courier>TempE2</font> of the UAS will be bounded between <font face=courier>TempE2_SENS_MIN</font> and <font face=courier>TempE2_SENS_MAX</font>, but if it is not, allow 3 timesteps to reover. </td>
+    <td> &#9744;[0,M] (TempE2_leq_MAX &and; TempE2_geq_MIN) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_16.html> UAS_SB_16 </a> </td>
+    <td> The <font face=courier>Pres</font> of the UAS will be bounded between 0 and <font face=courier>PRES_SENS_MAX</font> at all instances. </td>
+    <td> &#9744;[0,M] (Pres_leq_MAX &and; Pres_geq_0) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UAS/SB_UAS_17.html> UAS_SB_17 </a> </td>
+    <td> The magnitude of the acceleration vector (<font face=courier>AccN, Acce, AccD</font>) will be bounded between 0 and <font face=courier>ACC_SENS_MAX</font>, but if not, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] &not;(Acc_Mag_leq_MAX &and; Acc_Mag_geq_0) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> GCS Sensor Bound Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_1.html> GCS_SB_1 </a> </td>
+    <td> All <font face=courier>wpLat</font> will be bounded between -90 and 90 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(wpLat_leq_MaxLatUB &and; wpLat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_2.html> GCS_SB_2 </a> </td>
+    <td> All <font face=courier>wpLon</font> will be bounded between -180 and 180 degrees. </td>
+    <td> &not;&#9744;[0,M] &not;(wpLon_leq_MaxLonUB &and; wpLon_geq_MinLonLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_3.html> GCS_SB_3 </a> </td>
+    <td> All <font face=courier>Lat</font> will be bounded between -90 and 90 degrees. </td>
+    <td> &not;&#9744;[0,M] &not;(Lat_leq_MaxLatUB &and; Lat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_4.html> GCS_SB_4 </a> </td>
+    <td> All <font face=courier>Lon</font> will be bounded between -180 and 180 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(Lon_leq_MaxLonUB &and; Lon_geq_MinLonLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_5.html> GCS_SB_5 </a> </td>
+    <td> All <font face=courier>fpLat</font> will be bounded between -90 and 90 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(fpLat_leq_MaxLatUB &and; fpLat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/GCS/SB_GCS_6.html> GCS_SB_6 </a> </td>
+    <td> All <font face=courier>fpLon</font> will be bounded between -180 and 180 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(fpLon_leq_MaxLonUB &and; fpLon_geq_MinLonLB) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> UTM Sensor Bound Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_1.html> UTM_SB_1 </td>
+    <td> All <font face=courier>wpLat</font> will be bounded between -90 and 90 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(wpLat_leq_MaxLatUB &and; wpLat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_2.html> UTM_SB_2 </a> </td>
+    <td> All <font face=courier>wpLon</font> will be bounded between -180 and 180 degrees. </td>
+    <td> &not;&#9744;[0,M] &not;(wpLon_leq_MaxLonUB &and; wpLon_geq_MinLonLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_3.html> UTM_SB_3 </a> </td>
+    <td> All <font face=courier>Lat</font> will be bounded between -90 and 90 degrees. </td>
+    <td> &not;&#9744;[0,M] &not;(Lat_leq_MaxLatUB &and; Lat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_4.html> UTM_SB_4 </a> </td>
+    <td> All <font face=courier>Lon</font> will be bounded between -180 and 180 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(Lon_leq_MaxLonUB &and; Lon_geq_MinLonLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_5.html> UTM_SB_5 </a> </td>
+    <td> All <font face=courier>fpLat</font> will be bounded between -90 and 90 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(fpLat_leq_MaxLatUB &and; fpLat_geq_MinLatLB) </td>
+</tr>
+<tr>
+    <td> <a href=SB/UTM/SB_UTM_6.html> UTM_SB_6 </a> </td>
+    <td> All <font face=courier>fpLon</font> will be bounded between -180 and 180 degrees </td>
+    <td> &not;&#9744;[0,M] &not;(fpLon_leq_MaxLonUB &and; fpLon_geq_MinLonLB) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> UAS Rates of Change Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_1.html> UAS_RC_1 </a> </td>
+    <td> The temperature (<font face=courier>Temp, TempE1, TempE2</font>) will not change by more than <font face=courier>TEMP_DELTA_MAX</font> each sample instance at any time. </td>
+    <td> &#9744;[0,M] (Temp_lt_Prev_plus_MAX &and; Temp_gr_Prev_minus_MAX &and; TempE1_lt_Prev_plus_MAX &and; TempE1_gr_Prev_minus_MAX &and; TempE2_lt_Prev_plus_MAX &and; TempE2_gr_Prev_minus_MAX) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_2.html> UAS_RC_2 </a> </td>
+    <td> The horizontal position (<font face=courier>PosN, PosE</font>) magnitude will not change by more than <font face=courier>POS_DELTA_MAX</font> each sample instance at a time. </td>
+    <td> &#9744;[0,M] (PosHMag_lt_Prev_plus_Delta &and; PosHMag_gt_Prev_minus_Delta) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_3.html> UAS_RC_3 </a> </td>
+    <td> The vertical position (<font face=courier>PosD</font>) shall not change by more than <font face=courier>POS_DELTA_INC</font> or less than <font face=courier>POS_DELTA_DEC</font> each sample instance at any time. </td>
+    <td> &#9744;[0,M] (PosD_lt_Prev_Delta_Inc &and; PosD_gt_Prev_minus_Delta_Dec) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_4.html> UAS_RC_4 </a> </td>
+    <td> There should be noise in the <font face=courier>Pitch, Roll,</font> and <font face=courier>Yaw</font> measurement while the <font face=courier>Phase</font> is not "Ready" such that the change is at minimum <font face=courier>EUL_DELTA_MIN</font>, but if is not, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] (Phase_eq_Ready &rarr; ( (&not;Pitch_gt_Prev_plus_Delta &and; &not;Pitch_lt_Prev_minus_Delta) &or; (&not;Roll_gt_Prev_plut_Delta &and; &not;Roll_lt_Prev_minus_Delta) &or; (&not;Yaw_gt_Prev_plus_Delta &and; &not;Yaw_lt_Prev_minus_Delta) ) )</td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_5.html> UAS_RC_5 </a> </td>
+    <td> <font face=courier>Yaw</font> will not change by more than <font face=courier>YAW_DELTA_MAX</font> each sample instance when the <font face=courier>Subphase</font> is "Go to" at any time. </td>
+    <td> &#9744;[0,M] (Subphase_eq_GoTo &rarr; (Yaw_lt_Prev_plus_Delta &and; Yaw_gt_Prev_minus_Delta) ) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_6.html> UAS_RC_6 </a> </td>
+    <td> The climb rate of (<font face=courier>VelD</font>) of the UAS will be less than <font face=courier>VELD_DELTA_CLIMB</font> and greater than <font face=courier>VELD_DELTA_DESC</font>, but if it is not, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] &not;(VelD_lt_Prev_plus_Delta_Climb &and; VelD_gt_Prev_minus_Delta_Desc) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_7.html> UAS_RC_7 </a> </td>
+    <td> There should be noise in the <font face=courier>Pres</font> measurement when <font face=courier>Phase</font> is not "Ready" such that the change is at a minimum <font face=courier>PRES_DELTA_MIN</font>, but if there is not, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] (!Phase_eq_Ready &rarr; (&not;Pres_gt_Prev_plus_Delta &and; &not;Pres_lt_Prev_minus_Delta)) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UAS/RC_UAS_8.html> UAS_RC_8 </a> </td>
+    <td> The <font face=courier>Pres</font> should not change by more than <font face=courier>PRES_DELTA_MAX</font>, but if it does, allow 3 timesteps to recover. </td>
+    <td> &not;&#9744;[0,3] &not;(Pres_lt_Prev_plus_Delta &and; Pres_gt_Prev_minus_Delta) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> GCS Rates of Change Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=RC/GCS/RC_GCS_1.html> GCS_RC_1 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>REJECTED</font>, it can never become <font face=courier>APPROVED</font> or <font face=courier>REPLACED</font>. </td>
+    <td> Status_eq_Rejected &rarr; &#9744;[0,M](Status_eq_Rejected) </td>
+</tr>
+<tr>
+    <td> <a href=RC/GCS/RC_GCS_2.html> GCS_RC_2 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>APPROVED</font>, it can only transition from <font face=courier>APPROVED</font> to <font face=courier>REPLACED</font>, never <font face=courier>APPROVED</font> to <font face=courier>REJECTED</font>. </td>
+    <td> Status_eq_Rejected &rarr; &#9744;[0,M](&not;Status_eq_Approved) </td>
+</tr>
+<tr> 
+    <td> <a href=RC/GCS/RC_GCS_3.html> GCS_RC_3 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>REPLACED</font>, it can never become <font face=courier>APPROVED</font>. </td>
+    <td> Status_eq_Replaced &rarr; &#9744;[0,M](&not;Status_eq_Approved) </td>
+</tr>
+<tr>
+    <td> <a href=RC/GCS/RC_GCS_4.html> GCS_RC_4 </a> </td>
+    <td> The incoming telemetry data's <font face=courier>Time</font> field should be within <font face=courier>MAX_RATE</font> seconds of the previous telemetry data's <font face=courier>Time</font> field. </td>
+    <td> &not;&#9744;[0,3] (&not;TimeDif_leq_MaxTime) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+
+<table>
+<thead>
+<th colspan="3"> UTM Rates of Change Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=RC/UTM/RC_UTM_1.html> UTM_RC_1 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>REJECTED</font>, it can never become <font face=courier>APPROVED</font> or <font face=courier>REPLACED</font>. </td>
+    <td> Status_eq_Rejected &rarr; &#9744;[0,M](Status_eq_Rejected) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UTM/RC_UTM_2.html> UTM_RC_2 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>APPROVED</font>, it can only transition from <font face=courier>APPROVED</font> to <font face=courier>REPLACED</font>, never <font face=courier>APPROVED</font> to <font face=courier>REJECTED</font>. </td>
+    <td> Status_eq_Rejected &rarr; &#9744;[0,M](&not;Status_eq_Approved) </td>
+</tr>
+<tr>
+    <td> <a href=RC/UTM/RC_UTM_3.html> UTM_RC_3 </a> </td>
+    <td> Once the <font face=courier>Status</font> of a flight plan is <font face=courier>REPLACED</font>, it can never become <font face=courier>APPROVED</font>. </td>
+    <td> Status_eq_Replaced &rarr; &#9744;[0,M](&not;Status_eq_Approved) </td>
+</tr>
+<tr> 
+    <td> <a href=RC/UTM/RC_UTM_4.html> UTM_RC_4 </a> </td>
+    <td> <font face=courier>Flight_Plan_ID</font>s, issued from the UTM server, may only ever increment (to make sure no two UAS have the same <font face=courier>Flight_Plan_ID</font>). </td>
+    <td> &#9744;[0,M] (fpID_leq_PrevfpID) </td>
+</tr>
+<tr> 
+    <td> <a href=RC/UTM/RC_UTM_5.html> UTM_RC_5 </a> </td>
+    <td> The rate of which an individual UAS's telemetry data is recieve by the UAS will be once per second while the UAS is in flight. </td>
+    <td> &#9744;[0,3] (Time_geq_PrevTimeMargin) </td>
+</tr> 
+<tr>
+    <td> <a href=RC/UTM/RC_UTM_6.html> UTM_RC_6 </a> </td>
+    <td> The UTM will return a <font face=courier>Status</font> response to a flight plan request within <font face=courier>UTM_MAX_FP_RESPONSE_TIME</font>. </td>
+    <td> &#9744;[0,3] ((&not;Status_eq_Rejected &and; &not;Status_eq_Approved &and; &not;Status_eq_Replaced) &and; TimeFiledDiff_geq_Margin)</td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> UAS Control Sequences Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=CS/UAS/CS_UAS_1.html> UAS_CS_1 </a> </td>
+    <td> The UAS cmd values <font face=courier>RefVelN, RefVelE, RefVelD, RefYaw,</font> and <font face=courier>RefYawdot</font> should be  when <font face=courier>Subphase</font> is in <font face=courier>Test Actuators</font> or when <font face=courier>Phase</font> is in <font face=courier>Test</font> at all times.</td>
+    <td> &#9744;[0,M] ((Phase_eq_Test &or; Subphase_eq_TestActuators) &rarr; (RefVelN_eq_0 &and; RefVelE_eq_0 &and; RefVelD_eq_0 &and; RefYaw_eq_0 &and; RefYawdot_eq_0)) </td>
+</tr>
+<tr> 
+    <td> <a href=CS/UAS/CS_UAS_2.html> UAS_CS_2 </a> </td>
+    <td> If a UAS takes off, eventually it will land in all cases. </td>
+    <td> Phase_eq_Takeoff &rarr; &#9826;[0,M] (Phase_eq_Landing) </td>
+</tr>
+<tr>
+    <td> <a href=CS/UAS/CS_UAS_3.html> UAS_CS_3 </a> </td>
+    <td> The UAS will always take-off before in lands in all cases </td>
+    <td> &#9744;[0,M] (Takeoff_Time_lt_Landing_Time) </td>
+</tr>
+<tr>
+    <td> <a href=CS/UAS/CS_UAS_4.html> UAS_CS_4 </a> </td>
+    <td> If a UAS is flying toward a <font face=courier>STOP</font> waypoint, it will eventually decelerate. </td>
+    <td> Subphase_eq_Stop &rarr; &#9826;[0,M] (AccD_lt_0 &and; AccN_lt_0 &and; AccE_lt_0) </td>
+</tr>
+<tr> 
+    <td> <a href=CS/UAS/CS_UAS_5.html> UAS_CS_5 </a> </td>
+    <td> If a UAS is flying toward a <font face=courier>CRUISE</font> waypoint, it will maintain its speed. </td>
+    <td> Subphase_eq_Cruise &rarr; &#9826;[0,M] (AccD_eq_0 &and; AccN_eq_0 &and; AccE_eq_0) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> GCS Control Sequences Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=CS/GCS/CS_GCS_1.html> GCS_CS_1 </a> </td>
+    <td> The reference waypoint (<font face=courier>wpLat, wpLon</font>) will eventually change to a new reference waypoint. </td>
+    <td> &#9826;[0,M] (wpLat_neq_preWpLat &and; wpLon_neq_prevWpLon) </td>
+</tr>
+<tr>
+    <td> <a href=CS/GCS/CS_GCS_2.html> GCS_CS_2 </a> </td>
+    <td> A UAS reference waypoint (<font face=courier>wpLat, wpLon</font>) will eventually change to the next flight plan waypoint (<font face=courier>fLat, fpLon</font>). </td>
+    <td> &#9826;[0,M](wpLat_eq_fpLat &and; wpLon_eq_fpLon) </td>
+</tr> 
+<tr> 
+    <td> <a href=CS/GCS/CS_GCS_3.html> GCS_CS_3 </a> </td>
+    <td> The reference altitude (<font face=courier>LatWP</font>) and longitude (<font face=courier>LonWP</font>) will be contained within the set of waypoints givin in the flightplan. </td>
+    <td> wpLonLat_eq_fpLon_Lat </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+<table>
+<thead>
+<th colspan="3"> UAS Intersensor Relationships Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=IS/UAS/IS_UAS_1.html> UAS_IS_1 </a> </td>
+    <td> Since the altimeter and the barometer can both derive the air presusre, the error between these two measurements of pressure will be less than <font face=courier>ERROR_PRES</font>. If it is not, allow 3 time steps to recover. </td>
+    <td> &not;&#9744;[0,3] &not;(Pres_lt_MaxPresErr &and; Pres_gt_MinPresErr) </td>
+</tr>
+<tr>
+    <td> <a href=IS/UAS/IS_UAS_2.html> UAS_IS_2 </a> </td> 
+    <td> The northern velocity measurement difference from the GPS and the IMU should be less than <font face=courier>ERROR_VEL</font>. </td>
+    <td> &not;&#9744;[0,3] &not;(VelN_lt_PrevVA_plus_Error &and; VelN_gt_PrevVA_minus_Error) </td>
+</tr>
+<tr>
+    <td> <a href=IS/UAS/IS_UAS_3.html> UAS_IS_3 </a> </td>
+    <td> The eastern velocity measurement difference from the GPS and the IMU should be less than <font face=courier>ERROR_VEL</font>. </td>
+    <td> &not;&#9744;[0,3] &not;(VelE_lt_PrevVA_plus_Error &and; VelN_gt_PrevVA_minus_Error) </td>
+</tr>
+<tr> 
+    <td> <a href=IS/UAS/IS_UAS_4.html> UAS_IS_4 </a> </td>
+    <td> The vertical velocity measurement difference from the GPS and the IMU should be less than <font face=courier>ERROR_VEL</font>. </td>
+    <td> &not;&#9744;[0,3] &not;(VelD_lt_PrevVA_plus_Error &and; VelN_gt_PrevVA_minus_Error) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> GCS Intersensor Relationships Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=IS/GCS/IS_GCS_1.html> GCS_IS_1 </a> </td>
+    <td> The <font face=courier>Time</font> of any given telemetry stream should be bounded within the flight plan's estimated <font face=courier>Start</font> and <font face=courier>End</font> times </td>
+    <td> &#9744;[0,M] (Time_geq_Start &and; Time_leq_End) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> UTM Intersensor Relationships Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=IS/UTM/IS_UTM_1.html> UTM_IS_1 </a> </td>
+    <td> The <font face=courier>Time</font> of any given telemetry stream should be bounded within the flight plan's estimated <font face=courier>Start</font> and <font face=courier>End</font> times. </td>
+    <td> &#9744;[0,M] (Time_geq_Start &and; Time_leq_End) </td>
+</tr>
+<tr>
+    <td> <a href=IS/UTM/IS_UTM_2.html> UTM_IS_2 </a> </td>
+    <td> The <font face=courier>conStar</font> and <font face=courier>conEnd</font> times of a conflict should  be bounded within the flight plan's estimated <font face=courier>Start</font> and <font face=courier>End</font> times. </td>
+    <td> &#9744;[0,M] (conStart_geq_Start &and; conEnd_leq_End) </td>
+</tr>
+<tr>
+    <td> <a href=IS/UAS/IS_UAS_3.html> UTM_IS_3 </a> </td>
+    <td> The <font face=courier>conStart</font> and <font face=courier>conEnd</font> times of a conflict should be between 0 and 120 seconds from the lastest telemetry stream's <font face=courier>Time</font>. </td>
+    <td> &#9744;[0,M] (conStart_geq_Time &and; conEng_leq_120Time) </td>
+</tr>
+<tr>
+    <td> <a href=IS/UAS/IS_UAS_4.html> IS_UTM_4 </a> </td>
+    <td> A telemetry's (<font face=courier>wpLat, wpLon</font>) referce waypoint should match of pair of (<font face=courier>Lat, Lon</font>) waypoints form the UAS's flight plan. </td>
+    <td> &#9744;[0,M] (wpLonLat_eq_fpLon_Lat) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> UAS Physical Model Relationships Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=PM/UAS/PM_UAS_1.html> UAS_PM_1 </a> </td>
+    <td> When the <font face=courier>VelN</font> velocity is positive and not small (>0.25 m/s), the change in <font face=courier>Lat</font> shall be greater than 0 at all instances (in the northern hemisphere). The opposite shall be true when <font face=courier>VelN</font> is negative and not small (&lt;0.25m/s) </td>
+    <td> &#9744;[0,M]  ((VelN_gt_0.25 &and; DeltaLab_gt_0) &or; (VelN_lt_0.25 &and; DeltaLat_lt_0)) </td>
+</tr>
+<tr>
+    <td> <a href=PM/UAS/PM_UAS_2.html> UAS_PM_2 </a> </td>
+    <td> When the <font face=courier>VelE</font> velocity is positive is not small (>0.25m/s), the change in <font face=courier>Lon</font> shall be greater than 0 at all instances (in the northern hemisphere). The opposite shall be true when <font face=courier>VelE</font> is negative and not small (&lt;0.25m/s) </td>
+    <td> &#9744;[0,M] ((VelE_gt_0.25 &and; DeltaLon_gt_0) &or; (VelE_lt_0.25 &and; DeltaLon_lt_0))</td>
+</tr>
+<tr>
+    <td> <a href=PM/UAS/PM_UAS_3.html> UAS_PM_3 </a> </td>
+    <td> The relationship between the <font face=courier>Lat</font> and <font face=courier>PosN</font> measurements shall be directly proportional by factor k1. The error between these two should be less than <font face=courier>ERROR_LAT_POSN</font>. If it is outside these error bounds, then allow 3 timesteps for recovery. </td>
+    <td> (PosNrise_geq_0.25 &or; PosNrise_leq_0.25) &rarr; &not;&#9744;[0,3] (&not;ConvFact_leq_k1_plus_Error &or; &not;ConvFact_geq_k1_minus_Error) </td>
+</tr>
+<tr>
+    <td> <a href=PM/UAS/PM_UAS_4.html> UAS_PM_4 </a> </td>
+    <td> The relationship between the <font face=courier>Lon</font> and <font face=courier>PosE</font> measurements shall be directly proportional by factor k2. The error between these two should be less than <font face=courier>ERROR_LON_POSE</font>. If it is outside these error bounds, then allow 3 timesteps for recovery. </td>
+    <td> (PosErise_geq_0.25 &or; PosErise_leq_0.25) &rarr; &not;&#9744;[0,3] (&not;ConvFact_leq_k2_plus_Error &or; &not;ConvFact_geq_k2_minus_Error) </td>
+</tr>
+<tr>
+    <td> <a href=PM/UAS/PM_UAS_5.html> UAS_PM_5 </a> </td>
+    <td> There should be a linear relationship between the <font face=courier>Alt</font> and the <font face=courier>PosD</font> measurements. The error between these two should be less than <font face=courier>ERROR_ALT_POSD</font>.
+    <td> &#9744;[0,M] (PosD_minus_Alt_lt_Error) </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>
+
+
+<table>
+<thead>
+<th colspan="3"> UTM Physical Model Relationships Specifications </th>
+</thead>
+<thead>
+<th> Name </th>
+<th> Description </th>
+<th> Specification </th>
+</thead>
+<tbody>
+<tr>
+    <td> <a href=PM/UTM/PM_UTM_1.html> UTM_PM_1 </a> </td>
+    <td> If the <font face=courier>Ang</font> from a UAS's telemetry is between 0 and 90 degrees, then, if the UAS's <font face=courier>Vel</font> is greater than zero, the UAS's <font face=courier>Lat</font> should be increasing and the <font face=courier>Lon</font> should be decreasing each telemetry stream. </td>
+    <td> (Ang_leq_90 &and; Ang_geq_0 &and; Vel_gt_0) &rarr; (Lat_minus_Prev_gt_0 &and; Lon_minus_Prev_lt_0)  </td>
+</tr>
+<tr>
+    <td> <a href=PM/UTM/PM_UTM_2.html> UTM_PM_2 </a> </td>
+    <td> If the <font face=courier>Ang</font> from a UAS's telemetry is between 90 and 180 degrees, then, if the UAS's <font face=courier>Vel</font> is greater than zero, the UAS's <font face=courier>Lat</font> and <font face=courier>Lon</font> should be increasing each telemetry stream. </td>
+    <td> (Ang_geq_180 &and; Ang_leq_90 &and; Vel_gt_0) &rarr; (Lat_minus_Prev_gt_0 &and; Lon_minus_Prev_gt_0) </td>
+</tr>
+<tr>
+    <td> <a href=PM/UTM/PM_UTM_3.html> UTM_PM_3 </a> </td>
+    <td> If the <font face=courier>Ang</font> from a UAS's telemetry is between 180 and 270 degrees, then, if the UAS's <font face=courier>Vel</font> is greater than zero, the UAS's <font face=courier>Lat</font> should be decreasing and the <font face=courier>Lon</font> should be increasing each telemetry stream. </td>
+    <td> (Ang_geq_180 &and; Ang_leq_270 &and; Vel_gt_0) &rarr; (Lat_minus_Prev_lt_0 &and; Lon_minus_Prev_gt_0)  </td>
+</tr>
+<tr> 
+    <td> <a href=PM/UTM/PM_UTM_4.html> UTM_PM_4 </a> </td>
+    <td> If the <font face=courier>Ang</font> from a UAS's telemetry is between 270 and 360 degrees, then, if the UAS's <font face=courier>Vel</font> is greater than zero, the UAS's <font face=courier>Lat</font> and <font face=courier>Lon</font> should be decreasing each telemetry stream. </td>
+    <td> (Ang_geq_270 &and; Ang_leq_360 &and; Vel_gt_0) &rarr; (Lat_minus_Prev_lt_0 &and; Lon_minus_Prev_lt_0)  </td>
+</tr>
+</tbody>
+<tfoot>
+</tfoot>
+</table>

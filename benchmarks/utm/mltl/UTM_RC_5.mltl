@@ -1,0 +1,5 @@
+INPUT
+	Time_geq_PrevTimeMargin: bool;
+
+FTSPEC
+	G[0,3] (Time_geq_PrevTimeMargin);

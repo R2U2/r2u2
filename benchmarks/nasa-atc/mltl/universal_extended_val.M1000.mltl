@@ -1,0 +1,6 @@
+INPUT
+	hasfault: bool;
+
+FTSPEC
+	G[369,538] (hasfault ->  G[605,1000] hasfault) && G[865,1000] (hasfault ->  F[887,1000] !hasfault) && true
+;

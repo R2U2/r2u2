@@ -1,0 +1,5 @@
+INPUT
+	PosD_minus_Alt_lt_Error: bool;
+
+FTSPEC
+	G[0,M] (PosD_minus_Alt_lt_Error);

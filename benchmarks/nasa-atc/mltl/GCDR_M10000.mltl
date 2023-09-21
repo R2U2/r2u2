@@ -1,0 +1,6 @@
+INPUT
+	LiVar643,LiVar633,LiVar578,LiVar672,LiVar616,LiVar681,LiVar615,LiVar590,LiVar635,LiVar617,LiVar634,LiVar642,LiVar584,LiVar644,LiVar662,LiVar624,LiVar680,LiVar572,LiVar626,LiVar671,LiVar689,LiVar690,LiVar625,LiVar663: bool;
+
+FTSPEC
+	(true -> ((((((((((( G[1294,10000] (LiVar644 -> LiVar590) &&  G[7561,10000] (LiVar689 -> LiVar642)) &&  G[3122,10000] (LiVar690 -> LiVar643)) &&  G[7328,10000] (LiVar635 -> LiVar584)) &&  G[3097,6581] (LiVar680 -> LiVar633)) &&  G[3906,10000] (LiVar681 -> LiVar634)) &&  G[3272,8856] (LiVar626 -> LiVar578)) &&  G[675,6692] (LiVar671 -> LiVar624)) &&  G[5866,6764] (LiVar672 -> LiVar625)) &&  G[1554,9535] (LiVar617 -> LiVar572)) &&  G[8,7292] (LiVar662 -> LiVar615)) &&  G[1671,5540] (LiVar663 -> LiVar616))) && true
+;

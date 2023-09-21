@@ -1,0 +1,5 @@
+INPUT
+	conLon_leq_LonLB,conLon_geq_LonLB: bool;
+
+FTSPEC
+	conLon_leq_LonLB && conLon_geq_LonLB;

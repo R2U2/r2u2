@@ -1,0 +1,5 @@
+INPUT
+	FlightMode_eq_Automatic,FlightMode_eq_Home: bool;
+
+FTSPEC
+	G[0,M] (FlightMode_eq_Automatic || FlightMode_eq_Home);

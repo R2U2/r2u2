@@ -1,0 +1,6 @@
+INPUT
+	LiVar783,LiVar749,LiVar784,LiVar748,systemvaliditycmd,LiVar395: bool;
+
+FTSPEC
+	(true -> ( G[217,887] ((LiVar783 && systemvaliditycmd) -> (LiVar748 && LiVar395)) &&  G[564,1000] ((LiVar784 || !systemvaliditycmd) -> LiVar749))) && true
+;
