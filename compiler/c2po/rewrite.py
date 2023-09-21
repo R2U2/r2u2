@@ -213,19 +213,19 @@ def rewrite_set_aggregation(program: Program) -> None:
             cur = LogicalOr(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
             a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, ForExactlyN):
+        elif isinstance(a, ForExactly):
             s: Set = a.get_set()
             rewrite_struct_access_util(a.get_set())
             cur = Equal(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())
             a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, ForAtLeastN):
+        elif isinstance(a, ForAtLeast):
             s: Set = a.get_set()
             rewrite_struct_access_util(s)
             cur = GreaterThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())
             a.replace(cur)
             rewrite_struct_access_util(cur)
-        elif isinstance(a, ForAtMostN):
+        elif isinstance(a, ForAtMost):
             s: Set = a.get_set()
             rewrite_struct_access_util(s)
             cur = LessThanOrEqual(a.ln, ArithmeticAdd(a.ln, [rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()]), a.get_num())

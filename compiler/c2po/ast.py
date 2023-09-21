@@ -1,14 +1,11 @@
 from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, Callable, NamedTuple, NewType, cast, List, Tuple
-from logging import getLogger
 
 from .type import R2U2Implementation
 
-from .logger import *
+from .logger import logger
 from .type import *
-
-logger = getLogger(LOGGER_NAME)
 
 class Interval(NamedTuple):
     lb: int
@@ -621,11 +618,11 @@ class ForSome(SetAggOperator):
         self.name: str = "forsome"
 
 
-class ForExactlyN(SetAggOperator):
+class ForExactly(SetAggOperator):
 
     def __init__(self, ln: int, s: Set, n: Node, v: Variable, e: Node) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = "forexactlyn"
+        self.name: str = "forexactly"
         self.add_child(n)
 
     def get_num(self) -> Node:
@@ -633,16 +630,16 @@ class ForExactlyN(SetAggOperator):
     
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        new = ForExactly(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 
 
-class ForAtLeastN(SetAggOperator):
+class ForAtLeast(SetAggOperator):
 
     def __init__(self, ln: int, s: Set, n: Node, v: Variable, e: Node) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = "foratleastn"
+        self.name: str = "foratleast"
         self.add_child(n)
 
     def get_num(self) -> Node:
@@ -650,16 +647,16 @@ class ForAtLeastN(SetAggOperator):
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        new = ForExactly(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 
 
-class ForAtMostN(SetAggOperator):
+class ForAtMost(SetAggOperator):
 
     def __init__(self, ln: int, s: Set, n: Node, v: Variable, e: Node) -> None:
         super().__init__(ln, s, v, e)
-        self.name: str = "foratmostn"
+        self.name: str = "foratmost"
         self.add_child(n)
 
     def get_num(self) -> Node:
@@ -667,7 +664,7 @@ class ForAtMostN(SetAggOperator):
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
-        new = ForExactlyN(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
+        new = ForExactly(self.ln, cast(Set, children[0]), children[3], cast(Variable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 

@@ -3,13 +3,12 @@ from logging import getLogger
 
 from .sly import Lexer, Parser
 from .ast import *
-from .logger import *
-
-logger = getLogger(LOGGER_NAME)
+from .logger import logger
 
 class C2POLexer(Lexer):
 
     tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
+               KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_MISSION_TIME,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
@@ -77,12 +76,17 @@ class C2POLexer(Lexer):
     RPAREN  = r'\)'
 
     # Keywords
-    SYMBOL['STRUCT'] = KW_STRUCT
-    SYMBOL['INPUT'] = KW_INPUT
-    SYMBOL['DEFINE'] = KW_DEFINE
-    SYMBOL['ATOMIC'] = KW_ATOMIC
-    SYMBOL['FTSPEC'] = KW_FTSPEC
-    SYMBOL['PTSPEC'] = KW_PTSPEC
+    SYMBOL['STRUCT']     = KW_STRUCT
+    SYMBOL['INPUT']      = KW_INPUT
+    SYMBOL['DEFINE']     = KW_DEFINE
+    SYMBOL['ATOMIC']     = KW_ATOMIC
+    SYMBOL['FTSPEC']     = KW_FTSPEC
+    SYMBOL['PTSPEC']     = KW_PTSPEC
+    SYMBOL['foreach']    = KW_FOREACH
+    SYMBOL['forsome']    = KW_FORSOME
+    SYMBOL['forexactly'] = KW_FOREXACTLY
+    SYMBOL['foratleast'] = KW_FORATLEAST
+    SYMBOL['foratmost']  = KW_FORATMOST
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
     SYMBOL['H'] = TL_HIST
@@ -215,7 +219,8 @@ class C2POParser(Parser):
     def symbol_list(self, p):
         return []
 
-    @_('SYMBOL', 'SYMBOL REL_LT type REL_GT')
+    # Non-parameterized type
+    @_('SYMBOL')
     def type(self, p):
         symbol = p[0]
 
@@ -225,10 +230,20 @@ class C2POParser(Parser):
             return INT(False)
         elif symbol == 'float':
             return FLOAT(False)
-        elif symbol == 'set':
-            return SET(False, p[2])
         elif symbol in self.structs.keys():
             return STRUCT(False, symbol)
+
+        logger.error(f'{p.lineno}: Type \'{p[0]}\' not recognized')
+        self.status = False
+        return NOTYPE()
+    
+    # Parameterized type
+    @_('SYMBOL REL_LT type REL_GT')
+    def type(self, p):
+        symbol = p[0]
+
+        if symbol == 'set':
+            return SET(False, p[2])
 
         logger.error(f'{p.lineno}: Type \'{p[0]}\' not recognized')
         self.status = False
@@ -348,57 +363,44 @@ class C2POParser(Parser):
     # Set expression
     @_('LBRACE expr expr_list RBRACE')
     def expr(self, p):
-        return Set(p.lineno, [p[1]]+p[2])
+        return Set(p.lineno, [p[1]] + p[2])
 
     # Empty set expression
     @_('LBRACE RBRACE')
     def expr(self, p):
         return Set(ln, [])
 
-    # Set aggregation expression with parameter
-    @_('SYMBOL LPAREN SYMBOL bind_rule COLON expr COMMA expr RPAREN LPAREN expr RPAREN')
+    # Parameterized set aggregation expression
+    @_('KW_FOREXACTLY LPAREN SYMBOL bind_rule COLON expr COMMA expr RPAREN LPAREN expr RPAREN')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[0]
-        variable_name = p[2]
-        mset = p[5]
-        param = p[7]
-        expr = p[10]
+        boundvar = Variable(p.lineno, p[2])
+        del self.defs[p[2]]
+        return ForExactly(p.lineno, p[5], p[7], boundvar, p[10])
 
-        boundvar = Variable(ln, variable_name)
-        del self.defs[variable_name]
+    @_('KW_FORATLEAST LPAREN SYMBOL bind_rule COLON expr COMMA expr RPAREN LPAREN expr RPAREN')
+    def expr(self, p):
+        boundvar = Variable(p.lineno, p[2])
+        del self.defs[p[2]]
+        return ForAtLeast(p.lineno, p[5], p[7], boundvar, p[10])
 
-        if operator == 'forexactlyn':
-            return ForExactlyN(ln, mset, param, boundvar, expr)
-        elif operator == 'foratleastn':
-            return ForAtLeastN(ln, mset, param, boundvar, expr)
-        elif operator == 'foratmostn':
-            return ForAtMostN(ln, mset, param, boundvar, expr)
-        else:
-            self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
-            self.status = False
-            return Node(ln, [])
+    @_('KW_FORATMOST LPAREN SYMBOL bind_rule COLON expr COMMA expr RPAREN LPAREN expr RPAREN')
+    def expr(self, p):
+        boundvar = Variable(p.lineno, p[2])
+        del self.defs[p[2]]
+        return ForAtMost(p.lineno, p[5], p[7], boundvar, p[10])
 
     # Set aggregation expression
-    @_('SYMBOL LPAREN SYMBOL bind_rule COLON expr RPAREN LPAREN expr RPAREN')
+    @_('KW_FOREACH LPAREN SYMBOL bind_rule COLON expr RPAREN LPAREN expr RPAREN')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[0]
-        variable_name = p[2]
-        mset = p[5]
-        expr = p[8]
+        boundvar = Variable(p.lineno, p[2])
+        del self.defs[p[2]]
+        return ForEach(p.lineno, p[5], boundvar, p[8])
 
-        boundvar = Variable(ln, variable_name)
-        del self.defs[variable_name]
-
-        if operator == 'foreach':
-            return ForEach(ln, mset, boundvar, expr)
-        elif operator == 'forsome':
-            return ForSome(ln, mset, boundvar, expr)
-        else:
-            self.error(f'{ln}: Set aggregation operator \'{operator}\' not supported')
-            self.status = False
-            return Node(ln, [])
+    @_('KW_FORSOME LPAREN SYMBOL bind_rule COLON expr RPAREN LPAREN expr RPAREN')
+    def expr(self, p):
+        boundvar = Variable(p.lineno, p[2])
+        del self.defs[p[2]]
+        return ForSome(p.lineno,  p[5], boundvar, p[8])
 
     # Stub rule for binding a set agg variable
     @_('')
@@ -453,136 +455,128 @@ class C2POParser(Parser):
         return StructAccess(p.lineno, p[0], p[2])
 
     # Unary expressions
-    @_('LOG_NEG expr',
-       'BW_NEG expr',
-       'ARITH_SUB expr %prec UNARY_ARITH_SUB')
+    @_('LOG_NEG expr')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[0]
+        return LogicalNegate(p.lineno, p[1])
 
-        if operator == '!':
-            return LogicalNegate(ln, p[1])
-        elif operator == '~':
-            return BitwiseNegate(ln, p[1])
-        elif operator == '-':
-            return ArithmeticNegate(ln, p[1])
-        else:
-            logger.error(f'{ln}: Bad expression')
-            self.status = False
-            return Node(ln, [])
+    @_('BW_NEG expr')
+    def expr(self, p):
+        return BitwiseNegate(p.lineno, p[1])
+
+    @_('ARITH_SUB expr %prec UNARY_ARITH_SUB')
+    def expr(self, p):
+        return ArithmeticNegate(p.lineno, p[1])
 
     # Binary expressions
-    @_('expr LOG_IMPL expr',
-       'expr LOG_IFF expr',
-       'expr LOG_OR expr',
-       'expr LOG_AND expr',
-       'expr BW_OR expr',
-       'expr BW_XOR expr',
-       'expr BW_AND expr',
-       'expr REL_EQ expr',
-       'expr REL_NEQ expr',
-       'expr REL_GT expr',
-       'expr REL_LT expr',
-       'expr REL_GTE expr',
-       'expr REL_LTE expr',
-       'expr BW_SHIFT_LEFT expr',
-       'expr BW_SHIFT_RIGHT expr',
-       'expr ARITH_ADD expr',
-       'expr ARITH_SUB expr',
-       'expr ARITH_MUL expr',
-       'expr ARITH_DIV expr',
-       'expr ARITH_MOD expr')
+    @_('expr LOG_IMPL expr')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[1]
-        lhs = p[0]
-        rhs = p[2]
+        return LogicalImplies(p.lineno, p[0], p[2])
 
-        if operator == '->':
-            return LogicalImplies(ln, lhs, rhs)
-        elif operator == '<->':
-            return LogicalIff(ln, lhs, rhs)
-        elif operator == '||':
-            return LogicalOr(ln, [lhs, rhs])
-        elif operator == '&&':
-            return LogicalAnd(ln, [lhs, rhs])
-        elif operator == '|':
-            return BitwiseOr(ln, lhs, rhs)
-        elif operator == '^':
-            return BitwiseXor(ln, lhs, rhs)
-        elif operator == '&':
-            return BitwiseAnd(ln, lhs, rhs)
-        elif operator == '==':
-            return Equal(ln, lhs, rhs)
-        elif operator == '!=':
-            return NotEqual(ln, lhs, rhs)
-        elif operator == '>':
-            return GreaterThan(ln, lhs, rhs)
-        elif operator == '<':
-            return LessThan(ln, lhs, rhs)
-        elif operator == '>=':
-            return GreaterThanOrEqual(ln, lhs, rhs)
-        elif operator == '<=':
-            return LessThanOrEqual(ln, lhs, rhs)
-        elif operator == '<<':
-            return BitwiseShiftLeft(ln, lhs, rhs)
-        elif operator == '>>':
-            return BitwiseShiftRight(ln, lhs, rhs)
-        elif operator == '+':
-            return ArithmeticAdd(ln, [lhs, rhs])
-        elif operator == '-':
-            return ArithmeticSubtract(ln, lhs, rhs)
-        elif operator == '*':
-            return ArithmeticMultiply(ln, lhs, rhs)
-        elif operator == '/':
-            return ArithmeticDivide(ln, lhs, rhs)
-        elif operator == '%':
-            return ArithmeticModulo(ln, lhs, rhs)
-        else:
-            logger.error(f'{ln}: Bad expression')
-            self.status = False
-            return Node(ln, [])
+    @_('expr LOG_IFF expr')
+    def expr(self, p):
+        return LogicalIff(p.lineno, p[0], p[2])
+
+    @_('expr LOG_OR expr')
+    def expr(self, p):
+        return LogicalOr(p.lineno, [p[0], p[2]])
+
+    @_('expr LOG_AND expr')
+    def expr(self, p):
+        return LogicalAnd(p.lineno, [p[0], p[2]])
+
+    @_('expr BW_OR expr')
+    def expr(self, p):
+        return BitwiseOr(p.lineno, p[0], p[2])
+
+    @_('expr BW_XOR expr')
+    def expr(self, p):
+        return BitwiseXor(p.lineno, p[0], p[2])
+
+    @_('expr BW_AND expr')
+    def expr(self, p):
+        return BitwiseAnd(p.lineno, p[0], p[2])
+
+    @_('expr REL_EQ expr')
+    def expr(self, p):
+        return Equal(p.lineno, p[0], p[2])
+
+    @_('expr REL_NEQ expr')
+    def expr(self, p):
+        return NotEqual(p.lineno, p[0], p[2])
+
+    @_('expr REL_GT expr')
+    def expr(self, p):
+        return GreaterThan(p.lineno, p[0], p[2])
+
+    @_('expr REL_LT expr')
+    def expr(self, p):
+        return LessThan(p.lineno, p[0], p[2])
+
+    @_('expr REL_GTE expr')
+    def expr(self, p):
+        return GreaterThanOrEqual(p.lineno, p[0], p[2])
+
+    @_('expr REL_LTE expr')
+    def expr(self, p):
+        return LessThanOrEqual(p.lineno, p[0], p[2])
+
+    @_('expr BW_SHIFT_LEFT expr')
+    def expr(self, p):
+        return BitwiseShiftLeft(p.lineno, p[0], p[2])
+
+    @_('expr BW_SHIFT_RIGHT expr')
+    def expr(self, p):
+        return BitwiseShiftRight(p.lineno, p[0], p[2])
+
+    @_('expr ARITH_ADD expr')
+    def expr(self, p):
+        return ArithmeticAdd(p.lineno, p[0], p[2])
+
+    @_('expr ARITH_SUB expr')
+    def expr(self, p):
+        return ArithmeticSubtract(p.lineno, p[0], p[2])
+
+    @_('expr ARITH_MUL expr')
+    def expr(self, p):
+        return ArithmeticMultiply(p.lineno, p[0], p[2])
+
+    @_('expr ARITH_DIV expr')
+    def expr(self, p):
+        return ArithmeticMultiply(p.lineno, p[0], p[2])
+
+    @_('expr ARITH_MOD expr')
+    def expr(self, p):
+        return ArithmeticModulo(p.lineno, p[0], p[2])
 
     # Unary temporal expressions
-    @_('TL_GLOBAL interval expr',
-       'TL_FUTURE interval expr',
-       'TL_HIST interval expr',
-       'TL_ONCE interval expr')
+    @_('TL_GLOBAL interval expr')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[0]
+        return Global(p.lineno, p[2], p[1].lb, p[1].ub)
 
-        if operator == 'G':
-            return Global(ln, p[2], p[1].lb, p[1].ub)
-        elif operator == 'F':
-            return Future(ln, p[2], p[1].lb, p[1].ub)
-        elif operator == 'H':
-            return Historical(ln, p[2], p[1].lb, p[1].ub)
-        elif operator == 'O':
-            return Once(ln, p[2], p[1].lb, p[1].ub)
-        else:
-            logger.error(f'{ln}: Bad expression')
-            self.status = False
-            return Node(ln, [])
+    @_('TL_FUTURE interval expr')
+    def expr(self, p):
+        return Future(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    @_('TL_HIST interval expr')
+    def expr(self, p):
+        return Historical(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    @_('TL_ONCE interval expr')
+    def expr(self, p):
+        return Once(p.lineno, p[2], p[1].lb, p[1].ub)
 
     # Binary temporal expressions
-    @_('expr TL_UNTIL interval expr',
-       'expr TL_RELEASE interval expr',
-       'expr TL_SINCE interval expr')
+    @_('expr TL_UNTIL interval expr')
     def expr(self, p):
-        ln = p.lineno
-        operator = p[1]
+        return Until(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
 
-        if operator == 'U':
-            return Until(ln, p[0], p[3], p[2].lb, p[2].ub)
-        elif operator == 'R':
-            return Release(ln, p[0], p[3], p[2].lb, p[2].ub)
-        elif operator == 'S':
-            return Since(ln, p[0], p[3], p[2].lb, p[2].ub)
-        else:
-            logger.error(f'{ln}: Bad expression')
-            self.status = False
-            return Node(ln, [])
+    @_('expr TL_RELEASE interval expr')
+    def expr(self, p):
+        return Release(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+
+    @_('expr TL_SINCE interval expr')
+    def expr(self, p):
+        return Since(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
 
     # Parentheses
     @_('LPAREN expr RPAREN')
@@ -636,3 +630,29 @@ class C2POParser(Parser):
             logger.error(f"{ln}: Mission-time not defined.")
             self.status = False
             return -1
+
+
+def parse(input: str, mission_time: int) -> Program|None:
+    """Parse contents of input and returns corresponding program on success, else returns None."""
+    lexer: C2POLexer = C2POLexer()
+    parser: C2POParser = C2POParser(mission_time)
+    specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
+
+    if not parser.status:
+        return None
+
+    if not FormulaType.FT in specs:
+        specs[FormulaType.FT] = SpecificationSet(0, FormulaType.FT, [])
+
+    if not FormulaType.PT in specs:
+        specs[FormulaType.PT] = SpecificationSet(0, FormulaType.PT, [])
+
+    return Program(
+        0,
+        parser.signals,
+        parser.defs,
+        parser.structs,
+        parser.atomics,
+        specs[FormulaType.FT],
+        specs[FormulaType.PT]
+    )

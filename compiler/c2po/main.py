@@ -4,17 +4,12 @@ import inspect
 import sys
 import re
 from logging import getLogger
-# from time import perf_counter
 
-from .logger import *
+from .logger import logger, Color
 from .ast import *
 from .rewrite import *
-from .parser import C2POLexer
-from .parser import C2POParser
+from .parser import parse
 from .assembler import assemble
-
-
-logger = getLogger(LOGGER_NAME)
 
 
 class ReturnCode(Enum):
@@ -178,7 +173,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             context[node.get_boundvar().name] = node.get_boundvar().type
             resolve_variables_util(node.get_set())
             resolve_variables_util(node.get_expr())
-            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+            if isinstance(node, ForExactly) or isinstance(node, ForAtLeast) or isinstance(node, ForAtMost):
                 resolve_variables_util(node.get_num())
             del context[node.get_boundvar().name]
         else:
@@ -367,7 +362,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
                 status = False
                 logger.error(f'{node.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
 
-            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
+            if isinstance(node, ForExactly) or isinstance(node, ForAtLeast) or isinstance(node, ForAtMost):
                 in_parameterized_set_agg = True
                 if not bz:
                     status = False
@@ -858,32 +853,6 @@ def compute_fpga_wcet(program: Program, latency_table: Dict[str, Tuple[float, fl
     wcet = sum([compute_fpga_wcet_util(a) for a in program.assembly]) / clk
     program.fpga_wcet = wcet
     return wcet
-
-
-def parse(input: str, mission_time: int) -> Program|None:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: C2POLexer = C2POLexer()
-    parser: C2POParser = C2POParser(mission_time)
-    specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
-
-    if not parser.status:
-        return None
-
-    if not FormulaType.FT in specs:
-        specs[FormulaType.FT] = SpecificationSet(0, FormulaType.FT, [])
-
-    if not FormulaType.PT in specs:
-        specs[FormulaType.PT] = SpecificationSet(0, FormulaType.PT, [])
-
-    return Program(
-        0,
-        parser.signals,
-        parser.defs,
-        parser.structs,
-        parser.atomics,
-        specs[FormulaType.FT],
-        specs[FormulaType.PT]
-    )
 
 
 def set_options(
