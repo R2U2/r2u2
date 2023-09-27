@@ -60,10 +60,7 @@ def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
     if expr == v:
         return repl
 
-    # print(repl)
-
     new: C2PONode = deepcopy(expr)
-    # print(f"{expr} : {new}")
 
     def rename_util(a: C2PONode):
         if v == a:
@@ -143,33 +140,6 @@ class C2PONode():
 
         new.formula_type = self.formula_type
 
-    # def ft_asm(self) -> str:
-    #     raise NotImplementedError
-
-    # def pt_asm(self) -> str:
-    #     raise NotImplementedError
-
-    # def bz_asm(self) -> str:
-    #     raise NotImplementedError
-
-    # def at_asm(self) -> str:
-    #     raise NotImplementedError
-    
-    # def ftid_str(self) -> str:
-    #     raise NotImplementedError
-    
-    # def ptid_str(self) -> str:
-    #     raise NotImplementedError
-    
-    # def bzid_str(self) -> str:
-    #     raise NotImplementedError
-    
-    # def atid_str(self) -> str:
-    #     if self.atid < 0:
-    #         logger.critical(f" Node '{self}' never assigned atid.")
-    #         return ""
-    #     return f"a{self.atid}"
-
     def __str__(self) -> str:
         return self.symbol
 
@@ -235,9 +205,6 @@ class C2POInteger(C2POConstant):
         self.copy_attrs(new)
         return new
 
-    # def bz_asm(self) -> str:
-    #     return f"{self.bzid_str()} iconst {self.value}"
-
 
 class C2POFloat(C2POConstant):
 
@@ -259,9 +226,6 @@ class C2POFloat(C2POConstant):
         self.copy_attrs(new)
         return new
 
-    # def bz_asm(self) -> str:
-    #     return f"{self.bzid_str()} fconst {self.value}"
-
 
 class C2POVariable(C2POExpression):
 
@@ -273,7 +237,7 @@ class C2POVariable(C2POExpression):
         return isinstance(__o, C2POVariable) and __o.symbol == self.symbol
 
     def __hash__(self) -> int:
-        return hash(self.symbol)
+        return id(self)
 
     def __str__(self) -> str:
         return self.symbol
@@ -313,12 +277,6 @@ class C2POBool(C2POConstant):
         self.wpd: int = 0
         self.value: bool = v
         self.symbol = str(v)
-
-    def ftid_str(self) -> str:
-        return self.symbol
-
-    def ptid_str(self) -> str:
-        return self.symbol
 
 
 class C2POSet(C2POExpression):
@@ -958,18 +916,12 @@ class C2POUntil(C2POFutureTimeBinaryOperator):
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "U"
 
-    # def ft_asm(self) -> str:
-    #     return f"{super().ftid_str()} {self.name} {self.get_lhs().ftid_str()} {self.get_rhs().ftid_str()} {self.interval.lb} {self.interval.ub}"
-
 
 class C2PORelease(C2POFutureTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "R"
-
-    # def ft_asm(self) -> str:
-    #     return f"{super().ftid_str()} {self.name} {self.get_lhs().ftid_str()} {self.get_rhs().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
@@ -998,18 +950,12 @@ class C2POGlobal(C2POFutureTimeUnaryOperator):
         super().__init__(ln, o, l, u)
         self.symbol = "G"
 
-    # def ft_asm(self) -> str:
-    #     return f"{super().ftid_str()} {self.name} {self.get_operand().ftid_str()} {self.interval.lb} {self.interval.ub}"
-
 
 class C2POFuture(C2POFutureTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
         self.symbol = "F"
-
-    # def ft_asm(self) -> str:
-    #     return f"{super().ftid_str()} {self.name} {self.get_operand().ftid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
@@ -1039,9 +985,6 @@ class C2POSince(C2POPastTimeBinaryOperator):
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "S"
 
-    # def pt_asm(self) -> str:
-    #     return f"{super().ptid_str()} {self.name} {self.get_lhs().ptid_str()} {self.get_rhs().ptid_str()} {self.interval.lb} {self.interval.ub}"
-
 
 class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
 
@@ -1067,18 +1010,12 @@ class C2POHistorical(C2POPastTimeUnaryOperator):
         super().__init__(ln, o, l, u)
         self.symbol = "H"
 
-    # def pt_asm(self) -> str:
-    #     return f"{super().ptid_str()} {self.name} {self.get_operand().ptid_str()} {self.interval.lb} {self.interval.ub}"
-
 
 class C2POOnce(C2POPastTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
         self.symbol = "O"
-
-    # def pt_asm(self) -> str:
-    #     return f"{super().ptid_str()} {self.name} {self.get_operand().ptid_str()} {self.interval.lb} {self.interval.ub}"
 
 
 class C2POSpecification(C2PONode):
@@ -1099,12 +1036,6 @@ class C2POSpecification(C2PONode):
 
     def __str__(self) -> str:
         return (str(self.formula_number) if self.symbol == "" else self.symbol) + ": " + str(self.get_expr())
-
-    # def ft_asm(self) -> str:
-    #     return f"{self.ftid_str()} end {self.get_expr().ftid_str()} f{self.formula_number}"
-
-    # def pt_asm(self) -> str:
-    #     return f"{self.ptid_str()} end {self.get_expr().ptid_str()} f{self.formula_number}"
 
 
 class C2POContract(C2PONode):
@@ -1304,9 +1235,6 @@ class C2POProgram(C2PONode):
         # Data
         self.timestamp_width: int = 0
 
-        self.scq_assembly: List[tuple[int,int]] = []
-        self.signal_mapping: Dict[str,int] = {}
-        self.contracts: Dict[str,tuple[int,int,int]] = {}
         self.implementation: R2U2Implementation = R2U2Implementation.C
 
         # Computable properties
@@ -1314,6 +1242,7 @@ class C2POProgram(C2PONode):
         self.cpu_wcet: int = -1
         self.fpga_wcet: float = -1
 
+        # Do we need/want these?
         # Predicates
         self.is_type_correct: bool = False
         self.is_set_agg_free: bool = False

@@ -1,23 +1,26 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import Dict, List, Tuple
-import sys
 import re
 
 from .logger import logger, Color
 from .ast import *
 from .type_check import type_check
 from .rewrite import *
+from .optimize import *
 from .parse import parse
 from .assembler import assemble
 
+SignalMapping = Dict[str, int]
 
 class ReturnCode(Enum):
     SUCCESS = 0
     ERROR = 1
-    PARSE_ERROR = 2
-    TYPE_CHECK_ERROR = 3
-    ASM_ERROR = 4
+    PARSE_ERR = 2
+    TYPE_CHECK_ERR = 3
+    ASM_ERR = 4
     INVALID_OPTIONS = 5
+    FILE_IO_ERR  = 6
 
 # COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]] = lambda rc: (rc,[],[],[],[],[])
 
@@ -48,95 +51,7 @@ AT_FILTER_TABLE: Dict[str, Tuple[List[C2POType], C2POType]] = {
 }
 
 
-def parse_signals(filename: str) -> Dict[str,int]:
-    """Opens filename and constructs a dictionary mapping signal names to their order in the file. If filename is a csv file, uses the header for signal mapping. Otherwise filename is treated as a map file and uses the given order for signal mapping.
-    
-    Args:
-        filename: Name of file to be read
-
-    Returns:
-        dict mapping signal names to their oder in the csv or mapping file
-    """
-    mapping: Dict[str,int] = {}
-
-    if re.match(".*\\.csv",filename):
-        with open(filename,"r") as f:
-            text: str = f.read()
-            lines: List[str] = text.splitlines()
-
-            if len(lines) < 1:
-                logger.error(f" Not enough data in file '{filename}'")
-                return {}
-
-            cnt: int = 0
-
-            if lines[0][0] != "#":
-                logger.error(f" Header missing in signals file.")
-                return {}
-
-            header = lines[0][1:]
-
-            for id in [s.strip() for s in header.split(",")]:
-                if id in mapping:
-                    logger.warning(f" Signal ID '{id}' found multiple times in csv, using right-most value.")
-                mapping[id] = cnt
-                cnt += 1
-    else: 
-        with open(filename,"r") as f:
-            text: str = f.read()
-            cnt: int = 0
-
-            for line in text.splitlines():
-                if re.match("[a-zA-Z_]\\w*:\\d+", line):
-                    strs = line.split(":")
-                    id = strs[0]
-                    sid = int(strs[1])
-
-                    if id in mapping:
-                        logger.warning(f" Signal ID '{id}' found multiple times in map file, using latest value.")
-
-                    mapping[id] = sid
-                else:
-                    logger.error(f" Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
-                    return {}
-
-    return mapping
-
-
-def optimize_cse(program: C2POProgram) :
-    """
-    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
-
-    Preconditions:
-        - `program` is type correct.
-
-    Postconditions:
-        - Sets of FT/PT specifications have no distinct, syntactically equivalent sub-expressions (i.e., is CSE-reduced).
-        - Some nodes in AST may have multiple parents.
-    """
-    S: Dict[str, C2PONode]
-
-    def optimize_cse_util(node: C2PONode) :
-        nonlocal S
-
-        if str(node) in S:
-            node.replace(S[str(node)])
-        else:
-            S[str(node)] = node
-
-    for spec in program.get_spec_sections():
-        S = {}
-        postorder(spec, optimize_cse_util)
-
-    # TODO: How to do this with potentially many SPEC sections?
-    # postorder_iterative(program.get_future_time_spec_sections(), optimize_cse_util)
-    # S = {k:v for (k,v) in S.items() if isinstance(v, BZInstruction)}
-    # postorder_iterative(program.get_pt_specs(), optimize_cse_util)
-
-    program.is_cse_reduced = True
-
-
-def generate_aliases(program: C2POProgram) -> List[str]:
+def generate_aliases(program: C2POProgram, context: C2POContext) -> List[str]:
     """
     Generates strings corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
 
@@ -148,17 +63,13 @@ def generate_aliases(program: C2POProgram) -> List[str]:
     """
     s: List[str] = []
 
-    specs = [s.get_specs() for s in program.get_spec_sections()]
-
-    for spec in specs:
-        if spec.symbol in program.contracts:
-            # then formula is part of contract, ignore
-            continue
-        if isinstance(spec, C2POSpecification):
+    for spec_section in [s for s in program.get_spec_sections()]:
+        for spec in [s for s in spec_section.get_specs() if isinstance(s, C2POSpecification)]:
             s.append(f"F {spec.symbol} {spec.formula_number}")
 
-    for label,fnums in program.contracts.items():
-        s.append(f"C {label} {fnums[0]} {fnums[1]} {fnums[2]}")
+    for contract in context.contracts.values():
+        (f1, f2, f3) =  contract.formula_numbers
+        s.append(f"C {contract.symbol} {f1} {f2} {f3}")
 
     return s
 
@@ -436,12 +347,100 @@ def set_options(
     return status
 
 
+def configure_paths(
+        input_filename: str, 
+        trace_filename: Optional[str], 
+        map_filename: Optional[str]
+) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
+    """Perform file validation on each argument and return Path objects for each corresponding filename given."""
+    # input file validation
+    input_path = Path(input_filename)
+    if not input_path.is_file():
+        logger.error(f"Input file '{input_filename} not a valid file.'")
+        input_path = None
+
+    # trace file validation
+    trace_path = None
+    if trace_filename:
+        trace_path =  Path(trace_filename)
+        if not trace_path.is_file():
+            logger.error(f"Trace file '{trace_filename}' is not a valid file.")
+
+    # map file validation
+    map_path = None
+    if map_filename:
+        map_path =  Path(map_filename)
+        if not map_path.is_file():
+            logger.error(f"Trace file '{map_filename}' is not a valid file.")
+    
+    return (input_path, trace_path, map_path)
+
+
+def process_trace_file(trace_path: Path, return_mapping: bool) -> Tuple[Optional[int], Optional[SignalMapping]]:
+    """Given `trace_path`, return the inferred mission time and, if `return_mapping` is enabled, a signal mapping."""
+    with open(trace_path,"r") as f:
+        content: str = f.read()
+
+    lines: List[str] = content.splitlines()
+
+    if len(lines) < 1:
+        return (0, None)
+
+    cnt: int = 0
+    signal_mapping: SignalMapping = {}
+
+    if lines[0][0] == "#":
+        # then there is a header
+        header = lines[0][1:]
+
+        if return_mapping:
+            logger.warning("Map file given and header included in trace file; header will be ignored.")
+
+        for id in [s.strip() for s in header.split(",")]:
+            if id in signal_mapping:
+                logger.warning(f"{trace_path.name}:{1}: Signal ID '{id}' found multiple times in csv, using right-most value.")
+            signal_mapping[id] = cnt
+            cnt += 1
+
+        mission_time = len(lines) - 1
+
+        return (mission_time, signal_mapping)
+
+    # no header, so just return number of lines in file (i.e., number of time steps in trace)
+    return (len(lines), None)
+
+
+def process_map_file(map_path: Path) -> Optional[SignalMapping]:
+    """Given `trace_path`, return the inferred mission time and, if `return_mapping` is enabled, a signal mapping."""
+    with open(map_path, "r") as f:
+        content: str = f.read()
+
+    mapping: SignalMapping = {}
+
+    lines = content.splitlines()
+    for line in lines:
+        if re.match("[a-zA-Z_]\\w*:\\d+", line):
+            strs = line.split(":")
+            id = strs[0]
+            sid = int(strs[1])
+
+            if id in mapping:
+                logger.warning(f"{map_path.name}:{lines.index(line)+1}: Signal ID '{id}' found multiple times in map file, using latest value.")
+
+            mapping[id] = sid
+        else:
+            logger.error(f"{map_path.name}:{lines.index(line)}: Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
+            return None
+
+    return None
+
+
 def compile(
     input_filename: str,
     trace_filename: Optional[str],
     map_filename: Optional[str],
     impl: str = "c",
-    mission_time: int = -1,
+    custom_mission_time: int = -1,
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
@@ -453,7 +452,7 @@ def compile(
     enable_extops: bool = False,
     enable_rewrite: bool = False,
     quiet: bool = False
-) -> int:
+) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
     
     Args:
@@ -475,48 +474,72 @@ def compile(
         quiet: If true disables assembly output to stdout
     """
     if not set_options(impl, int_width, int_signed, float_width, 
-                            enable_at, enable_bz, enable_extops):
-        logger.error(" Invalid configuration options.")
-        return ReturnCode.INVALID_OPTIONS.value
+                        enable_at, enable_bz, enable_extops):
+        logger.error("Invalid configuration options.")
+        return ReturnCode.INVALID_OPTIONS
+    
+    (input_path, trace_path, map_path) = configure_paths(input_filename, trace_filename, map_filename)
 
-    with open(input_filename, "r") as f:
+    if not input_path:
+        logger.error("Cannot open input file.")
+        return ReturnCode.FILE_IO_ERR
+
+    with open(input_path, "r") as f:
         program: C2POProgram|None = parse(f.read())
 
     if not program:
-        logger.error(" Failed parsing.")
-        return ReturnCode.PARSE_ERROR.value
+        logger.error("Failed parsing.")
+        return ReturnCode.PARSE_ERR
 
     # type check
     (well_typed, context) = type_check(program, str_to_r2u2_implementation(impl), enable_at, enable_bz)
     if not well_typed:
-        logger.error(" Failed type check.")
-        return ReturnCode.TYPE_CHECK_ERROR.value
+        logger.error("Failed type check.")
+        return ReturnCode.TYPE_CHECK_ERR
 
-    rewrite_function_calls(program, context)
     rewrite_definitions(program, context)
-    rewrite_contracts(program)
+    rewrite_function_calls(program, context)
+    rewrite_contracts(program, context)
     rewrite_set_aggregation(program)
-    print(program)
-    sys.exit()
-    rewrite_struct_access(program)
+    rewrite_struct_accesses(program)
+
+    if enable_rewrite:
+        optimize_rewrite_rules(program)
+
+    # rewrite without extended operators if enabled
+    if not enable_extops:
+        rewrite_extended_operators(program)
+
+    # common sub-expressions elimination
+    if enable_cse:
+        optimize_cse(program)
+
+    if not enable_assemble:
+        return ReturnCode.SUCCESS
     
+    signal_mapping: Optional[SignalMapping] = None
+    mission_time: Optional[int] = None
 
-    # if enable_rewrite:
-    #     optimize_rewrite_rules(program)
+    if trace_path:
+        (mission_time, signal_mapping) = process_trace_file(trace_path, map_path is None)
+    
+    if map_path:
+        signal_mapping = process_map_file(map_path)
 
-    # # rewrite without extended operators if enabled
-    # if not enable_extops:
-    #     rewrite_extended_operators(program)
+    if not signal_mapping:
+        logger.error("No map file nor header provided in trace file; cannot perform signal mapping")
+        return ReturnCode.ERROR
 
-    # # common sub-expressions elimination
-    # if enable_cse:
-    #     optimize_cse(program)
-
-    # parse csv/signals file
-    program.signal_mapping = parse_signals(signals_filename)
+    # disregard inferred mission time if given explicitly
+    if custom_mission_time > -1:
+        mission_time = custom_mission_time
+        
+        # warn if the given trace is shorter than the defined mission time
+        if custom_mission_time > mission_time:
+            logger.warning(f"Given mission time ({custom_mission_time}) is greater than length of trace ({mission_time}).")
 
     # generate alias file
-    aliases = generate_aliases(program)
+    aliases = generate_aliases(program, context)
 
     # generate assembly
     (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
@@ -552,5 +575,5 @@ def compile(
     if enable_assemble:
         assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
-    return (ReturnCode.SUCCESS.value, ft_asm, pt_asm, bz_asm, at_asm, scq_asm)
+    return ReturnCode.SUCCESS
 

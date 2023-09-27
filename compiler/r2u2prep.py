@@ -39,6 +39,6 @@ parser.add_argument("--mission-time", default=-1, type=int,
                     help="define mission time (overriding any inference from a simulated input trace)")
 args = parser.parse_args()
 
-return_code = compile(args.mltl, trace_filename=args.trace_file, map_filename=args.map_file, impl=args.implementation, enable_assemble=args.disable_assemble, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.disable_cse, enable_extops=args.extops, enable_rewrite=args.disable_rewrite, quiet=args.quiet, mission_time=args.mission_time)
+return_code = compile(args.mltl, trace_filename=args.trace_file, map_filename=args.map_file, impl=args.implementation, enable_assemble=args.disable_assemble, output_filename=args.output_file, int_width=args.int_width, int_signed=args.int_signed, float_width=args.float_width, enable_at=args.atomic_checker, enable_bz=args.booleanizer, enable_cse=args.disable_cse, enable_extops=args.extops, enable_rewrite=args.disable_rewrite, quiet=args.quiet, custom_mission_time=args.mission_time)
 
-sys.exit(return_code)
+sys.exit(return_code.value)
