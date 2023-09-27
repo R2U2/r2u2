@@ -22,7 +22,7 @@ def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
         return R2U2Implementation.C
 
 
-class BaseType(Enum):
+class C2POBaseType(Enum):
     NOTYPE = 0
     BOOL = 1
     INT = 2
@@ -31,16 +31,16 @@ class BaseType(Enum):
     STRUCT = 5
 
 
-class Type():
+class C2POType():
     """Abstract base class representing a C2PO type."""
 
-    def __init__(self, t: BaseType, c: bool, n: str) -> None:
-        self.value: BaseType = t
+    def __init__(self, t: C2POBaseType, c: bool, n: str):
+        self.value: C2POBaseType = t
         self.name: str = n
         self.is_const: bool = c
 
     def __eq__(self, arg: object) -> bool:
-        if isinstance(arg, Type):
+        if isinstance(arg, C2POType):
             return self.value == arg.value
         return False
 
@@ -48,70 +48,70 @@ class Type():
         return self.name
 
 
-class NOTYPE(Type):
+class C2PONoType(C2POType):
     """An invalid C2PO type."""
 
-    def __init__(self) -> None:
-        super().__init__(BaseType.NOTYPE, True, 'none')
+    def __init__(self):
+        super().__init__(C2POBaseType.NOTYPE, True, 'NoType')
 
 
-class BOOL(Type):
+class C2POBoolType(C2POType):
     """Boolean C2PO type."""
 
-    def __init__(self, const: bool) -> None:
-        super().__init__(BaseType.BOOL, const, 'bool')
+    def __init__(self, const: bool):
+        super().__init__(C2POBaseType.BOOL, const, 'bool')
 
 
-class INT(Type):
+class C2POIntType(C2POType):
     """Integer C2PO type with configurable width and signedness."""
     width: int = 8
     is_signed: bool = False
 
-    def __init__(self, const: bool) -> None:
-        super().__init__(BaseType.INT, const, 'int')
+    def __init__(self, const: bool):
+        super().__init__(C2POBaseType.INT, const, 'int')
 
 
-class FLOAT(Type):
+class C2POFloatType(C2POType):
     """Floating point C2PO type with configurable width."""
     width: int = 32
 
-    def __init__(self, const: bool) -> None:
-        super().__init__(BaseType.FLOAT, const, 'float')
+    def __init__(self, const: bool):
+        super().__init__(C2POBaseType.FLOAT, const, 'float')
 
 
-class STRUCT(Type):
+class C2POStructType(C2POType):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, const: bool, n: str) -> None:
-        super().__init__(BaseType.STRUCT, const, n)
+    def __init__(self, const: bool, n: str):
+        super().__init__(C2POBaseType.STRUCT, const, n)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
-        if isinstance(arg,STRUCT):
+        if isinstance(arg,C2POStructType):
             return self.name == arg.name
         return False 
 
 
-class SET(Type):
+class C2POSetType(C2POType):
     """Parameterized set C2PO type."""
 
-    def __init__(self, const: bool, m: Type) -> None:
-        super().__init__(BaseType.SET, const, 'set<'+str(m)+'>')
-        self.member_type: Type = m
+    def __init__(self, const: bool, m: C2POType):
+        super().__init__(C2POBaseType.SET, const, 'set<'+str(m)+'>')
+        self.member_type: C2POType = m
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
-            if isinstance(arg,SET):
+            if isinstance(arg,C2POSetType):
                 return self.member_type.__eq__(arg.member_type)
         return False
 
 
-def is_integer_type(t: Type) -> bool:
-    return isinstance(t, INT) or isinstance(t, BOOL)
+def is_integer_type(t: C2POType) -> bool:
+    return isinstance(t, C2POIntType) or isinstance(t, C2POBoolType)
 
 
-def is_float_type(t: Type) -> bool:
-    return isinstance(t, FLOAT)
+def is_float_type(t: C2POType) -> bool:
+    return isinstance(t, C2POFloatType)
 
 
 class FormulaType(Enum):
@@ -122,24 +122,30 @@ class FormulaType(Enum):
 
 def set_types(impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int):
     """Check for valid int and float widths and configure program types accordingly."""
-    INT.is_signed = int_signed
+    C2POIntType.is_signed = int_signed
 
     if int_width < 1:
-        logger.error(f" Invalid int width, must be greater than 0 (found {int_width})")
+        logger.error(f" Invalid int width, must be greater than 0")
 
     if float_width < 1:
-        logger.error(f" Invalid float_width width, must be greater than 0 (found {float_width})")
+        logger.error(f" Invalid float_width width, must be greater than 0")
+
+    if int_width % 8 != 0:
+        logger.error(f" Invalid int width, must be a multiple of 8 for byte-alignment.")
+
+    if float_width % 8 != 0:
+        logger.error(f" Invalid float width, must be a multiple of 8 for byte-alignment.")
 
     if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
         if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
-            INT.width = int_width
+            C2POIntType.width = int_width
         else:
             logger.error(f" Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).")
 
         if float_width == 32 or float_width == 64:
-            FLOAT.width = float_width
+            C2POFloatType.width = float_width
         else:
             logger.error(f" Invalid float width, must correspond to a C standard float width (32 or 64).")
     else:
-        INT.width = int_width
-        FLOAT.width = float_width
+        C2POIntType.width = int_width
+        C2POFloatType.width = float_width

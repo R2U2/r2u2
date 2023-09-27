@@ -137,7 +137,7 @@ def assemble_pt(opcode, operand_1, operand_2, ref) -> bytes:
                         ref, opcode.value)
 
 
-def assemble_alias() -> None:
+def assemble_alias() :
     pass
 
 
@@ -157,17 +157,17 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     for instr in atasm:
 
-        if isinstance(instr.rel_op, Equal):
+        if isinstance(instr.rel_op, C2POEqual):
             conditional = ATCond.EQ
-        elif isinstance(instr.rel_op, NotEqual):
+        elif isinstance(instr.rel_op, C2PONotEqual):
             conditional = ATCond.NEQ
-        elif isinstance(instr.rel_op, GreaterThan):
+        elif isinstance(instr.rel_op, C2POGreaterThan):
             conditional = ATCond.GT
-        elif isinstance(instr.rel_op, LessThan):
+        elif isinstance(instr.rel_op, C2POLessThan):
             conditional = ATCond.LT
-        elif isinstance(instr.rel_op, GreaterThanOrEqual):
+        elif isinstance(instr.rel_op, C2POGreaterThanOrEqual):
             conditional = ATCond.GEQ
-        elif isinstance(instr.rel_op, LessThanOrEqual):
+        elif isinstance(instr.rel_op, C2POLessThanOrEqual):
             conditional = ATCond.LEQ
         else:
             raise NotImplementedError
@@ -194,23 +194,23 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif instr.filter == "movavg":
             filter = ATFilter.MOVAVG
             format = "d"
-            if isinstance(instr.args[1], Integer):
+            if isinstance(instr.args[1], C2POInteger):
                 filter_arg = cStruct("q").pack(instr.args[1].value)
             else:
                 raise NotImplementedError
         elif instr.filter == "abs_diff_angle":
             filter = ATFilter.ABS_DIFF_ANGLE
             format = "d"
-            if isinstance(instr.args[1], Float):
+            if isinstance(instr.args[1], C2POFloat):
                 filter_arg = cStruct("d").pack(instr.args[1].value)
             else:
                 raise NotImplementedError
         else:
             raise NotImplementedError
         
-        if isinstance(instr.args[0], Signal):
+        if isinstance(instr.args[0], C2POSignal):
             sid = instr.args[0].sid
-        elif isinstance(instr.args[0], Specification):
+        elif isinstance(instr.args[0], C2POSpecification):
             if instr.args[0].formula_type == FormulaType.FT:
                 sid = instr.args[0].ftid
             else:
@@ -218,11 +218,11 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         else:
             raise NotImplementedError
 
-        comp_to_sig = isinstance(instr.compare, Signal)
+        comp_to_sig = isinstance(instr.compare, C2POSignal)
 
-        if isinstance(instr.compare, Signal):
+        if isinstance(instr.compare, C2POSignal):
             comparison = cStruct("Bxxxxxxx").pack(instr.compare.sid)
-        elif isinstance(instr.compare, Constant):
+        elif isinstance(instr.compare, C2POConstant):
             comparison = cStruct(format).pack(instr.compare.value)
         else:
             raise NotImplementedError
@@ -230,98 +230,98 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, instr.atid, comp_to_sig, comparison, filter_arg, instr.atid))
     
     for instr in bzasm:
-        if isinstance(instr, Signal):
+        if isinstance(instr, C2POSignal):
             if is_integer_type(instr.type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, instr.sid, 0, instr.atid > -1, instr.atid))
             elif is_float_type(instr.type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid))
             else:
                 raise NotImplementedError
-        elif isinstance(instr, Integer):
+        elif isinstance(instr, C2POInteger):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ICONST, instr.value, 0, instr.atid > -1, instr.atid))
-        elif isinstance(instr, Float):
+        elif isinstance(instr, C2POFloat):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FCONST, instr.value, 0, instr.atid > -1, instr.atid))
-        elif isinstance(instr, BitwiseAnd):
+        elif isinstance(instr, C2POBitwiseAnd):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWAND, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, BitwiseOr):
+        elif isinstance(instr, C2POBitwiseOr):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWOR, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, BitwiseXor):
+        elif isinstance(instr, C2POBitwiseXor):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWXOR, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, BitwiseNegate):
+        elif isinstance(instr, C2POBitwiseNegate):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.BWNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticAdd):
+        elif isinstance(instr, C2POArithmeticAdd):
             if is_integer_type(instr.type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FADD, instr.get_child(0).bzid, instr.get_child(1).bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticSubtract):
+        elif isinstance(instr, C2POArithmeticSubtract):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ISUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FSUB, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticMultiply):
+        elif isinstance(instr, C2POArithmeticMultiply):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IMUL, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FMUL, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticDivide):
+        elif isinstance(instr, C2POArithmeticDivide):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IDIV, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FDIV, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticModulo):
+        elif isinstance(instr, C2POArithmeticModulo):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.MOD, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, ArithmeticNegate):
+        elif isinstance(instr, C2POArithmeticNegate):
             if is_integer_type(instr.get_operand().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
-        elif isinstance(instr, Equal):
+        elif isinstance(instr, C2POEqual):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, NotEqual):
+        elif isinstance(instr, C2PONotEqual):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FNEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, GreaterThan):
+        elif isinstance(instr, C2POGreaterThan):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FGT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, LessThan):
+        elif isinstance(instr, C2POLessThan):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FLT, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, GreaterThanOrEqual):
+        elif isinstance(instr, C2POGreaterThanOrEqual):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IGTE, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
-        elif isinstance(instr, LessThanOrEqual):
+        elif isinstance(instr, C2POLessThanOrEqual):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILTE, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
 
     ft_offset = len(rtm_instrs)
 
     for instr in ftasm:
-        if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
+        if isinstance(instr, C2POAtomic) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ftid))
-        elif isinstance(instr, Specification):  # End
+        elif isinstance(instr, C2POSpecification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
 
             for at_instr in at_formula_instr:
                 if instr == at_instr.args[0]:
-                    if isinstance(at_instr.rel_op, Equal):
+                    if isinstance(at_instr.rel_op, C2POEqual):
                         conditional = ATCond.EQ
-                    elif isinstance(at_instr.rel_op, NotEqual):
+                    elif isinstance(at_instr.rel_op, C2PONotEqual):
                         conditional = ATCond.NEQ
-                    elif isinstance(at_instr.rel_op, GreaterThan):
+                    elif isinstance(at_instr.rel_op, C2POGreaterThan):
                         conditional = ATCond.GT
-                    elif isinstance(at_instr.rel_op, LessThan):
+                    elif isinstance(at_instr.rel_op, C2POLessThan):
                         conditional = ATCond.LT
-                    elif isinstance(at_instr.rel_op, GreaterThanOrEqual):
+                    elif isinstance(at_instr.rel_op, C2POGreaterThanOrEqual):
                         conditional = ATCond.GEQ
-                    elif isinstance(at_instr.rel_op, LessThanOrEqual):
+                    elif isinstance(at_instr.rel_op, C2POLessThanOrEqual):
                         conditional = ATCond.LEQ
                     else:
                         raise NotImplementedError
@@ -333,27 +333,27 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                     else:
                         raise NotImplementedError
 
-                    if isinstance(at_instr.args[0], Specification):
+                    if isinstance(at_instr.args[0], C2POSpecification):
                         sid = at_instr.args[0].get_expr().ftid + ft_offset
                     else:
                         raise NotImplementedError
 
-                    comp_to_sig = isinstance(at_instr.compare, Signal)
+                    comp_to_sig = isinstance(at_instr.compare, C2POSignal)
 
-                    if isinstance(at_instr.compare, Signal):
+                    if isinstance(at_instr.compare, C2POSignal):
                         comparison = cStruct("Bxxxxxxx").pack(at_instr.compare.sid)
-                    elif isinstance(at_instr.compare, Constant):
+                    elif isinstance(at_instr.compare, C2POConstant):
                         comparison = cStruct(format).pack(at_instr.compare.value)
                     else:
                         raise NotImplementedError
 
                     rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, at_instr.atid, comp_to_sig, comparison, filter_arg, at_instr.atid))
 
-        elif isinstance(instr, Global): # Globally
+        elif isinstance(instr, C2POGlobal): # Globally
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.GLOBALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].ftid), (TLOperandType.NOT_SET, 0), instr.ftid))
-        elif isinstance(instr, Until):  # Until
+        elif isinstance(instr, C2POUntil):  # Until
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -362,7 +362,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
             child = instr.get_children()[1]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op2 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -372,9 +372,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.UNTIL, op1, op2, instr.ftid))
             pass
-        elif isinstance(instr, LogicalNegate):  # Not
+        elif isinstance(instr, C2POLogicalNegate):  # Not
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -383,9 +383,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.ftid))
-        elif isinstance(instr, LogicalAnd): # And
+        elif isinstance(instr, C2POLogicalAnd): # And
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -394,7 +394,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ftid)
 
             child = instr.get_children()[1]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op2 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -403,7 +403,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op2 = (TLOperandType.SUBFORMULA, child.ftid)
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.AND, op1, op2, instr.ftid))
-        elif isinstance(instr, SpecificationSet):
+        elif isinstance(instr, C2POSpecSection):
             # We no longer need these in V3
             continue
         else:
@@ -411,7 +411,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
         # Configure SCQ size and, if temporal, interval bounds
         cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.DIRECT, ftscqasm[instr.ftid][1] - ftscqasm[instr.ftid][0]), ftscqasm[instr.ftid][0]))
-        if isinstance(instr, TemporalOperator):
+        if isinstance(instr, C2POTemporalOperator):
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 1), instr.interval.ub))
 
@@ -419,24 +419,24 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     boxqs = 1 # Number of boxqueus for running offsets
     for instr in ptasm:
-        if isinstance(instr, Atomic) or isinstance(instr, BZInstruction):  # Load
+        if isinstance(instr, C2POAtomic) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ptid))
-        elif isinstance(instr, Specification):  # End
+        elif isinstance(instr, C2POSpecification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ptid), (TLOperandType.DIRECT, instr.formula_number), instr.ptid))
 
             for at_instr in at_formula_instr:
                 if instr == at_instr:
-                    if isinstance(at_instr.rel_op, Equal):
+                    if isinstance(at_instr.rel_op, C2POEqual):
                         conditional = ATCond.EQ
-                    elif isinstance(at_instr.rel_op, NotEqual):
+                    elif isinstance(at_instr.rel_op, C2PONotEqual):
                         conditional = ATCond.NEQ
-                    elif isinstance(at_instr.rel_op, GreaterThan):
+                    elif isinstance(at_instr.rel_op, C2POGreaterThan):
                         conditional = ATCond.GT
-                    elif isinstance(at_instr.rel_op, LessThan):
+                    elif isinstance(at_instr.rel_op, C2POLessThan):
                         conditional = ATCond.LT
-                    elif isinstance(at_instr.rel_op, GreaterThanOrEqual):
+                    elif isinstance(at_instr.rel_op, C2POGreaterThanOrEqual):
                         conditional = ATCond.GEQ
-                    elif isinstance(at_instr.rel_op, LessThanOrEqual):
+                    elif isinstance(at_instr.rel_op, C2POLessThanOrEqual):
                         conditional = ATCond.LEQ
                     else:
                         raise NotImplementedError
@@ -448,29 +448,29 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                     else:
                         raise NotImplementedError
 
-                    if isinstance(at_instr.args[0], Specification):
+                    if isinstance(at_instr.args[0], C2POSpecification):
                         sid = at_instr.args[0].get_expr().ptid + pt_offset
                     else:
                         raise NotImplementedError
 
-                    comp_to_sig = isinstance(at_instr.compare, Signal)
+                    comp_to_sig = isinstance(at_instr.compare, C2POSignal)
 
-                    if isinstance(at_instr.compare, Signal):
+                    if isinstance(at_instr.compare, C2POSignal):
                         comparison = cStruct("Bxxxxxxx").pack(at_instr.compare.sid)
-                    elif isinstance(at_instr.compare, Constant):
+                    elif isinstance(at_instr.compare, C2POConstant):
                         comparison = cStruct(format).pack(at_instr.compare.value)
                     else:
                         raise NotImplementedError
 
                     rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.AT.value) + assemble_at(conditional, filter, sid, at_instr.atid, comp_to_sig, comparison, filter_arg, at_instr.atid))
 
-        elif isinstance(instr, Once): # Once
+        elif isinstance(instr, C2POOnce): # Once
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.ONCE, (TLOperandType.SUBFORMULA, instr.get_children()[0].ptid), (TLOperandType.NOT_SET, 0), instr.ptid))
-        elif isinstance(instr, Historical): # Historically
+        elif isinstance(instr, C2POHistorical): # Historically
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.HISTORICALLY, (TLOperandType.SUBFORMULA, instr.get_children()[0].ptid), (TLOperandType.NOT_SET, 0), instr.ptid))
-        elif isinstance(instr, Since):  # Since
+        elif isinstance(instr, C2POSince):  # Since
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -479,7 +479,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
             child = instr.get_children()[1]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op2 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -489,9 +489,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.SINCE, op1, op2, instr.ptid))
             pass
-        elif isinstance(instr, LogicalNegate):  # Not
+        elif isinstance(instr, C2POLogicalNegate):  # Not
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -500,9 +500,9 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.NOT, op1, (TLOperandType.NOT_SET, 0), instr.ptid))
-        elif isinstance(instr, LogicalAnd): # And
+        elif isinstance(instr, C2POLogicalAnd): # And
             child = instr.get_children()[0]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op1 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -511,7 +511,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op1 = (TLOperandType.SUBFORMULA, child.ptid)
 
             child = instr.get_children()[1]
-            if isinstance(child, Bool):
+            if isinstance(child, C2POBool):
                 op2 = (TLOperandType.DIRECT, child.value)
             # Atomic are access via loads which are created by atomic nodes
             # elif isinstance(child, Atomic):
@@ -520,13 +520,13 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 op2 = (TLOperandType.SUBFORMULA, child.ptid)
 
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.AND, op1, op2, instr.ptid))
-        elif isinstance(instr, SpecificationSet):
+        elif isinstance(instr, C2POSpecSection):
             # We no longer need these in V3
             continue
         else:
             raise NotImplementedError
 
-        if isinstance(instr, TemporalOperator):
+        if isinstance(instr, C2POTemporalOperator):
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.DIRECT, 64), 64*boxqs))
             boxqs += 1
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ptid), (TLOperandType.ATOMIC, 0), instr.interval.lb))
