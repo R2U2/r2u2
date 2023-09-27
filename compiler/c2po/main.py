@@ -492,7 +492,8 @@ def compile(
         logger.error(" Failed type check.")
         return ReturnCode.TYPE_CHECK_ERROR.value
 
-    rewrite_defs_and_structs(program, context)
+    rewrite_function_calls(program, context)
+    rewrite_definitions(program, context)
     rewrite_contracts(program)
     rewrite_set_aggregation(program)
     print(program)
@@ -510,8 +511,6 @@ def compile(
     # # common sub-expressions elimination
     # if enable_cse:
     #     optimize_cse(program)
-
-    sys.exit()
 
     # parse csv/signals file
     program.signal_mapping = parse_signals(signals_filename)

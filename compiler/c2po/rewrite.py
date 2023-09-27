@@ -1,30 +1,45 @@
 from .ast import *
 
-def rewrite_defs_and_structs(program: C2POProgram, context: C2POContext):
+
+def rewrite_function_calls(program: C2POProgram, context: C2POContext):
+
+    # TODO: if the node is in a definition -- need to replace the definition as well? Only if it's the top level node of the definition I think...
+
+    def rewrite_function_calls_util(node: C2PONode):
+        if isinstance(node, C2POFunctionCall) and node.symbol in context.structs:
+            print(node)
+            struct_members = [m for m in context.structs[node.symbol].keys()]
+            node.replace(
+                C2POStruct(
+                    node.ln, 
+                    node.symbol, 
+                    {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
+                    cast(List[C2PONode], node.get_children())
+                )
+            )
+
+    for definition in context.definitions.values():
+        postorder(definition, rewrite_function_calls_util)
+
+    for spec_section in program.get_spec_sections():
+        postorder(spec_section, rewrite_function_calls_util)
+
+
+def rewrite_definitions(program: C2POProgram, context: C2POContext):
     
-    def rewrite_defs_and_structs_util(node: C2PONode):
+    def rewrite_definitions_util(node: C2PONode):
         if isinstance(node, C2POVariable):
             if node.symbol in context.definitions:
                 print(f"{node} : {context.definitions[node.symbol]}")
                 node.replace(context.definitions[node.symbol])
             elif node.symbol in context.specifications:
                 node.replace(context.specifications[node.symbol].get_expr())
-        elif isinstance(node, C2POFunctionCall):
-            if node.symbol in context.structs:
-                struct_members = [m for m in context.structs[node.symbol].keys()]
-                struct = C2POStruct(
-                    node.ln, 
-                    node.symbol, 
-                    {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
-                    cast(List[C2PONode], node.get_children())
-                )
-                node.replace(struct)
 
     for definition in context.definitions.values():
-        postorder(definition, rewrite_defs_and_structs_util)
+        postorder(definition, rewrite_definitions_util)
 
     for spec_section in program.get_spec_sections():
-        postorder(spec_section, rewrite_defs_and_structs_util)
+        postorder(spec_section, rewrite_definitions_util)
 
 
 # TODO
