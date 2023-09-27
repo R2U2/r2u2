@@ -1,6 +1,5 @@
 from __future__ import annotations
 from copy import deepcopy
-from re import S
 from typing import Any, Dict, Callable, NamedTuple, NewType, Optional, Set, Union, cast, List, Tuple
 
 from .types import R2U2Implementation
@@ -22,20 +21,11 @@ class C2POSection(Enum):
     FTSPEC = 4
     PTSPEC = 5
 
-def postorder_recursive(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform a postorder traversal of node, calling func on each node."""
-    c: C2PONode
-    for c in node.get_children():
-        postorder_recursive(c, func)
-    func(node)
 
-
-def postorder_iterative(node: C2PONode, func: Callable[[C2PONode], Any]):
+def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
     """Perform an iterative postorder traversal of node, calling func on each node."""
-    stack: List[Tuple[bool, C2PONode]] = []
+    stack: List[Tuple[bool, C2PONode]] = [(False, node)]
     visited: Set[C2PONode] = set()
-
-    stack.append((False, node))
 
     while len(stack) > 0:
         cur = stack.pop()
@@ -53,11 +43,15 @@ def postorder_iterative(node: C2PONode, func: Callable[[C2PONode], Any]):
 
 
 def preorder(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform a preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
-    c: C2PONode
-    func(node)
-    for c in node.get_children():
-        preorder(c, func)
+    """Perform an iterative preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
+    stack: List[C2PONode] = [node]
+
+    while len(stack) > 0:
+        c = stack.pop()
+        func(c)
+
+        for child in reversed(c.get_children()):
+            stack.append(child)
 
 
 def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
@@ -66,13 +60,16 @@ def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
     if expr == v:
         return repl
 
+    # print(repl)
+
     new: C2PONode = deepcopy(expr)
+    # print(f"{expr} : {new}")
 
     def rename_util(a: C2PONode):
         if v == a:
             a.replace(repl)
 
-    postorder_iterative(new, rename_util)
+    postorder(new, rename_util)
     return new
 
 

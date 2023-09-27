@@ -1,5 +1,64 @@
 from .ast import *
 
+def rewrite_defs_and_structs(program: C2POProgram, context: C2POContext):
+    
+    def rewrite_defs_and_structs_util(node: C2PONode):
+        if isinstance(node, C2POVariable):
+            if node.symbol in context.definitions:
+                print(f"{node} : {context.definitions[node.symbol]}")
+                node.replace(context.definitions[node.symbol])
+            elif node.symbol in context.specifications:
+                node.replace(context.specifications[node.symbol].get_expr())
+        elif isinstance(node, C2POFunctionCall):
+            if node.symbol in context.structs:
+                struct_members = [m for m in context.structs[node.symbol].keys()]
+                struct = C2POStruct(
+                    node.ln, 
+                    node.symbol, 
+                    {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
+                    cast(List[C2PONode], node.get_children())
+                )
+                node.replace(struct)
+
+    for definition in context.definitions.values():
+        postorder(definition, rewrite_defs_and_structs_util)
+
+    for spec_section in program.get_spec_sections():
+        postorder(spec_section, rewrite_defs_and_structs_util)
+
+
+# TODO
+def rewrite_contracts(program: C2POProgram):
+    """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
+
+    for spec_set in program.get_children():
+        for contract in [c for c in spec_set.get_children() if isinstance(c, C2POContract)]:
+            spec_set.remove_child(contract)
+
+            spec_set.add_child(C2POSpecification(
+                contract.ln,
+                contract.symbol,
+                contract.formula_numbers[0],
+                contract.get_assumption()
+            ))
+
+            spec_set.add_child(C2POSpecification(
+                contract.ln,
+                contract.symbol,
+                contract.formula_numbers[1],
+                C2POLogicalImplies(contract.ln, contract.get_assumption(), contract.get_guarantee())
+            ))
+
+            spec_set.add_child(C2POSpecification(
+                contract.ln,
+                contract.symbol,
+                contract.formula_numbers[2],
+                C2POLogicalAnd(contract.ln, [contract.get_assumption(), contract.get_guarantee()])
+            ))
+
+            program.contracts[contract.symbol] = contract.formula_numbers
+
+
 def rewrite_extended_operators(program: C2POProgram):
     """
     Rewrites program formulas without extended operators i.e., formulas with only negation, conjunction, until, global, and future.
@@ -53,7 +112,7 @@ def rewrite_extended_operators(program: C2POProgram):
             node.replace(C2POUntil(node.ln, C2POBool(node.ln, True), operand, bounds.lb, bounds.ub))
 
     for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, rewrite_extended_operators_util)
+        postorder(spec_section, rewrite_extended_operators_util)
 
 
 def rewrite_boolean_normal_form(program: C2POProgram):
@@ -106,7 +165,7 @@ def rewrite_boolean_normal_form(program: C2POProgram):
                                                       C2POLogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
 
     for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, rewrite_boolean_normal_form_util)
+        postorder(spec_section, rewrite_boolean_normal_form_util)
 
 
 def rewrite_negative_normal_form(program: C2POProgram):
@@ -170,7 +229,7 @@ def rewrite_negative_normal_form(program: C2POProgram):
                                        C2POLogicalAnd(node.ln, [C2POLogicalNegate(lhs.ln, lhs), rhs])]))
 
     for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, rewrite_negative_normal_form_util)
+        postorder(spec_section, rewrite_negative_normal_form_util)
 
 
 def rewrite_set_aggregation(program: C2POProgram):
@@ -189,10 +248,8 @@ def rewrite_set_aggregation(program: C2POProgram):
     # expression sub tree searching for struct accesses. better approach: keep
     # track of these accesses on the frontend
     def rewrite_struct_access_util(node: C2PONode):
-        for c in node.get_children():
-            rewrite_struct_access_util(c)
-
-        if isinstance(node,C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
+        print(f"{node} : {type(node)} : {type(node.get_struct()) if isinstance(node, C2POStructAccess) else ''}")
+        if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
             s: C2POStruct = node.get_struct()
             node.replace(s.get_member(node.member))
 
@@ -200,10 +257,21 @@ def rewrite_set_aggregation(program: C2POProgram):
         cur: C2PONode = a
 
         if isinstance(a, C2POForEach):
-            rewrite_struct_access_util(a.get_set())
-            cur = C2POLogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
-            a.replace(cur) 
-            rewrite_struct_access_util(cur)
+            # rewrite_struct_access_util(a.get_set())
+            # cur = C2POLogicalAnd(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
+            # a.replace(cur) 
+            # rewrite_struct_access_util(cur)
+
+            postorder(a.get_set(), rewrite_struct_access_util)
+
+            cur = C2POLogicalAnd(a.ln, [rename(a.get_boundvar(), element, a.get_expr()) for element in a.get_set().get_children()])
+            print(f"{cur}\n")
+
+            a.replace(cur)
+
+            postorder(cur, rewrite_struct_access_util)
+            print(f"{cur}\n---\n")
+
         elif isinstance(a, C2POForSome):
             rewrite_struct_access_util(a.get_set())
             cur = C2POLogicalOr(a.ln,[rename(a.get_boundvar(),e,a.get_expr()) for e in a.get_set().get_children()])
@@ -228,34 +296,11 @@ def rewrite_set_aggregation(program: C2POProgram):
             a.replace(cur)
             rewrite_struct_access_util(cur)
 
-        for c in cur.get_children():
-            rewrite_set_aggregation_util(c)
+        # for c in cur.get_children():
+        #     rewrite_set_aggregation_util(c)
 
     for spec_section in program.get_spec_sections():
-        rewrite_set_aggregation_util(spec_section)
-
-
-def rewrite_defs_and_structs(program: C2POProgram, context: C2POContext):
-    
-    def rewrite_defs_and_structs_util(node: C2PONode):
-        if isinstance(node, C2POVariable):
-            if node.symbol in context.definitions:
-                node.replace(context.definitions[node.symbol])
-            elif node.symbol in context.specifications:
-                node.replace(context.specifications[node.symbol].get_expr())
-        elif isinstance(node, C2POFunctionCall):
-            if node.symbol in context.structs:
-                struct_members = [m for m in context.structs[node.symbol].keys()]
-                struct = C2POStruct(
-                    node.ln, 
-                    node.symbol, 
-                    {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
-                    cast(List[C2PONode], node.get_children())
-                )
-                node.replace(struct)
-
-    for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, rewrite_defs_and_structs_util)
+        preorder(spec_section, rewrite_set_aggregation_util)
 
 
 def rewrite_struct_access(program: C2POProgram):
@@ -275,7 +320,7 @@ def rewrite_struct_access(program: C2POProgram):
             node.replace(s.get_member(node.member))
 
     for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, rewrite_struct_access_util)
+        postorder(spec_section, rewrite_struct_access_util)
     program.is_struct_access_free = True
 
 
@@ -499,7 +544,7 @@ def optimize_rewrite_rules(program: C2POProgram):
                 node.replace(C2POFuture(node.ln, lhs, node.interval.lb, node.interval.lb+rhs.interval.ub))
 
     for spec_section in program.get_spec_sections():
-        postorder_iterative(spec_section, optimize_rewrite_rules_util)
+        postorder(spec_section, optimize_rewrite_rules_util)
 
 
 # def optimize_stratify_associative_operators(node: C2PONode):
@@ -529,35 +574,3 @@ def optimize_rewrite_rules(program: C2POProgram):
 #             optimize_associative_operators_rec(c)
 
 #     optimize_associative_operators_rec(node)
-
-
-# TODO
-def rewrite_contracts(program: C2POProgram):
-    """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
-
-    for spec_set in program.get_children():
-        for contract in [c for c in spec_set.get_children() if isinstance(c, C2POContract)]:
-            spec_set.remove_child(contract)
-
-            spec_set.add_child(C2POSpecification(
-                contract.ln,
-                contract.symbol,
-                contract.formula_numbers[0],
-                contract.get_assumption()
-            ))
-
-            spec_set.add_child(C2POSpecification(
-                contract.ln,
-                contract.symbol,
-                contract.formula_numbers[1],
-                C2POLogicalImplies(contract.ln, contract.get_assumption(), contract.get_guarantee())
-            ))
-
-            spec_set.add_child(C2POSpecification(
-                contract.ln,
-                contract.symbol,
-                contract.formula_numbers[2],
-                C2POLogicalAnd(contract.ln, [contract.get_assumption(), contract.get_guarantee()])
-            ))
-
-            program.contracts[contract.symbol] = contract.formula_numbers

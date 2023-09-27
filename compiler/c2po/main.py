@@ -126,7 +126,7 @@ def optimize_cse(program: C2POProgram) :
 
     for spec in program.get_spec_sections():
         S = {}
-        postorder_iterative(spec, optimize_cse_util)
+        postorder(spec, optimize_cse_util)
 
     # TODO: How to do this with potentially many SPEC sections?
     # postorder_iterative(program.get_future_time_spec_sections(), optimize_cse_util)
@@ -299,7 +299,7 @@ def compute_scq_size(node: C2PONode) -> int:
         node.scq_size = max(max_wpd-node.bpd,0)+3 # works for +3 b/c of some bug -- ask Brian
         total += node.scq_size
 
-    postorder_iterative(node, compute_scq_size_util)
+    postorder(node, compute_scq_size_util)
     node.total_scq_size = total
 
     return total
@@ -323,7 +323,7 @@ def generate_scq_assembly(program: C2POProgram) -> List[Tuple[int,int]]:
         pos = end_pos
         ret.append((start_pos,end_pos))
 
-    postorder_iterative(program.get_ft_specs(), gen_scq_assembly_util)
+    postorder(program.get_ft_specs(), gen_scq_assembly_util)
     program.scq_assembly = ret
 
     return ret
