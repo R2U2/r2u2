@@ -1,10 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple
-import inspect
 import sys
 import re
-
-from matplotlib.style import context
 
 from .logger import logger, Color
 from .ast import *
