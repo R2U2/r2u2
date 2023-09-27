@@ -3,9 +3,9 @@ from copy import deepcopy
 from typing import Any, Dict, Callable, NamedTuple, NewType, Optional, Set, Union, cast, List, Tuple
 
 from .types import R2U2Implementation
-
 from .logger import logger
 from .types import *
+from .instruction import *
 
 MissionTime = NewType("MissionTime", int)
 
@@ -157,6 +157,10 @@ class C2PONode():
         self.copy_attrs(new)
         return new
 
+    def assembly(self) -> Instruction:
+        logger.critical(f"Attempting to generate assembly for invalid operator ({type(self)}).")
+        return Instruction()
+
 
 class C2POExpression(C2PONode):
 
@@ -204,6 +208,9 @@ class C2POInteger(C2POConstant):
         new = C2POInteger(self.ln, self.value)
         self.copy_attrs(new)
         return new
+
+    def assembly(self) -> BZInstruction:
+        return BZInstruction(BZOperator.ICONST, [])
 
 
 class C2POFloat(C2POConstant):
@@ -253,6 +260,12 @@ class C2POSignal(C2POLiteral):
     def __deepcopy__(self, memo):
         copy = C2POSignal(self.ln, self.symbol, self.type)
         return copy
+
+    def assembly(self) -> BZInstruction:
+        return BZInstruction(
+            BZOperator.ILOAD if is_integer_type(self.type) else BZOperator.FLOAD,
+            []
+        )
     
 
 class C2POAtomic(C2POLiteral):

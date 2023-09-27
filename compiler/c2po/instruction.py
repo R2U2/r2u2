@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List, Tuple
     
 class Instruction():
 
@@ -81,11 +82,21 @@ class BZOperator(Enum):
 
 class BZInstruction(Instruction):
 
-    def __init__(self):
+    def __init__(self, op: BZOperator, cids: List[int]):
         super().__init__()
+        self.operator = op
+        self.symbol = op.symbol()
+        self.opcode = op.opcode()
+        self.child_ids = cids
+
+    def __str__(self) -> str:
+        return f"{self.symbol} {' '.join([f'b{id}' for id in self.child_ids])}"
 
 
+# Atomic Checker instructions
 class ATInstruction(Instruction):
 
     def __init__(self):
-        super().__init__() 
+        super().__init__()
+
+    

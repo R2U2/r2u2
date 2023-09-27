@@ -435,6 +435,13 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
     return None
 
 
+def generate_assembly(
+    program: C2POProgram
+) -> Tuple[List[Instruction], List[Instruction], List[Instruction], List[Instruction]]:
+
+    return ([], [], [], [])
+
+
 def compile(
     input_filename: str,
     trace_filename: Optional[str],
