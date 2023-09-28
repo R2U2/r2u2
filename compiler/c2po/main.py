@@ -9,6 +9,7 @@ from .type_check import type_check
 from .rewrite import *
 from .optimize import *
 from .parse import parse
+from .assembly import generate_assembly
 from .assembler import assemble
 
 SignalMapping = Dict[str, int]
@@ -435,13 +436,6 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
     return None
 
 
-def generate_assembly(
-    program: C2POProgram
-) -> Tuple[List[Instruction], List[Instruction], List[Instruction], List[Instruction]]:
-
-    return ([], [], [], [])
-
-
 def compile(
     input_filename: str,
     trace_filename: Optional[str],
@@ -549,7 +543,7 @@ def compile(
     aliases = generate_aliases(program, context)
 
     # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
+    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, context)
     scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
     # print assembly if 'quiet' option not enabled

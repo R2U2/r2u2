@@ -5,7 +5,6 @@ from typing import Any, Dict, Callable, NamedTuple, NewType, Optional, Set, Unio
 from .types import R2U2Implementation
 from .logger import logger
 from .types import *
-from .instruction import *
 
 MissionTime = NewType("MissionTime", int)
 
@@ -157,10 +156,6 @@ class C2PONode():
         self.copy_attrs(new)
         return new
 
-    def assembly(self) -> Instruction:
-        logger.critical(f"Attempting to generate assembly for invalid operator ({type(self)}).")
-        return Instruction()
-
 
 class C2POExpression(C2PONode):
 
@@ -199,7 +194,7 @@ class C2POInteger(C2POConstant):
         self.type = C2POIntType(True)
 
         if v.bit_length() > C2POIntType.width:
-            logger.error(f"{ln} Constant \"{v}\" not representable in configured int width (\"{C2POIntType.width}\").")
+            logger.error(f"{ln} Constant '{v}' not representable in configured int width ('{C2POIntType.width}').")
 
     def get_value(self) -> int:
         return self.value
@@ -208,9 +203,6 @@ class C2POInteger(C2POConstant):
         new = C2POInteger(self.ln, self.value)
         self.copy_attrs(new)
         return new
-
-    def assembly(self) -> BZInstruction:
-        return BZInstruction(BZOperator.ICONST, [])
 
 
 class C2POFloat(C2POConstant):
@@ -223,7 +215,7 @@ class C2POFloat(C2POConstant):
 
         # TODO: Fix this
         # if len(v.hex()[2:]) > FLOAT.width:
-        #     logger.error(f"{ln} Constant \"{v}\" not representable in configured float width (\"{FLOAT.width}\").")
+        #     logger.error(f"{ln} Constant '{v}' not representable in configured float width ('{FLOAT.width}').")
 
     def get_value(self) -> float:
         return self.value
@@ -260,12 +252,6 @@ class C2POSignal(C2POLiteral):
     def __deepcopy__(self, memo):
         copy = C2POSignal(self.ln, self.symbol, self.type)
         return copy
-
-    def assembly(self) -> BZInstruction:
-        return BZInstruction(
-            BZOperator.ILOAD if is_integer_type(self.type) else BZOperator.FLOAD,
-            []
-        )
     
 
 class C2POAtomic(C2POLiteral):
@@ -1274,6 +1260,20 @@ class C2POProgram(C2PONode):
     def get_past_time_spec_sections(self) -> List[C2POPastTimeSpecSection]:
         return [s for s in self._children if isinstance(s, C2POPastTimeSpecSection)]
 
+    def get_future_time_specs(self) -> List[C2POSpecification]:
+        specs = []
+        for spec_section in self.get_future_time_spec_sections():
+            for spec in spec_section.get_specs():
+                specs.append(spec)
+        return specs
+
+    def get_past_time_specs(self) -> List[C2POSpecification]:
+        specs = []
+        for spec_section in self.get_past_time_spec_sections():
+            for spec in spec_section.get_specs():
+                specs.append(spec)
+        return specs
+
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a program.")
 
@@ -1352,3 +1352,4 @@ class C2POContext():
     def remove_variable(self, symbol):
         del self.variables[symbol]
     
+
