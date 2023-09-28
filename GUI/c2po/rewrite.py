@@ -2,7 +2,7 @@ from .ast import *
 
 logger = getLogger(STANDARD_LOGGER_NAME)
 
-def rewrite_extended_operators(program: Program) -> None:
+def rewrite_extended_operators(program: Program):
     """
     Rewrites program formulas without extended operators i.e., formulas with only negation, conjunction, until, global, and future.
 
@@ -17,7 +17,7 @@ def rewrite_extended_operators(program: Program) -> None:
         logger.error(f' Program must be type checked before rewriting.')
         return
 
-    def rewrite_extended_operators_util(node: Node) -> None:
+    def rewrite_extended_operators_util(node: Node):
 
         if isinstance(node, LogicalOperator):
             if isinstance(node, LogicalOr):
@@ -58,7 +58,7 @@ def rewrite_extended_operators(program: Program) -> None:
     postorder_iterative(program, rewrite_extended_operators_util)
 
 
-def rewrite_boolean_normal_form(program: Program) -> None:
+def rewrite_boolean_normal_form(program: Program):
     """
     Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators.
 
@@ -73,7 +73,7 @@ def rewrite_boolean_normal_form(program: Program) -> None:
         logger.error(f' Program must be type checked before converting to boolean normal form.')
         return
 
-    def rewrite_boolean_normal_form_util(node: Node) -> None:
+    def rewrite_boolean_normal_form_util(node: Node):
 
         if isinstance(node, LogicalOr):
             # p || q = !(!p && !q)
@@ -113,7 +113,7 @@ def rewrite_boolean_normal_form(program: Program) -> None:
     rewrite_boolean_normal_form_util(program)
 
 
-def rewrite_negative_normal_form(program: Program) -> None:
+def rewrite_negative_normal_form(program: Program):
     """
     Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals.
 
@@ -128,7 +128,7 @@ def rewrite_negative_normal_form(program: Program) -> None:
         logger.error(f' Program must be type checked before converting to negative normal form.')
         return
 
-    def rewrite_negative_normal_form_util(node: Node) -> None:
+    def rewrite_negative_normal_form_util(node: Node):
 
         if isinstance(node, LogicalNegate):
             operand = node.get_operand()
@@ -179,7 +179,7 @@ def rewrite_negative_normal_form(program: Program) -> None:
     rewrite_negative_normal_form_util(program)
 
 
-def rewrite_set_aggregation(program: Program) -> None:
+def rewrite_set_aggregation(program: Program):
     """
     Rewrites set aggregation operators into corresponding BZ and TL operations e.g., foreach is rewritten into a conjunction.
 
@@ -194,7 +194,7 @@ def rewrite_set_aggregation(program: Program) -> None:
     # could be done far more efficiently...currently traverses each set agg
     # expression sub tree searching for struct accesses. better approach: keep
     # track of these accesses on the frontend
-    def rewrite_struct_access_util(node: Node) -> None:
+    def rewrite_struct_access_util(node: Node):
         for c in node.get_children():
             rewrite_struct_access_util(c)
 
@@ -202,7 +202,7 @@ def rewrite_set_aggregation(program: Program) -> None:
             s: Struct = node.get_struct()
             node.replace(s.get_member(node.member))
 
-    def rewrite_set_aggregation_util(a: Node) -> None:
+    def rewrite_set_aggregation_util(a: Node):
         cur: Node = a
 
         if isinstance(a, ForEach):
@@ -241,7 +241,7 @@ def rewrite_set_aggregation(program: Program) -> None:
     program.is_set_agg_free = True
 
 
-def rewrite_struct_access(program: Program) -> None:
+def rewrite_struct_access(program: Program):
     """
     Rewrites struct access operations to the references member expression.
 
@@ -260,7 +260,7 @@ def rewrite_struct_access(program: Program) -> None:
         logger.error(f' Program must be free of set aggregation operators before rewriting struct accesses.')
         return
 
-    def rewrite_struct_access_util(node: Node) -> None:
+    def rewrite_struct_access_util(node: Node):
         if isinstance(node, StructAccess):
             s: Struct = node.get_struct()
             node.replace(s.get_member(node.member))
@@ -269,9 +269,9 @@ def rewrite_struct_access(program: Program) -> None:
     program.is_struct_access_free = True
 
 
-def optimize_rewrite_rules(program: Node) -> None:
+def optimize_rewrite_rules(program: Node):
 
-    def optimize_rewrite_rules_util(node: Node) -> None:
+    def optimize_rewrite_rules_util(node: Node):
         if isinstance(node, LogicalNegate):
             opnd1 = node.get_operand()
             if isinstance(opnd1, Bool):
@@ -491,10 +491,10 @@ def optimize_rewrite_rules(program: Node) -> None:
     postorder_iterative(program, optimize_rewrite_rules_util)
 
 
-def optimize_stratify_associative_operators(node: Node) -> None:
+def optimize_stratify_associative_operators(node: Node):
     """TODO"""
 
-    def optimize_associative_operators_rec(node: Node) -> None:
+    def optimize_associative_operators_rec(node: Node):
         if isinstance(node, LogicalAnd) and len(node.get_children()) > 2:
             n: int = len(node.get_children())
             children = [c for c in node.get_children()]
@@ -520,7 +520,7 @@ def optimize_stratify_associative_operators(node: Node) -> None:
     optimize_associative_operators_rec(node)
 
 
-def rewrite_contracts(program: Program) -> None:
+def rewrite_contracts(program: Program):
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
 
     for spec_set in program.get_children():

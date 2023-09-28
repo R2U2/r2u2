@@ -84,7 +84,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     formula_type: FormulaType = FormulaType.PROP
     in_parameterized_set_agg: bool = False
 
-    def resolve_variables_util(node: Node) -> None:
+    def resolve_variables_util(node: Node):
         """Recursively replace any Variable instances to Atomic, Signal, or definitions, unless it is a set aggregation variable."""
         nonlocal status
 
@@ -141,7 +141,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
             for child in node.get_children():
                 resolve_variables_util(child)
 
-    def type_check_util(node: Node) -> None:
+    def type_check_util(node: Node):
         nonlocal formula_type
         nonlocal status
         nonlocal in_parameterized_set_agg
@@ -520,7 +520,7 @@ def type_check(program: Program, at: bool, bz: bool) -> bool:
     return status
 
 
-def optimize_cse(program: Program) -> None:
+def optimize_cse(program: Program):
     """
     Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
 
@@ -538,7 +538,7 @@ def optimize_cse(program: Program) -> None:
 
     S: Dict[str, Node]
 
-    def optimize_cse_util(node: Node) -> None:
+    def optimize_cse_util(node: Node):
         nonlocal S
 
         if str(node) in S:
@@ -594,7 +594,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     bz_asm = []
     at_asm = []
 
-    def assign_ftids(node: Node) -> None:
+    def assign_ftids(node: Node):
         nonlocal ftid, bzid, atid
 
         if isinstance(node, TLInstruction):
@@ -625,7 +625,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
             else:
                 node.atid = program.atomics[node.name].atid
 
-    def assign_ptids(node: Node) -> None:
+    def assign_ptids(node: Node):
         nonlocal ptid, bzid, atid
 
         if isinstance(node, TLInstruction):
@@ -657,7 +657,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
                 node.atid = program.atomics[node.name].atid
 
 
-    def generate_assembly_util(node: Node) -> None:
+    def generate_assembly_util(node: Node):
         nonlocal formula_type
 
         if isinstance(node, Instruction):
@@ -698,7 +698,7 @@ def compute_scq_size(node: Node) -> int:
     visited: List[int] = []
     total: int = 0
 
-    def compute_scq_size_util(node: Node) -> None:
+    def compute_scq_size_util(node: Node):
         nonlocal visited
         nonlocal total
 
@@ -735,7 +735,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
 
     program.total_scq_size = compute_scq_size(program.get_ft_specs())
 
-    def gen_scq_assembly_util(a: Node) -> None:
+    def gen_scq_assembly_util(a: Node):
         nonlocal ret
         nonlocal pos
 
