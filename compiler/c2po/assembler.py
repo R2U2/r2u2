@@ -304,7 +304,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     ft_offset = len(rtm_instrs)
 
     for instr in ftasm:
-        if isinstance(instr, C2POAtomic) or isinstance(instr, BZInstruction):  # Load
+        if isinstance(instr, C2POAtomicChecker) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, C2POSpecification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
@@ -419,7 +419,7 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
 
     boxqs = 1 # Number of boxqueus for running offsets
     for instr in ptasm:
-        if isinstance(instr, C2POAtomic) or isinstance(instr, BZInstruction):  # Load
+        if isinstance(instr, C2POAtomicChecker) or isinstance(instr, BZInstruction):  # Load
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ptid))
         elif isinstance(instr, C2POSpecification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_pt(PTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ptid), (TLOperandType.DIRECT, instr.formula_number), instr.ptid))

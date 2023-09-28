@@ -3,11 +3,13 @@ from .ast import *
 def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     status = True
 
-    if isinstance(expr, C2POConstant):
+    if isinstance(expr, C2POSpecification):
+        pass
+    elif isinstance(expr, C2POConstant):
         pass
     elif isinstance(expr, C2POSignal):
         expr.type = context.signals[expr.symbol]
-    elif isinstance(expr, C2POAtomic):
+    elif isinstance(expr, C2POAtomicChecker):
         pass
     elif isinstance(expr, C2POVariable):
         symbol = expr.symbol
@@ -31,6 +33,10 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         if expr.symbol not in context.structs:
             logger.error(f"{expr.ln}: Functions unsupported.\n\t{expr}")
             status =  False
+
+        for arg in expr.get_children():
+            type_check_expr(arg, context)
+
         expr.type = C2POStructType(False, expr.symbol)
     elif isinstance(expr, C2PORelationalOperator): 
         lhs: C2POExpression = expr.get_lhs()
@@ -214,13 +220,19 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = False
             logger.error(f"{expr.ln}: Member '{expr.member}' invalid for struct '{struct_symbol}'")
     else:
-        logger.error(f"{expr.ln}: Invalid expression\n\t{expr}")
+        logger.error(f"{expr.ln}: Invalid expression ({type(expr)})\n\t{expr}")
         status = False
+
+    # compute atomics
+    if expr.engine == R2U2Engine.TEMPORAL_LOGIC:
+        for child in expr.get_children():
+            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
+                context.atomics.add(child)
 
     return status
 
 
-def type_check_atomic(atomic: C2POAtomicDefinition, context: C2POContext) -> bool:
+def type_check_atomic(atomic: C2POAtomicCheckerDefinition, context: C2POContext) -> bool:
     status = True
 
     return status
@@ -254,7 +266,7 @@ def type_check_section(section: C2POSection, context: C2POContext) -> bool:
 
             context.add_struct(struct.symbol, struct.get_members())
     elif isinstance(section, C2POAtomicSection):
-        for atomic in section.get_atomics():
+        for atomic in section.get_atomic_checkers():
             if atomic.symbol in context.get_symbols():
                 status = False
                 logger.error(f"{atomic.ln}: Symbol '{atomic.symbol}' already in use.")
@@ -274,7 +286,7 @@ def type_check_section(section: C2POSection, context: C2POContext) -> bool:
                 logger.error(f"{spec.ln}: Symbol '{spec.symbol}' already in use.")
 
             if isinstance(spec, C2POSpecification):
-                status = status and type_check_expr(spec.get_expr(), context)
+                status = status and type_check_expr(spec, context)
                 if status:
                     context.add_specification(spec.symbol, spec)
             elif isinstance(spec, C2POContract):

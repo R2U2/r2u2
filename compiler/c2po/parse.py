@@ -268,12 +268,12 @@ class C2POParser(Parser):
     @_("KW_ATOMIC atomic atomic_list")
     def atomic_section(self, p):
         p[2].append(p[1])
-        self.literals[p[1]] = C2POAtomic
+        self.literals[p[1]] = C2POAtomicChecker
         return C2POAtomicSection(p.lineno, p[2])
 
     @_("atomic_list atomic")
     def atomic_list(self, p):
-        self.literals[p[1]] = C2POAtomic
+        self.literals[p[1]] = C2POAtomicChecker
         return p[0] + [p[1]]
 
     @_("")
@@ -282,7 +282,7 @@ class C2POParser(Parser):
 
     @_("SYMBOL ASSIGN expr SEMI")
     def atomic(self, p):
-        return C2POAtomicDefinition(p.lineno, p[0], p[2])
+        return C2POAtomicCheckerDefinition(p.lineno, p[0], p[2])
 
     # Future-time specification section
     @_("KW_FTSPEC spec spec_list")
@@ -535,8 +535,8 @@ class C2POParser(Parser):
         if p[0] in self.literals:
             if self.literals[p[0]] is C2POSignal:
                 return C2POSignal(p.lineno, p[0], C2PONoType())
-            elif self.literals[p[0]] is C2POAtomic:
-                return C2POAtomic(p.lineno, p[0])
+            elif self.literals[p[0]] is C2POAtomicChecker:
+                return C2POAtomicChecker(p.lineno, p[0])
         return C2POVariable(p.lineno, p[0])
 
     # Integer

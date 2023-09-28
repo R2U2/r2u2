@@ -1,76 +1,8 @@
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from .ast import *
-    
-class Instruction():
 
-    def __init__(self):
-        super().__init__()
-        self.id = -1
-
-# Future-time instructions
-class FTOperator(Enum):
-    NOP       = 0b11111
-    CONFIGURE = 0b11110
-    LOAD      = 0b11101
-    RETURN    = 0b11100
-    GLOBALLY  = 0b11010
-    UNTIL     = 0b11001
-    NOT       = 0b10111
-    AND       = 0b10110
-
-    def symbol(self) -> str:
-        return self.name.lower()
-    
-    def opcode(self) -> int:
-        return self.value
-
-class FTInstruction(Instruction):
-
-    def __init__(self,  node: C2PONode, op: FTOperator, c: List[Instruction]):
-        super().__init__()
-        self.node = node
-        self.operator = op
-        self.children = c
-        
-    def __str__(self) -> str:
-        return f"{self.operator.symbol()} {' '.join([f'n{c.id}' for c in self.children])}"
-
-# Past-time instructions
-class PTOperator(Enum):
-    NOP          = 0b01111
-    CONFIGURE    = 0b01110
-    LOAD         = 0b01101
-    RETURN       = 0b01100
-    ONCE         = 0b01011
-    HISTORICALLY = 0b01010
-    SINCE        = 0b01001
-    NOT          = 0b00111
-    AND          = 0b00110
-    OR           = 0b00101
-    IMPLIES      = 0b00100
-    EQUIVALENT   = 0b00000
-
-    def symbol(self) -> str:
-        return self.name.lower()
-    
-    def opcode(self) -> int:
-        return self.value
-
-class PTInstruction(Instruction):
-
-    def __init__(self,  node: C2PONode, op: PTOperator, c: List[Instruction]):
-        super().__init__()
-        self.node = node
-        self.operator = op
-        self.children = c
-        
-    def __str__(self) -> str:
-        return f"{self.operator.symbol()} {' '.join([f'n{c.id}' for c in self.children])}"
-
-
-# Booleanizer instructions
 class BZOperator(Enum):
     NONE    = 0b000000
     ILOAD   = 0b000001
@@ -109,23 +41,6 @@ class BZOperator(Enum):
     def opcode(self) -> int:
         return self.value
 
-class BZInstruction(Instruction):
-
-    def __init__(self, node: C2PONode, op: BZOperator, c: List[Instruction]):
-        super().__init__()
-        self.node = node
-        self.operator = op
-        self.children = c
-        
-    def __str__(self) -> str:
-        if self.operator == BZOperator.ILOAD or self.operator == BZOperator.FLOAD:
-            signal = cast(C2POSignal, self.node)
-            return f"b{self.id}: {self.operator.symbol()} {signal.signal_id}"
-    
-        return f"b{self.id}: {self.operator.symbol()} {' '.join([f'b{c.id}' for c in self.children])}"
-
-
-# Atomic Checker instructions
 class ATCond(Enum):
     EQ  = 0b000
     NEQ = 0b001
@@ -146,10 +61,106 @@ class ATFilter(Enum):
     NONE_OF        = 0b1001
     ALL_OF         = 0b1010
 
+class FTOperator(Enum):
+    NOP       = 0b11111
+    CONFIGURE = 0b11110
+    LOAD      = 0b11101
+    RETURN    = 0b11100
+    GLOBALLY  = 0b11010
+    UNTIL     = 0b11001
+    NOT       = 0b10111
+    AND       = 0b10110
+
+    def symbol(self) -> str:
+        return self.name.lower()
+    
+    def opcode(self) -> int:
+        return self.value
+
+    def is_temporal(self) -> bool:
+        return self is FTOperator.GLOBALLY or self is FTOperator.UNTIL
+
+class PTOperator(Enum):
+    NOP          = 0b01111
+    CONFIGURE    = 0b01110
+    LOAD         = 0b01101
+    RETURN       = 0b01100
+    ONCE         = 0b01011
+    HISTORICALLY = 0b01010
+    SINCE        = 0b01001
+    NOT          = 0b00111
+    AND          = 0b00110
+    OR           = 0b00101
+    IMPLIES      = 0b00100
+    EQUIVALENT   = 0b00000
+
+    def symbol(self) -> str:
+        return self.name.lower()
+    
+    def opcode(self) -> int:
+        return self.value
+
+    def is_temporal(self) -> bool:
+        return self == PTOperator.ONCE or self == PTOperator.HISTORICALLY or self == PTOperator.SINCE
+    
+Operator = Union[FTOperator, PTOperator, BZOperator]
+
+class Instruction():
+
+    def __init__(self, node: C2PONode):
+        super().__init__()
+        self.node = node
+        self.operator: Optional[Operator] = None
+        self.id = -1
+
+class BZInstruction(Instruction):
+
+    def __init__(self, node: C2PONode, op: BZOperator, c: List[Instruction]):
+        super().__init__(node)
+        self.operator: BZOperator = op
+        self.children = c
+        
+    def __str__(self) -> str:
+        if self.operator == BZOperator.ILOAD or self.operator == BZOperator.FLOAD:
+            signal = cast(C2POSignal, self.node)
+            return f"b{self.id}: {self.operator.symbol()} {signal.signal_id}"
+        elif self.operator == BZOperator.ICONST or self.operator == BZOperator.FCONST:
+            const = cast(C2POConstant, self.node)
+            return f"b{self.id}: {self.operator.symbol()} {const.value}"
+    
+        return f"b{self.id}: {self.operator.symbol()} {' '.join([f'b{c.id}' for c in self.children])}"
+
+
 class ATInstruction(Instruction):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, node: C2PONode):
+        super().__init__(node)
+        
+
+class FTInstruction(Instruction):
+
+    def __init__(self, node: C2PONode, op: FTOperator, c: List[Instruction]):
+        super().__init__(node)
+        self.operator: FTOperator = op
+        self.children = c
+        
+    def __str__(self) -> str:
+        if self.operator == FTOperator.LOAD:
+            return f"n{self.id}: {self.operator.symbol()} b{self.children[0].id}"
+        elif self.operator.is_temporal():
+            temp = cast(C2POTemporalOperator, self.node)
+            return f"n{self.id}: {self.operator.symbol()} {temp.interval.lb} {temp.interval.ub} {' '.join([f'n{c.id}' for c in self.children])}"
+        return f"n{self.id}: {self.operator.symbol()} {' '.join([f'n{c.id}' for c in self.children])}"
+
+class PTInstruction(Instruction):
+
+    def __init__(self, node: C2PONode, op: PTOperator, c: List[Instruction]):
+        super().__init__(node)
+        self.operator: PTOperator = op
+        self.children = c
+        
+    def __str__(self) -> str:
+        return f"n{self.id}: {self.operator.symbol()} {' '.join([f'n{c.id}' for c in self.children])}"
 
 # Alternative approach for mapping nodes to their respective instructions
 # maps (C2PONodeType, is_integer_type, is_future_time) -> Instruction
@@ -176,13 +187,27 @@ def generate_assembly(
 
     bzid, atid, ftid, ptid = 0, 0, 0, 0
 
-    def generate_assembly_util(node: C2PONode, context: C2POContext) -> Instruction:
+    visited: Set[C2PONode] = set()
+    instructions: Dict[C2PONode, Instruction] = {}
+
+    def generate_assembly_util(node: C2PONode) -> Instruction:
         nonlocal bz_asm, at_asm, ft_asm, pt_asm
         nonlocal bzid, atid, ftid, ptid
+        nonlocal instructions
+        nonlocal context
+
         instr: Optional[Instruction] = None
 
         # traverse AST and generate sub-expression instructions
-        child_instrs = [generate_assembly_util(c, context) for c in node.get_children()]
+        # child_instrs = []
+        # for child in node.get_children():
+        #     if child in instructions:
+        #         child_instrs.append(instructions[child])
+        #     else:
+        #         child_instrs.append(generate_assembly_util(child, context))
+        child_instrs = [instructions[c] for c in node.get_children() if c in instructions]
+
+        # child_instrs = [generate_assembly_util(c, context) for c in node.get_children() if c not in visited]
 
         # create this node's corresponding instruction
         if isinstance(node, C2POBool):
@@ -299,8 +324,19 @@ def generate_assembly(
             instr = PTInstruction(node, PTOperator.RETURN, child_instrs)
         else:
             logger.critical(f"Node '{node}' of python type '{type(node)}' invalid for assembly generation.")
-            return Instruction()
-        
+            return Instruction(node)
+
+        if node in context.atomics and context.is_future_time():
+            load_instr = FTInstruction(node, FTOperator.LOAD, [instr])
+            load_instr.id = ftid
+            ftid += 1
+            ft_asm.append(load_instr)
+        elif node in context.atomics and context.is_past_time():
+            load_instr = PTInstruction(node, PTOperator.LOAD, [instr])
+            load_instr.id = ptid
+            ptid += 1
+            pt_asm.append(load_instr)
+
         # add this node's instruction to corresponding assembly list
         # -- add in FT/PT loads as needed
         if isinstance(instr, BZInstruction):
@@ -316,6 +352,16 @@ def generate_assembly(
                 logger.critical(f"Generating FTInstruction for past-time assembly.")
 
             # TODO: check if any child is a BZ/AT instr -- then need to perform a load
+            # for child in [c for c in child_instrs if isinstance(c, BZInstruction) or isinstance(c, ATInstruction)]:
+            #     load_instr = FTInstruction(node, FTOperator.LOAD, [child])
+            #     load_instr.id = ftid
+            #     ftid += 1
+            #     ft_asm.append(load_instr)
+                # if child not in instructions:
+                #     load_instr = instructions[child]
+                #     child_instrs.index(child)
+                # else:
+                #     load_instr = 
 
             instr.id = ftid
             ftid += 1
@@ -330,11 +376,13 @@ def generate_assembly(
             ptid += 1
             pt_asm.append(instr)
 
+        instructions[node] = instr
         return instr
 
     context.set_future_time()
     for spec in program.get_future_time_specs():
-        generate_assembly_util(spec, context)
+        postorder(spec, generate_assembly_util)
+        # generate_assembly_util(spec, context)
 
     context.set_past_time()
     for spec in program.get_past_time_specs():
@@ -343,4 +391,26 @@ def generate_assembly(
     return (bz_asm, at_asm, ft_asm, pt_asm)
     
 
-    
+def generate_scq_assembly(program: C2POProgram) -> List[Tuple[int,int]]:
+    return []
+    ret: List[Tuple[int,int]] = []
+    pos: int = 0
+
+    program.total_scq_size = compute_scq_size(program.get_ft_specs())
+
+    def gen_scq_assembly_util(a: C2PONode) :
+        nonlocal ret
+        nonlocal pos
+
+        if a.ftid < 0 or isinstance(a, C2POSpecSection):
+            return
+
+        start_pos = pos
+        end_pos = start_pos + a.scq_size
+        pos = end_pos
+        ret.append((start_pos,end_pos))
+
+    postorder(program.get_ft_specs(), gen_scq_assembly_util)
+    program.scq_assembly = ret
+
+    return ret

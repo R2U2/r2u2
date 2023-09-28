@@ -27,7 +27,7 @@ def rewrite_function_calls(program: C2POProgram, context: C2POContext):
                     node.ln, 
                     node.symbol, 
                     {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
-                    cast(List[C2PONode], node.get_children())
+                    cast(List[C2PONode], reversed(node.get_children()))
                 )
             )
 
@@ -88,13 +88,11 @@ def rewrite_set_aggregation(program: C2POProgram):
         cur: C2PONode = node
 
         if isinstance(node, C2POForEach):
-            # postorder(node.get_set(), rewrite_struct_access_util)
+            postorder(node.get_set(), rewrite_struct_access_util)
 
             cur = C2POLogicalAnd(node.ln, [rename(node.get_boundvar(), element, node.get_expr()) for element in node.get_set().get_children()])
 
             node.replace(cur)
-
-            postorder(cur, rewrite_struct_access_util)
         elif isinstance(node, C2POForSome):
             rewrite_struct_access_util(node.get_set())
             cur = C2POLogicalOr(node.ln,[rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().get_children()])

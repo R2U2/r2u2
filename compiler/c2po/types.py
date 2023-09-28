@@ -10,6 +10,13 @@ class R2U2Implementation(Enum):
     VHDL = 2
 
 
+class R2U2Engine(Enum):
+    NONE = 0
+    TEMPORAL_LOGIC = 0
+    BOOLEANIZER = 1
+    ATOMIC_CHECKER = 2
+
+
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
     if s.lower() == "c":
         return R2U2Implementation.C

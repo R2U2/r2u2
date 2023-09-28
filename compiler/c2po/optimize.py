@@ -17,22 +17,15 @@ def optimize_cse(program: C2POProgram) :
     def optimize_cse_util(node: C2PONode) :
         nonlocal S
 
-        print(f"{node} : {S}")
-
         if str(node) in S:
             node.replace(S[str(node)])
         else:
             S[str(node)] = node
 
     for spec_section in program.get_spec_sections():
+        S = {}
         for spec in spec_section.get_specs():
-            S = {}
             postorder(spec, optimize_cse_util)
-
-    # TODO: How to do this with potentially many SPEC sections?
-    # postorder_iterative(program.get_future_time_spec_sections(), optimize_cse_util)
-    # S = {k:v for (k,v) in S.items() if isinstance(v, BZInstruction)}
-    # postorder_iterative(program.get_pt_specs(), optimize_cse_util)
 
     program.is_cse_reduced = True
 

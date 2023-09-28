@@ -1,6 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any, Dict, Callable, NamedTuple, NewType, Optional, Set, Union, cast, List, Tuple
+from typing import Any, Dict, Callable, NamedTuple, NewType, Set, Union, cast, List, Tuple
 
 from .types import R2U2Implementation
 from .logger import logger
@@ -73,8 +73,8 @@ class C2PONode():
 
     def __init__(self, ln: int, c: List[C2PONode]):
         self.ln: int = ln
-        self.total_scq_size: int = 0
-        self.scq_size: int = 0
+        self.total_scq_size: int = -1
+        self.scq_size: int = -1
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
@@ -93,12 +93,19 @@ class C2PONode():
 
     def get_parents(self) -> List[C2PONode]:
         return self._parents
+
+    def get_siblings(self) -> List[C2PONode]:
+        siblings = []
+
+        for parent in self.get_parents():
+            for sibling in [s for s in parent.get_children()]:
+                if sibling in siblings:
+                    continue
+                if sibling == self:
+                    continue
+                siblings.append(sibling)
         
-    # def has_tl_parent(self) -> bool:
-    #     for p in self._parents:
-    #         if isinstance(p):
-    #             return True
-    #     return False
+        return siblings
 
     def num_children(self) -> int:
         return len(self._children)
@@ -161,6 +168,7 @@ class C2POExpression(C2PONode):
 
     def __init__(self, ln: int, c: List[C2PONode]):
         super().__init__(ln, c)
+        self.engine = R2U2Engine.NONE
 
     def get_children(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self._children)
@@ -183,7 +191,7 @@ class C2POConstant(C2POLiteral):
 
     def get_value(self) -> int|float:
         return self.value
-
+        
 
 class C2POInteger(C2POConstant):
 
@@ -192,6 +200,7 @@ class C2POInteger(C2POConstant):
         self.value: int = v
         self.symbol = str(v)
         self.type = C2POIntType(True)
+        self.engine = R2U2Engine.BOOLEANIZER
 
         if v.bit_length() > C2POIntType.width:
             logger.error(f"{ln} Constant '{v}' not representable in configured int width ('{C2POIntType.width}').")
@@ -212,8 +221,9 @@ class C2POFloat(C2POConstant):
         self.type = C2POFloatType(True)
         self.value: float = v
         self.symbol = str(v)
+        self.engine = R2U2Engine.BOOLEANIZER
 
-        # TODO: Fix this
+        # FIXME: 
         # if len(v.hex()[2:]) > FLOAT.width:
         #     logger.error(f"{ln} Constant '{v}' not representable in configured float width ('{FLOAT.width}').")
 
@@ -249,21 +259,29 @@ class C2POSignal(C2POLiteral):
         self.symbol: str = s
         self.type: C2POType = t
         self.signal_id: int = -1
+        self.engine = R2U2Engine.BOOLEANIZER
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, C2POSignal) and __o.symbol == self.symbol
+
+    def __hash__(self) -> int:
+        return id(self)
 
     def __deepcopy__(self, memo):
         copy = C2POSignal(self.ln, self.symbol, self.type)
         return copy
     
 
-class C2POAtomic(C2POLiteral):
+class C2POAtomicChecker(C2POLiteral):
 
     def __init__(self, ln: int, s: str):
         super().__init__(ln, [])
         self.symbol: str = s
         self.type: C2POType = C2POBoolType(False)
+        self.engine = R2U2Engine.ATOMIC_CHECKER
 
     def __deepcopy__(self, memo):
-        copy = C2POAtomic(self.ln, self.symbol)
+        copy = C2POAtomicChecker(self.ln, self.symbol)
         self.copy_attrs(copy)
         return copy
 
@@ -277,6 +295,7 @@ class C2POBool(C2POConstant):
         self.wpd: int = 0
         self.value: bool = v
         self.symbol = str(v)
+        self.engine = R2U2Engine.BOOLEANIZER
 
 
 class C2POSet(C2POExpression):
@@ -529,6 +548,7 @@ class C2POBitwiseOperator(C2POOperator):
 
     def __init__(self, ln: int, c: List[C2PONode]):
         super().__init__(ln, c)
+        self.engine = R2U2Engine.BOOLEANIZER
 
 
 class C2POBitwiseAnd(C2POBitwiseOperator, C2POBinaryOperator):
@@ -613,6 +633,7 @@ class C2POArithmeticOperator(C2POOperator):
 
     def __init__(self, ln: int, c: List[C2PONode]):
         super().__init__(ln, c)
+        self.engine = R2U2Engine.BOOLEANIZER
 
     def __str__(self) -> str:
         s = f"{self.get_child(0)}"
@@ -713,6 +734,7 @@ class C2PORelationalOperator(C2POBinaryOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
         super().__init__(ln, [lhs, rhs])
+        self.engine = R2U2Engine.BOOLEANIZER
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -769,6 +791,7 @@ class C2POLogicalOperator(C2POOperator):
         super().__init__(ln, c)
         self.bpd = min([child.bpd for child in c])
         self.wpd = max([child.wpd for child in c])
+        self.engine = R2U2Engine.TEMPORAL_LOGIC
 
 
 class C2POLogicalOr(C2POLogicalOperator):
@@ -871,6 +894,7 @@ class C2POTemporalOperator(C2POOperator):
     def __init__(self, ln: int, c: List[C2PONode], l: int, u: int):
         super().__init__(ln, c)
         self.interval = Interval(lb=l,ub=u)
+        self.engine = R2U2Engine.TEMPORAL_LOGIC
 
 
 class C2POFutureTimeOperator(C2POTemporalOperator):
@@ -1018,12 +1042,13 @@ class C2POOnce(C2POPastTimeUnaryOperator):
         self.symbol = "O"
 
 
-class C2POSpecification(C2PONode):
+class C2POSpecification(C2POExpression):
 
     def __init__(self, ln: int, lbl: str, f: int, e: C2PONode):
         super().__init__(ln, [e])
         self.symbol: str = lbl
         self.formula_number: int = f
+        self.engine = R2U2Engine.TEMPORAL_LOGIC
 
     def get_expr(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
@@ -1115,7 +1140,7 @@ class C2PODefinition(C2PONode):
         return f"{self.symbol} := {self.get_expr()}"
 
 
-class C2POAtomicDefinition(C2PONode):
+class C2POAtomicCheckerDefinition(C2PONode):
     # TODO
 
     def __init__(self, ln: int, symbol: str, e: C2POExpression):
@@ -1182,8 +1207,8 @@ class C2POAtomicSection(C2PONode):
     def __init__(self, ln: int, atomics: List[C2PONode]):
         super().__init__(ln, atomics)
 
-    def get_atomics(self) -> List[C2POAtomicDefinition]:
-        return cast(List[C2POAtomicDefinition], self._children)
+    def get_atomic_checkers(self) -> List[C2POAtomicCheckerDefinition]:
+        return cast(List[C2POAtomicCheckerDefinition], self._children)
 
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a C2POAtomicSection.")
@@ -1275,6 +1300,9 @@ class C2POProgram(C2PONode):
                 specs.append(spec)
         return specs
 
+    def get_specs(self) -> List[C2POSpecification]:
+        return self.get_future_time_specs() + self.get_past_time_specs()
+
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a program.")
 
@@ -1289,29 +1317,21 @@ class C2POContext():
         self.structs: Dict[str, Dict[str, C2POType]] = {}
         self.signals: Dict[str, C2POType] = {}
         self.variables: Dict[str, C2POType] = {}
-        self.atomics: Dict[str, C2POExpression] = {}
+        self.atomic_checkers: Dict[str, C2POExpression] = {}
         self.specifications: Dict[str, C2POSpecification] = {}
         self.contracts: Dict[str, C2POContract] = {}
+        self.atomics: Set[C2POExpression] = set()
         self.implementation = impl
         self.booleanizer_enabled = bz
         self.atomic_checker_enabled = at
         self.is_ft = False
-
-    def get_symbol_table(self) -> Dict[str, Any]:
-        return {}
-
-    def get_type(self, symbol: str) -> Optional[C2POType]:
-        if symbol not in self.get_symbol_table():
-            return None
-        
-        # TODO
 
     def get_symbols(self) -> List[str]:
         symbols =  [s for s in self.definitions.keys()]
         symbols += [s for s in self.structs.keys()]
         symbols += [s for s in self.signals.keys()]
         symbols += [s for s in self.variables.keys()]
-        symbols += [s for s in self.atomics.keys()]
+        symbols += [s for s in self.atomic_checkers.keys()]
         symbols += [s for s in self.specifications.keys()]
         symbols += [s for s in self.contracts.keys()]
         return symbols
@@ -1342,7 +1362,7 @@ class C2POContext():
         self.structs[symbol] = m
 
     def add_atomic(self, symbol: str, e: C2POExpression):
-        self.atomics[symbol] = e
+        self.atomic_checkers[symbol] = e
 
     def add_specification(self, symbol, s: C2POSpecification):
         self.specifications[symbol] = s

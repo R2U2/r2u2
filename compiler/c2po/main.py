@@ -1,15 +1,16 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import re
 
 from .logger import logger, Color
 from .ast import *
+from .parse import parse
+from .properties import *
 from .type_check import type_check
 from .rewrite import *
 from .optimize import *
-from .parse import parse
-from .assembly import generate_assembly
+from .assembly import *
 from .assembler import assemble
 
 SignalMapping = Dict[str, int]
@@ -23,26 +24,9 @@ class ReturnCode(Enum):
     INVALID_OPTIONS = 5
     FILE_IO_ERR  = 6
 
-# COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]] = lambda rc: (rc,[],[],[],[],[])
-
-
 # # Stores the sub-classes of Instruction from ast.py
 # INSTRUCTION_LIST = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.cpt"],
 #         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
-
-# DEFAULT_CPU_LATENCY_TABLE: Dict[str, int] = { name:10 for (name,value) in
-#     inspect.getmembers(sys.modules["c2po.cpt"],
-#         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
-#             obj != Instruction and
-#             obj != TLInstruction and
-#             obj != BZInstruction) }
-
-# DEFAULT_FPGA_LATENCY_TABLE: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
-#     inspect.getmembers(sys.modules["c2po.cpt"],
-#         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
-#             obj != Instruction and
-#             obj != TLInstruction and
-#             obj != BZInstruction) }
 
 
 AT_FILTER_TABLE: Dict[str, Tuple[List[C2POType], C2POType]] = {
@@ -73,125 +57,6 @@ def generate_aliases(program: C2POProgram, context: C2POContext) -> List[str]:
         s.append(f"C {contract.symbol} {f1} {f2} {f3}")
 
     return s
-
-
-def compute_scq_size(node: C2PONode) -> int:
-    """
-    Computes SCQ sizes for each node and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of `node`.
-    """
-    visited: List[int] = []
-    total: int = 0
-
-    def compute_scq_size_util(node: C2PONode) :
-        nonlocal visited
-        nonlocal total
-
-        if id(node) in visited:
-            return
-        visited.append(id(node))
-
-        if isinstance(node, C2POSpecification):
-            node.scq_size = 1
-            total += node.scq_size
-            return
-
-        max_wpd: int = 0
-        for p in node.get_parents():
-            for s in p.get_children():
-                if not id(s) == id(node):
-                    max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
-
-        node.scq_size = max(max_wpd-node.bpd,0)+3 # works for +3 b/c of some bug -- ask Brian
-        total += node.scq_size
-
-    postorder(node, compute_scq_size_util)
-    node.total_scq_size = total
-
-    return total
-
-
-def generate_scq_assembly(program: C2POProgram) -> List[Tuple[int,int]]:
-    return []
-    ret: List[Tuple[int,int]] = []
-    pos: int = 0
-
-    program.total_scq_size = compute_scq_size(program.get_ft_specs())
-
-    def gen_scq_assembly_util(a: C2PONode) :
-        nonlocal ret
-        nonlocal pos
-
-        if a.ftid < 0 or isinstance(a, C2POSpecSection):
-            return
-
-        start_pos = pos
-        end_pos = start_pos + a.scq_size
-        pos = end_pos
-        ret.append((start_pos,end_pos))
-
-    postorder(program.get_ft_specs(), gen_scq_assembly_util)
-    program.scq_assembly = ret
-
-    return ret
-
-
-def compute_cpu_wcet(program: C2POProgram, latency_table: Dict[str, int], clk: int) -> int:
-    """
-    Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
-
-    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in CPU clock cycles. For instance, one key-value pair may be ('LogicalAnd': 15). If an AST node is found that does not have a corresponding value in the table, an error is reported.
-
-    Preconditions:
-        - program has had its assembly generated
-
-    Postconditions:
-        - None
-    """
-    wcet: int = 0
-
-    def compute_cpu_wcet_util(a: C2PONode) -> int:
-        nonlocal latency_table
-
-        classname: str = type(a).__name__
-        if classname not in latency_table:
-            logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
-            return 0
-        else:
-            return int((latency_table[classname] * a.scq_size) / clk)
-
-    wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
-    program.cpu_wcet = wcet
-    return wcet
-
-
-def compute_fpga_wcet(program: C2POProgram, latency_table: Dict[str, Tuple[float, float]], clk: float) -> float:
-    """
-    Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
-
-    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in micro seconds. For instance, one key-value pair may be ('LogicalAnd': 15.0). If an AST node is found that does not have a corresponding value in the table, an error is reported.
-
-    Preconditions:
-        - program has had its assembly generated
-
-    Postconditions:
-        - None
-    """
-    wcet: float = 0
-
-    def compute_fpga_wcet_util(a: C2PONode) -> float:
-        nonlocal latency_table
-
-        classname: str = type(a).__name__
-        if classname not in latency_table:
-            logger.error(f' Operator \'{classname}\' not found in FPGA latency table.')
-            return 0
-        else:
-            sum_scq_sizes_children = sum([c.scq_size for c in a.get_children()])
-            return latency_table[classname][0] + latency_table[classname][1]*sum_scq_sizes_children
-
-    wcet = sum([compute_fpga_wcet_util(a) for a in program.assembly]) / clk
-    program.fpga_wcet = wcet
-    return wcet
 
 
 def set_options(
@@ -266,7 +131,7 @@ def configure_paths(
     if map_filename:
         map_path =  Path(map_filename)
         if not map_path.is_file():
-            logger.error(f"Trace file '{map_filename}' is not a valid file.")
+            logger.error(f"Map file '{map_filename}' is not a valid file.")
     
     return (input_path, trace_path, map_path)
 
@@ -288,8 +153,8 @@ def process_trace_file(trace_path: Path, return_mapping: bool) -> Tuple[Optional
         # then there is a header
         header = lines[0][1:]
 
-        if return_mapping:
-            logger.warning("Map file given and header included in trace file; header will be ignored.")
+        # if return_mapping:
+        #     logger.warning("Map file given and header included in trace file; header will be ignored.")
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
@@ -327,7 +192,7 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
             logger.error(f"{map_path.name}:{lines.index(line)}: Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
             return None
 
-    return None
+    return mapping
 
 
 def assign_signal_ids(program: C2POProgram, mapping: SignalMapping):
@@ -393,7 +258,7 @@ def compile(
         return ReturnCode.FILE_IO_ERR
 
     with open(input_path, "r") as f:
-        program: C2POProgram|None = parse(f.read())
+        program: Optional[C2POProgram] = parse(f.read())
 
     if not program:
         logger.error("Failed parsing.")
@@ -422,6 +287,8 @@ def compile(
     if enable_cse:
         optimize_cse(program)
 
+    compute_scq_sizes(program, context)
+
     if not enable_assemble:
         return ReturnCode.SUCCESS
     
@@ -430,7 +297,7 @@ def compile(
 
     if trace_path:
         (mission_time, signal_mapping) = process_trace_file(trace_path, map_path is None)
-    
+
     if map_path:
         signal_mapping = process_map_file(map_path)
 
@@ -447,6 +314,8 @@ def compile(
         # warn if the given trace is shorter than the defined mission time
         if custom_mission_time > mission_time:
             logger.warning(f"Given mission time ({custom_mission_time}) is greater than length of trace ({mission_time}).")
+
+    # return ReturnCode.SUCCESS
 
     # generate alias file
     aliases = generate_aliases(program, context)
