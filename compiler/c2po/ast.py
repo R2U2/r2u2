@@ -248,6 +248,7 @@ class C2POSignal(C2POLiteral):
         super().__init__(ln,[])
         self.symbol: str = s
         self.type: C2POType = t
+        self.signal_id: int = -1
 
     def __deepcopy__(self, memo):
         copy = C2POSignal(self.ln, self.symbol, self.type)

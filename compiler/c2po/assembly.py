@@ -118,7 +118,11 @@ class BZInstruction(Instruction):
         self.children = c
         
     def __str__(self) -> str:
-        return f"{self.operator.symbol()} {' '.join([f'b{c.id}' for c in self.children])}"
+        if self.operator == BZOperator.ILOAD or self.operator == BZOperator.FLOAD:
+            signal = cast(C2POSignal, self.node)
+            return f"b{self.id}: {self.operator.symbol()} {signal.signal_id}"
+    
+        return f"b{self.id}: {self.operator.symbol()} {' '.join([f'b{c.id}' for c in self.children])}"
 
 
 # Atomic Checker instructions
@@ -147,16 +151,19 @@ class ATInstruction(Instruction):
     def __init__(self):
         super().__init__()
 
+# Alternative approach for mapping nodes to their respective instructions
 # maps (C2PONodeType, is_integer_type, is_future_time) -> Instruction
-InstructionTable = Callable[[C2PONode, List[Instruction]], Dict[Tuple[type, bool, bool], Instruction]]
-
-instruction_table: InstructionTable = lambda node, child_instrs: {
-    (C2POBool, True, True):    BZInstruction(node, BZOperator.ICONST, child_instrs),
-    (C2POInteger, True, True): BZInstruction(node, BZOperator.ICONST, child_instrs),
-    (C2POFloat, True, True):   BZInstruction(node, BZOperator.FCONST, child_instrs),
-    (C2POBool, True, True):    BZInstruction(node, BZOperator.ICONST, child_instrs)
-}
-
+# InstructionTable = Callable[[C2PONode, List[Instruction]], Dict[Tuple[type, bool, bool], Instruction]]
+# 
+# instruction_table: InstructionTable = lambda node, child_instrs: {
+#     (C2POBool, True, True):    BZInstruction(node, BZOperator.ICONST, child_instrs),
+#     (C2POInteger, True, True): BZInstruction(node, BZOperator.ICONST, child_instrs),
+#     (C2POFloat, True, True):   BZInstruction(node, BZOperator.FCONST, child_instrs),
+#     (C2POBool, True, True):    BZInstruction(node, BZOperator.ICONST, child_instrs)
+# }
+# 
+# The call would look something like:
+# instr = instruction_table(node, child_instrs)[(type(node), is_integer_type(node.type), context.is_future_time())]
 
 def generate_assembly(
     program: C2POProgram, 
@@ -176,8 +183,6 @@ def generate_assembly(
 
         # traverse AST and generate sub-expression instructions
         child_instrs = [generate_assembly_util(c, context) for c in node.get_children()]
-
-        instr = instruction_table(node, child_instrs)[(type(node), True, True)]
 
         # create this node's corresponding instruction
         if isinstance(node, C2POBool):
@@ -270,6 +275,28 @@ def generate_assembly(
         #     instr = FTInstruction(node, FTOperator.EQUIVALENT, child_instrs)
         elif isinstance(node, C2POLogicalIff) and context.is_past_time():
             instr = PTInstruction(node, PTOperator.EQUIVALENT, child_instrs)
+        elif isinstance(node, C2POLogicalNegate) and context.is_future_time():
+            instr = FTInstruction(node, FTOperator.NOT, child_instrs)
+        elif isinstance(node, C2POLogicalNegate) and context.is_past_time():
+            instr = PTInstruction(node, PTOperator.NOT, child_instrs)
+        elif isinstance(node, C2POGlobal) and context.is_future_time():
+            instr = FTInstruction(node, FTOperator.GLOBALLY, child_instrs)
+        # elif isinstance(node, C2POFuture) and context.is_future_time():
+        #     instr = FTInstruction(node, FTOperator.FUTURE, child_instrs)
+        elif isinstance(node, C2POUntil) and context.is_future_time():
+            instr = FTInstruction(node, FTOperator.UNTIL, child_instrs)
+        # elif isinstance(node, C2PORelease) and context.is_future_time():
+        #     instr = FTInstruction(node, FTOperator.RELEASE, child_instrs)
+        elif isinstance(node, C2POSince) and context.is_past_time():
+            instr = PTInstruction(node, PTOperator.SINCE, child_instrs)
+        elif isinstance(node, C2POHistorical) and context.is_past_time():
+            instr = PTInstruction(node, PTOperator.HISTORICALLY, child_instrs)
+        elif isinstance(node, C2POOnce) and context.is_past_time():
+            instr = PTInstruction(node, PTOperator.ONCE, child_instrs)
+        elif isinstance(node, C2POSpecification) and context.is_future_time():
+            instr = FTInstruction(node, FTOperator.RETURN, child_instrs)
+        elif isinstance(node, C2POSpecification) and context.is_past_time():
+            instr = PTInstruction(node, PTOperator.RETURN, child_instrs)
         else:
             logger.critical(f"Node '{node}' of python type '{type(node)}' invalid for assembly generation.")
             return Instruction()

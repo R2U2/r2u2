@@ -75,113 +75,6 @@ def generate_aliases(program: C2POProgram, context: C2POContext) -> List[str]:
     return s
 
 
-# def generate_assembly(program: C2POProgram, at: bool, bz: bool) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
-#     formula_type: FormulaType
-#     ftid: int = 0
-#     ptid: int = 0
-#     bzid: int = 0
-#     atid: int = 0
-
-#     ft_asm = []
-#     pt_asm = []
-#     bz_asm = []
-#     at_asm = []
-
-#     def assign_ftids(node: C2PONode) :
-#         nonlocal ftid, bzid, atid
-
-#         if isinstance(node, TLInstruction):
-#             node.ftid = ftid
-#             ftid += 1
-
-#         if isinstance(node, BZInstruction):
-#             if node.bzid < 0:
-#                 node.bzid = bzid
-#                 bzid += 1
-
-#             if node.has_tl_parent():
-#                 node.ftid = ftid
-#                 ftid += 1
-#                 if node.atid < 0:
-#                     node.atid = atid
-#                     atid += 1
-
-#         if isinstance(node, C2POAtomic):
-#             # Retrieve cached atomic number from program.atomics, assign from
-#             # atid counter on first lookup
-#             #
-#             # Key exception possible if atomic node does not appear in atomics
-#             if program.atomics[node.name].atid == -1:
-#                 node.atid = atid
-#                 program.atomics[node.name].atid = atid
-#                 atid += 1
-#             else:
-#                 node.atid = program.atomics[node.name].atid
-
-#     def assign_ptids(node: C2PONode) :
-#         nonlocal ptid, bzid, atid
-
-#         if isinstance(node, TLInstruction):
-#             node.ptid = ptid
-#             ptid += 1
-
-#         if isinstance(node, BZInstruction):
-#             if node.bzid < 0:
-#                 node.bzid = bzid
-#                 bzid += 1
-
-#             if node.has_tl_parent():
-#                 node.ptid = ptid
-#                 ptid += 1
-#                 if node.atid < 0:
-#                     node.atid = atid
-#                     atid += 1
-
-#         if isinstance(node, C2POAtomic):
-#             # Retrieve cached atomic number from program.atomics, assign from
-#             # atid counter on first lookup
-#             #
-#             # Key exception possible if atomic node does not appear in atomics
-#             if program.atomics[node.name].atid == -1:
-#                 node.atid = atid
-#                 program.atomics[node.name].atid = atid
-#                 atid += 1
-#             else:
-#                 node.atid = program.atomics[node.name].atid
-
-
-#     def generate_assembly_util(node: C2PONode) :
-#         nonlocal formula_type
-
-#         if isinstance(node, Instruction):
-#             if formula_type == FormulaType.FT and node.ftid > -1:
-#                 ft_asm.append(node)
-#             elif formula_type == FormulaType.PT and node.ptid > -1:
-#                 pt_asm.append(node)
-#             if node.bzid > -1 and not node in bz_asm:
-#                 bz_asm.append(node)
-#         elif not isinstance(node, C2POBool):
-#             logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
-
-#     postorder_iterative(program.get_ft_specs(), assign_ftids)
-#     postorder_iterative(program.get_pt_specs(), assign_ptids)
-
-#     formula_type = FormulaType.FT
-#     postorder_iterative(program.get_ft_specs(), generate_assembly_util)
-#     formula_type = FormulaType.PT
-#     postorder_iterative(program.get_pt_specs(), generate_assembly_util)
-
-#     for at_instr in [a for a in program.atomics.values() if a.atid >= 0]:
-#         at_asm.append(at_instr)
-
-#     at_asm.sort(key=lambda n: n.atid)
-#     bz_asm.sort(key=lambda n: n.bzid)
-#     ft_asm.sort(key=lambda n: n.ftid)
-#     pt_asm.sort(key=lambda n: n.ptid)
-
-#     return (ft_asm, pt_asm, bz_asm, at_asm)
-
-
 def compute_scq_size(node: C2PONode) -> int:
     """
     Computes SCQ sizes for each node and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of `node`.
@@ -218,6 +111,7 @@ def compute_scq_size(node: C2PONode) -> int:
 
 
 def generate_scq_assembly(program: C2POProgram) -> List[Tuple[int,int]]:
+    return []
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
@@ -436,6 +330,19 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
     return None
 
 
+def assign_signal_ids(program: C2POProgram, mapping: SignalMapping):
+
+    def assign_signal_ids_util(node: C2PONode):
+        if isinstance(node, C2POSignal):
+            if node.symbol not in mapping:
+                logger.error(f"Mapping does not contain signal '{node.symbol}'.")
+                return
+            node.signal_id = mapping[node.symbol]
+
+    for spec_section in program.get_spec_sections():
+        postorder(spec_section, assign_signal_ids_util)
+
+
 def compile(
     input_filename: str,
     trace_filename: Optional[str],
@@ -530,6 +437,8 @@ def compile(
     if not signal_mapping:
         logger.error("No map file nor header provided in trace file; cannot perform signal mapping")
         return ReturnCode.ERROR
+    
+    assign_signal_ids(program, signal_mapping)
 
     # disregard inferred mission time if given explicitly
     if custom_mission_time > -1:
@@ -543,7 +452,7 @@ def compile(
     aliases = generate_aliases(program, context)
 
     # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, context)
+    (bz_asm, at_asm, ft_asm, pt_asm) = generate_assembly(program, context)
     scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
 
     # print assembly if 'quiet' option not enabled
@@ -551,19 +460,19 @@ def compile(
         if enable_at:
             logger.info(Color.HEADER+"AT Assembly"+Color.ENDC+":")
             for s in at_asm:
-                logger.info(f"\t{s.at_asm()}")
+                logger.info(f"\t{s}")
         if enable_bz:
             logger.info(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
             for s in bz_asm:
-                logger.info(f"\t{s.bz_asm()}")
+                logger.info(f"\t{s}")
 
         logger.info(Color.HEADER+"FT Assembly"+Color.ENDC+":")
         for a in ft_asm:
-            logger.info(f"\t{a.ft_asm()}")
+            logger.info(f"\t{a}")
 
         logger.info(Color.HEADER+"PT Assembly"+Color.ENDC+":")
         for a in pt_asm:
-            logger.info(f"\t{a.pt_asm()}")
+            logger.info(f"\t{a}")
 
         logger.info(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
         for s in scq_asm:
@@ -573,8 +482,7 @@ def compile(
         for a in aliases:
             logger.info(f"\t{a}")
 
-    if enable_assemble:
-        assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+    # assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
 
     return ReturnCode.SUCCESS
 
