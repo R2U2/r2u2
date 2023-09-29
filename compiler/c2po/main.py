@@ -195,6 +195,26 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
     return mapping
 
 
+def compute_atomics(program: C2POProgram, context: C2POContext):
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
+    
+    def compute_atomics_util(node: C2PONode):
+        if not isinstance(node, C2POExpression):
+            return
+
+        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
+            return
+
+        for child in node.get_children():
+            if isinstance(child, C2POBool):
+                return
+            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
+                context.atomics.add(child)
+
+    for spec in program.get_specs():
+        postorder(spec, compute_atomics_util)
+
+
 def assign_signal_ids(program: C2POProgram, mapping: SignalMapping):
 
     def assign_signal_ids_util(node: C2PONode):
@@ -305,6 +325,7 @@ def compile(
         logger.error("No map file nor header provided in trace file; cannot perform signal mapping")
         return ReturnCode.ERROR
     
+    compute_atomics(program, context)
     assign_signal_ids(program, signal_mapping)
 
     # disregard inferred mission time if given explicitly

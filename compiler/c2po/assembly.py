@@ -130,12 +130,14 @@ class BZInstruction(Instruction):
         self.children = c
 
     def id_str(self) -> str:
+        if isinstance(self.node, C2POBool):
+            return f"{self.node.value}"
         return f"b{self.id}"
         
     def __str__(self) -> str:
         if self.operator.is_load():
             signal = cast(C2POSignal, self.node)
-            return f"b{self.id} {self.operator.symbol()} {signal.signal_id}"
+            return f"b{self.id} {self.operator.symbol()} s{signal.signal_id}"
         elif self.operator.is_constant():
             const = cast(C2POConstant, self.node)
             return f"b{self.id} {self.operator.symbol()} {const.value}"
@@ -156,8 +158,6 @@ class FTInstruction(Instruction):
         self.children = c
 
     def id_str(self) -> str:
-        if isinstance(self.node, C2POBool):
-            return f"{self.node.value}"
         return f"n{self.id}"
         
     def __str__(self) -> str:
@@ -166,7 +166,6 @@ class FTInstruction(Instruction):
         elif self.operator.is_temporal():
             temp = cast(C2POTemporalOperator, self.node)
             return f"n{self.id} {self.operator.symbol()} {temp.interval.lb} {temp.interval.ub} {' '.join([f'{c.id_str()}' for c in self.children])}"
-        print(self.children)
         return f"n{self.id} {self.operator.symbol()} {' '.join([f'{c.id_str()}' for c in self.children])}"
 
 class PTInstruction(Instruction):
@@ -204,26 +203,33 @@ def generate_assembly(
 
     bzid, atid, ftid, ptid = 0, 0, 0, 0
 
-    instructions: Dict[C2PONode, Instruction] = {}
+    instructions: Dict[C2PONode, Union[Instruction, Tuple[Instruction, Instruction]]] = {}
 
-    def generate_assembly_util(node: C2PONode) -> Instruction:
+    def generate_assembly_util(node: C2PONode):
         nonlocal bz_asm, at_asm, ft_asm, pt_asm
         nonlocal bzid, atid, ftid, ptid
         nonlocal instructions
         nonlocal context
 
+        if not isinstance(node, C2POExpression):
+            return
+
         instr: Optional[Instruction] = None
 
-        # traverse AST and generate sub-expression instructions
-        # child_instrs = []
-        # for child in node.get_children():
-        #     if child in instructions:
-        #         child_instrs.append(instructions[child])
-        #     else:
-        #         child_instrs.append(generate_assembly_util(child, context))
-        child_instrs = [instructions[c] for c in node.get_children() if c in instructions]
-
-        # child_instrs = [generate_assembly_util(c, context) for c in node.get_children() if c not in visited]
+        # collect child instructions 
+        # -- they might be a (load,instr) or just an instr
+        child_instrs = []
+        for child in [instructions[c] for c in node.get_children() if c in instructions]:
+            if not isinstance(child, tuple):
+                child_instrs.append(child)
+            elif node.engine == R2U2Engine.TEMPORAL_LOGIC: 
+                # then child is an atomic, we have to load it
+                (tl_load_instr, _) = child
+                child_instrs.append(tl_load_instr)
+            else:
+                # then child is an atomic, but we are BZ/AT
+                (_, child_instr) = child
+                child_instrs.append(child_instr)
 
         # create this node's corresponding instruction
         if isinstance(node, C2POBool):
@@ -235,7 +241,6 @@ def generate_assembly(
         elif isinstance(node, C2POSignal) and is_integer_type(node.type):
             instr = BZInstruction(node, BZOperator.ILOAD, child_instrs)
         elif isinstance(node, C2POSignal):
-            print(node)
             instr = BZInstruction(node, BZOperator.FLOAD, child_instrs)
         elif isinstance(node, C2POBitwiseAnd):
             instr = BZInstruction(node, BZOperator.BWAND, child_instrs)
@@ -336,7 +341,6 @@ def generate_assembly(
         elif isinstance(node, C2POOnce) and context.is_past_time():
             instr = PTInstruction(node, PTOperator.ONCE, child_instrs)
         elif isinstance(node, C2POSpecification) and context.is_future_time():
-            print(child_instrs)
             instr = FTInstruction(node, FTOperator.END, child_instrs)
         elif isinstance(node, C2POSpecification) and context.is_past_time():
             instr = PTInstruction(node, PTOperator.END, child_instrs)
@@ -344,6 +348,8 @@ def generate_assembly(
             logger.critical(f"Node '{node}' of python type '{type(node)}' invalid for assembly generation.")
             return Instruction(node)
 
+        # add in load instructions for atomics in the TL assemblies
+        load_instr: Optional[Instruction] = None
         if node in context.atomics and context.is_future_time():
             load_instr = FTInstruction(node, FTOperator.LOAD, [instr])
             load_instr.id = ftid
@@ -356,7 +362,6 @@ def generate_assembly(
             pt_asm.append(load_instr)
 
         # add this node's instruction to corresponding assembly list
-        # -- add in FT/PT loads as needed
         if isinstance(instr, BZInstruction):
             instr.id = bzid
             bzid += 1
@@ -378,12 +383,14 @@ def generate_assembly(
             ptid += 1
             pt_asm.append(instr)
 
-        instructions[node] = instr
-        return instr
+        if load_instr:
+            instructions[node] = (load_instr, instr)
+        else:
+            instructions[node] = instr
 
     context.set_future_time()
-    for spec in program.get_future_time_specs():
-        postorder(spec, generate_assembly_util)
+    for spec_section in program.get_future_time_spec_sections():
+        postorder(spec_section, generate_assembly_util)
 
     context.set_past_time()
     for spec in program.get_past_time_specs():

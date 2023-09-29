@@ -4,7 +4,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     status = True
 
     if isinstance(expr, C2POSpecification):
-        pass
+        status = status and type_check_expr(expr.get_expr(), context)
     elif isinstance(expr, C2POConstant):
         pass
     elif isinstance(expr, C2POSignal):
@@ -35,14 +35,14 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status =  False
 
         for arg in expr.get_children():
-            type_check_expr(arg, context)
+            status = status and type_check_expr(arg, context)
 
         expr.type = C2POStructType(False, expr.symbol)
     elif isinstance(expr, C2PORelationalOperator): 
         lhs: C2POExpression = expr.get_lhs()
         rhs: C2POExpression = expr.get_rhs()
-        type_check_expr(lhs, context)
-        type_check_expr(rhs, context)
+        status = status and type_check_expr(lhs, context)
+        status = status and type_check_expr(rhs, context)
 
         if lhs.type != rhs.type:
             status = False
@@ -61,7 +61,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             logger.error(f"{expr.ln}: Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}")
 
         for c in expr.get_children():
-            type_check_expr(c, context)
+            status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
 
         t: C2POType = expr.get_child(0).type
@@ -92,7 +92,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
 
         t: C2POType = C2PONoType()
         for c in expr.get_children():
-            type_check_expr(c, context)
+            status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             t = c.type
 
@@ -108,7 +108,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         is_const: bool = True
 
         for c in expr.get_children():
-            type_check_expr(c, context)
+            status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             if c.type != C2POBoolType(False):
                 status = False
@@ -119,7 +119,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         is_const: bool = True
 
         for c in expr.get_children():
-            type_check_expr(c, context)
+            status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             if c.type != C2POBoolType(False):
                 status = False
@@ -148,7 +148,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         is_const: bool = True
 
         for m in expr.get_children():
-            type_check_expr(m, context)
+            status = status and type_check_expr(m, context)
             is_const = is_const and m.type.is_const
             t = m.type
 
@@ -162,7 +162,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         s: C2POSet = expr.get_set()
         boundvar: C2POVariable = expr.get_boundvar()
 
-        type_check_expr(s, context)
+        status = status and type_check_expr(s, context)
 
         if isinstance(s.type, C2POSetType):
             context.add_variable(boundvar.symbol, s.type.member_type)
@@ -176,13 +176,13 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
                 logger.error(f"{expr.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.")
 
             n: C2POExpression = expr.get_num()
-            type_check_expr(n, context)
+            status = status and type_check_expr(n, context)
             if not is_integer_type(n.type):
                 status = False
                 logger.error(f"{expr.ln}: Parameter for set aggregation must be integer type (found '{n.type}')")
 
         e: C2POExpression = expr.get_expr()
-        type_check_expr(e, context)
+        status = status and type_check_expr(e, context)
 
         if e.type != C2POBoolType(False):
             status = False
@@ -193,7 +193,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         is_const: bool = True
 
         for member in expr.get_children():
-            type_check_expr(member, context)
+            status = status and type_check_expr(member, context)
             is_const = is_const and member.type.is_const
 
         for (m,t) in context.structs[expr.symbol].items():
@@ -203,12 +203,12 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         expr.type = C2POStructType(is_const, expr.symbol)
     elif isinstance(expr, C2POStructAccess):
         struct = expr.get_struct()
-        type_check_expr(struct, context)
+        status = status and type_check_expr(struct, context)
 
         struct_symbol = expr.get_struct().type.name
         if struct_symbol not in context.structs:
             logger.error(f"{expr.ln}: Struct '{struct_symbol}' not defined ({expr}).")
-            return False
+            status = False
         
         valid_member: bool = False
         for (m,t) in context.structs[struct_symbol].items():
@@ -222,12 +222,6 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     else:
         logger.error(f"{expr.ln}: Invalid expression ({type(expr)})\n\t{expr}")
         status = False
-
-    # compute atomics
-    if expr.engine == R2U2Engine.TEMPORAL_LOGIC:
-        for child in expr.get_children():
-            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(child)
 
     return status
 
