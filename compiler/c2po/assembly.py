@@ -1,7 +1,17 @@
 from enum import Enum
+from multiprocessing import context
+from struct import Struct as cStruct
 from typing import List, Optional, Tuple
 
 from .ast import *
+
+class ENGINE_TAGS(Enum):
+    NA = 0 # Null instruction tag - acts as ENDSEQ
+    SY = 1 # System commands - reserved for monitor control
+    CG = 2 # Immediate Configuration Directive
+    AT = 3 # Original Atomic Checker
+    TL = 4 # MLTL Temporal logic engine
+    BZ = 5 # Booleanizer
 
 class BZOperator(Enum):
     NONE    = 0b000000
@@ -66,6 +76,12 @@ class ATFilter(Enum):
     EXACTLY_ONE_OF = 0b1000
     NONE_OF        = 0b1001
     ALL_OF         = 0b1010
+
+class TLOperandType(Enum):
+    DIRECT      = 0b01
+    ATOMIC      = 0b00
+    SUBFORMULA  = 0b10
+    NOT_SET     = 0b11
 
 class FTOperator(Enum):
     NOP       = 0b11111
@@ -142,6 +158,11 @@ class BZInstruction(Instruction):
             const = cast(C2POConstant, self.node)
             return f"b{self.id} {self.operator.symbol()} {const.value}"
         return f"b{self.id} {self.operator.symbol()} {' '.join([f'b{c.id}' for c in self.children])}"
+
+    def assemble(self, is_atomic: bool) -> bytes:
+
+        instr = cStruct("BiBBqq") if isinstance(param1, int) else  cStruct("BiBBdq")
+        return instr.pack(self.id, self.operator.value, is_atomic, )
 
 
 class ATInstruction(Instruction):
@@ -423,3 +444,5 @@ def generate_scq_assembly(
         postorder(spec, gen_scq_assembly_util)
 
     return ret
+
+
