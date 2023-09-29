@@ -228,7 +228,7 @@ def generate_assembly(
         # create this node's corresponding instruction
         if isinstance(node, C2POBool):
             instr = BZInstruction(node, BZOperator.ICONST, child_instrs)
-        if isinstance(node, C2POInteger):
+        elif isinstance(node, C2POInteger):
             instr = BZInstruction(node, BZOperator.ICONST, child_instrs)
         elif isinstance(node, C2POFloat):
             instr = BZInstruction(node, BZOperator.FCONST, child_instrs)
