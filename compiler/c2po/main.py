@@ -322,7 +322,7 @@ def compile(
 
     # generate assembly
     (bz_asm, at_asm, ft_asm, pt_asm) = generate_assembly(program, context)
-    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program, context)
 
     # print assembly if 'quiet' option not enabled
     if not quiet:

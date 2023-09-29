@@ -21,54 +21,6 @@ class C2POSection(Enum):
     PTSPEC = 5
 
 
-def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform an iterative postorder traversal of node, calling func on each node."""
-    stack: List[Tuple[bool, C2PONode]] = [(False, node)]
-    visited: Set[C2PONode] = set()
-
-    while len(stack) > 0:
-        cur = stack.pop()
-
-        if cur[0]:
-            func(cur[1])
-            continue
-        elif cur[1] in visited:
-            continue
-
-        visited.add(cur[1])
-        stack.append((True, cur[1]))
-        for child in reversed(cur[1].get_children()):
-            stack.append((False, child))
-
-
-def preorder(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform an iterative preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
-    stack: List[C2PONode] = [node]
-
-    while len(stack) > 0:
-        c = stack.pop()
-        func(c)
-
-        for child in reversed(c.get_children()):
-            stack.append(child)
-
-
-def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
-    """Traverse expr and replace each node equal to v with repl."""
-    # Special case: when expr is v
-    if expr == v:
-        return repl
-
-    new: C2PONode = deepcopy(expr)
-
-    def rename_util(a: C2PONode):
-        if v == a:
-            a.replace(repl)
-
-    postorder(new, rename_util)
-    return new
-
-
 class C2PONode():
 
     def __init__(self, ln: int, c: List[C2PONode]):
@@ -1374,3 +1326,72 @@ class C2POContext():
         del self.variables[symbol]
     
 
+def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
+    """Perform an iterative postorder traversal of node, calling func on each node."""
+    stack: List[Tuple[bool, C2PONode]] = [(False, node)]
+    visited: Set[C2PONode] = set()
+
+    while len(stack) > 0:
+        cur = stack.pop()
+
+        if cur[0]:
+            func(cur[1])
+            continue
+        elif cur[1] in visited:
+            continue
+
+        visited.add(cur[1])
+        stack.append((True, cur[1]))
+        for child in reversed(cur[1].get_children()):
+            stack.append((False, child))
+
+
+def preorder(node: C2PONode, func: Callable[[C2PONode], Any]):
+    """Perform an iterative preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
+    stack: List[C2PONode] = [node]
+
+    while len(stack) > 0:
+        c = stack.pop()
+        func(c)
+
+        for child in reversed(c.get_children()):
+            stack.append(child)
+
+
+def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
+    """Traverse expr and replace each node equal to v with repl."""
+    # Special case: when expr is v
+    if expr == v:
+        return repl
+
+    new: C2PONode = deepcopy(expr)
+
+    def rename_util(a: C2PONode):
+        if v == a:
+            a.replace(repl)
+
+    postorder(new, rename_util)
+    return new
+
+
+def compute_scq_sizes(program: C2POProgram, context: C2POContext):
+    """Computes SCQ sizes for each node."""
+    def compute_scq_size_util(node: C2PONode):
+        expr = cast(C2POExpression, node)
+
+        if isinstance(expr, C2POSpecification):
+            expr.scq_size = 1
+            expr.total_scq_size = expr.get_expr().total_scq_size + 1
+            return
+
+        if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
+            return
+
+        max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
+
+        # need the +3 b/c of implementation -- ask Brian
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
+        expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
+
+    for spec in program.get_specs():
+        postorder(spec, compute_scq_size_util)
