@@ -4,7 +4,7 @@
         "booleanizer":  true,
         "disable-cse":  true,
         "disable-rewrite":  true,
-        "implementation":  "c"
+        "impl":  "c"
     },
     "tests": [
         {
