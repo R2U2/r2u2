@@ -52,7 +52,7 @@ class ATCond(Enum):
     LEQ = 0b011
     GT  = 0b100
     GEQ = 0b101
-
+    
 class ATFilter(Enum):
     BOOL           = 0b0001
     INT            = 0b0010
@@ -232,13 +232,21 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
     for instr in bzasm:
         if isinstance(instr, C2POSignal):
             if is_integer_type(instr.type):
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ILOAD, instr.sid, 0, instr.atid > -1, instr.atid))
+                rtm_instrs.append(
+                    cStruct('B').pack(ENGINE_TAGS.BZ.value) + 
+                    assemble_bz(instr.bzid, BZOpcode.ILOAD, instr.sid, 0, instr.atid > -1, instr.atid)
+                )
             elif is_float_type(instr.type):
-                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid))
+                rtm_instrs.append(
+                    cStruct('B').pack(ENGINE_TAGS.BZ.value) + 
+                    assemble_bz(instr.bzid, BZOpcode.FLOAD, instr.sid, 0, instr.atid > -1, instr.atid)
+                )
             else:
                 raise NotImplementedError
         elif isinstance(instr, C2POInteger):
-            rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ICONST, instr.value, 0, instr.atid > -1, instr.atid))
+            rtm_instrs.append(
+                cStruct('B').pack(ENGINE_TAGS.BZ.value) + 
+                assemble_bz(instr.bzid, BZOpcode.ICONST, instr.value, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, C2POFloat):
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FCONST, instr.value, 0, instr.atid > -1, instr.atid))
         elif isinstance(instr, C2POBitwiseAnd):

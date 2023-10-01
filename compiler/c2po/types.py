@@ -1,5 +1,5 @@
 from enum import Enum
-from logging import getLogger
+from typing import NewType, NamedTuple, Union
 
 from .logger import logger
 
@@ -15,6 +15,13 @@ class R2U2Engine(Enum):
     TEMPORAL_LOGIC = 0
     BOOLEANIZER = 1
     ATOMIC_CHECKER = 2
+
+class MissionTime(int):
+    pass
+
+class Interval(NamedTuple):
+    lb: int
+    ub: Union[int, MissionTime]
 
 
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
@@ -119,12 +126,6 @@ def is_integer_type(t: C2POType) -> bool:
 
 def is_float_type(t: C2POType) -> bool:
     return isinstance(t, C2POFloatType)
-
-
-class FormulaType(Enum):
-    PROP = 0
-    FT = 1
-    PT = 2
 
 
 def set_types(impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int):

@@ -8,6 +8,13 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     elif isinstance(expr, C2POConstant):
         pass
     elif isinstance(expr, C2POSignal):
+        if context.assembly_enabled and expr.symbol not in context.signal_mapping:
+            status = False
+            logger.error(f"Mapping does not contain signal '{expr.symbol}'.")
+
+        if expr.symbol in context.signal_mapping:
+            expr.signal_id = context.signal_mapping[expr.symbol]
+
         expr.type = context.signals[expr.symbol]
     elif isinstance(expr, C2POAtomicChecker):
         pass
@@ -138,9 +145,12 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
                 status = False
                 logger.error(f"{expr.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{expr}")
 
+        if isinstance(expr.interval.ub, MissionTime):
+            expr.interval = Interval(expr.interval.lb, context.mission_time)
+
         if expr.interval.lb > expr.interval.ub:
             status = False
-            logger.error(f"{expr.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{expr.interval.lb},{expr.interval.ub}])")
+            logger.error(f"{expr.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{expr.interval.lb},{expr.interval.ub}])\n\tDid you use mission time (M) and not set it?")
 
         expr.type = C2POBoolType(is_const)
     elif isinstance(expr, C2POSet):
@@ -292,9 +302,17 @@ def type_check_section(section: C2POSection, context: C2POContext) -> bool:
     return status
 
 
-def type_check(program: C2POProgram, impl: R2U2Implementation, bz: bool, at: bool) -> Tuple[bool, C2POContext]:
+def type_check(
+    program: C2POProgram, 
+    impl: R2U2Implementation, 
+    mission_time: int,
+    atomic_checkers: bool,
+    booleanizer: bool,
+    assembly_enabled: bool,
+    signal_mapping: SignalMapping
+) -> Tuple[bool, C2POContext]:
     status: bool = True
-    context = C2POContext(impl, bz, at)
+    context = C2POContext(impl, mission_time, booleanizer, atomic_checkers, assembly_enabled, signal_mapping)
     
     for section in program.get_sections():
         type_check_section(section, context)

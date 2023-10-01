@@ -17,17 +17,17 @@
             "oracle": "arb_dataflow.log",
             "options": {
                 "booleanizer": false,
-                "atomic-checker": true
+                "atomic-checkers": true
             }
         },
         {
-            "name": "atomic_checker",
-            "mltl": "atomic_checker.mltl",
-            "trace": "atomic_checker.csv",
-            "oracle": "atomic_checker.log",
+            "name": "atomic_checkers",
+            "mltl": "atomic_checkers.mltl",
+            "trace": "atomic_checkers.csv",
+            "oracle": "atomic_checkers.log",
             "options": {
                 "booleanizer": false,
-                "atomic-checker": true
+                "atomic-checkers": true
             }
         },
         {

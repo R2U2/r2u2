@@ -1,16 +1,11 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any, Dict, Callable, NamedTuple, NewType, Set, Union, cast, List, Tuple
+from typing import Any, Dict, Callable, Set, Union, cast, List, Tuple
+import pickle
 
 from .types import R2U2Implementation
 from .logger import logger
 from .types import *
-
-MissionTime = NewType("MissionTime", int)
-
-class Interval(NamedTuple):
-    lb: int
-    ub: int | MissionTime
 
 class C2POSection(Enum):
     STRUCT = 0
@@ -30,7 +25,6 @@ class C2PONode():
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
-        self.formula_type = FormulaType.PROP
         self.type: C2POType = C2PONoType()
 
         self._children: List[C2PONode] = []
@@ -96,8 +90,6 @@ class C2PONode():
             if self in child.get_parents():
                 child.get_parents().remove(self)
 
-        new.formula_type = self.formula_type
-
     def __str__(self) -> str:
         return self.symbol
 
@@ -106,7 +98,6 @@ class C2PONode():
         new.symbol = self.symbol
         new.bpd = self.bpd
         new.wpd = self.wpd
-        new.formula_type = self.formula_type
         new.type = self.type
 
     def __deepcopy__(self, memo):
@@ -121,6 +112,7 @@ class C2POExpression(C2PONode):
     def __init__(self, ln: int, c: List[C2PONode]):
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
+        self.atomic_id: int = -1 # only set for atomic propositions
 
     def get_children(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self._children)
@@ -198,6 +190,9 @@ class C2POVariable(C2POExpression):
         return isinstance(__o, C2POVariable) and __o.symbol == self.symbol
 
     def __hash__(self) -> int:
+        # note how this compares to __eq__
+        # we hash the id so that in sets/dicts different
+        # instances of the same variable are distinct
         return id(self)
 
     def __str__(self) -> str:
@@ -472,28 +467,28 @@ class C2POForAtMost(C2POSetAggOperator):
         return new
 
 
-# class Count(BZInstruction):
+class Count(C2POOperator):
 
-#     def __init__(self, ln: int, n: C2PONode, c: List[C2PONode]):
-#         # Note: all members of c must be of type Boolean
-#         super().__init__(ln, c)
-#         self.num: C2PONode = n
-#         self.name = "count"
+    def __init__(self, ln: int, n: C2PONode, c: List[C2PONode]):
+        # Note: all members of c must be of type Boolean
+        super().__init__(ln, c)
+        self.num: C2PONode = n
+        self.name = "count"
 
-#     def __deepcopy__(self, memo):
-#         children = [deepcopy(c, memo) for c in self._children]
-#         if len(children) > 1:
-#             new = Count(self.ln, children[0], children[1:])
-#         else:
-#             new = Count(self.ln, children[0], [])
-#         self.copy_attrs(new)
-#         return new
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        if len(children) > 1:
+            new = Count(self.ln, children[0], children[1:])
+        else:
+            new = Count(self.ln, children[0], [])
+        self.copy_attrs(new)
+        return new
 
-#     def __str__(self) -> str:
-#         s = "count("
-#         for c in self.get_children():
-#             s += str(c) + ","
-#         return s[:-1] + ")"
+    def __str__(self) -> str:
+        s = "count("
+        for c in self.get_children():
+            s += str(c) + ","
+        return s[:-1] + ")"
 
 
 class C2POBitwiseOperator(C2POOperator):
@@ -1212,8 +1207,6 @@ class C2POProgram(C2PONode):
         # Data
         self.timestamp_width: int = 0
 
-        self.implementation: R2U2Implementation = R2U2Implementation.C
-
         # Computable properties
         self.total_memory: int = -1
         self.cpu_wcet: int = -1
@@ -1258,13 +1251,26 @@ class C2POProgram(C2PONode):
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a program.")
 
+    def dumps(self) -> bytes:
+        return pickle.dumps(self.get_specs())
+
     def __str__(self) -> str:
         return "\n".join([str(s) for s  in self.get_children()])
 
 
+SignalMapping = Dict[str, int]
+
 class C2POContext():
 
-    def __init__(self, impl: R2U2Implementation, at: bool, bz: bool):
+    def __init__(
+        self, 
+        impl: R2U2Implementation, 
+        mission_time: int,
+        atomic_checkers: bool, 
+        booleanizer: bool,
+        assembly_enabled: bool,
+        signal_mapping: SignalMapping
+    ):
         self.definitions: Dict[str, C2POExpression] = {}
         self.structs: Dict[str, Dict[str, C2POType]] = {}
         self.signals: Dict[str, C2POType] = {}
@@ -1274,8 +1280,11 @@ class C2POContext():
         self.contracts: Dict[str, C2POContract] = {}
         self.atomics: Set[C2POExpression] = set()
         self.implementation = impl
-        self.booleanizer_enabled = bz
-        self.atomic_checker_enabled = at
+        self.booleanizer_enabled = booleanizer
+        self.atomic_checker_enabled = atomic_checkers
+        self.mission_time = mission_time
+        self.signal_mapping = signal_mapping
+        self.assembly_enabled = assembly_enabled
         self.is_ft = False
 
     def get_symbols(self) -> List[str]:
@@ -1374,24 +1383,27 @@ def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
     return new
 
 
-def compute_scq_sizes(program: C2POProgram, context: C2POContext):
-    """Computes SCQ sizes for each node."""
-    def compute_scq_size_util(node: C2PONode):
-        expr = cast(C2POExpression, node)
+def compute_atomics(program: C2POProgram, context: C2POContext):
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
+    id: int = 0
+    
+    def compute_atomics_util(node: C2PONode):
+        nonlocal id
 
-        if isinstance(expr, C2POSpecification):
-            expr.scq_size = 1
-            expr.total_scq_size = expr.get_expr().total_scq_size + 1
+        if not isinstance(node, C2POExpression):
             return
 
-        if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
+        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
             return
 
-        max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
-
-        # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
-        expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
+        for child in node.get_children():
+            if isinstance(child, C2POBool):
+                return
+            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
+                context.atomics.add(child)
+                if child.atomic_id < 0:
+                    child.atomic_id = id
+                    id += 1
 
     for spec in program.get_specs():
-        postorder(spec, compute_scq_size_util)
+        postorder(spec, compute_atomics_util)

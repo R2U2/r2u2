@@ -1,5 +1,6 @@
 #type: ignore
 from typing import Optional
+from pathlib import Path
 
 from .sly import Lexer, Parser
 from .ast import *
@@ -565,14 +566,17 @@ class C2POParser(Parser):
 
     @_("TL_MISSION_TIME")
     def bound(self, p):
-        return MissionTime(-1)
+        return MissionTime()
 
 
-def parse(input: str) -> Optional[C2POProgram]:
+def parse(input_path: Path) -> Optional[C2POProgram]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
+    with open(input_path, "r") as f:
+        contents = f.read()
+
     lexer: C2POLexer = C2POLexer()
     parser: C2POParser = C2POParser()
-    sections: List[C2POSection] = parser.parse(lexer.tokenize(input))
+    sections: List[C2POSection] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
         return None

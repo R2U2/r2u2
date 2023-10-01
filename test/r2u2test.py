@@ -206,19 +206,36 @@ class TestCase():
         self.logger.addHandler(file_handler)
 
     def test_fail(self, msg: str):
-        self.logger.info(f"{self.test_name} [{Color.FAIL}FAIL{Color.ENDC}] {msg}")
+        self.logger.info(f"[{Color.FAIL}FAIL{Color.ENDC}] {self.test_name}: {msg}")
         self.status = False
 
     def test_pass(self):
-        self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}]")
+        self.logger.info(f"[{Color.PASS}PASS{Color.ENDC}] {self.test_name}")
+
+    def copyback(self):
+        shutil.copy(self.mltl_path, self.test_results_dir)
+        shutil.copy(self.trace_path, self.test_results_dir)
+        shutil.copy(self.oracle_path, self.test_results_dir)
+        if self.spec_bin.exists():
+            shutil.copy(self.spec_bin, self.test_results_dir)
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         cli_options = collect_r2u2prep_options(self.r2u2prep_options)
-        proc = subprocess.run(["python3", r2u2prep] + cli_options + 
-                ["--output-file", self.spec_bin, self.mltl_path, self.trace_path], capture_output=True)
+        proc = subprocess.run(
+            [
+                "python3", r2u2prep
+            ] 
+            + cli_options + 
+            [
+                "--output", self.spec_bin, 
+                "--trace", self.trace_path,
+                self.mltl_path
+            ], 
+            capture_output=True
+        )
 
         with open(f"{self.test_results_dir}/r2u2_spec.asm", "wb") as f:
-            f.write(proc.stdout)
+            f.write(proc.stdout.replace(b"[95m",b"").replace(b"[0m:",b""))
 
         if proc.stderr != b"":
             with open(f"{self.test_results_dir}/r2u2prep.py.stderr", "wb") as f:
@@ -226,6 +243,7 @@ class TestCase():
 
         if proc.returncode != 0:
             self.test_fail(f"r2u2prep.py returned with code {proc.returncode}")
+            self.copyback()
             return
 
         proc = subprocess.run([r2u2bin, self.spec_bin, self.trace_path], capture_output=True)
@@ -239,14 +257,16 @@ class TestCase():
 
         if proc.returncode != 0:
             self.test_fail(f"r2u2bin returned with code {proc.returncode}")
+            self.copyback()
             return
 
         with open(self.r2u2_log, "wb") as f:
             f.write(proc.stdout)
 
-        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
-        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
 
+        diffs = []
         for i in range(len(glob(f"{self.r2u2_log}.[0-9]*"))):
             formula_r2u2_log = f"{self.r2u2_log}.{i}"
             formula_oracle =  f"{WORK_DIR}/{self.oracle_path.name}.{i}"
@@ -259,18 +279,18 @@ class TestCase():
             proc = subprocess.run(["diff", formula_r2u2_log, formula_oracle], capture_output=True)
 
             if proc.returncode != 0:
-                self.test_fail(f"Difference with oracle for formula {i}")
+                diffs.append(i)
                 with open(f"{self.test_results_dir}/{self.test_name}.{i}.diff", "wb") as f:
                     f.write(proc.stdout)
+
+        if len(diffs) > 0:
+            self.test_fail(f"Difference with oracle for formulas {diffs}")
 
         if self.status:
             self.test_pass()
 
         if copyback:
-            shutil.copy(self.mltl_path, self.test_results_dir)
-            shutil.copy(self.trace_path, self.test_results_dir)
-            shutil.copy(self.oracle_path, self.test_results_dir)
-            shutil.copy(self.spec_bin, self.test_results_dir)
+            self.copyback()
 
         for f in glob(f"{WORK_DIR}/*"):
             os.remove(f)
@@ -283,6 +303,7 @@ class TestSuite():
         self.status: bool = True
         self.suite_name: str = name
         self.tests: list[TestCase] = []
+        self.suites: list[TestSuite] = []
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / self.suite_name
         
@@ -329,7 +350,7 @@ class TestSuite():
         """Configure test suite according to JSON file."""
         config_filename = SUITES_DIR / (self.suite_name + ".json")
 
-        if not os.path.isfile(config_filename):
+        if not config_filename.is_file():
             self.suite_fail_msg(f"Suite configuration file '{config_filename}' does not exist")
             return
 
@@ -343,25 +364,33 @@ class TestSuite():
 
         self.r2u2prep_options: dict[str,str|bool] = config["options"]
 
-        if "tests" not in config:
+        if "tests" not in config and "suites" not in config:
             self.suite_fail_msg(f"No tests specified for suite '{self.suite_name}'")
             return
 
-        for testcase in config["tests"]:
-            name: Optional[str] = testcase["name"] if "name" in testcase else None
-            mltl: Optional[Path] = MLTL_DIR / testcase["mltl"] if "mltl" in testcase else None
-            trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
-            oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
+        if "tests" in config:
+            for testcase in config["tests"]:
+                name: Optional[str] = testcase["name"] if "name" in testcase else None
+                mltl: Optional[Path] = MLTL_DIR / testcase["mltl"] if "mltl" in testcase else None
+                trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
+                oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 
-            options = copy(self.r2u2prep_options)
-            if "options" in testcase:
-                options.update(testcase["options"])
+                options = copy(self.r2u2prep_options)
+                if "options" in testcase:
+                    options.update(testcase["options"])
 
-            self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, options, self.top_results_dir))
+                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, options, self.top_results_dir))
+
+        if "suites" in config:
+            for suite in config["suites"]:
+                self.suites.append(TestSuite(suite, self.top_results_dir))
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         if not self.status:
             return
+        
+        for suite in self.suites:
+            suite.run(r2u2prep, r2u2bin, copyback)
 
         for test in [t for t in self.tests if t.status]:
             test.run(r2u2prep, r2u2bin, copyback)

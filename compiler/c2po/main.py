@@ -6,14 +6,11 @@ import re
 from .logger import logger, Color
 from .ast import *
 from .parse import parse
-from .properties import *
+from .wcet import *
 from .type_check import type_check
-from .rewrite import *
-from .optimize import *
-from .assembly import *
-from .assembler import assemble
+from .transform import *
+from .assemble import *
 
-SignalMapping = Dict[str, int]
 
 class ReturnCode(Enum):
     SUCCESS = 0
@@ -21,130 +18,26 @@ class ReturnCode(Enum):
     PARSE_ERR = 2
     TYPE_CHECK_ERR = 3
     ASM_ERR = 4
-    INVALID_OPTIONS = 5
+    INVALID_INPUT = 5
     FILE_IO_ERR  = 6
 
-# # Stores the sub-classes of Instruction from ast.py
-# INSTRUCTION_LIST = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.cpt"],
-#         lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
+
+# AT_FILTER_TABLE: Dict[str, Tuple[List[C2POType], C2POType]] = {
+#     "rate": ([C2POFloatType(False)], C2POFloatType(False)),
+#     "movavg": ([C2POFloatType(False),C2POIntType(True)], C2POFloatType(False)),
+#     "abs_diff_angle": ([C2POFloatType(False),C2POFloatType(True)], C2POFloatType(False))
+# }
 
 
-AT_FILTER_TABLE: Dict[str, Tuple[List[C2POType], C2POType]] = {
-    "rate": ([C2POFloatType(False)], C2POFloatType(False)),
-    "movavg": ([C2POFloatType(False),C2POIntType(True)], C2POFloatType(False)),
-    "abs_diff_angle": ([C2POFloatType(False),C2POFloatType(True)], C2POFloatType(False))
-}
-
-
-def generate_aliases(program: C2POProgram, context: C2POContext) -> List[str]:
-    """
-    Generates strings corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
-
-    Preconditions:
-        - program is type correct
-
-    Postconditions:
-        - None
-    """
-    s: List[str] = []
-
-    for spec_section in [s for s in program.get_spec_sections()]:
-        for spec in [s for s in spec_section.get_specs() if isinstance(s, C2POSpecification)]:
-            s.append(f"F {spec.symbol} {spec.formula_number}")
-
-    for contract in context.contracts.values():
-        (f1, f2, f3) =  contract.formula_numbers
-        s.append(f"C {contract.symbol} {f1} {f2} {f3}")
-
-    return s
-
-
-def set_options(
-    impl_str: str, 
-    int_width: int, 
-    int_is_signed: bool, 
-    float_width: int,
-    at: bool, 
-    bz: bool, 
-    extops: bool
-) -> bool:
-    """Checks that the options are valid for the given implementation.
-    
-    Args:
-        program: Target program for compilation
-        impl_str: String representing one of the R2U2 implementation 
-            (should be one of 'c', 'c++'/'cpp', or 'fpga'/'vhdl')
-        movavg_size: Maximum size for moving average AT filter
-        int_width: Width to set C2PO INT type to
-        int_is_signed: If true sets INT type to signed
-        float_width: Width to set C2PO FLOAT type to
-        enable_at: If true enables Atomic Checker instructions
-        enable_bz: If true enables Booleanizer instructions
-    """
-    status: bool = True
-    
-    impl: R2U2Implementation = str_to_r2u2_implementation(impl_str)
-    set_types(impl, int_width, int_is_signed, float_width)
-
-    if bz and at:
-        logger.error(f" Only one of AT and BZ can be enabled")
-        status = False
-    
-    if impl == R2U2Implementation.C:
-        if not ((not bz and at) or (bz and not at)):
-            logger.error(f" Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
-            status = False
-    else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
-        if bz:
-            logger.error(f" Booleanizer only available for C implementation.")
-            status = False
-
-    if impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL:
-        if extops:
-            logger.error(f" Extended operators only support for C implementation.")
-            status = False
-
-    return status
-
-
-def configure_paths(
-        input_filename: str, 
-        trace_filename: Optional[str], 
-        map_filename: Optional[str]
-) -> Tuple[Optional[Path], Optional[Path], Optional[Path]]:
-    """Perform file validation on each argument and return Path objects for each corresponding filename given."""
-    # input file validation
-    input_path = Path(input_filename)
-    if not input_path.is_file():
-        logger.error(f"Input file '{input_filename} not a valid file.'")
-        input_path = None
-
-    # trace file validation
-    trace_path = None
-    if trace_filename:
-        trace_path =  Path(trace_filename)
-        if not trace_path.is_file():
-            logger.error(f"Trace file '{trace_filename}' is not a valid file.")
-
-    # map file validation
-    map_path = None
-    if map_filename:
-        map_path =  Path(map_filename)
-        if not map_path.is_file():
-            logger.error(f"Map file '{map_filename}' is not a valid file.")
-    
-    return (input_path, trace_path, map_path)
-
-
-def process_trace_file(trace_path: Path, return_mapping: bool) -> Tuple[Optional[int], Optional[SignalMapping]]:
-    """Given `trace_path`, return the inferred mission time and, if `return_mapping` is enabled, a signal mapping."""
+def process_trace_file(trace_path: Path, map_file_provided: bool) -> Tuple[int, Optional[SignalMapping]]:
+    """Given `trace_path`, return the inferred length of the trace and, if `return_mapping` is enabled, a signal mapping."""
     with open(trace_path,"r") as f:
         content: str = f.read()
 
     lines: List[str] = content.splitlines()
 
     if len(lines) < 1:
-        return (0, None)
+        return (-1, None)
 
     cnt: int = 0
     signal_mapping: SignalMapping = {}
@@ -153,8 +46,8 @@ def process_trace_file(trace_path: Path, return_mapping: bool) -> Tuple[Optional
         # then there is a header
         header = lines[0][1:]
 
-        # if return_mapping:
-        #     logger.warning("Map file given and header included in trace file; header will be ignored.")
+        if map_file_provided:
+            logger.warning("Map file given and header included in trace file; header will be ignored.")
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
@@ -162,9 +55,9 @@ def process_trace_file(trace_path: Path, return_mapping: bool) -> Tuple[Optional
             signal_mapping[id] = cnt
             cnt += 1
 
-        mission_time = len(lines) - 1
+        trace_length = len(lines) - 1
 
-        return (mission_time, signal_mapping)
+        return (trace_length, signal_mapping)
 
     # no header, so just return number of lines in file (i.e., number of time steps in trace)
     return (len(lines), None)
@@ -195,184 +88,252 @@ def process_map_file(map_path: Path) -> Optional[SignalMapping]:
     return mapping
 
 
-def compute_atomics(program: C2POProgram, context: C2POContext):
-    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
+def validate_input(
+    input_filename: str, 
+    trace_filename: str, 
+    map_filename: str,
+    output_filename: str,
+    impl_str: str, 
+    custom_mission_time: int,
+    int_width: int, 
+    int_is_signed: bool, 
+    float_width: int,
+    enable_atomic_checkers: bool = False,
+    enable_booleanizer: bool = False,
+    enable_extops: bool = False,
+    enable_nnf: bool = False,
+    enable_bnf: bool = False,
+    enable_rewrite: bool = False,
+    enable_arity: bool = False,
+    enable_cse: bool = False,
+    enable_assemble: bool = True
+) -> Tuple[bool, Optional[Path], Optional[Path], int, SignalMapping, Set[C2POTransform]]:
+    """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
     
-    def compute_atomics_util(node: C2PONode):
-        if not isinstance(node, C2POExpression):
-            return
+    Returns:
+        A tuple with the following item types/descriptions:
+        `bool`: validation status
+        `Optional[Path]`: path corresponding to `input_filename` if it is a valid file, `None` otherwise
+        `Optional[Path]`: path corresponding to `output_filename` if it is a valid file, `None` otherwise
+        `int`: mission time, either set to `custom_mission_time` or the input trace length if not provided
+        `Optional[SignalMapping]`: signal mapping if it was derived from `trace_filename` or `map_filebame`, `None` otherwise
+        `Set[C2POTransform]`: set of transforms to apply to the input
+    """
+    status: bool = True
 
-        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
-            return
+    input_path = Path(input_filename)
+    if not input_path.is_file():
+        logger.error(f"Input file '{input_filename} not a valid file.'")
+        input_path = None
 
-        for child in node.get_children():
-            if isinstance(child, C2POBool):
-                return
-            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(child)
+    trace_path = None
+    if trace_filename != "":
+        trace_path =  Path(trace_filename)
+        if not trace_path.is_file():
+            logger.error(f"Trace file '{trace_filename}' is not a valid file.")
 
-    for spec in program.get_specs():
-        postorder(spec, compute_atomics_util)
+    map_path = None
+    if map_filename != "":
+        map_path =  Path(map_filename)
+        if not map_path.is_file():
+            logger.error(f"Map file '{map_filename}' is not a valid file.")
 
+    output_path = None
+    if output_filename != "":
+        output_path = Path(output_filename)
+        if output_path.is_file():
+            logger.warning(f"Output file '{output_filename}' already exists.")
 
-def assign_signal_ids(program: C2POProgram, mapping: SignalMapping):
+    signal_mapping: Optional[SignalMapping] = None
+    mission_time, trace_length = -1, -1
 
-    def assign_signal_ids_util(node: C2PONode):
-        if isinstance(node, C2POSignal):
-            if node.symbol not in mapping:
-                logger.error(f"Mapping does not contain signal '{node.symbol}'.")
-                return
-            node.signal_id = mapping[node.symbol]
+    if trace_path:
+        (trace_length, signal_mapping) = process_trace_file(trace_path, map_path is not None)
+    if map_path:
+        signal_mapping = process_map_file(map_path)
 
-    for spec_section in program.get_spec_sections():
-        postorder(spec_section, assign_signal_ids_util)
+    if not signal_mapping:
+        signal_mapping = {}
+
+    if custom_mission_time > -1:
+        mission_time = custom_mission_time
+
+        # warn if the given trace is shorter than the defined mission time
+        if trace_length > -1 and trace_length < custom_mission_time:
+            logger.warning(f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).")
+    else:
+        mission_time = trace_length
+
+    impl: R2U2Implementation = str_to_r2u2_implementation(impl_str)
+    set_types(impl, int_width, int_is_signed, float_width)
+
+    if enable_booleanizer and enable_atomic_checkers:
+        logger.error(f"Only one of AT and booleanizer can be enabled")
+        status = False
+    
+    if impl == R2U2Implementation.C:
+        if not ((not enable_booleanizer and enable_atomic_checkers) or (enable_booleanizer and not enable_atomic_checkers)):
+            logger.error(f"Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
+            status = False
+    else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
+        if enable_booleanizer:
+            logger.error(f"Booleanizer only available for C implementation.")
+            status = False
+
+    if impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL:
+        if enable_extops:
+            logger.error(f"Extended operators only support for C implementation.")
+            status = False
+
+    if enable_nnf and enable_bnf:
+        logger.warning(f"Attempting rewrite to both NNF and BNF, defaulting to NNF.")
+
+    transforms = set(TRANSFORM_PIPELINE)
+    if not enable_rewrite:
+        transforms.remove(optimize_rewrite_rules)
+    if enable_extops:
+        transforms.remove(transform_extended_operators)
+    if not enable_nnf:
+        transforms.remove(transform_negative_normal_form)
+    if not enable_bnf:
+        transforms.remove(transform_boolean_normal_form)
+    if not enable_arity:
+        transforms.remove(optimize_operator_arity)
+    if not enable_cse:
+        transforms.remove(optimize_cse)
+
+    return (status, input_path, output_path, mission_time, signal_mapping, transforms)
 
 
 def compile(
     input_filename: str,
-    trace_filename: Optional[str],
-    map_filename: Optional[str],
+    trace_filename: str = "",
+    map_filename: str = "",
+    output_filename: str = "spec.bin",
     impl: str = "c",
     custom_mission_time: int = -1,
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    output_filename: str = "r2u2_spec.bin",
-    enable_assemble: bool = True,
-    enable_cse: bool = False,
-    enable_at: bool = False,
-    enable_bz: bool = False,
+    enable_atomic_checkers: bool = False,
+    enable_booleanizer: bool = False,
     enable_extops: bool = False,
+    enable_nnf: bool = False,
+    enable_bnf: bool = False,
     enable_rewrite: bool = False,
+    enable_arity: bool = False,
+    enable_cse: bool = False,
+    enable_assemble: bool = True,
+    dump_ast: bool = False,
     quiet: bool = False
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
+
+    Compilation stages:
+    1. Input validation
+    2. Parser
+    3. Type checker
+    4. Required transformations
+    5. Option-based transformations
+    6. Optimizations
+    7. Assembly
     
     Args:
         input_filename: Name of a C2PO input file
         trace_filename:
         map_filename:
-        impl: An R2U2 implementation to target. Should be one of 'c', 'c++', 'cpp', 'fpga', or 'vhdl'
-        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
-        mission_time: Value of mission-time to replace "M" with in specs
-        int_signed: If true sets INT type to signed
-        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
         output_filename: Name of binary output file
-        enable_assemble: If true outputs binary to output_filename
-        enable_cse: If true enables Common Subexpression Elimination
-        enable_at: If true enables Atomic Checker instructions
-        enable_bz: If true enables Booleanizer instructions
-        enable_extops: If true enables TL extended operators
+        impl: An R2U2 implementation to target. Should be one of `c`, `c++`, `cpp`, `fpga`, or `vhdl`
+        int_width: Width to set C2POIntType to. Should be one of 8, 16, 32, or 64
+        mission_time: Value of mission-time to replace `M` with in specs
+        int_signed: If true sets C2POIntType to signed
+        float_width: Width to set C2POFloatType to. Should be one of 32 or 64
+        enable_atomic_checkers: If true enables Atomic Checker instructions
+        enable_booleanizer: If true enables Booleanizer instructions
+        enable_extops: If true enables TL extended operators (or, implies, future, release)
+        enable_nnf: If true enables negation normal form of MLTL
+        enable_bnf: If true enables boolean normal form of MLTL
         enable_rewrite: If true enables MLTL rewrite rule optimizations
+        enable_arity: If true enables operator arity optimization
+        enable_cse: If true enables Common Subexpression Elimination
+        enable_assemble: If true outputs binary to output_filename
+        dump_ast:
         quiet: If true disables assembly output to stdout
     """
-    if not set_options(impl, int_width, int_signed, float_width, 
-                        enable_at, enable_bz, enable_extops):
-        logger.error("Invalid configuration options.")
-        return ReturnCode.INVALID_OPTIONS
-    
-    (input_path, trace_path, map_path) = configure_paths(input_filename, trace_filename, map_filename)
+    # ----------------------------------
+    # Input validation
+    # ----------------------------------
+    (status, input_path, output_path, mission_time, signal_mapping, enabled_transforms) = validate_input(
+        input_filename, 
+        trace_filename, 
+        map_filename, 
+        output_filename,
+        impl, 
+        custom_mission_time,
+        int_width, 
+        int_signed, 
+        float_width, 
+        enable_atomic_checkers,
+        enable_booleanizer,
+        enable_extops,
+        enable_nnf,
+        enable_bnf,
+        enable_rewrite,
+        enable_arity,
+        enable_cse,
+        enable_assemble
+    )
 
-    if not input_path:
-        logger.error("Cannot open input file.")
-        return ReturnCode.FILE_IO_ERR
+    if not status or not input_path:
+        logger.error("Input invalid.")
+        return ReturnCode.INVALID_INPUT
 
-    with open(input_path, "r") as f:
-        program: Optional[C2POProgram] = parse(f.read())
+    # ----------------------------------
+    # Parse
+    # ----------------------------------
+    program: Optional[C2POProgram] = parse(input_path)
 
     if not program:
         logger.error("Failed parsing.")
         return ReturnCode.PARSE_ERR
 
-    # type check
-    (well_typed, context) = type_check(program, str_to_r2u2_implementation(impl), enable_at, enable_bz)
+    # ----------------------------------
+    # Type check
+    # ----------------------------------
+    (well_typed, context) = type_check(
+        program, 
+        str_to_r2u2_implementation(impl), 
+        mission_time,
+        enable_atomic_checkers, 
+        enable_booleanizer,
+        enable_assemble,
+        signal_mapping
+    )
+
     if not well_typed:
         logger.error("Failed type check.")
         return ReturnCode.TYPE_CHECK_ERR
 
-    rewrite_definitions(program, context)
-    rewrite_function_calls(program, context)
-    rewrite_contracts(program, context)
-    rewrite_set_aggregation(program)
-    rewrite_struct_accesses(program)
+    # ----------------------------------
+    # Transforms
+    # ----------------------------------
+    for transform in [t for t in TRANSFORM_PIPELINE if t in enabled_transforms]:
+        transform(program, context)
 
-    if enable_rewrite:
-        optimize_rewrite_rules(program)
-
-    # rewrite without extended operators if enabled
-    if not enable_extops:
-        rewrite_extended_operators(program)
-
-    # common sub-expressions elimination
-    if enable_cse:
-        optimize_cse(program)
-
-    compute_scq_sizes(program, context)
+    if dump_ast:
+        ast_bytes = program.dumps()
+        with open(input_path.with_suffix(".pickle"), "wb") as f:
+            f.write(ast_bytes)
 
     if not enable_assemble:
         return ReturnCode.SUCCESS
-    
-    signal_mapping: Optional[SignalMapping] = None
-    mission_time: Optional[int] = None
 
-    if trace_path:
-        (mission_time, signal_mapping) = process_trace_file(trace_path, map_path is None)
-
-    if map_path:
-        signal_mapping = process_map_file(map_path)
-
-    if not signal_mapping:
-        logger.error("No map file nor header provided in trace file; cannot perform signal mapping")
-        return ReturnCode.ERROR
-    
-    compute_atomics(program, context)
-    assign_signal_ids(program, signal_mapping)
-
-    # disregard inferred mission time if given explicitly
-    if custom_mission_time > -1:
-        mission_time = custom_mission_time
-        
-        # warn if the given trace is shorter than the defined mission time
-        if custom_mission_time > mission_time:
-            logger.warning(f"Given mission time ({custom_mission_time}) is greater than length of trace ({mission_time}).")
-
-    # return ReturnCode.SUCCESS
-
-    # generate alias file
-    aliases = generate_aliases(program, context)
-
-    # generate assembly
-    (bz_asm, at_asm, ft_asm, pt_asm) = generate_assembly(program, context)
-    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program, context)
-
-    # print assembly if 'quiet' option not enabled
-    if not quiet:
-        if enable_at:
-            logger.info(Color.HEADER+"AT Assembly"+Color.ENDC+":")
-            for s in at_asm:
-                logger.info(f"\t{s}")
-        if enable_bz:
-            logger.info(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
-            for s in bz_asm:
-                logger.info(f"\t{s}")
-
-        logger.info(Color.HEADER+"FT Assembly"+Color.ENDC+":")
-        for a in ft_asm:
-            logger.info(f"\t{a}")
-
-        logger.info(Color.HEADER+"PT Assembly"+Color.ENDC+":")
-        for a in pt_asm:
-            logger.info(f"\t{a}")
-
-        logger.info(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
-        for s in scq_asm:
-            logger.info(f"\t{s}")
-
-        logger.info(Color.HEADER+"Aliases"+Color.ENDC+":")
-        for a in aliases:
-            logger.info(f"\t{a}")
-
-    # assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
+    # ----------------------------------
+    # Assembly
+    # ----------------------------------
+    binary = assemble(program, context, quiet)
+    with open(output_filename, "wb") as f:
+        f.write(binary)
 
     return ReturnCode.SUCCESS
 
