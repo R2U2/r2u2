@@ -172,7 +172,7 @@ def validate_input(
         status = False
     
     if impl == R2U2Implementation.C:
-        if not ((not enable_booleanizer and enable_atomic_checkers) or (enable_booleanizer and not enable_atomic_checkers)):
+        if (not enable_booleanizer and not enable_atomic_checkers) or (enable_booleanizer and enable_atomic_checkers):
             logger.error(f"Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
             status = False
     else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
@@ -331,8 +331,12 @@ def compile(
     # ----------------------------------
     # Assembly
     # ----------------------------------
+    if not output_path:
+        logger.error("Input invalid.")
+        return ReturnCode.INVALID_INPUT
+
     binary = assemble(program, context, quiet)
-    with open(output_filename, "wb") as f:
+    with open(output_path, "wb") as f:
         f.write(binary)
 
     return ReturnCode.SUCCESS

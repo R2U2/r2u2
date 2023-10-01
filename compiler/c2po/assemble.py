@@ -244,7 +244,7 @@ class TLInstruction(Instruction):
         operand_format = cStruct("iBxxx")
         instr_format = cStruct(f"{operand_format.size}s{operand_format.size}sIi")
 
-        print(f"FT Assembled:\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
+        # print(f"FT Assembled:\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
 
         engine_tag_bytes = cStruct("B").pack(ENGINE_TAGS.TL.value)
         instr_bytes = instr_format.pack(
@@ -286,7 +286,7 @@ class FTInstruction(TLInstruction):
             FTOperator.CONFIGURE.value
         )
 
-        print(f"SCQ Assembled (n{self.id}) ({self.node}):\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {end_pos - start_pos})\n\t{start_pos}\n\t{FTOperator.CONFIGURE}")
+        # print(f"SCQ Assembled (n{self.id}) ({self.node}):\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {end_pos - start_pos})\n\t{start_pos}\n\t{FTOperator.CONFIGURE}")
 
         if self.operator.is_temporal():
             temp = cast(C2POTemporalOperator, self.node)
@@ -299,7 +299,7 @@ class FTInstruction(TLInstruction):
                 FTOperator.CONFIGURE.value
             )
 
-            print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{FTOperator.CONFIGURE}")
+            # print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{FTOperator.CONFIGURE}")
 
             # add upper bound
             instr_bytes += engine_tag_bytes + instr_format.pack(
@@ -309,7 +309,7 @@ class FTInstruction(TLInstruction):
                 FTOperator.CONFIGURE.value
             )
 
-            print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {1})\n\t{temp.interval.ub}\n\t{FTOperator.CONFIGURE}")
+            # print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {1})\n\t{temp.interval.ub}\n\t{FTOperator.CONFIGURE}")
 
         return instr_bytes
 

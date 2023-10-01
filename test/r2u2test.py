@@ -109,9 +109,9 @@ def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
     if "quiet" in options and options["quiet"]:
         r2u2prep_options.append("--quiet")
 
-    if "implementation" in options:
-        r2u2prep_options.append("--implementation")
-        r2u2prep_options.append(options["implementation"])
+    if "impl" in options:
+        r2u2prep_options.append("--impl")
+        r2u2prep_options.append(options["impl"])
 
     if "int-width" in options:
         r2u2prep_options.append("--int-width")
@@ -124,8 +124,8 @@ def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
         r2u2prep_options.append("--float-width")
         r2u2prep_options.append(options["float-width"])
 
-    if "atomic-checker" in options and options["atomic-checker"]:
-        r2u2prep_options.append("--atomic-checker")
+    if "atomic-checkers" in options and options["atomic-checkers"]:
+        r2u2prep_options.append("--atomic-checkers")
 
     if "booleanizer" in options and options["booleanizer"]:
         r2u2prep_options.append("--booleanizer")
@@ -183,8 +183,8 @@ class TestCase():
         else:
             self.oracle_path = oracle_path
 
-        self.spec_bin = WORK_DIR / "spec.bin"
-        self.r2u2_log = WORK_DIR / "r2u2.log"
+        self.spec_bin_path = WORK_DIR / "spec.bin"
+        self.r2u2_log_path = WORK_DIR / "r2u2.log"
 
     def clean(self):
         cleandir(self.test_results_dir, False)
@@ -216,8 +216,8 @@ class TestCase():
         shutil.copy(self.mltl_path, self.test_results_dir)
         shutil.copy(self.trace_path, self.test_results_dir)
         shutil.copy(self.oracle_path, self.test_results_dir)
-        if self.spec_bin.exists():
-            shutil.copy(self.spec_bin, self.test_results_dir)
+        if self.spec_bin_path.exists():
+            shutil.copy(self.spec_bin_path, self.test_results_dir)
 
     def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
         cli_options = collect_r2u2prep_options(self.r2u2prep_options)
@@ -227,7 +227,7 @@ class TestCase():
             ] 
             + cli_options + 
             [
-                "--output", self.spec_bin, 
+                "--output", self.spec_bin_path, 
                 "--trace", self.trace_path,
                 self.mltl_path
             ], 
@@ -246,7 +246,7 @@ class TestCase():
             self.copyback()
             return
 
-        proc = subprocess.run([r2u2bin, self.spec_bin, self.trace_path], capture_output=True)
+        proc = subprocess.run([r2u2bin, self.spec_bin_path, self.trace_path], capture_output=True)
 
         with open(f"{self.test_results_dir}/r2u2.log", "wb") as f:
             f.write(proc.stdout)
@@ -260,15 +260,21 @@ class TestCase():
             self.copyback()
             return
 
-        with open(self.r2u2_log, "wb") as f:
+        if proc.stdout == b"":
+            self.test_fail(f"No verdicts generated.")
+            self.copyback()
+            return
+
+        with open(self.r2u2_log_path, "wb") as f:
             f.write(proc.stdout)
 
-        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2_log_path, WORK_DIR])
         proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
 
+        num_formulas = len(glob(f"{self.r2u2_log_path}.*"))
         diffs = []
-        for i in range(len(glob(f"{self.r2u2_log}.[0-9]*"))):
-            formula_r2u2_log = f"{self.r2u2_log}.{i}"
+        for i in range(num_formulas):
+            formula_r2u2_log = f"{self.r2u2_log_path}.{i}"
             formula_oracle =  f"{WORK_DIR}/{self.oracle_path.name}.{i}"
 
             # note that we are walking thru each generated .log files,

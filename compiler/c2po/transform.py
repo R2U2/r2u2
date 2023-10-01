@@ -585,7 +585,30 @@ def optimize_cse(program: C2POProgram, context: C2POContext) :
     program.is_cse_reduced = True
 
 
-C2POTransform = Callable[[C2POProgram, C2POContext], None]
+def compute_atomics(program: C2POProgram, context: C2POContext):
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
+    id: int = 0
+    
+    def compute_atomics_util(node: C2PONode):
+        nonlocal id
+
+        if not isinstance(node, C2POExpression):
+            return
+
+        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
+            return
+
+        for child in node.get_children():
+            if isinstance(child, C2POBool):
+                return
+            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
+                context.atomics.add(child)
+                if child.atomic_id < 0:
+                    child.atomic_id = id
+                    id += 1
+
+    for spec in program.get_specs():
+        postorder(spec, compute_atomics_util)
 
 
 def compute_scq_sizes(program: C2POProgram, context: C2POContext):
@@ -611,24 +634,7 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         postorder(spec, compute_scq_size_util)
 
 
-def apply_transform(
-    program: C2POProgram,
-    context: C2POContext, 
-    transform: C2POTransform, 
-    enable: bool,
-    dump: bool
-):
-    if not enable:
-        return
-
-    transform(program, context)
-
-    if not dump:
-        return
-
-    with open(f"{transform.__name__}.pickle", "wb") as f:
-        f.write(program.dumps())
-
+C2POTransform = Callable[[C2POProgram, C2POContext], None]
 
 # Note: this is ORDER-SENSITIVE
 TRANSFORM_PIPELINE: List[C2POTransform] = [
@@ -643,5 +649,6 @@ TRANSFORM_PIPELINE: List[C2POTransform] = [
     transform_boolean_normal_form,
     optimize_operator_arity,
     optimize_cse,
+    compute_atomics, # not a transform, but needed for assembly+analysis
     compute_scq_sizes # not a transform, but needed for assembly+analysis
 ]
