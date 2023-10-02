@@ -280,8 +280,16 @@ def type_check_section(section: C2POSection, context: C2POContext) -> bool:
                 context.add_atomic(atomic.symbol, atomic.get_atomic())
     elif isinstance(section, C2POSpecSection):
         if isinstance(section, C2POFutureTimeSpecSection):
+            if context.has_future_time:
+                logger.error(f"Only one FTSPEC section allowed.")
+                status = False
+            context.has_future_time = True
             context.set_future_time()
         else:
+            if context.has_past_time:
+                logger.error(f"Only one PTSPEC section allowed.")
+                status = False
+            context.has_past_time = True
             context.set_past_time()
 
         for spec in section.get_specs():
@@ -312,10 +320,10 @@ def type_check(
     signal_mapping: SignalMapping
 ) -> Tuple[bool, C2POContext]:
     status: bool = True
-    context = C2POContext(impl, mission_time, booleanizer, atomic_checkers, assembly_enabled, signal_mapping)
+    context = C2POContext(impl, mission_time, atomic_checkers, booleanizer, assembly_enabled, signal_mapping)
     
     for section in program.get_sections():
-        type_check_section(section, context)
+        status = status and type_check_section(section, context)
 
     return (status, context)
 

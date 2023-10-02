@@ -323,6 +323,7 @@ def compile(
     if dump_ast:
         ast_bytes = program.dumps()
         with open(input_path.with_suffix(".pickle"), "wb") as f:
+            print(f"Dumping to {input_path.with_suffix('.pickle')}")
             f.write(ast_bytes)
 
     if not enable_assemble:

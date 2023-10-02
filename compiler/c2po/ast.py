@@ -1,6 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-from typing import Any, Dict, Callable, Set, Union, cast, List, Tuple
+from typing import Any, Dict, Callable, Optional, Set, Union, cast, List, Tuple
 import pickle
 
 from .types import R2U2Implementation
@@ -1204,11 +1204,19 @@ class C2POProgram(C2PONode):
     def __init__(self, ln: int, sections: List[C2PONode]):
         super().__init__(ln, sections)
 
+        self.future_time_spec_section_idx = -1
+        self.past_time_spec_section_idx = -1
+
+        for section in sections:
+            if isinstance(section, C2POFutureTimeSpecSection):
+                self.future_time_spec_section_idx = sections.index(section)
+            elif isinstance(section, C2POPastTimeSpecSection):
+                self.past_time_spec_section_idx = sections.index(section)
+
         # Data
         self.timestamp_width: int = 0
 
         # Computable properties
-        self.total_memory: int = -1
         self.cpu_wcet: int = -1
         self.fpga_wcet: float = -1
 
@@ -1225,34 +1233,42 @@ class C2POProgram(C2PONode):
     def get_spec_sections(self) -> List[C2POSpecSection]:
         return [s for s in self._children if isinstance(s, C2POSpecSection)]
 
-    def get_future_time_spec_sections(self) -> List[C2POFutureTimeSpecSection]:
-        return [s for s in self._children if isinstance(s, C2POFutureTimeSpecSection)]
+    def get_future_time_spec_section(self) -> Optional[C2POFutureTimeSpecSection]:
+        if self.future_time_spec_section_idx < 0:
+            return None
+        return cast(
+            C2POFutureTimeSpecSection, 
+            self.get_child(self.future_time_spec_section_idx)
+        ) 
 
-    def get_past_time_spec_sections(self) -> List[C2POPastTimeSpecSection]:
-        return [s for s in self._children if isinstance(s, C2POPastTimeSpecSection)]
+    def get_past_time_spec_section(self) -> Optional[C2POPastTimeSpecSection]:
+        if self.past_time_spec_section_idx < 0:
+            return None
+        return cast(
+            C2POPastTimeSpecSection, 
+            self.get_child(self.past_time_spec_section_idx)
+        ) 
 
-    def get_future_time_specs(self) -> List[C2POSpecification]:
-        specs = []
-        for spec_section in self.get_future_time_spec_sections():
-            for spec in spec_section.get_specs():
-                specs.append(spec)
-        return specs
+    def get_future_time_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
+        future_time_spec_section = self.get_future_time_spec_section()
+        if future_time_spec_section:
+            return future_time_spec_section.get_specs()
+        return []
 
-    def get_past_time_specs(self) -> List[C2POSpecification]:
-        specs = []
-        for spec_section in self.get_past_time_spec_sections():
-            for spec in spec_section.get_specs():
-                specs.append(spec)
-        return specs
+    def get_past_time_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
+        past_time_spec_section = self.get_past_time_spec_section()
+        if past_time_spec_section:
+            return past_time_spec_section.get_specs()
+        return []
 
-    def get_specs(self) -> List[C2POSpecification]:
+    def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return self.get_future_time_specs() + self.get_past_time_specs()
 
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a program.")
 
     def dumps(self) -> bytes:
-        return pickle.dumps(self.get_specs())
+        return pickle.dumps(self)
 
     def __str__(self) -> str:
         return "\n".join([str(s) for s  in self.get_children()])
@@ -1285,7 +1301,10 @@ class C2POContext():
         self.mission_time = mission_time
         self.signal_mapping = signal_mapping
         self.assembly_enabled = assembly_enabled
+
         self.is_ft = False
+        self.has_future_time = False
+        self.has_past_time = False
 
     def get_symbols(self) -> List[str]:
         symbols =  [s for s in self.definitions.keys()]
@@ -1381,29 +1400,3 @@ def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
 
     postorder(new, rename_util)
     return new
-
-
-def compute_atomics(program: C2POProgram, context: C2POContext):
-    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
-    id: int = 0
-    
-    def compute_atomics_util(node: C2PONode):
-        nonlocal id
-
-        if not isinstance(node, C2POExpression):
-            return
-
-        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
-            return
-
-        for child in node.get_children():
-            if isinstance(child, C2POBool):
-                return
-            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(child)
-                if child.atomic_id < 0:
-                    child.atomic_id = id
-                    id += 1
-
-    for spec in program.get_specs():
-        postorder(spec, compute_atomics_util)

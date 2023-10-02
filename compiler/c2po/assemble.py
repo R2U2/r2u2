@@ -580,8 +580,8 @@ def generate_instruction_assembly(
             pt_asm.append(instr)
 
     context.set_future_time()
-    for spec_section in program.get_future_time_spec_sections():
-        postorder(spec_section, generate_instruction_assembly_util)
+    for spec in program.get_future_time_specs():
+        postorder(spec, generate_instruction_assembly_util)
 
     context.set_past_time()
     for spec in program.get_past_time_specs():

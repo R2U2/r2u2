@@ -613,12 +613,21 @@ def compute_atomics(program: C2POProgram, context: C2POContext):
 
 def compute_scq_sizes(program: C2POProgram, context: C2POContext):
     """Computes SCQ sizes for each node."""
+    spec_section_total_scq_size = 0
+
     def compute_scq_size_util(node: C2PONode):
+        nonlocal spec_section_total_scq_size
         expr = cast(C2POExpression, node)
 
+        if isinstance(node, C2POSpecSection):
+            node.total_scq_size = spec_section_total_scq_size
+            spec_section_total_scq_size = 0
+            return
+            
         if isinstance(expr, C2POSpecification):
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + 1
+            spec_section_total_scq_size += 1
             return
 
         if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
@@ -629,9 +638,10 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         # need the +3 b/c of implementation -- ask Brian
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
         expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
+        spec_section_total_scq_size += expr.scq_size
 
-    for spec in program.get_specs():
-        postorder(spec, compute_scq_size_util)
+    for spec_section in program.get_spec_sections():
+        postorder(spec_section, compute_scq_size_util)
 
 
 C2POTransform = Callable[[C2POProgram, C2POContext], None]
