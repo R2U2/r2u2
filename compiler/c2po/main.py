@@ -225,6 +225,7 @@ def compile(
     enable_cse: bool = False,
     enable_assemble: bool = True,
     dump_ast: bool = False,
+    dump_filename: str = "",
     quiet: bool = False
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
@@ -322,8 +323,8 @@ def compile(
 
     if dump_ast:
         ast_bytes = program.dumps()
-        with open(input_path.with_suffix(".pickle"), "wb") as f:
-            print(f"Dumping to {input_path.with_suffix('.pickle')}")
+        with open(dump_filename, "wb") as f:
+            print(f"Dumping to {dump_filename}")
             f.write(ast_bytes)
 
     if not enable_assemble:
