@@ -16,12 +16,9 @@ class R2U2Engine(Enum):
     BOOLEANIZER = 1
     ATOMIC_CHECKER = 2
 
-class MissionTime(int):
-    pass
-
 class Interval(NamedTuple):
     lb: int
-    ub: Union[int, MissionTime]
+    ub: int
 
 
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:

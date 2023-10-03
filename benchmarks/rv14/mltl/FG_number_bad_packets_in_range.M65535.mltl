@@ -1,0 +1,14 @@
+INPUT
+	R_N_b_eq_0, R_N_b_ge_1: bool;
+
+FTSPEC
+-- The number of bad packets is appropriately low, no more than 
+-- 1 every 30 seconds; 
+-- $num\_bad\_packets\_received$ is the total number 
+-- of bad packets received during the flight.
+	G[0,M] (
+	    G[0,30](
+		R_N_b_eq_0 ||
+		  ( R_N_b_ge_1 U[0,30] R_N_b_eq_0)
+		  )
+	);

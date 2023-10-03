@@ -129,8 +129,9 @@ class C2POParser(Parser):
         ("right", LPAREN, DOT)
     )
 
-    def __init__(self) :
+    def __init__(self, mt: int) :
         super().__init__()
+        self.mission_time = mt
         self.spec_num: int = 0
         self.literals = {}
         self.status = True
@@ -566,16 +567,19 @@ class C2POParser(Parser):
 
     @_("TL_MISSION_TIME")
     def bound(self, p):
-        return MissionTime()
+        if self.mission_time < 0:
+            logger.error(f"Mission time used but not set. Set using the '--mission-time' option.")
+            self.status = False
+        return self.mission_time
 
 
-def parse(input_path: Path) -> Optional[C2POProgram]:
+def parse(input_path: Path, mission_time: int) -> Optional[C2POProgram]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     with open(input_path, "r") as f:
         contents = f.read()
 
     lexer: C2POLexer = C2POLexer()
-    parser: C2POParser = C2POParser()
+    parser: C2POParser = C2POParser(mission_time)
     sections: List[C2POSection] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:

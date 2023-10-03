@@ -292,7 +292,7 @@ def compile(
     # ----------------------------------
     # Parse
     # ----------------------------------
-    program: Optional[C2POProgram] = parse(input_path)
+    program: Optional[C2POProgram] = parse(input_path, mission_time)
 
     if not program:
         logger.error("Failed parsing.")

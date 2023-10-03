@@ -13,7 +13,7 @@ DYN_SET_RESULTS_DIR = RESULTS_DIR+"dyn-set/"
 COUNT_RESULTS_DIR = RESULTS_DIR+"count/"
 
 
-def run_dynamic_set_benchmark(sizes: list[int]) -> None:
+def run_dynamic_set_benchmark(sizes: list[int]) :
     formula = "(G[0,100](a0) && G[0,100](a1))"
 
     with open(f"{DYN_SET_RESULTS_DIR}select.out", "w") as f:
@@ -33,7 +33,7 @@ def run_dynamic_set_benchmark(sizes: list[int]) -> None:
         f.write(results)
 
 
-def run_counting_benchmark(sizes: list[int], chooses: list[int]) -> None:
+def run_counting_benchmark(sizes: list[int], chooses: list[int]) :
     formula = "(G[0,100](a0) && G[0,100](a1))"
 
     with open(f"{COUNT_RESULTS_DIR}select.out", "w") as f:

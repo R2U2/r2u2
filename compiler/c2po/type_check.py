@@ -145,12 +145,9 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
                 status = False
                 logger.error(f"{expr.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{expr}")
 
-        if isinstance(expr.interval.ub, MissionTime):
-            expr.interval = Interval(expr.interval.lb, context.mission_time)
-
         if expr.interval.lb > expr.interval.ub:
             status = False
-            logger.error(f"{expr.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{expr.interval.lb},{expr.interval.ub}])\n\tDid you use mission time (M) and not set it?")
+            logger.error(f"{expr.ln}: Time interval invalid, lower bound must less than or equal to upper bound.\n\t[{expr.interval.lb},{expr.interval.ub}]")
 
         expr.type = C2POBoolType(is_const)
     elif isinstance(expr, C2POSet):

@@ -30,7 +30,7 @@ def generate_file_prefix(n: int) -> str:
     return s
 
 
-def generate_random_csv(filename: str, r: int, n: int) -> None:
+def generate_random_csv(filename: str, r: int, n: int) :
     """Generate csv file with 'r' rows of 'n' Boolean variables"""
     if not Path(filename).exists():
         with open(filename, "w") as f:
