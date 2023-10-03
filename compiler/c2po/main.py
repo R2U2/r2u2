@@ -1,9 +1,9 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 import re
 
-from .logger import logger, Color
+from .logger import logger
 from .ast import *
 from .parse import parse
 from .wcet import *
@@ -324,7 +324,6 @@ def compile(
     if dump_ast:
         ast_bytes = program.dumps()
         with open(dump_filename, "wb") as f:
-            print(f"Dumping to {dump_filename}")
             f.write(ast_bytes)
 
     if not enable_assemble:

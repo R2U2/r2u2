@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import NewType, NamedTuple, Union
+from typing import NamedTuple, Union
 
 from .logger import logger
 
