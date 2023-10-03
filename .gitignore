@@ -283,7 +283,7 @@ codechecker/
 tmp/
 .pytest_cache
 test/results
-
+*.pickle
 
 # python virtual environment
 r2u2env/
