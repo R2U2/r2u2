@@ -1,0 +1,257 @@
+%
+% LTL formulas for the buffer-overflow example
+%
+% this is V2 with "preprocessed" inputs
+%
+logic(ft).
+
+%-------------------------------------
+%
+% mapping of atomics
+%
+map	R_N_tot_ge_63	= 00.	
+map	R_N_tot_le_66	= 01.
+map R_N_b_eq_0		= 02.
+map R_N_b_ge_1		= 03.
+map R_N_b_ge_2		= 04.
+map R_N_b_ge_3		= 05.
+map Hd_x_ge_0		= 06.
+map Hd_x_lt_0		= 07.
+map Hd_y_ge_0		= 08.
+map Hd_y_lt_0		= 09.
+map FG_x_N_ge_0		= 10.
+map FG_x_N_lt_0		= 11.
+map FG_y_N_ge_0		= 12.
+map FG_y_N_lt_0		= 13.
+map abs_p_gt_theta	= 14.
+map abs_q_gt_theta	= 15.
+map abs_r_gt_theta	= 16.
+map abs_R_FG_x_gt_theta	= 17.
+map abs_R_FG_y_gt_theta	= 18.
+map abs_R_FG_z_gt_theta	= 19.
+map R_N_tot_eq_64	= 20.
+
+%-------------------------------------
+%
+% mapping of BN indicators
+%
+lmap FG_packet_transmission_rate_in_range   		= 0.
+lmap FG_number_bad_packets_in_range   			= 1.
+lmap FG_bad_packet_rate_in_range			= 2.
+lmap FG_XYZ_data_valid					= 3.
+lmap FG_data_change_in_range				= 4.
+lmap FG_log_data_valid					= 5.
+
+
+% ASSUMPTIONS (now)
+%	* sampling rate = 1Hz
+%	  (see spec 6 for problem with that)
+%
+%-------------------------------------------------------------------
+% SPEC-1
+% The packet transmission rate is appropriate, about 64 per second. 
+%
+%map	N_g	% total number of good packets (FluxGate)
+%map	N_b	% total number of bad packets (FluxGate)
+%map	N_tot	% total number of packets (FluxGate)
+% NOTE: for now:
+% N_tot = N_g + N_b
+	%
+	% rates per second
+	%
+%map	R_N_g	% rate of good packets (FluxGate)
+%map	R_N_b	% rate of bad packets (FluxGate)
+%map	R_N_tot	% rate of packets (FluxGate)
+	%
+	% check on rates of packages
+%map	R_N_tot_ge_63	=00.	
+%map	R_N_tot_le_66	=00.
+
+%
+FG_packet_transmission_rate_in_range:
+	( 
+	G[0,65535] (
+		R_N_tot_ge_63 &
+		R_N_tot_le_66
+		)
+	)
+	&
+
+%-------------------------------------------------------------------
+% SPEC-2
+% The number of bad packets is appropriately low, no more than 
+% 1 every 30 seconds; 
+% $num\_bad\_packets\_received$ is the total number 
+% of bad packets received during the flight.
+%
+%
+% NOTE: we check this using R_N_b 
+%map R_N_b_eq_0		= 00.	% rate == 0
+%map R_N_b_ge_1		= 00.	% rate ==  1 or higher
+
+FG_number_bad_packets_in_range:
+	G[0,65535] (
+	    G[0,30](
+		R_N_b_eq_0 |
+		  ( R_N_b_ge_1 U[0,30] R_N_b_eq_0)
+		  )
+                )
+	&
+		
+
+%--------------------------------------------------------------------
+% SPEC-3
+% The number of bad packets does not increase with respect to the 
+% number of packets. 
+%
+% NOTE: the ratio of bad packets  N_b/(N_b+N_g) should remain
+% constant if not zero. at least it should not grow linear
+% over longer period of time
+%
+%map Ratio_N_b_N_tot_gt_theta  	= 00.	% ratio greater threshold
+
+FG_bad_packet_rate_in_range:
+	(
+	G[0,65535](
+	   ! (
+		R_N_b_ge_1   &
+		(F[0,30] R_N_b_ge_2) &
+		(F[0,100] R_N_b_ge_3)
+	      )
+	   )
+	)
+	&
+	
+%%%	(
+%	G[0,65535](
+%                ! (
+%		  Ratio_N_b_N_tot_gt_theta &
+%		  F[2,65535] Ratio_N_b_N_tot_gt_theta
+%		  )
+%                )
+%	)
+%	&
+
+%----------------------------------------------------------------
+% SPEC-4
+% The sensor is working; i.e., the data appears good. For the fluxgate magnetometer, this validity sanity check is usually via checking that the magnitude of the fluxgate vector correlates to the cesium magnetometer; i.e. the sum of the squares of flugate channels ($SumSqFM$) should go up or down with the square of the (more accurate) cesium magnetometer reading ($SqCM$) where $\Delta$ is the change in value required to reflect actual change, above sensor noise.
+% NOTE:
+%	we have two different checks:
+%	1. check against heading (from the flight computer)
+%		requirement: the heading angle and the angle of
+%		the Fluxmeter, projected on the x-y plane should
+%		be similar.
+%		We require that the dot product of these vectors
+%		is larger than 0.
+%		The magentometer vector is normalized to:
+%		FG_x_N = FG_x / sqrt(sum(FG_x,y,z)) -0.1
+%		FG_y_N = FG_x / sqrt(sum(FG_x,y,z)) +0.1
+%		
+%		note the sign rules on y due to different
+%		coordinate systems
+%
+%		This is re-formulated into:
+%		(
+%		Hd_x > 0 -> FG_x_N > 0
+%		&
+%		Hd_x < 0 -> FG_x_N < 0
+%		|
+%		Hd_y > 0 -> FG_y_N < 0
+%		&
+%		Hd_y < 0 -> FG_y_N > 0
+%		
+%
+%map Hd_x_ge_0		= 00.
+%map Hd_x_lt_0		= 00.
+%map Hd_y_ge_0		= 00.
+%map Hd_y_lt_0		= 00.
+%map FG_x_N_ge_0		= 00.
+%map FG_x_N_lt_0		= 00.
+%map FG_y_N_ge_0		= 00.
+%map FG_y_N_lt_0		= 00.
+
+FG_XYZ_data_valid:
+	(
+	G[0,65535] (
+		(
+		(Hd_x_ge_0 -> FG_x_N_ge_0) &
+		(Hd_x_lt_0 -> FG_x_N_lt_0)
+		) 
+		|
+		(
+		(Hd_y_ge_0 -> FG_y_N_lt_0) &
+		(Hd_y_lt_0 -> FG_y_N_ge_0)
+		) 
+		)
+	)
+
+	&
+
+%
+%	we also can compare the Fluxgate magnitude with
+%	the magnitude of the caesium magnetometer
+%	and/or its rate
+			
+%TODO
+
+
+%--------------------------------------------------------------------
+% SPEC-5
+% The internal buffer does not underflow; i.e., if other, related values change, this sensor should change too. In this case, the fluxgate magnetometer readings should change if the Euler rates are non-zero, indicating that the UAS is moving. The sensor is noisy so three different repeats of the same data is a good indicator that the data is not updating correctly. $FM\_X, FM\_Y, FM\_Z$ are the data stream values from the fluxgate magnetometer; $EulerRoll, EulerPitch, EulerYaw$ are the Euler rates.
+%
+	% abs(Eulerrate) > 0.05
+%map abs_p_gt_theta	= 00.
+%map abs_q_gt_theta	= 00.
+%map abs_r_gt_theta	= 00.
+
+	% abs(R_FG_*) > 0.005
+%map abs_R_FG_x_gt_theta	= 00.
+%map abs_R_FG_y_gt_theta	= 00.
+%map abs_R_FG_z_gt_theta	= 00.
+%
+FG_data_change_in_range:
+	G[0,65535](
+		((
+		(abs_p_gt_theta | abs_q_gt_theta | abs_r_gt_theta) ->
+		(abs_R_FG_x_gt_theta | abs_R_FG_y_gt_theta | abs_R_FG_z_gt_theta)
+		)
+		&
+		F[2,65535] (
+		    (abs_p_gt_theta | abs_q_gt_theta | abs_r_gt_theta) ->
+		    (abs_R_FG_x_gt_theta | abs_R_FG_y_gt_theta | abs_R_FG_z_gt_theta)
+			&
+		   	F[2,65535] (
+		    (abs_p_gt_theta | abs_q_gt_theta | abs_r_gt_theta) ->
+		    (abs_R_FG_x_gt_theta | abs_R_FG_y_gt_theta | abs_R_FG_z_gt_theta)
+			)
+			)
+		))
+	&
+
+%SPEC-6
+% The data log is valid; i.e. if we record a log entry, we record exactly one good or one bad packet.
+%
+% NOTE: this spec should be executed, whenever a package is received, i.e.
+% with a 1/64s sampling rate.
+%
+% with a 1 second sampling rate we can only approximate this by
+% R_N_tot_eq_64
+%map R_N_tot_eq_64	= 00.
+
+FG_log_data_valid:
+	G[0,65535](
+	R_N_tot_eq_64
+	)
+
+%	G[0,65535](
+%		log_entry -> ((good_recorded & ! bad_recorded) 
+%				|
+%			     (bad_recorded & ! good_recorded)
+%			     )
+%		)
+
+.
+
+logic(pt).
+	R_N_tot_eq_64 & R_N_tot_eq_64
+.
