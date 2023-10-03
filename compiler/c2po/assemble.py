@@ -88,7 +88,7 @@ class FTOperator(Enum):
     CONFIGURE = 0b11110
     LOAD      = 0b11101
     RETURN    = 0b11100
-    GLOBAL    = 0b11010
+    GLOBALLY  = 0b11010
     UNTIL     = 0b11001
     NOT       = 0b10111
     AND       = 0b10110
@@ -100,7 +100,7 @@ class FTOperator(Enum):
         return self.value
 
     def is_temporal(self) -> bool:
-        return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
+        return self is FTOperator.GLOBALLY or self is FTOperator.UNTIL
 
     def is_load(self) -> bool:
         return self is FTOperator.LOAD
@@ -352,6 +352,12 @@ class PTInstruction(TLInstruction):
         return instr_bytes
 
 
+def check_sizes():
+    mem_ref_size = cStruct("I").size
+    if mem_ref_size != 4:
+        import warnings
+        warnings.warn(f"MLTL memory refernce is 32-bit by default, but platform spcifies {mem_ref_size} bytes".format(), BytesWarning)
+
 
 # Alternative approach for mapping nodes to their respective instructions
 # maps (C2PONodeType, is_integer_type, is_future_time) -> Instruction
@@ -518,7 +524,7 @@ def generate_instruction_assembly(
         elif isinstance(node, C2POLogicalNegate) and context.is_past_time():
             instr = PTInstruction(node, PTOperator.NOT, child_instrs)
         elif isinstance(node, C2POGlobal) and context.is_future_time():
-            instr = FTInstruction(node, FTOperator.GLOBAL, child_instrs)
+            instr = FTInstruction(node, FTOperator.GLOBALLY, child_instrs)
         # elif isinstance(node, C2POFuture) and context.is_future_time():
         #     instr = FTInstruction(node, FTOperator.FUTURE, child_instrs)
         elif isinstance(node, C2POUntil) and context.is_future_time():
@@ -637,6 +643,8 @@ def print_assembly(
 
 
 def assemble(program: C2POProgram, context: C2POContext, quiet: bool) -> bytes:
+    check_sizes()
+
     # Generate assembly
     aliases = generate_aliases(program, context)
     (bz_asm, at_asm, ft_asm, pt_asm) = generate_instruction_assembly(program, context)
