@@ -1,6 +1,7 @@
 from .ast import *
 
 def transform_definitions(program: C2POProgram, context: C2POContext):
+    """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
     
     def transform_definitions_util(node: C2PONode):
         if isinstance(node, C2POVariable):
@@ -17,6 +18,7 @@ def transform_definitions(program: C2POProgram, context: C2POContext):
 
 
 def transform_function_calls(program: C2POProgram, context: C2POContext):
+    """Transforms each function call in `program` that corresponds to a struct instantiation to a `C2POStruct`."""
 
     def transform_function_calls_util(node: C2PONode):
         if isinstance(node, C2POFunctionCall) and node.symbol in context.structs:
@@ -67,16 +69,7 @@ def transform_contracts(program: C2POProgram, context: C2POContext):
 
 
 def transform_set_aggregation(program: C2POProgram, context: C2POContext):
-    """
-    transforms set aggregation operators into corresponding BZ and TL operations e.g., foreach is rewritten into a conjunction.
-
-    Preconditions:
-        - program is type correct
-
-    Postconditions:
-        - program has no struct access operations
-        - program has no variables
-    """
+    """Transforms set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
 
     def transform_struct_access_util(node: C2PONode):
         if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
@@ -124,16 +117,7 @@ def transform_set_aggregation(program: C2POProgram, context: C2POContext):
 
 
 def transform_struct_accesses(program: C2POProgram, context: C2POContext):
-    """
-    transforms struct access operations to the references member expression.
-
-    Preconditions:
-        - program is type correct
-        - program has no set aggregation operators
-
-    Postconditions:
-        - program has no struct access operations
-    """
+    """Transforms struct access operations to the underlying member expression."""
     def transform_struct_accesses_util(node: C2PONode):
         if isinstance(node, C2POStructAccess):
             s: C2POStruct = node.get_struct()
@@ -145,16 +129,7 @@ def transform_struct_accesses(program: C2POProgram, context: C2POContext):
 
 
 def transform_extended_operators(program: C2POProgram, context: C2POContext):
-    """
-    transforms program formulas without extended operators i.e., formulas with only negation, conjunction, until, global, and future.
-
-    Preconditions:
-        - program is type correct.
-
-    Postconditions:
-        - program formulas only have negation, conjunction, until, and global TL operators.
-    """
-
+    """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
     def transform_extended_operators_util(node: C2PONode):
         if isinstance(node, C2POLogicalOperator):
             if isinstance(node, C2POLogicalOr):
@@ -197,16 +172,7 @@ def transform_extended_operators(program: C2POProgram, context: C2POContext):
 
 
 def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
-    """
-    Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators.
-
-    Preconditions:
-        - program is type checked
-
-    Postconditions:
-        - program formulas are in boolean normal form
-    """
-
+    """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
     def transform_boolean_normal_form_util(node: C2PONode):
 
         if isinstance(node, C2POLogicalOr):
@@ -246,17 +212,8 @@ def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
 
 
 def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
-    """
-    Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals.
-
-    Preconditions:
-        - program is type checked
-
-    Postconditions:
-        - program formulas are in negative normal form
-    """
+    """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
     def transform_negative_normal_form_util(node: C2PONode):
-
         if isinstance(node, C2POLogicalNegate):
             operand = node.get_operand()
             if isinstance(operand, C2POLogicalNegate):
@@ -305,7 +262,7 @@ def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
 
 
 def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
-
+    """Applies MLTL rewrite rules to reduce required SCQ memory."""
     def optimize_rewrite_rules_util(node: C2PONode):
         if isinstance(node, C2POLogicalNegate):
             opnd1 = node.get_operand()
@@ -530,7 +487,7 @@ def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
 def optimize_operator_arity(node: C2PONode, context: C2POContext):
     """TODO"""
 
-    def optimize_associative_operators_rec(node: C2PONode):
+    def optimize_operator_arity_util(node: C2PONode):
         if isinstance(node, C2POLogicalAnd) and len(node.get_children()) > 2:
             n: int = len(node.get_children())
             children = [c for c in node.get_children()]
@@ -551,22 +508,13 @@ def optimize_operator_arity(node: C2PONode, context: C2POContext):
             new_ast = C2POLogicalOr(node.ln, [C2POLogicalOr(node.ln, new_children), target]) # type: ignore
 
         for c in node.get_children():
-            optimize_associative_operators_rec(c)
+            optimize_operator_arity_util(c)
 
-    optimize_associative_operators_rec(node)
+    optimize_operator_arity_util(node)
 
 
 def optimize_cse(program: C2POProgram, context: C2POContext) :
-    """
-    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
-
-    Preconditions:
-        - `program` is type correct.
-
-    Postconditions:
-        - Sets of FT/PT specifications have no distinct, syntactically equivalent sub-expressions (i.e., is CSE-reduced).
-        - Some nodes in AST may have multiple parents.
-    """
+    """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
     S: Dict[str, C2PONode]
 
     def optimize_cse_util(node: C2PONode) :
@@ -643,7 +591,8 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
     for spec_section in program.get_spec_sections():
         postorder(spec_section, compute_scq_size_util)
 
-
+# A C2POTransform is a function with the signature:
+#    transform(program, context) -> None
 C2POTransform = Callable[[C2POProgram, C2POContext], None]
 
 # Note: this is ORDER-SENSITIVE
