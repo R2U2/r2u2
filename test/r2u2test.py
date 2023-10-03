@@ -144,15 +144,21 @@ def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
 
 class TestCase():
 
-    def __init__(self, 
-                 suite_name: str, 
-                 test_name: Optional[str], 
-                 mltl_path: Optional[Path], 
-                 trace_path: Optional[Path], 
-                 oracle_path: Optional[Path], 
-                 r2u2prep_options: dict[str,str|bool],
-                 top_results_dir: Path):
+    def __init__(
+        self, 
+        suite_name: str, 
+        test_name: Optional[str], 
+        mltl_path: Optional[Path], 
+        trace_path: Optional[Path], 
+        oracle_path: Optional[Path], 
+        top_results_dir: Path,
+        r2u2prep_options: dict[str,str|bool],
+        r2u2prep: Path,
+        r2u2bin: Path,
+        copyback: bool
+    ):
         self.status = True
+        self._copyback = copyback
         self.suite_name: str = suite_name
 
         if not test_name:
@@ -164,6 +170,8 @@ class TestCase():
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / suite_name
         self.test_results_dir: Path = self.suite_results_dir / self.test_name
+        self.r2u2prep = r2u2prep
+        self.r2u2bin = r2u2bin
 
         self.clean()
         self.configure_logger()
@@ -183,8 +191,34 @@ class TestCase():
         else:
             self.oracle_path = oracle_path
 
-        self.spec_bin_path = WORK_DIR / "spec.bin"
-        self.r2u2_log_path = WORK_DIR / "r2u2.log"
+        self.spec_bin_workdir_path = WORK_DIR / "spec.bin"
+        self.spec_bin_path = self.test_results_dir / "spec.bin"
+
+        self.r2u2bin_workdir_log_path = WORK_DIR / "r2u2.log"
+        self.r2u2bin_log_path = self.test_results_dir / "r2u2.log"
+
+        self.spec_asm = b""
+        self.spec_asm_path = self.test_results_dir / "spec.asm"
+
+        self.r2u2prep_stderr_path = self.test_results_dir / self.r2u2prep.with_suffix(".stderr").name
+        self.r2u2bin_stderr_path = self.test_results_dir / self.r2u2bin.with_suffix(".stderr").name
+
+        self.r2u2prep_command_path = self.test_results_dir / self.r2u2prep.with_suffix(".sh").name
+        self.r2u2bin_command_path = self.test_results_dir / self.r2u2bin.with_suffix(".sh").name
+
+        self.r2u2prep_cli_options = collect_r2u2prep_options(self.r2u2prep_options)
+        self.r2u2prep_command =  [
+            "python3", str(self.r2u2prep)
+        ] + collect_r2u2prep_options(self.r2u2prep_options) + \
+        [
+            "--output", str(self.spec_bin_workdir_path), 
+            "--trace", str(self.trace_path),
+            str(self.mltl_path)
+        ]
+
+        self.r2u2bin_command = [
+            str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
+        ]
 
     def clean(self):
         cleandir(self.test_results_dir, False)
@@ -200,7 +234,7 @@ class TestCase():
         stream_handler.setFormatter(ColorFormatter())
         self.logger.addHandler(stream_handler)
 
-        file_handler = logging.FileHandler(f"{self.test_results_dir}/{self.test_name}.log")
+        file_handler = logging.FileHandler(f"{self.test_results_dir}/test.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(Formatter())
         self.logger.addHandler(file_handler)
@@ -208,85 +242,101 @@ class TestCase():
     def test_fail(self, msg: str):
         self.logger.info(f"[{Color.FAIL}FAIL{Color.ENDC}] {self.test_name}: {msg}")
         self.status = False
+        self.copyback()
 
     def test_pass(self):
         self.logger.info(f"[{Color.PASS}PASS{Color.ENDC}] {self.test_name}")
+        self.copyback()
 
     def copyback(self):
+        if not self._copyback:
+            return
+
         shutil.copy(self.mltl_path, self.test_results_dir)
         shutil.copy(self.trace_path, self.test_results_dir)
         shutil.copy(self.oracle_path, self.test_results_dir)
-        if self.spec_bin_path.exists():
-            shutil.copy(self.spec_bin_path, self.test_results_dir)
 
-    def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
-        cli_options = collect_r2u2prep_options(self.r2u2prep_options)
-        proc = subprocess.run(
-            [
-                "python3", r2u2prep
-            ] 
-            + cli_options + 
-            [
-                "--output", self.spec_bin_path, 
-                "--trace", self.trace_path,
-                self.mltl_path
-            ], 
-            capture_output=True
-        )
+        if self.spec_bin_workdir_path.exists():
+            shutil.copy(self.spec_bin_workdir_path, self.test_results_dir)
 
-        with open(f"{self.test_results_dir}/r2u2_spec.asm", "wb") as f:
-            f.write(proc.stdout.replace(b"[95m",b"").replace(b"[0m:",b""))
+        with open(self.spec_asm_path, "wb") as f:
+            f.write(self.asm)
+
+        r2u2prep_command_new = [
+            "python3", str(self.r2u2prep)
+        ] + collect_r2u2prep_options(self.r2u2prep_options) + \
+        [
+            "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+            "--trace", str(self.test_results_dir /self.trace_path.name),
+            str(self.test_results_dir /self.mltl_path.name)
+        ]
+        with open(self.r2u2prep_command_path, "w") as f:
+            f.write(' '.join(r2u2prep_command_new))
+
+        r2u2bin_command_new = [
+            str(self.r2u2bin), 
+            str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+            str(self.test_results_dir / self.trace_path.name)
+        ]
+        with open(self.r2u2bin_command_path, "w") as f:
+            f.write(' '.join(r2u2bin_command_new))
+
+    def run(self):
+        if not self.status:
+            return
+
+        proc = subprocess.run(self.r2u2prep_command, capture_output=True)
+
+        self.asm = proc.stdout.replace(b"[95m",b"").replace(b"[0m:",b"")
 
         if proc.stderr != b"":
-            with open(f"{self.test_results_dir}/r2u2prep.py.stderr", "wb") as f:
+            with open(self.r2u2prep_stderr_path, "wb") as f:
                 f.write(proc.stderr)
 
         if proc.returncode != 0:
             self.test_fail(f"r2u2prep.py returned with code {proc.returncode}")
-            self.copyback()
             return
 
-        proc = subprocess.run([r2u2bin, self.spec_bin_path, self.trace_path], capture_output=True)
+        proc = subprocess.run(self.r2u2bin_command, capture_output=True)
 
-        with open(f"{self.test_results_dir}/r2u2.log", "wb") as f:
+        with open(self.r2u2bin_log_path, "wb") as f:
             f.write(proc.stdout)
 
         if proc.stderr != b"":
-            with open(f"{self.test_results_dir}/r2u2.stderr", "wb") as f:
+            with open(self.r2u2bin_stderr_path, "wb") as f:
                 f.write(proc.stderr)
 
         if proc.returncode != 0:
             self.test_fail(f"r2u2bin returned with code {proc.returncode}")
-            self.copyback()
             return
 
         if proc.stdout == b"":
             self.test_fail(f"No verdicts generated.")
-            self.copyback()
             return
 
-        with open(self.r2u2_log_path, "wb") as f:
+        with open(self.r2u2bin_workdir_log_path, "wb") as f:
             f.write(proc.stdout)
 
-        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2_log_path, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2bin_workdir_log_path, WORK_DIR])
         proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
 
-        num_formulas = len(glob(f"{self.r2u2_log_path}.*"))
+        num_formulas = len(glob(f"{self.r2u2bin_workdir_log_path}.*"))
         diffs = []
         for i in range(num_formulas):
-            formula_r2u2_log = f"{self.r2u2_log_path}.{i}"
-            formula_oracle =  f"{WORK_DIR}/{self.oracle_path.name}.{i}"
+            formula_r2u2_log = Path(f"{self.r2u2bin_workdir_log_path}.{i}")
+            formula_oracle =  WORK_DIR / f"{self.oracle_path.name}.{i}"
 
-            # note that we are walking thru each generated .log files,
-            # NOT the oracle files, so if we have extra oracles we do nothing
+            # if the logs are empty, we treat that the same as it not existing at all
+            if not os.path.isfile(formula_r2u2_log):
+                formula_r2u2_log.touch()
             if not os.path.isfile(formula_oracle):
-                with open(formula_oracle, "w") as f: pass
+                formula_oracle.touch()
 
             proc = subprocess.run(["diff", formula_r2u2_log, formula_oracle], capture_output=True)
 
             if proc.returncode != 0:
                 diffs.append(i)
-                with open(f"{self.test_results_dir}/{self.test_name}.{i}.diff", "wb") as f:
+                with open(self.test_results_dir / f"{self.test_name}.{i}.diff", "wb") as f:
                     f.write(proc.stdout)
 
         if len(diffs) > 0:
@@ -295,26 +345,42 @@ class TestCase():
         if self.status:
             self.test_pass()
 
-        if copyback:
-            self.copyback()
-
         for f in glob(f"{WORK_DIR}/*"):
             os.remove(f)
+
+        
 
 
 class TestSuite():
 
-    def __init__(self, name: str, top_results_dir: Path) -> None:
-        """Initialize TestSuite by cleaning directories and loading TOML data."""
+    def __init__(
+        self, 
+        name: str, 
+        top_results_dir: Path,
+        r2u2prep: Path,
+        r2u2bin: Path,
+        copyback: bool
+    ):
+        """Initialize TestSuite by cleaning directories and loading JSON data."""
         self.status: bool = True
+        self._copyback = copyback
         self.suite_name: str = name
         self.tests: list[TestCase] = []
         self.suites: list[TestSuite] = []
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / self.suite_name
-        
+        self.r2u2prep = r2u2prep
+        self.r2u2bin = r2u2bin
+
         self.clean()
         self.configure_logger()
+
+        if not r2u2prep.is_file():
+            self.suite_fail_msg(f"'r2u2prep' not a file ({r2u2prep}).")
+
+        if not r2u2bin.is_file():
+            self.suite_fail_msg(f"'r2u2bin' not a file ({r2u2bin}).")
+
         self.configure_tests()
 
     def clean(self):
@@ -385,21 +451,21 @@ class TestSuite():
                 if "options" in testcase:
                     options.update(testcase["options"])
 
-                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, options, self.top_results_dir))
+                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.r2u2prep, self.r2u2bin, self._copyback))
 
         if "suites" in config:
             for suite in config["suites"]:
-                self.suites.append(TestSuite(suite, self.top_results_dir))
+                self.suites.append(TestSuite(suite, self.top_results_dir, self.r2u2prep, self.r2u2bin, self._copyback))
 
-    def run(self, r2u2prep: str, r2u2bin: str, copyback: bool):
+    def run(self):
         if not self.status:
             return
         
         for suite in self.suites:
-            suite.run(r2u2prep, r2u2bin, copyback)
+            suite.run()
 
         for test in [t for t in self.tests if t.status]:
-            test.run(r2u2prep, r2u2bin, copyback)
+            test.run()
             self.status = test.status and self.status
 
         if not self.status:
@@ -408,17 +474,17 @@ class TestSuite():
             self.suite_pass()
 
 
-def main(r2u2prep: str, 
-         r2u2bin: str, 
+def main(r2u2prep: Path, 
+         r2u2bin: Path, 
          resultsdir: Path, 
          suite_names: list[str],
          copyback: bool):
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, resultsdir))
+        suites.append(TestSuite(suite_name, resultsdir, r2u2prep, r2u2bin, copyback))
 
     for suite in suites:
-        suite.run(r2u2prep, r2u2bin, copyback)
+        suite.run()
 
 
 if __name__ == "__main__":
@@ -435,6 +501,8 @@ if __name__ == "__main__":
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
 
+    r2u2prep = Path(args.r2u2prep)
+    r2u2bin = Path(args.r2u2bin)
     resultsdir = Path(args.resultsdir)
 
-    main(args.r2u2prep, args.r2u2bin, resultsdir, args.suites, args.copyback)
+    main(r2u2prep, r2u2bin, resultsdir, args.suites, args.copyback)
