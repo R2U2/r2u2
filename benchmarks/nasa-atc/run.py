@@ -1,6 +1,8 @@
 from glob import glob
+import os
 from pathlib import Path
 import sys
+from typing import List
 import pickle
 
 from c2po.main import compile
@@ -48,7 +50,7 @@ def compute_total_scq_size(
 if not PICKLE_DIR.is_dir():
     PICKLE_DIR.mkdir()
 
-results_rows = []
+benchmarks = []
 
 with results_path.open("w") as f:
     for spec_filename in glob(f"{MLTL_DIR}/**"):
@@ -91,7 +93,7 @@ with results_path.open("w") as f:
         cse_percent_reduction = 1.0 - (cse_total_scq_size / control_total_scq_size)
         rewrite_cse_percent_reduction = 1.0 - (rewrite_cse_total_scq_size / control_total_scq_size)
 
-        f.write(f"{spec_path.with_suffix('').stem:40},{mission_time:8},{control_total_scq_size:10},{rewrite_total_scq_size:10}, {cse_total_scq_size:10},{rewrite_cse_total_scq_size:10},{rewrite_percent_reduction:10.5f}, {cse_percent_reduction:10.5f},{rewrite_cse_percent_reduction:10.5f}\n")
+        f.write(f"{spec_path.with_suffix('').stem:30},{mission_time:8},{control_total_scq_size:10},{rewrite_total_scq_size:10}, {cse_total_scq_size:10},{rewrite_cse_total_scq_size:10},{rewrite_percent_reduction:10.5f}, {cse_percent_reduction:10.5f},{rewrite_cse_percent_reduction:10.5f}\n")
 
         
         

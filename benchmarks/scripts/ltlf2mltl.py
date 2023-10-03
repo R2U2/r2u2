@@ -3,12 +3,11 @@ Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifa
 
 usage:python ltlf2mltl.py path/to/dir mission-time
 """
-
 import re
 import sys
-import random
 import os
 
+from typing import List, Dict, Tuple, Set
 from glob import glob
 from pathlib import Path
 
@@ -16,18 +15,18 @@ CURDIR = Path(os.getcwd())
 MLTLDIR = CURDIR / "mltl"
 CSVDIR = CURDIR / "trace"
 
-files: list[Path] = []
+files: List[Path] = []
 for f in glob(sys.argv[1]+"/**", recursive=True):
     file = Path(f)
     if file.suffix == ".ltlf":
         files.append(file)
 
-formulas: dict[Path, tuple[set[str], str]] = {}
+formulas: Dict[Path, Tuple[Set[str], str]] = {}
 for file in files:
     with open(file, "r") as f:
         ltlf = f.read()
 
-    props: set[str] = set()
+    props: Set[str] = Set()
     mltl = ltlf
 
     mltl = mltl.replace("&", "&&")

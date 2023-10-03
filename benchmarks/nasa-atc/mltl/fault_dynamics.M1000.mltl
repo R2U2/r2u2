@@ -1,5 +1,3 @@
-INPUT
-	: bool;
 
 FTSPEC
 	true
