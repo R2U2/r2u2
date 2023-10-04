@@ -568,7 +568,7 @@ class C2POParser(Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            logger.error(f"Mission time used but not set. Set using the '--mission-time' option.")
+            logger.error(f"{p.lineno}: Mission time used but not set. Set using the '--mission-time' option.")
             self.status = False
         return self.mission_time
 

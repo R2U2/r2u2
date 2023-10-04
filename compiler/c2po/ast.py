@@ -1357,7 +1357,7 @@ class C2POContext():
 def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
     """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: List[Tuple[bool, C2PONode]] = [(False, node)]
-    visited: Set[C2PONode] = set()
+    visited: Set[int] = set()
 
     while len(stack) > 0:
         cur = stack.pop()
@@ -1365,10 +1365,10 @@ def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
         if cur[0]:
             func(cur[1])
             continue
-        elif cur[1] in visited:
+        elif id(cur[1]) in visited:
             continue
 
-        visited.add(cur[1])
+        visited.add(id(cur[1]))
         stack.append((True, cur[1]))
         for child in reversed(cur[1].get_children()):
             stack.append((False, child))

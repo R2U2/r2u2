@@ -1,7 +1,9 @@
 from __future__ import annotations
+import logging
+import re
+
 from pathlib import Path
 from typing import List, Optional, Tuple
-import re
 
 from .logger import logger
 from .ast import *
@@ -123,26 +125,26 @@ def validate_input(
 
     input_path = Path(input_filename)
     if not input_path.is_file():
-        logger.error(f"Input file '{input_filename} not a valid file.'")
+        logger.error(f" Input file '{input_filename} not a valid file.'")
         input_path = None
 
     trace_path = None
     if trace_filename != "":
         trace_path =  Path(trace_filename)
         if not trace_path.is_file():
-            logger.error(f"Trace file '{trace_filename}' is not a valid file.")
+            logger.error(f" Trace file '{trace_filename}' is not a valid file.")
 
     map_path = None
     if map_filename != "":
         map_path =  Path(map_filename)
         if not map_path.is_file():
-            logger.error(f"Map file '{map_filename}' is not a valid file.")
+            logger.error(f" Map file '{map_filename}' is not a valid file.")
 
     output_path = None
     if output_filename != "":
         output_path = Path(output_filename)
         if output_path.is_file():
-            logger.warning(f"Output file '{output_filename}' already exists.")
+            logger.warning(f" Output file '{output_filename}' already exists.")
 
     signal_mapping: Optional[SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -160,7 +162,7 @@ def validate_input(
 
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
-            logger.warning(f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).")
+            logger.warning(f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).")
     else:
         mission_time = trace_length
 
@@ -168,25 +170,25 @@ def validate_input(
     set_types(impl, int_width, int_is_signed, float_width)
 
     if enable_booleanizer and enable_atomic_checkers:
-        logger.error(f"Only one of AT and booleanizer can be enabled")
+        logger.error(f" Only one of AT and booleanizer can be enabled")
         status = False
     
     if impl == R2U2Implementation.C:
         if (not enable_booleanizer and not enable_atomic_checkers) or (enable_booleanizer and enable_atomic_checkers):
-            logger.error(f"Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
+            logger.error(f" Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
             status = False
     else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
         if enable_booleanizer:
-            logger.error(f"Booleanizer only available for C implementation.")
+            logger.error(f" Booleanizer only available for C implementation.")
             status = False
 
     if impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL:
         if enable_extops:
-            logger.error(f"Extended operators only support for C implementation.")
+            logger.error(f" Extended operators only support for C implementation.")
             status = False
 
     if enable_nnf and enable_bnf:
-        logger.warning(f"Attempting rewrite to both NNF and BNF, defaulting to NNF.")
+        logger.warning(f" Attempting rewrite to both NNF and BNF, defaulting to NNF.")
 
     transforms = set(TRANSFORM_PIPELINE)
     if not enable_rewrite:
@@ -226,6 +228,7 @@ def compile(
     enable_assemble: bool = True,
     dump_ast: bool = False,
     dump_filename: str = "",
+    debug: bool = False,
     quiet: bool = False
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
@@ -259,8 +262,12 @@ def compile(
         enable_cse: If true enables Common Subexpression Elimination
         enable_assemble: If true outputs binary to output_filename
         dump_ast:
+        debug:
         quiet: If true disables assembly output to stdout
     """
+    if debug:
+        logger.setLevel(logging.DEBUG)
+
     # ----------------------------------
     # Input validation
     # ----------------------------------
@@ -286,7 +293,7 @@ def compile(
     )
 
     if not status or not input_path:
-        logger.error("Input invalid.")
+        logger.error(" Input invalid.")
         return ReturnCode.INVALID_INPUT
 
     # ----------------------------------
@@ -295,7 +302,7 @@ def compile(
     program: Optional[C2POProgram] = parse(input_path, mission_time)
 
     if not program:
-        logger.error("Failed parsing.")
+        logger.error(" Failed parsing.")
         return ReturnCode.PARSE_ERR
 
     # ----------------------------------
@@ -312,7 +319,7 @@ def compile(
     )
 
     if not well_typed:
-        logger.error("Failed type check.")
+        logger.error(" Failed type check.")
         return ReturnCode.TYPE_CHECK_ERR
 
     # ----------------------------------
@@ -333,7 +340,7 @@ def compile(
     # Assembly
     # ----------------------------------
     if not output_path:
-        logger.error("Input invalid.")
+        logger.error(" Input invalid.")
         return ReturnCode.INVALID_INPUT
 
     binary = assemble(program, context, quiet)

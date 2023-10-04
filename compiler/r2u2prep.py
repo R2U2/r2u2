@@ -12,6 +12,8 @@ parser.add_argument("--map", default="",
                     help="map file where variable names are mapped to memory locations")
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
+parser.add_argument("-d","--debug", action="store_true",
+                    help="enable debug output")
 parser.add_argument("--impl", default="c",
                     help="target R2U2 implementation version (one of 'c', 'c++', 'vhdl')")
 parser.add_argument("--output", default="spec.bin",
@@ -62,6 +64,7 @@ return_code = compile(
     enable_rewrite=args.disable_rewrite, 
     enable_assemble=args.disable_assemble, 
     dump_ast=args.dump_ast,
+    debug=args.debug,
     quiet=args.quiet, 
 )
 

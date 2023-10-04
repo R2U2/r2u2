@@ -191,6 +191,8 @@ class BZInstruction(Instruction):
 
         instr_format = cStruct("BiBBqq") if isinstance(param1, int) else  cStruct("BiBBdq")
 
+        logger.debug(f"ASM:BZ: {self.node}\n\t{self.id}\n\t{self.operator}\n\t{self.node.atomic_id > -1}\n\t{self.node.atomic_id if self.node.atomic_id > -1 else 0}\n\t{param1}\n\t{param2}")
+
         engine_tag_bytes = cStruct("B").pack(ENGINE_TAGS.BZ.value)
         instr_bytes = instr_format.pack(
             self.id, 
@@ -244,7 +246,7 @@ class TLInstruction(Instruction):
         operand_format = cStruct("iBxxx")
         instr_format = cStruct(f"{operand_format.size}s{operand_format.size}sIi")
 
-        # print(f"FT Assembled:\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
+        logger.debug(f"ASM:FT: n{self.id}, {self.node}\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
 
         engine_tag_bytes = cStruct("B").pack(ENGINE_TAGS.TL.value)
         instr_bytes = instr_format.pack(
@@ -286,7 +288,7 @@ class FTInstruction(TLInstruction):
             FTOperator.CONFIGURE.value
         )
 
-        # print(f"SCQ Assembled (n{self.id}) ({self.node}):\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {end_pos - start_pos})\n\t{start_pos}\n\t{FTOperator.CONFIGURE}")
+        logger.debug(f"ASM:SCQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {end_pos - start_pos})\n\t{start_pos}\n\t{FTOperator.CONFIGURE}")
 
         if self.operator.is_temporal():
             temp = cast(C2POTemporalOperator, self.node)
@@ -299,7 +301,7 @@ class FTInstruction(TLInstruction):
                 FTOperator.CONFIGURE.value
             )
 
-            # print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{FTOperator.CONFIGURE}")
+            logger.debug(f"ASM:SCQ: Lower bound ({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{FTOperator.CONFIGURE}")
 
             # add upper bound
             instr_bytes += engine_tag_bytes + instr_format.pack(
@@ -309,7 +311,7 @@ class FTInstruction(TLInstruction):
                 FTOperator.CONFIGURE.value
             )
 
-            # print(f"\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {1})\n\t{temp.interval.ub}\n\t{FTOperator.CONFIGURE}")
+            logger.debug(f"ASM:SCQ: Upper bound ({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {1})\n\t{temp.interval.ub}\n\t{FTOperator.CONFIGURE}")
 
         return instr_bytes
 
@@ -586,12 +588,14 @@ def generate_instruction_assembly(
             pt_asm.append(instr)
 
     context.set_future_time()
-    for spec in program.get_future_time_specs():
-        postorder(spec, generate_instruction_assembly_util)
+    future_time_spec_section = program.get_future_time_spec_section()
+    if future_time_spec_section:
+        postorder(future_time_spec_section, generate_instruction_assembly_util)
 
     context.set_past_time()
-    for spec in program.get_past_time_specs():
-        postorder(spec, generate_instruction_assembly_util)
+    past_time_spec_section = program.get_past_time_spec_section()
+    if past_time_spec_section:
+        postorder(past_time_spec_section, generate_instruction_assembly_util)
 
     return (bz_asm, at_asm, ft_asm, pt_asm)
 

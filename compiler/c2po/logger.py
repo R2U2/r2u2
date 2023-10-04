@@ -37,11 +37,11 @@ class ColorFormatter(logging.Formatter):
     format_str = '%(levelname)s'
 
     FORMATS = {
-        logging.DEBUG: Color.OKBLUE + format_str + Color.ENDC + ': %(message)s',
+        logging.DEBUG: Color.OKBLUE + format_str + Color.ENDC + ':%(message)s',
         logging.INFO: '%(message)s',
-        logging.WARNING: Color.WARNING + format_str + Color.ENDC + ': %(message)s',
-        logging.ERROR: Color.FAIL + format_str + Color.ENDC + ': %(message)s',
-        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ': %(message)s'
+        logging.WARNING: Color.WARNING + format_str + Color.ENDC + ':%(message)s',
+        logging.ERROR: Color.FAIL + format_str + Color.ENDC + ':%(message)s',
+        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ':%(message)s'
     }
 
     def format(self, record):
@@ -49,12 +49,10 @@ class ColorFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
-
 logger = logging.getLogger(LOGGER_NAME)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.ERROR)
 
 logger_handler = logging.StreamHandler(sys.stderr)
-logger_handler.setLevel(logging.DEBUG)
 logger_handler.setFormatter(ColorFormatter())
 
 logger.addHandler(logger_handler)
