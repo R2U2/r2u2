@@ -16,7 +16,7 @@ class C2POLexer(Lexer):
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
-               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
+               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DEADLINE }
 
     # String containing ignored characters between tokens
     ignore = ' \t'
@@ -61,6 +61,7 @@ class C2POLexer(Lexer):
     # ARITH_PM    = r'\+/-|±'
 
     # Others
+    DEADLINE = r'with d ='
     CONTRACT_ASSIGN = r'=>'
     ASSIGN  = r':='
     SYMBOL  = r'[a-zA-Z_][a-zA-Z0-9_]*'
@@ -131,6 +132,7 @@ class C2POParser(Parser):
         self.defs: Dict[str,Node] = {}
         self.contracts: Dict[str,int] = {}
         self.atomics: Dict[str,Node] = {}
+        self.deadlines: Dict[int, int] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
@@ -636,3 +638,11 @@ class C2POParser(Parser):
             logger.error(f"{ln}: Mission-time not defined.")
             self.status = False
             return -1
+        
+    @_('expr deadline')
+    def expr(self, p):
+        return p.expr
+
+    @_('DEADLINE NUMERAL')
+    def deadline(self, p):
+        self.deadlines[p.lineno] = int(p.NUMERAL) 
