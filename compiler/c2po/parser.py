@@ -61,7 +61,7 @@ class C2POLexer(Lexer):
     # ARITH_PM    = r'\+/-|±'
 
     # Others
-    DEADLINE = r'with d ='
+    DEADLINE = r'with d =|with d='
     CONTRACT_ASSIGN = r'=>'
     ASSIGN  = r':='
     SYMBOL  = r'[a-zA-Z_][a-zA-Z0-9_]*'

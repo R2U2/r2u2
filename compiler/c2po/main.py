@@ -745,13 +745,19 @@ def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
     """
     visited: List[int] = []
     total: int = 0
+    max_ast_wpd: int = 0
 
+    def compute_ast_wpd(node: Node) -> None:
+        nonlocal max_ast_wpd
+        if(node.wpd > max_ast_wpd):
+            max_ast_wpd = node.wpd
+    
     def compute_scq_deadline_util(node: Node) -> None:
-        if(node.deadline == 0):
-            node.deadline = d.get(node.ln, 0)
-        for s in node.get_children():
-            if not id(s) == id(node):
-                s.deadline = node.deadline
+        if(node.deadline is None):
+            node.deadline = d.get(node.ln, max_ast_wpd)
+            for s in node.get_children():
+                if not id(s) == id(node):
+                    s.deadline = node.deadline
 
     def compute_scq_size_util(node: Node) -> None:
         nonlocal visited
@@ -769,21 +775,22 @@ def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
             total += node.scq_size
             return
 
-        max_wpd: int = 0
+        max_sibling_wpd: int = 0
         for p in node.get_parents():
             for s in p.get_children():
                 if not id(s) == id(node):
-                    max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
+                    max_sibling_wpd = s.wpd if s.wpd > max_sibling_wpd else max_sibling_wpd
 
-        if(node.deadline != 0): # Prediction required
-            if((max_wpd > node.deadline) and (max_wpd > 0)):
-                node.scq_size = max(max_wpd-node.bpd,0)+1+(max_wpd-node.deadline)
+        if(max_ast_wpd > node.deadline): # Prediction required
+            if(max_sibling_wpd > 0 and max_sibling_wpd > node.deadline):
+                node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+(max_sibling_wpd-node.deadline)
             else:
-                node.scq_size = max(max_wpd-node.bpd,0)+2 # Prevent overwritting with extra scq entry
+                node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+1 # Prevent overwritting with extra scq entry
         else:
-            node.scq_size = max(max_wpd-node.bpd,0)+1
+            node.scq_size = max(max_sibling_wpd-node.bpd,0)+1
         total += node.scq_size
 
+    postorder_iterative(node, compute_ast_wpd)
     preorder(node, compute_scq_deadline_util)
     postorder_iterative(node, compute_scq_size_util)
     node.total_scq_size = total

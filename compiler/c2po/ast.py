@@ -82,7 +82,7 @@ class Node():
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
-        self.deadline: int = 0
+        self.deadline: int = None
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
         self.ftid: int = -1
