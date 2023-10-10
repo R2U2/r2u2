@@ -1,0 +1,5 @@
+INPUT
+    s0,s1,s2: bool;
+
+FTSPEC
+    G[1,10] (s0 && G[0,8] (s1)) with d = -3;

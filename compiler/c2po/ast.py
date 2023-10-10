@@ -82,6 +82,7 @@ class Node():
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
+        self.deadline: int = 0
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
         self.ftid: int = -1
@@ -183,6 +184,7 @@ class Node():
         new.name = self.name
         new.bpd = self.bpd
         new.wpd = self.wpd
+        new.deadline = self.deadline
         new.formula_type = self.formula_type
         new.type = self.type
 
@@ -1307,7 +1309,7 @@ class SpecificationSet(TLInstruction):
 
 class Program(Node):
 
-    def __init__(self, ln: int, sigs: Dict[str, Type], defs: Dict[str, Node], st: StructDict, a: Dict[str, Node], fts: SpecificationSet, pts: SpecificationSet) -> None:
+    def __init__(self, ln: int, sigs: Dict[str, Type], defs: Dict[str, Node], st: StructDict, a: Dict[str, Node], d: Dict[int, int], fts: SpecificationSet, pts: SpecificationSet) -> None:
         super().__init__(ln, [fts, pts])
 
         # Data
@@ -1316,6 +1318,7 @@ class Program(Node):
         self.signals: Dict[str, Type] = sigs
         self.definitions: Dict[str, Node] = defs
         self.atomics: Dict[str, Node] = a
+        self.deadlines: Dict[int, int] = d
         self.ft_spec_set: SpecificationSet = fts
         self.pt_spec_set: SpecificationSet = pts
         self.assembly: List[Instruction] = []
@@ -1354,7 +1357,8 @@ class Program(Node):
             deepcopy(self.signals, memo), 
             deepcopy(self.definitions, memo), 
             deepcopy(self.structs, memo), 
-            deepcopy(self.atomics, memo), 
+            deepcopy(self.atomics, memo),
+            deepcopy(self.deadlines, memo),
             deepcopy(self.ft_spec_set, memo),
             deepcopy(self.pt_spec_set, memo)
         )

@@ -737,7 +737,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
-def compute_scq_size(node: Node) -> int:
+def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
 
@@ -745,6 +745,13 @@ def compute_scq_size(node: Node) -> int:
     """
     visited: List[int] = []
     total: int = 0
+
+    def compute_scq_deadline_util(node: Node) -> None:
+        if(node.deadline == 0):
+            node.deadline = d.get(node.ln, 0)
+        for s in node.get_children():
+            if not id(s) == id(node):
+                s.deadline = node.deadline
 
     def compute_scq_size_util(node: Node) -> None:
         nonlocal visited
@@ -768,9 +775,16 @@ def compute_scq_size(node: Node) -> int:
                 if not id(s) == id(node):
                     max_wpd = s.wpd if s.wpd > max_wpd else max_wpd
 
-        node.scq_size = max(max_wpd-node.bpd,0)+3 # works for +3 b/c of some bug -- ask Brian
+        if(node.deadline != 0): # Prediction required
+            if((max_wpd > node.deadline) and (max_wpd > 0)):
+                node.scq_size = max(max_wpd-node.bpd,0)+1+(max_wpd-node.deadline)
+            else:
+                node.scq_size = max(max_wpd-node.bpd,0)+2 # Prevent overwritting with extra scq entry
+        else:
+            node.scq_size = max(max_wpd-node.bpd,0)+1
         total += node.scq_size
 
+    preorder(node, compute_scq_deadline_util)
     postorder_iterative(node, compute_scq_size_util)
     node.total_scq_size = total
 
@@ -781,7 +795,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    program.total_scq_size = compute_scq_size(program.get_ft_specs())
+    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines)
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -881,6 +895,7 @@ def parse(input: str, mission_time: int) -> Program|None:
         parser.defs,
         parser.structs,
         parser.atomics,
+        parser.deadlines,
         specs[FormulaType.FT],
         specs[FormulaType.PT]
     )

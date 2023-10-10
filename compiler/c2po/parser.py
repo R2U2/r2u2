@@ -326,7 +326,7 @@ class C2POParser(Parser):
             self.defs[label] = spec
 
         return [spec]
-
+    
     # Contract
     @_('SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI')
     def spec(self, p):
@@ -335,7 +335,7 @@ class C2POParser(Parser):
 
         self.spec_num += 3
         return [Contract(ln, label, self.spec_num-3, self.spec_num-2, self.spec_num-1, p[2], p[4])]
-
+    
     @_('expr_list COMMA expr')
     def expr_list(self, p):
         p[0].append(p[2])
@@ -446,12 +446,12 @@ class C2POParser(Parser):
                 return Node(ln, [])
         else:
             return Function(ln, symbol, [])
-
+    
     # Struct member access
     @_('expr DOT SYMBOL')
     def expr(self, p):
         return StructAccess(p.lineno, p[0], p[2])
-
+    
     # Unary expressions
     @_('LOG_NEG expr',
        'BW_NEG expr',
@@ -470,7 +470,7 @@ class C2POParser(Parser):
             logger.error(f'{ln}: Bad expression')
             self.status = False
             return Node(ln, [])
-
+    
     # Binary expressions
     @_('expr LOG_IMPL expr',
        'expr LOG_IFF expr',
@@ -542,7 +542,7 @@ class C2POParser(Parser):
             logger.error(f'{ln}: Bad expression')
             self.status = False
             return Node(ln, [])
-
+        
     # Unary temporal expressions
     @_('TL_GLOBAL interval expr',
        'TL_FUTURE interval expr',
@@ -583,7 +583,7 @@ class C2POParser(Parser):
             logger.error(f'{ln}: Bad expression')
             self.status = False
             return Node(ln, [])
-
+    
     # Parentheses
     @_('LPAREN expr RPAREN')
     def expr(self, p):
@@ -601,12 +601,12 @@ class C2POParser(Parser):
             return Bool(ln, False)
         else:
             return Variable(ln, symbol)
-
+    
     # Integer
     @_('NUMERAL')
     def expr(self, p):
         return Integer(p.lineno, int(p.NUMERAL))
-
+    
     # Float
     @_('DECIMAL')
     def expr(self, p):
