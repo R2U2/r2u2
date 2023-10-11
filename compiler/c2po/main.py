@@ -737,7 +737,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
-def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
+def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
 
