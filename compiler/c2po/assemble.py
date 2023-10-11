@@ -246,7 +246,7 @@ class TLInstruction(Instruction):
         operand_format = cStruct("iBxxx")
         instr_format = cStruct(f"{operand_format.size}s{operand_format.size}sIi")
 
-        logger.debug(f"ASM:FT: n{self.id}, {self.node}\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
+        logger.debug(f"ASM:TL: n{self.id}, {self.node}\n\t({operand_1[0]}, {operand_1[1]})\n\t({operand_2[0]}, {operand_2[1]})\n\t{self.id}\n\t{self.operator}")
 
         engine_tag_bytes = cStruct("B").pack(ENGINE_TAGS.TL.value)
         instr_bytes = instr_format.pack(
@@ -255,6 +255,8 @@ class TLInstruction(Instruction):
             self.id, 
             self.operator.value
         )
+
+        # TODO: add SCQ configuration info here
 
         return engine_tag_bytes + instr_bytes
         
@@ -272,7 +274,9 @@ class FTInstruction(TLInstruction):
     def __init__(self, node: C2POExpression, op: FTOperator, c: List[Instruction]):
         super().__init__(node, op, c)
 
-    def assemble_scq(self, scq_asm: Tuple[int, int]) -> bytes:
+    def assemble_scq(self, scq_asm: Tuple[int, int]) -> List[bytes]:
+        instructions: List[bytes] = []
+
         engine_tag_bytes = cStruct("BB").pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value)
 
         operand_format = cStruct("iBxxx")
@@ -281,12 +285,12 @@ class FTInstruction(TLInstruction):
         (start_pos, end_pos) = scq_asm
 
         # add SCQ information
-        instr_bytes = engine_tag_bytes + instr_format.pack(
+        instructions.append(engine_tag_bytes + instr_format.pack(
             operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
             operand_format.pack(TLOperandType.DIRECT.value, end_pos - start_pos),
             start_pos, 
             FTOperator.CONFIGURE.value
-        )
+        ))
 
         logger.debug(f"ASM:SCQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {end_pos - start_pos})\n\t{start_pos}\n\t{FTOperator.CONFIGURE}")
 
@@ -294,26 +298,26 @@ class FTInstruction(TLInstruction):
             temp = cast(C2POTemporalOperator, self.node)
 
             # add lower bound
-            instr_bytes += engine_tag_bytes + instr_format.pack(
+            instructions.append(engine_tag_bytes + instr_format.pack(
                 operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
                 operand_format.pack(TLOperandType.ATOMIC.value, 0),
                 temp.interval.lb, 
                 FTOperator.CONFIGURE.value
-            )
+            ))
 
             logger.debug(f"ASM:SCQ: Lower bound ({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{FTOperator.CONFIGURE}")
 
             # add upper bound
-            instr_bytes += engine_tag_bytes + instr_format.pack(
+            instructions.append(engine_tag_bytes + instr_format.pack(
                 operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
                 operand_format.pack(TLOperandType.ATOMIC.value, 1),
                 temp.interval.ub, 
                 FTOperator.CONFIGURE.value
-            )
+            ))
 
             logger.debug(f"ASM:SCQ: Upper bound ({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {1})\n\t{temp.interval.ub}\n\t{FTOperator.CONFIGURE}")
 
-        return instr_bytes
+        return instructions
 
 
 class PTInstruction(TLInstruction):
@@ -321,9 +325,9 @@ class PTInstruction(TLInstruction):
     def __init__(self, node: C2POExpression, op: PTOperator, c: List[Instruction]):
         super().__init__(node, op, c)
 
-    def assemble_boxq(self, num_boxqs: int) -> bytes:
+    def assemble_boxq(self, num_boxqs: int) -> List[bytes]:
         if not self.operator.is_temporal():
-            return b""
+            return []
 
         engine_tag_bytes = cStruct("BB").pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value)
 
@@ -332,26 +336,31 @@ class PTInstruction(TLInstruction):
         
         temp = cast(C2POTemporalOperator, self.node)
 
-        instr_bytes = engine_tag_bytes + instr_format.pack(
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {64})\n\t{64 * num_boxqs}\n\t{PTOperator.CONFIGURE}")
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{PTOperator.CONFIGURE}")
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.ub}\n\t{PTOperator.CONFIGURE}")
+
+        instructions = []
+        instructions.append(engine_tag_bytes + instr_format.pack(
             operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
             operand_format.pack(TLOperandType.DIRECT.value, 64),
             64 * num_boxqs, 
-            FTOperator.CONFIGURE.value
-        )
-        instr_bytes += engine_tag_bytes + instr_format.pack(
+            PTOperator.CONFIGURE.value
+        ))
+        instructions.append(engine_tag_bytes + instr_format.pack(
             operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
             operand_format.pack(TLOperandType.ATOMIC.value, 0),
             temp.interval.lb, 
-            FTOperator.CONFIGURE.value
-        )
-        instr_bytes += engine_tag_bytes + instr_format.pack(
+            PTOperator.CONFIGURE.value
+        ))
+        instructions.append(engine_tag_bytes + instr_format.pack(
             operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
             operand_format.pack(TLOperandType.ATOMIC.value, 1),
             temp.interval.ub, 
-            FTOperator.CONFIGURE.value
-        )
+            PTOperator.CONFIGURE.value
+        ))
 
-        return instr_bytes
+        return instructions
 
 
 def check_sizes():
@@ -667,16 +676,16 @@ def assemble(program: C2POProgram, context: C2POContext, quiet: bool) -> bytes:
         spec_bytearray.extend(cStruct("B").pack(len(instr_bytes)+1) + instr_bytes)
 
     # Configure SCQ size and, if temporal, interval bounds
-    for instr in ft_asm:
-        instr_bytes = instr.assemble_scq(scq_asm[instr.id])
-        spec_bytearray.extend(cStruct("B").pack(len(instr_bytes)+1) + instr_bytes)
+    for ft_instr in ft_asm:
+        for scq_instr in ft_instr.assemble_scq(scq_asm[ft_instr.id]):
+            spec_bytearray.extend(cStruct("B").pack(len(scq_instr)+1) + scq_instr)
 
     # Configure box queues for temporal PT nodes
     boxqs = 1
-    for instr in pt_asm:
-        instr_bytes = instr.assemble_boxq(boxqs)
+    for pt_instr in pt_asm:
+        for boxq_instr  in pt_instr.assemble_boxq(boxqs):
+            spec_bytearray.extend(cStruct("B").pack(len(boxq_instr)+1) + boxq_instr)
         boxqs += 1
-        spec_bytearray.extend(cStruct("B").pack(len(instr_bytes)+1) + instr_bytes)
 
     spec_bytearray.extend(b"\x00") # End of instruction segment
 
