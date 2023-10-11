@@ -745,16 +745,19 @@ def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
     """
     visited: List[int] = []
     total: int = 0
+    spec_wpd: Dict[int,int] = {}
+    spec_deadline: Dict[int,int] = {}
     
-    def compute_scq_deadline_util(node: Node) -> None:
+    def compute_node_info_util(node: Node) -> None:
+        nonlocal spec_wpd
+        nonlocal spec_deadline
         if isinstance(node, SpecificationSet):
             return
-        if((not node.deadlines) and (node.ln in d)):
-                node.deadlines[node.ln] = d[node.ln]
-        else: # Node appears in multiple specs
-            for p in node.get_parents():
-                for d_spec in p.deadlines.keys():
-                    node.deadlines[d_spec] = p.deadlines[d_spec]
+        if(node.wpd >= spec_wpd.get(node.ln, node.wpd)):
+            spec_wpd[node.ln] = node.wpd
+        if(not (node.ln in spec_deadline.keys())):
+            if node.ln in d:
+                spec_deadline[node.ln] = d[node.ln]
         if(len(node.specs) == 0):
                 node.specs.append(node.ln)
         else: # Node appears in multiple specs
@@ -783,31 +786,26 @@ def compute_scq_size(node: Node, d: Dict[int, int]) -> int:
 
         max_sibling_wpd: int = 0
         max_prediction_horizon = 0
-        max_sibling_hp_node: Node = None
         for p in node.get_parents():
             for s in p.get_children():
                 if not id(s) == id(node):
                     if s.wpd > max_sibling_wpd:
                         max_sibling_wpd = s.wpd
-                    for s_spec in s.specs:
+                    for s_spec in s.specs: # Iterate through and find the max prediction horizon of all sibling nodes
                         for node_spec in node.specs:
-                            if(s_spec == node_spec): # Check deadline for sibling node
-                                curr_deadline = node.deadlines.get(s_spec, s.wpd)
-                                if(s.wpd+curr_deadline < 0): # Don't store irrelevant data before i
-                                    if(s.wpd-curr_deadline+(s.wpd+curr_deadline) > max_prediction_horizon):
-                                        max_prediction_horizon = s.wpd-curr_deadline+(s.wpd+curr_deadline)
-                                        max_sibling_hp_node = s
-                                elif(s.wpd-curr_deadline > max_prediction_horizon):
-                                    max_prediction_horizon = s.wpd-curr_deadline
-                                    max_sibling_hp_node = s
+                            if(s_spec == node_spec): 
+                                if s_spec in spec_deadline: 
+                                    curr_deadline = spec_deadline[s_spec]
+                                    if(curr_deadline < 0): # Don't store irrelevant data before i
+                                        if(spec_wpd[s_spec] > max_prediction_horizon):
+                                            max_prediction_horizon = spec_wpd[s_spec]
+                                    elif(spec_wpd[s_spec]-curr_deadline > max_prediction_horizon):
+                                        max_prediction_horizon = spec_wpd[s_spec]-curr_deadline
 
-        if(max_sibling_hp_node is not None): # Prediction required
-                node.scq_size = max(max_sibling_hp_node.wpd-node.bpd,0)+1+max_prediction_horizon
-        else:
-            node.scq_size = max(max_sibling_wpd-node.bpd,0)+1
+        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+max_prediction_horizon
         total += node.scq_size
 
-    preorder(node, compute_scq_deadline_util)
+    preorder(node, compute_node_info_util)
     postorder_iterative(node, compute_scq_size_util)
     node.total_scq_size = total
 
