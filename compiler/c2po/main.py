@@ -802,7 +802,7 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
                                     elif(spec_wpd[s_spec]-curr_deadline > max_prediction_horizon):
                                         max_prediction_horizon = spec_wpd[s_spec]-curr_deadline
 
-        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+max_prediction_horizon
+        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+min(max(max_sibling_wpd-node.bpd,0)+1,max_prediction_horizon)
         total += node.scq_size
 
     preorder(node, compute_node_info_util)
