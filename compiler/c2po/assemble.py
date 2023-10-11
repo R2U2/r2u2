@@ -336,10 +336,6 @@ class PTInstruction(TLInstruction):
         
         temp = cast(C2POTemporalOperator, self.node)
 
-        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {64})\n\t{64 * num_boxqs}\n\t{PTOperator.CONFIGURE}")
-        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{PTOperator.CONFIGURE}")
-        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.ub}\n\t{PTOperator.CONFIGURE}")
-
         instructions = []
         instructions.append(engine_tag_bytes + instr_format.pack(
             operand_format.pack(TLOperandType.SUBFORMULA.value, self.id),
@@ -359,6 +355,10 @@ class PTInstruction(TLInstruction):
             temp.interval.ub, 
             PTOperator.CONFIGURE.value
         ))
+
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.DIRECT}, {64})\n\t{64 * num_boxqs}\n\t{PTOperator.CONFIGURE}")
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.lb}\n\t{PTOperator.CONFIGURE}")
+        logger.debug(f"ASM:BOXQ: n{self.id}, {self.node}\n\t({TLOperandType.SUBFORMULA}, {self.id})\n\t({TLOperandType.ATOMIC}, {0})\n\t{temp.interval.ub}\n\t{PTOperator.CONFIGURE}")
 
         return instructions
 
