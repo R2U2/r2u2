@@ -753,12 +753,12 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
         nonlocal spec_deadline
         if isinstance(node, SpecificationSet):
             return
-        if(node.wpd >= spec_wpd.get(node.ln, node.wpd)):
+        if(node.wpd >= spec_wpd.get(node.ln, node.wpd)): # Find wpd of each spec
             spec_wpd[node.ln] = node.wpd
-        if(not (node.ln in spec_deadline.keys())):
+        if(not (node.ln in spec_deadline.keys())): # Find the deadline for each spec
             if node.ln in d:
                 spec_deadline[node.ln] = d[node.ln]
-        if(len(node.specs) == 0):
+        if(len(node.specs) == 0): # Find specs referenced by each node
                 node.specs.append(node.ln)
         else: # Node appears in multiple specs
             for p in node.get_parents():
@@ -791,18 +791,16 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
                 if not id(s) == id(node):
                     if s.wpd > max_sibling_wpd:
                         max_sibling_wpd = s.wpd
-                    for s_spec in s.specs: # Iterate through and find the max prediction horizon of all sibling nodes
-                        for node_spec in node.specs:
-                            if(s_spec == node_spec): 
-                                if s_spec in spec_deadline: 
-                                    curr_deadline = spec_deadline[s_spec]
-                                    if(curr_deadline < 0): # Don't store irrelevant data before i
-                                        if(spec_wpd[s_spec] > max_prediction_horizon):
-                                            max_prediction_horizon = spec_wpd[s_spec]
-                                    elif(spec_wpd[s_spec]-curr_deadline > max_prediction_horizon):
-                                        max_prediction_horizon = spec_wpd[s_spec]-curr_deadline
 
-        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+min(max(max_sibling_wpd-node.bpd,0)+1,max_prediction_horizon)
+        for node_spec in node.specs: # Iterate through and find the max prediction horizon
+            if node_spec in spec_deadline.keys():
+                if(spec_deadline[node_spec] < 0):  # Don't store irrelevant data before i
+                    if (spec_wpd[node_spec]) > max_prediction_horizon:
+                        max_prediction_horizon = spec_wpd[node_spec]
+                elif (spec_wpd[node_spec] - spec_deadline[node_spec]) > max_prediction_horizon:
+                    max_prediction_horizon = (spec_wpd[node_spec] - spec_deadline[node_spec])
+
+        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)
         total += node.scq_size
 
     preorder(node, compute_node_info_util)
