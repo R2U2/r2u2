@@ -82,7 +82,8 @@ class Node():
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
-        self.deadline: int = None
+        self.deadlines: Dict[int, int] = {}
+        self.specs: List[int] = []
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
         self.ftid: int = -1
@@ -184,7 +185,8 @@ class Node():
         new.name = self.name
         new.bpd = self.bpd
         new.wpd = self.wpd
-        new.deadline = self.deadline
+        new.deadlines = self.deadlines
+        new.specs = self.specs
         new.formula_type = self.formula_type
         new.type = self.type
 
