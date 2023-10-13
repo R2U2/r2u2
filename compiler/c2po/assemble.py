@@ -131,6 +131,7 @@ class PTOperator(Enum):
     def is_load(self) -> bool:
         return self is PTOperator.LOAD
     
+
 Operator = Union[FTOperator, PTOperator, BZOperator]
 TLOperator = Union[FTOperator, PTOperator]
 
@@ -206,13 +207,113 @@ class BZInstruction(Instruction):
         return engine_tag_bytes + instr_bytes
 
 
+AT_FILTER_TABLE: Dict[str, Tuple[ATFilter, cStruct]] = {
+    "rate": (ATFilter.RATE, cStruct("xxxxxxxx")),
+    "movavg": (ATFilter.MOVAVG, cStruct("q")),
+    "abs_diff_angle": (ATFilter.ABS_DIFF_ANGLE, cStruct("d")),
+    # "exactly_one_of": (ATFilter.EXACTLY_ONE_OF, cStruct("xxxxxxxx")),
+    # "all_of": (ATFilter.ALL_OF, cStruct("xxxxxxxx")),
+    # "none_of": (ATFilter.NONE_OF, cStruct("xxxxxxxx"))
+}
+
 class ATInstruction(Instruction):
 
-    def __init__(self, node: C2POExpression):
+    def __init__(self, node: C2POAtomicChecker, expr: C2POExpression):
         super().__init__(node)
+        self.expr = expr
+
+    def id_str(self) -> str:
+        return f"a{self.node.atomic_id}"
 
     def assemble(self) -> bytes:
-        return bytes()
+        if isinstance(self.expr, C2POEqual):
+            rel_opcode = ATCond.EQ
+        elif isinstance(self.expr, C2PONotEqual):
+            rel_opcode = ATCond.NEQ
+        elif isinstance(self.expr, C2POLessThan):
+            rel_opcode = ATCond.LT
+        elif isinstance(self.expr, C2POLessThanOrEqual):
+            rel_opcode = ATCond.LEQ
+        elif isinstance(self.expr, C2POGreaterThan):
+            rel_opcode = ATCond.GT
+        elif isinstance(self.expr, C2POGreaterThanOrEqual):
+            rel_opcode = ATCond.GEQ
+        else:
+            # Why did this get past the type checker?
+            logger.error(f"{self.expr.ln}: Invalid atomic checker, top-level self.expression should be a relational operator.")
+            return bytes()
+
+        filter = self.expr.get_lhs()
+        if isinstance(filter, C2POSignal) and filter.type == C2POBoolType(False):
+            filter_opcode = ATFilter.BOOL
+            compare_format = cStruct("?xxxxxxx")
+            aux_filter_arg_bytes = cStruct("xxxxxxxx").pack()
+            filter_args = [filter]
+        elif isinstance(filter, C2POSignal) and filter.type == C2POIntType(False):
+            filter_opcode = ATFilter.INT
+            compare_format = cStruct("q")
+            aux_filter_arg_bytes = cStruct("xxxxxxxx").pack()
+            filter_args = [filter]
+        elif isinstance(filter, C2POSignal) and filter.type == C2POFloatType(False):
+            filter_opcode = ATFilter.FLOAT
+            compare_format = cStruct("d")
+            aux_filter_arg_bytes = cStruct("xxxxxxxx").pack()
+            filter_args = [filter]
+        elif isinstance(filter, C2POFunctionCall) and filter.symbol in AT_FILTER_TABLE:
+            filter_opcode, filter_arg_format = AT_FILTER_TABLE[filter.symbol]
+            compare_format = cStruct("d")
+            filter_args = filter.get_children()
+            if filter.num_children() == 1:
+                aux_filter_arg_bytes = filter_arg_format.pack()
+            elif filter.num_children() == 2:
+                aux_filter_arg = cast(C2POConstant, filter.get_child(1))
+                aux_filter_arg_bytes = filter_arg_format.pack(aux_filter_arg.value)
+            else:
+                # Why did this get past the type checker?
+                logger.error(f"{filter.ln}: Invalid atomic checker, incorrect number of arguments for filter ('{filter}').")
+                return bytes()
+        else:
+            # Why did this get past the type checker?
+            logger.error(f"{self.expr.ln}: Invalid atomic checker, filter invalid ('{filter}').")
+            return bytes()
+
+        if isinstance(filter_args[0], C2POSignal):
+            primary_filter_arg = filter_args[0].signal_id
+        else:
+            # Why did this get past the type checker?
+            logger.error(f"{filter.ln}: Invalid atomic checker, primary filter argument invalid ('{filter_args[0]}').")
+            return bytes()
+
+        compare = self.expr.get_rhs()
+        if isinstance(compare, C2POSignal):
+            compare_bytes = cStruct("Bxxxxxxx").pack(compare.signal_id)
+        elif isinstance(compare, C2POConstant):
+            compare_bytes = compare_format.pack(compare.value)
+        else:
+            # Why did this get past the type checker?
+            logger.error(f"{self.expr.ln}: Invalid atomic checker, compare value invalid ('{compare}').")
+            return bytes()
+
+        logger.debug(f"ASM:AT: {self.node}\n\t{compare_bytes}\n\t{aux_filter_arg_bytes}\n\t{rel_opcode}\n\t{filter_opcode}\n\t{primary_filter_arg}\n\t{self.node.atomic_id}\n\t{isinstance(self.expr.get_rhs(), C2POSignal)}\n\t{self.node.atomic_id}")
+
+        instr_format = cStruct('8s8siiBBBB')
+        
+        engine_tag_bytes = cStruct("B").pack(ENGINE_TAGS.AT.value)
+        instr_bytes = instr_format.pack(
+            compare_bytes,
+            aux_filter_arg_bytes, 
+            rel_opcode.value, 
+            filter_opcode.value, 
+            primary_filter_arg, 
+            self.node.atomic_id, 
+            isinstance(self.expr.get_rhs(), C2POSignal), 
+            self.node.atomic_id, 
+        )
+
+        return engine_tag_bytes + instr_bytes
+
+    def __str__(self) -> str:
+        return f"{self.id_str()} {self.expr}"
 
 
 class TLInstruction(Instruction):
@@ -255,8 +356,6 @@ class TLInstruction(Instruction):
             self.id, 
             self.operator.value
         )
-
-        # TODO: add SCQ configuration info here
 
         return engine_tag_bytes + instr_bytes
         
@@ -440,7 +539,9 @@ def generate_instruction_assembly(
                 child_instrs.append(child_instr)
 
         # create this node"s corresponding instruction
-        if isinstance(node, C2POBool):
+        if isinstance(node, C2POAtomicChecker):
+            instr = ATInstruction(node, context.atomic_checkers[node.symbol])
+        elif isinstance(node, C2POBool):
             instr = BZInstruction(node, BZOperator.ICONST, child_instrs)
         elif isinstance(node, C2POInteger):
             instr = BZInstruction(node, BZOperator.ICONST, child_instrs)

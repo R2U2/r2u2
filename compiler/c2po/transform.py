@@ -28,7 +28,7 @@ def transform_function_calls(program: C2POProgram, context: C2POContext):
                     node.ln, 
                     node.symbol, 
                     {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
-                    cast(List[C2PONode], reversed(node.get_children()))
+                    cast(List[C2PONode], node.get_children())
                 )
             )
 

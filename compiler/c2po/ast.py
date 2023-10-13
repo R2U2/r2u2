@@ -1088,17 +1088,16 @@ class C2PODefinition(C2PONode):
 
 
 class C2POAtomicCheckerDefinition(C2PONode):
-    # TODO
 
     def __init__(self, ln: int, symbol: str, e: C2POExpression):
         super().__init__(ln, [e])
         self.symbol = symbol
 
-    def get_atomic(self) -> C2POExpression:
+    def get_expr(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
 
     def __str__(self) -> str:
-        return f"{self.symbol} := {self.get_atomic()}"
+        return f"{self.symbol} := {self.get_expr()}"
 
 
 class C2POStructSection(C2PONode):
@@ -1305,6 +1304,15 @@ class C2POContext():
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+
+        self.atomic_checker_filters: Dict[str, List[C2POType]] = {
+            "rate": [C2POFloatType(False)],
+            "movavg": [C2POFloatType(False), C2POIntType(True)],
+            "abs_diff_angle": [C2POFloatType(False), C2POFloatType(True)],
+            "exactly_one_of": [C2POSetType(False, C2POBoolType(False))],
+            "all_of": [C2POSetType(False, C2POBoolType(False))],
+            "none_of": [C2POSetType(False, C2POBoolType(False))]
+        }
 
     def get_symbols(self) -> List[str]:
         symbols =  [s for s in self.definitions.keys()]

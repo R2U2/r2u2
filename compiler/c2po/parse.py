@@ -270,12 +270,12 @@ class C2POParser(Parser):
     @_("KW_ATOMIC atomic atomic_list")
     def atomic_section(self, p):
         p[2].append(p[1])
-        self.literals[p[1]] = C2POAtomicChecker
+        self.literals[p[1].symbol] = C2POAtomicChecker
         return C2POAtomicSection(p.lineno, p[2])
 
     @_("atomic_list atomic")
     def atomic_list(self, p):
-        self.literals[p[1]] = C2POAtomicChecker
+        self.literals[p[1].symbol] = C2POAtomicChecker
         return p[0] + [p[1]]
 
     @_("")
@@ -380,6 +380,7 @@ class C2POParser(Parser):
     @_("SYMBOL LPAREN expr expr_list RPAREN")
     def expr(self, p):
         p[3].append(p[2])
+        p[3].reverse()
         return C2POFunctionCall(p.lineno, p[0], p[3])
 
     # Function/struct constructor expression empty arguments

@@ -17,7 +17,9 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
 
         expr.type = context.signals[expr.symbol]
     elif isinstance(expr, C2POAtomicChecker):
-        pass
+        if expr.symbol not in context.atomic_checkers:
+            status = False
+            logger.error(f"{expr.ln}: Atomic checker '{expr.symbol}' not defined.")
     elif isinstance(expr, C2POVariable):
         symbol = expr.symbol
         if symbol in context.variables:
@@ -27,6 +29,8 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         elif symbol in context.structs:
             logger.error(f"{expr.ln}: Defined structs may not be used as variables. Maybe you mean to declare the struct first?")
             status = False
+        elif symbol in context.atomic_checkers:
+            expr.type = C2POBoolType(False)
         elif symbol in context.specifications:
             expr.type = C2POBoolType(False)
         elif symbol in context.contracts:
@@ -37,14 +41,15 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = False
     elif isinstance(expr, C2POFunctionCall):
         # For now, this can only be a struct instantiation
-        if expr.symbol not in context.structs:
+        if expr.symbol not in context.structs and expr.symbol not in context.atomic_checker_filters:
             logger.error(f"{expr.ln}: Functions unsupported.\n\t{expr}")
             status =  False
 
         for arg in expr.get_children():
             status = status and type_check_expr(arg, context)
 
-        expr.type = C2POStructType(False, expr.symbol)
+        if expr.symbol in context.structs:
+            expr.type = C2POStructType(False, expr.symbol)
     elif isinstance(expr, C2PORelationalOperator): 
         lhs: C2POExpression = expr.get_lhs()
         rhs: C2POExpression = expr.get_rhs()
@@ -236,6 +241,44 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
 def type_check_atomic(atomic: C2POAtomicCheckerDefinition, context: C2POContext) -> bool:
     status = True
 
+    relational_expr = atomic.get_expr()
+
+    if not isinstance(relational_expr, C2PORelationalOperator):
+        logger.error(f"{atomic.ln}: Atomic checker definition not a relation.\n\t{atomic}")
+        return False
+
+    lhs = relational_expr.get_lhs()
+    rhs = relational_expr.get_rhs()
+
+    if isinstance(lhs, C2POFunctionCall):
+        if lhs.symbol not in context.atomic_checker_filters:
+            logger.error(f"{lhs.ln}: Invalid atomic checker filter ('{lhs.symbol}')")
+            status = False
+
+        if lhs.num_children() != len(context.atomic_checker_filters[lhs.symbol]):
+            logger.error(f"{lhs.ln}: Atomic checker filter argument mismatch. Expected {len(context.atomic_checker_filters[lhs.symbol])} arguments, got {lhs.num_children()}")
+            status = False
+        
+        for arg, target_type in zip(lhs.get_children(), context.atomic_checker_filters[lhs.symbol]):
+            if not isinstance(arg, C2POLiteral):
+                logger.error(f"{arg.ln}: Atomic checker filter argument '{arg}' is not a signal nor constant.")
+                status = False
+
+            type_check_expr(arg, context) # assigns signals their types
+            
+            if arg.type != target_type:
+                logger.error(f"{arg.ln}: Atomic checker filter argument '{arg}' does not match expected type. Expected {target_type}, found {arg.type}.")
+                status = False
+    elif isinstance(lhs, C2POSignal):
+        type_check_expr(lhs, context)
+    else:
+        logger.error(f"{lhs.ln}: Left-hand side of atomic checker definition not a filter nor  signal.\n\t{lhs}")
+        status = False
+
+    if not isinstance(rhs, C2POLiteral):
+        logger.error(f"{rhs.ln}: Right-hand side of atomic checker definition not a constant or signal.\n\t{rhs}")
+        status = False
+
     return status
 
 
@@ -274,7 +317,7 @@ def type_check_section(section: C2POSection, context: C2POContext) -> bool:
 
             status = status and type_check_atomic(atomic, context)
             if status:
-                context.add_atomic(atomic.symbol, atomic.get_atomic())
+                context.add_atomic(atomic.symbol, atomic.get_expr())
     elif isinstance(section, C2POSpecSection):
         if isinstance(section, C2POFutureTimeSpecSection):
             if context.has_future_time:
