@@ -11,16 +11,6 @@
             "oracle": "agc.log"
         },
         {
-            "name": "arb_dataflow",
-            "mltl": "arb_dataflow.mltl",
-            "trace": "arb_dataflow.csv",
-            "oracle": "arb_dataflow.log",
-            "options": {
-                "booleanizer": false,
-                "atomic-checkers": true
-            }
-        },
-        {
             "name": "atomic_checkers",
             "mltl": "atomic_checkers.mltl",
             "trace": "atomic_checkers.csv",

@@ -287,7 +287,7 @@ class TestCase():
 
         proc = subprocess.run(self.r2u2prep_command, capture_output=True)
 
-        self.asm = proc.stdout.replace(b"[95m",b"").replace(b"[0m:",b"")
+        self.asm = proc.stdout.replace(b"[95m",b"").replace(b"[4m[91m",b"").replace(b"[0m",b"")
 
         if proc.stderr != b"":
             with open(self.r2u2prep_stderr_path, "wb") as f:
