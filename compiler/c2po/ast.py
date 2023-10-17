@@ -1309,7 +1309,7 @@ class SpecificationSet(TLInstruction):
 
 class Program(Node):
 
-    def __init__(self, ln: int, sigs: Dict[str, Type], defs: Dict[str, Node], st: StructDict, a: Dict[str, Node], d: Dict[int, int], fts: SpecificationSet, pts: SpecificationSet) -> None:
+    def __init__(self, ln: int, sigs: Dict[str, Type], defs: Dict[str, Node], st: StructDict, a: Dict[str, Node], d: Dict[int, int], m: Dict[int, int], fts: SpecificationSet, pts: SpecificationSet) -> None:
         super().__init__(ln, [fts, pts])
 
         # Data
@@ -1319,6 +1319,7 @@ class Program(Node):
         self.definitions: Dict[str, Node] = defs
         self.atomics: Dict[str, Node] = a
         self.deadlines: Dict[int, int] = d
+        self.multimodals: Dict[int, int] = m
         self.ft_spec_set: SpecificationSet = fts
         self.pt_spec_set: SpecificationSet = pts
         self.assembly: List[Instruction] = []
@@ -1359,6 +1360,7 @@ class Program(Node):
             deepcopy(self.structs, memo), 
             deepcopy(self.atomics, memo),
             deepcopy(self.deadlines, memo),
+            deepcopy(self.multimodals, memo),
             deepcopy(self.ft_spec_set, memo),
             deepcopy(self.pt_spec_set, memo)
         )

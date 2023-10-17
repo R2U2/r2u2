@@ -16,7 +16,7 @@ class C2POLexer(Lexer):
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
-               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DEADLINE }
+               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DEADLINE, MULTI_MODAL }
 
     # String containing ignored characters between tokens
     ignore = ' \t'
@@ -62,6 +62,7 @@ class C2POLexer(Lexer):
 
     # Others
     DEADLINE = r'with d =|with d='
+    MULTI_MODAL = r', k =|,k =|, k=|,k='
     CONTRACT_ASSIGN = r'=>'
     ASSIGN  = r':='
     SYMBOL  = r'[a-zA-Z_][a-zA-Z0-9_]*'
@@ -133,6 +134,7 @@ class C2POParser(Parser):
         self.contracts: Dict[str,int] = {}
         self.atomics: Dict[str,Node] = {}
         self.deadlines: Dict[int, int] = {}
+        self.multimodals: Dict[int, int] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
@@ -646,3 +648,11 @@ class C2POParser(Parser):
     @_('DEADLINE NUMERAL')
     def deadline(self, p):
         self.deadlines[p.lineno] = int(p.NUMERAL) 
+
+    @_('expr multimodal')
+    def expr(self, p):
+        return p.expr
+
+    @_('deadline MULTI_MODAL NUMERAL')
+    def multimodal(self, p):
+        self.multimodals[p.lineno] = int(p.NUMERAL) 

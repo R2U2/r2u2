@@ -737,7 +737,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
-def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
+def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
 
@@ -746,18 +746,13 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
     visited: List[int] = []
     total: int = 0
     spec_wpd: Dict[int,int] = {}
-    spec_deadline: Dict[int,int] = {}
     
     def compute_node_info_util(node: Node) -> None:
         nonlocal spec_wpd
-        nonlocal spec_deadline
         if isinstance(node, SpecificationSet):
             return
         if(node.wpd >= spec_wpd.get(node.ln, node.wpd)): # Find wpd of each spec
             spec_wpd[node.ln] = node.wpd
-        if(not (node.ln in spec_deadline.keys())): # Find the deadline for each spec
-            if node.ln in d:
-                spec_deadline[node.ln] = d[node.ln]
         if(len(node.specs) == 0): # Find specs referenced by each node
                 node.specs.append(node.ln)
         else: # Node appears in multiple specs
@@ -786,6 +781,7 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
 
         max_sibling_wpd: int = 0
         max_prediction_horizon = 0
+        k = 1
         for p in node.get_parents():
             for s in p.get_children():
                 if not id(s) == id(node):
@@ -793,14 +789,14 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
                         max_sibling_wpd = s.wpd
 
         for node_spec in node.specs: # Iterate through and find the max prediction horizon
-            if node_spec in spec_deadline.keys():
-                if(spec_deadline[node_spec] < 0):  # Don't store irrelevant data before i
-                    if (spec_wpd[node_spec]) > max_prediction_horizon:
-                        max_prediction_horizon = spec_wpd[node_spec]
-                elif (spec_wpd[node_spec] - spec_deadline[node_spec]) > max_prediction_horizon:
-                    max_prediction_horizon = (spec_wpd[node_spec] - spec_deadline[node_spec])
+            if node_spec in d.keys():
+                if (spec_wpd[node_spec] - d[node_spec]) > max_prediction_horizon:
+                    max_prediction_horizon = (spec_wpd[node_spec] - d[node_spec])
+            if node_spec in m.keys():
+                if m[node_spec] > k:
+                    k = m[node_spec]
 
-        node.scq_size = max(max_sibling_wpd-node.bpd,0)+1+min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)
+        node.scq_size = max(max_sibling_wpd-node.bpd,0)+k*(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
         total += node.scq_size
 
     preorder(node, compute_node_info_util)
@@ -814,7 +810,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines)
+    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines, program.multimodals)
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -915,6 +911,7 @@ def parse(input: str, mission_time: int) -> Program|None:
         parser.structs,
         parser.atomics,
         parser.deadlines,
+        parser.multimodals,
         specs[FormulaType.FT],
         specs[FormulaType.PT]
     )
