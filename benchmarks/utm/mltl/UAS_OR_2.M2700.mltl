@@ -1,5 +1,1 @@
-INPUT
-	Roll_geq_45,Roll_leq_45: bool;
-
-FTSPEC
-	!G[0,3] !(Roll_geq_45 && Roll_leq_45);
+(true)U[0,3]((a0)&(a1))

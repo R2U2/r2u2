@@ -1,5 +1,1 @@
-INPUT
-	DeltaLon_gt_0,DeltaLon_lt_0,VelE_gt_0_25,VelE_lt_0_25: bool;
-
-FTSPEC
-	G[0,M] ((VelE_gt_0_25 && DeltaLon_gt_0) || (VelE_lt_0_25 && DeltaLon_lt_0));
+G[0,2700](!((!((a0)&(a1)))&(!((a2)&(a3)))))

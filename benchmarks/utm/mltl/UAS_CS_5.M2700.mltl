@@ -1,5 +1,1 @@
-INPUT
-	AccE_eq_0,Subphase_eq_Cruise,AccD_eq_0,AccN_eq_0: bool;
-
-FTSPEC
-	Subphase_eq_Cruise -> F[0,M] (AccD_eq_0 && AccN_eq_0 && AccE_eq_0);
+!((a3)&(!((true)U[0,2700](((a0)&(a1))&(a2)))))

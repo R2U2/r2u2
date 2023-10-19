@@ -1,5 +1,1 @@
-INPUT
-	Subphase_neq_TestActuators,RPM_geq_MIN,Subphase_neq_Undefined,RPM_leq_MAX,Subphase_neq_Landed: bool;
-
-FTSPEC
-	(Subphase_neq_Undefined && Subphase_neq_TestActuators && Subphase_neq_Landed) -> !G[0,3] !(RPM_leq_MAX && RPM_geq_MIN);
+!((((a0)&(a1))&(a2))&(!((true)U[0,3]((a3)&(a4)))))

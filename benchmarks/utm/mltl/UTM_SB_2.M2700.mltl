@@ -1,5 +1,1 @@
-INPUT
-	wpLon_geq_MinLonLB,wpLon_leq_MaxLonUB: bool;
-
-FTSPEC
-	!G[0,M] !(wpLon_leq_MaxLonUB && wpLon_geq_MinLonLB);
+(true)U[0,2700]((a0)&(a1))

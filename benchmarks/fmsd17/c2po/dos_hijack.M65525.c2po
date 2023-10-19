@@ -1,0 +1,29 @@
+INPUT
+    ucmd_1, ucmd_2, ucmd3: bool;
+    Rb, cmd, state: int;
+    ucmd_freq_1, ucmd_freq_2, ucmd_freq_3, bad_packet_freq, nav_cmd_freq: float;
+
+DEFINE
+    UnusualCmds := {ucmd_1, ucmd_2, ucmd3};
+    UnusualPeriodicCmdFreqs := {ucmd_freq_1, ucmd_freq_2, ucmd_freq_3};
+
+    CMD_TAKEOFF := 0;
+    STATE_LANDING_COMPLETE := 0;
+
+    AT1 := bad_packet_freq < 1.5;
+    AT2 := ! (forsome(ucmd:UnusualCmds) (ucmd));
+    AT3 := nav_cmd_freq < 10.0;
+    AT4 := foreach(upcmd_freq:UnusualPeriodicCmdFreqs) (upcmd_freq < 0.3);
+
+FTSPEC
+    G[0,10] ((Rb == 0) || ((Rb >= 1) U[0,10] (Rb == 0)));
+
+    G[0,M] ((cmd == CMD_TAKEOFF) -> 
+        (( foreach(ucmd:UnusualCmds)(! ucmd) ) U[0,M] (state == STATE_LANDING_COMPLETE)));
+
+    G[0,500] (AT1);
+    G[0,300] (AT2);
+    G[0,300] (AT3);
+    G[0,300] (AT4);
+    -- Note: These four are then fed into Bayes nets in paper...
+    

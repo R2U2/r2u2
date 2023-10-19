@@ -1,5 +1,1 @@
-INPUT
-	TempE1_leq_MAX,TempE1_geq_MIN: bool;
-
-FTSPEC
-	G[0,M] (TempE1_leq_MAX && TempE1_geq_MIN);
+G[0,2700]((a0)&(a1))

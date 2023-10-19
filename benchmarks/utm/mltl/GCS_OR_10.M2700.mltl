@@ -1,5 +1,1 @@
-INPUT
-	wpLon_geq_LonLB,wpLon_leq_LonUB: bool;
-
-FTSPEC
-	wpLon_leq_LonUB && wpLon_geq_LonLB;
+(a0)&(a1)

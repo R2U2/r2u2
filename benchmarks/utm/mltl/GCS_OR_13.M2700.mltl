@@ -1,5 +1,1 @@
-INPUT
-	Lon_geq_LonLB,Lon_leq_LonUB: bool;
-
-FTSPEC
-	Lon_leq_LonUB && Lon_geq_LonLB;
+(a0)&(a1)

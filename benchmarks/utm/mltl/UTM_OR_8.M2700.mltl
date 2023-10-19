@@ -1,5 +1,1 @@
-INPUT
-	wpLat_geq_LatLB,wpLat_leq_LatUB: bool;
-
-FTSPEC
-	G[0,3] (wpLat_leq_LatUB && wpLat_geq_LatLB);
+G[0,3]((a0)&(a1))

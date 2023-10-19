@@ -1,5 +1,1 @@
-INPUT
-	conLat_geq_LatLB,conLat_leq_LatUB: bool;
-
-FTSPEC
-	conLat_leq_LatUB && conLat_geq_LatLB;
+(a0)&(a1)

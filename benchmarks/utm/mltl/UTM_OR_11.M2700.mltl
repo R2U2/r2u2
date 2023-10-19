@@ -1,5 +1,1 @@
-INPUT
-	Lat_geq_latLB,Lat_leq_LatUB: bool;
-
-FTSPEC
-	G[0,3] (Lat_leq_LatUB && Lat_geq_latLB);
+G[0,3]((a0)&(a1))

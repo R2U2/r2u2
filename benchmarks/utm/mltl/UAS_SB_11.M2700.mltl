@@ -1,5 +1,1 @@
-INPUT
-	Phase_eq_Ready,Phase_eq_Waypoints,Phase_eq_Home,Phase_eq_Test,Phase_eq_Manual,Phase_eq_Landing: bool;
-
-FTSPEC
-	G[0,M] (Phase_eq_Ready || Phase_eq_Test || Phase_eq_Manual || Phase_eq_Waypoints || Phase_eq_Home || Phase_eq_Landing);
+G[0,2700](!((!(!((!(!((!(!((!(!((!(a0))&(!(a1)))))&(!(a2)))))&(!(a3)))))&(!(a4)))))&(!(a5))))

@@ -1,5 +1,1 @@
-INPUT
-	wpLat_neq_preWpLat,wpLon_neq_prevWpLon: bool;
-
-FTSPEC
-	F[0,M] (wpLat_neq_preWpLat && wpLon_neq_prevWpLon);
+(true)U[0,2700]((a0)&(a1))

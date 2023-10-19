@@ -1,6 +1,1 @@
-INPUT
-	power,electricalpedalpos,brakecmd: bool;
-
-FTSPEC
-	(true ->  G[9454,10000] ((power && electricalpedalpos) <-> brakecmd)) && true
-;
+(!((true)&(!(G[9454,10000]((!(((a0)&(a1))&(!(a2))))&(!((!((a0)&(a1)))&(a2))))))))&(true)

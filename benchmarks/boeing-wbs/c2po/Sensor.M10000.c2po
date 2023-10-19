@@ -1,0 +1,6 @@
+INPUT
+	LiVar691,wheelrolling: bool;
+
+FTSPEC
+	(true ->  G[6391,10000] (wheelrolling <-> LiVar691)) && true
+;

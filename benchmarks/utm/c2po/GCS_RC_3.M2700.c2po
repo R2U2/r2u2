@@ -1,0 +1,5 @@
+INPUT
+	Status_eq_Replaced,Status_eq_Approved: bool;
+
+FTSPEC
+	Status_eq_Replaced -> G[0,M](!Status_eq_Approved);

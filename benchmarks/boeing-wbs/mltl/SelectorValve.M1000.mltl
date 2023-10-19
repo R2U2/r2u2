@@ -1,6 +1,1 @@
-INPUT
-	LiVar789,LiVar750,LiVar751,LiVar785,systemvalidity,LiVar786,LiVar799,LiVar790,LiVar800: bool;
-
-FTSPEC
-	(true -> (( G[370,572] ((LiVar785 && systemvalidity) -> (LiVar750 && LiVar790)) &&  G[72,235] (((LiVar786 || !systemvalidity) && LiVar799) -> (LiVar751 && LiVar789))) &&  G[305,544] (((LiVar786 || !systemvalidity) && LiVar800) -> (LiVar751 && LiVar790)))) && true
-;
+(!((true)&(!(G[72,235]((G[0,0]((G[298,337](!(((a0)&(a1))&(!((a2)&(a3))))))&(G[0,0](!(((!((!(a4))&(!(!(a1)))))&(a5))&(!((a6)&(a7))))))))&(G[233,309](!(((!((!(a4))&(!(!(a1)))))&(a8))&(!((a6)&(a3)))))))))))&(true)

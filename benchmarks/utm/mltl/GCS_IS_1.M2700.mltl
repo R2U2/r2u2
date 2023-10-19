@@ -1,5 +1,1 @@
-INPUT
-	Time_leq_End,Time_geq_Start: bool;
-
-FTSPEC
-	G[0,M] (Time_geq_Start && Time_leq_End);
+G[0,2700]((a0)&(a1))

@@ -1,6 +1,1 @@
-INPUT
-	LiVar904,communicationphase: bool;
-
-FTSPEC
-	(LiVar904 -> ( G[605,813] ( F[201,979] communicationphase) &&  G[505,1000] ( F[431,483] !communicationphase))) && true
-;
+(!((a1)&(!(G[505,713]((G[100,100]((true)U[201,979](a0)))&(G[0,287]((true)U[431,483](!(a0)))))))))&(true)

@@ -1,5 +1,1 @@
-INPUT
-	conStart_leq_conEnd: bool;
-
-FTSPEC
-	conStart_leq_conEnd;
+a0

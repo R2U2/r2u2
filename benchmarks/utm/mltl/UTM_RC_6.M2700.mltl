@@ -1,5 +1,1 @@
-INPUT
-	Status_eq_Replaced,Status_eq_Approved,TimeFiledDiff_geq_Margin,Status_eq_Rejected: bool;
-
-FTSPEC
-	G[0,3] ((!Status_eq_Rejected && !Status_eq_Approved && !Status_eq_Replaced) && TimeFiledDiff_geq_Margin);
+G[0,3]((((!(a0))&(!(a1)))&(!(a2)))&(a3))

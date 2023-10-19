@@ -1,6 +1,1 @@
-INPUT
-	mechcmd,eleccmd,LiVar783,LiVar748: bool;
-
-FTSPEC
-	(true ->  G[823,1000] (((eleccmd || mechcmd) && LiVar783) <-> LiVar748)) && true
-;
+(!((true)&(!(G[823,1000]((!(((!((!(a0))&(!(a1))))&(a2))&(!(a3))))&(!((!((!((!(a0))&(!(a1))))&(a2)))&(a3))))))))&(true)

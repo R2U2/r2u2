@@ -1,0 +1,5 @@
+INPUT
+	conUASa_neq_conUAS: bool;
+
+FTSPEC
+	conUASa_neq_conUAS;

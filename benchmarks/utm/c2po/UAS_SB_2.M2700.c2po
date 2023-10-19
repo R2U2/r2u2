@@ -1,0 +1,5 @@
+INPUT
+	Roll_gt_180,Roll_leq_180: bool;
+
+FTSPEC
+	G[0,M] (Roll_gt_180 && Roll_leq_180);

@@ -1,128 +1,124 @@
-INPUT
-	StartA_leq_StartB,Time_gr_0,VelN_gt_PrevVA_minus_Error,PosErise_leq_0_25,Ang_geq_0,Acc_Mag_geq_0,wpLat_leq_LatUB,RefYaw_eq_0,Subphase_eq_Stop,TempE2_leq_MIN,RPM_geq_MIN,TimeDif_leq_MaxTime,Pres_lt_Prev_minus_Delta,Lat_geq_MinLatLB,PosHMag_lt_Prev_plus_Delta,VelE_gt_0_25,Status_eq_Accepted,Time_leq_End,wpAlt_leq_AltUB,TempE2_gr_Prev_minus_MAX,TempE2_geq_MIN,Time_geq_Start,Vel_leq_VelUB,FlightMode_eq_Automatic,TempE1_lt_Prev_plus_MAX,conUASa_geq_MaxFP,Subphase_eq_GoTo,Subphase_eq_Landed,wpAlt_geq_0,Time_lt_24,AccE_eq_0,PosHMag_gt_Prev_minus_Delta,wpLon_geq_MinLonLB,Subphase_neq_Undefined,Pres_lt_MaxPresErr,PosD_minus_Alt_lt_Error,Phase_eq_Test,Phase_eq_Ready,Roll_leq_45,Pitch_leq_180,wpLon_eq_fpLon,VelD_Mag_geq_0,Ang_geq_270,Subphase_neq_TestActuators,PosNrise_geq_0_25,wpLat_geq_LatLB,Subphase_eq_TestActuators,PosMag_lt_MAX,Lon_lt_180,Status_eq_Approved,conEng_leq_120Time,Status_eq_Replaced,Vel_gt_0,Lon_minus_Prev_lt_0,Roll_lt_Prev_minus_Delta,Ang_leq_90,Lat_leq_MaxLatUB,wpLon_neq_prevWpLon,DeltaLat_lt_0,TempE1_geq_MIN,StartA_leq_EndB,TempE1_gr_Prev_minus_MAX,AccD_lt_0,Ang_geq_180,conAlt_leq_AltUB,fpLon_leq_MaxLonUB,Phase_eq_Landing,Lat_minus_Prev_lt_0,wpLat_leq_MaxLatUB,VelN_gt_0_25,Pitch_lt_Prev_minus_Delta,Pitch_geq_45,FlightTime_lt_MAX,Phase_eq_Valid,DeltaLab_gt_0,RPM_leq_MAX,AccE_lt_0,conStart_geq_Time,Roll_gt_Prev_plut_Delta,Lat_minus_Prev_gt_0,TempE1_leq_MAX,Ang_leq_360,wpLon_geq_LonLB,Temp_leq_MIN,VelH_Mag_leq_MAX,PosD_gt_Prev_minus_Delta_Dec,DeltaLon_lt_0,wpLonLat_eq_fpLon_Lat,conEnd_leq_End,conStart_leq_conEnd,VelD_gt_Prev_minus_Delta_Desc,Takeoff_Time_lt_Landing_Time,fpID_leq_PrevfpID,Pres_leq_MAX,RPM_geq_0,Alt_geq_0,AccN_eq_0,RefYawdot_eq_0,Phase_eq_Manual,Roll_leq_180,Lat_lt_90,DeltaLon_gt_0,Subphase_neq_Landed,Acc_Mag_leq_MAX,Lon_minus_Prev_gt_0,fpLon_geq_MinLonLB,Alt_leq_MAX,PosD_lt_Prev_Delta_Inc,FlightTime_leq_MAX,fpAlt_Leq_AltUB,wpLon_leq_MaxLonUB,Pres_geq_MIN,Start_leq_End,Roll_gt_180,VelH_Mag_geq_0,wpLat_geq_MinLatLB,wpLon_leq_LonUB,fpAlt_leq_AltUB,conUASb_geq_MaxFP,RefVelD_eq_0,conLon_geq_LonLB,conLon_leq_LonLB,fpLon_geq_LonLB,Pres_geq_0,FlightTime_geq_MAX,Subphase_eq_InFlight,Yaw_gt_Prev_minus_Delta,TempE2_leq_MAX,PosNrise_leq_0_25,Status_eq_Rejected,Phase_eq_Home,Yaw_gt_Prev_plus_Delta,Temp_leq_MAX,Time_geq_PrevTimeMargin,TimeFiledDiff_geq_Margin,Lat_geq_LatLB,VelN_lt_PrevVA_plus_Error,wpLat_eq_fpLat,Yaw_leq_180,ConvFact_geq_k1_minus_Error,Lon_geq_MinLonLB,Pres_gt_Prev_minus_Delta,VelD_lt_Prev_plus_Delta_Climb,Ang_leq_270,Vel_geq_0,StartB_leq_EndA,PosMag_leq_MAX,Temp_lt_Prev_plus_MAX,Roll_geq_45,Lon_geq_LonLB,conStart_geq_Start,ConvFact_leq_k2_plus_Error,Lat_geq_latLB,AccN_lt_0,wpLat_neq_preWpLat,Lon_gt_180,Alt_leq_AltUB,conLat_leq_LatUB,Subphase_eq_undefined,Lon_leq_LonUB,VelE_lt_PrevVA_plus_Error,pfLat_geq_LatLB,Subphase_eq_Hover,Lat_leq_LatLB,Yaw_gr_180,Pitch_leq_45,ConvFact_leq_k1_plus_Error,conLat_geq_LatLB,TempE2_lt_Prev_plus_MAX,fpLat_leq_LatUB,fpLon_leq_LonUB,VelD_lt_PrevVA_plus_Error,fpLat_leq_MaxLatUB,VelE_lt_0_25,Temp_geq_MIN,fpAlt_geq_0,wpLon_Leq_LonUB,Pres_gt_Prev_plus_Delta,conUASa_neq_conUAS,conAlt_geq_0,Temp_gr_Prev_minus_MAX,Pres_lt_Prev_plus_Delta,AccD_eq_0,VelN_lt_0_25,Phase_eq_Takeoff,Pres_gt_MinPresErr,Start_geq_TimeFiled,RefVelE_eq_0,Subphase_eq_Stationary,Lon_leq_MaxLonUB,Subphase_eq_StopAt,Pitch_gt_Prev_plus_Delta,Phase_eq_Waypoints,Yaw_lt_Prev_minus_Delta,RefVelN_eq_0,VelD_Mag_leq_MAX,Yaw_lt_Prev_plus_Delta,Lat_gr_90,fpLat_geq_MinLatLB,ConvFact_geq_k2_minus_Error,Lat_leq_LatUB,Pitch_gr_180,PosErise_geq_0_25,fpLat_geq_LatLB,Subphase_eq_Cruise,FlightMode_eq_Home: bool;
-
-FTSPEC
-	UAS_OR_1: (Subphase_neq_Undefined && Subphase_neq_TestActuators && Subphase_neq_Landed) -> !G[0,3] !(RPM_leq_MAX && RPM_geq_MIN);
-	UAS_OR_2: !G[0,3] !(Roll_geq_45 && Roll_leq_45);
-	UAS_OR_3: !G[0,3] !(Pitch_geq_45 && Pitch_leq_45);
-	UAS_OR_4: !G[0,3] !(Alt_leq_MAX);
-	UAS_OR_5: G[0,M] (FlightTime_leq_MAX);
-	UAS_OR_6: !G[0,3] !(Temp_leq_MIN && Temp_geq_MIN);
-	UAS_OR_7: !G[0,3] !(TempE2_leq_MIN && TempE1_geq_MIN);
-	UAS_OR_8: !G[0,3] !(TempE2_leq_MIN && TempE1_geq_MIN);
-	UAS_OR_9: !G[0,3] !(Pres_leq_MAX && Pres_geq_MIN);
-	UAS_OR_10: !G[0,3] !(VelH_Mag_leq_MAX && VelH_Mag_geq_0);
-	UAS_OR_11: G[0,3] !(VelD_Mag_leq_MAX && VelD_Mag_geq_0);
-	UAS_OR_12: !G[0,3] !(PosMag_lt_MAX);
-	UAS_OR_13: G[0,M] (PosMag_leq_MAX);
-	GCS_OR_1: Status_eq_Accepted || Status_eq_Rejected || Status_eq_Replaced;
-	GCS_OR_2: Start_leq_End;
-	GCS_OR_3: Start_geq_TimeFiled;
-	GCS_OR_4: fpLat_leq_LatUB && pfLat_geq_LatLB;
-	GCS_OR_5: fpLon_leq_LonUB && fpLon_geq_LonLB;
-	GCS_OR_6: fpAlt_leq_AltUB && fpAlt_geq_0;
-	GCS_OR_7: Phase_eq_Valid;
-	GCS_OR_8: wpLonLat_eq_fpLon_Lat;
-	GCS_OR_9: wpLat_leq_LatUB && wpLat_geq_LatLB;
-	GCS_OR_10: wpLon_leq_LonUB && wpLon_geq_LonLB;
-	GCS_OR_11: wpAlt_leq_AltUB && wpAlt_geq_0;
-	GCS_OR_12: Lat_leq_LatLB && Lat_geq_LatLB;
-	GCS_OR_13: Lon_leq_LonUB && Lon_geq_LonLB;
-	GCS_OR_14: Alt_leq_AltUB && Alt_geq_0;
-	GCS_OR_15: Vel_leq_VelUB && Vel_geq_0;
-	GCS_OR_16: Ang_leq_360 && Ang_geq_0;
-	UTM_OR_1: Status_eq_Accepted || Status_eq_Rejected || Status_eq_Replaced;
-	UTM_OR_2: Start_leq_End;
-	UTM_OR_3: Start_geq_TimeFiled;
-	UTM_OR_4: fpLat_leq_LatUB && fpLat_geq_LatLB;
-	UTM_OR_5: fpLon_leq_LonUB && fpLon_geq_LonLB;
-	UTM_OR_6: fpAlt_Leq_AltUB && fpAlt_geq_0;
-	UTM_OR_7: Phase_eq_Valid;
-	UTM_OR_8: G[0,3] (wpLat_leq_LatUB && wpLat_geq_LatLB);
-	UTM_OR_9: G[0,3] (wpLon_Leq_LonUB && wpLon_geq_LonLB);
-	UTM_OR_10: G[0,3] (wpAlt_leq_AltUB && wpAlt_geq_0);
-	UTM_OR_11: G[0,3] (Lat_leq_LatUB && Lat_geq_latLB);
-	UTM_OR_12: G[0,3] (Lon_leq_LonUB && Lon_geq_LonLB);
-	UTM_OR_13: G[0,3] (Alt_leq_AltUB && Alt_geq_0);
-	UTM_OR_14: G[0,3] (Vel_leq_VelUB && Vel_geq_0);
-	UTM_OR_15: G[0,3] (Ang_leq_360 && Ang_geq_0);
-	UTM_OR_16: conUASa_geq_MaxFP && conUASb_geq_MaxFP;
-	UTM_OR_17: (StartA_leq_StartB && StartB_leq_EndA) || (!StartA_leq_StartB && StartA_leq_EndB);
-	UTM_OR_18: conStart_leq_conEnd;
-	UTM_OR_19: conUASa_neq_conUAS;
-	UTM_OR_20: conLat_leq_LatUB && conLat_geq_LatLB;
-	UTM_OR_21: conLon_leq_LonLB && conLon_geq_LonLB;
-	UTM_OR_22: conAlt_leq_AltUB && conAlt_geq_0;
-	UAS_SB_1: G[0,M] (RPM_geq_0 && RPM_leq_MAX);
-	UAS_SB_2: G[0,M] (Roll_gt_180 && Roll_leq_180);
-	UAS_SB_3: G[0,M] (Pitch_gr_180 && Pitch_leq_180);
-	UAS_SB_4: G[0,M] (Yaw_gr_180 && Yaw_leq_180);
-	UAS_SB_5: !G[0,3] !(Alt_geq_0 && Alt_leq_MAX);
-	UAS_SB_6: G[0,M] (Alt_geq_0 && Alt_leq_MAX);
-	UAS_SB_7: G[0,M] (Time_lt_24 && Time_gr_0);
-	UAS_SB_8: G[0,M] (FlightTime_lt_MAX && FlightTime_geq_MAX);
-	UAS_SB_9: G[0,M] (Lat_gr_90 && Lat_lt_90 && Lon_gt_180 && Lon_lt_180);
-	UAS_SB_10: G[0,M] (Subphase_eq_undefined || Subphase_eq_TestActuators || Subphase_eq_Stationary || Subphase_eq_Hover || Subphase_eq_Cruise || Subphase_eq_GoTo || Subphase_eq_StopAt || Subphase_eq_InFlight || Subphase_eq_Landed);
-	UAS_SB_11: G[0,M] (Phase_eq_Ready || Phase_eq_Test || Phase_eq_Manual || Phase_eq_Waypoints || Phase_eq_Home || Phase_eq_Landing);
-	UAS_SB_12: G[0,M] (FlightMode_eq_Automatic || FlightMode_eq_Home);
-	UAS_SB_13: G[0,M] (Temp_leq_MAX && Temp_geq_MIN);
-	UAS_SB_14: G[0,M] (TempE1_leq_MAX && TempE1_geq_MIN);
-	UAS_SB_15: G[0,M] (TempE2_leq_MAX && TempE2_geq_MIN);
-	UAS_SB_16: G[0,M] (Pres_leq_MAX && Pres_geq_0);
-	UAS_SB_17: !G[0,3] !(Acc_Mag_leq_MAX && Acc_Mag_geq_0);
-	GCS_SB_1: !G[0,M] !(wpLat_leq_MaxLatUB && wpLat_geq_MinLatLB);
-	GCS_SB_2: !G[0,M] !(wpLon_leq_MaxLonUB && wpLon_geq_MinLonLB);
-	GCS_SB_3: !G[0,M] !(Lat_leq_MaxLatUB && Lat_geq_MinLatLB);
-	GCS_SB_4: !G[0,M] !(Lon_leq_MaxLonUB && Lon_geq_MinLonLB);
-	GCS_SB_5: !G[0,M] !(fpLat_leq_MaxLatUB && fpLat_geq_MinLatLB);
-	GCS_SB_6: !G[0,M] !(fpLon_leq_MaxLonUB && fpLon_geq_MinLonLB);
-	UTM_SB_1: !G[0,M] !(wpLat_leq_MaxLatUB && wpLat_geq_MinLatLB);
-	UTM_SB_2: !G[0,M] !(wpLon_leq_MaxLonUB && wpLon_geq_MinLonLB);
-	UTM_SB_3: !G[0,M] !(Lat_leq_MaxLatUB && Lat_geq_MinLatLB);
-	UTM_SB_4: !G[0,M] !(Lon_leq_MaxLonUB && Lon_geq_MinLonLB);
-	UTM_SB_5: !G[0,M] !(fpLat_leq_MaxLatUB && fpLat_geq_MinLatLB);
-	UTM_SB_6: !G[0,M] !(fpLon_leq_MaxLonUB && fpLon_geq_MinLonLB);
-	UAS_RC_1: G[0,M] (Temp_lt_Prev_plus_MAX && Temp_gr_Prev_minus_MAX && TempE1_lt_Prev_plus_MAX && TempE1_gr_Prev_minus_MAX && TempE2_lt_Prev_plus_MAX && TempE2_gr_Prev_minus_MAX);
-	UAS_RC_2: G[0,M] (PosHMag_lt_Prev_plus_Delta && PosHMag_gt_Prev_minus_Delta);
-	UAS_RC_3: G[0,M] (PosD_lt_Prev_Delta_Inc && PosD_gt_Prev_minus_Delta_Dec);
-	UAS_RC_4: !G[0,3] (Phase_eq_Ready -> ( (!Pitch_gt_Prev_plus_Delta && !Pitch_lt_Prev_minus_Delta) || (!Roll_gt_Prev_plut_Delta && !Roll_lt_Prev_minus_Delta) || (!Yaw_gt_Prev_plus_Delta && !Yaw_lt_Prev_minus_Delta) ) );
-	UAS_RC_5: G[0,M] (Subphase_eq_GoTo -> (Yaw_lt_Prev_plus_Delta && Yaw_gt_Prev_minus_Delta) );
-	UAS_RC_6: !G[0,3] !(VelD_lt_Prev_plus_Delta_Climb && VelD_gt_Prev_minus_Delta_Desc);
-	UAS_RC_7: !G[0,3] (!Phase_eq_Ready -> (!Pres_gt_Prev_plus_Delta && !Pres_lt_Prev_minus_Delta));
-	UAS_RC_8: !G[0,3] !(Pres_lt_Prev_plus_Delta && Pres_gt_Prev_minus_Delta);
-	GCS_RC_1: Status_eq_Rejected -> G[0,M](Status_eq_Rejected);
-	GCS_RC_2: Status_eq_Rejected -> G[0,M](!Status_eq_Approved);
-	GCS_RC_3: Status_eq_Replaced -> G[0,M](!Status_eq_Approved);
-	GCS_RC_4: !G[0,3] (!TimeDif_leq_MaxTime);
-	UTM_RC_1: Status_eq_Rejected -> G[0,M](Status_eq_Rejected);
-	UTM_RC_2: Status_eq_Rejected -> G[0,M](!Status_eq_Approved);
-	UTM_RC_3: Status_eq_Replaced -> G[0,M](!Status_eq_Approved);
-	UTM_RC_4: G[0,M] (fpID_leq_PrevfpID);
-	UTM_RC_5: G[0,3] (Time_geq_PrevTimeMargin);
-	UTM_RC_6: G[0,3] ((!Status_eq_Rejected && !Status_eq_Approved && !Status_eq_Replaced) && TimeFiledDiff_geq_Margin);
-	UAS_CS_1: G[0,M] ((Phase_eq_Test || Subphase_eq_TestActuators) -> (RefVelN_eq_0 && RefVelE_eq_0 && RefVelD_eq_0 && RefYaw_eq_0 && RefYawdot_eq_0));
-	UAS_CS_2: Phase_eq_Takeoff -> F[0,M] (Phase_eq_Landing);
-	UAS_CS_3: G[0,M] (Takeoff_Time_lt_Landing_Time);
-	UAS_CS_4: Subphase_eq_Stop -> F[0,M] (AccD_lt_0 && AccN_lt_0 && AccE_lt_0);
-	UAS_CS_5: Subphase_eq_Cruise -> F[0,M] (AccD_eq_0 && AccN_eq_0 && AccE_eq_0);
-	GCS_CS_1: F[0,M] (wpLat_neq_preWpLat && wpLon_neq_prevWpLon);
-	GCS_CS_2: F[0,M](wpLat_eq_fpLat && wpLon_eq_fpLon);
-	GCS_CS_3: wpLonLat_eq_fpLon_Lat;
-	UAS_IS_1: !G[0,3] !(Pres_lt_MaxPresErr && Pres_gt_MinPresErr);
-	UAS_IS_2: !G[0,3] !(VelN_lt_PrevVA_plus_Error && VelN_gt_PrevVA_minus_Error);
-	UAS_IS_3: !G[0,3] !(VelE_lt_PrevVA_plus_Error && VelN_gt_PrevVA_minus_Error);
-	UAS_IS_4: !G[0,3] !(VelD_lt_PrevVA_plus_Error && VelN_gt_PrevVA_minus_Error);
-	GCS_IS_1: G[0,M] (Time_geq_Start && Time_leq_End);
-	UTM_IS_1: G[0,M] (Time_geq_Start && Time_leq_End);
-	UTM_IS_2: G[0,M] (conStart_geq_Start && conEnd_leq_End);
-	UTM_IS_3: G[0,M] (conStart_geq_Time && conEng_leq_120Time);
-	IS_UTM_4: G[0,M] (wpLonLat_eq_fpLon_Lat);
-	UAS_PM_1: G[0,M]  ((VelN_gt_0_25 && DeltaLab_gt_0) || (VelN_lt_0_25 && DeltaLat_lt_0));
-	UAS_PM_2: G[0,M] ((VelE_gt_0_25 && DeltaLon_gt_0) || (VelE_lt_0_25 && DeltaLon_lt_0));
-	UAS_PM_3: (PosNrise_geq_0_25 || PosNrise_leq_0_25) -> !G[0,3] (!ConvFact_leq_k1_plus_Error || !ConvFact_geq_k1_minus_Error);
-	UAS_PM_4: (PosErise_geq_0_25 || PosErise_leq_0_25) -> !G[0,3] (!ConvFact_leq_k2_plus_Error || !ConvFact_geq_k2_minus_Error);
-	UAS_PM_5: G[0,M] (PosD_minus_Alt_lt_Error);
-	UTM_PM_1: (Ang_leq_90 && Ang_geq_0 && Vel_gt_0) -> (Lat_minus_Prev_gt_0 && Lon_minus_Prev_lt_0);
-	UTM_PM_2: (Ang_geq_180 && Ang_leq_90 && Vel_gt_0) -> (Lat_minus_Prev_gt_0 && Lon_minus_Prev_gt_0);
-	UTM_PM_3: (Ang_geq_180 && Ang_leq_270 && Vel_gt_0) -> (Lat_minus_Prev_lt_0 && Lon_minus_Prev_gt_0);
-	UTM_PM_4: (Ang_geq_270 && Ang_leq_360 && Vel_gt_0) -> (Lat_minus_Prev_lt_0 && Lon_minus_Prev_lt_0);
+!((((a0)&(a1))&(a2))&(!((true)U[0,3]((a3)&(a4)))))
+(true)U[0,3]((a5)&(a6))
+(true)U[0,3]((a7)&(a8))
+(true)U[0,3](a9)
+G[0,2700](a10)
+(true)U[0,3]((a11)&(a12))
+(true)U[0,3]((a13)&(a14))
+(true)U[0,3]((a13)&(a14))
+(true)U[0,3]((a15)&(a16))
+(true)U[0,3]((a17)&(a18))
+G[0,3](!((a19)&(a20)))
+(true)U[0,3](a21)
+G[0,2700](a22)
+!((!(!((!(a23))&(!(a24)))))&(!(a25)))
+a26
+a27
+(a28)&(a29)
+(a30)&(a31)
+(a32)&(a33)
+a34
+a35
+(a36)&(a37)
+(a38)&(a39)
+(a40)&(a41)
+(a42)&(a43)
+(a44)&(a45)
+(a46)&(a47)
+(a48)&(a49)
+(a50)&(a51)
+!((!(!((!(a23))&(!(a24)))))&(!(a25)))
+a26
+a27
+(a28)&(a52)
+(a30)&(a31)
+(a53)&(a33)
+a34
+G[0,3]((a36)&(a37))
+G[0,3]((a54)&(a39))
+G[0,3]((a40)&(a41))
+G[0,3]((a55)&(a56))
+G[0,3]((a44)&(a45))
+G[0,3]((a46)&(a47))
+G[0,3]((a48)&(a49))
+G[0,3]((a50)&(a51))
+(a57)&(a58)
+!((!((a59)&(a60)))&(!((!(a59))&(a61))))
+a62
+a63
+(a64)&(a65)
+(a66)&(a67)
+(a68)&(a69)
+G[0,2700]((a70)&(a3))
+G[0,2700]((a71)&(a72))
+G[0,2700]((a73)&(a74))
+G[0,2700]((a75)&(a76))
+(true)U[0,3]((a47)&(a9))
+G[0,2700]((a47)&(a9))
+G[0,2700]((a77)&(a78))
+G[0,2700]((a79)&(a80))
+G[0,2700]((((a81)&(a82))&(a83))&(a84))
+G[0,2700](!((!(!((!(!((!(!((!(!((!(!((!(!((!(!((!(a85))&(!(a86)))))&(!(a87)))))&(!(a88)))))&(!(a89)))))&(!(a90)))))&(!(a91)))))&(!(a92)))))&(!(a93))))
+G[0,2700](!((!(!((!(!((!(!((!(!((!(a94))&(!(a95)))))&(!(a96)))))&(!(a97)))))&(!(a98)))))&(!(a99))))
+G[0,2700](!((!(a100))&(!(a101))))
+G[0,2700]((a102)&(a12))
+G[0,2700]((a103)&(a14))
+G[0,2700]((a104)&(a105))
+G[0,2700]((a15)&(a106))
+(true)U[0,3]((a107)&(a108))
+(true)U[0,2700]((a109)&(a110))
+(true)U[0,2700]((a111)&(a112))
+(true)U[0,2700]((a113)&(a114))
+(true)U[0,2700]((a115)&(a116))
+(true)U[0,2700]((a117)&(a118))
+(true)U[0,2700]((a119)&(a120))
+(true)U[0,2700]((a109)&(a110))
+(true)U[0,2700]((a111)&(a112))
+(true)U[0,2700]((a113)&(a114))
+(true)U[0,2700]((a115)&(a116))
+(true)U[0,2700]((a117)&(a118))
+(true)U[0,2700]((a119)&(a120))
+G[0,2700]((((((a121)&(a122))&(a123))&(a124))&(a125))&(a126))
+G[0,2700]((a127)&(a128))
+G[0,2700]((a129)&(a130))
+!(G[0,3](!((a94)&(!(!((!(!((!((!(a131))&(!(a132))))&(!((!(a133))&(!(a134)))))))&(!((!(a135))&(!(a136))))))))))
+G[0,2700](!((a90)&(!((a137)&(a138)))))
+(true)U[0,3]((a139)&(a140))
+!(G[0,3](!((!(a94))&(!((!(a141))&(!(a142)))))))
+(true)U[0,3]((a143)&(a144))
+!((a24)&(!(G[0,2700](a24))))
+!((a24)&(!(G[0,2700](!(a145)))))
+!((a25)&(!(G[0,2700](!(a145)))))
+(true)U[0,3](a146)
+!((a24)&(!(G[0,2700](a24))))
+!((a24)&(!(G[0,2700](!(a145)))))
+!((a25)&(!(G[0,2700](!(a145)))))
+G[0,2700](a147)
+G[0,3](a148)
+G[0,3]((((!(a24))&(!(a145)))&(!(a25)))&(a149))
+G[0,2700](!((!((!(a95))&(!(a86))))&(!(((((a150)&(a151))&(a152))&(a153))&(a154)))))
+!((a155)&(!((true)U[0,2700](a99))))
+G[0,2700](a156)
+!((a160)&(!((true)U[0,2700](((a157)&(a158))&(a159)))))
+!((a89)&(!((true)U[0,2700](((a161)&(a162))&(a163)))))
+(true)U[0,2700]((a164)&(a165))
+(true)U[0,2700]((a166)&(a167))
+a35
+(true)U[0,3]((a168)&(a169))
+(true)U[0,3]((a170)&(a171))
+(true)U[0,3]((a172)&(a171))
+(true)U[0,3]((a173)&(a171))
+G[0,2700]((a174)&(a175))
+G[0,2700]((a174)&(a175))
+G[0,2700]((a176)&(a177))
+G[0,2700]((a178)&(a179))
+G[0,2700](a35)
+G[0,2700](!((!((a180)&(a181)))&(!((a182)&(a183)))))
+G[0,2700](!((!((a184)&(a185)))&(!((a186)&(a187)))))
+!((!((!(a188))&(!(a189))))&(!(!(G[0,3](!((!(!(a190)))&(!(!(a191)))))))))
+!((!((!(a192))&(!(a193))))&(!(!(G[0,3](!((!(!(a194)))&(!(!(a195)))))))))
+G[0,2700](a196)
+!((((a197)&(a51))&(a198))&(!((a199)&(a200))))
+!((((a201)&(a197))&(a198))&(!((a199)&(a202))))
+!((((a201)&(a203))&(a198))&(!((a204)&(a202))))
+!((((a205)&(a50))&(a198))&(!((a204)&(a200))))

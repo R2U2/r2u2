@@ -1,0 +1,5 @@
+INPUT
+	VelD_Mag_leq_MAX,VelD_Mag_geq_0: bool;
+
+FTSPEC
+	G[0,3] !(VelD_Mag_leq_MAX && VelD_Mag_geq_0);

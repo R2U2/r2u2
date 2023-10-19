@@ -1,6 +1,1 @@
-INPUT
-	hasfault: bool;
-
-FTSPEC
-	G[369,538] (hasfault ->  G[605,1000] hasfault) && G[865,1000] (hasfault ->  F[887,1000] !hasfault) && true
-;
+(G[369,504]((G[0,34](!((a0)&(!(G[605,1000](a0))))))&(G[496,496](!((a0)&(!((true)U[887,1000](!(a0)))))))))&(true)

@@ -1,5 +1,1 @@
-INPUT
-	Ang_geq_0,Vel_gt_0,Lat_minus_Prev_gt_0,Lon_minus_Prev_lt_0,Ang_leq_90: bool;
-
-FTSPEC
-	(Ang_leq_90 && Ang_geq_0 && Vel_gt_0) -> (Lat_minus_Prev_gt_0 && Lon_minus_Prev_lt_0);
+!((((a0)&(a1))&(a2))&(!((a3)&(a4))))

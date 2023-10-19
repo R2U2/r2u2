@@ -1,0 +1,6 @@
+INPUT
+	brakecmd3,bscuvalidity,ascmd2,wheelrolling2,power,brakecmd8,wheelrolling7,ascmd4,wheelrolling5,brakecmd2,wheelrolling1,electricalpedalposL,ascmd8,brakecmd6,brakecmd5,wheelrolling4,ascmd7,electricalpedalposR,ascmd6,ascmd1,LiVar808,ascmd5,wheelrolling8,wheelrolling3,wheelrolling6,brakecmd7,brakecmd1,brakecmd4,ascmd3: bool;
+
+FTSPEC
+	(true ->  G[5609,10000] (bscuvalidity <-> ((((((((((((((((power && (electricalpedalposL <-> brakecmd1)) && (electricalpedalposL <-> brakecmd2)) && (electricalpedalposR <-> brakecmd3)) && (electricalpedalposR <-> brakecmd4)) && (electricalpedalposL <-> brakecmd5)) && (electricalpedalposL <-> brakecmd6)) && (electricalpedalposR <-> brakecmd7)) && (electricalpedalposR <-> brakecmd8)) && ((LiVar808 && !wheelrolling1) <-> ascmd1)) && ((LiVar808 && !wheelrolling2) <-> ascmd2)) && ((LiVar808 && !wheelrolling3) <-> ascmd3)) && ((LiVar808 && !wheelrolling4) <-> ascmd4)) && ((LiVar808 && !wheelrolling5) <-> ascmd5)) && ((LiVar808 && !wheelrolling6) <-> ascmd6)) && ((LiVar808 && !wheelrolling7) <-> ascmd7)) && ((LiVar808 && !wheelrolling8) <-> ascmd8)))) && true
+;

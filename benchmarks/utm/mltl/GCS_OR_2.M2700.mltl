@@ -1,5 +1,1 @@
-INPUT
-	Start_leq_End: bool;
-
-FTSPEC
-	Start_leq_End;
+a0

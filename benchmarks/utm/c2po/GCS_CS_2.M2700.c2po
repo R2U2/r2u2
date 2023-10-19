@@ -1,0 +1,5 @@
+INPUT
+	wpLat_eq_fpLat,wpLon_eq_fpLon: bool;
+
+FTSPEC
+	F[0,M](wpLat_eq_fpLat && wpLon_eq_fpLon);

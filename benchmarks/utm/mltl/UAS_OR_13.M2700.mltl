@@ -1,5 +1,1 @@
-INPUT
-	PosMag_leq_MAX: bool;
-
-FTSPEC
-	G[0,M] (PosMag_leq_MAX);
+G[0,2700](a0)

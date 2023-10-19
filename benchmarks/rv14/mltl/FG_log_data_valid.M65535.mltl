@@ -1,16 +1,1 @@
-INPUT
-	R_N_tot_eq_64, log_entry, good_recorded, bad_recorded: bool;
-
-FTSPEC
--- The data log is valid; i.e. if we record a log entry, we record exactly one good or one bad packet.
--- NOTE: this spec should be executed, whenever a package is received, i.e.
--- with a 1/64s sampling rate.
-	G[0,M](
-		R_N_tot_eq_64
-	) &&
-	G[0,M](
-		log_entry -> ((good_recorded && ! bad_recorded) 
-				||
-			     (bad_recorded && ! good_recorded)
-			     )
-	);
+G[0,65535]((G[0,0](a0))&(G[0,0](!((a3)&(!(!((!((a2)&(!(a1))))&(!((a1)&(!(a2)))))))))))

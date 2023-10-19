@@ -1,5 +1,1 @@
-INPUT
-	Status_eq_Rejected: bool;
-
-FTSPEC
-	Status_eq_Rejected -> G[0,M](Status_eq_Rejected);
+!((a0)&(!(G[0,2700](a0))))

@@ -1,0 +1,5 @@
+INPUT
+	ConvFact_geq_k1_minus_Error,PosNrise_geq_0_25,PosNrise_leq_0_25,ConvFact_leq_k1_plus_Error: bool;
+
+FTSPEC
+	(PosNrise_geq_0_25 || PosNrise_leq_0_25) -> !G[0,3] (!ConvFact_leq_k1_plus_Error || !ConvFact_geq_k1_minus_Error);

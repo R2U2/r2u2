@@ -1,5 +1,1 @@
-INPUT
-	Takeoff_Time_lt_Landing_Time: bool;
-
-FTSPEC
-	G[0,M] (Takeoff_Time_lt_Landing_Time);
+G[0,2700](a0)

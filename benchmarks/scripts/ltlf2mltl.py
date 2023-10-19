@@ -1,7 +1,7 @@
 """
-Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifact.tar.xz) to C2PO input. Recurses thru argument directory, turns files with '.smv.ltlf' extensions to ones with '.mltl' extensions suitable as input to C2PO and generates CSV headers.
+Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifact.tar.xz) to MLTL file format. Recurses thru argument directory, turns files with '.smv.ltlf' extensions to ones with '.mltl' extensions suitable as input to C2PO.
 
-usage:python ltlf2mltl.py path/to/dir mission-time
+usage: python ltlf2mltl.py path/to/dir mission-time
 """
 import re
 import sys
@@ -29,8 +29,6 @@ for file in files:
     props: Set[str] = Set()
     mltl = ltlf
 
-    mltl = mltl.replace("&", "&&")
-    mltl = mltl.replace("|", "||")
     mltl = mltl.replace("TRUE", "true")
     mltl = mltl.replace("FALSE", "false")
     mltl = mltl.replace("X", "G[1,1]")

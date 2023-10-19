@@ -1,10 +1,1 @@
-INPUT
-	R_N_tot_ge_63, R_N_tot_le_66: bool;
-
-FTSPEC
--- The packet transmission rate is appropriate, about 64 per second. 
-	(G[0,M] (
-		R_N_tot_ge_63 &&
-		R_N_tot_le_66
-		)
-	);
+G[0,65535]((a0)&(a1))

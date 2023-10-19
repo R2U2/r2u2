@@ -1,6 +1,1 @@
-INPUT
-	systemvaliditycmd,LiVar749,LiVar395,LiVar784,LiVar748,LiVar783: bool;
-
-FTSPEC
-	(true -> ( G[6656,10000] ((LiVar783 && systemvaliditycmd) -> (LiVar748 && LiVar395)) &&  G[7971,9276] ((LiVar784 || !systemvaliditycmd) -> LiVar749))) && true
-;
+(!((true)&(!(G[6656,7961]((G[0,2039](!(((a0)&(a1))&(!((a2)&(a3))))))&(G[1315,1315](!((!((!(a4))&(!(!(a1)))))&(!(a5))))))))))&(true)

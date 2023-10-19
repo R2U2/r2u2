@@ -1,5 +1,1 @@
-INPUT
-	RPM_geq_0,RPM_leq_MAX: bool;
-
-FTSPEC
-	G[0,M] (RPM_geq_0 && RPM_leq_MAX);
+G[0,2700]((a0)&(a1))

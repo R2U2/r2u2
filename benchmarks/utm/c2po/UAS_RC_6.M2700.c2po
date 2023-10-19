@@ -1,0 +1,5 @@
+INPUT
+	VelD_gt_Prev_minus_Delta_Desc,VelD_lt_Prev_plus_Delta_Climb: bool;
+
+FTSPEC
+	!G[0,3] !(VelD_lt_Prev_plus_Delta_Climb && VelD_gt_Prev_minus_Delta_Desc);

@@ -1,5 +1,1 @@
-INPUT
-	wpAlt_geq_0,wpAlt_leq_AltUB: bool;
-
-FTSPEC
-	wpAlt_leq_AltUB && wpAlt_geq_0;
+(a0)&(a1)

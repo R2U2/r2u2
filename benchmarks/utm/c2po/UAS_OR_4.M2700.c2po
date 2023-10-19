@@ -1,0 +1,5 @@
+INPUT
+	Alt_leq_MAX: bool;
+
+FTSPEC
+	!G[0,3] !(Alt_leq_MAX);

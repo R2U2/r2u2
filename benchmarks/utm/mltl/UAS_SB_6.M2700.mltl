@@ -1,5 +1,1 @@
-INPUT
-	Alt_geq_0,Alt_leq_MAX: bool;
-
-FTSPEC
-	G[0,M] (Alt_geq_0 && Alt_leq_MAX);
+G[0,2700]((a0)&(a1))

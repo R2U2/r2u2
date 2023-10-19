@@ -1,5 +1,1 @@
-INPUT
-	Time_gr_0,Time_lt_24: bool;
-
-FTSPEC
-	G[0,M] (Time_lt_24 && Time_gr_0);
+G[0,2700]((a0)&(a1))

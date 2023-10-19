@@ -1,0 +1,15 @@
+INPUT
+    set_pitch_gain, set_yaw_gain, set_roll_gain, low_freq_osc, high_freq_osc: bool;
+    -- Note: low_freq_osc, high_freq_osc are obtained from application of an FFT.
+
+DEFINE
+    SetParamComds := {set_pitch_gain, set_yaw_gain, set_roll_gain};
+    Oscs := {low_freq_osc, high_freq_osc};
+
+FTSPEC
+    G[0,M](
+    foreach(osc:Oscs) (
+        foreach(set_param_cmd:SetParamComds) (
+            F[0,2000](set_param_cmd) && F[0,2000](G[0,200](osc)) 
+        )
+    ));

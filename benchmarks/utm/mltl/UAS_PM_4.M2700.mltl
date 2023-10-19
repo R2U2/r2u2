@@ -1,5 +1,1 @@
-INPUT
-	ConvFact_leq_k2_plus_Error,ConvFact_geq_k2_minus_Error,PosErise_leq_0_25,PosErise_geq_0_25: bool;
-
-FTSPEC
-	(PosErise_geq_0_25 || PosErise_leq_0_25) -> !G[0,3] (!ConvFact_leq_k2_plus_Error || !ConvFact_geq_k2_minus_Error);
+!((!((!(a0))&(!(a1))))&(!(!(G[0,3](!((!(!(a2)))&(!(!(a3)))))))))

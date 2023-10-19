@@ -1,5 +1,1 @@
-INPUT
-	conUASb_geq_MaxFP,conUASa_geq_MaxFP: bool;
-
-FTSPEC
-	conUASa_geq_MaxFP && conUASb_geq_MaxFP;
+(a0)&(a1)

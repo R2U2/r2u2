@@ -1,0 +1,5 @@
+INPUT
+	TempE2_leq_MIN,TempE1_geq_MIN: bool;
+
+FTSPEC
+	!G[0,3] !(TempE2_leq_MIN && TempE1_geq_MIN);

@@ -1,0 +1,18 @@
+INPUT
+	Hd_x_ge_0, FG_x_N_ge_0, Hd_x_lt_0, FG_x_N_lt_0, Hd_y_ge_0, FG_y_N_lt_0, Hd_y_lt_0, FG_y_N_ge_0: bool;
+
+FTSPEC
+-- The sensor is working; i.e., the data appears good. For the fluxgate magnetometer, this validity sanity check is usually via checking that the magnitude of the fluxgate vector correlates to the cesium magnetometer; i.e. the sum of the squares of flugate channels ($SumSqFM$) should go up or down with the square of the (more accurate) cesium magnetometer reading ($SqCM$) where $\Delta$ is the change in value required to reflect actual change, above sensor noise.
+	(
+	G[0,M] (
+		(
+		(Hd_x_ge_0 -> FG_x_N_ge_0) &&
+		(Hd_x_lt_0 -> FG_x_N_lt_0)
+		) 
+		||
+		(
+		(Hd_y_ge_0 -> FG_y_N_lt_0) &&
+		(Hd_y_lt_0 -> FG_y_N_ge_0)
+		) 
+		)
+	);

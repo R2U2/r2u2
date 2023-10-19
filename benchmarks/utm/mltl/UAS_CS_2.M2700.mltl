@@ -1,5 +1,1 @@
-INPUT
-	Phase_eq_Takeoff,Phase_eq_Landing: bool;
-
-FTSPEC
-	Phase_eq_Takeoff -> F[0,M] (Phase_eq_Landing);
+!((a1)&(!((true)U[0,2700](a0))))

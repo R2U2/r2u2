@@ -1,5 +1,1 @@
-INPUT
-	conAlt_geq_0,conAlt_leq_AltUB: bool;
-
-FTSPEC
-	conAlt_leq_AltUB && conAlt_geq_0;
+(a0)&(a1)

@@ -1,5 +1,1 @@
-INPUT
-	wpLat_geq_MinLatLB,wpLat_leq_MaxLatUB: bool;
-
-FTSPEC
-	!G[0,M] !(wpLat_leq_MaxLatUB && wpLat_geq_MinLatLB);
+(true)U[0,2700]((a0)&(a1))

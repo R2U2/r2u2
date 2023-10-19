@@ -1,5 +1,1 @@
-INPUT
-	PosHMag_lt_Prev_plus_Delta,PosHMag_gt_Prev_minus_Delta: bool;
-
-FTSPEC
-	G[0,M] (PosHMag_lt_Prev_plus_Delta && PosHMag_gt_Prev_minus_Delta);
+G[0,2700]((a0)&(a1))
