@@ -457,9 +457,9 @@ class TestSuite():
             for suite in config["suites"]:
                 self.suites.append(TestSuite(suite, self.top_results_dir, self.r2u2prep, self.r2u2bin, self._copyback))
 
-    def run(self):
+    def run(self) -> int:
         if not self.status:
-            return
+            return 1
         
         for suite in self.suites:
             suite.run()
@@ -470,21 +470,26 @@ class TestSuite():
 
         if not self.status:
             self.suite_fail()
+            return 1
         else:
             self.suite_pass()
+            return 0
 
 
 def main(r2u2prep: Path, 
          r2u2bin: Path, 
          resultsdir: Path, 
          suite_names: list[str],
-         copyback: bool):
+         copyback: bool
+) -> int:
     suites: list[TestSuite] = []
     for suite_name in suite_names:
         suites.append(TestSuite(suite_name, resultsdir, r2u2prep, r2u2bin, copyback))
 
+    status = 0
     for suite in suites:
-        suite.run()
+        status += suite.run()
+    return status
 
 
 if __name__ == "__main__":
@@ -505,4 +510,5 @@ if __name__ == "__main__":
     r2u2bin = Path(args.r2u2bin)
     resultsdir = Path(args.resultsdir)
 
-    main(r2u2prep, r2u2bin, resultsdir, args.suites, args.copyback)
+    retcode = main(r2u2prep, r2u2bin, resultsdir, args.suites, args.copyback)
+    sys.exit(retcode)
