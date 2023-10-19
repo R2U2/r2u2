@@ -9,66 +9,26 @@ before_script:
 stages:
   - test
 
-ft-test:
+cav-test:
   stage: test
   script:
-    - "cd R2U2_C"
+    - "cd monitors/static"
     - "make"
-    - "cd ../test/TL_formula/"
-    - "python3 genFormulas.py -m"
-    - "cd ../Inputs"
-    - "python3 genInputs.py -m"
-    - "cd ../Oracle"
-    - "python3 genOracle.py -m"
-    - "cd .."
-    - "python3 Subset/FT_Subset.py -r c"
-    - "python3 Subset/FT_Subset.py -v c"
-    - "python3 Report/FT_Report.py"
+    - "cd ../../test"
+    - "python r2u2test.py ../compiler/r2u2prep.py ../monitors/static/build/r2u2 cav"
 
-large-ft-test:
+long-trace:
   stage: test
   script:
-    - "cd R2U2_C"
+    - "cd monitors/static"
     - "make"
-    - "cd ../test/TL_formula/"
-    - "python3 genFormulas.py -m"
-    - "cd ../Inputs"
-    - "python3 genInputs.py -m"
-    - "cd ../Oracle"
-    - "python3 genOracle.py -m"
-    - "cd .."
-    - "python3 Subset/LargeFtSubset.py -r c"
-    - "python3 Subset/LargeFtSubset.py -v c"
-    - "python3 Report/LargeFtReport.py"
-
-large-pt-test:
-  stage: test
-  script:
-    - "cd R2U2_C"
-    - "make"
-    - "cd ../test/TL_formula/"
-    - "python3 genFormulas.py -m"
-    - "cd ../Inputs"
-    - "python3 genInputs.py -m"
-    - "cd ../Oracle"
-    - "python3 genOracle.py -m"
-    - "cd .."
-    - "python3 Subset/LargePtSubset.py -r c"
-    - "python3 Subset/LargePtSubset.py -v c"
-    - "python3 Report/LargePtReport.py"
+    - "cd ../../test"
+    - "python r2u2test.py ../compiler/r2u2prep.py ../monitors/static/build/r2u2 long_trace"
 
 ft-pt-test:
   stage: test
   script:
-    - "cd R2U2_C"
+    - "cd monitors/static"
     - "make"
-    - "cd ../test/TL_formula/"
-    - "python3 genFormulas.py -m"
-    - "cd ../Inputs"
-    - "python3 genInputs.py -m"
-    - "cd ../Oracle"
-    - "python3 genOracle.py -m"
-    - "cd .."
-    - "python3 Subset/FT_PT_Subset.py -r c"
-    - "python3 Subset/FT_PT_Subset.py -v c"
-    - "python3 Report/FT_PT_Report.py"
+    - "cd ../../test"
+    - "python r2u2test.py ../compiler/r2u2prep.py ../monitors/static/build/r2u2 regression"
