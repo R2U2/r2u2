@@ -9,74 +9,74 @@
     "tests": [
         {
             "name": "0006",
-            "mltl":  "test0006.mltl",
+            "mltl":  "test0006.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0006_input0053.log"
         },
         {
             "name": "0010",
-            "mltl":  "test0010.mltl",
+            "mltl":  "test0010.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0010_input0053.log"
         },
         {
             "name": "0015",
-            "mltl":  "test0015.mltl",
+            "mltl":  "test0015.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0015_input0053.log"
         },
         {
             "name": "0031",
-            "mltl":  "test0031.mltl",
+            "mltl":  "test0031.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0031_input0053.log"
         },
         {
             "name": "0034",
-            "mltl":  "test0034.mltl",
+            "mltl":  "test0034.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0034_input0053.log"
         },
         {
             "name": "0037",
-            "mltl":  "test0037.mltl",
+            "mltl":  "test0037.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0037_input0053.log"
         
         },
         {
             "name": "0038",
-            "mltl":  "test0038.mltl",
+            "mltl":  "test0038.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0038_input0053.log"
         },
         {
             "name": "0039",
-            "mltl":  "test0039.mltl",
+            "mltl":  "test0039.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0039_input0053.log"
         },
         {
             "name": "0040",
-            "mltl":  "test0040.mltl",
+            "mltl":  "test0040.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0040_input0053.log"
         },
         {
             "name": "0041",
-            "mltl":  "test0041.mltl",
+            "mltl":  "test0041.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0041_input0053.log"
         },
         {
             "name": "0042",
-            "mltl":  "test0042.mltl",
+            "mltl":  "test0042.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0042_input0053.log"
         },
         {
             "name": "0043",
-            "mltl":  "test0043.mltl",
+            "mltl":  "test0043.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0043_input0053.log"
         }

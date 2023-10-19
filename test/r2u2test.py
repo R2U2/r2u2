@@ -16,7 +16,7 @@ import json
 
 TEST_DIR = Path(__file__).parent
 SUITES_DIR = TEST_DIR / "suites"
-MLTL_DIR = TEST_DIR / "mltl"
+C2PO_INPUT_DIR = TEST_DIR / "c2po"
 TRACE_DIR = TEST_DIR / "trace"
 ORACLE_DIR = TEST_DIR / "oracle"
 WORK_DIR = TEST_DIR / "__workdir"
@@ -408,15 +408,15 @@ class TestSuite():
 
     def suite_fail_msg(self, msg: str):
         self.logger.error(msg)
-        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
         self.status = False
 
     def suite_fail(self):
-        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
         self.status = False
 
     def suite_pass(self):
-        self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
+        self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
 
     def configure_tests(self):
         """Configure test suite according to JSON file."""
@@ -443,7 +443,7 @@ class TestSuite():
         if "tests" in config:
             for testcase in config["tests"]:
                 name: Optional[str] = testcase["name"] if "name" in testcase else None
-                mltl: Optional[Path] = MLTL_DIR / testcase["mltl"] if "mltl" in testcase else None
+                mltl: Optional[Path] = C2PO_INPUT_DIR / testcase["mltl"] if "mltl" in testcase else None
                 trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
                 oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 

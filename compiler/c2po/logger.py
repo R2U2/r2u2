@@ -20,11 +20,11 @@ class StandardFormatter(logging.Formatter):
     format_str = '%(levelname)s'
 
     FORMATS = {
-        logging.DEBUG: format_str + ': %(message)s',
+        logging.DEBUG: format_str + ':%(message)s',
         logging.INFO: '%(message)s',
-        logging.WARNING: format_str + ': %(message)s',
-        logging.ERROR: format_str + ': %(message)s',
-        logging.CRITICAL: format_str + ': %(message)s',
+        logging.WARNING: format_str + ':%(message)s',
+        logging.ERROR: format_str + ':%(message)s',
+        logging.CRITICAL: 'INTERNAL:%(message)s',
     }
 
     def format(self, record) -> str:
@@ -41,7 +41,7 @@ class ColorFormatter(logging.Formatter):
         logging.INFO: '%(message)s',
         logging.WARNING: Color.WARNING + format_str + Color.ENDC + ':%(message)s',
         logging.ERROR: Color.FAIL + format_str + Color.ENDC + ':%(message)s',
-        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ':%(message)s'
+        logging.CRITICAL: Color.UNDERLINE + Color.FAIL + 'INTERNAL' + Color.ENDC + ':%(message)s'
     }
 
     def format(self, record):

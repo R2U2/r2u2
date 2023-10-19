@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
-from .logger import logger
-from .assemble import Operator, FTOperator, PTOperator, BZOperator, Instruction
+from c2po.logger import logger
+from c2po.assemble import Operator, FTOperator, PTOperator, BZOperator, Instruction
 
 DEFAULT_CPU_LATENCY_TABLE: Dict[Operator, int] = { op:10 for op in
     [op for op in FTOperator] + [op for op in PTOperator] + [op for op in BZOperator] }

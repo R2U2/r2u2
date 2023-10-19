@@ -2,8 +2,8 @@ from enum import Enum
 from struct import Struct as cStruct
 from typing import List, Optional, Tuple
 
-from .logger import Color
-from .ast import *
+from c2po.logger import Color
+from c2po.ast import *
 
 class ENGINE_TAGS(Enum):
     NA = 0 # Null instruction tag - acts as ENDSEQ

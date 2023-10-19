@@ -6,13 +6,13 @@
     "tests": [
         {
             "name": "agc",
-            "mltl": "agc.mltl",
+            "mltl": "agc.c2po",
             "trace": "agc.csv",
             "oracle": "agc.log"
         },
         {
             "name": "atomic_checkers",
-            "mltl": "atomic_checkers.mltl",
+            "mltl": "atomic_checkers.c2po",
             "trace": "atomic_checkers.csv",
             "oracle": "atomic_checkers.log",
             "options": {
@@ -22,31 +22,31 @@
         },
         {
             "name": "cav",
-            "mltl": "cav.mltl",
+            "mltl": "cav.c2po",
             "trace": "cav.csv",
             "oracle": "cav.log"
         },
         {
             "name": "set_agg",
-            "mltl": "set_agg.mltl",
+            "mltl": "set_agg.c2po",
             "trace": "set_agg.csv",
             "oracle": "set_agg.log"
         },
         {
             "name": "sets",
-            "mltl": "sets.mltl",
+            "mltl": "sets.c2po",
             "trace": "sets.csv",
             "oracle": "sets.log"
         },
         {
             "name": "simple",
-            "mltl": "simple.mltl",
+            "mltl": "simple.c2po",
             "trace": "simple.csv",
             "oracle": "simple.log"
         },
         {
             "name": "struct",
-            "mltl": "struct.mltl",
+            "mltl": "struct.c2po",
             "trace": "struct.csv",
             "oracle": "struct.log"
         }

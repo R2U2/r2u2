@@ -7,13 +7,13 @@
     "tests": [
         {
             "name": "FT",
-            "mltl":  "ft_long_trace.mltl",
+            "mltl":  "ft_long_trace.c2po",
             "trace":  "long_trace.csv",
             "oracle":  "ft_long_trace.log"
         },
         {
             "name": "PT",
-            "mltl":  "pt_long_trace.mltl",
+            "mltl":  "pt_long_trace.c2po",
             "trace":  "long_trace.csv",
             "oracle":  "pt_long_trace.log"
         }

@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import NamedTuple, Union
+from typing import NamedTuple, Dict
 
-from .logger import logger
+from c2po.logger import logger
 
 
 class R2U2Implementation(Enum):
@@ -20,6 +20,7 @@ class Interval(NamedTuple):
     lb: int
     ub: int
 
+SignalMapping = Dict[str, int]
 
 def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
     if s.lower() == "c":

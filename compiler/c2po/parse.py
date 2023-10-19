@@ -1,4 +1,5 @@
 #type: ignore
+from signal import signal
 from typing import Optional
 from pathlib import Path
 
@@ -88,14 +89,14 @@ class C2POLexer(Lexer):
     SYMBOL["forexactly"] = KW_FOREXACTLY
     SYMBOL["foratleast"] = KW_FORATLEAST
     SYMBOL["foratmost"]  = KW_FORATMOST
-    SYMBOL["G"] = TL_GLOBAL
-    SYMBOL["F"] = TL_FUTURE
-    SYMBOL["H"] = TL_HIST
-    SYMBOL["O"] = TL_ONCE
-    SYMBOL["U"] = TL_UNTIL
-    SYMBOL["R"] = TL_RELEASE
-    SYMBOL["S"] = TL_SINCE
-    SYMBOL["M"] = TL_MISSION_TIME
+    SYMBOL['G'] = TL_GLOBAL
+    SYMBOL['F'] = TL_FUTURE
+    SYMBOL['H'] = TL_HIST
+    SYMBOL['O'] = TL_ONCE
+    SYMBOL['U'] = TL_UNTIL
+    SYMBOL['R'] = TL_RELEASE
+    SYMBOL['S'] = TL_SINCE
+    SYMBOL['M'] = TL_MISSION_TIME
     SYMBOL["true"] = TL_TRUE
     SYMBOL["false"] = TL_FALSE
 
@@ -574,7 +575,7 @@ class C2POParser(Parser):
         return self.mission_time
 
 
-def parse(input_path: Path, mission_time: int) -> Optional[C2POProgram]:
+def parse_c2po(input_path: Path, mission_time: int) -> Optional[C2POProgram]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     with open(input_path, "r") as f:
         contents = f.read()
@@ -587,3 +588,257 @@ def parse(input_path: Path, mission_time: int) -> Optional[C2POProgram]:
         return None
 
     return C2POProgram(0, sections)
+
+
+class MLTLLexer(Lexer):
+
+    tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, 
+               TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC,
+               LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, 
+               NEWLINE, NUMERAL, COMMA, LBRACK, RBRACK, LPAREN, RPAREN }
+
+    # String containing ignored characters between tokens
+    ignore = " \t"
+    ignore_comment = r"\#.*\n"
+
+    # Propositional logic ops/literals
+    LOG_NEG  = r"!"
+    LOG_AND  = r"&"
+    LOG_OR   = r"\|"
+    LOG_IMPL = r"->"
+    LOG_IFF  = r"<->"
+
+    # Others
+    NEWLINE = r"\n"
+    NUMERAL = r"[1-9][0-9]*|0"
+    COMMA   = r","
+    LBRACK  = r"\["
+    RBRACK  = r"\]"
+    LPAREN  = r"\("
+    RPAREN  = r"\)"
+
+    # Keywords
+    TL_MISSION_TIME = r"M"
+    TL_GLOBAL  = r"G"
+    TL_FUTURE  = r"F"
+    TL_HIST    = r"H"
+    TL_ONCE    = r"O"
+    TL_UNTIL   = r"U"
+    TL_RELEASE = r"R"
+    TL_SINCE   = r"S"
+    TL_TRUE    = r"true"
+    TL_FALSE   = r"false"
+    TL_ATOMIC  = r"a([1-9][0-9]*|0)"
+
+    # Extra action for newlines
+    def NEWLINE(self, t):
+        self.lineno += t.value.count("\n")
+        return t
+
+    def error(self, t):
+        logger.error(f"{self.lineno}: Illegal character '%s' {t.value[0]}")
+        self.index += 1
+
+
+class MLTLParser(Parser):
+    tokens = MLTLLexer.tokens
+
+    # Using C operator precedence as a guide
+    precedence = (
+        ("left", LOG_IMPL, LOG_IFF),
+        ("left", LOG_OR),
+        ("left", LOG_AND),
+        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
+        ("right", LOG_NEG, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
+        ("right", LPAREN)
+    )
+
+    def __init__(self, mt: int) :
+        super().__init__()
+        self.mission_time = mt
+        self.spec_num: int = 0
+        self.atomics = set()
+        self.is_ft = False
+        self.is_pt = False
+        self.status = True
+
+    def error(self, token):
+        self.status = False
+        lineno = getattr(token, "lineno", 0)
+        if token:
+            logger.error(f"{lineno}: Syntax error, token='{token.value}'")
+        else:
+            logger.error(f"{lineno}: Syntax error, token is 'None'")
+
+    @_("spec_list")
+    def program(self, p):
+        declaration = [C2POVariableDeclaration(0, list(self.atomics), C2POBoolType(False))]
+        input_section = C2POInputSection(0, declaration)
+
+        if self.is_pt:
+            spec_section = C2POPastTimeSpecSection(0, p[0])
+        else:
+            spec_section = C2POFutureTimeSpecSection(0, p[0])
+
+        # "a0" -> 0
+        # "a1" -> 1
+        # ...
+        signal_mapping = { a:int(a[1:]) for a in self.atomics }
+
+        return ([input_section, spec_section], signal_mapping)
+
+    @_("spec_list spec")
+    def spec_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def spec_list(self, p):
+        return []
+
+    @_("expr NEWLINE")
+    def spec(self, p):
+        self.spec_num += 1
+        return C2POSpecification(p.lineno, "", self.spec_num-1, p[0])
+
+    # Unary expressions
+    @_("LOG_NEG expr")
+    def expr(self, p):
+        return C2POLogicalNegate(p.lineno, p[1])
+
+    # Binary expressions
+    @_("expr LOG_IMPL expr")
+    def expr(self, p):
+        return C2POLogicalImplies(p.lineno, p[0], p[2])
+
+    @_("expr LOG_IFF expr")
+    def expr(self, p):
+        return C2POLogicalIff(p.lineno, p[0], p[2])
+
+    @_("expr LOG_OR expr")
+    def expr(self, p):
+        return C2POLogicalOr(p.lineno, [p[0], p[2]])
+
+    @_("expr LOG_AND expr")
+    def expr(self, p):
+        return C2POLogicalAnd(p.lineno, [p[0], p[2]])
+
+    # Unary temporal expressions
+    @_("TL_GLOBAL interval expr")
+    def expr(self, p):
+        self.is_ft = True
+        if self.is_pt:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POGlobal(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    @_("TL_FUTURE interval expr")
+    def expr(self, p):
+        self.is_ft = True
+        if self.is_pt:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POFuture(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    @_("TL_HIST interval expr")
+    def expr(self, p):
+        self.is_pt = True
+        if self.is_ft:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POHistorical(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    @_("TL_ONCE interval expr")
+    def expr(self, p):
+        self.is_pt = True
+        if self.is_ft:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POOnce(p.lineno, p[2], p[1].lb, p[1].ub)
+
+    # Binary temporal expressions
+    @_("expr TL_UNTIL interval expr")
+    def expr(self, p):
+        self.is_ft = True
+        if self.is_pt:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POUntil(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+
+    @_("expr TL_RELEASE interval expr")
+    def expr(self, p):
+        self.is_ft = True
+        if self.is_pt:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2PORelease(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+
+    @_("expr TL_SINCE interval expr")
+    def expr(self, p):
+        self.is_pt = True
+        if self.is_ft:
+            logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            self.status = False
+
+        return C2POSince(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+
+    # Parentheses
+    @_("LPAREN expr RPAREN")
+    def expr(self, p):
+        return p[1]
+
+    @_("TL_TRUE")
+    def expr(self, p):
+        return C2POBool(p.lineno, True)
+
+    @_("TL_FALSE")
+    def expr(self, p):
+        return C2POBool(p.lineno, False)
+
+    @_("TL_ATOMIC")
+    def expr(self, p):
+        self.atomics.add(p[0])
+        return C2POSignal(p.lineno, p[0], C2PONoType())
+
+    # Shorthand interval
+    @_("LBRACK bound RBRACK")
+    def interval(self, p):
+        return Interval(0, p[1])
+
+    # Standard interval
+    @_("LBRACK bound COMMA bound RBRACK")
+    def interval(self, p):
+        return Interval(p[1], p[3])
+
+    @_("NUMERAL")
+    def bound(self, p):
+        return int(p[0])
+
+    @_("TL_MISSION_TIME")
+    def bound(self, p):
+        if self.mission_time < 0:
+            logger.error(f"{p.lineno}: Mission time used but not set. Set using the '--mission-time' option.")
+            self.status = False
+        return self.mission_time
+
+
+def parse_mltl(input_path: Path, mission_time: int) -> Optional[Tuple[C2POProgram, Dict[str, int]]]:
+    """Parse contents of input and returns corresponding program on success, else returns None."""
+    with open(input_path, "r") as f:
+        contents = f.read()
+
+    lexer: MLTLLexer = MLTLLexer()
+    parser: MLTLParser = MLTLParser(mission_time)
+    output: Tuple[List[C2POSection], Dict[str, int]] = parser.parse(lexer.tokenize(contents))
+
+    sections, signal_mapping = output
+
+    if not parser.status:
+        return None
+
+    return (C2POProgram(0, sections), signal_mapping)

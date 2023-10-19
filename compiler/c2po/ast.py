@@ -3,9 +3,9 @@ from copy import deepcopy
 from typing import Any, Dict, Callable, Optional, Set, Union, cast, List, Tuple
 import pickle
 
-from .types import R2U2Implementation
-from .logger import logger
-from .types import *
+from c2po.types import R2U2Implementation
+from c2po.logger import logger
+from c2po.types import *
 
 class C2POSection(Enum):
     STRUCT = 0
@@ -93,6 +93,10 @@ class C2PONode():
     def __str__(self) -> str:
         return self.symbol
 
+    def to_mltl_std(self) -> str:
+        logger.critical(f"{self.ln}: Node type '{type(self)}' unsupported in MLTL standard.")
+        return ""
+
     def copy_attrs(self, new: C2PONode):
         new.scq_size = self.scq_size
         new.symbol = self.symbol
@@ -113,6 +117,12 @@ class C2POExpression(C2PONode):
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
         self.atomic_id: int = -1 # only set for atomic propositions
+
+    def to_mltl_std(self) -> str:
+        if self.atomic_id < 0:
+            logger.critical(f"{self.ln}: Non-atomic node type '{type(self)}' unsupported in MLTL standard.")
+            return ""
+        return f"a{self.atomic_id}"
 
     def get_children(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self._children)
@@ -135,6 +145,21 @@ class C2POConstant(C2POLiteral):
 
     def get_value(self) -> int|float:
         return self.value
+
+
+class C2POBool(C2POConstant):
+
+    def __init__(self, ln: int, v: bool):
+        super().__init__(ln,[])
+        self.type = C2POBoolType(True)
+        self.bpd: int = 0
+        self.wpd: int = 0
+        self.value: bool = v
+        self.symbol = str(v)
+        self.engine = R2U2Engine.BOOLEANIZER
+
+    def to_mltl_std(self) -> str:
+        return self.symbol.lower()
         
 
 class C2POInteger(C2POConstant):
@@ -217,7 +242,7 @@ class C2POSignal(C2POLiteral):
     def __deepcopy__(self, memo):
         copy = C2POSignal(self.ln, self.symbol, self.type)
         return copy
-    
+
 
 class C2POAtomicChecker(C2POLiteral):
 
@@ -231,18 +256,6 @@ class C2POAtomicChecker(C2POLiteral):
         copy = C2POAtomicChecker(self.ln, self.symbol)
         self.copy_attrs(copy)
         return copy
-
-
-class C2POBool(C2POConstant):
-
-    def __init__(self, ln: int, v: bool):
-        super().__init__(ln,[])
-        self.type = C2POBoolType(True)
-        self.bpd: int = 0
-        self.wpd: int = 0
-        self.value: bool = v
-        self.symbol = str(v)
-        self.engine = R2U2Engine.BOOLEANIZER
 
 
 class C2POSet(C2POExpression):
@@ -757,10 +770,10 @@ class C2POLogicalOr(C2POLogicalOperator):
         self.symbol = "||"
 
     def __str__(self) -> str:
-        s: str = ""
-        for arg in self.get_children():
-            s += str(arg) + "||"
-        return s[:-2]
+        return self.symbol.join([str(c) for c in self.get_children()])
+
+    def to_mltl_std(self) -> str:
+        return "|".join([f"({c.to_mltl_std()})" for c in self.get_children()])
 
 
 class C2POLogicalAnd(C2POLogicalOperator):
@@ -778,10 +791,10 @@ class C2POLogicalAnd(C2POLogicalOperator):
         self.symbol = "&&"
 
     def __str__(self) -> str:
-        s: str = ""
-        for arg in self.get_children():
-            s += str(arg) + "&&"
-        return s[:-2]
+        return self.symbol.join([str(c) for c in self.get_children()])
+
+    def to_mltl_std(self) -> str:
+        return "&".join([f"({c.to_mltl_std()})" for c in self.get_children()])
 
 
 class C2POLogicalXor(C2POLogicalOperator, C2POBinaryOperator):
@@ -809,6 +822,9 @@ class C2POLogicalImplies(C2POLogicalOperator, C2POBinaryOperator):
         self.copy_attrs(new)
         return new
 
+    def to_mltl_std(self) -> str:
+        return f"({self.get_lhs().to_mltl_std()})->({self.get_rhs().to_mltl_std()})"
+
 
 class C2POLogicalIff(C2POLogicalOperator, C2POBinaryOperator):
 
@@ -822,6 +838,9 @@ class C2POLogicalIff(C2POLogicalOperator, C2POBinaryOperator):
         self.copy_attrs(new)
         return new
 
+    def to_mltl_std(self) -> str:
+        return f"({self.get_lhs().to_mltl_std()})<->({self.get_rhs().to_mltl_std()})"
+
 
 class C2POLogicalNegate(C2POLogicalOperator, C2POUnaryOperator):
 
@@ -834,6 +853,9 @@ class C2POLogicalNegate(C2POLogicalOperator, C2POUnaryOperator):
         new = C2POLogicalNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
+
+    def to_mltl_std(self) -> str:
+        return f"!({self.get_operand().to_mltl_std()})"
 
 
 class C2POTemporalOperator(C2POOperator):
@@ -880,6 +902,9 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
     def __str__(self) -> str:
         return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
 
+    def to_mltl_std(self) -> str:
+        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+
 
 class C2POUntil(C2POFutureTimeBinaryOperator):
 
@@ -913,6 +938,9 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
 
     def __str__(self) -> str:
         return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+
+    def to_mltl_std(self) -> str:
+        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
 
 
 class C2POGlobal(C2POFutureTimeUnaryOperator):
@@ -949,6 +977,9 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
     def __str__(self) -> str:
         return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
 
+    def to_mltl_std(self) -> str:
+        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+
 
 class C2POSince(C2POPastTimeBinaryOperator):
 
@@ -973,6 +1004,9 @@ class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
 
     def __str__(self) -> str:
         return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+
+    def to_mltl_std(self) -> str:
+        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
 
 
 class C2POHistorical(C2POPastTimeUnaryOperator):
@@ -1008,6 +1042,9 @@ class C2POSpecification(C2POExpression):
 
     def __str__(self) -> str:
         return (str(self.formula_number) if self.symbol == "" else self.symbol) + ": " + str(self.get_expr())
+
+    def to_mltl_std(self) -> str:
+        return self.get_expr().to_mltl_std()
 
 
 class C2POContract(C2PONode):
@@ -1179,6 +1216,9 @@ class C2POSpecSection(C2PONode):
         spec_str_list = [str(s)+";" for s in self._children]
         return "\n\t".join(spec_str_list)
 
+    def to_mltl_std(self) -> str:
+        return "\n".join([s.to_mltl_std() for s in self.get_specs()])
+
 
 class C2POFutureTimeSpecSection(C2POSpecSection):
 
@@ -1226,6 +1266,19 @@ class C2POProgram(C2PONode):
         self.is_struct_access_free: bool = False
         self.is_cse_reduced: bool = False
 
+    # def is_pure_mltl(self) -> bool:
+    #     """Return true if each expression in the specification set if pure MLTL. If so, the program can be dumped in the MLTL standard format."""
+    #     mltl = True
+
+    #     def is_pure_mltl_util(node: C2PONode):
+    #         nonlocal mltl
+    #         if not (isinstance(node, C2POSignal) or isinstance(node, C2POBool) or isinstance(node, C2POLogicalOperator) or isinstance(node, C2POTemporalOperator)):
+    #             mltl = False
+
+    #     [postorder(expr, is_pure_mltl_util) for expr in self.get_specs()]
+
+    #     return mltl
+
     def get_sections(self) -> List[C2POSection]:
         return cast(List[C2POSection], self._children)
 
@@ -1266,14 +1319,15 @@ class C2POProgram(C2PONode):
     def replace(self, node: C2PONode):
         logger.critical(f"Attempting to replace a program.")
 
-    def dumps(self) -> bytes:
+    def pickle(self) -> bytes:
         return pickle.dumps(self)
 
     def __str__(self) -> str:
         return "\n".join([str(s) for s  in self.get_children()])
 
+    def to_mltl_std(self) -> str:
+        return "\n".join([s.to_mltl_std() for s in self.get_specs()])
 
-SignalMapping = Dict[str, int]
 
 class C2POContext():
 

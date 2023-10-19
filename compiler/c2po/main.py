@@ -1,17 +1,18 @@
 from __future__ import annotations
+from distutils.command.config import dump_file
 import logging
 import re
 
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from .logger import logger
-from .ast import *
-from .parse import parse
-from .wcet import *
-from .type_check import type_check
-from .transform import *
-from .assemble import *
+from c2po.logger import logger
+from c2po.ast import *
+from c2po.parse import parse_c2po, parse_mltl
+from c2po.wcet import *
+from c2po.type_check import type_check
+from c2po.transform import *
+from c2po.assemble import *
 
 
 class ReturnCode(Enum):
@@ -207,6 +208,24 @@ def validate_input(
     return (status, input_path, output_path, mission_time, signal_mapping, transforms)
 
 
+def dump(
+    program: C2POProgram,
+    input_path: Path,
+    dump_ast_filename: str,
+    dump_mltl_std_filename: str,
+):
+    if dump_ast_filename != ".":
+        dump_path = Path(dump_ast_filename) if dump_ast_filename != "" else input_path.with_suffix(".pickle").name
+        ast_bytes = program.pickle()
+        with open(dump_path, "wb") as f:
+            f.write(ast_bytes)
+
+    if dump_mltl_std_filename != ".":
+        dump_path = Path(dump_mltl_std_filename) if dump_mltl_std_filename != "" else input_path.with_suffix(".mltl").name
+        with open(dump_path, "w") as f:
+            f.write(program.to_mltl_std())
+
+
 def compile(
     input_filename: str,
     trace_filename: str = "",
@@ -226,8 +245,8 @@ def compile(
     enable_arity: bool = False,
     enable_cse: bool = False,
     enable_assemble: bool = True,
-    dump_ast: bool = False,
-    dump_filename: str = "",
+    dump_ast_filename: str = "",
+    dump_mltl_std_filename: str = "",
     debug: bool = False,
     quiet: bool = False
 ) -> ReturnCode:
@@ -243,7 +262,7 @@ def compile(
     7. Assembly
     
     Args:
-        input_filename: Name of a C2PO input file
+        input_filename: Name of a C2PO or MLTL file -- uses extension to determine file type
         trace_filename:
         map_filename:
         output_filename: Name of binary output file
@@ -261,7 +280,8 @@ def compile(
         enable_arity: If true enables operator arity optimization
         enable_cse: If true enables Common Subexpression Elimination
         enable_assemble: If true outputs binary to output_filename
-        dump_ast:
+        dump_ast_filename:
+        dump_mltl_std_filename:
         debug:
         quiet: If true disables assembly output to stdout
     """
@@ -299,11 +319,21 @@ def compile(
     # ----------------------------------
     # Parse
     # ----------------------------------
-    program: Optional[C2POProgram] = parse(input_path, mission_time)
+    if input_path.suffix == ".c2po":
+        program: Optional[C2POProgram] = parse_c2po(input_path, mission_time)
 
-    if not program:
-        logger.error(" Failed parsing.")
-        return ReturnCode.PARSE_ERR
+        if not program:
+            logger.error(" Failed parsing.")
+            return ReturnCode.PARSE_ERR
+
+    else: # we treat as an MLTL file
+        parse_output = parse_mltl(input_path, mission_time)
+
+        if not parse_output:
+            logger.error(" Failed parsing.")
+            return ReturnCode.PARSE_ERR
+
+        (program, signal_mapping) = parse_output
 
     # ----------------------------------
     # Type check
@@ -328,10 +358,8 @@ def compile(
     for transform in [t for t in TRANSFORM_PIPELINE if t in enabled_transforms]:
         transform(program, context)
 
-    if dump_ast:
-        ast_bytes = program.dumps()
-        with open(dump_filename, "wb") as f:
-            f.write(ast_bytes)
+    # Optional file dumps
+    dump(program, input_path, dump_ast_filename, dump_mltl_std_filename)
 
     if not enable_assemble:
         return ReturnCode.SUCCESS

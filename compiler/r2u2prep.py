@@ -35,15 +35,17 @@ parser.add_argument("--booleanizer", action="store_true",
 
 parser.add_argument("--disable-assemble", action="store_false",
                     help="disable assembly generation")
-
 parser.add_argument("--disable-cse", action="store_false",
                     help="disable CSE optimization")
 parser.add_argument("--extops", action="store_true",
                     help="enable extended operations")
 parser.add_argument("--disable-rewrite", action="store_false",
                     help="disable MLTL rewrite rule optimizations")
-parser.add_argument("--dump-ast", action="store_true",
+                    
+parser.add_argument("--dump-ast", nargs="?", default=".", const="",
                     help="dump AST in pickle format")
+parser.add_argument("--dump-mltl", nargs="?", default=".", const="",
+                    help="dump input file in MLTL standard format")
 
 args = parser.parse_args()
 
@@ -63,7 +65,8 @@ return_code = compile(
     enable_extops=args.extops, 
     enable_rewrite=args.disable_rewrite, 
     enable_assemble=args.disable_assemble, 
-    dump_ast=args.dump_ast,
+    dump_ast_filename=args.dump_ast,
+    dump_mltl_std_filename=args.dump_mltl,
     debug=args.debug,
     quiet=args.quiet, 
 )

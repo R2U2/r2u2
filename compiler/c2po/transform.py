@@ -1,4 +1,4 @@
-from .ast import *
+from c2po.ast import *
 
 def transform_definitions(program: C2POProgram, context: C2POContext):
     """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
@@ -558,7 +558,7 @@ def compute_atomics(program: C2POProgram, context: C2POContext):
 
         for child in node.get_children():
             if isinstance(child, C2POBool):
-                return
+                continue
             if child.engine != R2U2Engine.TEMPORAL_LOGIC:
                 context.atomics.add(child)
                 if child.atomic_id < 0:
