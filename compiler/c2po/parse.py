@@ -836,7 +836,8 @@ def parse_mltl(input_path: Path, mission_time: int) -> Optional[Tuple[C2POProgra
     parser: MLTLParser = MLTLParser(mission_time)
     output: Tuple[List[C2POSection], Dict[str, int]] = parser.parse(lexer.tokenize(contents))
 
-    sections, signal_mapping = output
+    if output:
+        sections, signal_mapping = output
 
     if not parser.status:
         return None
