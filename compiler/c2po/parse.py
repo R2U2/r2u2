@@ -669,6 +669,7 @@ class MLTLParser(Parser):
             logger.error(f"{lineno}: Syntax error, token='{token.value}'")
         else:
             logger.error(f"{lineno}: Syntax error, token is 'None'")
+            logger.error(f"\tDid you forget to end the last formula with a newline?")
 
     @_("spec_list")
     def program(self, p):
@@ -841,5 +842,7 @@ def parse_mltl(input_path: Path, mission_time: int) -> Optional[Tuple[C2POProgra
 
     if not parser.status:
         return None
+
+    sections, signal_mapping = output
 
     return (C2POProgram(0, sections), signal_mapping)

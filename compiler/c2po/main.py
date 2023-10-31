@@ -245,8 +245,8 @@ def compile(
     enable_arity: bool = False,
     enable_cse: bool = False,
     enable_assemble: bool = True,
-    dump_ast_filename: str = "",
-    dump_mltl_std_filename: str = "",
+    dump_ast_filename: str = ".",
+    dump_mltl_std_filename: str = ".",
     debug: bool = False,
     quiet: bool = False
 ) -> ReturnCode:

@@ -1326,7 +1326,7 @@ class C2POProgram(C2PONode):
         return "\n".join([str(s) for s  in self.get_children()])
 
     def to_mltl_std(self) -> str:
-        return "\n".join([s.to_mltl_std() for s in self.get_specs()])
+        return "\n".join([s.to_mltl_std() for s in self.get_specs()]) + "\n"
 
 
 class C2POContext():
