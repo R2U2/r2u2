@@ -39,6 +39,9 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
   r2u2_scq_print(scq, NULL);
   #endif
 
+  if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){ // When overwriting predicted data with real data reset pred_wr_ptr
+    scq->pred_wr_ptr = r2u2_infinity;
+  }
 
   // TODO(bckempa): Verify compiler removes redundant modulo arith, else inline
   if ((scq->queue)[-((ptrdiff_t)*wr_ptr)].time == r2u2_infinity) {
@@ -95,6 +98,9 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
 
   // NOTE: This should be the child SCQ, but the parent's read ptr
   // this ensureds CSE works by allowing many readers
+  if(*rd_ptr == scq->pred_wr_ptr){ // Checks if trying to read predicted data
+    return true;
+  }
 
   R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");
   R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
@@ -109,7 +115,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
   } else if (*rd_ptr != scq->wr_ptr) {
 
     // Fast-forword queue
-    while ((*rd_ptr != scq->wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
+    while ((*rd_ptr != scq->wr_ptr) && (*rd_ptr != scq->pred_wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
       R2U2_DEBUG_PRINT("\t\tScanning queue t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
       *rd_ptr = (*rd_ptr + 1) % scq->length;
       #if R2U2_DEBUG
