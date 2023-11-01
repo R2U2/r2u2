@@ -29,7 +29,7 @@ typedef enum {
     R2U2_MLTL_OP_FT_EQUIVALENT   = 0b10000,
 
 
-    // Future Tense: 1xxxx
+    // Past Tense: 0xxxx
 
     R2U2_MLTL_OP_PT_NOP          = 0b01111,
     R2U2_MLTL_OP_PT_CONFIGURE    = 0b01110,
