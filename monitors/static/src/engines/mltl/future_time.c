@@ -1,6 +1,6 @@
 #include "r2u2.h"
-
 #include "future_time.h"
+#include "prediction.h"
 
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
@@ -208,7 +208,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         scq->desired_time_stamp = (res.time)+1;
 
         if (monitor->out_file != NULL) {
-          fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2.value, res.time, res.truth ? "T" : "F");
+          fprintf(monitor->out_file, "%d:%u,%s -> %d\n", instr->op2.value, res.time, res.truth ? "T" : "F", monitor->time_stamp);
         }
 
         if (monitor->out_func != NULL) {
@@ -216,6 +216,52 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
 
         if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+        
+      }
+
+      // Model Predictive Runtime Verification
+      if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
+        int d = 1; // TODO: Replace with d from instruction
+        if((int)monitor->time_stamp - d >= 0){ // T_R - d >= 0
+          r2u2_time index = monitor->time_stamp - d;
+          operand_data_ready(monitor, instr, 0);
+          res = get_operand(monitor, instr, 0);
+          r2u2_scq_print(scq);
+          if(res.time == r2u2_infinity || res.time < index){ // last i produced < index
+            r2u2_mltl_instruction_t** instructions = malloc(sizeof(r2u2_mltl_instruction_t*));
+            size_t num_instructions;
+            r2u2_status_t status = find_child_instructions(monitor, instr, instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
+            prep_prediction_scq(monitor, instructions, num_instructions);
+            while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
+              monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
+              while(true){ // continue until no progress is made
+                for(int i = num_instructions - 1; i >= 0; i--){ // dispatch instructions
+                  r2u2_mltl_ft_predict(monitor, instructions[i]);              
+                }
+                if(monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
+                  break;
+                }
+                monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
+              }
+              if(predicted_operand_data_ready(monitor, instr, 0)){
+                res = get_predicted_operand(monitor, instr, 0);
+                scq->desired_time_stamp = index+1;
+                r2u2_scq_t *child_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[0]->memory_reference]);
+                r2u2_verdict result = {index, res.truth};
+                r2u2_scq_push(child_scq, &result, &scq->wr_ptr);
+
+                if (monitor->out_file != NULL) {
+                  fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, index, res.truth ? "T" : "F", monitor->time_stamp);
+                }
+
+                if (monitor->out_func != NULL) {
+                  (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &res);
+                }
+
+              }
+            }
+          }
+        }
       }
 
       error_cond = R2U2_OK;
