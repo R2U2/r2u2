@@ -42,7 +42,7 @@ static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instructi
           rd_ptr = &(source_scq->rd_ptr2);
         }
 
-        res = !r2u2_scq_is_empty(target_scq, rd_ptr, &(source_scq->desired_time_stamp));
+        res = !r2u2_scq_is_empty(target_scq, &(target_scq->wr_ptr), rd_ptr, &(source_scq->desired_time_stamp));
         break;
 
       case R2U2_FT_OP_NOT_SET:

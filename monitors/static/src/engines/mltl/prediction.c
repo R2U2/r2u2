@@ -5,53 +5,6 @@
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
 
-r2u2_bool r2u2_scq_is_empty_predicted(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *wr_ptr, r2u2_time *desired_time_stamp) {
-
-  // NOTE: This should be the child SCQ, but the parent's read ptr
-  // this ensureds CSE works by allowing many readers
-
-  R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");
-  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
-  #if R2U2_DEBUG
-  r2u2_scq_print(scq, rd_ptr);
-  #endif
-
-  if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time >= *desired_time_stamp && (scq->queue)[-((ptrdiff_t)*rd_ptr)].time != r2u2_infinity) {
-    // New data availabe
-    R2U2_DEBUG_PRINT("\t\tNew data found in place t=%d >= %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
-    return false;
-  } else if (*rd_ptr != scq->pred_wr_ptr) {
-
-    // Fast-forword queue
-    while ((*rd_ptr != scq->pred_wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
-      R2U2_DEBUG_PRINT("\t\tScanning queue t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
-      *rd_ptr = (*rd_ptr + 1) % scq->length;
-      #if R2U2_DEBUG
-      r2u2_scq_print(scq, rd_ptr);
-      #endif
-    }
-
-    if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp) {
-      // Ternary conditional handles pointer decriment modulo SCQ length without casting to and back from signed integers
-      *rd_ptr = (*rd_ptr == 0) ? scq->length-1 : *rd_ptr-1;
-      R2U2_DEBUG_PRINT("\t\tNo new data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);
-      #if R2U2_DEBUG
-      r2u2_scq_print(scq, rd_ptr);
-      #endif
-      return true;
-    } else {
-      R2U2_DEBUG_PRINT("\t\tNew data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);
-      return false;
-    }
-
-  } else { // Empty queue - read == write ptr, current value stale
-    R2U2_DEBUG_PRINT("\t\tEmpty Queue Rd == Wrt and t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
-    return true;
-  }
-
-  return R2U2_OK;
-}
-
 r2u2_bool predicted_operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
 
     r2u2_bool res;
@@ -89,7 +42,7 @@ r2u2_bool predicted_operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instru
           rd_ptr = &(source_scq->pred_rd_ptr2);
         }
 
-        res = !r2u2_scq_is_empty_predicted(target_scq, rd_ptr, &(source_scq->pred_desired_time_stamp));
+        res = !r2u2_scq_is_empty(target_scq, &(target_scq->pred_wr_ptr), rd_ptr, &(source_scq->pred_desired_time_stamp));
         break;
 
       case R2U2_FT_OP_NOT_SET:

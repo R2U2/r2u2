@@ -94,11 +94,11 @@ r2u2_verdict r2u2_scq_pop(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 
 // TODO(bckempa): Maybe it makes sense to pair the read pointers and desired times?
 //                Need to verify algotihmic implication, though may reduce redundent data
-r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp) {
+r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *wr_ptr, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp) {
 
   // NOTE: This should be the child SCQ, but the parent's read ptr
   // this ensureds CSE works by allowing many readers
-  if(*rd_ptr == scq->pred_wr_ptr){ // Checks if trying to read predicted data
+  if((wr_ptr == &scq->wr_ptr) && (*rd_ptr == scq->pred_wr_ptr)){ // Checks if trying to read predicted data
     return true;
   }
 
@@ -109,13 +109,13 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
   #endif
 
   if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time >= *desired_time_stamp && (scq->queue)[-((ptrdiff_t)*rd_ptr)].time != r2u2_infinity) {
-    // New data availabe
+    // New data available
     R2U2_DEBUG_PRINT("\t\tNew data found in place t=%d >= %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
     return false;
-  } else if (*rd_ptr != scq->wr_ptr) {
+  } else if (*rd_ptr != *wr_ptr) {
 
     // Fast-forword queue
-    while ((*rd_ptr != scq->wr_ptr) && (*rd_ptr != scq->pred_wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
+    while ((*rd_ptr != *wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
       R2U2_DEBUG_PRINT("\t\tScanning queue t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
       *rd_ptr = (*rd_ptr + 1) % scq->length;
       #if R2U2_DEBUG

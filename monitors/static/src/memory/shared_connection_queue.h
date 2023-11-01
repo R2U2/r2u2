@@ -31,7 +31,7 @@ typedef struct {
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_ptr);
 r2u2_verdict r2u2_scq_pop(r2u2_scq_t *scq, r2u2_time *rd_ptr);
-r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp);
+r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *wr_ptr, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp);
 void r2u2_scq_print(r2u2_scq_t *scq);
 
 #endif /* R2U2_MEMORY_SCQ_H */
