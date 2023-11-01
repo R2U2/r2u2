@@ -13,19 +13,12 @@ typedef struct {
   r2u2_time rd_ptr;
   r2u2_time rd_ptr2;
   r2u2_time pred_wr_ptr;
-  r2u2_time pred_rd_ptr;
-  r2u2_time pred_rd_ptr2;
   r2u2_time desired_time_stamp;
-  r2u2_time pred_desired_time_stamp;
   r2u2_time edge;
-  r2u2_time pred_edge;
   r2u2_time max_out;
-  r2u2_time pred_max_out;
   r2u2_time interval_start;
   r2u2_time interval_end;
-  r2u2_time real_prev_time_stamp;
   r2u2_verdict previous;
-  r2u2_verdict pred_previous;
   r2u2_verdict *queue;
 } r2u2_scq_t;
 

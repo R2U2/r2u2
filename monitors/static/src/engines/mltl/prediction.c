@@ -37,12 +37,12 @@ r2u2_bool predicted_operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instru
         target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
 
         if (n==0) {
-          rd_ptr = &(source_scq->pred_rd_ptr);
+          rd_ptr = &(source_scq->rd_ptr);
         } else {
-          rd_ptr = &(source_scq->pred_rd_ptr2);
+          rd_ptr = &(source_scq->rd_ptr2);
         }
 
-        res = !r2u2_scq_is_empty(target_scq, &(target_scq->pred_wr_ptr), rd_ptr, &(source_scq->pred_desired_time_stamp));
+        res = !r2u2_scq_is_empty(target_scq, &(target_scq->pred_wr_ptr), rd_ptr, &(source_scq->desired_time_stamp));
         break;
 
       case R2U2_FT_OP_NOT_SET:
@@ -80,9 +80,9 @@ r2u2_verdict get_predicted_operand(r2u2_monitor_t *monitor, r2u2_mltl_instructio
         target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
 
         if (n==0) {
-          rd_ptr = &(source_scq->pred_rd_ptr);
+          rd_ptr = &(source_scq->rd_ptr);
         } else {
-          rd_ptr = &(source_scq->pred_rd_ptr2);
+          rd_ptr = &(source_scq->rd_ptr2);
         }
 
         // NOTE: Must always check if queue is empty before poping
@@ -106,7 +106,7 @@ static r2u2_status_t push_result_predicted(r2u2_monitor_t *monitor, r2u2_mltl_in
   r2u2_scq_push(scq, res, &scq->pred_wr_ptr);
   R2U2_DEBUG_PRINT("\t(%d,%d)\n", res->time, res->truth);
 
-  scq->pred_desired_time_stamp = (res->time)+1;
+  scq->desired_time_stamp = (res->time)+1;
 
   // TODO(bckempa): Inline or macro this
   if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
@@ -202,7 +202,7 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
       R2U2_DEBUG_PRINT("\tFT PREDICT LOAD\n");
       if (predicted_operand_data_ready(monitor, instr, 0)) {
         // Add Prediction Here!!! -- How do I determine signal?
-        r2u2_verdict test = {scq->pred_desired_time_stamp, true};
+        r2u2_verdict test = {scq->desired_time_stamp, true};
         push_result_predicted(monitor, instr, &test);
       }
       error_cond = R2U2_OK;
@@ -215,15 +215,15 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
         op0 = get_predicted_operand(monitor, instr, 0);
 
         // We only need to see every timesetp once, even if we don't output
-        scq->pred_desired_time_stamp = (op0.time)+1;
+        scq->desired_time_stamp = (op0.time)+1;
 
-        // interval compression aware rising pred_edge detection
-        if(op0.truth && !scq->pred_previous.truth) {
-          scq->pred_edge = scq->pred_previous.time + 1;
-          R2U2_DEBUG_PRINT("\tRising pred_edge at t= %d\n", scq->pred_edge);
+        // interval compression aware rising edge detection
+        if(op0.truth && !scq->previous.truth) {
+          scq->edge = scq->previous.time + 1;
+          R2U2_DEBUG_PRINT("\tRising edge at t= %d\n", scq->edge);
         }
 
-        if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->pred_edge) && (op0.time >= scq->interval_end)) {
+        if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
           res = (r2u2_verdict){op0.time - scq->interval_end, true};
           r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
@@ -235,7 +235,7 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
         }
 
-        scq->pred_previous = op0;
+        scq->previous = op0;
       }
 
       error_cond = R2U2_OK;
@@ -250,40 +250,40 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
 
         // We need to see every timesetp as an op0 op1 pair
         r2u2_time tau = min(op0.time, op1.time);
-        scq->pred_desired_time_stamp = tau+1;
+        scq->desired_time_stamp = tau+1;
 
-        // interval compression aware falling pred_edge detection on op1
-        if(!op1.truth && scq->pred_previous.truth) {
+        // interval compression aware falling edge detection on op1
+        if(!op1.truth && scq->previous.truth) {
           // TODO(bckempa): Not clear why this isn't stil pre.time+1
-          scq->pred_edge = scq->pred_previous.time;
-          R2U2_DEBUG_PRINT("\tRight operand falling pred_edge at t=%d\n", scq->pred_edge);
+          scq->edge = scq->previous.time;
+          R2U2_DEBUG_PRINT("\tRight operand falling edge at t=%d\n", scq->edge);
         }
 
-        if (op1.truth && (tau >= scq->pred_max_out + scq->interval_start)) {
+        if (op1.truth && (tau >= scq->max_out + scq->interval_start)) {
           // TODO(bckempa): Factor out repeated output logic
           R2U2_DEBUG_PRINT("\tRight Op True\n");
           res = (r2u2_verdict){tau - scq->interval_start, true};
           r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->pred_max_out = res.time + 1;
-        } else if (!op0.truth && (tau >= scq->pred_max_out + scq->interval_start)) {
+          scq->max_out = res.time + 1;
+        } else if (!op0.truth && (tau >= scq->max_out + scq->interval_start)) {
           R2U2_DEBUG_PRINT("\tLeft Op False\n");
           res = (r2u2_verdict){tau - scq->interval_start, false};
           r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->pred_max_out = res.time +1;
-        } else if ((tau >= scq->interval_end - scq->interval_start + scq->pred_edge) && (tau >= scq->pred_max_out + scq->interval_end)) {
+          scq->max_out = res.time +1;
+        } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->max_out + scq->interval_end)) {
           R2U2_DEBUG_PRINT("\tTime Elapsed\n");
           res = (r2u2_verdict){tau - scq->interval_end, false};
           r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->pred_max_out = res.time +1;
+          scq->max_out = res.time +1;
         }
 
-        scq->pred_previous = op1;
+        scq->previous = op1;
 
       }
 
@@ -359,17 +359,30 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
   return error_cond;
 }
 
-void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, size_t size){
+void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
   R2U2_DEBUG_PRINT("-----------------Starting New Round of Prediction (at time stamp %d)-----------------\n", monitor->time_stamp);
   for(size_t i = 0; i < size; i++){
     r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
-    scq->pred_rd_ptr = scq->rd_ptr;
-    scq->pred_rd_ptr2 = scq->rd_ptr2;
+    prev_real_state[i].rd_ptr = scq->rd_ptr;
+    prev_real_state[i].rd_ptr2 = scq->rd_ptr2;
+    prev_real_state[i].desired_time_stamp = scq->desired_time_stamp;
+    prev_real_state[i].edge = scq->edge;
+    prev_real_state[i].max_out = scq->max_out;
+    prev_real_state[i].previous = scq->previous;
     scq->pred_wr_ptr = scq->wr_ptr;
-    scq->pred_desired_time_stamp = scq->desired_time_stamp;
-    scq->pred_edge = scq->edge;
-    scq->pred_max_out = scq->max_out;
-    scq->pred_previous = scq->previous;
+  }
+}
+
+void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
+  for(size_t i = 0; i < size; i++){
+    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
+    scq->rd_ptr = prev_real_state[i].rd_ptr;
+    scq->rd_ptr2 = prev_real_state[i].rd_ptr2;
+    scq->desired_time_stamp = prev_real_state[i].desired_time_stamp;
+    scq->edge = prev_real_state[i].edge;
+    scq->max_out = prev_real_state[i].max_out;
+    scq->previous = prev_real_state[i].previous;
+    r2u2_scq_print(scq);
   }
 }
 

@@ -221,7 +221,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       // Model Predictive Runtime Verification
       if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
-        int d = 1; // TODO: Replace with d from instruction
+        int d = 0; // TODO: Replace with d from instruction
         if((int)monitor->time_stamp - d >= 0){ // T_R - d >= 0
           r2u2_time index = monitor->time_stamp - d;
           operand_data_ready(monitor, instr, 0);
@@ -231,7 +231,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             r2u2_mltl_instruction_t** instructions = malloc(sizeof(r2u2_mltl_instruction_t*));
             size_t num_instructions;
             r2u2_status_t status = find_child_instructions(monitor, instr, instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
-            prep_prediction_scq(monitor, instructions, num_instructions);
+            r2u2_scq_state_t prev_real_state[num_instructions];
+            prep_prediction_scq(monitor, instructions, prev_real_state, num_instructions);
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               while(true){ // continue until no progress is made
@@ -245,10 +246,11 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               }
               if(predicted_operand_data_ready(monitor, instr, 0)){
                 res = get_predicted_operand(monitor, instr, 0);
+                restore_scq(monitor, instructions, prev_real_state, num_instructions);
                 scq->desired_time_stamp = index+1;
-                r2u2_scq_t *child_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[0]->memory_reference]);
+                r2u2_scq_t *child_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
                 r2u2_verdict result = {index, res.truth};
-                r2u2_scq_push(child_scq, &result, &scq->wr_ptr);
+                r2u2_scq_push(child_scq, &result, &child_scq->wr_ptr); // Only store result up to 'index'; don't predict for values after 'index'
 
                 if (monitor->out_file != NULL) {
                   fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, index, res.truth ? "T" : "F", monitor->time_stamp);
@@ -257,7 +259,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                 if (monitor->out_func != NULL) {
                   (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &res);
                 }
-
               }
             }
           }
