@@ -1,12 +1,24 @@
+
 from enum import Enum
 from struct import Struct as CStruct, calcsize
-from typing import List, Union
+from typing import Union
+
+from .ast import *
 
 # The following values with suffix '_F' are the format strings
 # used to construct the c structs. See the documentation of the
 # 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
 ENGINE_TAG_F = "B"
+
+INSTR_SIZE_F = "B"
+
+BZ_ID_F           = "B"
+BZ_OPERATOR_F     = "i"
+BZ_STORE_ATOMIC_F = "B"
+BZ_ATOMIC_ID_F    = "B"
+BZ_PARAM_INT_F    = "i"
+BZ_PARAM_FLOAT_F  = "d"
 
 # The following three must be of equal size!
 # We check for this in check_size() below
@@ -25,6 +37,15 @@ TL_OPERATOR_F     = "i"
 TL_OPERAND_TYPE_F = "i"
 TL_OPERAND_ID_F   = "Bxxx"
 
+def check_sizes():
+    import warnings
+    mem_ref_size = CStruct("I").size
+    if mem_ref_size != 4:
+        warnings.warn(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes", BytesWarning)
+
+    if len(set([calcsize(f) for f in {AT_VALUE_BOOL_F, AT_VALUE_FLOAT_F, AT_VALUE_SIG_F, AT_VALUE_INT_F}])) > 1:
+        warnings.warn(f"Widths for AT value binary encodings not homogeneous.", BytesWarning)
+
 # The following classes define the allowable parameters in an 
 # assembly instruction. They are all either Enums or wrappers
 # for a basic data type.
@@ -38,6 +59,10 @@ TL_OPERAND_ID_F   = "Bxxx"
 #    - Used for a human-readable format of the parameter
 # 3) '__repr__(self) -> str'
 #    - Used for a string format of the binary representation
+#
+# NOTE: we could use ABCs (https://docs.python.org/3.8/library/abc.html) and
+# define 'assemble', '__str__', and '__repr__' as abstract methods, but I just 
+# hate decorators.
 
 class EngineTag(Enum):
     NA = 0 # Null instruction tag - acts as ENDSEQ
@@ -58,6 +83,14 @@ class EngineTag(Enum):
 
     def __repr__(self) -> str:
         return f"{self.value:3b}"
+
+class BZId():
+
+    def __init__(self, id: int) -> None:
+        self.value = id
+
+    def assemble(self) -> bytes:
+        return CStruct(BZ_ID_F).pack(self.value)
 
 class BZOperator(Enum):
     NONE    = 0b000000
@@ -102,6 +135,43 @@ class BZOperator(Enum):
     
     def is_load(self) -> bool:
         return self is BZOperator.ILOAD or self is BZOperator.FLOAD
+
+    def assemble(self) -> bytes:
+        return CStruct(BZ_OPERATOR_F).pack(self.value)
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
+
+class BZStoreAtomic():
+
+    def __init__(self, value: bool) -> None:
+        self.value = value
+
+    def assemble(self) -> bytes:
+        return CStruct(BZ_STORE_ATOMIC_F).pack(self.value)
+
+class BZAtomicId():
+
+    def __init__(self, id: int) -> None:
+        self.value = id
+
+    def assemble(self) -> bytes:
+        return CStruct(BZ_ATOMIC_ID_F).pack(self.value)
+
+class BZParameter():
+
+    def __init__(self, value: Union[int, float]) -> None:
+        self.value = value
+
+    def assemble(self) -> bytes:
+        if isinstance(self.value, int):
+            return CStruct(BZ_PARAM_INT_F).pack(self.value)
+        elif isinstance(self.value, float):
+            return CStruct(BZ_PARAM_FLOAT_F).pack(self.value)
+        raise NotImplementedError
 
 class ATRelOp(Enum):
     EQ   = 0b000
@@ -306,10 +376,8 @@ class PTOperator(Enum):
     def __repr__(self) -> str:
         return f"{self.value:5b}"
     
-
 Operator = Union[FTOperator, PTOperator, BZOperator]
 TLOperator = Union[FTOperator, PTOperator]
-
 
 class Instruction():
 
@@ -322,6 +390,37 @@ class Instruction():
     def __repr__(self) -> str:
         return " ".join([repr(f) for f in self.fields])
 
+class BZInstruction(Instruction):
+
+    def __init__(
+        self, 
+        id: int, 
+        operator: BZOperator, 
+        store_atomic: bool,
+        atomic_id: int,
+        param1: Union[int, float],
+        param2: Union[int, float]
+    ):
+        self.fields = (
+            EngineTag.BZ, 
+            BZId(id),
+            operator,
+            BZStoreAtomic(store_atomic),
+            BZAtomicId(atomic_id),
+            BZParameter(param1),
+            BZParameter(param2)
+        )
+
+    def assemble(self) -> bytes:
+        # Note: This method could be place in the parent class
+        # Instruction since it's identical across all subclasses
+        # of Instruction -- we don't do this so that the type checker
+        # enforces that every field implements 'assemble()'.
+        binary = bytes()
+        for field in self.fields:
+            binary += field.assemble()
+        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
+        return instr_size + binary
 
 class ATInstruction(Instruction):
 
@@ -355,8 +454,8 @@ class ATInstruction(Instruction):
         binary = bytes()
         for field in self.fields:
             binary += field.assemble()
-        return binary
-
+        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
+        return instr_size + binary
 
 class TLInstruction(Instruction):
 
@@ -383,54 +482,51 @@ class TLInstruction(Instruction):
         binary = bytes()
         for field in self.fields:
             binary += field.assemble()
-        return binary
+        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
+        return instr_size + binary
 
 
-instr1 = TLInstruction(
-    8, # node id
-    FTOperator.GLOBALLY, # operator
-    TLOperandType.SUBFORMULA, # opnd1 type
-    3, # opnd1 id
-    TLOperandType.ATOMIC, # opnd2 type
-    1, # opnd2 id
-)
+def generate_assembly(
+    program: C2POProgram,
+    context: C2POContext
+) -> List[Instruction]:
+    bzid, atid, ftid, ptid = 0, 0, 0, 0
 
-instr2 = TLInstruction(
-    254, # node id
-    FTOperator.CONFIGURE, # operator
-    TLOperandType.SUBFORMULA, # opnd1 type
-    104, # opnd1 id
-    TLOperandType.SUBFORMULA, # opnd2 type
-    153, # opnd2 id
-)
+    instr_dict: Dict[C2PONode, Instruction] = {}
+    instr_list = List[Instruction]
 
-print(instr1)
-print(instr2)
+    def generate_assembly_util(node: C2PONode):
 
-print(repr(instr1))
-print(repr(instr2))
+        if not isinstance(node, C2POExpression):
+            return
 
-# def generate_assembly(
-#     program: C2POProgram,
-#     context: C2POContext
-# ) -> List[Instruction]:
-#     ftid, ptid = 0, 0
-
-#     instructions: Dict[C2PONode, Instruction] = {}
-
-#     def generate_assembly_util(node: C2PONode):
-
-#         if not isinstance(node, C2POExpression):
-#             return
+        # if isinstance(node, C2POAtomicChecker):
+        #     instr = ATInstruction(atid, context.atomic_checkers[node.symbol])
+        # elif isinstance(node, C2POBool):
+        #     instr = BZInstruction(node, BZOperator.ICONST, child_instrs)
+        # elif isinstance(node, C2POInteger):
+        #     instr = BZInstruction(node, BZOperator.ICONST, child_instrs)
+        # elif isinstance(node, C2POFloat):
+        #     instr = BZInstruction(node, BZOperator.FCONST, child_instrs)
+        # elif isinstance(node, C2POSignal) and is_integer_type(node.type):
+        #     instr = BZInstruction(node, BZOperator.ILOAD, child_instrs)
+        # elif isinstance(node, C2POSignal):
+        #     instr = BZInstruction(node, BZOperator.FLOAD, child_instrs)
+        # elif isinstance(node, C2POBitwiseAnd):
+        #     instr = BZInstruction(node, BZOperator.BWAND, child_instrs)
+        # elif isinstance(node, C2POBitwiseOr):
+        #     instr = BZInstruction(node, BZOperator.BWOR, child_instrs)
+        # elif isinstance(node, C2POBitwiseXor):
+        #     instr = BZInstruction(node, BZOperator.BWXOR, child_instrs)
 
 
-#     return []
+    return []
 
-def check_sizes():
-    import warnings
-    mem_ref_size = CStruct("I").size
-    if mem_ref_size != 4:
-        warnings.warn(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes", BytesWarning)
 
-    if len(set([calcsize(f) for f in {AT_VALUE_BOOL_F, AT_VALUE_FLOAT_F, AT_VALUE_SIG_F, AT_VALUE_INT_F}])) > 1:
-        warnings.warn(f"Widths for AT value binary encodings not homogeneous.", BytesWarning)
+def assemble(
+    program: C2POProgram,
+    context: C2POContext,
+    quiet: bool
+) -> bytes:
+    check_sizes()
+    return bytes()

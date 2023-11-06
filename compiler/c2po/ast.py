@@ -3,9 +3,8 @@ from copy import deepcopy
 from typing import Any, Dict, Callable, Optional, Set, Union, cast, List, Tuple
 import pickle
 
-from compiler.c2po.type import R2U2Implementation
+from .type import *
 from c2po.logger import logger
-from compiler.c2po.type import *
 
 class C2POSection(Enum):
     STRUCT = 0

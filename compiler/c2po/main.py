@@ -251,15 +251,6 @@ def compile(
     quiet: bool = False
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
-
-    Compilation stages:
-    1. Input validation
-    2. Parser
-    3. Type checker
-    4. Required transformations
-    5. Option-based transformations
-    6. Optimizations
-    7. Assembly
     
     Args:
         input_filename: Name of a C2PO or MLTL file -- uses extension to determine file type
