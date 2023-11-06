@@ -1,5 +1,5 @@
-
 # About
+
 The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a runtime verification
 framework designed to monitor safety- or mission-critical systems with
 constrained computational resources. 
@@ -92,3 +92,7 @@ analysis:
 
 The logs contain no identifying information, please ask the chairs to assist in
 passing along you anonymized feedback. Thank you.
+
+# License
+
+R2U2 is dual-licensed under the [MIT](LICENSE-MIT) and [Apache 2.0](LICENSE-APACHE) licenses. The parser for C2PO (SLY) uses a [BSD license](LICENSE-SLY). 
