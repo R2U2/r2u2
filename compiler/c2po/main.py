@@ -710,6 +710,11 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
 
         if isinstance(node, Instruction):
             if formula_type == FormulaType.FT and node.ftid > -1:
+                if isinstance(node, Specification):
+                   if node.ln in program.deadlines.keys():
+                    node.deadline = program.deadlines[node.ln]
+                   else:
+                    node.deadline = node.get_expr().wpd
                 ft_asm.append(node)
             elif formula_type == FormulaType.PT and node.ptid > -1:
                 pt_asm.append(node)

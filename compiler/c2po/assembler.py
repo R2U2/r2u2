@@ -117,7 +117,7 @@ def assemble_ft(opcode, operand_1, operand_2, ref):
     # The module memoizes these by their description string so this isn't as
     # wasteful as it initially appears
     operand = cStruct('iBxxx')
-    ft_instruction = cStruct(f"{operand.size}s{operand.size}sIi")
+    ft_instruction = cStruct(f"{operand.size}s{operand.size}sii")
     return ft_instruction.pack(
                         operand.pack(operand_1[0].value,operand_1[1]),
                         operand.pack(operand_2[0].value,operand_2[1]),
@@ -308,7 +308,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.LOAD, (TLOperandType.ATOMIC, instr.atid), (TLOperandType.NOT_SET, 0), instr.ftid))
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
-
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 2), instr.deadline))
+ 
             for at_instr in at_formula_instr:
                 if instr == at_instr.args[0]:
                     if isinstance(at_instr.rel_op, Equal):

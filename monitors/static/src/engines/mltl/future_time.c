@@ -170,13 +170,15 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           break;
         }
         case R2U2_FT_OP_ATOMIC: {
-          // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
-          if (instr->op2.value) {
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %u\n", instr->op1.value, instr->memory_reference);
-            scq->interval_end = (r2u2_time) instr->memory_reference;
-          } else {
+          if(instr->op2.value == 0){
             R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %u\n", instr->op1.value, instr->memory_reference);
             scq->interval_start = (r2u2_time) instr->memory_reference;
+          } else if (instr->op2.value == 1) {
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %u\n", instr->op1.value, instr->memory_reference);
+            scq->interval_end = (r2u2_time) instr->memory_reference;
+          } else if(instr->op2.value == 2){
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tDeadline: %u\n", instr->op1.value, instr->memory_reference);
+            scq->deadline = (r2u2_time) instr->memory_reference;
           }
           break;
         }
@@ -221,9 +223,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       // Model Predictive Runtime Verification
       if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
-        int d = 0; // TODO: Replace with d from instruction
-        if((int)monitor->time_stamp - d >= 0){ // T_R - d >= 0
-          r2u2_time index = monitor->time_stamp - d;
+        if((int)monitor->time_stamp - scq->deadline >= 0){ // T_R - d >= 0
+          r2u2_time index = monitor->time_stamp - scq->deadline;
           operand_data_ready(monitor, instr, 0);
           res = get_operand(monitor, instr, 0);
           r2u2_scq_print(scq);
