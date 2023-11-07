@@ -114,72 +114,67 @@ static r2u2_status_t push_result_predicted(r2u2_monitor_t *monitor, r2u2_mltl_in
   return R2U2_OK;
 }
 
-r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_mltl_instruction_t** instructions, size_t *size, uint8_t difference){
-  switch (instr->opcode){
-    case R2U2_MLTL_OP_FT_LOAD: {
-      // Find Atomic and Booleanizer Children
-      switch((*monitor->instruction_tbl)[instr->op1.value].engine_tag){
-        case R2U2_ENG_AT: {
-          R2U2_DEBUG_PRINT("Atomic child\n");
-          break;
-        }
-        case R2U2_ENG_BZ: {
-          R2U2_DEBUG_PRINT("Booleanizer child\n");
-          break;
-        }
-      }
-      return R2U2_OK;
-    }
-    case R2U2_MLTL_OP_FT_RETURN: {
-      instructions[0] = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[instr->op1.value+difference].instruction_data;
-      *size = 1;
-      return find_child_instructions(monitor, instructions[0], instructions, size, difference);
-    }
-    case R2U2_MLTL_OP_FT_GLOBALLY:
-    case R2U2_MLTL_OP_FT_NOT: {
-      if(instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
-        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_mltl_instruction_t*));
-        instructions[*size] = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[instr->op1.value+difference].instruction_data;
+r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_instruction_t** instructions, size_t *size, uint8_t difference){
+  if(instr->engine_tag == R2U2_ENG_TL) {
+    r2u2_mltl_instruction_t* mltl_instr = (r2u2_mltl_instruction_t*)instr->instruction_data;
+    switch (mltl_instr->opcode){
+      case R2U2_MLTL_OP_FT_LOAD: {
+        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+        instructions[*size] = &(*monitor->instruction_tbl)[mltl_instr->op1.value];
         *size = *size + 1;
         return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
-      }else{
+      }
+      case R2U2_MLTL_OP_FT_RETURN: {
+        instructions[0] = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+        *size = 1;
+        return find_child_instructions(monitor, instructions[0], instructions, size, difference);
+      }
+      case R2U2_MLTL_OP_FT_GLOBALLY:
+      case R2U2_MLTL_OP_FT_NOT: {
+        if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
+          instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+          instructions[*size] = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+          *size = *size + 1;
+          return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        }else{
+          return R2U2_OK;
+        }
+      }
+      case R2U2_MLTL_OP_FT_UNTIL:
+      case R2U2_MLTL_OP_FT_AND: {
+        r2u2_status_t status = R2U2_OK;
+        if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
+          instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_mltl_instruction_t*));
+          instructions[*size] = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+          *size = *size + 1;
+          status = find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        }
+        if(status == R2U2_OK && (mltl_instr->op2.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op2.opnd_type == R2U2_FT_OP_SUBFORMULA)){
+          instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_mltl_instruction_t*));
+          instructions[*size] = &(*monitor->instruction_tbl)[mltl_instr->op2.value+difference];
+          *size = *size + 1;
+          return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        }else{
+          return status;
+        }
+      }
+      case R2U2_MLTL_OP_FT_EVENTUALLY:
+      case R2U2_MLTL_OP_FT_RELEASE:
+      case R2U2_MLTL_OP_FT_OR:
+      case R2U2_MLTL_OP_FT_IMPLIES:
+      case R2U2_MLTL_OP_FT_NAND:
+      case R2U2_MLTL_OP_FT_NOR:
+      case R2U2_MLTL_OP_FT_XOR:
+      case R2U2_MLTL_OP_FT_EQUIVALENT: {
+        return R2U2_UNIMPL;
+      }
+      case R2U2_MLTL_OP_FT_NOP: {
         return R2U2_OK;
       }
-    }
-    case R2U2_MLTL_OP_FT_UNTIL:
-    case R2U2_MLTL_OP_FT_AND: {
-      r2u2_status_t status = R2U2_OK;
-      if(instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
-        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_mltl_instruction_t*));
-        instructions[*size] = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[instr->op1.value+difference].instruction_data;
-        *size = *size + 1;
-        status = find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+      default: {
+        // Somehow got into wrong tense dispatch
+        return R2U2_INVALID_INST;
       }
-      if(status == R2U2_OK && (instr->op2.opnd_type == R2U2_FT_OP_ATOMIC || instr->op2.opnd_type == R2U2_FT_OP_SUBFORMULA)){
-        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_mltl_instruction_t*));
-        instructions[*size] = (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[instr->op2.value+difference].instruction_data;
-        *size = *size + 1;
-        return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
-      }else{
-        return status;
-      }
-    }
-    case R2U2_MLTL_OP_FT_EVENTUALLY:
-    case R2U2_MLTL_OP_FT_RELEASE:
-    case R2U2_MLTL_OP_FT_OR:
-    case R2U2_MLTL_OP_FT_IMPLIES:
-    case R2U2_MLTL_OP_FT_NAND:
-    case R2U2_MLTL_OP_FT_NOR:
-    case R2U2_MLTL_OP_FT_XOR:
-    case R2U2_MLTL_OP_FT_EQUIVALENT: {
-      return R2U2_UNIMPL;
-    }
-    case R2U2_MLTL_OP_FT_NOP: {
-      return R2U2_OK;
-    }
-    default: {
-      // Somehow got into wrong tense dispatch
-      return R2U2_INVALID_INST;
     }
   }
   return R2U2_OK;
@@ -359,30 +354,34 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
   return error_cond;
 }
 
-void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
+void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
   R2U2_DEBUG_PRINT("-----------------Starting New Round of Prediction (at time stamp %d)-----------------\n", monitor->time_stamp);
   for(size_t i = 0; i < size; i++){
-    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
-    prev_real_state[i].rd_ptr = scq->rd_ptr;
-    prev_real_state[i].rd_ptr2 = scq->rd_ptr2;
-    prev_real_state[i].desired_time_stamp = scq->desired_time_stamp;
-    prev_real_state[i].edge = scq->edge;
-    prev_real_state[i].max_out = scq->max_out;
-    prev_real_state[i].previous = scq->previous;
-    scq->pred_wr_ptr = scq->wr_ptr;
+    if(instructions[i]->engine_tag == R2U2_ENG_TL){
+      r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[((r2u2_mltl_instruction_t*)instructions[i]->instruction_data)->memory_reference]);
+      prev_real_state[i].rd_ptr = scq->rd_ptr;
+      prev_real_state[i].rd_ptr2 = scq->rd_ptr2;
+      prev_real_state[i].desired_time_stamp = scq->desired_time_stamp;
+      prev_real_state[i].edge = scq->edge;
+      prev_real_state[i].max_out = scq->max_out;
+      prev_real_state[i].previous = scq->previous;
+      scq->pred_wr_ptr = scq->wr_ptr;
+    }
   }
 }
 
-void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
+void restore_scq(r2u2_monitor_t *monitor, r2u2_instruction_t** instructions, r2u2_scq_state_t* prev_real_state, size_t size){
   for(size_t i = 0; i < size; i++){
-    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
-    scq->rd_ptr = prev_real_state[i].rd_ptr;
-    scq->rd_ptr2 = prev_real_state[i].rd_ptr2;
-    scq->desired_time_stamp = prev_real_state[i].desired_time_stamp;
-    scq->edge = prev_real_state[i].edge;
-    scq->max_out = prev_real_state[i].max_out;
-    scq->previous = prev_real_state[i].previous;
-    r2u2_scq_print(scq);
+    if(instructions[i]->engine_tag == R2U2_ENG_TL){
+      r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[((r2u2_mltl_instruction_t*)instructions[i]->instruction_data)->memory_reference]);
+      scq->rd_ptr = prev_real_state[i].rd_ptr;
+      scq->rd_ptr2 = prev_real_state[i].rd_ptr2;
+      scq->desired_time_stamp = prev_real_state[i].desired_time_stamp;
+      scq->edge = prev_real_state[i].edge;
+      scq->max_out = prev_real_state[i].max_out;
+      scq->previous = prev_real_state[i].previous;
+      r2u2_scq_print(scq);
+    }
   }
 }
 

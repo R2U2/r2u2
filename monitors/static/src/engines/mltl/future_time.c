@@ -229,16 +229,29 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           res = get_operand(monitor, instr, 0);
           r2u2_scq_print(scq);
           if(res.time == r2u2_infinity || res.time < index){ // last i produced < index
-            r2u2_mltl_instruction_t** instructions = malloc(sizeof(r2u2_mltl_instruction_t*));
+            r2u2_instruction_t** instructions = malloc(sizeof(r2u2_instruction_t*));
             size_t num_instructions;
-            r2u2_status_t status = find_child_instructions(monitor, instr, instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
+            r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
             r2u2_scq_state_t prev_real_state[num_instructions];
             prep_prediction_scq(monitor, instructions, prev_real_state, num_instructions);
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               while(true){ // continue until no progress is made
                 for(int i = num_instructions - 1; i >= 0; i--){ // dispatch instructions
-                  r2u2_mltl_ft_predict(monitor, instructions[i]);              
+                  switch(instructions[i]->engine_tag){
+                    case R2U2_ENG_TL:{
+                      r2u2_mltl_ft_predict(monitor, (r2u2_mltl_instruction_t*)instructions[i]->instruction_data);  
+                      break; 
+                    }
+                    case R2U2_ENG_AT: {
+                      R2U2_DEBUG_PRINT("Atomic child\n");
+                      break;
+                    }
+                    case R2U2_ENG_BZ: {
+                      printf("Booleanizer child\n");
+                      break;
+                    }
+                  }              
                 }
                 if(monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
                   break;
