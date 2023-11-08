@@ -33,6 +33,9 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         return R2U2_ERR_OTHER;
       }
     } else {
+      if(data[offset+1] == R2U2_ENG_BZ){
+        monitor->num_atomics++;
+      }
       // Store instruction metadata in table
       pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
     }

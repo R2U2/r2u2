@@ -75,6 +75,13 @@ r2u2_verdict get_predicted_operand(r2u2_monitor_t *monitor, r2u2_mltl_instructio
       case R2U2_FT_OP_DIRECT:
           res = (r2u2_verdict){r2u2_infinity, op->value};
           break;
+      
+      case R2U2_FT_OP_ATOMIC:
+          // TODO(bckempa) This might remove the need for load...
+          source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
+          res = (r2u2_verdict){source_scq->desired_time_stamp, (*(monitor->atomic_buffer[0]))[op->value]};
+          break;
+
       case R2U2_FT_OP_SUBFORMULA:
         source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
         target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
@@ -196,9 +203,8 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
     case R2U2_MLTL_OP_FT_LOAD: {
       R2U2_DEBUG_PRINT("\tFT PREDICT LOAD\n");
       if (predicted_operand_data_ready(monitor, instr, 0)) {
-        // Add Prediction Here!!! -- How do I determine signal?
-        r2u2_verdict test = {scq->desired_time_stamp, true};
-        push_result_predicted(monitor, instr, &test);
+        res = get_predicted_operand(monitor, instr, 0);
+        push_result_predicted(monitor, instr, &res);
       }
       error_cond = R2U2_OK;
       break;
