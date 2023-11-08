@@ -802,6 +802,7 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -
                     k = m[node_spec]
 
         node.scq_size = max(max_sibling_wpd-node.bpd,0)+k*(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
+        #node.scq_size = max(max_sibling_wpd-node.bpd,0)+max_prediction_horizon+1
         total += node.scq_size
 
     preorder(node, compute_node_info_util)

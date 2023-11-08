@@ -56,12 +56,13 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     #endif
     return R2U2_OK;
   }
-  if (((scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))].truth == res->truth) && \
-      ((scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))].time < res->time) && \
+  printf("Before and after: %d, %d, %d\n", -(((ptrdiff_t)*wr_ptr - 1) % scq->length), -((ptrdiff_t)((*wr_ptr - 1) % scq->length)), -((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1)));
+  if (((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].truth == res->truth) && \
+      ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].time < res->time) && \
       (scq->wr_ptr != scq->pred_wr_ptr)) {
     R2U2_DEBUG_PRINT("\t\tAggregate Write\n");
     // Aggregate write, overwrite the previous cell to update timestamp
-    (scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))] = *res;
+    (scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))] = *res;
 
     R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
     r2u2_scq_print(scq);
