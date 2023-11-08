@@ -12,7 +12,7 @@
 //       arena, all indicies should be negative offsets from the queue pointer
 //       but are stored as positve integers to be read easier
 
-#if 0
+#if R2U2_DEBUG
 static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 
   if (rd_ptr != NULL) {
@@ -56,13 +56,12 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     #endif
     return R2U2_OK;
   }
-  if (((scq->queue)[-(((ptrdiff_t)*wr_ptr - 1) % scq->length)].truth == res->truth) && \
-      ((scq->queue)[-(((ptrdiff_t)*wr_ptr - 1) % scq->length)].time < res->time) && \
+  if (((scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))].truth == res->truth) && \
+      ((scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))].time < res->time) && \
       (scq->wr_ptr != scq->pred_wr_ptr)) {
     R2U2_DEBUG_PRINT("\t\tAggregate Write\n");
     // Aggregate write, overwrite the previous cell to update timestamp
-    // Ternary conditional handles pointer decriment modulo SCQ length without casting to and back from signed integers
-    (scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))] = *res;
+    (scq->queue)[-((ptrdiff_t)((*wr_ptr - 1) % scq->length))] = *res;
 
     R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
     r2u2_scq_print(scq);
