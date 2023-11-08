@@ -41,7 +41,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = False
     elif isinstance(expr, C2POFunctionCall):
         # For now, this can only be a struct instantiation
-        if expr.symbol not in context.structs and expr.symbol not in context.atomic_checker_filters:
+        if expr.symbol not in context.structs:
             logger.error(f"{expr.ln}: Functions unsupported.\n\t{expr}")
             status =  False
 
@@ -250,33 +250,14 @@ def type_check_atomic(atomic: C2POAtomicCheckerDefinition, context: C2POContext)
     lhs = relational_expr.get_lhs()
     rhs = relational_expr.get_rhs()
 
-    if isinstance(lhs, C2POFunctionCall):
-        if lhs.symbol not in context.atomic_checker_filters:
-            logger.error(f"{lhs.ln}: Invalid atomic checker filter ('{lhs.symbol}')")
-            status = False
-
-        if lhs.num_children() != len(context.atomic_checker_filters[lhs.symbol]):
-            logger.error(f"{lhs.ln}: Atomic checker filter argument mismatch. Expected {len(context.atomic_checker_filters[lhs.symbol])} arguments, got {lhs.num_children()}")
-            status = False
-        
-        for arg, target_type in zip(lhs.get_children(), context.atomic_checker_filters[lhs.symbol]):
-            if not isinstance(arg, C2POLiteral):
-                logger.error(f"{arg.ln}: Atomic checker filter argument '{arg}' is not a signal nor constant.")
-                status = False
-
-            type_check_expr(arg, context) # assigns signals their types
-            
-            if arg.type != target_type:
-                logger.error(f"{arg.ln}: Atomic checker filter argument '{arg}' does not match expected type. Expected {target_type}, found {arg.type}.")
-                status = False
-    elif isinstance(lhs, C2POSignal):
+    if isinstance(lhs, C2POSignal):
         type_check_expr(lhs, context)
     else:
-        logger.error(f"{lhs.ln}: Left-hand side of atomic checker definition not a filter nor  signal.\n\t{lhs}")
+        logger.error(f"{lhs.ln}: Left-hand side of atomic checker definition not a signal.\n\t{lhs}")
         status = False
 
     if not isinstance(rhs, C2POLiteral):
-        logger.error(f"{rhs.ln}: Right-hand side of atomic checker definition not a constant or signal.\n\t{rhs}")
+        logger.error(f"{rhs.ln}: Right-hand side of atomic checker definition not a constant nor signal.\n\t{rhs}")
         status = False
 
     return status

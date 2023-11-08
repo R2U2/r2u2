@@ -251,6 +251,12 @@ class C2POAtomicChecker(C2POLiteral):
         self.type: C2POType = C2POBoolType(False)
         self.engine = R2U2Engine.ATOMIC_CHECKER
 
+    def set_fields(
+        self,
+        
+    ):
+        pass
+
     def __deepcopy__(self, memo):
         copy = C2POAtomicChecker(self.ln, self.symbol)
         self.copy_attrs(copy)
@@ -1358,14 +1364,15 @@ class C2POContext():
         self.has_future_time = False
         self.has_past_time = False
 
-        self.atomic_checker_filters: Dict[str, List[C2POType]] = {
-            "rate": [C2POFloatType(False)],
-            "movavg": [C2POFloatType(False), C2POIntType(True)],
-            "abs_diff_angle": [C2POFloatType(False), C2POFloatType(True)],
-            "exactly_one_of": [C2POSetType(False, C2POBoolType(False))],
-            "all_of": [C2POSetType(False, C2POBoolType(False))],
-            "none_of": [C2POSetType(False, C2POBoolType(False))]
-        }
+        # TODO: move support for these to booleanizer
+        # self.atomic_checker_filters: Dict[str, List[C2POType]] = {
+        #     "rate": [C2POFloatType(False)],
+        #     "movavg": [C2POFloatType(False), C2POIntType(True)],
+        #     "abs_diff_angle": [C2POFloatType(False), C2POFloatType(True)],
+        #     "exactly_one_of": [C2POSetType(False, C2POBoolType(False))],
+        #     "all_of": [C2POSetType(False, C2POBoolType(False))],
+        #     "none_of": [C2POSetType(False, C2POBoolType(False))]
+        # }
 
     def get_symbols(self) -> List[str]:
         symbols =  [s for s in self.definitions.keys()]
