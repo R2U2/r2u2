@@ -1,3 +1,4 @@
+from __future__ import annotations
 from enum import Enum
 from struct import Struct as CStruct, calcsize
 from typing import Union
@@ -5,45 +6,16 @@ from typing import Union
 from .logger import logger
 from .ast import *
 
-# The following values with suffix '_F' are the format strings
-# used to construct the c structs. See the documentation of the
-# 'struct' package for info:
+# See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
-ENGINE_TAG_F = "B"
-
-INSTR_SIZE_F = "B"
-
-BZ_ID_F           = "B"
-BZ_OPERATOR_F     = "i"
-BZ_STORE_ATOMIC_F = "B"
-BZ_ATOMIC_ID_F    = "B"
-BZ_PARAM_INT_F    = "i"
-BZ_PARAM_FLOAT_F  = "d"
-
-# The following three must be of equal size!
-# We check for this in check_size() below
-AT_VALUE_BOOL_F  = "?xxxxxxx"
-AT_VALUE_SIG_F   = "Bxxxxxxx"
-AT_VALUE_INT_F   = "q"
-AT_VALUE_FLOAT_F = "d"
-
-AT_REL_OP_F = "i"
-AT_FILTER_F = "i"
-AT_ID_F     = "B"
-AT_COMPARE_VALUE_IS_SIGNAL_F = "B"
-
-TL_ID_F           = "I"
-TL_OPERATOR_F     = "i"
-TL_OPERAND_TYPE_F = "i"
-TL_OPERAND_ID_F   = "Bxxx"
 
 def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
         logger.warning(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes")
 
-    if len(set([calcsize(f) for f in {AT_VALUE_BOOL_F, AT_VALUE_FLOAT_F, AT_VALUE_SIG_F, AT_VALUE_INT_F}])) > 1:
-        logger.warning(f"Widths for AT value encodings not homogeneous.")
+    # if len(set([calcsize(f) for f in {AT_VALUE_BOOL_F, AT_VALUE_FLOAT_F, AT_VALUE_SIG_F, AT_VALUE_INT_F}])) > 1:
+    #     logger.warning(f"Widths for AT value encodings not homogeneous.")
 
 # The following classes define the allowable fields in an 
 # assembly instruction. They are all either Enums or wrappers
@@ -58,10 +30,6 @@ def check_sizes():
 #    - Used for a human-readable format of the field
 # 3) '__repr__(self) -> str'
 #    - Used for a string format of the binary representation
-#
-# NOTE: we could use ABCs (https://docs.python.org/3.8/library/abc.html) and
-# define 'assemble', '__str__', and '__repr__' as abstract methods, but I just 
-# hate decorators.
 
 class EngineTag(Enum):
     NA = 0 # Null instruction tag - acts as ENDSEQ
@@ -71,25 +39,9 @@ class EngineTag(Enum):
     TL = 4 # MLTL Temporal logic engine
     BZ = 5 # Booleanizer
 
-    def symbol(self) -> str:
+    def __str__(self) -> str:
         return self.name
 
-    def assemble(self) -> bytes:
-        return CStruct(ENGINE_TAG_F).pack(self.value)
-
-    def __str__(self) -> str:
-        return f"{self.name:2}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:3b}"
-
-class BZId():
-
-    def __init__(self, id: int) -> None:
-        self.value = id
-
-    def assemble(self) -> bytes:
-        return CStruct(BZ_ID_F).pack(self.value)
 
 class BZOperator(Enum):
     NONE    = 0b000000
@@ -123,26 +75,14 @@ class BZOperator(Enum):
     FDIV    = 0b011100
     MOD     = 0b011101
 
-    def symbol(self) -> str:
-        return self.name.lower()
-    
-    def opcode(self) -> int:
-        return self.value
-
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
     
     def is_load(self) -> bool:
         return self is BZOperator.ILOAD or self is BZOperator.FLOAD
 
-    def assemble(self) -> bytes:
-        return CStruct(BZ_OPERATOR_F).pack(self.value)
-
     def __str__(self) -> str:
-        return super().__str__()
-
-    def __repr__(self) -> str:
-        return super().__repr__()
+        return self.name.lower()
 
 BZ_OPERATOR_MAP = {
     # (node_type, is_int_type): BZOperator
@@ -155,33 +95,6 @@ BZ_OPERATOR_MAP = {
     Any: BZOperator.NONE
 }
 
-class BZStoreAtomic():
-
-    def __init__(self, value: bool) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(BZ_STORE_ATOMIC_F).pack(self.value)
-
-class BZAtomicId():
-
-    def __init__(self, id: int) -> None:
-        self.value = id
-
-    def assemble(self) -> bytes:
-        return CStruct(BZ_ATOMIC_ID_F).pack(self.value)
-
-class BZParameter():
-
-    def __init__(self, value: Union[int, float]) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        if isinstance(self.value, int):
-            return CStruct(BZ_PARAM_INT_F).pack(self.value)
-        elif isinstance(self.value, float):
-            return CStruct(BZ_PARAM_FLOAT_F).pack(self.value)
-        raise NotImplementedError
 
 class ATRelOp(Enum):
     EQ   = 0b000
@@ -192,12 +105,6 @@ class ATRelOp(Enum):
     GEQ  = 0b101
     NONE = 0b111
 
-    def symbol(self) -> str:
-        return self.name.lower()
-
-    def assemble(self) -> bytes:
-        return CStruct(AT_REL_OP_F).pack(self.value)
-
 AT_REL_OP_MAP = {
     C2POEqual:           ATRelOp.EQ,
     C2PONotEqual:        ATRelOp.NEQ,
@@ -207,6 +114,7 @@ AT_REL_OP_MAP = {
     C2POGreaterThanOrEqual: ATRelOp.GEQ,
     Any: ATRelOp.NONE
 }
+
 
 class ATFilter(Enum):
     NONE           = 0b0000
@@ -221,12 +129,6 @@ class ATFilter(Enum):
     # NONE_OF        = 0b1001
     # ALL_OF         = 0b1010
 
-    def symbol(self) -> str:
-        return self.name.lower()
-
-    def assemble(self) -> bytes:
-        return CStruct(AT_FILTER_F).pack(self.value)
-
 AT_FILTER_MAP = {
     C2POBool: ATFilter.BOOL,
     C2POInteger: ATFilter.INT,
@@ -235,76 +137,6 @@ AT_FILTER_MAP = {
     Any: ATFilter.NONE
 }
 
-class ATCompareValue():
-
-    def __init__(
-        self, 
-        value: Union[bool, int, float],
-        is_signal: bool
-    ) -> None:
-        self.value = value
-        self.is_signal = is_signal
-
-    def assemble(self) -> bytes:
-        if self.is_signal:
-            return CStruct(AT_VALUE_SIG_F).pack(self.value) 
-        elif isinstance(self.value, bool):
-            return CStruct(AT_VALUE_BOOL_F).pack(self.value) 
-        elif isinstance(self.value, int):
-            return CStruct(AT_VALUE_INT_F).pack(self.value) 
-        elif isinstance(self.value, float):
-            return CStruct(AT_VALUE_FLOAT_F).pack(self.value) 
-        raise NotImplementedError # TODO: replace with error message
-
-class ATCompareIsSignal():
-
-    def __init__(self, value: bool) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(AT_VALUE_BOOL_F).pack(self.value)
-
-class ATAuxFilterArg():
-
-    def __init__(self, value: Union[int, float]) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        if isinstance(self.value, int):
-            return CStruct(AT_VALUE_INT_F).pack(self.value)
-        elif isinstance(self.value, float):
-            return CStruct(AT_VALUE_FLOAT_F).pack(self.value)
-        raise NotImplementedError # TODO: replace with error message
-
-class ATPrimaryFilterArg():
-
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(AT_VALUE_SIG_F).pack(self.value)
-
-class ATId():
-
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(AT_ID_F).pack(self.value)
-
-class TLId():
-
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(TL_ID_F).pack(self.value)
-
-    def __str__(self) -> str:
-        return f"{self.value:3}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:8b}"
 
 class TLOperandType(Enum):
     DIRECT      = 0b01
@@ -312,72 +144,55 @@ class TLOperandType(Enum):
     SUBFORMULA  = 0b10
     NONE        = 0b11
 
-    def symbol(self) -> str:
-        return self.name.lower()
-
-    def assemble(self) -> bytes:
-        return CStruct(TL_OPERAND_TYPE_F).pack(self.value)
-
-    def __str__(self) -> str:
-        return f"{self.name:10}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:2b}"
-
 TL_OPERAND_TYPE_MAP = {
     C2POBool: TLOperandType.DIRECT,
     C2POAtomicChecker: TLOperandType.ATOMIC,
     Any: TLOperandType.NONE
 }
 
-class TLOperandId():
+def get_tl_operand(
+    operand: Optional[C2PONode], 
+    instr: TLInstruction
+) -> Tuple[TLOperandType, Union[int, float]]:
+    """Computes the operand type and value of the given C2PONode and Instruction."""
+    if isinstance(operand, C2POBool):
+        return (TLOperandType.DIRECT, operand.value)
+    elif isinstance(operand, C2POAtomicChecker):
+        return (TLOperandType.ATOMIC, operand.atomic_id)
+    elif isinstance(operand, C2PONode):
+        return (TLOperandType.SUBFORMULA, instr.tlid)
+    else:
+        return (TLOperandType.NONE, 0)
 
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-    def assemble(self) -> bytes:
-        return CStruct(TL_OPERAND_ID_F).pack(self.value)
-
-    def __str__(self) -> str:
-        return f"{self.value:5}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:8b}"
 
 class FTOperator(Enum):
     NOP       = 0b11111
-    CONFIGURE = 0b11110
+    CONFIG    = 0b11110
     LOAD      = 0b11101
     RETURN    = 0b11100
-    GLOBALLY  = 0b11010
+    GLOBAL    = 0b11010
     UNTIL     = 0b11001
     NOT       = 0b10111
     AND       = 0b10110
 
-    def symbol(self) -> str:
-        return self.name.lower()
-    
-    def opcode(self) -> int:
-        return self.value
-
     def is_temporal(self) -> bool:
-        return self is FTOperator.GLOBALLY or self is FTOperator.UNTIL
+        return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
 
     def is_load(self) -> bool:
         return self is FTOperator.LOAD
 
-    def assemble(self) -> bytes:
-        return CStruct(TL_OPERATOR_F).pack(self.value)
-
     def __str__(self) -> str:
-        return f"{self.name:12}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:5b}"
+        return self.name.lower()
 
 FT_OPERATOR_MAP = {
+    C2POSpecification: FTOperator.RETURN,
+    C2POGlobal: FTOperator.GLOBAL,
+    C2POUntil: FTOperator.UNTIL,
+    C2POLogicalNegate: FTOperator.NOT,
+    C2POLogicalAnd: FTOperator.AND,
     Any: FTOperator.NOP
 }
+
 
 class PTOperator(Enum):
     NOP          = 0b01111
@@ -393,38 +208,82 @@ class PTOperator(Enum):
     IMPLIES      = 0b00100
     EQUIVALENT   = 0b00000
 
-    def symbol(self) -> str:
-        return self.name.lower()
-    
-    def opcode(self) -> int:
-        return self.value
-
     def is_temporal(self) -> bool:
         return self == PTOperator.ONCE or self == PTOperator.HISTORICALLY or self == PTOperator.SINCE
 
     def is_load(self) -> bool:
         return self is PTOperator.LOAD
-
-    def assemble(self) -> bytes:
-        return CStruct(TL_OPERATOR_F).pack(self.value)
-
-    def __str__(self) -> str:
-        return f"{self.name:12}"
-
-    def __repr__(self) -> str:
-        return f"{self.value:5b}"
     
 PT_OPERATOR_MAP = {
     Any: PTOperator.NOP
 }
 
+
 Operator = Union[FTOperator, PTOperator, BZOperator]
 TLOperator = Union[FTOperator, PTOperator]
+
+
+class FieldType(Enum):
+    ENGINE_TAG      = 0
+    INSTR_SIZE      = 1
+    BZ_ID           = 2
+    BZ_OPERATOR     = 3
+    BZ_STORE_ATOMIC = 3
+    BZ_ATOMIC_ID    = 4
+    BZ_PARAM_INT    = 5
+    BZ_PARAM_FLOAT  = 6
+    AT_VALUE_BOOL   = 7
+    AT_VALUE_SIG    = 8
+    AT_VALUE_INT    = 9
+    AT_VALUE_FLOAT  = 10
+    AT_REL_OP       = 11
+    AT_FILTER       = 12
+    AT_ID           = 13
+    AT_COMPARE_VALUE_IS_SIGNAL = 14
+    TL_ID           = 15
+    TL_OPERATOR     = 16
+    TL_OPERAND_TYPE = 17
+    TL_OPERAND_ID   = 18
+
+field_format_str_map = {
+    FieldType.ENGINE_TAG: "B",
+    FieldType.INSTR_SIZE: "B",
+    FieldType.BZ_ID:           "B",
+    FieldType.BZ_OPERATOR:     "i",
+    FieldType.BZ_STORE_ATOMIC: "B",
+    FieldType.BZ_ATOMIC_ID:    "B",
+    FieldType.BZ_PARAM_INT:    "i",
+    FieldType.BZ_PARAM_FLOAT:  "d",
+    FieldType.AT_VALUE_BOOL:  "?xxxxxxx",
+    FieldType.AT_VALUE_SIG:   "Bxxxxxxx",
+    FieldType.AT_VALUE_INT:   "q",
+    FieldType.AT_VALUE_FLOAT: "d",
+    FieldType.AT_REL_OP:      "i",
+    FieldType.AT_FILTER:      "i",
+    FieldType.AT_ID:          "B",
+    FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
+    FieldType.TL_ID:           "I",
+    FieldType.TL_OPERATOR:     "i",
+    FieldType.TL_OPERAND_TYPE: "i",
+    FieldType.TL_OPERAND_ID:   "Bxxx",
+}
+
 
 class Instruction():
 
     def __init__(self) -> None:
-        self.fields = ()
+        self.fields = []
+
+    def assemble(self) -> bytes:
+        binary = bytes()
+        for field_type, field_value in self.fields:
+            format_str = field_format_str_map[field_type]
+            binary += CStruct(format_str).pack(field_value)
+
+        instr_size_format_str = field_format_str_map[FieldType.INSTR_SIZE]
+        instr_size = CStruct(instr_size_format_str).pack(len(binary) + 1)
+        
+        return instr_size + binary
 
     def __str__(self) -> str:
         return " ".join([str(f) for f in self.fields])
@@ -441,10 +300,10 @@ class BZInstruction(Instruction):
         context: C2POContext
     ):
         self.engine_tag = EngineTag.BZ
-        self.bzid =BZId(id)
+        self.bzid = id
         self.operator = BZ_OPERATOR_MAP[(type(node), is_integer_type(node.type))]
-        self.store_atomic = BZStoreAtomic(node in context.atomics)
-        self.atomic_id = BZAtomicId(node.atomic_id)
+        self.store_atomic = node in context.atomics
+        self.atomic_id = node.atomic_id
 
         # if node.num_children() > 0:
         #     self.param1 = BZParameter(node.get_child(0))
@@ -453,32 +312,25 @@ class BZInstruction(Instruction):
         # else:
         #     pass
 
-        self.fields = (
-            self.engine_tag, 
-            self.bzid,
-            self.operator,
-            self.store_atomic,
-            self.atomic_id,
-            BZParameter(0),
-            BZParameter(0)
-        )
+        self.fields = [
+            (FieldType.ENGINE_TAG, self.engine_tag), 
+            (FieldType.BZ_ID, self.bzid),
+            (FieldType.BZ_OPERATOR, self.operator),
+            (FieldType.BZ_STORE_ATOMIC, self.store_atomic),
+            (FieldType.BZ_ATOMIC_ID, self.atomic_id),
+            (FieldType.BZ_PARAM_INT, 0),
+            (FieldType.BZ_PARAM_INT, 0),
+        ]
 
-    def assemble(self) -> bytes:
-        # NOTE: This method could be placed in the parent class
-        # Instruction since it's identical across all subclasses
-        # of Instruction -- we don't do this so that the type checker
-        # enforces that every field implements 'assemble()'.
-        binary = bytes()
-        for field in self.fields:
-            binary += field.assemble()
-        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
-        return instr_size + binary
+    def __str__(self) -> str:
+        s = f"{self.engine_tag} b{self.bzid} {self.operator:6} "
+        return s
 
 class ATInstruction(Instruction):
 
     def __init__(
         self, 
-        node: C2POAtomicChecker,
+        node: C2POExpression,
         context: C2POContext
     ):
         expr = context.atomic_checkers[node.symbol]
@@ -499,28 +351,17 @@ class ATInstruction(Instruction):
             compare_value = 0
             compare_value_is_sig = False
 
-        self.fields = (
+        self.fields = [
             EngineTag.AT, 
-            ATCompareValue(compare_value, compare_value_is_sig),
-            ATAuxFilterArg(0), # TODO: remove support for this
+            compare_value,
+            0, # TODO: remove support for this
             AT_REL_OP_MAP[type(relational_expr)],
             AT_FILTER_MAP[type(lhs)],
-            ATPrimaryFilterArg(lhs.signal_id),
-            ATId(node.atomic_id), 
-            ATCompareIsSignal(compare_value_is_sig),
-            ATId(node.atomic_id)
-        )
-
-    def assemble(self) -> bytes:
-        # NOTE: This method could be placed in the parent class
-        # Instruction since it's identical across all subclasses
-        # of Instruction -- we don't do this so that the type checker
-        # enforces that every field implements 'assemble()'.
-        binary = bytes()
-        for field in self.fields:
-            binary += field.assemble()
-        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
-        return instr_size + binary
+            lhs.signal_id,
+            node.atomic_id, 
+            compare_value_is_sig,
+            node.atomic_id
+        ]
 
 class TLInstruction(Instruction):
 
@@ -528,51 +369,89 @@ class TLInstruction(Instruction):
         self, 
         id: int,
         node: C2PONode,
-        context: C2POContext
+        context: C2POContext,
+        instructions: InstructionDict
     ):
         self.engine_tag = EngineTag.TL
-        self.tlid = TLId(id)
+        self.tlid = id
 
-        if context.is_future_time():
+        if context.is_future_time() and node in context.atomics:
+            self.operator = FTOperator.LOAD
+        elif context.is_past_time() and node in context.atomics:
+            self.operator = PTOperator.LOAD
+        elif context.is_future_time():
             self.operator = FT_OPERATOR_MAP[type(node)]
         else:
             self.operator = PT_OPERATOR_MAP[type(node)]
 
-        if node.num_children() > 0:
-            self.opnd1_type = TL_OPERAND_TYPE_MAP[Any]
-            self.opnd1_id = TLOperandId(0)
+        operand1 = node.get_child(0)
+        if isinstance(operand1, C2POBool):
+            self.operand1_type = TLOperandType.DIRECT
+            self.operand1_value = operand1.value
+        elif node in context.atomics: # then we are a load
+            self.operand1_type = TLOperandType.ATOMIC
+            self.operand1_value = node.atomic_id
+        elif operand1 in instructions:
+            self.operand1_type = TLOperandType.SUBFORMULA
 
-        if node.num_children() > 1:
-            self.opnd2_type = TL_OPERAND_TYPE_MAP[Any]
-            self.opnd2_id = TLOperandId(0)
+            (compute, load) = instructions[operand1]
+            if load:
+                self.operand1_value = load.tlid
+            else:
+                compute = cast(TLInstruction, compute)
+                self.operand1_value = compute.tlid
+        else:
+            self.operand1_type = TLOperandType.NONE
+            self.operand1_value = 0
 
-        self.fields = (
+        operand2 = node.get_child(1)
+        if isinstance(operand2, C2POBool):
+            self.operand2_type = TLOperandType.DIRECT
+            self.operand2_value = operand2.value
+        elif operand2 in instructions:
+            self.operand2_type = TLOperandType.SUBFORMULA
+
+            (compute, load) = instructions[operand2]
+            if load:
+                self.operand2_value = load.tlid
+            else:
+                compute = cast(TLInstruction, compute)
+                self.operand2_value = compute.tlid
+        else:
+            self.operand2_type = TLOperandType.NONE
+            self.operand2_value = 0
+
+        self.fields = [
             self.engine_tag, 
-            self.opnd1_type, self.opnd1_id,
-            self.opnd2_type, self.opnd2_id,
+            self.operand1_type, self.operand1_value,
+            self.operand2_type, self.operand2_value,
             self.tlid, 
             self.operator
-        )
-
-    def assemble(self) -> bytes:
-        # NOTE: This method could be placed in the parent class
-        # Instruction since it's identical across all subclasses
-        # of Instruction -- we don't do this so that the type checker
-        # enforces that every field implements 'assemble()'.
-        binary = bytes()
-        for field in self.fields:
-            binary += field.assemble()
-        instr_size = CStruct(INSTR_SIZE_F).pack(binary)
-        return instr_size + binary
+        ]
 
     def __str__(self) -> str:
-        s = f"{self.engine_tag} {self.tlid} {self.operator} "
-        if self.opnd1_type != TLOperandType.NONE:
-            s += f"{self.opnd1_id} "
-        if self.opnd2_type != TLOperandType.NONE:
-            s += f"{self.opnd2_id} "
+        s = f"{self.engine_tag} n{self.tlid} {self.operator:6} "
+
+        if self.operand1_type == TLOperandType.DIRECT:
+            s += f"{self.operand1_value} "
+        elif self.operand1_type == TLOperandType.ATOMIC:
+            s += f"a{self.operand1_value} "
+        elif self.operand1_type == TLOperandType.SUBFORMULA:
+            s += f"n{self.operand1_value} "
+
+        if self.operand2_type == TLOperandType.DIRECT:
+            s += f"{self.operand2_value} "
+        elif self.operand2_type == TLOperandType.ATOMIC:
+            s += f"a{self.operand2_value} "
+        elif self.operand2_type == TLOperandType.SUBFORMULA:
+            s += f"n{self.operand2_value} "
+
         return s
 
+# this maps expression nodes to a pair (compute, load) where `compute` is the 
+# instruction that computes the value for the nodes and `load` is an instruction
+# that loads that value from the atomics vector in the TL engine
+InstructionDict = Dict[C2POExpression, Tuple[Instruction, Optional[TLInstruction]]]
 
 def generate_assembly(
     program: C2POProgram,
@@ -580,49 +459,46 @@ def generate_assembly(
 ) -> List[Instruction]:
     bzid, atid, ftid, ptid = 0, 0, 0, 0
 
-    instr_dict: Dict[C2PONode, Instruction] = {}
-    instr_list = List[Instruction]
+    instructions: InstructionDict = {}
+
+    at_instructions = []
+    bz_instructions = []
+    ft_instructions = []
+    pt_instructions = []
 
     def generate_assembly_util(node: C2PONode):
+        nonlocal ftid, ptid
 
         if not isinstance(node, C2POExpression):
             return
 
-        tlid = ftid if context.is_future_time() else ptid
-
-        if isinstance(node, C2POAtomicChecker):
-            instr = ATInstruction(node, context)
-        elif isinstance(node, C2POBool):
-            instr = BZInstruction(bzid, node, context)
-        elif isinstance(node, C2POInteger):
-            instr = BZInstruction(bzid, node, context)
-        # elif isinstance(node, C2POFloat):
-        #     instr = BZInstruction(node, BZOperator.FCONST, child_instrs)
-        # elif isinstance(node, C2POSignal) and is_integer_type(node.type):
-        #     instr = BZInstruction(node, BZOperator.ILOAD, child_instrs)
-        # elif isinstance(node, C2POSignal):
-        #     instr = BZInstruction(node, BZOperator.FLOAD, child_instrs)
-        # elif isinstance(node, C2POBitwiseAnd):
-        #     instr = BZInstruction(node, BZOperator.BWAND, child_instrs)
-        # elif isinstance(node, C2POBitwiseOr):
-        #     instr = BZInstruction(node, BZOperator.BWOR, child_instrs)
-        # elif isinstance(node, C2POBitwiseXor):
-        #     instr = BZInstruction(node, BZOperator.BWXOR, child_instrs)
-        elif isinstance(node, C2POLogicalOr):
-            instr = TLInstruction(tlid, node, context)
+        if node in context.atomics and context.is_future_time():
+            load_instruction = TLInstruction(ftid, node, context, instructions)
+            ftid += 1
+        elif node in context.atomics and context.is_past_time():
+            load_instruction = TLInstruction(ptid, node, context, instructions)
+            ptid += 1
         else:
+            load_instruction = None
+
+        if node.engine == R2U2Engine.ATOMIC_CHECKER:
+            compute_instruction = ATInstruction(node, context)
+        elif node.engine == R2U2Engine.TEMPORAL_LOGIC and context.is_future_time():
+            compute_instruction = TLInstruction(ftid, node, context, instructions)
+            ftid += 1
+        elif node.engine == R2U2Engine.TEMPORAL_LOGIC and context.is_past_time():
+            compute_instruction = TLInstruction(ptid, node, context, instructions)
+        elif node.engine == R2U2Engine.BOOLEANIZER:
+            compute_instruction = BZInstruction(bzid, node, context)
+        else:
+            print(type(node))
             raise NotImplementedError
 
-        if isinstance(instr, ATInstruction):
-            pass
-        elif isinstance(instr, BZInstruction):
-            pass
-        elif isinstance(instr, TLInstruction) and context.is_future_time():
-            pass
-        elif isinstance(instr, TLInstruction) and context.is_past_time():
-            pass
-        else:
-            pass
+        print(compute_instruction)
+        if load_instruction:
+            print(load_instruction)
+
+        instructions[node] = (compute_instruction, load_instruction)
 
     context.set_future_time() # need to set this to disambiguate PT/FT logical ops
     spec_section = program.get_future_time_spec_section()
@@ -643,4 +519,5 @@ def assemble(
     quiet: bool
 ) -> bytes:
     check_sizes()
+    generate_assembly(program, context)
     return bytes()
