@@ -58,10 +58,14 @@ class C2PONode():
     def num_parents(self) -> int:
         return len(self._parents)
 
-    def get_child(self, i: int) -> C2PONode:
+    def get_child(self, i: int) -> Optional[C2PONode]:
+        if i >= self.num_children():
+            return None
         return self._children[i]
 
-    def get_parent(self, i: int) -> C2PONode:
+    def get_parent(self, i: int) -> Optional[C2PONode]:
+        if i >= self.num_parents():
+            return None
         return self._parents[i]
 
     def add_child(self, child: C2PONode):
@@ -298,7 +302,7 @@ class C2POStruct(C2POExpression):
         # cannot use *just* members, else the "parent" tracking breaks
         self.members: Dict[str, int] = m 
 
-    def get_member(self, name: str) -> C2PONode:
+    def get_member(self, name: str) -> Optional[C2PONode]:
         return self.get_child(self.members[name])
 
     def get_members(self) -> Dict[str, int]:
@@ -893,10 +897,10 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def get_lhs(self) -> C2PONode:
-        return self.get_child(0)
+        return self._children[0]
 
     def get_rhs(self) -> C2PONode:
-        return self.get_child(1)
+        return self._children[1]
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -933,7 +937,7 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
         self.wpd = o.wpd + self.interval.ub
 
     def get_operand(self) -> C2PONode:
-        return self.get_child(0)
+        return self._children[0]
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -968,10 +972,10 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
         super().__init__(ln, [lhs, rhs], l, u)
 
     def get_lhs(self) -> C2PONode:
-        return self.get_child(0)
+        return self._children[0]
 
     def get_rhs(self) -> C2PONode:
-        return self.get_child(1)
+        return self._children[1]
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -999,7 +1003,7 @@ class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
         super().__init__(ln, [o], l, u)
 
     def get_operand(self) -> C2PONode:
-        return self.get_child(0)
+        return self._children[0]
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]

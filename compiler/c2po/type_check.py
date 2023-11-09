@@ -76,7 +76,13 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
 
-        t: C2POType = expr.get_child(0).type
+        first_child = expr.get_child(0)
+        if not first_child:
+            status = False
+            logger.critical(f"Arithmetic operator '{expr}' has no children.")
+            return status
+
+        t: C2POType = first_child.type
         t.is_const = is_const
 
         if isinstance(expr, C2POArithmeticDivide):
@@ -113,7 +119,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         for c in expr.get_children():
             if c.type != t or not is_integer_type(c.type):
                 status = False
-                logger.error(f"{expr.ln}: Invalid operands for '{expr.symbol}', found '{c.type}' ('{c}') but expected '{expr.get_child(0).type}'\n\t{expr}")
+                logger.error(f"{expr.ln}: Invalid operands for '{expr.symbol}', found '{c.type}' ('{c}') but expected '{t}'\n\t{expr}")
 
         expr.type = t
     elif isinstance(expr, C2POLogicalOperator):
@@ -182,7 +188,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = False
             logger.error(f"{expr.ln}: Set aggregation set must be Set type (found '{s.type}')")
 
-        if isinstance(expr, C2POForExactly) or isinstance(expr, C2POForAtLeast) or isinstance(expr, C2POForAtMost):
+        if isinstance(expr, (C2POForExactly, C2POForAtLeast, C2POForAtMost)):
             if not context.booleanizer_enabled:
                 status = False
                 logger.error(f"{expr.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.")
@@ -209,8 +215,14 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             is_const = is_const and member.type.is_const
 
         for (m,t) in context.structs[expr.symbol].items():
-            if expr.get_member(m).type != t:
-                logger.error(f"{expr.ln}: Member '{m}' invalid type for struct '{expr.symbol}' (expected '{t}' but got '{expr.get_member(m).type}')")
+            member = expr.get_member(m)
+            if not member:
+                status = False
+                logger.critical(f"Member '{member}' not present in struct.")
+                return status
+
+            if member.type != t:
+                logger.error(f"{expr.ln}: Member '{m}' invalid type for struct '{expr.symbol}' (expected '{t}' but got '{member.type}')")
 
         expr.type = C2POStructType(is_const, expr.symbol)
     elif isinstance(expr, C2POStructAccess):
