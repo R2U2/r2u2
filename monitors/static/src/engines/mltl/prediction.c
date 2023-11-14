@@ -42,7 +42,7 @@ r2u2_bool predicted_operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instru
           rd_ptr = &(source_scq->rd_ptr2);
         }
 
-        res = !r2u2_scq_is_empty(target_scq, &(target_scq->pred_wr_ptr), rd_ptr, &(source_scq->desired_time_stamp));
+        res = !r2u2_scq_is_empty(target_scq, rd_ptr, &(source_scq->desired_time_stamp), true);
         break;
 
       case R2U2_FT_OP_NOT_SET:
@@ -281,7 +281,7 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
           r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->max_out = res.time +1;
+          scq->max_out = res.time + 1;
         }
 
         scq->previous = op1;
@@ -386,7 +386,6 @@ void restore_scq(r2u2_monitor_t *monitor, r2u2_instruction_t** instructions, r2u
       scq->edge = prev_real_state[i].edge;
       scq->max_out = prev_real_state[i].max_out;
       scq->previous = prev_real_state[i].previous;
-      r2u2_scq_print(scq);
     }
   }
 }

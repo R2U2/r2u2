@@ -94,12 +94,22 @@ r2u2_verdict r2u2_scq_pop(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 
 // TODO(bckempa): Maybe it makes sense to pair the read pointers and desired times?
 //                Need to verify algotihmic implication, though may reduce redundent data
-r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *wr_ptr, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp) {
-
+r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp, bool predict) {
+  R2U2_DEBUG_PRINT("\t\tSCQ before finding read:\n");
+  r2u2_scq_print(scq);
   // NOTE: This should be the child SCQ, but the parent's read ptr
   // this ensureds CSE works by allowing many readers
-  if((wr_ptr == &scq->wr_ptr) && (*rd_ptr == scq->pred_wr_ptr)){ // Checks if trying to read predicted data
-    return true;
+
+  // Checks if trying to read predicted data when not in predictice mode
+  if(!predict && *rd_ptr == scq->pred_wr_ptr){
+    return true; 
+  }
+
+  r2u2_time *wr_ptr;
+  if(predict){
+    wr_ptr = &scq->pred_wr_ptr;
+  }else{
+    wr_ptr = &scq->wr_ptr;
   }
 
   R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");

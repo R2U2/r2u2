@@ -44,7 +44,7 @@ static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instructi
           rd_ptr = &(source_scq->rd_ptr2);
         }
 
-        res = !r2u2_scq_is_empty(target_scq, &(target_scq->wr_ptr), rd_ptr, &(source_scq->desired_time_stamp));
+        res = !r2u2_scq_is_empty(target_scq, rd_ptr, &(source_scq->desired_time_stamp), false);
         break;
 
       case R2U2_FT_OP_NOT_SET:
@@ -179,7 +179,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %u\n", instr->op1.value, instr->memory_reference);
             scq->interval_end = (r2u2_time) instr->memory_reference;
           } else if(instr->op2.value == 2){
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tDeadline: %u\n", instr->op1.value, instr->memory_reference);
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tDeadline: %d\n", instr->op1.value, instr->memory_reference);
             scq->deadline = (r2u2_time) instr->memory_reference;
           }
           break;
