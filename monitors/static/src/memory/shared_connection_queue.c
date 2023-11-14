@@ -146,6 +146,10 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
       return false;
     }
 
+  } else if(((scq->queue)[-((ptrdiff_t)((*rd_ptr + 1) % scq->length))].time >= *desired_time_stamp)){
+    *rd_ptr = (*rd_ptr + 1) % scq->length;
+    R2U2_DEBUG_PRINT("\t\t SCQ Full with new data at [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
+    return false;
   } else { // Empty queue - read == write ptr, current value stale
     R2U2_DEBUG_PRINT("\t\tEmpty Queue Rd == Wrt and t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
     return true;
