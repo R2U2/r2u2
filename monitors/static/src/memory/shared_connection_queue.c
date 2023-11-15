@@ -123,10 +123,10 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
     // New data available
     R2U2_DEBUG_PRINT("\t\tNew data found in place t=%d >= %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
     return false;
-  } else if (*rd_ptr != *wr_ptr) {
+  } else if (*rd_ptr != ((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1)) {
 
     // Fast-forword queue
-    while ((*rd_ptr != *wr_ptr) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
+    while ((*rd_ptr != ((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1)) && ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp)) {
       R2U2_DEBUG_PRINT("\t\tScanning queue t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
       *rd_ptr = (*rd_ptr + 1) % scq->length;
       #if R2U2_DEBUG
@@ -146,11 +146,6 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
       R2U2_DEBUG_PRINT("\t\tNew data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);
       return false;
     }
-
-  } else if(((scq->queue)[-((ptrdiff_t)((*rd_ptr + 1) % scq->length))].time >= *desired_time_stamp) && ((scq->queue)[-((ptrdiff_t)((*rd_ptr + 1) % scq->length))].time != r2u2_infinity)){
-    *rd_ptr = (*rd_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\t SCQ full with new data at [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
-    return false;
   } else { // Empty queue - read == write ptr, current value stale
     R2U2_DEBUG_PRINT("\t\tEmpty Queue Rd == Wrt and t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);
     return true;
