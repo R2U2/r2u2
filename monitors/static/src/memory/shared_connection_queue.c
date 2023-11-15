@@ -39,7 +39,8 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
   r2u2_scq_print(scq, NULL);
   #endif
 
-  if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){ // When overwriting predicted data with real data reset pred_wr_ptr
+  // When overwriting predicted data with real data reset pred_wr_ptr
+  if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){
     scq->pred_wr_ptr = r2u2_infinity;
   }
 
@@ -50,13 +51,11 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
     *wr_ptr = (*wr_ptr + 1) % scq->length;
     R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
-    r2u2_scq_print(scq);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
     return R2U2_OK;
   }
-  printf("Before and after: %d, %d, %d\n", -(((ptrdiff_t)*wr_ptr - 1) % scq->length), -((ptrdiff_t)((*wr_ptr - 1) % scq->length)), -((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1)));
   if (((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].truth == res->truth) && \
       ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].time < res->time) && \
       (scq->wr_ptr != scq->pred_wr_ptr)) {
@@ -65,7 +64,6 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     (scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))] = *res;
 
     R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
-    r2u2_scq_print(scq);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -74,9 +72,12 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     // Standard write
     R2U2_DEBUG_PRINT("\t\tStandard Write\n");
     (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
-    *wr_ptr = (*wr_ptr + 1) % scq->length;
+    if(wr_ptr == &scq->pred_wr_ptr){ // Ensure that predicted data never overwrites real relevant data
+      *wr_ptr = (((*wr_ptr + 1) % scq->length) == ((scq->wr_ptr + ((scq->length-1)/2)+1) % scq->length)) ? *wr_ptr = scq->wr_ptr : ((*wr_ptr + 1) % scq->length);
+    }else{
+      *wr_ptr = (*wr_ptr + 1) % scq->length;
+    }
     R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
-    r2u2_scq_print(scq);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -148,7 +149,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
 
   } else if(((scq->queue)[-((ptrdiff_t)((*rd_ptr + 1) % scq->length))].time >= *desired_time_stamp) && ((scq->queue)[-((ptrdiff_t)((*rd_ptr + 1) % scq->length))].time != r2u2_infinity)){
     *rd_ptr = (*rd_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\t SCQ Full with new data at [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\t SCQ full with new data at [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
     return false;
   } else { // Empty queue - read == write ptr, current value stale
     R2U2_DEBUG_PRINT("\t\tEmpty Queue Rd == Wrt and t=%d < %d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, *desired_time_stamp);

@@ -229,9 +229,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           r2u2_time index = monitor->time_stamp - scq->deadline;
           operand_data_ready(monitor, instr, 0);
           res = get_operand(monitor, instr, 0);
-          r2u2_scq_print(scq);
           if(res.time == r2u2_infinity || res.time < index){ // last i produced < index
-            printf("Starting prediction.\n");
             r2u2_instruction_t** instructions = malloc(sizeof(r2u2_instruction_t*));
             size_t num_instructions;
             r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
@@ -241,7 +239,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               //r2u2_atomic_vector_flip(monitor->atomic_buffer); // NEED TO RESTORE ATOMIC BUFFER STATE AFTER PREDICTION TO ENABLE
               monitor->signal_vector = &(*(monitor->signal_vector))[monitor->num_atomics];
-              //printf("Here are the signals: %s, %s, %s\n", (*(monitor->signal_vector))[0], (*(monitor->signal_vector))[1], (*(monitor->signal_vector))[2]);
               while(true){ // continue until no progress is made
                 for(int i = num_instructions - 1; i >= 0; i--){ // dispatch instructions
                   switch(instructions[i]->engine_tag){
@@ -257,32 +254,35 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                       r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)instructions[i]->instruction_data);
                       break;
                     }
-                  }              
+                  }             
+                }
+                if(predicted_operand_data_ready(monitor, instr, 0)){
+                  res = get_predicted_operand(monitor, instr, 0);
+                  // Only store result up to 'index'; don't predict for values after 'index'
+                  scq->desired_time_stamp = min(index, res.time) + 1;
+                  r2u2_verdict result = {min(index, res.time), res.truth};
+                  r2u2_scq_push(scq, &result, &scq->pred_wr_ptr);
+
+                  if (monitor->out_file != NULL) {
+                    fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, min(index, res.time), res.truth ? "T" : "F", monitor->time_stamp);
+                  }
+
+                  if (monitor->out_func != NULL) {
+                    (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &res);
+                  }
+
+                  if(min(index, res.time) == index){
+                    monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
+                    break;
+                  }
                 }
                 if(monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
                   break;
                 }
                 monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
               }
-              r2u2_atomic_vector_flip(monitor->atomic_buffer);
-
-              if(predicted_operand_data_ready(monitor, instr, 0)){
-                res = get_predicted_operand(monitor, instr, 0);
-                restore_scq(monitor, instructions, prev_real_state, num_instructions);
-                scq->desired_time_stamp = index+1;
-                r2u2_scq_t *child_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
-                r2u2_verdict result = {index, res.truth};
-                r2u2_scq_push(child_scq, &result, &child_scq->wr_ptr); // Only store result up to 'index'; don't predict for values after 'index'
-
-                if (monitor->out_file != NULL) {
-                  fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, index, res.truth ? "T" : "F", monitor->time_stamp);
-                }
-
-                if (monitor->out_func != NULL) {
-                  (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &res);
-                }
-              }
             }
+            restore_scq(monitor, instructions, prev_real_state, num_instructions);
           }
         }
       }
