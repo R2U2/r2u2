@@ -235,6 +235,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
             r2u2_scq_state_t prev_real_state[num_instructions];
             prep_prediction_scq(monitor, instructions, prev_real_state, num_instructions);
+            r2u2_signal_vector_t *signal_vector_original = monitor->signal_vector;
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               //r2u2_atomic_vector_flip(monitor->atomic_buffer); // NEED TO RESTORE ATOMIC BUFFER STATE AFTER PREDICTION TO ENABLE
@@ -283,6 +284,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               }
             }
             restore_scq(monitor, instructions, prev_real_state, num_instructions);
+            monitor->signal_vector = signal_vector_original;
           }
         }
       }
