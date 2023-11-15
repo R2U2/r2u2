@@ -795,14 +795,13 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -
 
         for node_spec in node.specs: # Iterate through and find the max prediction horizon
             if node_spec in d.keys():
-                if (spec_wpd[node_spec] - d[node_spec]) > max_prediction_horizon:
-                    max_prediction_horizon = (spec_wpd[node_spec] - d[node_spec])
+                if (spec_wpd[node.ln] - d[node_spec]) > max_prediction_horizon:
+                    max_prediction_horizon = (spec_wpd[node.ln] - d[node_spec])
             if node_spec in m.keys():
                 if m[node_spec] > k:
                     k = m[node_spec]
 
         node.scq_size = max(max_sibling_wpd-node.bpd,0)+k*(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
-        #node.scq_size = max(max_sibling_wpd-node.bpd,0)+max_prediction_horizon+1
         total += node.scq_size
 
     preorder(node, compute_node_info_util)
