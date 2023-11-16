@@ -3,8 +3,9 @@ from copy import deepcopy
 from typing import Any, Dict, Callable, Optional, Set, Union, cast, List, Tuple
 import pickle
 
-from .type import *
+from c2po.types import R2U2Implementation
 from c2po.logger import logger
+from c2po.types import *
 
 class C2POSection(Enum):
     STRUCT = 0
@@ -19,6 +20,8 @@ class C2PONode():
 
     def __init__(self, ln: int, c: List[C2PONode]):
         self.ln: int = ln
+        self.total_scq_size: int = -1
+        self.scq_size: int = -1
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
@@ -56,14 +59,10 @@ class C2PONode():
     def num_parents(self) -> int:
         return len(self._parents)
 
-    def get_child(self, i: int) -> Optional[C2PONode]:
-        if i >= self.num_children():
-            return None
+    def get_child(self, i: int) -> C2PONode:
         return self._children[i]
 
-    def get_parent(self, i: int) -> Optional[C2PONode]:
-        if i >= self.num_parents():
-            return None
+    def get_parent(self, i: int) -> C2PONode:
         return self._parents[i]
 
     def add_child(self, child: C2PONode):
@@ -99,6 +98,7 @@ class C2PONode():
         return ""
 
     def copy_attrs(self, new: C2PONode):
+        new.scq_size = self.scq_size
         new.symbol = self.symbol
         new.bpd = self.bpd
         new.wpd = self.wpd
@@ -117,13 +117,6 @@ class C2POExpression(C2PONode):
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
         self.atomic_id: int = -1 # only set for atomic propositions
-        self.total_scq_size: int = -1
-        self.scq_size: int = -1
-        self.scq: Tuple[int, int] = (-1,-1)
-
-    def copy_attrs(self, new: C2POExpression):
-        super().copy_attrs(new)
-        new.scq_size = self.scq_size
 
     def to_mltl_std(self) -> str:
         if self.atomic_id < 0:
@@ -300,7 +293,7 @@ class C2POStruct(C2POExpression):
         # cannot use *just* members, else the "parent" tracking breaks
         self.members: Dict[str, int] = m 
 
-    def get_member(self, name: str) -> Optional[C2PONode]:
+    def get_member(self, name: str) -> C2PONode:
         return self.get_child(self.members[name])
 
     def get_members(self) -> Dict[str, int]:
@@ -895,10 +888,10 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
         self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
 
     def get_lhs(self) -> C2PONode:
-        return self._children[0]
+        return self.get_child(0)
 
     def get_rhs(self) -> C2PONode:
-        return self._children[1]
+        return self.get_child(1)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -935,7 +928,7 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
         self.wpd = o.wpd + self.interval.ub
 
     def get_operand(self) -> C2PONode:
-        return self._children[0]
+        return self.get_child(0)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -970,10 +963,10 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
         super().__init__(ln, [lhs, rhs], l, u)
 
     def get_lhs(self) -> C2PONode:
-        return self._children[0]
+        return self.get_child(0)
 
     def get_rhs(self) -> C2PONode:
-        return self._children[1]
+        return self.get_child(1)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -1001,7 +994,7 @@ class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
         super().__init__(ln, [o], l, u)
 
     def get_operand(self) -> C2PONode:
-        return self._children[0]
+        return self.get_child(0)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self._children]
@@ -1212,7 +1205,6 @@ class C2POSpecSection(C2PONode):
 
     def __init__(self, ln: int, s: List[C2PONode]):
         super().__init__(ln, s)
-        self.total_scq_size: int = -1
 
     def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return cast(List[Union[C2POSpecification, C2POContract]], self._children)
@@ -1367,15 +1359,14 @@ class C2POContext():
         self.has_future_time = False
         self.has_past_time = False
 
-        # TODO: move support for these to booleanizer
-        # self.atomic_checker_filters: Dict[str, List[C2POType]] = {
-        #     "rate": [C2POFloatType(False)],
-        #     "movavg": [C2POFloatType(False), C2POIntType(True)],
-        #     "abs_diff_angle": [C2POFloatType(False), C2POFloatType(True)],
-        #     "exactly_one_of": [C2POSetType(False, C2POBoolType(False))],
-        #     "all_of": [C2POSetType(False, C2POBoolType(False))],
-        #     "none_of": [C2POSetType(False, C2POBoolType(False))]
-        # }
+        self.atomic_checker_filters: Dict[str, List[C2POType]] = {
+            "rate": [C2POFloatType(False)],
+            "movavg": [C2POFloatType(False), C2POIntType(True)],
+            "abs_diff_angle": [C2POFloatType(False), C2POFloatType(True)],
+            "exactly_one_of": [C2POSetType(False, C2POBoolType(False))],
+            "all_of": [C2POSetType(False, C2POBoolType(False))],
+            "none_of": [C2POSetType(False, C2POBoolType(False))]
+        }
 
     def get_symbols(self) -> List[str]:
         symbols =  [s for s in self.definitions.keys()]

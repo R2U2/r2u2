@@ -74,11 +74,7 @@ def transform_set_aggregation(program: C2POProgram, context: C2POContext):
     def transform_struct_access_util(node: C2PONode):
         if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
             s: C2POStruct = node.get_struct()
-            member = s.get_member(node.member)
-            if member:
-                node.replace(member)
-            else:
-                logger.critical(f"Member '{member}' not present when transforming struct access within set aggregation operator.")
+            node.replace(s.get_member(node.member))
 
     def transform_set_aggregation_util(node: C2PONode):
         cur: C2PONode = node
@@ -125,11 +121,7 @@ def transform_struct_accesses(program: C2POProgram, context: C2POContext):
     def transform_struct_accesses_util(node: C2PONode):
         if isinstance(node, C2POStructAccess):
             s: C2POStruct = node.get_struct()
-            member = s.get_member(node.member)
-            if member:
-                node.replace(member)
-            else:
-                logger.critical(f"Member '{member}' not present when transforming struct access.")
+            node.replace(s.get_member(node.member))
 
     for spec_section in program.get_spec_sections():
         postorder(spec_section, transform_struct_accesses_util)
@@ -596,7 +588,6 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + 1
             spec_section_total_scq_size += 1
-            expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
             return
 
         if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
@@ -606,11 +597,8 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
 
         # need the +3 b/c of implementation -- ask Brian
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
-        
         expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
         spec_section_total_scq_size += expr.scq_size
-
-        expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
 
     for spec_section in program.get_spec_sections():
         postorder(spec_section, compute_scq_size_util)

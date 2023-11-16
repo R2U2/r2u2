@@ -9,10 +9,10 @@ from typing import List, Optional, Tuple
 from c2po.logger import logger
 from c2po.ast import *
 from c2po.parse import parse_c2po, parse_mltl
+from c2po.wcet import *
 from c2po.type_check import type_check
 from c2po.transform import *
 from c2po.assemble import *
-# from c2po.wcet import *
 
 
 class ReturnCode(Enum):
@@ -251,6 +251,15 @@ def compile(
     quiet: bool = False
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
+
+    Compilation stages:
+    1. Input validation
+    2. Parser
+    3. Type checker
+    4. Required transformations
+    5. Option-based transformations
+    6. Optimizations
+    7. Assembly
     
     Args:
         input_filename: Name of a C2PO or MLTL file -- uses extension to determine file type
