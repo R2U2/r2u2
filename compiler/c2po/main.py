@@ -9,10 +9,10 @@ from typing import List, Optional, Tuple
 from c2po.logger import logger
 from c2po.ast import *
 from c2po.parse import parse_c2po, parse_mltl
-from c2po.wcet import *
 from c2po.type_check import type_check
 from c2po.transform import *
 from c2po.assemble import *
+# from c2po.wcet import *
 
 
 class ReturnCode(Enum):

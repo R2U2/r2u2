@@ -19,8 +19,6 @@ class C2PONode():
 
     def __init__(self, ln: int, c: List[C2PONode]):
         self.ln: int = ln
-        self.total_scq_size: int = -1
-        self.scq_size: int = -1
         self.symbol: str = ""
         self.bpd: int = 0
         self.wpd: int = 0
@@ -101,7 +99,6 @@ class C2PONode():
         return ""
 
     def copy_attrs(self, new: C2PONode):
-        new.scq_size = self.scq_size
         new.symbol = self.symbol
         new.bpd = self.bpd
         new.wpd = self.wpd
@@ -120,6 +117,13 @@ class C2POExpression(C2PONode):
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
         self.atomic_id: int = -1 # only set for atomic propositions
+        self.total_scq_size: int = -1
+        self.scq_size: int = -1
+        self.scq: Tuple[int, int] = (-1,-1)
+
+    def copy_attrs(self, new: C2POExpression):
+        super().copy_attrs(new)
+        new.scq_size = self.scq_size
 
     def to_mltl_std(self) -> str:
         if self.atomic_id < 0:
@@ -254,12 +258,6 @@ class C2POAtomicChecker(C2POLiteral):
         self.symbol: str = s
         self.type: C2POType = C2POBoolType(False)
         self.engine = R2U2Engine.ATOMIC_CHECKER
-
-    def set_fields(
-        self,
-        
-    ):
-        pass
 
     def __deepcopy__(self, memo):
         copy = C2POAtomicChecker(self.ln, self.symbol)
@@ -1214,6 +1212,7 @@ class C2POSpecSection(C2PONode):
 
     def __init__(self, ln: int, s: List[C2PONode]):
         super().__init__(ln, s)
+        self.total_scq_size: int = -1
 
     def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return cast(List[Union[C2POSpecification, C2POContract]], self._children)
