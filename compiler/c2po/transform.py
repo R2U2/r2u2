@@ -3,26 +3,24 @@ from c2po.ast import *
 def transform_definitions(program: C2POProgram, context: C2POContext):
     """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
     
-    def transform_definitions_util(node: C2PONode):
+    def _transform_definitions(node: C2PONode):
         if isinstance(node, C2POVariable):
             if node.symbol in context.definitions:
                 node.replace(context.definitions[node.symbol])
             elif node.symbol in context.specifications:
                 node.replace(context.specifications[node.symbol].get_expr())
 
-    for definition in context.definitions.values():
-        for _node in postorder(definition):
-            transform_definitions_util(_node)
+    for node in [n for d in context.definitions.values() for n in postorder(d)]:
+        _transform_definitions(node)
 
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_definitions_util(_node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_definitions(node)
 
 
 def transform_function_calls(program: C2POProgram, context: C2POContext):
     """Transforms each function call in `program` that corresponds to a struct instantiation to a `C2POStruct`."""
 
-    def transform_function_calls_util(node: C2PONode):
+    def _transform_function_calls(node: C2PONode):
         if isinstance(node, C2POFunctionCall) and node.symbol in context.structs:
             struct_members = [m for m in context.structs[node.symbol].keys()]
             node.replace(
@@ -30,24 +28,22 @@ def transform_function_calls(program: C2POProgram, context: C2POContext):
                     node.ln, 
                     node.symbol, 
                     {name:struct_members.index(name) for name in context.structs[node.symbol].keys()}, 
-                    cast(List[C2PONode], node.get_children())
+                    cast(List[C2PONode], node.children)
                 )
             )
 
-    for definition in context.definitions.values():
-        for _node in postorder(definition):
-            transform_function_calls_util(_node)
+    for node in [n for d in context.definitions.values() for n in postorder(d)]:
+        _transform_function_calls(node)
 
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_function_calls_util(_node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_function_calls(node)
 
 
 def transform_contracts(program: C2POProgram, context: C2POContext):
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
 
     for spec_section in program.get_spec_sections():
-        for contract in [c for c in spec_section.get_children() if isinstance(c, C2POContract)]:
+        for contract in [c for c in spec_section.children if isinstance(c, C2POContract)]:
             spec_section.remove_child(contract)
 
             spec_section.add_child(C2POSpecification(
@@ -75,71 +71,70 @@ def transform_contracts(program: C2POProgram, context: C2POContext):
 def transform_set_aggregation(program: C2POProgram, context: C2POContext):
     """Transforms set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
 
-    def transform_struct_access_util(node: C2PONode):
+    def _transform_struct_access(node: C2PONode):
         if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
             s: C2POStruct = node.get_struct()
             node.replace(s.get_member(node.member))
 
-    def transform_set_aggregation_util(node: C2PONode):
+    def _transform_set_aggregation(node: C2PONode):
         cur: C2PONode = node
 
         if isinstance(node, C2POForEach):
             for _node in postorder(node.get_set()):
-                transform_struct_access_util(_node)
+                _transform_struct_access(_node)
 
-            cur = C2POLogicalAnd(node.ln, [rename(node.get_boundvar(), element, node.get_expr()) for element in node.get_set().get_children()])
+            cur = C2POLogicalAnd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().children])
 
             node.replace(cur)
         elif isinstance(node, C2POForSome):
-            transform_struct_access_util(node.get_set())
-            cur = C2POLogicalOr(node.ln,[rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().get_children()])
+            _transform_struct_access(node.get_set())
+            cur = C2POLogicalOr(node.ln,[rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().children])
             node.replace(cur)
-            transform_struct_access_util(cur)
+            _transform_struct_access(cur)
         elif isinstance(node, C2POForExactly):
             s: C2POSet = node.get_set()
-            transform_struct_access_util(node.get_set())
-            cur = C2POEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().get_children()]), node.get_num())
+            _transform_struct_access(node.get_set())
+            cur = C2POEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().children]), node.get_num())
             node.replace(cur)
-            transform_struct_access_util(cur)
+            _transform_struct_access(cur)
         elif isinstance(node, C2POForAtLeast):
             s: C2POSet = node.get_set()
-            transform_struct_access_util(s)
-            cur = C2POGreaterThanOrEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().get_children()]), node.get_num())
+            _transform_struct_access(s)
+            cur = C2POGreaterThanOrEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().children]), node.get_num())
             node.replace(cur)
-            transform_struct_access_util(cur)
+            _transform_struct_access(cur)
         elif isinstance(node, C2POForAtMost):
             s: C2POSet = node.get_set()
-            transform_struct_access_util(s)
-            cur = C2POLessThanOrEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().get_children()]), node.get_num())
+            _transform_struct_access(s)
+            cur = C2POLessThanOrEqual(node.ln, C2POArithmeticAdd(node.ln, [rename(node.get_boundvar(),e,node.get_expr()) for e in node.get_set().children]), node.get_num())
             node.replace(cur)
-            transform_struct_access_util(cur)
+            _transform_struct_access(cur)
 
-        for c in cur.get_children():
-            transform_set_aggregation_util(c)
+        for c in cur.children:
+            _transform_set_aggregation(c)
 
     for spec_section in program.get_spec_sections():
-        transform_set_aggregation_util(spec_section)
+        _transform_set_aggregation(spec_section)
 
 
 def transform_struct_accesses(program: C2POProgram, context: C2POContext):
     """Transforms struct access operations to the underlying member expression."""
-    def transform_struct_accesses_util(node: C2PONode):
+    def _transform_struct_accesses(node: C2PONode):
         if isinstance(node, C2POStructAccess):
             s: C2POStruct = node.get_struct()
             node.replace(s.get_member(node.member))
 
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_struct_accesses_util(_node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_struct_accesses(node)
         
 
 def transform_extended_operators(program: C2POProgram, context: C2POContext):
     """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
-    def transform_extended_operators_util(node: C2PONode):
+    def _transform_extended_operators(node: C2PONode):
         if isinstance(node, C2POLogicalOperator):
             if isinstance(node, C2POLogicalOr):
                 # p || q = !(!p && !q)
-                node.replace(C2POLogicalNegate(node.ln, C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in node.get_children()])))
+                node.replace(C2POLogicalNegate(node.ln, C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in node.children])))
             elif isinstance(node, C2POLogicalXor):
                 lhs: C2PONode = node.get_lhs()
                 rhs: C2PONode = node.get_rhs()
@@ -171,19 +166,18 @@ def transform_extended_operators(program: C2POProgram, context: C2POContext):
             bounds: Interval = node.interval
             # F p = True U p
             node.replace(C2POUntil(node.ln, C2POBool(node.ln, True), operand, bounds.lb, bounds.ub))
-
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_extended_operators_util(_node)
+            
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_extended_operators(node)
 
 
 def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
-    def transform_boolean_normal_form_util(node: C2PONode):
+    def _transform_boolean_normal_form(node: C2PONode):
 
         if isinstance(node, C2POLogicalOr):
             # p || q = !(!p && !q)
-            node.replace(C2POLogicalNegate(node.ln, C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in node.get_children()])))
+            node.replace(C2POLogicalNegate(node.ln, C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in node.children])))
         elif isinstance(node, C2POLogicalImplies):
             lhs: C2PONode = node.get_lhs()
             rhs: C2PONode = node.get_rhs()
@@ -212,15 +206,14 @@ def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
             # p R q = !(!p U !q)
             node.replace(C2POLogicalNegate(node.ln, C2POUntil(node.ln, C2POLogicalNegate(lhs.ln, lhs), \
                                                       C2POLogicalNegate(rhs.ln, rhs), bounds.lb, bounds.ub)))
-
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_boolean_normal_form_util(_node)
+            
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_boolean_normal_form(node)
 
 
 def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
-    def transform_negative_normal_form_util(node: C2PONode):
+    def _transform_negative_normal_form(node: C2PONode):
         if isinstance(node, C2POLogicalNegate):
             operand = node.get_operand()
             if isinstance(operand, C2POLogicalNegate):
@@ -228,10 +221,10 @@ def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
                 node.replace(operand.get_operand())
             if isinstance(operand, C2POLogicalOr):
                 # !(p || q) = !p && !q
-                node.replace(C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in operand.get_children()]))
+                node.replace(C2POLogicalAnd(node.ln, [C2POLogicalNegate(c.ln, c) for c in operand.children]))
             if isinstance(operand, C2POLogicalAnd):
                 # !(p && q) = !p || !q
-                node.replace(C2POLogicalOr(node.ln, [C2POLogicalNegate(c.ln, c) for c in operand.get_children()]))
+                node.replace(C2POLogicalOr(node.ln, [C2POLogicalNegate(c.ln, c) for c in operand.children]))
             elif isinstance(operand, C2POFuture):
                 bounds: Interval = operand.interval
                 # !F p = G !p
@@ -263,15 +256,14 @@ def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
             # p xor q = (p && !q) || (!p && q)
             node.replace(C2POLogicalOr(node.ln, [C2POLogicalAnd(node.ln, [lhs, C2POLogicalNegate(rhs.ln, rhs)]),\
                                        C2POLogicalAnd(node.ln, [C2POLogicalNegate(lhs.ln, lhs), rhs])]))
-
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            transform_negative_normal_form_util(_node)
+            
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _transform_negative_normal_form(node)
 
 
 def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
-    def optimize_rewrite_rules_util(node: C2PONode):
+    def _optimize_rewrite_rules(node: C2PONode):
         new: Optional[C2PONode] = None
 
         if isinstance(node, C2POLogicalNegate):
@@ -494,38 +486,8 @@ def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
             logger.debug(f"REWRITE:\n\t{node}\n\t\t===>\n\t{new}")
             node.replace(new)
 
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            optimize_rewrite_rules_util(_node)
-
-
-def optimize_operator_arity(node: C2PONode, context: C2POContext):
-    """TODO"""
-
-    def optimize_operator_arity_util(node: C2PONode):
-        if isinstance(node, C2POLogicalAnd) and len(node.get_children()) > 2:
-            n: int = len(node.get_children())
-            children = [c for c in node.get_children()]
-            wpds = [c.wpd for c in children]
-            wpds.sort(reverse=True)
-
-            T = max(children, key=lambda c: c.wpd)
-
-            if (n-2)*(wpds[0]-wpds[1])-wpds[2]+min([c.bpd for c in node.get_children() if c.wpd < wpds[0]]):
-                node.replace(C2POLogicalAnd(node.ln, [C2POLogicalAnd(node.ln, [c for c in children if c != children[0]]), children[0]]))
-                children[0].get_parents().remove(node)
-
-        elif isinstance(node, C2POLogicalOr):
-            max_wpd: int = max([c.wpd for c in node.get_children()])
-            target: C2PONode = next(c for c in node.get_children() if c.wpd == max_wpd)
-
-            new_children = [c for c in node.get_children() if c != target]
-            new_ast = C2POLogicalOr(node.ln, [C2POLogicalOr(node.ln, new_children), target]) # type: ignore
-
-        for c in node.get_children():
-            optimize_operator_arity_util(c)
-
-    optimize_operator_arity_util(node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _optimize_rewrite_rules(node)
 
 
 def optimize_cse(program: C2POProgram, context: C2POContext) :
@@ -534,7 +496,7 @@ def optimize_cse(program: C2POProgram, context: C2POContext) :
 
     logger.debug(f"CSE: Beginning CSE")
 
-    def optimize_cse_util(node: C2PONode) :
+    def _optimize_cse(node: C2PONode) :
         nonlocal S
 
         if str(node) in S:
@@ -546,9 +508,8 @@ def optimize_cse(program: C2POProgram, context: C2POContext) :
 
     for spec_section in program.get_spec_sections():
         S = {}
-        for spec in spec_section.get_specs():
-            for _node in postorder(spec):
-                optimize_cse_util(_node)
+        for node in postorder(spec_section):
+            _optimize_cse(node)
 
     program.is_cse_reduced = True
 
@@ -557,27 +518,27 @@ def compute_atomics(program: C2POProgram, context: C2POContext):
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
     id: int = 0
     
-    def compute_atomics_util(node: C2PONode):
+    def _compute_atomics(node: C2PONode):
         nonlocal id
 
         if not isinstance(node, C2POExpression):
             return
 
-        if node.engine != R2U2Engine.TEMPORAL_LOGIC:
+        if node.engine == R2U2Engine.TEMPORAL_LOGIC:
             return
 
-        for child in node.get_children():
-            if isinstance(child, C2POBool):
-                continue
-            if child.engine != R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(child)
-                if child.atomic_id < 0:
-                    child.atomic_id = id
+        if isinstance(node, C2POBool):
+            return
+
+        for parent in [p for p in node.parents if isinstance(p, C2POExpression)]:
+            if parent.engine == R2U2Engine.TEMPORAL_LOGIC:
+                context.atomics.add(node)
+                if node.atomic_id < 0:
+                    node.atomic_id = id
                     id += 1
 
-    for spec in program.get_specs():
-        for _node in postorder(spec):
-            compute_atomics_util(_node)
+    for node in [n for s in program.get_specs() for n in postorder(s)]:
+        _compute_atomics(node)
 
     logger.debug(f"ATM: Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]")
 
@@ -586,12 +547,14 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
     """Computes SCQ sizes for each node."""
     spec_section_total_scq_size = 0
 
-    def compute_scq_size_util(node: C2PONode):
+    def _compute_scq_size(expr: C2PONode):
         nonlocal spec_section_total_scq_size
-        expr = cast(C2POExpression, node)
+        
+        if not isinstance(expr, C2POExpression):
+            return
 
-        if isinstance(node, C2POSpecSection):
-            node.total_scq_size = spec_section_total_scq_size
+        if isinstance(expr, C2POSpecSection):
+            expr.total_scq_size = spec_section_total_scq_size
             spec_section_total_scq_size = 0
             return
             
@@ -608,12 +571,11 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
 
         # need the +3 b/c of implementation -- ask Brian
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
-        expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
+        expr.total_scq_size = sum([c.total_scq_size for c in expr.children if c.scq_size > -1]) + expr.scq_size
         spec_section_total_scq_size += expr.scq_size
 
-    for spec_section in program.get_spec_sections():
-        for _node in postorder(spec_section):
-            compute_scq_size_util(_node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _compute_scq_size(node)
 
 
 # A C2POTransform is a function with the signature:
@@ -631,7 +593,6 @@ TRANSFORM_PIPELINE: List[C2POTransform] = [
     transform_extended_operators,
     transform_negative_normal_form,
     transform_boolean_normal_form,
-    optimize_operator_arity,
     optimize_cse,
     compute_atomics, # not a transform, but needed for assembly+analysis
     compute_scq_sizes # not a transform, but needed for assembly+analysis

@@ -24,7 +24,7 @@ class StandardFormatter(logging.Formatter):
         logging.INFO: '%(message)s',
         logging.WARNING: format_str + ':%(message)s',
         logging.ERROR: format_str + ':%(message)s',
-        logging.CRITICAL: 'INTERNAL:%(message)s',
+        logging.CRITICAL: format_str + ':%(message)s',
     }
 
     def format(self, record) -> str:

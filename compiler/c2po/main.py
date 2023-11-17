@@ -200,8 +200,6 @@ def validate_input(
         transforms.remove(transform_negative_normal_form)
     if not enable_bnf:
         transforms.remove(transform_boolean_normal_form)
-    if not enable_arity:
-        transforms.remove(optimize_operator_arity)
     if not enable_cse:
         transforms.remove(optimize_cse)
 

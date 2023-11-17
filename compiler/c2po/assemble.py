@@ -262,7 +262,7 @@ class ATInstruction(Instruction):
         elif isinstance(filter, C2POFunctionCall) and filter.symbol in AT_FILTER_TABLE:
             filter_opcode, filter_arg_format = AT_FILTER_TABLE[filter.symbol]
             compare_format = cStruct("d")
-            filter_args = filter.get_children()
+            filter_args = filter.children
             if filter.num_children() == 1:
                 aux_filter_arg_bytes = filter_arg_format.pack()
             elif filter.num_children() == 2:
@@ -526,7 +526,7 @@ def generate_instruction_assembly(
         # collect child instructions 
         # -- they might be a (load,instr) or just an instr
         child_instrs = []
-        for child in [instructions[c] for c in node.get_children() if c in instructions]:
+        for child in [instructions[c] for c in node.children if c in instructions]:
             if not isinstance(child, tuple):
                 child_instrs.append(child)
             elif node.engine == R2U2Engine.TEMPORAL_LOGIC: 
@@ -654,7 +654,7 @@ def generate_instruction_assembly(
         elif isinstance(node, C2POSpecification) and context.is_past_time():
             instr = PTInstruction(node, PTOperator.RETURN, child_instrs)
         else:
-            logger.critical(f"Node '{node}' of python type '{type(node)}' invalid for assembly generation.")
+            raise RuntimeError(f"Node '{node}' of python type '{type(node)}' invalid for assembly generation.")
             return Instruction(node)
 
         # add in load instructions for atomics in the TL assemblies
@@ -686,13 +686,13 @@ def generate_instruction_assembly(
             at_asm.append(instr)
         elif isinstance(instr, FTInstruction):
             if not context.is_future_time():
-                logger.critical(f"Generating FTInstruction for past-time assembly.")
+                raise RuntimeError(f"Generating FTInstruction for past-time assembly.")
             instr.id = ftid
             ftid += 1
             ft_asm.append(instr)
         elif isinstance(instr, PTInstruction):
             if context.is_future_time():
-                logger.critical(f"Generating PTInstruction for future-time assembly.")
+                raise RuntimeError(f"Generating PTInstruction for future-time assembly.")
             instr.id = ptid
             ptid += 1
             pt_asm.append(instr)
@@ -719,7 +719,7 @@ def generate_scq_assembly(
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    def gen_scq_assembly_util(a: C2PONode) :
+    def _gen_scq_assembly(a: C2PONode) :
         nonlocal ret, pos
 
         if a.scq_size < 0:
@@ -730,9 +730,8 @@ def generate_scq_assembly(
         pos = end_pos
         ret.append((start_pos,end_pos))
 
-    for spec in program.get_specs():
-        for _node in postorder(spec):
-            gen_scq_assembly_util(_node)
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        _gen_scq_assembly(node)
 
     return ret
 

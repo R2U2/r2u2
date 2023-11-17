@@ -1,7 +1,6 @@
 from itertools import count
 from typing import List, Tuple
 
-from numpy import equal
 from c2po.main import compile, ReturnCode
 from c2po.ast import *
 
@@ -74,13 +73,13 @@ class TestOperators():
         for instr in ft_asm:
             ops_tested.append(type(instr))
             if isinstance(instr, LogicalNegate):
-                assert b0 in instr.get_children()
+                assert b0 in instr.children
             elif isinstance(instr, LogicalAnd) or isinstance(instr, LogicalOr) or isinstance(instr, LogicalIff):
-                assert len(instr.get_children()) == 2
-                assert b0 in instr.get_children()
-                assert b1 in instr.get_children()
+                assert len(instr.children) == 2
+                assert b0 in instr.children
+                assert b1 in instr.children
             elif isinstance(instr, LogicalImplies):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert b0 == instr.get_child(0)
                 assert b1 == instr.get_child(1)
 
@@ -109,9 +108,9 @@ class TestOperators():
         for instr in ft_asm:
             ops_tested.append(type(instr))
             if isinstance(instr, Global) or isinstance(instr, Future):
-                assert b0 in instr.get_children()
+                assert b0 in instr.children
             elif isinstance(instr, Until) or isinstance(instr, Release):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert b0 == instr.get_child(0)
                 assert b1 == instr.get_child(1)
 
@@ -126,9 +125,9 @@ class TestOperators():
         for instr in pt_asm:
             ops_tested.append(type(instr))
             if isinstance(instr, Historical) or isinstance(instr, Once):
-                assert b0 in instr.get_children()
+                assert b0 in instr.children
             elif isinstance(instr, Since):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert b0 == instr.get_child(0)
                 assert b1 == instr.get_child(1)
 
@@ -159,24 +158,24 @@ class TestOperators():
 
         ops_tested: List[Tuple[type,type]] = []
         for instr in bz_asm:
-            if len(instr.get_children()) > 0:
+            if len(instr.children) > 0:
                 ops_tested.append((type(instr.get_child(0).type),type(instr)))
             if (isinstance(instr, Equal) or isinstance(instr, NotEqual)) and instr.get_child(0).type == INT(False):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert i0 == instr.get_child(0)
                 assert i1 == instr.get_child(1)
             elif (isinstance(instr, GreaterThan) or isinstance(instr, LessThan) or isinstance(instr, GreaterThanOrEqual) or isinstance(instr, LessThanOrEqual)) and instr.get_child(0).type == INT(False):
-                assert len(instr.get_children()) == 2
-                assert i0 in instr.get_children()
-                assert i1 in instr.get_children()
+                assert len(instr.children) == 2
+                assert i0 in instr.children
+                assert i1 in instr.children
             elif (isinstance(instr, Equal) or isinstance(instr, NotEqual)) and instr.get_child(0).type == FLOAT(False):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert f0 == instr.get_child(0)
                 assert f1 == instr.get_child(1)
             elif (isinstance(instr, GreaterThan) or isinstance(instr, LessThan) or isinstance(instr, GreaterThanOrEqual) or isinstance(instr, LessThanOrEqual)) and instr.get_child(0).type == FLOAT(False):
-                assert len(instr.get_children()) == 2
-                assert f0 in instr.get_children()
-                assert f1 in instr.get_children()
+                assert len(instr.children) == 2
+                assert f0 in instr.children
+                assert f1 in instr.children
 
         assert (INT,Equal) in ops_tested
         assert (INT,NotEqual) in ops_tested
@@ -214,17 +213,17 @@ class TestOperators():
         for instr in bz_asm:
             ops_tested.append((type(instr.type),type(instr)))
             if isinstance(instr, ArithmeticNegate) and instr.get_child(0).type == INT(False):
-                assert len(instr.get_children()) == 1
+                assert len(instr.children) == 1
                 assert i0 == instr.get_child(0)
             elif (isinstance(instr, ArithmeticAdd) or isinstance(instr, ArithmeticSubtract) or isinstance(instr, ArithmeticMultiply) or isinstance(instr, ArithmeticDivide) or isinstance(instr, ArithmeticModulo)) and instr.get_child(0).type == INT(False):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert i0 == instr.get_child(0)
                 assert i1 == instr.get_child(1)
             elif isinstance(instr, ArithmeticNegate) and instr.get_child(0).type == FLOAT(False):
-                assert len(instr.get_children()) == 1
+                assert len(instr.children) == 1
                 assert f0 == instr.get_child(0)
             elif (isinstance(instr, ArithmeticAdd) or isinstance(instr, ArithmeticSubtract) or isinstance(instr, ArithmeticMultiply) or isinstance(instr, ArithmeticDivide) or isinstance(instr, ArithmeticModulo)) and instr.get_child(0).type == FLOAT(False):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert f0 == instr.get_child(0)
                 assert f1 == instr.get_child(1)
                 
@@ -261,13 +260,13 @@ class TestOperators():
         for instr in bz_asm:
             ops_tested.append(type(instr))
             if isinstance(instr, BitwiseNegate):
-                assert i0 in instr.get_children()
+                assert i0 in instr.children
             elif isinstance(instr, BitwiseAnd) or isinstance(instr, BitwiseOr) or isinstance(instr, BitwiseXor):
-                assert len(instr.get_children()) == 2
-                assert i0 in instr.get_children()
-                assert i1 in instr.get_children()
+                assert len(instr.children) == 2
+                assert i0 in instr.children
+                assert i1 in instr.children
             elif isinstance(instr, BitwiseShiftLeft) or isinstance(instr, BitwiseShiftRight):
-                assert len(instr.get_children()) == 2
+                assert len(instr.children) == 2
                 assert i0 == instr.get_child(0)
                 assert i1 == instr.get_child(1)
 
@@ -308,19 +307,19 @@ class TestSetAgg():
         for instr in bz_asm:
             ops_tested.append(type(instr))
             if isinstance(instr, Count):
-                assert len(instr.get_children()) == 3
-                assert b0 in instr.get_children() 
-                assert b1 in instr.get_children()
-                assert b2 in instr.get_children()
+                assert len(instr.children) == 3
+                assert b0 in instr.children 
+                assert b1 in instr.children
+                assert b2 in instr.children
             elif isinstance(instr, Equal):
-                assert len(instr.get_children()) == 2
-                assert i in instr.get_children() 
+                assert len(instr.children) == 2
+                assert i in instr.children 
             elif isinstance(instr, GreaterThanOrEqual):
-                assert len(instr.get_children()) == 2
-                assert i in instr.get_children() 
+                assert len(instr.children) == 2
+                assert i in instr.children 
             elif isinstance(instr, LessThanOrEqual):
-                assert len(instr.get_children()) == 2
-                assert i in instr.get_children() 
+                assert len(instr.children) == 2
+                assert i in instr.children 
 
         assert ArithmeticAdd in ops_tested
         assert Integer in ops_tested

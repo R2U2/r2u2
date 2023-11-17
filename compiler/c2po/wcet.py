@@ -49,8 +49,8 @@ def compute_fpga_wcet(assembly: List[Instruction], latency_table: Dict[str, Tupl
             logger.error(f" Operator '{operator.symbol()}' not found in CPU latency table.")
             return 0
         else:
-            sum_scq_sizes_children = sum([c.scq_size for c in instr.node.get_children()])
+            sum_scq_sizeschildren = sum([c.scq_size for c in instr.node.children])
             (init_time, exec_time) = latency_table[operator]
-            return init_time + exec_time*sum_scq_sizes_children
+            return init_time + exec_time*sum_scq_sizeschildren
 
     return sum([compute_fpga_wcet_util(a) for a in assembly])

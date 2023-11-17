@@ -45,7 +45,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             logger.error(f"{expr.ln}: Functions unsupported.\n\t{expr}")
             status =  False
 
-        for arg in expr.get_children():
+        for arg in expr.get_operands():
             status = status and type_check_expr(arg, context)
 
         if expr.symbol in context.structs:
@@ -72,11 +72,12 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = False
             logger.error(f"{expr.ln}: Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}")
 
-        for c in expr.get_children():
+        for c in expr.get_operands():
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
 
-        t: C2POType = expr.get_child(0).type
+        first_operand = expr.get_child(0)
+        t: C2POType = first_operand.type if first_operand is not None else C2PONoType()
         t.is_const = is_const
 
         if isinstance(expr, C2POArithmeticDivide):
@@ -85,7 +86,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
                 status = False
                 logger.error(f"{expr.ln}: Divide by zero\n\t{expr}")
 
-        for c in expr.get_children():
+        for c in expr.get_operands():
             if c.type != t:
                 status = False
                 logger.error(f"{expr.ln}: Operand of '{expr}' must be of homogeneous type (found '{c.type}' and '{t}')")
@@ -103,23 +104,23 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             logger.error(f"{expr.ln}: Found context.booleanizer_enabled expression, but Booleanizer expressions disabled\n\t{expr}")
 
         t: C2POType = C2PONoType()
-        for c in expr.get_children():
+        for c in expr.get_operands():
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             t = c.type
 
         t.is_const = is_const
 
-        for c in expr.get_children():
+        for c in expr.get_operands():
             if c.type != t or not is_integer_type(c.type):
                 status = False
-                logger.error(f"{expr.ln}: Invalid operands for '{expr.symbol}', found '{c.type}' ('{c}') but expected '{expr.get_child(0).type}'\n\t{expr}")
+                logger.error(f"{expr.ln}: Invalid operands for '{expr.symbol}', found '{c.type}' ('{c}') but expected '{t}'\n\t{expr}")
 
         expr.type = t
     elif isinstance(expr, C2POLogicalOperator):
         is_const: bool = True
 
-        for c in expr.get_children():
+        for c in expr.get_operands():
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             if c.type != C2POBoolType(False):
@@ -130,7 +131,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     elif isinstance(expr, C2POTemporalOperator):
         is_const: bool = True
 
-        for c in expr.get_children():
+        for c in expr.get_operands():
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
             if c.type != C2POBoolType(False):
@@ -159,12 +160,12 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
         t: C2POType = C2PONoType()
         is_const: bool = True
 
-        for m in expr.get_children():
+        for m in expr.get_members():
             status = status and type_check_expr(m, context)
             is_const = is_const and m.type.is_const
             t = m.type
 
-        for m in expr.get_children():
+        for m in expr.get_members():
             if m.type != t:
                 status = False
                 logger.error(f"{expr.ln}: Set '{expr}' must be of homogeneous type (found '{m.type}' and '{t}')")
@@ -204,7 +205,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     elif isinstance(expr, C2POStruct):
         is_const: bool = True
 
-        for member in expr.get_children():
+        for member in expr.get_members():
             status = status and type_check_expr(member, context)
             is_const = is_const and member.type.is_const
 
@@ -259,7 +260,7 @@ def type_check_atomic(atomic: C2POAtomicCheckerDefinition, context: C2POContext)
             logger.error(f"{lhs.ln}: Atomic checker filter argument mismatch. Expected {len(context.atomic_checker_filters[lhs.symbol])} arguments, got {lhs.num_children()}")
             status = False
         
-        for arg, target_type in zip(lhs.get_children(), context.atomic_checker_filters[lhs.symbol]):
+        for arg, target_type in zip(lhs.get_operands(), context.atomic_checker_filters[lhs.symbol]):
             if not isinstance(arg, C2POLiteral):
                 logger.error(f"{arg.ln}: Atomic checker filter argument '{arg}' is not a signal nor constant.")
                 status = False
