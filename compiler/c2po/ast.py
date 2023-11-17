@@ -1416,8 +1416,8 @@ class C2POContext():
         del self.variables[symbol]
     
 
-def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform an iterative postorder traversal of node, calling func on each node."""
+def postorder(node: C2PONode):
+    """Yields C2PONodes in a postorder fashion starting from `node`."""
     stack: List[Tuple[bool, C2PONode]] = [(False, node)]
     visited: Set[int] = set()
 
@@ -1425,7 +1425,7 @@ def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
         cur = stack.pop()
 
         if cur[0]:
-            func(cur[1])
+            yield cur[1]
             continue
         elif id(cur[1]) in visited:
             continue
@@ -1436,13 +1436,13 @@ def postorder(node: C2PONode, func: Callable[[C2PONode], Any]):
             stack.append((False, child))
 
 
-def preorder(node: C2PONode, func: Callable[[C2PONode], Any]):
-    """Perform an iterative preorder traversal of a, calling func on each node. func must not alter the children of its argument node."""
+def preorder(node: C2PONode):
+    """Yields C2PONodes in a preorder fashion starting from `node`."""
     stack: List[C2PONode] = [node]
 
     while len(stack) > 0:
         c = stack.pop()
-        func(c)
+        yield c
 
         for child in reversed(c.get_children()):
             stack.append(child)
@@ -1456,9 +1456,8 @@ def rename(v: C2PONode, repl: C2PONode, expr: C2PONode) -> C2PONode:
 
     new: C2PONode = deepcopy(expr)
 
-    def rename_util(a: C2PONode):
-        if v == a:
-            a.replace(repl)
-
-    postorder(new, rename_util)
+    for node in postorder(new):
+        if v == node:
+            node.replace(repl)
+        
     return new

@@ -700,12 +700,14 @@ def generate_instruction_assembly(
     context.set_future_time()
     future_time_spec_section = program.get_future_time_spec_section()
     if future_time_spec_section:
-        postorder(future_time_spec_section, generate_instruction_assembly_util)
+        for _node in postorder(future_time_spec_section):
+            generate_instruction_assembly_util(_node)
 
     context.set_past_time()
     past_time_spec_section = program.get_past_time_spec_section()
     if past_time_spec_section:
-        postorder(past_time_spec_section, generate_instruction_assembly_util)
+        for _node in postorder(past_time_spec_section):
+            generate_instruction_assembly_util(_node)
 
     return (bz_asm, at_asm, ft_asm, pt_asm)
 
@@ -729,7 +731,8 @@ def generate_scq_assembly(
         ret.append((start_pos,end_pos))
 
     for spec in program.get_specs():
-        postorder(spec, gen_scq_assembly_util)
+        for _node in postorder(spec):
+            gen_scq_assembly_util(_node)
 
     return ret
 
