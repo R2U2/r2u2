@@ -20,12 +20,7 @@ class C2PONode():
 
     def __init__(self, ln: int, c: List[C2PONode]):
         self.ln: int = ln
-        self.total_scq_size: int = -1
-        self.scq_size: int = -1
         self.symbol: str = ""
-        self.bpd: int = 0
-        self.wpd: int = 0
-        self.type: C2POType = C2PONoType()
 
         self.children: List[C2PONode] = []
         self.parents: List[C2PONode] = []
@@ -53,14 +48,14 @@ class C2PONode():
     def num_parents(self) -> int:
         return len(self.parents)
 
-    def get_child(self, i: int) -> C2PONode:
+    def get_child(self, i: int) -> Optional[C2PONode]:
         if i >= self.num_children() or i < 0:
-            raise ValueError(f"Index out-of-range for children ({i}).")
+            return None
         return self.children[i]
 
-    def get_parent(self, i: int) -> C2PONode:
+    def get_parent(self, i: int) -> Optional[C2PONode]:
         if i >= self.num_parents() or i < 0:
-            raise ValueError(f"Index out-of-range for children ({i}).")
+            return None
         return self.parents[i]
 
     def add_child(self, child: C2PONode):
@@ -92,11 +87,7 @@ class C2PONode():
         return self.symbol
 
     def copy_attrs(self, new: C2PONode):
-        new.scq_size = self.scq_size
         new.symbol = self.symbol
-        new.bpd = self.bpd
-        new.wpd = self.wpd
-        new.type = self.type
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self.children]
@@ -111,6 +102,25 @@ class C2POExpression(C2PONode):
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
         self.atomic_id: int = -1 # only set for atomic propositions
+        self.total_scq_size: int = -1
+        self.scq_size: int = -1
+        self.bpd: int = 0
+        self.wpd: int = 0
+        self.scq: Tuple[int, int] = (-1,-1)
+        self.type: C2POType = C2PONoType()
+
+    def get_siblings(self) -> List[C2POExpression]:
+        return cast(List[C2POExpression], super().get_siblings())
+
+    def get_children(self) -> List[C2POExpression]:
+        return cast(List[C2POExpression], self.children)
+
+    def copy_attrs(self, new: C2POExpression):
+        super().copy_attrs(new)
+        new.scq_size = self.scq_size
+        new.bpd = self.bpd
+        new.wpd = self.wpd
+        new.type = self.type
 
     def to_mltl_std(self) -> str:
         if self.atomic_id < 0:
@@ -120,7 +130,7 @@ class C2POExpression(C2PONode):
 
 class C2POLiteral(C2POExpression):
 
-    def __init__(self, ln: int, a: List[C2PONode]):
+    def __init__(self, ln: int):
         super().__init__(ln,[])
 
     def __str__(self) -> str:
@@ -130,7 +140,7 @@ class C2POLiteral(C2POExpression):
 class C2POConstant(C2POLiteral):
 
     def __init__(self, ln: int, a: List[C2PONode]):
-        super().__init__(ln,[])
+        super().__init__(ln)
         self.value = 0
 
     def get_value(self) -> Union[int, float]:
@@ -217,7 +227,7 @@ class C2POVariable(C2POExpression):
 class C2POSignal(C2POLiteral):
 
     def __init__(self, ln: int, s: str, t: C2POType):
-        super().__init__(ln,[])
+        super().__init__(ln)
         self.symbol: str = s
         self.type: C2POType = t
         self.signal_id: int = -1
@@ -237,7 +247,7 @@ class C2POSignal(C2POLiteral):
 class C2POAtomicChecker(C2POLiteral):
 
     def __init__(self, ln: int, s: str):
-        super().__init__(ln, [])
+        super().__init__(ln)
         self.symbol: str = s
         self.type: C2POType = C2POBoolType(False)
         self.engine = R2U2Engine.ATOMIC_CHECKER
@@ -286,8 +296,10 @@ class C2POStruct(C2POExpression):
         # cannot use *just* members, else the parent tracking breaks
         self.members: Dict[str, int] = m 
 
-    def get_member(self, name: str) -> C2POExpression:
+    def get_member(self, name: str) -> Optional[C2POExpression]:
         member = self.get_child(self.members[name])
+        if member is None:
+            return None
         return cast(C2POExpression, member)
 
     def get_members(self) -> List[C2POExpression]:
@@ -334,6 +346,9 @@ class C2POOperator(C2POExpression):
     def get_operands(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self.children)
 
+    def get_operand(self, i: int) -> C2POExpression:
+        return cast(C2POExpression, self.get_child(i))
+
 
 class C2POUnaryOperator(C2POOperator):
 
@@ -343,6 +358,7 @@ class C2POUnaryOperator(C2POOperator):
         super().__init__(ln, o)
 
     def get_operand(self) -> C2POExpression:
+        # FIXME: Does this work if we override the above get_operand?
         return cast(C2POExpression, self.get_child(0))
 
     def __str__(self) -> str:
@@ -357,10 +373,10 @@ class C2POBinaryOperator(C2POOperator):
         super().__init__(ln, l)
 
     def get_lhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(0))
+        return self.get_operand(0)
 
     def get_rhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(1))
+        return self.get_operand(1)
 
     def __str__(self) -> str:
         return f"({self.get_lhs()}){self.symbol}({self.get_rhs()})"
@@ -608,10 +624,10 @@ class C2POArithmeticAdd(C2POArithmeticOperator):
             for i in range(2,len(c)-1):
                 prev = C2POArithmeticAdd(ln, [prev,c[i]])
             super().__init__(ln, [prev,c[len(c)-1]])
-            self.type = c[0].type
+            self.type = self.get_operand(0).type
         else:
             super().__init__(ln, c)
-            self.type = c[0].type
+            self.type = self.get_operand(0).type
 
         self.symbol = "+"
 
@@ -746,8 +762,8 @@ class C2POLogicalOperator(C2POOperator):
 
     def __init__(self, ln: int, c: List[C2PONode]):
         super().__init__(ln, c)
-        self.bpd = min([child.bpd for child in c])
-        self.wpd = max([child.wpd for child in c])
+        self.bpd = min([child.bpd for child in self.get_operands()])
+        self.wpd = max([child.wpd for child in self.get_operands()])
         self.engine = R2U2Engine.TEMPORAL_LOGIC
 
 
@@ -881,14 +897,14 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
         super().__init__(ln, [lhs, rhs], l, u)
-        self.bpd = min(lhs.bpd, rhs.bpd) + self.interval.lb
-        self.wpd = max(lhs.wpd, rhs.wpd) + self.interval.ub
+        self.bpd = min(self.get_lhs().bpd, self.get_rhs().bpd) + self.interval.lb
+        self.wpd = max(self.get_lhs().wpd, self.get_rhs().wpd) + self.interval.ub
 
     def get_lhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(0))
+        return self.get_operand(0)
 
     def get_rhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(1))
+        return self.get_operand(1)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self.children]
@@ -921,8 +937,8 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, [o], l, u)
-        self.bpd = o.bpd + self.interval.lb
-        self.wpd = o.wpd + self.interval.ub
+        self.bpd = self.get_operand().bpd + self.interval.lb
+        self.wpd = self.get_operand().wpd + self.interval.ub
 
     def get_operand(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
@@ -960,10 +976,10 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
         super().__init__(ln, [lhs, rhs], l, u)
 
     def get_lhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(0))
+        return self.get_operand(0)
 
     def get_rhs(self) -> C2POExpression:
-        return cast(C2POExpression, self.get_child(1))
+        return self.get_operand(1)
 
     def __deepcopy__(self, memo):
         children = [deepcopy(c, memo) for c in self.children]
