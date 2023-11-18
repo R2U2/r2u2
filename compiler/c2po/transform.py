@@ -570,7 +570,7 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
         # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
         expr.total_scq_size = sum([c.total_scq_size for c in expr.children if c.scq_size > -1]) + expr.scq_size
         spec_section_total_scq_size += expr.scq_size
 

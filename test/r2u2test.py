@@ -429,18 +429,18 @@ class TestSuite():
         with open(config_filename, "rb") as f:
             config: dict[str, Any] = json.load(f)
 
-        # will be handed off to subprocess.run later
-        if "options" not in config:
-            self.suite_fail_msg(f"No options specified for suite '{self.suite_name}'")
-            return
-
-        self.r2u2prep_options: dict[str,str|bool] = config["options"]
-
         if "tests" not in config and "suites" not in config:
             self.suite_fail_msg(f"No tests specified for suite '{self.suite_name}'")
             return
 
         if "tests" in config:
+            # will be handed off to subprocess.run later
+            if "options" not in config:
+                self.suite_fail_msg(f"No options specified for suite '{self.suite_name}'")
+                return
+
+            self.r2u2prep_options: dict[str,str|bool] = config["options"]
+
             for testcase in config["tests"]:
                 name: Optional[str] = testcase["name"] if "name" in testcase else None
                 mltl: Optional[Path] = C2PO_INPUT_DIR / testcase["mltl"] if "mltl" in testcase else None
