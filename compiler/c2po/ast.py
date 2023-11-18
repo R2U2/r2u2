@@ -53,14 +53,14 @@ class C2PONode():
     def num_parents(self) -> int:
         return len(self.parents)
 
-    def get_child(self, i: int) -> Optional[C2PONode]:
+    def get_child(self, i: int) -> C2PONode:
         if i >= self.num_children() or i < 0:
-            return None
+            raise ValueError(f"Index out-of-range for children ({i}).")
         return self.children[i]
 
-    def get_parent(self, i: int) -> Optional[C2PONode]:
+    def get_parent(self, i: int) -> C2PONode:
         if i >= self.num_parents() or i < 0:
-            return None
+            raise ValueError(f"Index out-of-range for children ({i}).")
         return self.parents[i]
 
     def add_child(self, child: C2PONode):
@@ -288,8 +288,6 @@ class C2POStruct(C2POExpression):
 
     def get_member(self, name: str) -> C2POExpression:
         member = self.get_child(self.members[name])
-        if member is None:
-            raise RuntimeError(f"Struct member '{name}' is None.")
         return cast(C2POExpression, member)
 
     def get_members(self) -> List[C2POExpression]:
@@ -359,13 +357,9 @@ class C2POBinaryOperator(C2POOperator):
         super().__init__(ln, l)
 
     def get_lhs(self) -> C2POExpression:
-        if self.get_child(0) is None:
-            raise RuntimeError(f"Binary operator does not have any children ({self}).")
         return cast(C2POExpression, self.get_child(0))
 
     def get_rhs(self) -> C2POExpression:
-        if self.get_child(1) is None:
-            raise RuntimeError(f"Binary operator does not have two children ({self}).")
         return cast(C2POExpression, self.get_child(1))
 
     def __str__(self) -> str:

@@ -394,12 +394,12 @@ def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
                     ub1 = lhs.interval.ub
                     lb2 = rhs.interval.lb
                     ub2 = rhs.interval.ub
-                    if lb1 >= lb2 and lb1 <= ub2:
-                        # l2 <= l1 <= u2
-                        new = (C2POFuture(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
-                    elif lb2 >= lb1 and lb2 <= ub1:
+                    if lb1 >= lb2 and ub1 <= ub2:
+                        # l2 <= l1 <= u1 <= u2
+                        new = (C2POFuture(node.ln, lhs_opnd, lb1, ub1))
+                    elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
-                        new = (C2POFuture(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
+                        new = (C2POFuture(node.ln, lhs_opnd, lb2, ub2))
             elif isinstance(lhs, C2POUntil) and isinstance(rhs, C2POUntil):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
@@ -457,12 +457,12 @@ def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
                     ub1 = lhs.interval.ub
                     lb2 = rhs.interval.lb
                     ub2 = rhs.interval.ub
-                    if lb1 >= lb2 and lb1 <= ub2:
-                        # l2 <= l1 <= u2
-                        new = (C2POGlobal(node.ln, lhs_opnd, lb2, min(ub1,ub2)))
-                    elif lb2 >= lb1 and lb2 <= ub1:
+                    if lb1 >= lb2 and ub1 <= ub2:
+                        # l2 <= l1 <= u1 <= u2
+                        new = (C2POGlobal(node.ln, lhs_opnd, lb1, ub1))
+                    elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
-                        new = (C2POGlobal(node.ln, lhs_opnd, lb1, min(ub1,ub2)))
+                        new = (C2POGlobal(node.ln, lhs_opnd, lb2, ub2))
             elif isinstance(lhs, C2POUntil) and isinstance(rhs, C2POUntil):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()

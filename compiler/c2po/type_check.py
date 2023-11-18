@@ -76,8 +76,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
 
-        first_operand = expr.get_child(0)
-        t: C2POType = first_operand.type if first_operand is not None else C2PONoType()
+        t: C2POType = expr.get_child(0).type
         t.is_const = is_const
 
         if isinstance(expr, C2POArithmeticDivide):
