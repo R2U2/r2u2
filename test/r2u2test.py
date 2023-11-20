@@ -244,8 +244,8 @@ class TestCase():
         with open(self.r2u2_log, "wb") as f:
             f.write(proc.stdout)
 
-        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
-        proc = subprocess.run([SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.r2u2_log, WORK_DIR])
+        proc = subprocess.run(["sh", SPLIT_VERDICTS_SCRIPT, self.oracle_path, WORK_DIR])
 
         for i in range(len(glob(f"{self.r2u2_log}.[0-9]*"))):
             formula_r2u2_log = f"{self.r2u2_log}.{i}"
