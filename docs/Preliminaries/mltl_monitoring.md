@@ -4,7 +4,7 @@ Mission-time Linear Temporal Logic (MLTL) enables unambiguous descriptions of be
 
 ## References
 
-MLTL was first defined in \cite{RRS14}. MLTL satisfiability and its complexity appears in \cite{LVR19}. MLTL validation (checking that an MLTL formula represents exactly the behavior intended) strategies include consulting the formal semantics, truth table validation, satisfiability checking, transition machine visualizations, which all appear in detail in \cite{RD20}. We can also validate formulas through oracle generation \cite{LR18}. The WEST tool provides an (open-source) interactive GUI for MLTL visualization \cite{EGSTWR23}. The R2U2 GUI provides additional tools for profiling MLTL specifications, including calculating the size of monitor instances for equivalent MLTL formulas \cite{JJKRZ23}.
+MLTL was first defined in \cite{RRS14}. MLTL satisfiability and its complexity appears in \cite{LVR19}. MLTL validation (checking that an MLTL formula represents exactly the behavior intended) strategies include consulting the formal semantics, truth table validation, satisfiability checking, transition machine visualizations, which all appear in detail in \cite{RDR22}. We can also validate formulas through oracle generation \cite{LR18}. The WEST tool provides an (open-source) interactive GUI for MLTL visualization \cite{EGSTWR23}. The R2U2 GUI provides additional tools for profiling MLTL specifications, including calculating the size of monitor instances for equivalent MLTL formulas \cite{JJKRZ23}.
 
 ## MLTL Formal Semantics
 
