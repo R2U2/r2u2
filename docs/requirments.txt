@@ -1,4 +1,0 @@
-Sphinx
-myst-parser
-sphinx-collections
-sphinx-book-theme

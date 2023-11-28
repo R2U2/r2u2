@@ -32,6 +32,7 @@ release = '3.0'
 extensions = [
     "myst_parser",
     "sphinxcontrib.collections",
+    "sphinxcontrib.bibtex",
 ]
 
 myst_enable_extensions = [
@@ -53,6 +54,9 @@ source_suffix = {
     '.txt': 'markdown',
     '.md': 'markdown',
 }
+
+# Use [sphinxcontrib-bibtex](https://pypi.org/project/sphinxcontrib-bibtex/)
+bibtex_bibfiles = ['References.bib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
