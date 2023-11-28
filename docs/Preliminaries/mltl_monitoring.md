@@ -10,7 +10,7 @@ MLTL was first defined in \cite{RRS14}. MLTL satisfiability and its complexity a
 
 R2U2 implements the following formal semantics for MLTL.
 
-  We interpret MLTL formulas over finite traces bounded by base-10 (decimal) intervals. Let $pi$ be a finite computations of bounded length $|\pi| <+\infty$. We use $\pi_i\ (|\pi|>i\geq 0)$ to represent the suffix of $\pi$ starting from position $i$ (including $i$). %; $\pi_i = \epsilon$ (empty trace) if $i\geq |\pi|$. 
+  We interpret MLTL formulas over finite traces bounded by base-10 (decimal) intervals. Let $pi$ be a finite computation of bounded length $|\pi| <+\infty$. We use $\pi_i\ (|\pi|>i\geq 0)$ to represent the suffix of $\pi$ starting from position $i$ (including $i$). %; $\pi_i = \epsilon$ (empty trace) if $i\geq |\pi|$. 
 Let $a, b \in \mathbb{I}, a \le b$; we define that $\pi$ models (satisfies) an MLTL formula $\phi$, denoted as $\pi\models \phi$, as follows:
 
 \begin{itemize}
