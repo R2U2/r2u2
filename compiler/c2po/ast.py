@@ -117,6 +117,9 @@ class C2POExpression(C2PONode):
             raise TypeError(f"{self.ln}: Non-atomic node type '{type(self)}' unsupported in MLTL standard.")
         return f"a{self.atomic_id}"
 
+    def __hash__(self) -> int:
+        return hash(str(self))
+
 
 class C2POLiteral(C2POExpression):
 
@@ -763,7 +766,6 @@ class C2POLogicalOr(C2POLogicalOperator):
         else:
             super().__init__(ln, c)
 
-        super().__init__(ln, c)
         self.symbol = "||"
 
     def __str__(self) -> str:
@@ -897,24 +899,24 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
         return new
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
+        return f"({self.get_lhs()!s}){self.symbol!s}({self.get_rhs()!s})"
 
     def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+        return f"({self.get_lhs().to_mltl_std()}){self.symbol}({self.get_rhs().to_mltl_std()})"
 
 
 class C2POUntil(C2POFutureTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
         super().__init__(ln, lhs, rhs, l, u)
-        self.symbol = "U"
+        self.symbol = f"U[{l},{u}]"
 
 
 class C2PORelease(C2POFutureTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
         super().__init__(ln, lhs, rhs, l, u)
-        self.symbol = "R"
+        self.symbol = f"R[{l},{u}]"
 
 
 class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
@@ -934,24 +936,24 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+        return f"{self.symbol!s}({self.get_operand()!s})"
 
     def to_mltl_std(self) -> str:
-        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
+        return f"{self.symbol}({self.get_operand().to_mltl_std()})"
 
 
 class C2POGlobal(C2POFutureTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
-        self.symbol = "G"
+        self.symbol = f"G[{l},{u}]"
 
 
 class C2POFuture(C2POFutureTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
-        self.symbol = "F"
+        self.symbol = f"F[{l},{u}]"
 
 
 class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
@@ -972,17 +974,17 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
+        return f"({self.get_lhs()!s}){self.symbol!s}({self.get_rhs()!s})"
 
     def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+        return f"({self.get_lhs().to_mltl_std()}){self.symbol}({self.get_rhs().to_mltl_std()})"
 
 
 class C2POSince(C2POPastTimeBinaryOperator):
 
     def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
         super().__init__(ln, lhs, rhs, l, u)
-        self.symbol = "S"
+        self.symbol = f"S[{l},{u}]"
 
 
 class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
@@ -1000,24 +1002,24 @@ class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
+        return f"{self.symbol!s}({self.get_operand()!s})"
 
     def to_mltl_std(self) -> str:
-        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
+        return f"{self.symbol}({self.get_operand().to_mltl_std()})"
 
 
 class C2POHistorical(C2POPastTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
-        self.symbol = "H"
+        self.symbol = f"H[{l},{u}]"
 
 
 class C2POOnce(C2POPastTimeUnaryOperator):
 
     def __init__(self, ln: int, o: C2PONode, l: int, u: int):
         super().__init__(ln, o, l, u)
-        self.symbol = "O"
+        self.symbol = f"O[{l},{u}]"
 
 
 class C2POSpecification(C2POExpression):
