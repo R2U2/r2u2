@@ -12,6 +12,7 @@ from c2po.parse import parse_c2po, parse_mltl
 from c2po.wcet import *
 from c2po.type_check import type_check
 from c2po.transform import *
+from c2po.egraph import *
 from c2po.assemble import *
 
 
@@ -359,8 +360,12 @@ def compile(
     # Optional file dumps
     dump(program, input_path, dump_ast_filename, dump_mltl_std_filename)
 
-    for spec in program.get_future_time_specs():
-        print(json.dumps(spec.to_json(), indent=1))
+
+    egraph = EGraph({s.get_expr() for s in program.get_future_time_specs() if isinstance(s, C2POExpression)})
+    print(egraph)
+
+    # for spec in program.get_future_time_specs():
+    #     print(json.dumps(spec.to_json(), indent=1))
 
     if not enable_assemble:
         return ReturnCode.SUCCESS

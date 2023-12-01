@@ -3,7 +3,7 @@ We closely follow the pseudocode on page 8 of:
 https://dl.acm.org/doi/pdf/10.1145/3434304
 """
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from c2po.ast import *
 
 
@@ -12,11 +12,14 @@ class ENode():
     node: C2POExpression
     children: List[EClass]
 
+    def __hash__(self) -> int:
+        return hash(self.node)
+
 @dataclass
 class EClass():
     id: int
     members: Set[ENode]
-    parents: Set[ENode] = set()
+    parents: Set[ENode] = field(default_factory=set)
 
     def __hash__(self) -> int:
         return self.id
@@ -37,10 +40,12 @@ class EGraph():
         eclass = self.find(expr)
         if eclass:
             return eclass
-
+        
         new_enode = ENode(expr, [self.add(c) for c in expr.children if isinstance(c, C2POExpression)])
         new_eclass = EClass(self.cur_id, {new_enode}, set())
         self.cur_id += 1
+
+        self.eclass[expr] = new_eclass
 
         return new_eclass
 
@@ -51,5 +56,9 @@ class EGraph():
 
     def merge(self, id1: int, id2: int):
         pass
+
+    def __str__(self) -> str:
+        s = "\n".join([f"{str(e)} : {ecls.id}" for e,ecls in self.eclass.items()])
+        return s
 
 
