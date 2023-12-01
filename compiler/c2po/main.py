@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import logging
 import re
 
@@ -357,6 +358,9 @@ def compile(
 
     # Optional file dumps
     dump(program, input_path, dump_ast_filename, dump_mltl_std_filename)
+
+    for spec in program.get_future_time_specs():
+        print(json.dumps(spec.to_json(), indent=1))
 
     if not enable_assemble:
         return ReturnCode.SUCCESS

@@ -10,7 +10,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
     elif isinstance(expr, C2POSignal):
         if context.assembly_enabled and expr.symbol not in context.signal_mapping:
             status = False
-            logger.error(f"{expr.ln} Mapping does not contain signal '{expr.symbol}'.")
+            logger.error(f"{expr.ln}: Mapping does not contain signal '{expr.symbol}'.")
 
         if expr.symbol in context.signal_mapping:
             expr.signal_id = context.signal_mapping[expr.symbol]

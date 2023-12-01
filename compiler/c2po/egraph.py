@@ -12,7 +12,6 @@ class ENode():
     node: C2POExpression
     children: List[EClass]
 
-
 @dataclass
 class EClass():
     id: int
@@ -25,41 +24,32 @@ class EClass():
 
 class EGraph():
 
-    def __init__(self, exprs: Set[C2POExpression]):
+    def __init__(self, exprs: Set[C2POExpression]) -> None:
         self.leader: Dict[EClass, ENode] = {}
-        self.eclass:  Dict[C2POExpression, EClass]  = {}
-        self.hashcons: Dict[ENode, EClass] = {}
-        self.find: Dict[EClass, EClass] = {}
-        self.cur_eid = 0
+        self.eclass: Dict[C2POExpression, EClass] = {}
+        self.cur_id = 1
 
-        # check isinstance(n, C2POExpression) for type consistency...they should all be C2POExpressions anyway
-        # same for node's children below
+        # check isinstance(n, C2POExpression) for type consistency, they should all be C2POExpressions anyway
         for node in [n for expr in exprs for n in postorder(expr) if isinstance(n, C2POExpression)]:
-            self.add(ENode(node, [self.eclass[c] for c in node.children if isinstance(c, C2POExpression)]))
+            self.add(node)
 
-    def new_singleton_eclass(self, enode: ENode) -> EClass:
-        self.cur_eid += 1
-        return EClass(self.cur_eid-1, {enode})
+    def add(self, expr: C2POExpression) -> EClass:
+        eclass = self.find(expr)
+        if eclass:
+            return eclass
 
-    def canonicalize(self, enode: ENode) -> ENode:
-        new_children = [self.find[c] for c in enode.children]
-        return ENode(enode.node, new_children)
+        new_enode = ENode(expr, [self.add(c) for c in expr.children if isinstance(c, C2POExpression)])
+        new_eclass = EClass(self.cur_id, {new_enode}, set())
+        self.cur_id += 1
 
-    def add(self, enode: ENode) -> EClass:
-        enode = self.canonicalize(enode)
+        return new_eclass
 
-        if enode in self.hashcons:
-            return self.hashcons[enode]
+    def find(self, expr: C2POExpression) -> Optional[EClass]:
+        if expr in self.eclass: # this is a syntactic check
+            return self.eclass[expr]
+        return None
 
-        eclass = self.new_singleton_eclass(enode)
-        for child in enode.children:
-            child.parents.add(enode)
-        self.hashcons[enode] = eclass
-        return eclass
+    def merge(self, id1: int, id2: int):
+        pass
 
-    def merge(self, eclass1: EClass, eclass2: EClass) -> EClass:
-        if self.find[eclass1] == self.find[eclass2]:
-            return self.find[eclass1]
-        
-        return EClass(0, set())
 

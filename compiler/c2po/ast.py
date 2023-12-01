@@ -91,6 +91,9 @@ class C2PONode():
     def __str__(self) -> str:
         return self.symbol
 
+    def to_json(self) -> Dict:
+        raise TypeError(f"{self.ln}: Node type '{type(self)}' does not support JSON format.")
+
     def copy_attrs(self, new: C2PONode):
         new.scq_size = self.scq_size
         new.symbol = self.symbol
@@ -116,6 +119,9 @@ class C2POExpression(C2PONode):
         if self.atomic_id < 0:
             raise TypeError(f"{self.ln}: Non-atomic node type '{type(self)}' unsupported in MLTL standard.")
         return f"a{self.atomic_id}"
+
+    def to_json(self) -> Dict:
+        return {"symbol": self.symbol, "operands": [c.to_json() for c in self.children]}
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -779,14 +785,20 @@ class C2POLogicalAnd(C2POLogicalOperator):
 
     def __init__(self, ln: int, c: List[C2PONode]):
         # force binary operator for now
-        if len(c) > 2:
-            prev = C2POLogicalAnd(ln, c[0:2])
-            for i in range(2,len(c)-1):
-                prev = C2POLogicalAnd(ln, [prev,c[i]])
-            super().__init__(ln, [prev,c[len(c)-1]])
-        else:
-            super().__init__(ln, c)
-
+        # if len(c) > 2:
+        #     prev = C2POLogicalAnd(ln, c[0:2])
+        #     for i in range(2,len(c)-1):
+        #         prev = C2POLogicalAnd(ln, [prev,c[i]])
+        #     super().__init__(ln, [prev,c[len(c)-1]])
+        # else:
+        # operands = []
+        # for child in c:
+        #     if isinstance(child, C2POLogicalAnd):
+        #         for child_and in child.children:
+        #             operands.append(child_and)
+        #     else:
+        #         operands.append(child)
+        super().__init__(ln, c)
         self.symbol = "&&"
 
     def __str__(self) -> str:
