@@ -361,8 +361,8 @@ def compile(
     dump(program, input_path, dump_ast_filename, dump_mltl_std_filename)
 
 
-    egraph = EGraph({s.get_expr() for s in program.get_future_time_specs() if isinstance(s, C2POExpression)})
-    print(egraph)
+    # egraph = EGraph({s.get_expr() for s in program.get_future_time_specs() if isinstance(s, C2POExpression)})
+    # print(egraph)
 
     # for spec in program.get_future_time_specs():
     #     print(json.dumps(spec.to_json(), indent=1))

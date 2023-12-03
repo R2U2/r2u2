@@ -126,6 +126,12 @@ class C2POExpression(C2PONode):
     def __hash__(self) -> int:
         return hash(str(self))
 
+    def hash_flatten_and(self) -> int:
+        return 0
+
+    def hash_factor_global(self) -> int:
+        return 0
+
 
 class C2POLiteral(C2POExpression):
 
@@ -1329,6 +1335,15 @@ class C2POProgram(C2PONode):
 
     def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return self.get_future_time_specs() + self.get_past_time_specs()
+
+    def get_top_level_expressions(self) -> List[C2POExpression]:
+        return [
+            s.get_expr() for s in self.get_specs() if isinstance(s, C2POSpecification)
+        ] + [
+            c.get_assumption() for c in self.get_specs() if isinstance(c, C2POContract)
+        ] + [
+            c.get_guarantee() for c in self.get_specs() if isinstance(c, C2POContract)
+        ]
 
     def replace(self, node: C2PONode):
         raise RuntimeError(f"Attempting to replace a program.")

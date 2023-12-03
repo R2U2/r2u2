@@ -1,4 +1,5 @@
 from c2po.ast import *
+from c2po.egraph import *
 
 def transform_definitions(program: C2POProgram, context: C2POContext):
     """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
@@ -578,6 +579,48 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         _compute_scq_size(node)
 
 
+def optimize_egraph(program: C2POProgram, context: C2POContext):
+
+    def match(egraph: EGraph) -> List[Tuple[C2POExpression, int]]:
+        for enode in egraph.enodes():
+            pass
+
+        return []
+
+    egraph = EGraph(set(program.get_top_level_expressions()))
+    
+    # matches = match(egraph)
+    # while len(matches) != 0:
+    #     for (repl, eclass1) in matches:
+    #         eclass2 = egraph.add(repl)
+    #         egraph.merge(eclass1, eclass2)
+
+    #     egraph.rebuild()
+
+    for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
+        if isinstance(node, C2POLogicalAnd):
+            new_children = []
+            for child in [c for c in node.children]:
+                if isinstance(child, C2POLogicalAnd):
+                    new_children += child.children
+                else:
+                    new_children.append(child)
+
+            print("----------------")
+            print("Pre")
+            print(egraph)
+
+            eclass_id = egraph.add(C2POLogicalAnd(node.ln, new_children))
+            egraph.merge(egraph.eclass[egraph.canonicalize(node)], eclass_id)
+            egraph.rebuild()
+
+            print("----------------")
+            print("Post")
+            print(egraph)
+
+    # print(egraph)
+
+
 # A C2POTransform is a function with the signature:
 #    transform(program, context) -> None
 C2POTransform = Callable[[C2POProgram, C2POContext], None]
@@ -590,10 +633,11 @@ TRANSFORM_PIPELINE: List[C2POTransform] = [
     transform_set_aggregation,
     transform_struct_accesses,
     optimize_rewrite_rules,
+    optimize_egraph,
     transform_extended_operators,
     transform_negative_normal_form,
     transform_boolean_normal_form,
     optimize_cse,
     compute_atomics, # not a transform, but needed for assembly+analysis
-    compute_scq_sizes # not a transform, but needed for assembly+analysis
+    compute_scq_sizes, # not a transform, but needed for assembly+analysis
 ]
