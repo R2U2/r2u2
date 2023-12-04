@@ -71,15 +71,27 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # docs content from subprojects into repo-wide meta-build.
 collections_target = "_collections"
 collections = {
-    "c2po.md": {
+    "c2po_readme": {
         "driver": "copy_file",
         "source": "../compiler/README.md",
-        # "target": "submodule-a"
+        "target": "c2po_readme.md"
     },
-    "r2u2.md": {
+    'c2po_docs': {
+        'driver': 'copy_folder',
+        'source': '../compiler/docs/',
+        # 'target': 'c2po_docs/',
+        'ignore': ['*.dat', '.exe'],
+    },
+    "r2u2_readme": {
         "driver": "copy_file",
         "source": "../monitors/static/README.md",
-        # "target": "submodule-b"
+        "target": "r2u2_readme.md"
+    },
+    'r2u2_docs': {
+        'driver': 'copy_folder',
+        'source': '../monitors/static/docs/',
+        # 'target': 'r2u2_docs/',
+        'ignore': ['*.dat', '.exe'],
     }
 }
 
