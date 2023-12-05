@@ -14,7 +14,7 @@ Overview/project_structure
 :maxdepth: 2
 :titlesonly:
 Preliminaries/runtime_monitoring
-Preliminaries/spec_writting
+Preliminaries/spec_writing
 Preliminaries/mltl_monitoring
 Preliminaries/r2u2_framework
 ```
@@ -29,7 +29,8 @@ _collections/r2u2_docs/user
 _collections/gui_readme
 _collections/test_readme
 _collections/tools_readme
-Examples/README
+Examples/simple.md
+Examples/req_arbiter.md
 ```
 
 ```{toctree}
@@ -45,7 +46,7 @@ _collections/r2u2_docs/dev
 ```{toctree}
 :hidden:
 :caption: 📖 References
-References/mltl_grammer
+References/mltl_grammar
 References/publications
 References/glossary
 ```

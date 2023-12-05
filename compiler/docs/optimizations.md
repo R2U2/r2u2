@@ -17,10 +17,12 @@ Under the hood, C2PO is traversing the syntax tree of the specification, keeping
 (To disable, use the `--disable-rewrite` flag)
 
 This optimization does a single pass of the expression tree, applying rewrite rules on valid expressions that match a given pattern. One rewrite rule "factors out" `G`/`F` operators:  
+
 $$
     \Box_{[a,b]} \varphi \land \Box_{[c,d]} \psi \mapsto 
     \Box_{[e,f]}(\Box_{[a-e,b-f]} \varphi \land \Box_{[c-e,d-f]} \psi)
 $$
+
 where $e = min(a,b)$ and $f = e + min(b-a,d-c)$. For example:
 
     (G[0,5] a0) & (G[0,8] a1) ===> G[0,5] (a0 & (G[0,3] a1)) 
