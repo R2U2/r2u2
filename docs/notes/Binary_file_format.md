@@ -1,4 +1,4 @@
-# Binary file format:
+# Binary file format
 <Offset to next offset> R2U2 <Version> <Compiler Info> <Monitor Info> <0x00>
 <offset to next offset> <one byte tag> aribritrary bytes
 

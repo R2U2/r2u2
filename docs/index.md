@@ -1,45 +1,60 @@
-# 🔎 R2U2 Overview
+# Overview
+> Describe R2U2 Framework -- what it does, how it fits into a system, what components it consists of and outline the specification development + monitoring processes
 
 ```{toctree}
 :hidden:
-Examples/md_test
-quickstart
-installation
-project_structure
+Overview/quick_start_guide
+Overview/installation
+Overview/project_structure
 ```
 
 ```{toctree}
 :hidden:
-:caption: ✏️ Authoring Runtime Speciciations with Mission-time Temporal Logic
+:caption: ✏️ Specifications with MLTL
 :maxdepth: 2
 :titlesonly:
-:glob:
-Preliminaries/*
+Preliminaries/runtime_monitoring
+Preliminaries/spec_writting
+Preliminaries/mltl_monitoring
+Preliminaries/r2u2_framework
 ```
 
 ```{toctree}
 :hidden:
-:caption: 📚 User Guides
-
-_collections/c2po
-_collections/r2u2
+:caption: 📚 Users' Guides
+_collections/c2po_readme
+_collections/c2po_docs/user
+_collections/r2u2_readme
+_collections/r2u2_docs/user
+_collections/gui_readme
+_collections/test_readme
+_collections/tools_readme
+Examples/README
 ```
 
 ```{toctree}
 :hidden:
-:caption: Development Guide
-_collections/c2po
-_collections/r2u2
+:caption: 🛠 Development Guides
+Development/contributing
+README
+Development/ci
+_collections/c2po_docs/dev
+_collections/r2u2_docs/dev
 ```
 
 ```{toctree}
 :hidden:
-:caption: 📖 Reference
-:glob:
-notes/*
+:caption: 📖 References
+References/mltl_grammer
+References/publications
+References/glossary
 ```
 
-## Indices and tables
-[genindex]
-[modindex]
-[search]
+```{include} _collections/top_readme.md
+```
+
+# Indices and tables
+
+* {ref}`genindex`
+* {ref}`modindex`
+* {ref}`search`

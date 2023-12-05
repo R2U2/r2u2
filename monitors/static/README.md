@@ -1,4 +1,6 @@
-# R2U2 Dependencies:
+# R2U2 Static Monitor
+
+## Dependencies:
 - Posix environment (Linux, MacOS, Etc.)
 - Python3 (version 3.6 or greater)
 - Python typing-extensions package (`python3 -m pip install —upgrade typing-extensions`)
@@ -6,7 +8,7 @@
 - Make
 
 
-# Instructions for running the C version of R2U2
+## Instructions for running the C version of R2U2
 1. Compile R2U2'by running the `make` command in the 'R2U2_C' directory.
 
     - To run the default test suite, use the `test_all.sh` script from inside the top level `test` directory, after compiling R2U2_C.
@@ -28,7 +30,7 @@
     - **Note:** This script names formula files with the notation `[original file name]_formula\#.txt`, where \# is the corresponding formula number, indexed from 0.
 
 
-# MLTL Formula Syntax
+## MLTL Formula Syntax
 Formula files contain one or more lines of temporal formulas: one per line and each line terminating with a semi-colon (;). Each formula can contain either future-time MLTL or past-time MLTL operators along with the supported set of propositional logic. R2U2 does not support mixed-tense formulas. Additionally, parentheses may be used to explicitly specify operator precedence. Note that if you are entering formulas directly into the command line, use single quotes (') around the entire formula, or string of formulas.
 
 | **Expression** |               **Syntax**            |
@@ -45,7 +47,7 @@ Formula files contain one or more lines of temporal formulas: one per line and e
 | Once           |    `O[ti,tf] E1;` or `O[tf] E1;`    |
 | Since          |             `E1 S[ti,tf] E2;`       |
 
-# Atomic Checker Syntax
+## Atomic Checker Syntax
 Following the temporal formulas in the formula files, atomic checker expressions may be included to .
 The full syntax of an AT checker expression is:
 
@@ -67,14 +69,14 @@ The full syntax of an AT checker expression is:
 
 In the filter syntax, `s` is a **SIGNAL** and `c` is a **CONSTANT**.
 
-### Examples
+## Examples
 `a5 = abs_diff_angle(s3,105) < 50;` checks if the absolute difference between the data of signal 3 and the value 105 when treated as angles is below 50.
 `a43 = int(s32) == s33;` checks that the values of signals 32 and 33 are in agreement when treated as integers.
 
 As a default case, atoms of the format 'a#' where '#' is an integer will be interpreted as the boolean value of the '#-th' column without needing to be declared. See the input trace section for an example.
 
 
-# Input Trace:
+## Input Trace:
 An input trace is a CSV file with one column per input and one row per time-step. In the following example, the value of the default atomic a0 is 1, 0, 1 and the value of a1 is 0, 0, 1.
 ```
 1,0
@@ -83,7 +85,7 @@ An input trace is a CSV file with one column per input and one row per time-step
 ```
 
 
-# Verdict Output:
+## Verdict Output:
 Verdicts are output one per line as the formula id number (indexing from 0), followed by a colon and then the verdict tuple. The verdict tuple consists of an integer timestamp and a literal "T" or "F" to mark the truth value. The asynchronous monitors produce *aggregated output* — that is, if they can determine a range of values with the same truth at once, only the last time is output. In the example below, formula with ID 2 is false from time 8-11 inclusive.
 ```
 2:7,T

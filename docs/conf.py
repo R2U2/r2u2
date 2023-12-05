@@ -64,13 +64,22 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'notes',
+                    'requirements.txt',
+                    'Thumbs.db', '.DS_Store'
+]
 
 
 # Use [Sphinx-Collections](https://sphinx-collections.readthedocs.io) to bring
 # docs content from subprojects into repo-wide meta-build.
 collections_target = "_collections"
 collections = {
+    "top_readme": {
+        "driver": "copy_file",
+        "source": "../README.md",
+        "target": "top_readme.md"
+    },
+
     "c2po_readme": {
         "driver": "copy_file",
         "source": "../compiler/README.md",
@@ -82,6 +91,7 @@ collections = {
         # 'target': 'c2po_docs/',
         'ignore': ['*.dat', '.exe'],
     },
+
     "r2u2_readme": {
         "driver": "copy_file",
         "source": "../monitors/static/README.md",
@@ -92,7 +102,25 @@ collections = {
         'source': '../monitors/static/docs/',
         # 'target': 'r2u2_docs/',
         'ignore': ['*.dat', '.exe'],
-    }
+    },
+
+    "gui_readme": {
+        "driver": "copy_file",
+        "source": "../GUI/README.md",
+        "target": "gui_readme.md"
+    },
+
+    "test_readme": {
+        "driver": "copy_file",
+        "source": "../test/README.md",
+        "target": "test_readme.md"
+    },
+
+    "tools_readme": {
+        "driver": "copy_file",
+        "source": "../tools/README.md",
+        "target": "tools_readme.md"
+    },
 }
 
 # -- Options for HTML output -------------------------------------------------
