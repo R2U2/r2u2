@@ -25,12 +25,15 @@ class ReturnCode(Enum):
     INVALID_INPUT = 5
     FILE_IO_ERR  = 6
 
-
-# AT_FILTER_TABLE: Dict[str, Tuple[List[C2POType], C2POType]] = {
-#     "rate": ([C2POFloatType(False)], C2POFloatType(False)),
-#     "movavg": ([C2POFloatType(False),C2POIntType(True)], C2POFloatType(False)),
-#     "abs_diff_angle": ([C2POFloatType(False),C2POFloatType(True)], C2POFloatType(False))
-# }
+# Converts human names to struct format sigil for byte order, used by assembler
+# human named args are called 'endian' while the sigils are 'endianness'
+# See: https://docs.python.org/3.8/library/struct.html#byte-order-size-and-alignment
+BYTE_ORDER_SIGILS = {
+    'native': '@',
+    'network': '!',
+    'big': '>',
+    'little': '<'
+}
 
 
 def process_trace_file(trace_path: Path, map_file_provided: bool) -> Tuple[int, Optional[SignalMapping]]:
@@ -102,6 +105,7 @@ def validate_input(
     int_width: int, 
     int_is_signed: bool, 
     float_width: int,
+    endian: str,
     enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
@@ -111,7 +115,7 @@ def validate_input(
     enable_arity: bool = False,
     enable_cse: bool = False,
     enable_assemble: bool = True
-) -> Tuple[bool, Optional[Path], Optional[Path], int, SignalMapping, Set[C2POTransform]]:
+) -> Tuple[bool, Optional[Path], Optional[Path], int, str, SignalMapping, Set[C2POTransform]]:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
     
     Returns:
@@ -120,6 +124,7 @@ def validate_input(
         `Optional[Path]`: path corresponding to `input_filename` if it is a valid file, `None` otherwise
         `Optional[Path]`: path corresponding to `output_filename` if it is a valid file, `None` otherwise
         `int`: mission time, either set to `custom_mission_time` or the input trace length if not provided
+        `str`: endianness string from `BYTE_ORDER_SIGILS`
         `Optional[SignalMapping]`: signal mapping if it was derived from `trace_filename` or `map_filebame`, `None` otherwise
         `Set[C2POTransform]`: set of transforms to apply to the input
     """
@@ -168,6 +173,12 @@ def validate_input(
     else:
         mission_time = trace_length
 
+    if endian in BYTE_ORDER_SIGILS:
+        endian_sigil = BYTE_ORDER_SIGILS[endian]
+    else:
+        logger.critical(f" Endianness option argument {endian} invalid. Check CLI options?")
+        endian_sigil = "@"
+
     impl: R2U2Implementation = str_to_r2u2_implementation(impl_str)
     set_types(impl, int_width, int_is_signed, float_width)
 
@@ -204,7 +215,7 @@ def validate_input(
     if not enable_cse:
         transforms.remove(optimize_cse)
 
-    return (status, input_path, output_path, mission_time, signal_mapping, transforms)
+    return (status, input_path, output_path, mission_time, endian_sigil, signal_mapping, transforms)
 
 
 def dump(
@@ -235,6 +246,7 @@ def compile(
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
+    endian: str = "@",
     enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
@@ -270,6 +282,7 @@ def compile(
         mission_time: Value of mission-time to replace `M` with in specs
         int_signed: If true sets C2POIntType to signed
         float_width: Width to set C2POFloatType to. Should be one of 32 or 64
+        endianness: 
         enable_atomic_checkers: If true enables Atomic Checker instructions
         enable_booleanizer: If true enables Booleanizer instructions
         enable_extops: If true enables TL extended operators (or, implies, future, release)
@@ -290,7 +303,7 @@ def compile(
     # ----------------------------------
     # Input validation
     # ----------------------------------
-    (status, input_path, output_path, mission_time, signal_mapping, enabled_transforms) = validate_input(
+    (status, input_path, output_path, mission_time, endian_sigil, signal_mapping, enabled_transforms) = validate_input(
         input_filename, 
         trace_filename, 
         map_filename, 
@@ -300,6 +313,7 @@ def compile(
         int_width, 
         int_signed, 
         float_width, 
+        endian,
         enable_atomic_checkers,
         enable_booleanizer,
         enable_extops,
@@ -377,7 +391,7 @@ def compile(
         logger.error(" Input invalid.")
         return ReturnCode.INVALID_INPUT
 
-    binary = assemble(program, context, quiet)
+    binary = assemble(program, context, quiet, endian_sigil)
     with open(output_path, "wb") as f:
         f.write(binary)
 

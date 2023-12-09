@@ -75,7 +75,9 @@ def transform_set_aggregation(program: C2POProgram, context: C2POContext):
     def _transform_struct_access(node: C2PONode):
         if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
             s: C2POStruct = node.get_struct()
-            node.replace(s.get_member(node.member))
+            member = s.get_member(node.member)
+            if member:
+                node.replace(member)
 
     def _transform_set_aggregation(node: C2PONode):
         cur: C2PONode = node
@@ -123,7 +125,9 @@ def transform_struct_accesses(program: C2POProgram, context: C2POContext):
     def _transform_struct_accesses(node: C2PONode):
         if isinstance(node, C2POStructAccess):
             s: C2POStruct = node.get_struct()
-            node.replace(s.get_member(node.member))
+            member = s.get_member(node.member)
+            if member:
+                node.replace(member)
 
     for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
         _transform_struct_accesses(node)
@@ -561,8 +565,9 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
             
         if isinstance(expr, C2POSpecification):
             expr.scq_size = 1
-            expr.total_scq_size = expr.get_expr().total_scq_size + 1
-            spec_section_total_scq_size += 1
+            expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
+            spec_section_total_scq_size += expr.scq_size
+            expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
             return
 
         if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
@@ -571,9 +576,11 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
         # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
-        expr.total_scq_size = sum([c.total_scq_size for c in expr.children if c.scq_size > -1]) + expr.scq_size
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+        expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
         spec_section_total_scq_size += expr.scq_size
+
+        expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
 
     for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
         _compute_scq_size(node)

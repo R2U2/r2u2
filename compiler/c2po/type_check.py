@@ -76,7 +76,7 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             status = status and type_check_expr(c, context)
             is_const = is_const and c.type.is_const
 
-        t: C2POType = expr.get_child(0).type
+        t: C2POType = expr.get_operand(0).type
         t.is_const = is_const
 
         if isinstance(expr, C2POArithmeticDivide):
@@ -209,8 +209,12 @@ def type_check_expr(expr: C2POExpression, context: C2POContext) -> bool:
             is_const = is_const and member.type.is_const
 
         for (m,t) in context.structs[expr.symbol].items():
-            if expr.get_member(m).type != t:
-                logger.error(f"{expr.ln}: Member '{m}' invalid type for struct '{expr.symbol}' (expected '{t}' but got '{expr.get_member(m).type}')")
+            member = expr.get_member(m)
+            if not member:
+                raise RuntimeError(f"Member '{m}' not in struct '{expr.symbol}'.")
+
+            if member.type != t:
+                logger.error(f"{expr.ln}: Member '{m}' invalid type for struct '{expr.symbol}' (expected '{t}' but got '{member.type}')")
 
         expr.type = C2POStructType(is_const, expr.symbol)
     elif isinstance(expr, C2POStructAccess):

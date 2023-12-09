@@ -27,6 +27,8 @@ parser.add_argument("--float-width", default=32,
                     help="bit width for floating point types")
 parser.add_argument("--mission-time", default=-1, type=int,
                     help="define mission time (overriding inference from a trace file)")
+parser.add_argument("--endian", choices=['native', 'network', 'big', 'little'],
+                    default=sys.byteorder, help='Select byte-order of spec file')
 
 parser.add_argument("--atomic-checkers", action="store_true",
                     help="enable atomic checkers")
@@ -59,6 +61,7 @@ return_code = compile(
     int_width=args.int_width, 
     int_signed=args.int_signed, 
     float_width=args.float_width, 
+    endian=args.endian,
     enable_atomic_checkers=args.atomic_checkers, 
     enable_booleanizer=args.booleanizer, 
     enable_cse=args.disable_cse, 
