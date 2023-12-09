@@ -56,13 +56,14 @@ typedef union r2u2_bz_param {
 } r2u2_bz_param_t;
 
 typedef struct r2u2_bz_instruction {
-    uint8_t addr;
-    r2u2_bz_opcode_t opcode;
-    uint8_t store;
-    uint8_t at_addr;
     r2u2_bz_param_t param1;
     r2u2_bz_param_t param2;
+    r2u2_bz_opcode_t opcode;
+    uint8_t addr;
+    uint8_t store;
+    uint8_t at_addr;
 } r2u2_bz_instruction_t;
+
 
 r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *, r2u2_bz_instruction_t *);
 

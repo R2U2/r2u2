@@ -16,6 +16,7 @@ def check_sizes():
     if mem_ref_size != 4:
         logger.warning(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes")
 
+
 class EngineTag(Enum):
     NA = 0 # Null instruction tag - acts as ENDSEQ
     SY = 1 # System commands - reserved for monitor control
@@ -268,7 +269,7 @@ field_format_str_map = {
     FieldType.BZ_OPERATOR:      "i",
     FieldType.BZ_STORE_ATOMIC:  "B",
     FieldType.BZ_ATOMIC_ID:     "B",
-    FieldType.BZ_OPERAND_INT:   "q",
+    FieldType.BZ_OPERAND_INT:   "lxxxx",
     FieldType.BZ_OPERAND_FLOAT: "d",
     FieldType.AT_VALUE:         "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
@@ -675,20 +676,22 @@ def generate_assembly(
 
 def pack_at_instruction(
     instruction: ATInstruction, 
-    format_strs: Dict[FieldType, str]
+    format_strs: Dict[FieldType, str],
+    endian: str,
 ) -> bytes:
     binary = bytes()
 
     if instruction.compare_is_signal:
-        compare_bytes = CStruct("Bxxxxxxx").pack(instruction.compare_value)
+        compare_bytes = CStruct(f"{endian}Bxxxxxxx").pack(instruction.compare_value)
     elif isinstance(instruction.compare_value, bool):
-        compare_bytes = CStruct("?xxxxxxx").pack(instruction.compare_value)
+        compare_bytes = CStruct(f"{endian}?xxxxxxx").pack(instruction.compare_value)
     elif isinstance(instruction.compare_value, int):
-        compare_bytes = CStruct("q").pack(instruction.compare_value)
+        compare_bytes = CStruct(f"{endian}q").pack(instruction.compare_value)
     else: # isinstance(instruction.compare_value, float):
-        compare_bytes = CStruct("d").pack(instruction.compare_value)
+        compare_bytes = CStruct(f"{endian}d").pack(instruction.compare_value)
 
-    format_str = format_strs[FieldType.AT_VALUE]
+    format_str =  endian
+    format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_REL_OP]
     format_str += format_strs[FieldType.AT_FILTER]
@@ -697,10 +700,13 @@ def pack_at_instruction(
     format_str += format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]
     format_str += format_strs[FieldType.AT_ID]
 
-    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+        instruction.engine_tag.value
+    )
+
     binary = engine_tag_binary + CStruct(format_str).pack(
             compare_bytes,
-            CStruct("xxxxxxxx").pack(),
+            CStruct(f"{endian}xxxxxxxx").pack(),
             instruction.relational_operator.value,
             instruction.signal_type.value,
             instruction.signal_id,
@@ -713,54 +719,63 @@ def pack_at_instruction(
 
 def pack_bz_instruction(
     instruction: BZInstruction, 
-    format_strs: Dict[FieldType, str]
+    format_strs: Dict[FieldType, str],
+    endian: str,
 ) -> bytes:
     binary = bytes()
 
-    format_str =  format_strs[FieldType.BZ_ID]
-    format_str += format_strs[FieldType.BZ_OPERATOR]
-    format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
-    format_str += format_strs[FieldType.BZ_ATOMIC_ID]
+    format_str =  endian
     format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]
     format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT] 
+    format_str += format_strs[FieldType.BZ_OPERATOR]
+    format_str += format_strs[FieldType.BZ_ID]
+    format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
+    format_str += format_strs[FieldType.BZ_ATOMIC_ID]
 
-    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+        instruction.engine_tag.value
+    )
+
+    print(format_str)
+
     binary = engine_tag_binary + CStruct(format_str).pack(
-            instruction.id,
-            instruction.operator.value,
-            instruction.store_atomic,
-            instruction.atomic_id,
             instruction.operand1,
-            instruction.operand2
+            instruction.operand2,
+            instruction.operator.value,
+            instruction.id,
+            instruction.store_atomic,
+            instruction.atomic_id
         )
 
     logger.debug(f" Packing: {instruction}")
     logger.debug("   "
                 f"{format_strs[FieldType.ENGINE_TAG]:2} "
-                f"{format_strs[FieldType.BZ_ID]:2} "
-                f"{format_strs[FieldType.BZ_OPERATOR]:2} "
-                f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
-                f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
                 f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
-                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}")
+                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
+                f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+                f"{format_strs[FieldType.BZ_ID]:2} "
+                f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
+                f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} ")
     logger.debug("   "
                 f"{instruction.engine_tag.value:<2} "
-                f"{instruction.id:<2} "
-                f"{instruction.operator.value:<2} "
-                f"{instruction.store_atomic:<2} "
-                f"{instruction.atomic_id:<2} "
                 f"{instruction.operand1:<2} "
-                f"{instruction.operand2:<2}")
+                f"{instruction.operand2:<2}"
+                f"{instruction.operator.value:<2} "
+                f"{instruction.id:<2} "
+                f"{instruction.store_atomic:<2} "
+                f"{instruction.atomic_id:<2} ")
 
     return binary
 
 def pack_tl_instruction(
     instruction: TLInstruction, 
-    format_strs: Dict[FieldType, str]
+    format_strs: Dict[FieldType, str],
+    endian: str,
 ) -> bytes:
     binary = bytes()
 
-    operand_format_str = format_strs[FieldType.TL_OPERAND_TYPE]
+    operand_format_str =  endian
+    operand_format_str += format_strs[FieldType.TL_OPERAND_TYPE]
     operand_format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     operand_struct = CStruct(operand_format_str)
 
@@ -773,12 +788,16 @@ def pack_tl_instruction(
         instruction.operand2_value
     )
 
-    format_str =  f"{operand_struct.size}s"
+    format_str =  endian
+    format_str += f"{operand_struct.size}s"
     format_str += f"{operand_struct.size}s"
     format_str += format_strs[FieldType.TL_ID]
     format_str += format_strs[FieldType.TL_OPERATOR]
 
-    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+        instruction.engine_tag.value
+    )
+
     binary = engine_tag_binary + CStruct(format_str).pack(
         operand1_binary,
         operand2_binary,
@@ -804,17 +823,19 @@ def pack_tl_instruction(
 
 def pack_cg_instruction(
     instruction: CGInstruction, 
-    format_strs: Dict[FieldType, str]
+    format_strs: Dict[FieldType, str],
+    endian: str
 ) -> bytes:
     binary = bytes()
 
-    format_str = format_strs[FieldType.ENGINE_TAG]
+    format_str =  endian
+    format_str += format_strs[FieldType.ENGINE_TAG]
 
     binary += CStruct(format_str).pack(
         instruction.engine_tag.value
     )
 
-    binary += pack_tl_instruction(instruction.instruction, format_strs)
+    binary += pack_tl_instruction(instruction.instruction, format_strs, endian)
 
     logger.debug(f" Packing: {instruction}")
     logger.debug(f"   {format_strs[FieldType.ENGINE_TAG]:<2}")
@@ -824,21 +845,22 @@ def pack_cg_instruction(
 
 def pack_instruction(
     instruction: Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction],
-    format_strs: Dict[FieldType, str]
+    format_strs: Dict[FieldType, str],
+    endian: str
 ) -> bytes:
     if isinstance(instruction, ATInstruction):
-        binary = pack_at_instruction(instruction, format_strs)
+        binary = pack_at_instruction(instruction, format_strs, endian)
     elif isinstance(instruction, BZInstruction):
-        binary = pack_bz_instruction(instruction, format_strs)
+        binary = pack_bz_instruction(instruction, format_strs, endian)
     elif isinstance(instruction, TLInstruction):
-        binary = pack_tl_instruction(instruction, format_strs)
+        binary = pack_tl_instruction(instruction, format_strs, endian)
     elif isinstance(instruction, CGInstruction):
-        binary = pack_cg_instruction(instruction, format_strs)
+        binary = pack_cg_instruction(instruction, format_strs, endian)
     else:
         logger.error(f"Invalid instruction type ({type(instruction)}).")
         binary = bytes()
 
-    binary_len = CStruct("B").pack(len(binary)+1)
+    binary_len = CStruct(f"{endian}B").pack(len(binary)+1)
     return binary_len + binary
 
 def pack_aliases(program: C2POProgram) -> bytes:
@@ -858,17 +880,18 @@ def pack_aliases(program: C2POProgram) -> bytes:
 def assemble(
     program: C2POProgram,
     context: C2POContext,
-    quiet: bool
+    quiet: bool,
+    endian: str
 ) -> bytes:
     check_sizes()
     assembly = generate_assembly(program, context)
 
     binary = bytes()
-    binary_header = b"C2PO Version 1.0.0 for R2U2 V3\x00"
+    binary_header = f"C2PO Version 1.0.0 for R2U2 V3 - BOM: {endian}".encode("ascii") + b"\x00"
     binary += CStruct("B").pack(len(binary_header)+1) + binary_header
 
     for instr in assembly:
-        binary += pack_instruction(instr, field_format_str_map)
+        binary += pack_instruction(instr, field_format_str_map, endian)
 
     binary += b"\x00"
     binary += pack_aliases(program)
