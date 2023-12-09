@@ -21,8 +21,7 @@ class EngineTag(Enum):
     SY = 1 # System commands - reserved for monitor control
     CG = 2 # Immediate Configuration Directive
     AT = 3 # Original Atomic Checker
-    FT = 4 # MLTL Temporal logic engine (future time)
-    PT = 4 # MLTL Temporal logic engine (past time)
+    TL = 4 # MLTL Temporal logic engine
     BZ = 5 # Booleanizer
 
     def __str__(self) -> str:
@@ -71,6 +70,7 @@ class BZOperator(Enum):
         return self.name.lower()
 
 BZ_OPERATOR_MAP = {
+    (C2POBool, True):                BZOperator.ILOAD,
     (C2POSignal, True):              BZOperator.ILOAD,
     (C2POSignal, False):             BZOperator.FLOAD,
     (C2POInteger, True):             BZOperator.ICONST,
@@ -84,9 +84,11 @@ BZ_OPERATOR_MAP = {
     (C2PONotEqual, True):            BZOperator.INEQ,
     (C2PONotEqual, False):           BZOperator.FNEQ,
     (C2POGreaterThan, True):         BZOperator.IGT,
-    (C2POGreaterThanOrEqual, False): BZOperator.FGT,
+    (C2POGreaterThan, False):        BZOperator.FGT,
+    (C2POGreaterThanOrEqual, True):  BZOperator.IGTE,
     (C2POLessThan, True):            BZOperator.ILT,
-    (C2POLessThanOrEqual, False):    BZOperator.ILTE,
+    (C2POLessThan, False):           BZOperator.FLT,
+    (C2POLessThanOrEqual, True):     BZOperator.ILTE,
     (C2POArithmeticNegate, True):    BZOperator.INEG,
     (C2POArithmeticNegate, False):   BZOperator.FNEG,
     (C2POArithmeticAdd, True):       BZOperator.IADD,
@@ -110,6 +112,9 @@ class ATRelOp(Enum):
     GEQ  = 0b101
     NONE = 0b111
 
+    def __str__(self) -> str:
+        return self.name.lower()
+
 AT_REL_OP_MAP = {
     C2POEqual:           ATRelOp.EQ,
     C2PONotEqual:        ATRelOp.NEQ,
@@ -132,6 +137,9 @@ class ATFilter(Enum):
     # EXACTLY_ONE_OF = 0b1000
     # NONE_OF        = 0b1001
     # ALL_OF         = 0b1010
+
+    def __str__(self) -> str:
+        return self.name.lower()
 
 AT_FILTER_MAP = {
     C2POBoolType: ATFilter.BOOL,
@@ -182,25 +190,36 @@ FT_OPERATOR_MAP = {
 
 class PTOperator(Enum):
     NOP          = 0b01111
-    CONFIGURE    = 0b01110
+    CONFIG       = 0b01110
     LOAD         = 0b01101
     RETURN       = 0b01100
     ONCE         = 0b01011
-    HISTORICALLY = 0b01010
+    HIST         = 0b01010
     SINCE        = 0b01001
     NOT          = 0b00111
     AND          = 0b00110
     OR           = 0b00101
     IMPLIES      = 0b00100
-    EQUIVALENT   = 0b00000
+    EQUIV        = 0b00000
 
     def is_temporal(self) -> bool:
-        return self == PTOperator.ONCE or self == PTOperator.HISTORICALLY or self == PTOperator.SINCE
+        return self == PTOperator.ONCE or self == PTOperator.HIST or self == PTOperator.SINCE
 
     def is_load(self) -> bool:
         return self is PTOperator.LOAD
+
+    def __str__(self) -> str:
+        return self.name.lower()
     
 PT_OPERATOR_MAP = {
+    C2POSpecification: PTOperator.RETURN,
+    C2POOnce: PTOperator.ONCE,
+    C2POHistorical: PTOperator.HIST,
+    C2POSince: PTOperator.SINCE,
+    C2POLogicalNegate: PTOperator.NOT,
+    C2POLogicalAnd: PTOperator.AND,
+    C2POLogicalOr: PTOperator.OR,
+    C2POLogicalImplies: PTOperator.IMPLIES,
     Any: PTOperator.NOP
 }
 
@@ -212,6 +231,7 @@ class CGType(Enum):
     SCQ = 0
     LB = 1
     UB = 2
+    BOXQ = 3
     
     def __str__(self) -> str:
         return self.name
@@ -226,10 +246,12 @@ class FieldType(Enum):
     BZ_ATOMIC_ID     = 5
     BZ_OPERAND_INT   = 6
     BZ_OPERAND_FLOAT = 7
-    AT_VALUE_BOOL    = 8
-    AT_VALUE_SIG     = 9
-    AT_VALUE_INT     = 10
-    AT_VALUE_FLOAT   = 11
+    AT_VALUE         = 8
+    AT_SIGNAL        = 9
+    # AT_VALUE_BOOL    = 8
+    # AT_VALUE_SIG     = 9
+    # AT_VALUE_INT     = 10
+    # AT_VALUE_FLOAT   = 11
     AT_REL_OP        = 12
     AT_FILTER        = 13
     AT_ID            = 14
@@ -248,10 +270,11 @@ field_format_str_map = {
     FieldType.BZ_ATOMIC_ID:     "B",
     FieldType.BZ_OPERAND_INT:   "q",
     FieldType.BZ_OPERAND_FLOAT: "d",
-    FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
-    FieldType.AT_VALUE_SIG:     "Bxxxxxxx",
-    FieldType.AT_VALUE_INT:     "q",
-    FieldType.AT_VALUE_FLOAT:   "d",
+    FieldType.AT_VALUE:         "8s",
+    # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
+    FieldType.AT_SIGNAL:        "B",
+    # FieldType.AT_VALUE_INT:     "q",
+    # FieldType.AT_VALUE_FLOAT:   "d",
     FieldType.AT_REL_OP:        "i",
     FieldType.AT_FILTER:        "i",
     FieldType.AT_ID:            "B",
@@ -261,12 +284,6 @@ field_format_str_map = {
     FieldType.TL_OPERAND_TYPE:  "i",
     FieldType.TL_OPERAND_VALUE: "Bxxx",
 }
-
-def pack_field_struct(format_strs: Dict[FieldType, str], field_type: FieldType, value: Any) -> bytes:
-    if field_type not in format_strs:
-        logger.error(f"Field type {field_type} not in field format map.")
-        return bytes()
-    return CStruct(format_strs[field_type]).pack(value)
     
 
 @dataclass
@@ -279,6 +296,17 @@ class ATInstruction():
     compare_value: Union[bool, int, float]
     compare_is_signal: bool
     atomic_id: int
+
+    def __str__(self) -> str:
+        field_strs: List[str] = []
+
+        field_strs.append(f"{self.engine_tag.name}")
+        field_strs.append(f"a{self.id:<2}")
+        field_strs.append(f"{self.relational_operator:3}")
+        field_strs.append(f"s{self.signal_id}")
+        field_strs.append(f"{f'{self.signal_type}({self.compare_value})':10}")
+
+        return " ".join(field_strs)
     
 @dataclass
 class BZInstruction():
@@ -351,7 +379,8 @@ class CGInstruction():
             field_strs.append(f"{self.instruction.engine_tag}")
             field_strs.append(f"{self.type:3}")
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
-            field_strs.append(f"({self.instruction.id}, {self.instruction.operand2_value})")
+            field_strs.append(f"({self.instruction.id}, "
+                              f"{self.instruction.id + self.instruction.operand2_value} )")
         else:
             field_strs.append(f"{self.instruction.engine_tag}")
             field_strs.append(f"{self.type:3}")
@@ -367,7 +396,7 @@ def generate_at_instruction(
     expr = context.atomic_checkers[node.symbol]
 
     # we can do the following since it is type-correct
-    expr = cast(C2PORelationalOperator, node)
+    expr = cast(C2PORelationalOperator, expr)
     signal = cast(C2POSignal, expr.get_lhs())
 
     rhs = expr.get_rhs()
@@ -382,11 +411,11 @@ def generate_at_instruction(
     return ATInstruction(
         EngineTag.AT,
         node.atomic_id,
-        AT_REL_OP_MAP[expr], # type: ignore
+        AT_REL_OP_MAP[type(expr)], # type: ignore
         signal.signal_id,
-        AT_FILTER_MAP[signal.type], # type: ignore
+        AT_FILTER_MAP[type(signal.type)], # type: ignore
         compare_value,
-        isinstance(expr.get_lhs(), C2POSignal),
+        isinstance(expr.get_rhs(), C2POSignal),
         node.atomic_id
     )
 
@@ -411,15 +440,20 @@ def generate_bz_instruction(
         operand2 = 0
     elif node.num_children() == 2:
         operand1 = instructions[node.get_child(0)].id # type: ignore
-        operand2 = instructions[node.get_child(0)].id # type: ignore
+        operand2 = instructions[node.get_child(1)].id # type: ignore
     else:
         operand1 = 0
         operand2 = 0
 
+    bz_operator = BZ_OPERATOR_MAP[(
+        type(node), 
+        is_integer_type(node.get_lhs().type) if isinstance(node, C2PORelationalOperator) else is_integer_type(node.type)
+    )] # type: ignore
+
     return BZInstruction(
         EngineTag.BZ,
         bzid,
-        BZ_OPERATOR_MAP[(type(node), is_integer_type(node.type))], # type: ignore
+        bz_operator,
         node in context.atomics,
         max(node.atomic_id, 0),
         operand1,
@@ -448,11 +482,15 @@ def generate_ft_instruction(
 ) -> TLInstruction:
     id = len(instructions)
 
-    operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
-    operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
+    if isinstance(node, C2POSpecification):
+        operand1_type, operand1_value = (TLOperandType.SUBFORMULA, instructions[node.get_expr()].id)
+        operand2_type, operand2_value = (TLOperandType.DIRECT, node.formula_number)
+    else:
+        operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
+        operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
 
     return TLInstruction(
-        EngineTag.FT, 
+        EngineTag.TL, 
         id, 
         FT_OPERATOR_MAP[type(node)], # type: ignore
         operand1_type,
@@ -467,13 +505,17 @@ def generate_pt_instruction(
 ) -> TLInstruction:
     id = len(instructions)
 
-    operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
-    operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
+    if isinstance(node, C2POSpecification):
+        operand1_type, operand1_value = (TLOperandType.SUBFORMULA, instructions[node.get_expr()].id)
+        operand2_type, operand2_value = (TLOperandType.DIRECT, node.formula_number)
+    else:
+        operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
+        operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
 
     return TLInstruction(
-        EngineTag.PT, 
+        EngineTag.TL, 
         id, 
-        PT_OPERATOR_MAP[node], 
+        PT_OPERATOR_MAP[type(node)], 
         operand1_type,
         operand1_value,
         operand2_type,
@@ -485,16 +527,13 @@ def generate_scq_instructions(
     instructions: Dict[C2POExpression, TLInstruction]
 ) -> List[CGInstruction]:
     cg_scq = CGInstruction(
-        EngineTag.CG,
-        CGType.SCQ,
+        EngineTag.CG, CGType.SCQ,
         TLInstruction(
-            EngineTag.FT,
+            EngineTag.TL,
             node.scq[0],
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[node].id,
-            TLOperandType.DIRECT,
-            node.scq[1]
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.DIRECT, node.scq[1] - node.scq[0]
         )
     )
 
@@ -502,34 +541,72 @@ def generate_scq_instructions(
         return [cg_scq]
 
     cg_lb = CGInstruction(
-        EngineTag.CG,
-        CGType.LB,
+        EngineTag.CG, CGType.LB,
         TLInstruction(
-            EngineTag.FT,
+            EngineTag.TL,
             node.interval.lb,
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[node].id,
-            TLOperandType.ATOMIC,
-            0
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.ATOMIC, 0
         )
     )
 
     cg_ub = CGInstruction(
-        EngineTag.CG,
-        CGType.UB,
+        EngineTag.CG, CGType.UB,
         TLInstruction(
-            EngineTag.FT,
+            EngineTag.TL,
             node.interval.ub,
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[node].id,
-            TLOperandType.DIRECT,
-            0
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.ATOMIC, 1
         )
     )
 
     return [cg_scq, cg_lb, cg_ub]
+
+
+def generate_boxq_instructions(
+    node: C2POExpression,
+    instructions: Dict[C2POExpression, TLInstruction],
+    boxqs: int
+) -> List[CGInstruction]:
+    if not isinstance(node, C2POTemporalOperator):
+        return []
+
+    cg_boxq = CGInstruction(
+        EngineTag.CG, CGType.BOXQ,
+        TLInstruction(
+            EngineTag.TL,
+            64*boxqs,
+            PTOperator.CONFIG,
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.DIRECT, 64
+        )
+    )
+
+    cg_lb = CGInstruction(
+        EngineTag.CG, CGType.BOXQ,
+        TLInstruction(
+            EngineTag.TL,
+            node.interval.lb,
+            PTOperator.CONFIG,
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.ATOMIC, 0
+        )
+    )
+
+    cg_ub = CGInstruction(
+        EngineTag.CG, CGType.BOXQ,
+        TLInstruction(
+            EngineTag.TL,
+            node.interval.ub,
+            PTOperator.CONFIG,
+            TLOperandType.SUBFORMULA, instructions[node].id,
+            TLOperandType.ATOMIC, 1
+        )
+    )
+
+    return [cg_boxq, cg_lb, cg_ub]
 
 
 def generate_assembly(
@@ -541,15 +618,18 @@ def generate_assembly(
     ft_instructions: Dict[C2POExpression, TLInstruction] = {}
     pt_instructions: Dict[C2POExpression, TLInstruction] = {}
     cg_instructions: Dict[C2POExpression, List[CGInstruction]] = {}
+    boxqs = 1
 
     def _generate_assembly(node: C2PONode):
+        nonlocal boxqs
+
         if not isinstance(node, C2POExpression):
             return
 
         if node in context.atomics and context.is_future_time():
             ftid = len(ft_instructions)
             ft_instructions[node] = TLInstruction(
-                EngineTag.FT, ftid, FTOperator.LOAD, 
+                EngineTag.TL, ftid, FTOperator.LOAD, 
                 TLOperandType.ATOMIC, node.atomic_id,
                 TLOperandType.NONE, 0
             )
@@ -557,7 +637,7 @@ def generate_assembly(
         elif node in context.atomics and context.is_past_time():
             ptid = len(pt_instructions)
             pt_instructions[node] = TLInstruction(
-                EngineTag.PT, ptid, PTOperator.LOAD, 
+                EngineTag.TL, ptid, PTOperator.LOAD, 
                 TLOperandType.ATOMIC, node.atomic_id,
                 TLOperandType.NONE, 0
             )
@@ -571,6 +651,8 @@ def generate_assembly(
             cg_instructions[node] = generate_scq_instructions(node, ft_instructions)
         elif node.engine == R2U2Engine.TEMPORAL_LOGIC and context.is_past_time():
             pt_instructions[node] = generate_pt_instruction(node, pt_instructions)
+            cg_instructions[node] = generate_boxq_instructions(node, pt_instructions, boxqs)
+            boxqs += 1
 
     context.set_future_time() # need to set this to disambiguate PT/FT logical ops
     spec_section = program.get_future_time_spec_section()
@@ -584,8 +666,10 @@ def generate_assembly(
         for node in postorder(spec_section):
             _generate_assembly(node)
 
-    return (list(bz_instructions.values()) + 
+    return (list(at_instructions.values()) +
+            list(bz_instructions.values()) + 
             list(ft_instructions.values()) + 
+            list(pt_instructions.values()) + 
             [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs])
 
 
@@ -595,17 +679,37 @@ def pack_at_instruction(
 ) -> bytes:
     binary = bytes()
 
-    binary += pack_field_struct(format_strs, FieldType.ENGINE_TAG, instruction.engine_tag)
-    binary += pack_field_struct(format_strs, FieldType.AT_VALUE_INT, 0)
-    binary += pack_field_struct(format_strs, FieldType.AT_REL_OP, instruction.relational_operator.value)
-    binary += pack_field_struct(format_strs, FieldType.AT_FILTER, instruction.signal_type.value)
-    binary += pack_field_struct(format_strs, FieldType.AT_VALUE_SIG, instruction.signal_id)
-    binary += pack_field_struct(format_strs, FieldType.AT_ID, instruction.atomic_id)
-    binary += pack_field_struct(format_strs, FieldType.AT_COMPARE_VALUE_IS_SIGNAL, instruction.compare_is_signal)
-    binary += pack_field_struct(format_strs, FieldType.AT_ID, instruction.atomic_id)
+    if instruction.compare_is_signal:
+        compare_bytes = CStruct("Bxxxxxxx").pack(instruction.compare_value)
+    elif isinstance(instruction.compare_value, bool):
+        compare_bytes = CStruct("?xxxxxxx").pack(instruction.compare_value)
+    elif isinstance(instruction.compare_value, int):
+        compare_bytes = CStruct("q").pack(instruction.compare_value)
+    else: # isinstance(instruction.compare_value, float):
+        compare_bytes = CStruct("d").pack(instruction.compare_value)
 
-    binary_len = CStruct("B").pack(len(binary)+1)
-    return binary_len + binary
+    format_str = format_strs[FieldType.AT_VALUE]
+    format_str += format_strs[FieldType.AT_VALUE]
+    format_str += format_strs[FieldType.AT_REL_OP]
+    format_str += format_strs[FieldType.AT_FILTER]
+    format_str += format_strs[FieldType.AT_SIGNAL]
+    format_str += format_strs[FieldType.AT_ID]
+    format_str += format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]
+    format_str += format_strs[FieldType.AT_ID]
+
+    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    binary = engine_tag_binary + CStruct(format_str).pack(
+            compare_bytes,
+            CStruct("xxxxxxxx").pack(),
+            instruction.relational_operator.value,
+            instruction.signal_type.value,
+            instruction.signal_id,
+            instruction.atomic_id,
+            instruction.compare_is_signal,
+            instruction.atomic_id
+        )
+
+    return binary
 
 def pack_bz_instruction(
     instruction: BZInstruction, 
@@ -613,27 +717,40 @@ def pack_bz_instruction(
 ) -> bytes:
     binary = bytes()
 
-    format_str = format_strs[FieldType.ENGINE_TAG]
-    format_str += format_strs[FieldType.BZ_ID]
+    format_str =  format_strs[FieldType.BZ_ID]
     format_str += format_strs[FieldType.BZ_OPERATOR]
     format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
     format_str += format_strs[FieldType.BZ_ATOMIC_ID]
     format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]
     format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT] 
 
-    binary = CStruct(format_str).pack(
-        instruction.engine_tag.value,
-        instruction.id,
-        instruction.operator.value,
-        instruction.store_atomic,
-        instruction.atomic_id,
-        instruction.operand1,
-        instruction.operand2
-    )
+    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    binary = engine_tag_binary + CStruct(format_str).pack(
+            instruction.id,
+            instruction.operator.value,
+            instruction.store_atomic,
+            instruction.atomic_id,
+            instruction.operand1,
+            instruction.operand2
+        )
 
     logger.debug(f" Packing: {instruction}")
-    logger.debug(f"   {format_strs[FieldType.ENGINE_TAG]:2} {format_strs[FieldType.BZ_ID]:2} {format_strs[FieldType.BZ_OPERATOR]:2} {format_strs[FieldType.BZ_STORE_ATOMIC]:2} {format_strs[FieldType.BZ_ATOMIC_ID]:2} {format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} {format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}")
-    logger.debug(f"   {instruction.engine_tag.value:<2} {instruction.id:<2} {instruction.operator.value:<2} {instruction.store_atomic:<2} {instruction.atomic_id:<2} {instruction.operand1:<2} {instruction.operand2:<2}")
+    logger.debug("   "
+                f"{format_strs[FieldType.ENGINE_TAG]:2} "
+                f"{format_strs[FieldType.BZ_ID]:2} "
+                f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+                f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
+                f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
+                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
+                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}")
+    logger.debug("   "
+                f"{instruction.engine_tag.value:<2} "
+                f"{instruction.id:<2} "
+                f"{instruction.operator.value:<2} "
+                f"{instruction.store_atomic:<2} "
+                f"{instruction.atomic_id:<2} "
+                f"{instruction.operand1:<2} "
+                f"{instruction.operand2:<2}")
 
     return binary
 
@@ -656,14 +773,13 @@ def pack_tl_instruction(
         instruction.operand2_value
     )
 
-    format_str = format_strs[FieldType.ENGINE_TAG]
-    format_str += f"{operand_struct.size}s"
+    format_str =  f"{operand_struct.size}s"
     format_str += f"{operand_struct.size}s"
     format_str += format_strs[FieldType.TL_ID]
     format_str += format_strs[FieldType.TL_OPERATOR]
 
-    binary = CStruct(format_str).pack(
-        instruction.engine_tag.value,
+    engine_tag_binary = CStruct(format_strs[FieldType.ENGINE_TAG]).pack(instruction.engine_tag.value)
+    binary = engine_tag_binary + CStruct(format_str).pack(
         operand1_binary,
         operand2_binary,
         instruction.id,
@@ -671,8 +787,18 @@ def pack_tl_instruction(
     )
 
     logger.debug(f" Packing: {instruction}")
-    logger.debug(f"   {format_strs[FieldType.ENGINE_TAG]:2} [{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] [{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] {format_strs[FieldType.TL_ID]:2} {format_strs[FieldType.TL_OPERATOR]:2}")
-    logger.debug(f"   {instruction.engine_tag.value:<2} [{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] [{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] {instruction.id:<2} {instruction.operator.value:<2}")
+    logger.debug("   "
+                f"{format_strs[FieldType.ENGINE_TAG]:2} "
+                f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+                f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+                f"{format_strs[FieldType.TL_ID]:2} "
+                f"{format_strs[FieldType.TL_OPERATOR]:2}")
+    logger.debug("   "
+                f"{instruction.engine_tag.value:<2} "
+                f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
+                f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+                f"{instruction.id:<2} "
+                f"{instruction.operator.value:<2}")
 
     return binary
 

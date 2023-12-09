@@ -562,12 +562,12 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
             spec_section_total_scq_size = 0
             return
             
-        # if isinstance(expr, C2POSpecification):
-        #     expr.scq_size = 3
-        #     expr.total_scq_size = expr.get_expr().total_scq_size + 3
-        #     expr.scq = (spec_section_total_scq_size-1, spec_section_total_scq_size)
-        #     spec_section_total_scq_size += 3
-        #     return
+        if isinstance(expr, C2POSpecification):
+            expr.scq_size = 1
+            expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
+            spec_section_total_scq_size += expr.scq_size
+            expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
+            return
 
         if expr.engine != R2U2Engine.TEMPORAL_LOGIC and expr not in context.atomics:
             return
@@ -579,7 +579,7 @@ def compute_scq_sizes(program: C2POProgram, context: C2POContext):
         expr.total_scq_size = sum([c.total_scq_size for c in expr.get_children() if c.scq_size > -1]) + expr.scq_size
         spec_section_total_scq_size += expr.scq_size
 
-        expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size - 1)
+        expr.scq = (spec_section_total_scq_size - expr.scq_size, spec_section_total_scq_size)
 
     for node in [n for s in program.get_spec_sections() for n in postorder(s)]:
         _compute_scq_size(node)
