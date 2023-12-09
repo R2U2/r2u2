@@ -349,9 +349,6 @@ class TLInstruction():
         field_strs.append(f"n{self.id:<2}")
         field_strs.append(f"{self.operator:6}")
 
-        # if self.operator.is_temporal():
-        #     field_strs.append(f"{}")
-
         if self.operand1_type == TLOperandType.DIRECT:
             field_strs.append(f"{self.operand1_value}")
         elif self.operand1_type == TLOperandType.ATOMIC:
@@ -381,7 +378,7 @@ class CGInstruction():
             field_strs.append(f"{self.type:3}")
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
             field_strs.append(f"({self.instruction.id}, "
-                              f"{self.instruction.id + self.instruction.operand2_value} )")
+                              f"{self.instruction.id + self.instruction.operand2_value})")
         else:
             field_strs.append(f"{self.instruction.engine_tag}")
             field_strs.append(f"{self.type:3}")
@@ -735,8 +732,6 @@ def pack_bz_instruction(
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
     )
-
-    print(format_str)
 
     binary = engine_tag_binary + CStruct(format_str).pack(
             instruction.operand1,
