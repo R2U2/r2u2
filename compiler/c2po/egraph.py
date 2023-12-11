@@ -7,6 +7,23 @@ from dataclasses import dataclass
 from c2po.ast import *
 
 
+class RewriteRule(Enum):
+    R1 = "()"
+
+
+class Pattern():
+    
+    def __init__(self) -> None:
+        self.match = (
+            C2POLogicalAnd, 
+                (C2POGlobal, None, None, None,), 
+                (C2POGlobal, None, None, None), 
+                (None, None, None, None)
+        )
+
+    
+
+
 @dataclass
 class ENode():
     expr: C2POExpression
@@ -28,14 +45,18 @@ class ENode():
 
     def __str__(self) -> str:
         return f"ENode({self.expr.symbol}, {self.children})"
+    
 
-    def hash_subsume_or(self, eclass: Dict[ENode, int]) -> int:
-        hash((
-            type(self.expr),
-            # type() 
-        ))
+@dataclass
+class ENodeTree():
+    root: ENode
+    children: List[ENode]
 
-        return 0
+
+@dataclass
+class EClass():
+    id: int
+    members: Set[ENode]
 
 
 class UnionFind():
@@ -59,6 +80,21 @@ class UnionFind():
         return new_id
 
 
+R1: Dict[type, List[List[Dict[type, List]]]] = {
+    C2POLogicalAnd: [
+        [{C2POGlobal: []}, {C2POGlobal: []}],
+        [{C2POGlobal: []}, {C2POLogicalAnd: []}]
+    ],
+    C2POLogicalOr: [
+        [{C2POGlobal: []}, {C2POGlobal: []}],
+    ],
+    C2POExpression: []
+}
+
+e: ENode = ENode(C2POExpression(0,[]), [])
+
+
+
 class EGraph():
 
     def __init__(self, exprs: Set[C2POExpression]) -> None:
@@ -66,6 +102,9 @@ class EGraph():
         self.parents: Dict[int, Dict[ENode, int]] = {}
         self.worklist: set[int] = set()
         self.union_find: UnionFind = UnionFind()
+
+        self.rewrites: Dict[RewriteRule, Set[ENodeTree]] = {}
+        self.completed_rewrites: Dict[ENodeTree, Set[RewriteRule]] = {}
 
         self.cur_eclass_id = 1
 
@@ -81,6 +120,26 @@ class EGraph():
         children = [self.add(c) for c in expr.children if isinstance(c, C2POExpression)]
         return ENode(expr, children)
 
+    def apply_rewrites(self):
+        for (rewrite_rule, enode_trees) in self.rewrites.items():
+            for enode_tree in enode_trees:
+                # do the rewrite...
+
+                # add to list of already completed rewrites
+                self.completed_rewrites[enode_tree].add(rewrite_rule)
+
+    def compute_rewrites(self, enode: ENode):
+        # could be a generator? yields ENodeTrees that can be rewritten and aren't already done
+
+        matches_1 = R1[type(e.expr)]
+        for match in matches_1:
+            for (t,_) in match:
+                pass
+
+        # just iterate thru all potential matches...
+        # if type(enode.expr) in REWRITE_RULES:
+        #     pass
+
     def add(self, expr: C2POExpression) -> int:
         """Adds `expr` and its children to the EGraph, if `expr` is not already present."""
         enode = self.canonicalize(expr)
@@ -93,13 +152,15 @@ class EGraph():
 
         self.eclass[enode] = new_eclass_id
         self.union_find.add(new_eclass_id)
-        self.parents[self.find(new_eclass_id)] = {}
+        self.parents[new_eclass_id] = {}
 
         for child in enode.children:
             self.parents[child][enode] = new_eclass_id
 
-        return new_eclass_id
+        self.compute_rewrites(enode)
 
+        return new_eclass_id
+    
     def find(self, id: int) -> int:
         return self.union_find.find(id)
 
