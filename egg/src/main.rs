@@ -8,7 +8,6 @@ define_language! {
         "&" = And([Id; 2]),
         "!" = Not(Id),
         "|" = Or([Id; 2]),
-        "->" = Implies([Id; 2]),
         Symbol(Symbol),
     }
 }
@@ -19,37 +18,44 @@ type Rewrite = egg::Rewrite<Prop, ConstantFold>;
 #[derive(Default)]
 struct ConstantFold;
 impl Analysis<Prop> for ConstantFold {
-    type Data = Option<(bool, PatternAst<Prop>)>;
+
+    // when merging two e-classes, the wpd will be the minimum of the two, bpd will be the max.
+    // the only time two e-classes with different delays will merge is in the rewrite rules like:
+    //   G[3,5]p || G[0,10]p |-> G[3,5]p
+
+    // (Option<bool>, (u32, u32), (u32, u32), u32            )
+    // (const?      , (lb, ub)  , (bpd, wpd), childrens' cost)
+    type Data = ((Option<bool>, (u32, u32), (u32, u32), u32), PatternAst<Prop>);
     fn merge(&mut self, to: &mut Self::Data, from: Self::Data) -> DidMerge {
-        merge_option(to, from, |a, b| {
-            assert_eq!(a.0, b.0, "Merged non-equal constants");
-            DidMerge(false, false)
-        })
+        DidMerge(true, true)
     }
 
     fn make(egraph: &EGraph, enode: &Prop) -> Self::Data {
-        let x = |i: &Id| egraph[*i].data.as_ref().map(|c| c.0);
+        let x = |i: &Id| egraph[*i].data;
         let result = match enode {
-            Prop::Bool(c) => Some((*c, c.to_string().parse().unwrap())),
-            Prop::Num(n) => Some((true, n.to_string().parse().unwrap())),
-            Prop::Symbol(_) => None,
-            Prop::Global([l, u, a]) => Some((
-                x(a)?,
-                format!("(G {} {} {})", x(l)?, x(u)?, x(a)?).parse().unwrap(),
-            )),
+            Prop::Bool(c) => ((Some(*c), (0,0), (0,0), 1), c.to_string().parse().unwrap()),
+            Prop::Num(n) => ((Some(true), (0,0), (0,0), 1), n.to_string().parse().unwrap()),
+            Prop::Symbol(s) => ((None, (0,0), (0,0), 1), s.to_string().parse().unwrap()),
+            Prop::Global([l, u, a]) => (
+                (
+                    x(a).0.0, 
+                    (x(l).0.1.0, x(u).0.1.1), 
+                    (x(a).0.2.0 + x(l).0.1.0, x(a).0.2.1 + x(l).0.1.1), 
+                    0
+                ),
+                format!("(G {} {} {})", x(l).0.1.0, x(u).0.1.1, x(a).1).parse().unwrap(),
+            ),
             Prop::And([a, b]) => Some((
-                x(a)? && x(b)?,
-                format!("(& {} {})", x(a)?, x(b)?).parse().unwrap(),
+                (x(a)?.0 && x(b)?.0, (0,0), (0,0)),
+                format!("(& {} {})", x(a)?.0, x(b)?.0).parse().unwrap(),
             )),
-            Prop::Not(a) => Some((!x(a)?, format!("(~ {})", x(a)?).parse().unwrap())),
+            Prop::Not(a) => Some((
+                (!x(a)?.0, (0,0), (0,0)), format!("(~ {})", x(a)?.0).parse().unwrap()
+            )),
             Prop::Or([a, b]) => Some((
-                x(a)? || x(b)?,
-                format!("(| {} {})", x(a)?, x(b)?).parse().unwrap(),
-            )),
-            Prop::Implies([a, b]) => Some((
-                !x(a)? || x(b)?,
-                format!("(-> {} {})", x(a)?, x(b)?).parse().unwrap(),
-            )),
+                (x(a)?.0 || x(b)?.0, (0,0), (0,0)),
+                format!("(| {} {})", x(a)?.0, x(b)?.0).parse().unwrap(),
+            ))
         };
         println!("Make: {:?} -> {:?}", enode, result);
         result
@@ -59,7 +65,7 @@ impl Analysis<Prop> for ConstantFold {
         if let Some(c) = egraph[id].data.clone() {
             egraph.union_instantiations(
                 &c.1,
-                &c.0.to_string().parse().unwrap(),
+                &c.0.0.to_string().parse().unwrap(),
                 &Default::default(),
                 "analysis".to_string(),
             );
@@ -90,7 +96,6 @@ rule! {comm_and,    "(& ?a ?b)",        "(& ?b ?a)"              }
 rule! {lem,         "(| ?a (~ ?a))",    "true"                      }
 rule! {or_true,     "(| ?a true)",         "true"                      }
 rule! {and_true,    "(& ?a true)",         "?a"                     }
-rule! {contrapositive, "(-> ?a ?b)",    "(-> (~ ?b) (~ ?a))"     }
 
 // this has to be a multipattern since (& (-> ?a ?b) (-> (~ ?a) ?c))  !=  (| ?b ?c)
 // see https://github.com/egraphs-good/egg/issues/185
