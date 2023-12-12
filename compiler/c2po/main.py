@@ -220,7 +220,8 @@ def dump(
     program: C2POProgram,
     input_path: Path,
     dump_ast_filename: str,
-    dump_mltl_std_filename: str):
+    dump_mltl_std_filename: str
+) -> None:
     """Dumps pickled AST and AST in MLTL standard format if filenames are not '.'"""
     if dump_ast_filename != ".":
         dump_path = Path(dump_ast_filename) if dump_ast_filename != "" else input_path.with_suffix(".pickle").name

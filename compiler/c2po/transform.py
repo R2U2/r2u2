@@ -1,6 +1,6 @@
 from c2po.ast import *
 
-def transform_definitions(program: C2POProgram, context: C2POContext):
+def transform_definitions(program: C2POProgram, context: C2POContext) -> None:
     """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
     
     def _transform_definitions(node: C2PONode):
@@ -17,10 +17,10 @@ def transform_definitions(program: C2POProgram, context: C2POContext):
         _transform_definitions(node)
 
 
-def transform_function_calls(program: C2POProgram, context: C2POContext):
+def transform_function_calls(program: C2POProgram, context: C2POContext) -> None:
     """Transforms each function call in `program` that corresponds to a struct instantiation to a `C2POStruct`."""
 
-    def _transform_function_calls(node: C2PONode):
+    def _transform_function_calls(node: C2PONode) -> None:
         if isinstance(node, C2POFunctionCall) and node.symbol in context.structs:
             struct_members = [m for m in context.structs[node.symbol].keys()]
             node.replace(
@@ -39,7 +39,7 @@ def transform_function_calls(program: C2POProgram, context: C2POContext):
         _transform_function_calls(node)
 
 
-def transform_contracts(program: C2POProgram, context: C2POContext):
+def transform_contracts(program: C2POProgram, context: C2POContext) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
 
     for spec_section in program.get_spec_sections():
@@ -68,17 +68,17 @@ def transform_contracts(program: C2POProgram, context: C2POContext):
             ))
 
 
-def transform_set_aggregation(program: C2POProgram, context: C2POContext):
+def transform_set_aggregation(program: C2POProgram, context: C2POContext) -> None:
     """Transforms set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
 
-    def _transform_struct_access(node: C2PONode):
+    def _transform_struct_access(node: C2PONode) -> None:
         if isinstance(node, C2POStructAccess) and not isinstance(node.get_struct(), C2POVariable):
             s: C2POStruct = node.get_struct()
             member = s.get_member(node.member)
             if member:
                 node.replace(member)
 
-    def _transform_set_aggregation(node: C2PONode):
+    def _transform_set_aggregation(node: C2PONode) -> None:
         cur: C2PONode = node
 
         if isinstance(node, C2POForEach):
@@ -119,7 +119,7 @@ def transform_set_aggregation(program: C2POProgram, context: C2POContext):
         _transform_set_aggregation(spec_section)
 
 
-def transform_struct_accesses(program: C2POProgram, context: C2POContext):
+def transform_struct_accesses(program: C2POProgram, context: C2POContext) -> None:
     """Transforms struct access operations to the underlying member expression."""
     def _transform_struct_accesses(node: C2PONode):
         if isinstance(node, C2POStructAccess):
@@ -132,7 +132,7 @@ def transform_struct_accesses(program: C2POProgram, context: C2POContext):
         _transform_struct_accesses(node)
         
 
-def transform_extended_operators(program: C2POProgram, context: C2POContext):
+def transform_extended_operators(program: C2POProgram, context: C2POContext) -> None:
     """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
     def _transform_extended_operators(node: C2PONode):
         if isinstance(node, C2POLogicalOperator):
@@ -175,9 +175,9 @@ def transform_extended_operators(program: C2POProgram, context: C2POContext):
         _transform_extended_operators(node)
 
 
-def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
+def transform_boolean_normal_form(program: C2POProgram, context: C2POContext) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
-    def _transform_boolean_normal_form(node: C2PONode):
+    def _transform_boolean_normal_form(node: C2PONode) -> None:
 
         if isinstance(node, C2POLogicalOr):
             # p || q = !(!p && !q)
@@ -215,9 +215,9 @@ def transform_boolean_normal_form(program: C2POProgram, context: C2POContext):
         _transform_boolean_normal_form(node)
 
 
-def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
+def transform_negative_normal_form(program: C2POProgram, context: C2POContext) -> None:
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
-    def _transform_negative_normal_form(node: C2PONode):
+    def _transform_negative_normal_form(node: C2PONode) -> None:
         if isinstance(node, C2POLogicalNegate):
             operand = node.get_operand()
             if isinstance(operand, C2POLogicalNegate):
@@ -265,9 +265,9 @@ def transform_negative_normal_form(program: C2POProgram, context: C2POContext):
         _transform_negative_normal_form(node)
 
 
-def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
+def optimize_rewrite_rules(program: C2POProgram, context: C2POContext) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
-    def _optimize_rewrite_rules(node: C2PONode):
+    def _optimize_rewrite_rules(node: C2PONode) -> None:
         new: Optional[C2PONode] = None
 
         if isinstance(node, C2POLogicalNegate):
@@ -494,13 +494,13 @@ def optimize_rewrite_rules(program: C2POProgram, context: C2POContext):
         _optimize_rewrite_rules(node)
 
 
-def optimize_cse(program: C2POProgram, context: C2POContext) :
+def optimize_cse(program: C2POProgram, context: C2POContext) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
     S: Dict[str, C2PONode]
 
     logger.debug(f"CSE: Beginning CSE")
 
-    def _optimize_cse(node: C2PONode) :
+    def _optimize_cse(node: C2PONode) -> None:
         nonlocal S
 
         if str(node) in S:
@@ -518,7 +518,7 @@ def optimize_cse(program: C2POProgram, context: C2POContext) :
     program.is_cse_reduced = True
 
 
-def compute_atomics(program: C2POProgram, context: C2POContext):
+def compute_atomics(program: C2POProgram, context: C2POContext) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
     id: int = 0
     
@@ -547,7 +547,7 @@ def compute_atomics(program: C2POProgram, context: C2POContext):
     logger.debug(f"ATM: Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]")
 
 
-def compute_scq_sizes(program: C2POProgram, context: C2POContext):
+def compute_scq_sizes(program: C2POProgram, context: C2POContext) -> None:
     """Computes SCQ sizes for each node."""
     spec_section_total_scq_size = 0
 

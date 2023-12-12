@@ -18,7 +18,7 @@ class C2POSection(Enum):
 
 class C2PONode():
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         self.ln: int = ln
         self.symbol: str = ""
 
@@ -58,15 +58,15 @@ class C2PONode():
             return None
         return self.parents[i]
 
-    def add_child(self, child: C2PONode):
+    def add_child(self, child: C2PONode) -> None:
         self.children.append(child)
         child.parents.append(self)
 
-    def remove_child(self, child: C2PONode):
+    def remove_child(self, child: C2PONode) -> None:
         self.children.remove(child)
         child.parents.remove(self)
 
-    def replace(self, new: C2PONode):
+    def replace(self, new: C2PONode) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
         if id(self) == id(new):
@@ -86,10 +86,10 @@ class C2PONode():
     def __str__(self) -> str:
         return self.symbol
 
-    def copy_attrs(self, new: C2PONode):
+    def copy_attrs(self, new: C2PONode) -> None:
         new.symbol = self.symbol
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2PONode:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children)
         self.copy_attrs(new)
@@ -98,7 +98,7 @@ class C2PONode():
 
 class C2POExpression(C2PONode):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.engine = R2U2Engine.NONE
         self.atomic_id: int = -1 # only set for atomic propositions
@@ -115,7 +115,7 @@ class C2POExpression(C2PONode):
     def get_children(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self.children)
 
-    def copy_attrs(self, new: C2POExpression):
+    def copy_attrs(self, new: C2POExpression) -> None:
         super().copy_attrs(new)
         new.scq_size = self.scq_size
         new.bpd = self.bpd
@@ -130,7 +130,7 @@ class C2POExpression(C2PONode):
 
 class C2POLiteral(C2POExpression):
 
-    def __init__(self, ln: int):
+    def __init__(self, ln: int) -> None:
         super().__init__(ln,[])
 
     def __str__(self) -> str:
@@ -139,7 +139,7 @@ class C2POLiteral(C2POExpression):
 
 class C2POConstant(C2POLiteral):
 
-    def __init__(self, ln: int, a: List[C2PONode]):
+    def __init__(self, ln: int, a: List[C2PONode]) -> None:
         super().__init__(ln)
         self.value = 0
 
@@ -149,7 +149,7 @@ class C2POConstant(C2POLiteral):
 
 class C2POBool(C2POConstant):
 
-    def __init__(self, ln: int, v: bool):
+    def __init__(self, ln: int, v: bool) -> None:
         super().__init__(ln,[])
         self.type = C2POBoolType(True)
         self.bpd: int = 0
@@ -164,7 +164,7 @@ class C2POBool(C2POConstant):
 
 class C2POInteger(C2POConstant):
 
-    def __init__(self, ln: int, v: int):
+    def __init__(self, ln: int, v: int) -> None:
         super().__init__(ln,[])
         self.value: int = v
         self.symbol = str(v)
@@ -177,7 +177,7 @@ class C2POInteger(C2POConstant):
     def get_value(self) -> int:
         return self.value
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POInteger:
         new = C2POInteger(self.ln, self.value)
         self.copy_attrs(new)
         return new
@@ -185,7 +185,7 @@ class C2POInteger(C2POConstant):
 
 class C2POFloat(C2POConstant):
 
-    def __init__(self, ln: int, v: float):
+    def __init__(self, ln: int, v: float) -> None:
         super().__init__(ln,[])
         self.type = C2POFloatType(True)
         self.value: float = v
@@ -199,7 +199,7 @@ class C2POFloat(C2POConstant):
     def get_value(self) -> float:
         return self.value
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POFloat:
         new = C2POFloat(self.ln, self.value)
         self.copy_attrs(new)
         return new
@@ -207,7 +207,7 @@ class C2POFloat(C2POConstant):
 
 class C2POVariable(C2POExpression):
 
-    def __init__(self, ln: int, s: str):
+    def __init__(self, ln: int, s: str) -> None:
         super().__init__(ln, [])
         self.symbol: str = s
 
@@ -226,7 +226,7 @@ class C2POVariable(C2POExpression):
 
 class C2POSignal(C2POLiteral):
 
-    def __init__(self, ln: int, s: str, t: C2POType):
+    def __init__(self, ln: int, s: str, t: C2POType) -> None:
         super().__init__(ln)
         self.symbol: str = s
         self.type: C2POType = t
@@ -239,20 +239,20 @@ class C2POSignal(C2POLiteral):
     def __hash__(self) -> int:
         return id(self)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POSignal:
         copy = C2POSignal(self.ln, self.symbol, self.type)
         return copy
 
 
 class C2POAtomicChecker(C2POLiteral):
 
-    def __init__(self, ln: int, s: str):
+    def __init__(self, ln: int, s: str) -> None:
         super().__init__(ln)
         self.symbol: str = s
         self.type: C2POType = C2POBoolType(False)
         self.engine = R2U2Engine.ATOMIC_CHECKER
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POAtomicChecker:
         copy = C2POAtomicChecker(self.ln, self.symbol)
         self.copy_attrs(copy)
         return copy
@@ -260,7 +260,7 @@ class C2POAtomicChecker(C2POLiteral):
 
 class C2POSet(C2POExpression):
 
-    def __init__(self, ln: int, m: List[C2PONode]):
+    def __init__(self, ln: int, m: List[C2PONode]) -> None:
         super().__init__(ln, m)
         m.sort(key=lambda x: str(x))
         self.max_size: int = len(m)
@@ -275,7 +275,7 @@ class C2POSet(C2POExpression):
     def get_dynamic_size(self) -> Union[C2PONode, None]:
         return self.dynamic_size
 
-    def set_dynamic_size(self, s: C2PONode):
+    def set_dynamic_size(self, s: C2PONode) -> None:
         self.dynamic_size = s
 
     def __str__(self) -> str:
@@ -288,7 +288,7 @@ class C2POSet(C2POExpression):
 
 class C2POStruct(C2POExpression):
 
-    def __init__(self, ln: int, s: str, m: Dict[str, int], c: List[C2PONode]):
+    def __init__(self, ln: int, s: str, m: Dict[str, int], c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.symbol: str = s
 
@@ -305,7 +305,7 @@ class C2POStruct(C2POExpression):
     def get_members(self) -> List[C2POExpression]:
         return cast(List[C2POExpression], self.children)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POStruct:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POStruct(self.ln, self.symbol, self.members, children)
         self.copy_attrs(new)
@@ -320,14 +320,14 @@ class C2POStruct(C2POExpression):
 
 class C2POStructAccess(C2POExpression):
 
-    def __init__(self, ln: int, s: C2PONode, m: str):
+    def __init__(self, ln: int, s: C2PONode, m: str) -> None:
         super().__init__(ln, [s])
         self.member: str = m
 
     def get_struct(self) -> C2POStruct:
         return cast(C2POStruct, self.get_child(0))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POStructAccess:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], self.member)
         self.copy_attrs(new)
@@ -339,7 +339,7 @@ class C2POStructAccess(C2POExpression):
 
 class C2POOperator(C2POExpression):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.arity: int = len(c)
 
@@ -352,7 +352,7 @@ class C2POOperator(C2POExpression):
 
 class C2POUnaryOperator(C2POOperator):
 
-    def __init__(self, ln: int, o: List[C2PONode]):
+    def __init__(self, ln: int, o: List[C2PONode]) -> None:
         if len(o) != 1:
             raise ValueError(f" '{type(self)}' requires exactly one child node.")
         super().__init__(ln, o)
@@ -367,7 +367,7 @@ class C2POUnaryOperator(C2POOperator):
 
 class C2POBinaryOperator(C2POOperator):
 
-    def __init__(self, ln: int, l: List[C2PONode]):
+    def __init__(self, ln: int, l: List[C2PONode]) -> None:
         if len(l) != 2:
             raise ValueError(f"'{type(self)}' requires exactly two child nodes.")
         super().__init__(ln, l)
@@ -384,11 +384,11 @@ class C2POBinaryOperator(C2POOperator):
 
 class C2POFunctionCall(C2POOperator):
 
-    def __init__(self, ln: int, s: str, a: List[C2PONode]):
+    def __init__(self, ln: int, s: str, a: List[C2PONode]) -> None:
         super().__init__(ln, a)
         self.symbol: str = s
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POFunctionCall:
         return C2POFunctionCall(
             self.ln, 
             self.symbol, 
@@ -405,7 +405,7 @@ class C2POFunctionCall(C2POOperator):
 
 class C2POSetAggOperator(C2POOperator):
 
-    def __init__(self, ln: int, s: C2POSet, v: C2POVariable,  e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, v: C2POVariable,  e: C2PONode) -> None:
         super().__init__(ln, [s, v, e])
 
     def get_set(self) -> C2POSet:
@@ -417,7 +417,7 @@ class C2POSetAggOperator(C2POOperator):
     def get_expr(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(2))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POSetAggOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, cast(C2POSet, children[0]), cast(C2POVariable, children[1]), children[2])
         self.copy_attrs(new)
@@ -430,21 +430,21 @@ class C2POSetAggOperator(C2POOperator):
 
 class C2POForEach(C2POSetAggOperator):
 
-    def __init__(self, ln: int, s: C2POSet, v: C2POVariable, e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, v: C2POVariable, e: C2PONode) -> None:
         super().__init__(ln, s, v, e)
         self.symbol: str = "foreach"
 
 
 class C2POForSome(C2POSetAggOperator):
 
-    def __init__(self, ln: int, s: C2POSet, v: C2POVariable, e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, v: C2POVariable, e: C2PONode) -> None:
         super().__init__(ln, s, v, e)
         self.symbol: str = "forsome"
 
 
 class C2POForExactly(C2POSetAggOperator):
 
-    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode) -> None:
         super().__init__(ln, s, v, e)
         self.symbol: str = "forexactly"
         self.add_child(n)
@@ -452,7 +452,7 @@ class C2POForExactly(C2POSetAggOperator):
     def get_num(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(3))
     
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POForExactly:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POForExactly(self.ln, cast(C2POSet, children[0]), children[3], cast(C2POVariable, children[1]), children[2])
         self.copy_attrs(new)
@@ -461,7 +461,7 @@ class C2POForExactly(C2POSetAggOperator):
 
 class C2POForAtLeast(C2POSetAggOperator):
 
-    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode) -> None:
         super().__init__(ln, s, v, e)
         self.symbol: str = "foratleast"
         self.add_child(n)
@@ -469,16 +469,16 @@ class C2POForAtLeast(C2POSetAggOperator):
     def get_num(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(3))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POForAtLeast:
         children = [deepcopy(c, memo) for c in self.children]
-        new = C2POForExactly(self.ln, cast(C2POSet, children[0]), children[3], cast(C2POVariable, children[1]), children[2])
+        new = C2POForAtLeast(self.ln, cast(C2POSet, children[0]), children[3], cast(C2POVariable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 
 
 class C2POForAtMost(C2POSetAggOperator):
 
-    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode):
+    def __init__(self, ln: int, s: C2POSet, n: C2PONode, v: C2POVariable, e: C2PONode) -> None:
         super().__init__(ln, s, v, e)
         self.symbol: str = "foratmost"
         self.add_child(n)
@@ -486,27 +486,27 @@ class C2POForAtMost(C2POSetAggOperator):
     def get_num(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(3))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POForAtMost:
         children = [deepcopy(c, memo) for c in self.children]
-        new = C2POForExactly(self.ln, cast(C2POSet, children[0]), children[3], cast(C2POVariable, children[1]), children[2])
+        new = C2POForAtMost(self.ln, cast(C2POSet, children[0]), children[3], cast(C2POVariable, children[1]), children[2])
         self.copy_attrs(new)
         return new
 
 
-class Count(C2POOperator):
+class C2POCount(C2POOperator):
 
-    def __init__(self, ln: int, n: C2PONode, c: List[C2PONode]):
+    def __init__(self, ln: int, n: C2PONode, c: List[C2PONode]) -> None:
         # Note: all members of c must be of type Boolean
         super().__init__(ln, c)
         self.num: C2PONode = n
         self.name = "count"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POCount:
         children = [deepcopy(c, memo) for c in self.children]
         if len(children) > 1:
-            new = Count(self.ln, children[0], children[1:])
+            new = C2POCount(self.ln, children[0], children[1:])
         else:
-            new = Count(self.ln, children[0], [])
+            new = C2POCount(self.ln, children[0], [])
         self.copy_attrs(new)
         return new
 
@@ -519,18 +519,18 @@ class Count(C2POOperator):
 
 class C2POBitwiseOperator(C2POOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.engine = R2U2Engine.BOOLEANIZER
 
 
 class C2POBitwiseAnd(C2POBitwiseOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "&"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseAnd:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseAnd(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -539,11 +539,11 @@ class C2POBitwiseAnd(C2POBitwiseOperator, C2POBinaryOperator):
 
 class C2POBitwiseOr(C2POBitwiseOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "|"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseOr:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseOr(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -552,11 +552,11 @@ class C2POBitwiseOr(C2POBitwiseOperator, C2POBinaryOperator):
 
 class C2POBitwiseXor(C2POBitwiseOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "^"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseXor:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseXor(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -565,11 +565,11 @@ class C2POBitwiseXor(C2POBitwiseOperator, C2POBinaryOperator):
 
 class C2POBitwiseShiftLeft(C2POBitwiseOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "<<"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseShiftLeft:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseShiftLeft(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -578,11 +578,11 @@ class C2POBitwiseShiftLeft(C2POBitwiseOperator, C2POBinaryOperator):
 
 class C2POBitwiseShiftRight(C2POBitwiseOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = ">>"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseShiftRight:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseShiftRight(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -591,11 +591,11 @@ class C2POBitwiseShiftRight(C2POBitwiseOperator, C2POBinaryOperator):
 
 class C2POBitwiseNegate(C2POBitwiseOperator, C2POUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode):
+    def __init__(self, ln: int, o: C2PONode) -> None:
         super().__init__(ln, [o])
         self.symbol = "~"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POBitwiseNegate:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POBitwiseNegate(self.ln, children[0])
         self.copy_attrs(new)
@@ -604,7 +604,7 @@ class C2POBitwiseNegate(C2POBitwiseOperator, C2POUnaryOperator):
 
 class C2POArithmeticOperator(C2POOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.engine = R2U2Engine.BOOLEANIZER
 
@@ -617,7 +617,7 @@ class C2POArithmeticOperator(C2POOperator):
 
 class C2POArithmeticAdd(C2POArithmeticOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         # force binary operator for now
         if len(c) > 2:
             prev = C2POArithmeticAdd(ln, c[0:2])
@@ -631,7 +631,7 @@ class C2POArithmeticAdd(C2POArithmeticOperator):
 
         self.symbol = "+"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticAdd:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticAdd(self.ln, children)
         self.copy_attrs(new)
@@ -640,11 +640,11 @@ class C2POArithmeticAdd(C2POArithmeticOperator):
 
 class C2POArithmeticSubtract(C2POArithmeticOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "-"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticSubtract:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticSubtract(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -653,11 +653,11 @@ class C2POArithmeticSubtract(C2POArithmeticOperator, C2POBinaryOperator):
 
 class C2POArithmeticMultiply(C2POArithmeticOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "*"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticMultiply:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticMultiply(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -666,11 +666,11 @@ class C2POArithmeticMultiply(C2POArithmeticOperator, C2POBinaryOperator):
 
 class C2POArithmeticDivide(C2POArithmeticOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "/"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticDivide:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticDivide(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -679,11 +679,11 @@ class C2POArithmeticDivide(C2POArithmeticOperator, C2POBinaryOperator):
 
 class C2POArithmeticModulo(C2POArithmeticOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "%"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticModulo:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticModulo(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -692,11 +692,11 @@ class C2POArithmeticModulo(C2POArithmeticOperator, C2POBinaryOperator):
 
 class C2POArithmeticNegate(C2POUnaryOperator, C2POArithmeticOperator):
 
-    def __init__(self, ln: int, o: C2PONode):
+    def __init__(self, ln: int, o: C2PONode) -> None:
         super().__init__(ln, [o])
         self.symbol = "-"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POArithmeticNegate:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POArithmeticNegate(self.ln, children[0])
         self.copy_attrs(new)
@@ -705,11 +705,11 @@ class C2POArithmeticNegate(C2POUnaryOperator, C2POArithmeticOperator):
 
 class C2PORelationalOperator(C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.engine = R2U2Engine.BOOLEANIZER
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2PORelationalOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -718,49 +718,49 @@ class C2PORelationalOperator(C2POBinaryOperator):
 
 class C2POEqual(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = "=="
 
 
 class C2PONotEqual(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = "!="
 
 
 class C2POGreaterThan(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = ">"
 
 
 class C2POLessThan(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = "<"
 
 
 class C2POGreaterThanOrEqual(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = ">="
 
 
 class C2POLessThanOrEqual(C2PORelationalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, lhs, rhs)
         self.symbol = "<="
 
 
 class C2POLogicalOperator(C2POOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         super().__init__(ln, c)
         self.bpd = min([child.bpd for child in self.get_operands()])
         self.wpd = max([child.wpd for child in self.get_operands()])
@@ -769,7 +769,7 @@ class C2POLogicalOperator(C2POOperator):
 
 class C2POLogicalOr(C2POLogicalOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         # force binary operator for now
         if len(c) > 2:
             prev = C2POLogicalOr(ln, c[0:2])
@@ -791,7 +791,7 @@ class C2POLogicalOr(C2POLogicalOperator):
 
 class C2POLogicalAnd(C2POLogicalOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode]):
+    def __init__(self, ln: int, c: List[C2PONode]) -> None:
         # force binary operator for now
         if len(c) > 2:
             prev = C2POLogicalAnd(ln, c[0:2])
@@ -812,11 +812,11 @@ class C2POLogicalAnd(C2POLogicalOperator):
 
 class C2POLogicalXor(C2POLogicalOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "^^"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POLogicalXor:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POLogicalXor(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -825,11 +825,11 @@ class C2POLogicalXor(C2POLogicalOperator, C2POBinaryOperator):
 
 class C2POLogicalImplies(C2POLogicalOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "->"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POLogicalImplies:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POLogicalImplies(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -841,11 +841,11 @@ class C2POLogicalImplies(C2POLogicalOperator, C2POBinaryOperator):
 
 class C2POLogicalIff(C2POLogicalOperator, C2POBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode) -> None:
         super().__init__(ln, [lhs, rhs])
         self.symbol = "<->"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POLogicalIff:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POLogicalIff(self.ln, children[0], children[1])
         self.copy_attrs(new)
@@ -857,11 +857,11 @@ class C2POLogicalIff(C2POLogicalOperator, C2POBinaryOperator):
 
 class C2POLogicalNegate(C2POLogicalOperator, C2POUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode):
+    def __init__(self, ln: int, o: C2PONode) -> None:
         super().__init__(ln, [o])
         self.symbol = "!"
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POLogicalNegate:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POLogicalNegate(self.ln, children[0])
         self.copy_attrs(new)
@@ -873,7 +873,7 @@ class C2POLogicalNegate(C2POLogicalOperator, C2POUnaryOperator):
 
 class C2POTemporalOperator(C2POOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int):
+    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int) -> None:
         super().__init__(ln, c)
         self.interval = Interval(lb=l,ub=u)
         self.engine = R2U2Engine.TEMPORAL_LOGIC
@@ -881,13 +881,13 @@ class C2POTemporalOperator(C2POOperator):
 
 class C2POFutureTimeOperator(C2POTemporalOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int):
+    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int) -> None:
         super().__init__(ln, c, l, u)
 
 
 class C2POPastTimeOperator(C2POTemporalOperator):
 
-    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int):
+    def __init__(self, ln: int, c: List[C2PONode], l: int, u: int) -> None:
         super().__init__(ln, c, l, u)
 
 
@@ -895,7 +895,7 @@ class C2POPastTimeOperator(C2POTemporalOperator):
 # with different __init__ signatures
 class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, [lhs, rhs], l, u)
         self.bpd = min(self.get_lhs().bpd, self.get_rhs().bpd) + self.interval.lb
         self.wpd = max(self.get_lhs().wpd, self.get_rhs().wpd) + self.interval.ub
@@ -906,7 +906,7 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
     def get_rhs(self) -> C2POExpression:
         return self.get_operand(1)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POFutureTimeBinaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], children[1], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
@@ -921,21 +921,21 @@ class C2POFutureTimeBinaryOperator(C2POTemporalOperator):
 
 class C2POUntil(C2POFutureTimeBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "U"
 
 
 class C2PORelease(C2POFutureTimeBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "R"
 
 
 class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
         self.bpd = self.get_operand().bpd + self.interval.lb
         self.wpd = self.get_operand().wpd + self.interval.ub
@@ -943,7 +943,7 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
     def get_operand(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POFutureTimeUnaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
@@ -958,21 +958,21 @@ class C2POFutureTimeUnaryOperator(C2POFutureTimeOperator):
 
 class C2POGlobal(C2POFutureTimeUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.symbol = "G"
 
 
 class C2POFuture(C2POFutureTimeUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.symbol = "F"
 
 
 class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, [lhs, rhs], l, u)
 
     def get_lhs(self) -> C2POExpression:
@@ -981,7 +981,7 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
     def get_rhs(self) -> C2POExpression:
         return self.get_operand(1)
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POPastTimeBinaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], children[1], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
@@ -996,20 +996,20 @@ class C2POPastTimeBinaryOperator(C2POPastTimeOperator):
 
 class C2POSince(C2POPastTimeBinaryOperator):
 
-    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, lhs: C2PONode, rhs: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, lhs, rhs, l, u)
         self.symbol = "S"
 
 
 class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, [o], l, u)
 
     def get_operand(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POPastTimeUnaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
@@ -1024,21 +1024,21 @@ class C2POPastTimeUnaryOperator(C2POPastTimeOperator):
 
 class C2POHistorical(C2POPastTimeUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.symbol = "H"
 
 
 class C2POOnce(C2POPastTimeUnaryOperator):
 
-    def __init__(self, ln: int, o: C2PONode, l: int, u: int):
+    def __init__(self, ln: int, o: C2PONode, l: int, u: int) -> None:
         super().__init__(ln, o, l, u)
         self.symbol = "O"
 
 
 class C2POSpecification(C2POExpression):
 
-    def __init__(self, ln: int, lbl: str, f: int, e: C2PONode):
+    def __init__(self, ln: int, lbl: str, f: int, e: C2PONode) -> None:
         super().__init__(ln, [e])
         self.symbol: str = lbl
         self.formula_number: int = f
@@ -1047,7 +1047,7 @@ class C2POSpecification(C2POExpression):
     def get_expr(self) -> C2POExpression:
         return cast(C2POExpression, self.get_child(0))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> C2POSpecification:
         children = [deepcopy(c, memo) for c in self.children]
         new = C2POSpecification(self.ln, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
@@ -1071,7 +1071,7 @@ class C2POContract(C2PONode):
         f3: int, 
         a: C2POExpression, 
         g: C2POExpression
-    ):
+    ) -> None:
         super().__init__(ln, [a, g])
         self.symbol: str = lbl
         self.formula_numbers: Tuple[int,int,int] = (f1,f2,f3)
@@ -1091,7 +1091,7 @@ class C2POContract(C2PONode):
 
 class C2POStructDefinition(C2PONode):
 
-    def __init__(self, ln: int, symbol: str, m: List[C2PONode]):
+    def __init__(self, ln: int, symbol: str, m: List[C2PONode]) -> None:
         super().__init__(ln, m)
         self.symbol = symbol
         self._members = {}
@@ -1112,7 +1112,7 @@ class C2POStructDefinition(C2PONode):
 
 class C2POVariableDeclaration(C2PONode):
 
-    def __init__(self, ln: int, vars: List[str], t: C2POType):
+    def __init__(self, ln: int, vars: List[str], t: C2POType) -> None:
         super().__init__(ln, [])
         self._variables = vars
         self._type = t
@@ -1129,7 +1129,7 @@ class C2POVariableDeclaration(C2PONode):
 
 class C2PODefinition(C2PONode):
 
-    def __init__(self, ln: int, symbol: str, e: C2POExpression):
+    def __init__(self, ln: int, symbol: str, e: C2POExpression) -> None:
         super().__init__(ln, [e])
         self.symbol = symbol
 
@@ -1142,7 +1142,7 @@ class C2PODefinition(C2PONode):
 
 class C2POAtomicCheckerDefinition(C2PONode):
 
-    def __init__(self, ln: int, symbol: str, e: C2POExpression):
+    def __init__(self, ln: int, symbol: str, e: C2POExpression) -> None:
         super().__init__(ln, [e])
         self.symbol = symbol
 
@@ -1155,13 +1155,13 @@ class C2POAtomicCheckerDefinition(C2PONode):
 
 class C2POStructSection(C2PONode):
 
-    def __init__(self, ln: int, struct_defs: List[C2PONode]):
+    def __init__(self, ln: int, struct_defs: List[C2PONode]) -> None:
         super().__init__(ln, struct_defs)
 
     def get_structs(self) -> List[C2POStructDefinition]:
         return cast(List[C2POStructDefinition], self.children)
 
-    def replace(self, node: C2PONode):
+    def replace(self, node: C2PONode) -> None:
         raise RuntimeError(f"Attempting to replace a C2POStructSection.")
 
     def __str__(self) -> str:
@@ -1171,13 +1171,13 @@ class C2POStructSection(C2PONode):
 
 class C2POInputSection(C2PONode):
 
-    def __init__(self, ln: int, signal_decls: List[C2PONode]):
+    def __init__(self, ln: int, signal_decls: List[C2PONode]) -> None:
         super().__init__(ln, signal_decls)
 
     def get_signals(self) -> List[C2POVariableDeclaration]:
         return cast(List[C2POVariableDeclaration], self.children)
 
-    def replace(self, node: C2PONode):
+    def replace(self, node: C2PONode) -> None:
         raise RuntimeError(f"Attempting to replace a C2POInputSection.")
 
     def __str__(self) -> str:
@@ -1187,13 +1187,13 @@ class C2POInputSection(C2PONode):
 
 class C2PODefineSection(C2PONode):
 
-    def __init__(self, ln: int, defines: List[C2PONode]):
+    def __init__(self, ln: int, defines: List[C2PONode]) -> None:
         super().__init__(ln, defines)
 
     def get_definitions(self) -> List[C2PODefinition]:
         return cast(List[C2PODefinition], self.children)
 
-    def replace(self, node: C2PONode):
+    def replace(self, node: C2PONode) -> None:
         raise RuntimeError(f"Attempting to replace a C2PODefineSection.")
 
     def __str__(self) -> str:
@@ -1219,13 +1219,13 @@ class C2POAtomicSection(C2PONode):
 
 class C2POSpecSection(C2PONode):
 
-    def __init__(self, ln: int, s: List[C2PONode]):
+    def __init__(self, ln: int, s: List[C2PONode]) -> None:
         super().__init__(ln, s)
 
     def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return cast(List[Union[C2POSpecification, C2POContract]], self.children)
 
-    def replace(self, node: C2PONode):
+    def replace(self, node: C2PONode) -> None:
         raise RuntimeError(f"Attempting to replace a C2POSpecSection.")
 
     def __str__(self) -> str:
@@ -1238,7 +1238,7 @@ class C2POSpecSection(C2PONode):
 
 class C2POFutureTimeSpecSection(C2POSpecSection):
 
-    def __init__(self, ln: int, s: List[C2PONode]):
+    def __init__(self, ln: int, s: List[C2PONode]) -> None:
         super().__init__(ln, s)
 
     def __str__(self) -> str:
@@ -1247,7 +1247,7 @@ class C2POFutureTimeSpecSection(C2POSpecSection):
 
 class C2POPastTimeSpecSection(C2POSpecSection):
 
-    def __init__(self, ln: int, s: List[C2PONode]):
+    def __init__(self, ln: int, s: List[C2PONode]) -> None:
         super().__init__(ln, s)
 
     def __str__(self) -> str:
@@ -1256,7 +1256,7 @@ class C2POPastTimeSpecSection(C2POSpecSection):
 
 class C2POProgram(C2PONode):
 
-    def __init__(self, ln: int, sections: List[C2PONode]):
+    def __init__(self, ln: int, sections: List[C2PONode]) -> None:
         super().__init__(ln, sections)
 
         self.future_time_spec_section_idx = -1
@@ -1332,7 +1332,7 @@ class C2POProgram(C2PONode):
     def get_specs(self) -> List[Union[C2POSpecification, C2POContract]]:
         return self.get_future_time_specs() + self.get_past_time_specs()
 
-    def replace(self, node: C2PONode):
+    def replace(self, node: C2PONode) -> None:
         raise RuntimeError(f"Attempting to replace a program.")
 
     def pickle(self) -> bytes:
@@ -1400,35 +1400,35 @@ class C2POContext():
     def is_past_time(self) -> bool:
         return not self.is_ft
 
-    def set_future_time(self):
+    def set_future_time(self) -> None:
         self.is_ft = True
 
-    def set_past_time(self):
+    def set_past_time(self) -> None:
         self.is_ft = False
 
-    def add_signal(self, symbol: str, t: C2POType):
+    def add_signal(self, symbol: str, t: C2POType) -> None:
         self.signals[symbol] = t
         self.variables[symbol] = t
 
-    def add_variable(self, symbol: str, t: C2POType):
+    def add_variable(self, symbol: str, t: C2POType) -> None:
         self.variables[symbol] = t
 
-    def add_definition(self, symbol: str, e: C2POExpression):
+    def add_definition(self, symbol: str, e: C2POExpression) -> None:
         self.definitions[symbol] = e
 
-    def add_struct(self, symbol: str, m: Dict[str, C2POType]):
+    def add_struct(self, symbol: str, m: Dict[str, C2POType]) -> None:
         self.structs[symbol] = m
 
-    def add_atomic(self, symbol: str, e: C2POExpression):
+    def add_atomic(self, symbol: str, e: C2POExpression) -> None:
         self.atomic_checkers[symbol] = e
 
-    def add_specification(self, symbol, s: C2POSpecification):
+    def add_specification(self, symbol, s: C2POSpecification) -> None:
         self.specifications[symbol] = s
 
-    def add_contract(self, symbol, c: C2POContract):
+    def add_contract(self, symbol, c: C2POContract) -> None:
         self.contracts[symbol] = c
 
-    def remove_variable(self, symbol):
+    def remove_variable(self, symbol) -> None:
         del self.variables[symbol]
     
 

@@ -63,7 +63,7 @@ class ColorFormatter(logging.Formatter):
         logging.CRITICAL: Color.UNDERLINE + Color.FAIL + format_str + Color.ENDC + ': %(message)s'
     }
 
-    def format(self, record):
+    def format(self, record) -> str:
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
@@ -77,7 +77,7 @@ stream_handler.setFormatter(ColorFormatter())
 toplevel_logger.addHandler(stream_handler)
 
 
-def cleandir(dir: Path, quiet: bool):
+def cleandir(dir: Path, quiet: bool) -> None:
     """Remove and create fresh dir, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
@@ -91,7 +91,7 @@ def cleandir(dir: Path, quiet: bool):
     os.mkdir(dir)
 
 
-def mkdir(dir: Path, quiet: bool):
+def mkdir(dir: Path, quiet: bool) -> None:
     """Remove dir if it is a file then create dir, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
@@ -156,7 +156,7 @@ class TestCase():
         r2u2prep: Path,
         r2u2bin: Path,
         copyback: bool
-    ):
+    ) -> None:
         self.status = True
         self._copyback = copyback
         self.suite_name: str = suite_name
@@ -220,10 +220,10 @@ class TestCase():
             str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
         ]
 
-    def clean(self):
+    def clean(self) -> None:
         cleandir(self.test_results_dir, False)
 
-    def configure_logger(self):
+    def configure_logger(self) -> None:
         self.logger = logging.getLogger(f"{__name__}_{self.suite_name}_{self.test_name}")
         self.logger.setLevel(logging.DEBUG)
 
@@ -239,16 +239,16 @@ class TestCase():
         file_handler.setFormatter(Formatter())
         self.logger.addHandler(file_handler)
 
-    def test_fail(self, msg: str):
+    def test_fail(self, msg: str) -> None:
         self.logger.info(f"[{Color.FAIL}FAIL{Color.ENDC}] {self.test_name}: {msg}")
         self.status = False
         self.copyback()
 
-    def test_pass(self):
+    def test_pass(self) -> None:
         self.logger.info(f"[{Color.PASS}PASS{Color.ENDC}] {self.test_name}")
         self.copyback()
 
-    def copyback(self):
+    def copyback(self) -> None:
         if not self._copyback:
             return
 
@@ -281,7 +281,7 @@ class TestCase():
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2bin_command_new))
 
-    def run(self):
+    def run(self) -> None:
         if not self.status:
             return
 
@@ -360,7 +360,7 @@ class TestSuite():
         r2u2prep: Path,
         r2u2bin: Path,
         copyback: bool
-    ):
+    ) -> None:
         """Initialize TestSuite by cleaning directories and loading JSON data."""
         self.status: bool = True
         self._copyback = copyback
@@ -383,14 +383,14 @@ class TestSuite():
 
         self.configure_tests()
 
-    def clean(self):
+    def clean(self) -> None:
         """Clean/create work, results, and suite results directories. 
         Must run this before calling get_suite_logger."""
         cleandir(WORK_DIR, True)
         mkdir(self.top_results_dir, False)
         cleandir(self.suite_results_dir, False)
 
-    def configure_logger(self):
+    def configure_logger(self) -> None:
         self.logger = logging.getLogger(f"{__name__}_{self.suite_name}")
         self.logger.setLevel(logging.DEBUG)
 
@@ -406,19 +406,19 @@ class TestSuite():
         file_handler.setFormatter(Formatter())
         self.logger.addHandler(file_handler)
 
-    def suite_fail_msg(self, msg: str):
+    def suite_fail_msg(self, msg: str) -> None:
         self.logger.error(msg)
         self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
         self.status = False
 
-    def suite_fail(self):
+    def suite_fail(self) -> None:
         self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
         self.status = False
 
-    def suite_pass(self):
+    def suite_pass(self) -> None:
         self.logger.info(f"Suite '{self.suite_name}' finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
 
-    def configure_tests(self):
+    def configure_tests(self) -> None:
         """Configure test suite according to JSON file."""
         config_filename = SUITES_DIR / (self.suite_name + ".json")
 
