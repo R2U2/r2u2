@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 use egg::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 struct Interval {
     lb: u32,
     ub: u32
@@ -38,6 +38,7 @@ impl FromStr for Interval {
         Ok(Interval { lb: lb_fromstr, ub: ub_fromstr })
     }
 }
+
 
 define_language! {
     enum MLTL {
@@ -81,15 +82,15 @@ impl Analysis<MLTL> for ConstantFold {
     }
 
     fn make(egraph: &EGraph, enode: &MLTL) -> Self::Data {
-        let x = |i: &Id| egraph[*i].data;
+        let x = |i: &Id| &egraph[*i].data;
 
         let result = match enode {
             MLTL::Bool(c) => Self::Data { 
                 const_match: Some((*c, c.to_string().parse().unwrap())), 
                 interval: None, 
                 bpd: 0, 
-                wpd: 0, 
-                cost: 1 
+                wpd: 0,
+                cost: 0
             },
             MLTL::Interval(i) => Self::Data { 
                 const_match: None, 
@@ -103,7 +104,7 @@ impl Analysis<MLTL> for ConstantFold {
                 interval: None, 
                 bpd: 0, 
                 wpd: 0, 
-                cost: 1 
+                cost: 0
             },
             MLTL::Global([i, a]) => Self::Data { 
                 const_match: None, 
@@ -113,13 +114,14 @@ impl Analysis<MLTL> for ConstantFold {
                 cost: x(a).cost + 1
             },
             MLTL::And2([a, b]) => {
-                let min_bpd_cls = cmp::min(x(a).bpd, x(b).bpd);
                 Self::Data { 
                     const_match: None, 
                     interval: None, 
                     bpd: cmp::min(x(a).bpd, x(b).bpd), 
                     wpd: cmp::max(x(a).wpd, x(b).wpd), 
-                    cost: 0
+                    cost: x(a).cost + x(b).cost + 
+                          cmp::max(x(a).wpd - x(b).bpd, 0) + 1 +
+                          cmp::max(x(b).wpd - x(a).bpd, 0) + 1
                 }
             },
             MLTL::And3([a, b, c]) => Self::Data { 
@@ -127,7 +129,10 @@ impl Analysis<MLTL> for ConstantFold {
                 interval: None, 
                 bpd: cmp::min(x(a).bpd, cmp::min(x(b).bpd, x(c).bpd)), 
                 wpd: cmp::max(x(a).wpd, cmp::max(x(b).wpd, x(c).wpd)), 
-                cost: 1 
+                cost: x(a).cost + x(b).cost + x(c).cost +
+                      cmp::max(cmp::max(x(b).wpd, x(c).wpd) - x(a).bpd, 0) + 1 +
+                      cmp::max(cmp::max(x(a).wpd, x(c).wpd) - x(b).bpd, 0) + 1 +
+                      cmp::max(cmp::max(x(a).wpd, x(b).wpd) - x(c).bpd, 0) + 1
             },
             MLTL::Not(a) => Self::Data { 
                 const_match: None, 
@@ -142,14 +147,7 @@ impl Analysis<MLTL> for ConstantFold {
     }
 
     fn modify(egraph: &mut EGraph, id: Id) {
-        if let Some(c) = egraph[id].data.clone() {
-            egraph.union_instantiations(
-                &c.1,
-                &c.0.0.to_string().parse().unwrap(),
-                &Default::default(),
-                "analysis".to_string(),
-            );
-        }
+        
     }
 }
 
@@ -166,16 +164,9 @@ macro_rules! rule {
     };
 }
 
-rule! {def_imply, def_imply_flip,   "(-> ?a ?b)",       "(| (! ?a) ?b)"          }
-rule! {double_neg, double_neg_flip,  "(! (! ?a))",       "?a"                     }
-rule! {assoc_or,    "(| ?a (| ?b ?c))", "(| (| ?a ?b) ?c)"       }
-rule! {dist_and_or, "(& ?a (| ?b ?c))", "(| (& ?a ?b) (& ?a ?c))"}
-rule! {dist_or_and, "(| ?a (& ?b ?c))", "(& (| ?a ?b) (| ?a ?c))"}
-rule! {comm_or,     "(| ?a ?b)",        "(| ?b ?a)"              }
-rule! {comm_and,    "(& ?a ?b)",        "(& ?b ?a)"              }
-rule! {lem,         "(| ?a (! ?a))",    "true"                      }
-rule! {or_true,     "(| ?a true)",         "true"                      }
-rule! {and_true,    "(& ?a true)",         "?a"                     }
+rule! {double_neg, double_neg_flip, "(! (! ?a))", "?a" }
+rule! {comm_and,    "(& ?a ?b)",        "(& ?b ?a)"    }
+rule! {and_true,    "(& ?a true)",         "?a"        }
 
 // this has to be a multipattern since (& (-> ?a ?b) (-> (! ?a) ?c))  !=  (| ?b ?c)
 // see https://github.com/egraphs-good/egg/issues/185
