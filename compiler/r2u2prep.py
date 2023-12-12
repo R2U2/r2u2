@@ -7,9 +7,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("mltl",
                     help="file where mltl formula are stored")
 parser.add_argument("--trace", default="",
-                    help="csv file where variable names are mapped to memory locations using file header")
+                    help="csv file where variable names are mapped to signal order using file header")
 parser.add_argument("--map", default="",
-                    help="map file where variable names are mapped to memory locations")
+                    help="map file where variable names are mapped to signal order")
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
 parser.add_argument("-d","--debug", action="store_true",
