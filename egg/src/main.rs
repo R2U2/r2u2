@@ -1,23 +1,71 @@
+use std::cmp;
+use std::fmt;
+use std::str::FromStr;
 use egg::*;
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone)]
+struct Interval {
+    lb: u32,
+    ub: u32
+}
+
+impl fmt::Display for Interval {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        write!(f, "({}, {})", self.lb, self.ub)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct IntervalError;
+
+impl FromStr for Interval {
+    type Err = IntervalError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (lb, ub) = s
+            .strip_prefix('(')
+            .and_then(|s| s.strip_suffix(')'))
+            .and_then(|s| s.split_once(','))
+            .ok_or(IntervalError)?;
+
+        let lb_fromstr = lb.parse::<u32>().map_err(|_| IntervalError)?;
+        let ub_fromstr = ub.parse::<u32>().map_err(|_| IntervalError)?;
+
+        Ok(Interval { lb: lb_fromstr, ub: ub_fromstr })
+    }
+}
+
 define_language! {
-    enum Prop {
+    enum MLTL {
         Bool(bool),
-        Num(i32),
-        "G" = Global([Id; 3]),
-        "&" = And([Id; 2]),
+        Interval(Interval),
+        "G" = Global([Id; 2]),
+        "&2" = And2([Id; 2]),
+        "&3" = And3([Id; 3]),
         "!" = Not(Id),
-        "|" = Or([Id; 2]),
         Symbol(Symbol),
     }
 }
 
-type EGraph = egg::EGraph<Prop, ConstantFold>;
-type Rewrite = egg::Rewrite<Prop, ConstantFold>;
+type EGraph = egg::EGraph<MLTL, ConstantFold>;
+type Rewrite = egg::Rewrite<MLTL, ConstantFold>;
+
+#[derive(Debug, Clone)]
+struct Meta {
+    const_match: Option<(bool, PatternAst<MLTL>)>,
+    interval: Option<Interval>,
+    bpd: u32,
+    wpd: u32,
+    cost: u32
+}
 
 #[derive(Default)]
 struct ConstantFold;
-impl Analysis<Prop> for ConstantFold {
+impl Analysis<MLTL> for ConstantFold {
 
     // when merging two e-classes, the wpd will be the minimum of the two, bpd will be the max.
     // the only time two e-classes with different delays will merge is in the rewrite rules like:
@@ -25,37 +73,69 @@ impl Analysis<Prop> for ConstantFold {
 
     // (Option<bool>, (u32, u32), (u32, u32), u32            )
     // (const?      , (lb, ub)  , (bpd, wpd), childrens' cost)
-    type Data = ((Option<bool>, (u32, u32), (u32, u32), u32), PatternAst<Prop>);
+    type Data = Meta;
+
+
     fn merge(&mut self, to: &mut Self::Data, from: Self::Data) -> DidMerge {
         DidMerge(true, true)
     }
 
-    fn make(egraph: &EGraph, enode: &Prop) -> Self::Data {
+    fn make(egraph: &EGraph, enode: &MLTL) -> Self::Data {
         let x = |i: &Id| egraph[*i].data;
+
         let result = match enode {
-            Prop::Bool(c) => ((Some(*c), (0,0), (0,0), 1), c.to_string().parse().unwrap()),
-            Prop::Num(n) => ((Some(true), (0,0), (0,0), 1), n.to_string().parse().unwrap()),
-            Prop::Symbol(s) => ((None, (0,0), (0,0), 1), s.to_string().parse().unwrap()),
-            Prop::Global([l, u, a]) => (
-                (
-                    x(a).0.0, 
-                    (x(l).0.1.0, x(u).0.1.1), 
-                    (x(a).0.2.0 + x(l).0.1.0, x(a).0.2.1 + x(l).0.1.1), 
-                    0
-                ),
-                format!("(G {} {} {})", x(l).0.1.0, x(u).0.1.1, x(a).1).parse().unwrap(),
-            ),
-            Prop::And([a, b]) => Some((
-                (x(a)?.0 && x(b)?.0, (0,0), (0,0)),
-                format!("(& {} {})", x(a)?.0, x(b)?.0).parse().unwrap(),
-            )),
-            Prop::Not(a) => Some((
-                (!x(a)?.0, (0,0), (0,0)), format!("(~ {})", x(a)?.0).parse().unwrap()
-            )),
-            Prop::Or([a, b]) => Some((
-                (x(a)?.0 || x(b)?.0, (0,0), (0,0)),
-                format!("(| {} {})", x(a)?.0, x(b)?.0).parse().unwrap(),
-            ))
+            MLTL::Bool(c) => Self::Data { 
+                const_match: Some((*c, c.to_string().parse().unwrap())), 
+                interval: None, 
+                bpd: 0, 
+                wpd: 0, 
+                cost: 1 
+            },
+            MLTL::Interval(i) => Self::Data { 
+                const_match: None, 
+                interval: Some(*i), 
+                bpd: 0, 
+                wpd: 0, 
+                cost: 0 
+            },
+            MLTL::Symbol(s) => Self::Data { 
+                const_match: None, 
+                interval: None, 
+                bpd: 0, 
+                wpd: 0, 
+                cost: 1 
+            },
+            MLTL::Global([i, a]) => Self::Data { 
+                const_match: None, 
+                interval: None, 
+                bpd: x(a).bpd + x(i).interval.unwrap_or(Interval { lb: 0, ub: 0 }).lb,
+                wpd: x(a).wpd + x(i).interval.unwrap_or(Interval { lb: 0, ub: 0 }).ub,
+                cost: x(a).cost + 1
+            },
+            MLTL::And2([a, b]) => {
+                let min_bpd_cls = cmp::min(x(a).bpd, x(b).bpd);
+                Self::Data { 
+                    const_match: None, 
+                    interval: None, 
+                    bpd: cmp::min(x(a).bpd, x(b).bpd), 
+                    wpd: cmp::max(x(a).wpd, x(b).wpd), 
+                    cost: 0
+                }
+            },
+            MLTL::And3([a, b, c]) => Self::Data { 
+                const_match: None, 
+                interval: None, 
+                bpd: cmp::min(x(a).bpd, cmp::min(x(b).bpd, x(c).bpd)), 
+                wpd: cmp::max(x(a).wpd, cmp::max(x(b).wpd, x(c).wpd)), 
+                cost: 1 
+            },
+            MLTL::Not(a) => Self::Data { 
+                const_match: None, 
+                interval: None, 
+                bpd: x(a).bpd, 
+                wpd: x(a).wpd, 
+                cost: x(a).cost + 1
+            }
         };
         println!("Make: {:?} -> {:?}", enode, result);
         result
@@ -86,23 +166,23 @@ macro_rules! rule {
     };
 }
 
-rule! {def_imply, def_imply_flip,   "(-> ?a ?b)",       "(| (~ ?a) ?b)"          }
-rule! {double_neg, double_neg_flip,  "(~ (~ ?a))",       "?a"                     }
+rule! {def_imply, def_imply_flip,   "(-> ?a ?b)",       "(| (! ?a) ?b)"          }
+rule! {double_neg, double_neg_flip,  "(! (! ?a))",       "?a"                     }
 rule! {assoc_or,    "(| ?a (| ?b ?c))", "(| (| ?a ?b) ?c)"       }
 rule! {dist_and_or, "(& ?a (| ?b ?c))", "(| (& ?a ?b) (& ?a ?c))"}
 rule! {dist_or_and, "(| ?a (& ?b ?c))", "(& (| ?a ?b) (| ?a ?c))"}
 rule! {comm_or,     "(| ?a ?b)",        "(| ?b ?a)"              }
 rule! {comm_and,    "(& ?a ?b)",        "(& ?b ?a)"              }
-rule! {lem,         "(| ?a (~ ?a))",    "true"                      }
+rule! {lem,         "(| ?a (! ?a))",    "true"                      }
 rule! {or_true,     "(| ?a true)",         "true"                      }
 rule! {and_true,    "(& ?a true)",         "?a"                     }
 
-// this has to be a multipattern since (& (-> ?a ?b) (-> (~ ?a) ?c))  !=  (| ?b ?c)
+// this has to be a multipattern since (& (-> ?a ?b) (-> (! ?a) ?c))  !=  (| ?b ?c)
 // see https://github.com/egraphs-good/egg/issues/185
 fn lem_imply() -> Rewrite {
     multi_rewrite!(
         "lem_imply";
-        "?value = true = (& (-> ?a ?b) (-> (~ ?a) ?c))"
+        "?value = true = (& (-> ?a ?b) (-> (! ?a) ?c))"
         =>
         "?value = (| ?b ?c)"
     )
@@ -122,7 +202,7 @@ fn prove_something(name: &str, start: &str, rewrites: &[Rewrite], goals: &[&str]
 
     // we are assume the input expr is true
     // this is needed for the soundness of lem_imply
-    let true_id = runner.egraph.add(Prop::Bool(true));
+    let true_id = runner.egraph.add(MLTL::Bool(true));
     let root = runner.roots[0];
     runner.egraph.union(root, true_id);
     runner.egraph.rebuild();
@@ -148,10 +228,10 @@ fn prove_contrapositive() {
         rules,
         &[
             "(-> x y)",
-            "(| (~ x) y)",
-            "(| (~ x) (~ (~ y)))",
-            "(| (~ (~ y)) (~ x))",
-            "(-> (~ y) (~ x))",
+            "(| (! x) y)",
+            "(| (! x) (! (! y)))",
+            "(| (! (! y)) (! x))",
+            "(-> (! y) (! x))",
         ],
     );
 }
@@ -175,10 +255,10 @@ fn prove_chain() {
         rules,
         &[
             "(& (-> x y) (-> y z))",
-            "(& (-> (~ y) (~ x)) (-> y z))",
-            "(& (-> y z)         (-> (~ y) (~ x)))",
-            "(| z (~ x))",
-            "(| (~ x) z)",
+            "(& (-> (! y) (! x)) (-> y z))",
+            "(& (-> y z)         (-> (! y) (! x)))",
+            "(| z (! x))",
+            "(| (! x) z)",
             "(-> x z)",
         ],
     );
