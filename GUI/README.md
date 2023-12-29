@@ -1,9 +1,11 @@
 # Web MLTL Compiler
-Web app for C2PO/R2U2 resource estimation and visualization. To run the GUI:
+Web app for C2PO/R2U2 resource estimation and visualization. To run the GUI locally:
 
 1. Change directory to `GUI` using `cd r2u2/GUI` 
 1. Install requirements via `pip install -r requirements.txt`
 2. Run the GUI using `python3 run.py`
+
+To run the GUI in a Docker environment, see the instructions [here](https://zenodo.org/records/7889284).
 
 ## GUI Description
 
