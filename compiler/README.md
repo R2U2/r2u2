@@ -41,20 +41,3 @@ is a valid csv file.
 A signal map file has a `.map` file extension. Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL` corresponds to a signal identifier in the MLTL file, its signal ID is set to the integer value of `NUMERAL`.
 
 Note that if `SYMBOL` is not present in the MLTL file, the line is ignored.
-
-## Booleanizer
-
-The booleanizer is a general purpose engine that can perform arithmetic, bitwise operations, parameterized set aggregation (`foratleastn`, etc.), and other such capabilities. 
-
-## Atomic Checker
-
-Atomic checkers are the names for the relational expression seen in `examples/atomic_checker.mltl`. They allow for the filtering of signals and then comparing the output of that signal to a constant or other signal. This is particularly useful in hardware, but is available in the software version of R2U2 as well.
-
-### Available Filters:
-
-- `rate`: `(float)` -> `float`
-    - Rate of change between time steps
-- `movavg`: `(float,int)` -> `float`
-    - Moving average with window size `int` (max window size is 5 by default)
-- `abs_diff_angle`: `(float,float)` -> `float`
-    - Absolute difference between the arguments if both treated as angles.
