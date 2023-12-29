@@ -1,0 +1,42 @@
+STRUCT
+    Test1: { m1,m2: bool; };
+    Test2: { M: set<Test1>; };
+
+INPUT
+    b0,b1,b2,b3,b4,b5,b6,b7: bool;
+
+DEFINE
+    X := {Test2({Test1(b0,b1),Test1(b2,b3)}),
+         Test2({Test1(b4,b5),Test1(b6,b7)})};
+    n := 1;
+
+FTSPEC
+    foreach(s:X)(foreach(t:s.M)(t.m1 && t.m2));
+    forsome(s:X)(foreach(t:s.M)(t.m1 && t.m2));
+    forexactly(s:X,n)(foreach(t:s.M)(t.m1 & t.m2));
+    foratleast(s:X,n)(foreach(t:s.M)(t.m1 & t.m2));
+    foratmost(s:X,n)(foreach(t:s.M)(t.m1 & t.m2));
+
+    foreach(s:X)(forsome(t:s.M)(t.m1 && t.m2));
+    forsome(s:X)(forsome(t:s.M)(t.m1 && t.m2));
+    forexactly(s:X,n)(forsome(t:s.M)(t.m1 & t.m2));
+    foratleast(s:X,n)(forsome(t:s.M)(t.m1 & t.m2));
+    foratmost(s:X,n)(forsome(t:s.M)(t.m1 & t.m2));
+
+    foreach(s:X)(forexactly(t:s.M,n)(t.m1 & t.m2));
+    forsome(s:X)(forexactly(t:s.M,n)(t.m1 & t.m2));
+    forexactly(s:X,n)(forexactly(t:s.M,n)(t.m1 & t.m2));
+    foratleast(s:X,n)(forexactly(t:s.M,n)(t.m1 & t.m2));
+    foratmost(s:X,n)(forexactly(t:s.M,n)(t.m1 & t.m2));
+
+    foreach(s:X)(foratleast(t:s.M,n)(t.m1 & t.m2));
+    forsome(s:X)(foratleast(t:s.M,n)(t.m1 & t.m2));
+    forexactly(s:X,n)(foratleast(t:s.M,n)(t.m1 & t.m2));
+    foratleast(s:X,n)(foratleast(t:s.M,n)(t.m1 & t.m2));
+    foratmost(s:X,n)(foratleast(t:s.M,n)(t.m1 & t.m2));
+
+    foreach(s:X)(foratmost(t:s.M,n)(t.m1 & t.m2));
+    forsome(s:X)(foratmost(t:s.M,n)(t.m1 & t.m2));
+    forexactly(s:X,n)(foratmost(t:s.M,n)(t.m1 & t.m2));
+    foratleast(s:X,n)(foratmost(t:s.M,n)(t.m1 & t.m2));
+    foratmost(s:X,n)(foratmost(t:s.M,n)(t.m1 & t.m2));

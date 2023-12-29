@@ -8,6 +8,6 @@ DEFINE
 FTSPEC
     foreach(b:X)(b);
     forsome(b:X)(b);
-    forexactlyn(b:X,n)(b);
-    foratleastn(b:X,n)(b);
-    foratmostn(b:X,n)(b);
+    forexactly(b:X,n)(b);
+    foratleast(b:X,n)(b);
+    foratmost(b:X,n)(b);
