@@ -71,7 +71,3 @@ The C version of R2U2 is also called the "static" version, since it uses entirel
     `./tools/split_verdicts [R2U2 log file]`.
 
     - **Note:** This script names formula files with the notation `[original file name]_formula\#.txt`, where \# is the corresponding formula number, indexed from 0.
-
-## Hardware (VHDL Version)
-
-Hello!

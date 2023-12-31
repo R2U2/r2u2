@@ -1,4 +1,4 @@
-# MLTL Grammer
+# MLTL Grammar
 
 ```
 expression  : expression AND expression
@@ -22,3 +22,8 @@ precedence = (
     ('left', 'LPAREN', 'RPAREN','ATOMIC','LBRACK','RBRACK'),
 )
 ```
+
+For more details on operator definitions, see [the website](https://temporallogic.org/research/FORMATS20/) of {footcite:p}`KZJZR20`
+
+:::{footbibliography}
+:::

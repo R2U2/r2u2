@@ -1,4 +1,9 @@
 # R2U2 Static Monitor User's Guide
 ```{toctree}
-tmp.md
+building
+running
+embedding
+output
+multi-monitor
+configuration
 ```

@@ -33,18 +33,18 @@ To add a new suite, it is easiest to build off of an existing JSON configuration
 
 ```json
 {
-    "suite": SUITE_NAME,
+    "suite": "SUITE_NAME",
     "options": {
-        "compiler-option": COMPILER_OPTION_VALUE
+        "compiler-option": "COMPILER_OPTION_VALUE"
     },
     "tests": [
         {
-            "name": TEST_NAME,
-            "mltl": MLTL_FILENAME,
-            "trace": TRACE_FILENAME,
-            "oracle": ORACLE_FILENAME,
+            "name": "TEST_NAME",
+            "mltl": "MLTL_FILENAME",
+            "trace": "TRACE_FILENAME",
+            "oracle": "ORACLE_FILENAME",
             "options": {
-                "compiler-option": COMPILER_OPTION_VALUE
+                "compiler-option": "COMPILER_OPTION_VALUE"
             }
         }
     ]

@@ -87,7 +87,7 @@ To allocate the SCQ size for all operator nodes, we first recursively decide the
     \SetKwInput{KwData}{Var}
     \SetKwInOut{KwInit}{Init}
     \SetKwProg{Fn}{Function}{}{end}
-    \SetKwComment{comment}{$\LHD$}{}
+
     % \SetKwInOut{Input}{input}
     % \SetKwInOut{Output}{output}
     % \KwData{$\tau_e$}\
@@ -118,7 +118,7 @@ Detailed implementation of Algorithm. \ref{ag:sq}.
 \SetKwInput{KwData}{Var}
 \SetKwProg{KwInit}{Init}{}{end}
 \SetKwProg{Fn}{Function}{}{end}
-\SetKwComment{comment}{$\LHD$}{}
+
 % \SetKwInOut{Input}{input}
 % \SetKwInOut{Output}{output}
 % \KwData{$\tau_e$}\
