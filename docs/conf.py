@@ -23,6 +23,9 @@ author = 'Laboratory for Temporal Logic'
 # The full version, including alpha/beta/rc tags
 release = '3.0'
 
+# Supress spurious warnings about valid cross-references
+suppress_warnings = [ 'myst']
+
 
 # -- General configuration ---------------------------------------------------
 
