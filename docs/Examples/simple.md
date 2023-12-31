@@ -29,7 +29,3 @@ Now we can monitor our trace using `r2u2`:
 ```bash
 ./monitors/static/build/r2u2 spec.bin simple.csv
 ```
-The output will look something like:
-```
-TODO
-```

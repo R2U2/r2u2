@@ -41,7 +41,7 @@ First we declare all the possible state values:
        GRANT := 1; 
        REJECT := 2;
 
-Next we declare the ten requests:
+Next we declare the ten requests, where the order in which the members of the `Request` struct definition determines the order we must pass the corresponding signal:
 
        request_0 := Request(state_0, time_active_0); 
        request_1 := Request(state_1, time_active_1); 
@@ -67,9 +67,13 @@ And finally we define a set of the defined arbiters:
 
 ### FTSPEC Section
 
+Now to define the specifications using our structured data, we start with the first English requirement: "The difference between requests' `request_0` and `request_1` time active shall be no greater than 10 seconds."
+
     FTSPEC
        (rq0.time_active - rq1.time_active) < 10.0 &&
        (rq1.time_active - rq0.time_active) < 10.0;
+
+Next, recall the second requirement we have: "For each request in each arbiter, that request shall be granted or rejected within the next 5 seconds and until then shall be waiting." This time, we use the *set aggregation* operator `foreach`, which applies its argument expression over each element in the given set and returns true if every element in the set satisfies the expression.
 
        foreach(arb: ArbSet)(
          foreach(rq: arb.ReqSet)(
@@ -77,3 +81,7 @@ And finally we define a set of the defined arbiters:
                                        rq.state == REJECT)
          )
        );
+
+## Compiling with C2PO
+
+Since we are using compound arithmetic expressions (e.g., `(rq0.time_active - rq1.time_active) < 10.0`), we need to use the Booleanizer for our front end.
