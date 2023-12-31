@@ -28,3 +28,15 @@ where $e = min(a,b)$ and $f = e + min(b-a,d-c)$. For example:
     (G[0,5] a0) & (G[0,8] a1) ===> G[0,5] (a0 & (G[0,3] a1)) 
 
 This rewrite reducing the encoding size of this formula since memory for each sub-expression is dependent on the *worst-case propagation delay* (wpd) of its siblings. The sibling node of `(G[0,5] a0)` is `(G[0,8] a1)`, which has a wpd of 8. In its rewritten form, the sibling node of `a0` is `G[0,3] a1` which has a wpd of 3.
+
+
+## Extended Operators
+By default, R2U2 supports only the negation, conjunction, global, and until MLTL operators. C2PO allows unsupported operators (like disjunction) in its input but replaces them with the equivalent expression in MLTL using only officially supported operators. For example, the expression
+
+    F[0,5] (a || b)
+
+would be rewritten to
+
+    ! G[0,5] ! (!a && !b)
+
+without enabling extended operators. R2U2 does support the full range of MLTL operators natively if compiled with the correct option. To enable these operators and disable these replacements, run C2PO with the `--extops` flag.
