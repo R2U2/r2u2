@@ -32,6 +32,8 @@ _collections/tools_readme
 Examples/README.md
 Examples/simple.md
 Examples/req_arbiter.md
+Examples/agc.md
+
 ```
 
 ```{toctree}
@@ -41,6 +43,7 @@ Development/contributing
 README
 Development/ci
 _collections/c2po_docs/dev
+_collections/c2po_docs/assembly.md
 _collections/r2u2_docs/dev
 ```
 
