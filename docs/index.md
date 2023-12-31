@@ -29,6 +29,7 @@ _collections/r2u2_docs/user
 _collections/gui_readme
 _collections/test_readme
 _collections/tools_readme
+Examples/README.md
 Examples/simple.md
 Examples/req_arbiter.md
 ```
