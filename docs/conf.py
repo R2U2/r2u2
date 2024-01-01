@@ -14,6 +14,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import textwrap
+
 # -- Project information -----------------------------------------------------
 
 project = 'R2U2'
@@ -22,10 +24,6 @@ author = 'Laboratory for Temporal Logic'
 
 # The full version, including alpha/beta/rc tags
 release = '3.0'
-
-# Supress spurious warnings about valid cross-references
-suppress_warnings = [ 'myst']
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -36,6 +34,10 @@ extensions = [
     "myst_parser",
     "sphinxcontrib.collections",
     "sphinxcontrib.bibtex",
+
+    # C/C++ API Documentation Support
+    # 'breathe',
+    # 'exhale'
 ]
 
 myst_enable_extensions = [
@@ -125,6 +127,36 @@ collections = {
         "target": "tools_readme.md"
     },
 }
+
+# C/C++ API Documentation via doxygen/breath/exhale
+# breathe_projects = {
+#     "R2U2 Static": "_doxygen/static/xml"
+# }
+# breathe_default_project = "R2U2 Static"
+
+# exhale_args = {
+#     "containmentFolder":     "_api/static",
+#     "rootFileTitle":         "R2U2 Static API",
+#     "rootFileName":          "library_root.rst",
+#     "doxygenStripFromPath":  "../monitors/static/src",
+#     "createTreeView":        True,
+#     # TIP: if using the sphinx-bootstrap-theme, you need
+#     # "treeViewIsBootstrap": True,
+#     "exhaleExecutesDoxygen": True,
+#     "exhaleDoxygenStdin":    textwrap.dedent('''
+#         INPUT      = ../monitors/static/src
+#         RECURSIVE  = NO
+
+#         GENERATE_HTML = YES
+#         GENERATE_XML  = YES
+#     ''')
+# }
+
+# Tell sphinx what the primary language being documented is.
+# primary_domain = 'cpp'
+
+# Tell sphinx what the pygments highlight language should be.
+# highlight_language = 'cpp'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

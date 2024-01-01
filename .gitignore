@@ -284,6 +284,8 @@ tmp/
 .pytest_cache
 test/results
 
+# Generated documentation files
+docs/_*
 
 # python virtual environment
 r2u2env/
