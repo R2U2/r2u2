@@ -39,7 +39,6 @@ Development/contributing
 README
 Development/ci
 _collections/c2po_docs/dev
-_collections/c2po_docs/assembly.md
 _collections/r2u2_docs/dev
 ```
 
