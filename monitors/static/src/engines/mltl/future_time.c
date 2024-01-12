@@ -181,6 +181,9 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           } else if(instr->op2.value == 2){
             R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tDeadline: %d\n", instr->op1.value, instr->memory_reference);
             scq->deadline = (r2u2_time) instr->memory_reference;
+          } else if(instr->op2.value == 3){
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tK: %d\n", instr->op1.value, instr->memory_reference);
+            scq->k_modes = (r2u2_time) instr->memory_reference;
           }
           break;
         }

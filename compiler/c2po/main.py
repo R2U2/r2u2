@@ -715,6 +715,8 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
                     node.deadline = program.deadlines[node.ln]
                    else:
                     node.deadline = node.get_expr().wpd
+                   if node.ln in program.multimodality.keys():
+                    node.k_modes = program.multimodality[node.ln]
                 ft_asm.append(node)
             elif formula_type == FormulaType.PT and node.ptid > -1:
                 pt_asm.append(node)
@@ -742,7 +744,7 @@ def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInst
     return (ft_asm, pt_asm, bz_asm, at_asm)
 
 
-def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -> int:
+def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
     """
     Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
 
@@ -786,7 +788,6 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -
 
         max_sibling_wpd: int = 0
         max_prediction_horizon = 0
-        k = 1
         for p in node.get_parents():
             for s in p.get_children():
                 if not id(s) == id(node):
@@ -797,11 +798,8 @@ def compute_scq_size(node: Node, d: Dict[int, int]={}, m: Dict[int, int] = {}) -
             if node_spec in d.keys():
                 if (spec_wpd[node.ln] - d[node_spec]) > max_prediction_horizon:
                     max_prediction_horizon = (spec_wpd[node.ln] - d[node_spec])
-            if node_spec in m.keys():
-                if m[node_spec] > k:
-                    k = m[node_spec]
 
-        node.scq_size = max(max_sibling_wpd-node.bpd,0)+k*(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
+        node.scq_size = max(max_sibling_wpd-node.bpd,0)+(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
         total += node.scq_size
 
     preorder(node, compute_node_info_util)
@@ -815,7 +813,7 @@ def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
     ret: List[Tuple[int,int]] = []
     pos: int = 0
 
-    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines, program.multimodals)
+    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines)
 
     def gen_scq_assembly_util(a: Node) -> None:
         nonlocal ret
@@ -916,7 +914,7 @@ def parse(input: str, mission_time: int) -> Program|None:
         parser.structs,
         parser.atomics,
         parser.deadlines,
-        parser.multimodals,
+        parser.multimodality,
         specs[FormulaType.FT],
         specs[FormulaType.PT]
     )

@@ -83,6 +83,7 @@ class Node():
         self.bpd: int = 0
         self.wpd: int = 0
         self.deadline: int = 0
+        self.k_modes: int = 1
         self.specs: List[int] = []
         self.formula_type = FormulaType.PROP
         self.type: Type = NOTYPE()
@@ -186,6 +187,7 @@ class Node():
         new.bpd = self.bpd
         new.wpd = self.wpd
         self.deadline = self.deadline
+        self.k_modes = self.k_modes
         new.specs = self.specs
         new.formula_type = self.formula_type
         new.type = self.type
@@ -1321,7 +1323,7 @@ class Program(Node):
         self.definitions: Dict[str, Node] = defs
         self.atomics: Dict[str, Node] = a
         self.deadlines: Dict[int, int] = d
-        self.multimodals: Dict[int, int] = m
+        self.multimodality: Dict[int, int] = m
         self.ft_spec_set: SpecificationSet = fts
         self.pt_spec_set: SpecificationSet = pts
         self.assembly: List[Instruction] = []
@@ -1362,7 +1364,7 @@ class Program(Node):
             deepcopy(self.structs, memo), 
             deepcopy(self.atomics, memo),
             deepcopy(self.deadlines, memo),
-            deepcopy(self.multimodals, memo),
+            deepcopy(self.multimodality, memo),
             deepcopy(self.ft_spec_set, memo),
             deepcopy(self.pt_spec_set, memo)
         )

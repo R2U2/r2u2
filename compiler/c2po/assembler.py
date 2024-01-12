@@ -309,7 +309,8 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
         elif isinstance(instr, Specification):  # End
             rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.RETURN, (TLOperandType.SUBFORMULA, instr.get_expr().ftid), (TLOperandType.DIRECT, instr.formula_number), instr.ftid))
             cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 2), instr.deadline))
- 
+            cfg_instrs.append(cStruct('BB').pack(ENGINE_TAGS.CG.value, ENGINE_TAGS.TL.value) + assemble_ft(FTOpcode.CONFIGURE, (TLOperandType.SUBFORMULA, instr.ftid), (TLOperandType.ATOMIC, 3), instr.k_modes))
+
             for at_instr in at_formula_instr:
                 if instr == at_instr.args[0]:
                     if isinstance(at_instr.rel_op, Equal):

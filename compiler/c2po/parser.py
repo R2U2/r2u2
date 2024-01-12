@@ -134,7 +134,7 @@ class C2POParser(Parser):
         self.contracts: Dict[str,int] = {}
         self.atomics: Dict[str,Node] = {}
         self.deadlines: Dict[int, int] = {}
-        self.multimodals: Dict[int, int] = {}
+        self.multimodality: Dict[int, int] = {}
         self.spec_num: int = 0
         self.has_ft = False
         self.has_pt = False
@@ -655,4 +655,4 @@ class C2POParser(Parser):
 
     @_('deadline MULTI_MODAL NUMERAL')
     def multimodal(self, p):
-        self.multimodals[p.lineno] = int(p.NUMERAL) 
+        self.multimodality[p.lineno] = int(p.NUMERAL) 
