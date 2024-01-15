@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #include "booleanizer.h"
 
@@ -316,6 +317,48 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ IMOD\n");
             R2U2_DEBUG_PRINT("\tb%d = %d = %d %% %d (b%d %% b%d)\n", inst_buff.addr,
                 i3, i1, i2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
+            break;
+        case R2U2_BZ_OP_IPOW:
+            i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
+            i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
+            i3 = pow(i1,i2);
+
+            (*monitor->value_buffer)[inst_buff.addr].i = i3;
+
+            R2U2_DEBUG_PRINT("\tBZ IPOW\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d = %d ** %d (b%d ** b%d)\n", inst_buff.addr,
+                i3, i1, i2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
+            break;
+        case R2U2_BZ_OP_FPOW:
+            f1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].f;
+            f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
+            f3 = pow(f1,f2);
+
+            (*monitor->value_buffer)[inst_buff.addr].f = f3;
+
+            R2U2_DEBUG_PRINT("\tBZ FPOW\n");
+            R2U2_DEBUG_PRINT("\tb%d = %f = %f ** %f (b%d ** b%d)\n", inst_buff.addr,
+                f3, f1, f2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
+            break;
+        case R2U2_BZ_OP_ISQRT:
+            i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
+            i2 = sqrt(i1);
+
+            (*monitor->value_buffer)[inst_buff.addr].i = i2;
+
+            R2U2_DEBUG_PRINT("\tBZ ISQRT\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d = sqrt %d (sqrt b%d)\n", inst_buff.addr,
+                i2, i1, inst_buff.param1.bz_addr);
+            break;
+        case R2U2_BZ_OP_FSQRT:
+            f1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].f;
+            f2 = sqrt(f1);
+
+            (*monitor->value_buffer)[inst_buff.addr].f = f2;
+
+            R2U2_DEBUG_PRINT("\tBZ FSQRT\n");
+            R2U2_DEBUG_PRINT("\tb%d = %f = sqrt%f (sqrtb%d)\n", inst_buff.addr,
+                f2, f1, inst_buff.param1.bz_addr);
             break;
         default:
             break;

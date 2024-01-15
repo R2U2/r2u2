@@ -44,6 +44,10 @@ class BZOpcode(Enum):
     IDIV    = 0b011011
     FDIV    = 0b011100
     MOD     = 0b011101
+    IPOW    = 0b011110
+    FPOW    = 0b011111
+    ISQRT   = 0b100000
+    FSQRT   = 0b100001
 
 class ATCond(Enum):
     EQ  = 0b000
@@ -276,6 +280,17 @@ def assemble(filename: str, atasm: List[ATInstruction], bzasm: List[BZInstructio
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.INEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
             else:
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FNEG, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticPower):
+            if is_integer_type(instr.get_lhs().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IPOW, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FPOW, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))
+        elif isinstance(instr, ArithmeticSqrt):
+            if is_integer_type(instr.get_operand().type):
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.ISQRT, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
+            else:
+                rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.FSQRT, instr.get_operand().bzid, 0, instr.atid > -1, instr.atid))
+        
         elif isinstance(instr, Equal):
             if is_integer_type(instr.get_lhs().type):
                 rtm_instrs.append(cStruct('B').pack(ENGINE_TAGS.BZ.value) + assemble_bz(instr.bzid, BZOpcode.IEQ, instr.get_lhs().bzid, instr.get_rhs().bzid, instr.atid > -1, instr.atid))

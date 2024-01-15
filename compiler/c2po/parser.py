@@ -14,7 +14,7 @@ class C2POLexer(Lexer):
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, #ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, DEADLINE, MULTI_MODAL }
 
@@ -56,8 +56,8 @@ class C2POLexer(Lexer):
     ARITH_MUL   = r'\*|•|⋅'
     ARITH_DIV   = r'/|÷'
     ARITH_MOD   = r'%'
-    # ARITH_POW   = r'\*\*'
-    # ARITH_SQRT  = r'√'
+    ARITH_POW   = r'pow'
+    ARITH_SQRT  = r'sqrt|√'
     # ARITH_PM    = r'\+/-|±'
 
     # Others
@@ -119,7 +119,7 @@ class C2POParser(Parser):
         ('left', REL_GT, REL_LT, REL_GTE, REL_LTE),
         ('left', BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ('left', ARITH_ADD, ARITH_SUB),
-        ('left', ARITH_MUL, ARITH_DIV, ARITH_MOD),
+        ('left', ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT),
         ('right', LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
         ('right', LPAREN, DOT)
     )
@@ -459,7 +459,8 @@ class C2POParser(Parser):
     # Unary expressions
     @_('LOG_NEG expr',
        'BW_NEG expr',
-       'ARITH_SUB expr %prec UNARY_ARITH_SUB')
+       'ARITH_SUB expr %prec UNARY_ARITH_SUB',
+       'ARITH_SQRT expr')
     def expr(self, p):
         ln = p.lineno
         operator = p[0]
@@ -470,6 +471,8 @@ class C2POParser(Parser):
             return BitwiseNegate(ln, p[1])
         elif operator == '-':
             return ArithmeticNegate(ln, p[1])
+        elif operator == 'sqrt':
+            return ArithmeticSqrt(ln, p[1])
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False
@@ -495,7 +498,8 @@ class C2POParser(Parser):
        'expr ARITH_SUB expr',
        'expr ARITH_MUL expr',
        'expr ARITH_DIV expr',
-       'expr ARITH_MOD expr')
+       'expr ARITH_MOD expr',
+       'expr ARITH_POW expr')
     def expr(self, p):
         ln = p.lineno
         operator = p[1]
@@ -542,6 +546,8 @@ class C2POParser(Parser):
             return ArithmeticDivide(ln, lhs, rhs)
         elif operator == '%':
             return ArithmeticModulo(ln, lhs, rhs)
+        elif operator == 'pow':
+            return ArithmeticPower(ln, lhs, rhs)
         else:
             logger.error(f'{ln}: Bad expression')
             self.status = False

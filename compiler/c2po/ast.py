@@ -896,7 +896,32 @@ class ArithmeticNegate(UnaryOperator, ArithmeticOperator, BZInstruction):
         new = ArithmeticNegate(self.ln, children[0])
         self.copy_attrs(new)
         return new
+    
+class ArithmeticPower(ArithmeticOperator, BinaryOperator, BZInstruction):
 
+    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
+        super().__init__(ln, [lhs, rhs])
+        self.name = "pow"
+        self.symbol = "pow"
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticPower(self.ln, children[0], children[1])
+        self.copy_attrs(new)
+        return new
+
+class ArithmeticSqrt(UnaryOperator, ArithmeticOperator, BZInstruction):
+
+    def __init__(self, ln: int, o: Node) -> None:
+        super().__init__(ln, [o])
+        self.name: str = "sqrt"
+        self.symbol = "sqrt"
+
+    def __deepcopy__(self, memo):
+        children = [deepcopy(c, memo) for c in self._children]
+        new = ArithmeticSqrt(self.ln, children[0])
+        self.copy_attrs(new)
+        return new
 
 class RelationalOperator(BinaryOperator):
 
