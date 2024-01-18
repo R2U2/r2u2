@@ -4,6 +4,7 @@
 #include "r2u2.h"
 
 #include "mltl.h"
+#include "booleanizer.h"
 #include "stdlib.h"
 
 typedef struct {

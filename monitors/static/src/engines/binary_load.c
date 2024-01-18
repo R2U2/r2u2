@@ -5,6 +5,7 @@
 #include "internals/debug.h"
 #include "internals/errors.h"
 #include "engines/mltl/mltl.h"
+#include "engines/booleanizer/booleanizer.h"
 #include <stdio.h>
 
 r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
@@ -34,7 +35,10 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
       }
     } else {
       if(data[offset+1] == R2U2_ENG_BZ){
-        monitor->num_atomics++;
+        r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)&(data[offset+2]));
+        if(bz_instr->opcode == R2U2_BZ_OP_ILOAD || bz_instr->opcode == R2U2_BZ_OP_FLOAD){
+          monitor->num_signals++;
+        }
       }
       // Store instruction metadata in table
       pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};

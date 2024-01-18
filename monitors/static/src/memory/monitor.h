@@ -28,7 +28,7 @@ typedef struct {
   r2u2_time time_stamp; //
   r2u2_monitor_progress_state_t progress; // TODO(bckempa): Track value in debug
   size_t    prog_count; // TODO(bckempa): type justification and bounds check
-  size_t num_atomics;
+  size_t num_signals;
 
   // Specification Instructions
   r2u2_instruction_memory_t  *instruction_mem;

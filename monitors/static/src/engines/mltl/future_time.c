@@ -243,6 +243,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               //r2u2_atomic_vector_flip(monitor->atomic_buffer); // NEED TO RESTORE ATOMIC BUFFER STATE AFTER PREDICTION TO ENABLE
               monitor->signal_vector = &(*(monitor->signal_vector))[monitor->num_atomics];
+              monitor->signal_vector = &(*(monitor->signal_vector))[monitor->num_signals];
+              
               while(true){ // continue until no progress is made
                 for(int i = num_instructions - 1; i >= 0; i--){ // dispatch instructions
                   switch(instructions[i]->engine_tag){

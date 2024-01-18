@@ -121,15 +121,35 @@ static r2u2_status_t push_result_predicted(r2u2_monitor_t *monitor, r2u2_mltl_in
   return R2U2_OK;
 }
 
+// Helper function to find booleanizer child instruction for MLTL atomic
+r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_instruction_t** instructions, size_t *size, uint8_t desired_atom, uint8_t curr_index){
+  if(instr->engine_tag == R2U2_ENG_BZ){
+    r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)instr->instruction_data);
+    if (bz_instr->store == 1 && bz_instr->at_addr == desired_atom){
+      instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+      instructions[*size] = &(*monitor->instruction_tbl)[curr_index];
+      *size = *size + 1;
+      return find_child_instructions(monitor, instructions[*size-1], instructions, size, 0);
+    }
+    else if(curr_index == 0){
+      return R2U2_INVALID_INST;
+    }
+    else{
+      instr = &(*monitor->instruction_tbl)[curr_index-1];
+      return find_bz_child_instructions(monitor, instr, instructions, size, desired_atom, curr_index-1);
+    }
+  }
+  return R2U2_INVALID_INST;
+}
+
+
 r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_instruction_t** instructions, size_t *size, uint8_t difference){
   if(instr->engine_tag == R2U2_ENG_TL) {
     r2u2_mltl_instruction_t* mltl_instr = (r2u2_mltl_instruction_t*)instr->instruction_data;
     switch (mltl_instr->opcode){
       case R2U2_MLTL_OP_FT_LOAD: {
-        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
-        instructions[*size] = &(*monitor->instruction_tbl)[mltl_instr->op1.value];
-        *size = *size + 1;
-        return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        instr = &(*monitor->instruction_tbl)[difference-1];
+        return find_bz_child_instructions(monitor, instr, instructions, size, mltl_instr->op1.value, difference-1);
       }
       case R2U2_MLTL_OP_FT_RETURN: {
         instructions[0] = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
@@ -180,6 +200,65 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       }
       default: {
         // Somehow got into wrong tense dispatch
+        return R2U2_INVALID_INST;
+      }
+    }
+  }else if(instr->engine_tag == R2U2_ENG_BZ){
+    r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)instr->instruction_data);
+    switch (bz_instr->opcode){
+      case R2U2_BZ_OP_NONE:
+      case R2U2_BZ_OP_ILOAD:
+      case R2U2_BZ_OP_FLOAD:
+      case R2U2_BZ_OP_ICONST:
+      case R2U2_BZ_OP_FCONST: {
+        return R2U2_OK;
+      }
+      case R2U2_BZ_OP_BWNEG:
+      case R2U2_BZ_OP_INEG:
+      case R2U2_BZ_OP_FNEG:
+      case R2U2_BZ_OP_ISQRT:
+      case R2U2_BZ_OP_FSQRT: {
+        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+        instructions[*size] = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
+        *size = *size + 1;
+        return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+      } 
+      case R2U2_BZ_OP_BWAND:
+      case R2U2_BZ_OP_BWOR:
+      case R2U2_BZ_OP_BWXOR:
+      case R2U2_BZ_OP_IEQ:
+      case R2U2_BZ_OP_FEQ:
+      case R2U2_BZ_OP_INEQ:
+      case R2U2_BZ_OP_FNEQ:
+      case R2U2_BZ_OP_IGT:
+      case R2U2_BZ_OP_FGT:
+      case R2U2_BZ_OP_IGTE:
+      case R2U2_BZ_OP_ILT:
+      case R2U2_BZ_OP_FLT:
+      case R2U2_BZ_OP_ILTE:
+      case R2U2_BZ_OP_IADD:
+      case R2U2_BZ_OP_FADD:
+      case R2U2_BZ_OP_ISUB:
+      case R2U2_BZ_OP_FSUB:
+      case R2U2_BZ_OP_IMUL:
+      case R2U2_BZ_OP_FMUL:
+      case R2U2_BZ_OP_IDIV:
+      case R2U2_BZ_OP_FDIV:
+      case R2U2_BZ_OP_MOD:
+      case R2U2_BZ_OP_IPOW:
+      case R2U2_BZ_OP_FPOW:{
+        instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+        instructions[*size] = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
+        *size = *size + 1;
+        r2u2_status_t status = find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        if(status == R2U2_OK){
+          instructions = realloc(instructions, sizeof(instructions) + sizeof(r2u2_instruction_t*));
+          instructions[*size] = &(*monitor->instruction_tbl)[bz_instr->param2.bz_addr];
+          *size = *size + 1;
+          return find_child_instructions(monitor, instructions[*size-1], instructions, size, difference);
+        }
+      }
+      default: {
         return R2U2_INVALID_INST;
       }
     }
