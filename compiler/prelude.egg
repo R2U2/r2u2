@@ -1,0 +1,43 @@
+(sort IntervalSort)
+(function Interval (i64 i64) IntervalSort)
+
+(datatype MLTL
+  (Bool bool)
+  (Var String)
+  (Not MLTL)
+  (And2 MLTL MLTL)
+  (And3 MLTL MLTL MLTL)
+  (And4 MLTL MLTL MLTL MLTL)
+  (Global IntervalSort MLTL)
+  (Until IntervalSort MLTL MLTL)
+)
+
+(ruleset mltl-rewrites)
+
+; multi-arity And
+(birewrite 
+  (And2 (And2 a b) c)
+  (And3 a b c)
+  :ruleset mltl-rewrites
+)
+
+; G-distributivity
+(rewrite 
+  (And2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) b))
+  (Global (Interval (min l1 l2) (+ (min l1 l2) (min (- u1 l1) (- u2 l2)))) 
+    (And2 
+      (Global (Interval (- l1 (min l1 l2)) (- u1 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) a) 
+      (Global (Interval (- l2 (min l1 l2)) (- u2 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) b) 
+    )
+  )
+  :ruleset mltl-rewrites
+)
+
+(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+
+(rewrite 
+  (Global (Interval a b) (Global (Interval c d) e))
+  (Global (Interval (+ a c) (+ b d)) e)
+  :ruleset mltl-rewrites
+)
+
