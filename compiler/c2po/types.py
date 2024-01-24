@@ -49,10 +49,10 @@ class BaseType(Enum):
 class Type:
     """Abstract base class representing a C2PO type."""
 
-    def __init__(self, t: BaseType, c: bool, n: str):
-        self.value: BaseType = t
-        self.name: str = n
-        self.is_const: bool = c
+    def __init__(self, type: BaseType, is_const: bool, name: str):
+        self.value: BaseType = type
+        self.name: str = name
+        self.is_const: bool = is_const
 
     def __eq__(self, arg: object) -> bool:
         if isinstance(arg, Type):
@@ -73,8 +73,8 @@ class NoType(Type):
 class BoolType(Type):
     """Boolean C2PO type."""
 
-    def __init__(self, const: bool):
-        super().__init__(BaseType.BOOL, const, "bool")
+    def __init__(self, is_const: bool):
+        super().__init__(BaseType.BOOL, is_const, "bool")
 
 
 class IntType(Type):
@@ -83,8 +83,8 @@ class IntType(Type):
     width: int = 8
     is_signed: bool = False
 
-    def __init__(self, const: bool):
-        super().__init__(BaseType.INT, const, "int")
+    def __init__(self, is_const: bool):
+        super().__init__(BaseType.INT, is_const, "int")
 
 
 class FloatType(Type):
@@ -92,15 +92,15 @@ class FloatType(Type):
 
     width: int = 32
 
-    def __init__(self, const: bool):
-        super().__init__(BaseType.FLOAT, const, "float")
+    def __init__(self, is_const: bool):
+        super().__init__(BaseType.FLOAT, is_const, "float")
 
 
 class StructType(Type):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, const: bool, n: str):
-        super().__init__(BaseType.STRUCT, const, n)
+    def __init__(self, is_const: bool, n: str):
+        super().__init__(BaseType.STRUCT, is_const, n)
         self.name = n
 
     def __eq__(self, arg: object) -> bool:
@@ -112,8 +112,8 @@ class StructType(Type):
 class SetType(Type):
     """Parameterized set C2PO type."""
 
-    def __init__(self, const: bool, m: Type):
-        super().__init__(BaseType.SET, const, "set<" + str(m) + ">")
+    def __init__(self, is_const: bool, m: Type):
+        super().__init__(BaseType.SET, is_const, "set<" + str(m) + ">")
         self.member_type: Type = m
 
     def __eq__(self, arg: object) -> bool:

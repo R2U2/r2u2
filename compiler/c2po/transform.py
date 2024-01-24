@@ -4,7 +4,6 @@ from typing import cast, Optional, Callable
 from c2po import log
 from c2po import types
 from c2po import cpt
-from c2po import transform
 
 
 def transform_definitions(program: cpt.Program, context: cpt.Context) -> None:
@@ -917,7 +916,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 C2POTransform = Callable[[cpt.Program, cpt.Context], None]
 
 # Note: this is ORDER-SENSITIVE
-TRANSFORM_PIPELINE: list[transform.C2POTransform] = [
+TRANSFORM_PIPELINE: list[C2POTransform] = [
     transform_definitions,
     transform_function_calls,
     transform_contracts,

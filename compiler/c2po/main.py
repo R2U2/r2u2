@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, NamedTuple
 import logging
 import re
 from enum import Enum
@@ -22,6 +22,16 @@ class ReturnCode(Enum):
     ASM_ERR = 4
     INVALID_INPUT = 5
     FILE_IO_ERR = 6
+
+
+class ValidatedInput(NamedTuple):
+    status: bool
+    input_path: Optional[Path]
+    output_path: Optional[Path]
+    mission_time: int
+    endian_sigil: str
+    signal_mapping: types.SignalMapping
+    transforms: set[transform.C2POTransform]
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -119,15 +129,7 @@ def validate_input(
     enable_arity: bool = False,
     enable_cse: bool = False,
     enable_assemble: bool = True,
-) -> tuple[
-    bool,
-    Optional[Path],
-    Optional[Path],
-    int,
-    str,
-    types.SignalMapping,
-    set[transform.C2POTransform],
-]:
+) -> ValidatedInput:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options.
 
     Returns:
@@ -217,7 +219,7 @@ def validate_input(
             log.logger.error(" Booleanizer only available for C implementation.")
             status = False
 
-    if impl == types.R2U2Implementation.CPP or impl == types.R2U2Implementation.VHDL:
+    if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
             log.logger.error(" Extended operators only support for C implementation.")
             status = False
@@ -239,7 +241,7 @@ def validate_input(
     if not enable_cse:
         transforms.remove(transform.optimize_cse)
 
-    return (
+    return ValidatedInput(
         status,
         input_path,
         output_path,
@@ -344,15 +346,7 @@ def compile(
     # ----------------------------------
     # Input validation
     # ----------------------------------
-    (
-        status,
-        input_path,
-        output_path,
-        mission_time,
-        endian_sigil,
-        signal_mapping,
-        enabled_transforms,
-    ) = validate_input(
+    options = validate_input(
         input_filename,
         trace_filename,
         map_filename,
@@ -374,22 +368,27 @@ def compile(
         enable_assemble,
     )
 
-    if not status or not input_path:
+    if not options.status or not options.input_path:
         log.logger.error(" Input invalid.")
         return ReturnCode.INVALID_INPUT
 
     # ----------------------------------
     # Parse
     # ----------------------------------
-    if input_path.suffix == ".c2po":
-        program: Optional[cpt.Program] = parse.parse_c2po(input_path, mission_time)
+    if options.input_path.suffix == ".c2po":
+        program: Optional[cpt.Program] = parse.parse_c2po(
+            options.input_path, options.mission_time
+        )
 
         if not program:
             log.logger.error(" Failed parsing.")
             return ReturnCode.PARSE_ERR
 
+        # must have defined this in trace or map file
+        signal_mapping = options.signal_mapping
+
     else:  # we treat as an MLTL file
-        parse_output = parse.parse_mltl(input_path, mission_time)
+        parse_output = parse.parse_mltl(options.input_path, options.mission_time)
 
         if not parse_output:
             log.logger.error(" Failed parsing.")
@@ -403,7 +402,7 @@ def compile(
     (well_typed, context) = type_check.type_check(
         program,
         types.str_to_r2u2_implementation(impl),
-        mission_time,
+        options.mission_time,
         enable_atomic_checkers,
         enable_booleanizer,
         enable_assemble,
@@ -417,11 +416,11 @@ def compile(
     # ----------------------------------
     # Transforms
     # ----------------------------------
-    for trans in [t for t in transform.TRANSFORM_PIPELINE if t in enabled_transforms]:
+    for trans in [t for t in transform.TRANSFORM_PIPELINE if t in options.transforms]:
         trans(program, context)
 
     # Optional file dumps
-    dump(program, input_path, dump_ast_filename, dump_mltl_std_filename)
+    dump(program, options.input_path, dump_ast_filename, dump_mltl_std_filename)
 
     if not enable_assemble:
         return ReturnCode.SUCCESS
@@ -429,12 +428,12 @@ def compile(
     # ----------------------------------
     # Assembly
     # ----------------------------------
-    if not output_path:
+    if not options.output_path:
         log.logger.error(" Input invalid.")
         return ReturnCode.INVALID_INPUT
 
-    binary = assemble.assemble(program, context, quiet, endian_sigil)
-    with open(output_path, "wb") as f:
+    binary = assemble.assemble(program, context, quiet, options.endian_sigil)
+    with open(options.output_path, "wb") as f:
         f.write(binary)
 
     return ReturnCode.SUCCESS
