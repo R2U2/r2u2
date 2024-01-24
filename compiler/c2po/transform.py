@@ -830,8 +830,6 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
         for node in cpt.postorder(spec_section):
             _optimize_cse(node)
 
-    program.is_cse_reduced = True
-
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""

@@ -25,8 +25,8 @@ parser.add_argument("--int-signed", action="store_true",
                     help="set int types to signed")
 parser.add_argument("--float-width", default=32,
                     help="bit width for floating point types")
-parser.add_argument("--mission-time", default=-1, type=int,
-                    help="define mission time (overriding inference from a trace file)")
+parser.add_argument("--mission-time", type=int,
+                    help="define mission time (overriding inference from a trace file, if present)")
 parser.add_argument("--endian", choices=['native', 'network', 'big', 'little'],
                     default=sys.byteorder, help='Select byte-order of spec file')
 
