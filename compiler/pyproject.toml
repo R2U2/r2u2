@@ -1,0 +1,3 @@
+[tool.ruff]
+logger-objects = ["c2po.log.logger"]
+exclude = ["parse.py"]

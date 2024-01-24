@@ -102,44 +102,44 @@ def mkdir(dir: Path, quiet: bool) -> None:
         os.mkdir(dir)
 
 
-def collect_r2u2prep_options(options: dict[str,str|bool]) -> list[str]:
-    """Filter all r2u2prep options from suite and return options in a cli-suitable list."""
-    r2u2prep_options = []
+def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
+    """Filter all c2po options from suite and return options in a cli-suitable list."""
+    c2po_options = []
 
     if "quiet" in options and options["quiet"]:
-        r2u2prep_options.append("--quiet")
+        c2po_options.append("--quiet")
 
     if "impl" in options:
-        r2u2prep_options.append("--impl")
-        r2u2prep_options.append(options["impl"])
+        c2po_options.append("--impl")
+        c2po_options.append(options["impl"])
 
     if "int-width" in options:
-        r2u2prep_options.append("--int-width")
-        r2u2prep_options.append(options["int-width"])
+        c2po_options.append("--int-width")
+        c2po_options.append(options["int-width"])
 
     if "int-signed" in options and options["int-signed"]:
-        r2u2prep_options.append("--int-signed")
+        c2po_options.append("--int-signed")
 
     if "float-width" in options:
-        r2u2prep_options.append("--float-width")
-        r2u2prep_options.append(options["float-width"])
+        c2po_options.append("--float-width")
+        c2po_options.append(options["float-width"])
 
     if "atomic-checkers" in options and options["atomic-checkers"]:
-        r2u2prep_options.append("--atomic-checkers")
+        c2po_options.append("--atomic-checkers")
 
     if "booleanizer" in options and options["booleanizer"]:
-        r2u2prep_options.append("--booleanizer")
+        c2po_options.append("--booleanizer")
 
     if "disable-cse" in options and options["disable-cse"]:
-        r2u2prep_options.append("--disable-cse")
+        c2po_options.append("--disable-cse")
 
     if "extops" in options and options["extops"]:
-        r2u2prep_options.append("--extops")
+        c2po_options.append("--extops")
 
     if "disable-rewrite" in options and options["disable-rewrite"]:
-        r2u2prep_options.append("--disable-rewrite")
+        c2po_options.append("--disable-rewrite")
 
-    return r2u2prep_options
+    return c2po_options
 
 
 class TestCase():
@@ -152,8 +152,8 @@ class TestCase():
         trace_path: Optional[Path], 
         oracle_path: Optional[Path], 
         top_results_dir: Path,
-        r2u2prep_options: dict[str,str|bool],
-        r2u2prep: Path,
+        c2po_options: dict[str,str|bool],
+        c2po: Path,
         r2u2bin: Path,
         copyback: bool
     ) -> None:
@@ -166,11 +166,11 @@ class TestCase():
             return
         self.test_name: str = test_name
 
-        self.r2u2prep_options: dict[str,str|bool] = r2u2prep_options
+        self.c2po_options: dict[str,str|bool] = c2po_options
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / suite_name
         self.test_results_dir: Path = self.suite_results_dir / self.test_name
-        self.r2u2prep = r2u2prep
+        self.c2po = c2po
         self.r2u2bin = r2u2bin
 
         self.clean()
@@ -200,16 +200,16 @@ class TestCase():
         self.spec_asm = b""
         self.spec_asm_path = self.test_results_dir / "spec.asm"
 
-        self.r2u2prep_stderr_path = self.test_results_dir / self.r2u2prep.with_suffix(".stderr").name
+        self.c2po_stderr_path = self.test_results_dir / self.c2po.with_suffix(".stderr").name
         self.r2u2bin_stderr_path = self.test_results_dir / self.r2u2bin.with_suffix(".stderr").name
 
-        self.r2u2prep_command_path = self.test_results_dir / self.r2u2prep.with_suffix(".sh").name
+        self.c2po_command_path = self.test_results_dir / self.c2po.with_suffix(".sh").name
         self.r2u2bin_command_path = self.test_results_dir / self.r2u2bin.with_suffix(".sh").name
 
-        self.r2u2prep_cli_options = collect_r2u2prep_options(self.r2u2prep_options)
-        self.r2u2prep_command =  [
-            "python3", str(self.r2u2prep)
-        ] + collect_r2u2prep_options(self.r2u2prep_options) + \
+        self.c2po_cli_options = collect_c2po_options(self.c2po_options)
+        self.c2po_command =  [
+            "python3", str(self.c2po)
+        ] + collect_c2po_options(self.c2po_options) + \
         [
             "--output", str(self.spec_bin_workdir_path), 
             "--trace", str(self.trace_path),
@@ -262,16 +262,16 @@ class TestCase():
         with open(self.spec_asm_path, "wb") as f:
             f.write(self.asm)
 
-        r2u2prep_command_new = [
-            "python3", str(self.r2u2prep)
-        ] + collect_r2u2prep_options(self.r2u2prep_options) + \
+        c2po_command_new = [
+            "python3", str(self.c2po)
+        ] + collect_c2po_options(self.c2po_options) + \
         [
             "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
             "--trace", str(self.test_results_dir /self.trace_path.name),
             str(self.test_results_dir /self.mltl_path.name)
         ]
-        with open(self.r2u2prep_command_path, "w") as f:
-            f.write(' '.join(r2u2prep_command_new))
+        with open(self.c2po_command_path, "w") as f:
+            f.write(' '.join(c2po_command_new))
 
         r2u2bin_command_new = [
             str(self.r2u2bin), 
@@ -285,16 +285,16 @@ class TestCase():
         if not self.status:
             return
 
-        proc = subprocess.run(self.r2u2prep_command, capture_output=True)
+        proc = subprocess.run(self.c2po_command, capture_output=True)
 
         self.asm = proc.stdout.replace(b"[95m",b"").replace(b"[4m[91m",b"").replace(b"[0m",b"")
 
         if proc.stderr != b"":
-            with open(self.r2u2prep_stderr_path, "wb") as f:
+            with open(self.c2po_stderr_path, "wb") as f:
                 f.write(proc.stderr)
 
         if proc.returncode != 0:
-            self.test_fail(f"r2u2prep.py returned with code {proc.returncode}")
+            self.test_fail(f"c2po.py returned with code {proc.returncode}")
             return
 
         proc = subprocess.run(self.r2u2bin_command, capture_output=True)
@@ -357,7 +357,7 @@ class TestSuite():
         self, 
         name: str, 
         top_results_dir: Path,
-        r2u2prep: Path,
+        c2po: Path,
         r2u2bin: Path,
         copyback: bool
     ) -> None:
@@ -369,14 +369,14 @@ class TestSuite():
         self.suites: list[TestSuite] = []
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = self.top_results_dir / self.suite_name
-        self.r2u2prep = r2u2prep
+        self.c2po = c2po
         self.r2u2bin = r2u2bin
 
         self.clean()
         self.configure_logger()
 
-        if not r2u2prep.is_file():
-            self.suite_fail_msg(f"'r2u2prep' not a file ({r2u2prep}).")
+        if not c2po.is_file():
+            self.suite_fail_msg(f"'c2po' not a file ({c2po}).")
 
         if not r2u2bin.is_file():
             self.suite_fail_msg(f"'r2u2bin' not a file ({r2u2bin}).")
@@ -439,7 +439,7 @@ class TestSuite():
                 self.suite_fail_msg(f"No options specified for suite '{self.suite_name}'")
                 return
 
-            self.r2u2prep_options: dict[str,str|bool] = config["options"]
+            self.c2po_options: dict[str,str|bool] = config["options"]
 
             for testcase in config["tests"]:
                 name: Optional[str] = testcase["name"] if "name" in testcase else None
@@ -447,15 +447,15 @@ class TestSuite():
                 trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
                 oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 
-                options = copy(self.r2u2prep_options)
+                options = copy(self.c2po_options)
                 if "options" in testcase:
                     options.update(testcase["options"])
 
-                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.r2u2prep, self.r2u2bin, self._copyback))
+                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.c2po, self.r2u2bin, self._copyback))
 
         if "suites" in config:
             for suite in config["suites"]:
-                self.suites.append(TestSuite(suite, self.top_results_dir, self.r2u2prep, self.r2u2bin, self._copyback))
+                self.suites.append(TestSuite(suite, self.top_results_dir, self.c2po, self.r2u2bin, self._copyback))
 
     def run(self) -> int:
         if not self.status:
@@ -476,7 +476,7 @@ class TestSuite():
             return 0
 
 
-def main(r2u2prep: Path, 
+def main(c2po: Path, 
          r2u2bin: Path, 
          resultsdir: Path, 
          suite_names: list[str],
@@ -484,7 +484,7 @@ def main(r2u2prep: Path,
 ) -> int:
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, resultsdir, r2u2prep, r2u2bin, copyback))
+        suites.append(TestSuite(suite_name, resultsdir, c2po, r2u2bin, copyback))
 
     status = 0
     for suite in suites:
@@ -494,8 +494,8 @@ def main(r2u2prep: Path,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--r2u2prep", default=TEST_DIR / "../compiler/r2u2prep.py",
-                        help="r2u2_prep.py file to use for tests")
+    parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
+                        help="c2po.py file to use for tests")
     parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static/build/r2u2_debug",
                         help="r2u2 binary to use for tests")
     parser.add_argument("suites", nargs="+",
@@ -506,9 +506,9 @@ if __name__ == "__main__":
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
 
-    r2u2prep = Path(args.r2u2prep)
+    c2po = Path(args.c2po)
     r2u2bin = Path(args.r2u2bin)
     resultsdir = Path(args.resultsdir)
 
-    retcode = main(r2u2prep, r2u2bin, resultsdir, args.suites, args.copyback)
+    retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback)
     sys.exit(retcode)
