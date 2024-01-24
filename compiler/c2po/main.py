@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Optional, NamedTuple
-import logging
 import re
 from enum import Enum
 from pathlib import Path
@@ -60,14 +59,17 @@ def process_trace_file(
         header = lines[0][1:]
 
         if map_file_provided:
-            log.logger.warning(
-                "Map file given and header included in trace file; header will be ignored."
+            log.warning(
+                "Map file given and header included in trace file; header will be ignored.",
+                __name__
             )
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
-                log.logger.warning(
-                    f"{trace_path.name}:{1}: Signal ID '{id}' found multiple times in csv, using right-most value."
+                log.warning(
+                    f"Signal ID '{id}' found multiple times in csv, using right-most value.",
+                    __name__,
+                    log.FileLocation(trace_path.name, 1)
                 )
             signal_mapping[id] = cnt
             cnt += 1
@@ -95,14 +97,19 @@ def process_map_file(map_path: Path) -> Optional[types.SignalMapping]:
             sid = int(strs[1])
 
             if id in mapping:
-                log.logger.warning(
-                    f"{map_path.name}:{lines.index(line)+1}: Signal ID '{id}' found multiple times in map file, using latest value."
+                log.warning(
+                    f"Signal ID '{id}' found multiple times in map file, using latest value.",
+                    __name__,
+                    log.FileLocation(map_path.name, lines.index(line)+1)
                 )
 
             mapping[id] = sid
         else:
-            log.logger.error(
-                f"{map_path.name}:{lines.index(line)}: Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL"
+            log.error(
+                f"Invalid format for map line (found {line})"
+                 "\n\t Should be of the form SYMBOL ':' NUMERAL",
+                __name__,
+                log.FileLocation(map_path.name, lines.index(line))
             )
             return None
 
@@ -146,26 +153,26 @@ def validate_input(
 
     input_path = Path(input_filename)
     if not input_path.is_file():
-        log.logger.error(f" Input file '{input_filename} not a valid file.'")
+        log.error(f"Input file '{input_filename} not a valid file.'", __name__)
         input_path = None
 
     trace_path = None
     if trace_filename != "":
         trace_path = Path(trace_filename)
         if not trace_path.is_file():
-            log.logger.error(f" Trace file '{trace_filename}' is not a valid file.")
+            log.error(f"Trace file '{trace_filename}' is not a valid file.", __name__)
 
     map_path = None
     if map_filename != "":
         map_path = Path(map_filename)
         if not map_path.is_file():
-            log.logger.error(f" Map file '{map_filename}' is not a valid file.")
+            log.error(f"Map file '{map_filename}' is not a valid file.", __name__)
 
     output_path = None
     if output_filename != "":
         output_path = Path(output_filename)
         if output_path.is_file():
-            log.logger.warning(f" Output file '{output_filename}' already exists.")
+            log.warning(f"Output file '{output_filename}' already exists.", __name__)
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -185,8 +192,8 @@ def validate_input(
 
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
-            log.logger.warning(
-                f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time})."
+            log.warning(
+                f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", __name__
             )
     else:
         mission_time = trace_length
@@ -194,8 +201,9 @@ def validate_input(
     if endian in BYTE_ORDER_SIGILS:
         endian_sigil = BYTE_ORDER_SIGILS[endian]
     else:
-        log.logger.critical(
-            f" Endianness option argument {endian} invalid. Check CLI options?"
+        log.internal(
+            f"Endianness option argument {endian} invalid. Check CLI options?",
+            __name__
         )
         endian_sigil = "@"
 
@@ -203,30 +211,31 @@ def validate_input(
     types.set_types(impl, int_width, int_is_signed, float_width)
 
     if enable_booleanizer and enable_atomic_checkers:
-        log.logger.error(" Only one of AT and booleanizer can be enabled")
+        log.error("Only one of AT and booleanizer can be enabled", __name__)
         status = False
 
     if impl == types.R2U2Implementation.C:
         if (not enable_booleanizer and not enable_atomic_checkers) or (
             enable_booleanizer and enable_atomic_checkers
         ):
-            log.logger.error(
-                " Exactly one of booleanizer or atomic checker must be enabled for C implementation."
+            log.error(
+                "Exactly one of booleanizer or atomic checker must be enabled for C implementation.",
+                __name__
             )
             status = False
     else:  # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
         if enable_booleanizer:
-            log.logger.error(" Booleanizer only available for C implementation.")
+            log.error("Booleanizer only available for C implementation.", __name__)
             status = False
 
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
-            log.logger.error(" Extended operators only support for C implementation.")
+            log.error("Extended operators only support for C implementation.", __name__)
             status = False
 
     if enable_nnf and enable_bnf:
-        log.logger.warning(
-            " Attempting rewrite to both NNF and BNF, defaulting to NNF."
+        log.warning(
+            " Attempting rewrite to both NNF and BNF, defaulting to NNF.", __name__
         )
 
     transforms = set(transform.TRANSFORM_PIPELINE)
@@ -341,7 +350,7 @@ def compile(
         quiet: If true disables assembly output to stdout
     """
     if debug:
-        log.logger.setLevel(logging.DEBUG)
+        log.set_debug()
 
     # ----------------------------------
     # Input validation
@@ -369,7 +378,7 @@ def compile(
     )
 
     if not options.status or not options.input_path:
-        log.logger.error(" Input invalid.")
+        log.error("Input invalid.", __name__)
         return ReturnCode.INVALID_INPUT
 
     # ----------------------------------
@@ -381,7 +390,7 @@ def compile(
         )
 
         if not program:
-            log.logger.error(" Failed parsing.")
+            log.error("Failed parsing.", __name__)
             return ReturnCode.PARSE_ERR
 
         # must have defined this in trace or map file
@@ -391,7 +400,7 @@ def compile(
         parse_output = parse.parse_mltl(options.input_path, options.mission_time)
 
         if not parse_output:
-            log.logger.error(" Failed parsing.")
+            log.error("Failed parsing.", __name__)
             return ReturnCode.PARSE_ERR
 
         (program, signal_mapping) = parse_output
@@ -410,7 +419,7 @@ def compile(
     )
 
     if not well_typed:
-        log.logger.error(" Failed type check.")
+        log.error("Failed type check.", __name__)
         return ReturnCode.TYPE_CHECK_ERR
 
     # ----------------------------------
@@ -429,7 +438,7 @@ def compile(
     # Assembly
     # ----------------------------------
     if not options.output_path:
-        log.logger.error(" Input invalid.")
+        log.error("Input invalid.", __name__)
         return ReturnCode.INVALID_INPUT
 
     binary = assemble.assemble(program, context, quiet, options.endian_sigil)

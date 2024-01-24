@@ -1,68 +1,103 @@
-import logging
-import re
-import sys
+"""Module for logging.
 
-LOGGER_NAME: str = "__c2po_logger__"
+Error messaging (source file location) are inspired by GNU error message standards (https://www.gnu.org/prep/standards/standards.html#Errors).
+"""
+import sys
+import enum
+from typing import NamedTuple, Optional
+
 MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 
+OUT = sys.stdout
+ERR = sys.stderr
 
-class Color:
+enable_debug = False
+enable_quiet = False
+
+class FileLocation(NamedTuple):
+    filename: str
+    lineno: int
+
+
+class Color(enum.Enum):
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
     OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
+    WARN = "\033[93m"
     FAIL = "\033[91m"
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
 
-class StandardFormatter(logging.Formatter):
-    format_str = "%(levelname)s"
-
-    FORMATS = {
-        logging.DEBUG: format_str + ":%(message)s",
-        logging.INFO: "%(message)s",
-        logging.WARNING: format_str + ":%(message)s",
-        logging.ERROR: format_str + ":%(message)s",
-        logging.CRITICAL: format_str + ":%(message)s",
-    }
-
-    def format(self, record) -> str:
-        record.msg = re.sub(r"\033\[\d\d?m", "", record.msg)  # removes color from msg
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+def set_debug() -> None:
+    global enable_debug
+    enable_debug = True
 
 
-class ColorFormatter(logging.Formatter):
-    format_str = "%(levelname)s"
-
-    FORMATS = {
-        logging.DEBUG: Color.OKBLUE + format_str + Color.ENDC + ":%(message)s",
-        logging.INFO: "%(message)s",
-        logging.WARNING: Color.WARNING + format_str + Color.ENDC + ":%(message)s",
-        logging.ERROR: Color.FAIL + format_str + Color.ENDC + ":%(message)s",
-        logging.CRITICAL: Color.UNDERLINE
-        + Color.FAIL
-        + "INTERNAL"
-        + Color.ENDC
-        + ":%(message)s",
-    }
-
-    def format(self, record):
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
+def set_quiet() -> None:
+    global enable_quiet
+    enable_quiet = True
 
 
-logger = logging.getLogger(LOGGER_NAME)
-logger.setLevel(logging.ERROR)
+def format(
+    message: str,
+    level: str,
+    color: Optional[Color],
+    module: str,
+    location: Optional[FileLocation] = None,
+) -> str:
+    formatted_message = ""
 
-logger_handler = logging.StreamHandler(sys.stderr)
-logger_handler.setFormatter(ColorFormatter())
+    if module:
+        formatted_message += f"[{module.replace('c2po.', '')}]"
 
-logger.addHandler(logger_handler)
+    if color:
+        formatted_message += f"[{color.value}{level}{Color.ENDC.value}]"
+    else:
+        formatted_message += f"[{level}]"
+
+    if location:
+        formatted_message += f" {location.filename}:{location.lineno}:"
+
+    formatted_message += f" {message}\n"
+
+    return formatted_message
 
 
+def debug(message: str, module: str, location: Optional[FileLocation] = None) -> None:
+    if not enable_debug or enable_quiet:
+        return
+    formatted_message = format(message, "DBG", Color.OKBLUE, module, location)
+    OUT.write(formatted_message)
+
+
+def info(message: str, module: str, location: Optional[FileLocation] = None) -> None:
+    if enable_quiet:
+        return
+    formatted_message = format(message, "INF", None, module, location)
+    OUT.write(formatted_message)
+
+
+def warning(message: str, module: str, location: Optional[FileLocation] = None) -> None:
+    if enable_quiet:
+        return
+    formatted_message = format(message, "WRN", Color.WARN, module, location)
+    ERR.write(formatted_message)
+
+
+def error(message: str, module: str, location: Optional[FileLocation] = None) -> None:
+    if enable_quiet:
+        return
+    formatted_message = format(message, "ERR", Color.FAIL, module, location)
+    ERR.write(formatted_message)
+
+
+def internal(
+    message: str, module: str, location: Optional[FileLocation] = None
+) -> None:
+    if enable_quiet:
+        return
+    formatted_message = format(message, "BUG", Color.FAIL, module, location)
+    ERR.write(formatted_message)

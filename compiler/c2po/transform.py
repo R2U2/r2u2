@@ -33,7 +33,7 @@ def transform_function_calls(
             struct_members = [m for m in context.structs[node.symbol].keys()]
             node.replace(
                 cpt.Struct(
-                    node.ln,
+                    node.loc,
                     node.symbol,
                     {
                         name: struct_members.index(name)
@@ -61,7 +61,7 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
 
             spec_section.add_child(
                 cpt.Specification(
-                    contract.ln,
+                    contract.loc,
                     contract.symbol,
                     contract.formula_numbers[0],
                     contract.get_assumption(),
@@ -70,22 +70,22 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
 
             spec_section.add_child(
                 cpt.Specification(
-                    contract.ln,
+                    contract.loc,
                     contract.symbol,
                     contract.formula_numbers[1],
                     cpt.LogicalImplies(
-                        contract.ln, contract.get_assumption(), contract.get_guarantee()
+                        contract.loc, contract.get_assumption(), contract.get_guarantee()
                     ),
                 )
             )
 
             spec_section.add_child(
                 cpt.Specification(
-                    contract.ln,
+                    contract.loc,
                     contract.symbol,
                     contract.formula_numbers[2],
                     cpt.LogicalAnd(
-                        contract.ln,
+                        contract.loc,
                         [contract.get_assumption(), contract.get_guarantee()],
                     ),
                 )
@@ -114,7 +114,7 @@ def transform_set_aggregation(
                 _transform_struct_access(_node)
 
             cur = cpt.LogicalAnd(
-                node.ln,
+                node.loc,
                 [
                     cpt.rename(node.get_boundvar(), e, node.get_expr())
                     for e in node.get_set().children
@@ -125,7 +125,7 @@ def transform_set_aggregation(
         elif isinstance(node, cpt.ForSome):
             _transform_struct_access(node.get_set())
             cur = cpt.LogicalOr(
-                node.ln,
+                node.loc,
                 [
                     cpt.rename(node.get_boundvar(), e, node.get_expr())
                     for e in node.get_set().children
@@ -137,9 +137,9 @@ def transform_set_aggregation(
             s: cpt.SetExpression = node.get_set()
             _transform_struct_access(node.get_set())
             cur = cpt.Equal(
-                node.ln,
+                node.loc,
                 cpt.ArithmeticAdd(
-                    node.ln,
+                    node.loc,
                     [
                         cpt.rename(node.get_boundvar(), e, node.get_expr())
                         for e in node.get_set().children
@@ -153,9 +153,9 @@ def transform_set_aggregation(
             s: cpt.SetExpression = node.get_set()
             _transform_struct_access(s)
             cur = cpt.GreaterThanOrEqual(
-                node.ln,
+                node.loc,
                 cpt.ArithmeticAdd(
-                    node.ln,
+                    node.loc,
                     [
                         cpt.rename(node.get_boundvar(), e, node.get_expr())
                         for e in node.get_set().children
@@ -169,9 +169,9 @@ def transform_set_aggregation(
             s: cpt.SetExpression = node.get_set()
             _transform_struct_access(s)
             cur = cpt.LessThanOrEqual(
-                node.ln,
+                node.loc,
                 cpt.ArithmeticAdd(
-                    node.ln,
+                    node.loc,
                     [
                         cpt.rename(node.get_boundvar(), e, node.get_expr())
                         for e in node.get_set().children
@@ -216,10 +216,10 @@ def transform_extended_operators(
                 # p || q = !(!p && !q)
                 node.replace(
                     cpt.LogicalNegate(
-                        node.ln,
+                        node.loc,
                         cpt.LogicalAnd(
-                            node.ln,
-                            [cpt.LogicalNegate(c.ln, c) for c in node.children],
+                            node.loc,
+                            [cpt.LogicalNegate(c.loc, c) for c in node.children],
                         ),
                     )
                 )
@@ -229,22 +229,22 @@ def transform_extended_operators(
                 # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
                 node.replace(
                     cpt.LogicalNegate(
-                        node.ln,
+                        node.loc,
                         cpt.LogicalAnd(
-                            node.ln,
+                            node.loc,
                             [
                                 cpt.LogicalNegate(
-                                    node.ln,
+                                    node.loc,
                                     cpt.LogicalAnd(
-                                        node.ln,
-                                        [lhs, cpt.LogicalNegate(rhs.ln, rhs)],
+                                        node.loc,
+                                        [lhs, cpt.LogicalNegate(rhs.loc, rhs)],
                                     ),
                                 ),
                                 cpt.LogicalNegate(
-                                    node.ln,
+                                    node.loc,
                                     cpt.LogicalAnd(
-                                        node.ln,
-                                        [cpt.LogicalNegate(lhs.ln, lhs), rhs],
+                                        node.loc,
+                                        [cpt.LogicalNegate(lhs.loc, lhs), rhs],
                                     ),
                                 ),
                             ],
@@ -257,9 +257,9 @@ def transform_extended_operators(
                 # p -> q = !(p && !q)
                 node.replace(
                     cpt.LogicalNegate(
-                        node.ln,
+                        node.loc,
                         cpt.LogicalAnd(
-                            lhs.ln, [lhs, cpt.LogicalNegate(rhs.ln, rhs)]
+                            lhs.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
                         ),
                     )
                 )
@@ -269,18 +269,18 @@ def transform_extended_operators(
                 # p <-> q = !(p && !q) && !(p && !q)
                 node.replace(
                     cpt.LogicalAnd(
-                        node.ln,
+                        node.loc,
                         [
                             cpt.LogicalNegate(
-                                node.ln,
+                                node.loc,
                                 cpt.LogicalAnd(
-                                    lhs.ln, [lhs, cpt.LogicalNegate(rhs.ln, rhs)]
+                                    lhs.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
                                 ),
                             ),
                             cpt.LogicalNegate(
-                                node.ln,
+                                node.loc,
                                 cpt.LogicalAnd(
-                                    lhs.ln, [cpt.LogicalNegate(lhs.ln, lhs), rhs]
+                                    lhs.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs]
                                 ),
                             ),
                         ],
@@ -293,11 +293,11 @@ def transform_extended_operators(
             # p R q = !(!p U !q)
             node.replace(
                 cpt.LogicalNegate(
-                    node.ln,
+                    node.loc,
                     cpt.Until(
-                        node.ln,
-                        cpt.LogicalNegate(lhs.ln, lhs),
-                        cpt.LogicalNegate(rhs.ln, rhs),
+                        node.loc,
+                        cpt.LogicalNegate(lhs.loc, lhs),
+                        cpt.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     ),
@@ -309,7 +309,7 @@ def transform_extended_operators(
             # F p = True U p
             node.replace(
                 cpt.Until(
-                    node.ln, cpt.Bool(node.ln, True), operand, bounds.lb, bounds.ub
+                    node.loc, cpt.Bool(node.loc, True), operand, bounds.lb, bounds.ub
                 )
             )
 
@@ -327,9 +327,9 @@ def transform_boolean_normal_form(
             # p || q = !(!p && !q)
             node.replace(
                 cpt.LogicalNegate(
-                    node.ln,
+                    node.loc,
                     cpt.LogicalAnd(
-                        node.ln, [cpt.LogicalNegate(c.ln, c) for c in node.children]
+                        node.loc, [cpt.LogicalNegate(c.loc, c) for c in node.children]
                     ),
                 )
             )
@@ -339,9 +339,9 @@ def transform_boolean_normal_form(
             # p -> q = !(p && !q)
             node.replace(
                 cpt.LogicalNegate(
-                    node.ln,
+                    node.loc,
                     cpt.LogicalAnd(
-                        node.ln, [lhs, cpt.LogicalNegate(rhs.ln, rhs)]
+                        node.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
                     ),
                 )
             )
@@ -351,20 +351,20 @@ def transform_boolean_normal_form(
             # p xor q = !(!p && !q) && !(p && q)
             node.replace(
                 cpt.LogicalAnd(
-                    node.ln,
+                    node.loc,
                     [
                         cpt.LogicalNegate(
-                            node.ln,
+                            node.loc,
                             cpt.LogicalAnd(
-                                lhs.ln,
+                                lhs.loc,
                                 [
-                                    cpt.LogicalNegate(lhs.ln, lhs),
-                                    cpt.LogicalNegate(rhs.ln, rhs),
+                                    cpt.LogicalNegate(lhs.loc, lhs),
+                                    cpt.LogicalNegate(rhs.loc, rhs),
                                 ],
                             ),
                         ),
                         cpt.LogicalNegate(
-                            lhs.ln, cpt.LogicalAnd(lhs.ln, [lhs, rhs])
+                            lhs.loc, cpt.LogicalAnd(lhs.loc, [lhs, rhs])
                         ),
                     ],
                 )
@@ -375,8 +375,8 @@ def transform_boolean_normal_form(
             # F p = True U p
             node.replace(
                 cpt.Until(
-                    node.ln,
-                    cpt.Bool(operand.ln, True),
+                    node.loc,
+                    cpt.Bool(operand.loc, True),
                     operand,
                     bounds.lb,
                     bounds.ub,
@@ -388,11 +388,11 @@ def transform_boolean_normal_form(
             # G p = !(True U !p)
             node.replace(
                 cpt.LogicalNegate(
-                    node.ln,
+                    node.loc,
                     cpt.Until(
-                        node.ln,
-                        cpt.Bool(operand.ln, True),
-                        cpt.LogicalNegate(operand.ln, operand),
+                        node.loc,
+                        cpt.Bool(operand.loc, True),
+                        cpt.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
                     ),
@@ -405,11 +405,11 @@ def transform_boolean_normal_form(
             # p R q = !(!p U !q)
             node.replace(
                 cpt.LogicalNegate(
-                    node.ln,
+                    node.loc,
                     cpt.Until(
-                        node.ln,
-                        cpt.LogicalNegate(lhs.ln, lhs),
-                        cpt.LogicalNegate(rhs.ln, rhs),
+                        node.loc,
+                        cpt.LogicalNegate(lhs.loc, lhs),
+                        cpt.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     ),
@@ -435,16 +435,16 @@ def transform_negative_normal_form(
                 # !(p || q) = !p && !q
                 node.replace(
                     cpt.LogicalAnd(
-                        node.ln,
-                        [cpt.LogicalNegate(c.ln, c) for c in operand.children],
+                        node.loc,
+                        [cpt.LogicalNegate(c.loc, c) for c in operand.children],
                     )
                 )
             if isinstance(operand, cpt.LogicalAnd):
                 # !(p && q) = !p || !q
                 node.replace(
                     cpt.LogicalOr(
-                        node.ln,
-                        [cpt.LogicalNegate(c.ln, c) for c in operand.children],
+                        node.loc,
+                        [cpt.LogicalNegate(c.loc, c) for c in operand.children],
                     )
                 )
             elif isinstance(operand, cpt.Future):
@@ -452,8 +452,8 @@ def transform_negative_normal_form(
                 # !F p = G !p
                 node.replace(
                     cpt.Global(
-                        node.ln,
-                        cpt.LogicalNegate(operand.ln, operand),
+                        node.loc,
+                        cpt.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
                     )
@@ -463,8 +463,8 @@ def transform_negative_normal_form(
                 # !G p = F !p
                 node.replace(
                     cpt.Future(
-                        node.ln,
-                        cpt.LogicalNegate(operand.ln, operand),
+                        node.loc,
+                        cpt.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
                     )
@@ -476,9 +476,9 @@ def transform_negative_normal_form(
                 # !(p U q) = !p R !q
                 node.replace(
                     cpt.Release(
-                        node.ln,
-                        cpt.LogicalNegate(lhs.ln, lhs),
-                        cpt.LogicalNegate(rhs.ln, rhs),
+                        node.loc,
+                        cpt.LogicalNegate(lhs.loc, lhs),
+                        cpt.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     )
@@ -490,9 +490,9 @@ def transform_negative_normal_form(
                 # !(p R q) = !p U !q
                 node.replace(
                     cpt.Until(
-                        node.ln,
-                        cpt.LogicalNegate(lhs.ln, lhs),
-                        cpt.LogicalNegate(rhs.ln, rhs),
+                        node.loc,
+                        cpt.LogicalNegate(lhs.loc, lhs),
+                        cpt.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     )
@@ -502,7 +502,7 @@ def transform_negative_normal_form(
             rhs: cpt.Node = node.get_rhs()
             # p -> q = !p || q
             node.replace(
-                cpt.LogicalOr(node.ln, [cpt.LogicalNegate(lhs.ln, lhs), rhs])
+                cpt.LogicalOr(node.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs])
             )
         elif isinstance(node, cpt.LogicalXor):
             lhs: cpt.Node = node.get_lhs()
@@ -510,13 +510,13 @@ def transform_negative_normal_form(
             # p xor q = (p && !q) || (!p && q)
             node.replace(
                 cpt.LogicalOr(
-                    node.ln,
+                    node.loc,
                     [
                         cpt.LogicalAnd(
-                            node.ln, [lhs, cpt.LogicalNegate(rhs.ln, rhs)]
+                            node.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
                         ),
                         cpt.LogicalAnd(
-                            node.ln, [cpt.LogicalNegate(lhs.ln, lhs), rhs]
+                            node.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs]
                         ),
                     ],
                 )
@@ -537,10 +537,10 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             if isinstance(opnd1, cpt.Bool):
                 if opnd1.value is True:
                     # !true = false
-                    new = cpt.Bool(node.ln, False)
+                    new = cpt.Bool(node.loc, False)
                 else:
                     # !false = true
-                    new = cpt.Bool(node.ln, True)
+                    new = cpt.Bool(node.loc, True)
             elif isinstance(opnd1, cpt.LogicalNegate):
                 # !!p = p
                 new = opnd1.get_operand()
@@ -549,7 +549,7 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 if isinstance(opnd2, cpt.LogicalNegate):
                     # !(G[l,u](!p)) = F[l,u]p
                     new = cpt.Future(
-                        node.ln,
+                        node.loc,
                         opnd2.get_operand(),
                         opnd1.interval.lb,
                         opnd1.interval.ub,
@@ -559,7 +559,7 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 if isinstance(opnd2, cpt.LogicalNegate):
                     # !(F[l,u](!p)) = G[l,u]p
                     new = cpt.Global(
-                        node.ln,
+                        node.loc,
                         opnd2.get_operand(),
                         opnd1.interval.lb,
                         opnd1.interval.ub,
@@ -583,23 +583,23 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             if isinstance(opnd1, cpt.Bool):
                 if opnd1.value is True:
                     # G[l,u]True = True
-                    new = cpt.Bool(node.ln, True)
+                    new = cpt.Bool(node.loc, True)
                 else:
                     # G[l,u]False = False
-                    new = cpt.Bool(node.ln, False)
+                    new = cpt.Bool(node.loc, False)
             elif isinstance(opnd1, cpt.Global):
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
                 opnd2 = opnd1.get_operand()
                 lb: int = node.interval.lb + opnd1.interval.lb
                 ub: int = node.interval.ub + opnd1.interval.ub
-                new = cpt.Global(node.ln, opnd2, lb, ub)
+                new = cpt.Global(node.loc, opnd2, lb, ub)
             elif isinstance(opnd1, cpt.Future):
                 opnd2 = opnd1.get_operand()
                 if node.interval.lb == node.interval.ub:
                     # G[a,a](F[l,u]p) = F[l+a,u+a]p
                     lb: int = node.interval.lb + opnd1.interval.lb
                     ub: int = node.interval.ub + opnd1.interval.ub
-                    new = cpt.Future(node.ln, opnd2, lb, ub)
+                    new = cpt.Future(node.loc, opnd2, lb, ub)
         elif isinstance(node, cpt.Future):
             opnd1 = node.get_operand()
             if node.interval.lb == 0 and node.interval.ub == 0:
@@ -608,23 +608,23 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             if isinstance(opnd1, cpt.Bool):
                 if opnd1.value is True:
                     # F[l,u]True = True
-                    new = cpt.Bool(node.ln, True)
+                    new = cpt.Bool(node.loc, True)
                 else:
                     # F[l,u]False = False
-                    new = cpt.Bool(node.ln, False)
+                    new = cpt.Bool(node.loc, False)
             elif isinstance(opnd1, cpt.Future):
                 # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
                 opnd2 = opnd1.get_operand()
                 lb: int = node.interval.lb + opnd1.interval.lb
                 ub: int = node.interval.ub + opnd1.interval.ub
-                new = cpt.Future(node.ln, opnd2, lb, ub)
+                new = cpt.Future(node.loc, opnd2, lb, ub)
             elif isinstance(opnd1, cpt.Global):
                 opnd2 = opnd1.get_operand()
                 if node.interval.lb == node.interval.ub:
                     # F[a,a](G[l,u]p) = G[l+a,u+a]p
                     lb: int = node.interval.lb + opnd1.interval.lb
                     ub: int = node.interval.ub + opnd1.interval.ub
-                    new = cpt.Global(node.ln, opnd2, lb, ub)
+                    new = cpt.Global(node.loc, opnd2, lb, ub)
         elif isinstance(node, cpt.LogicalAnd):
             # Assume binary for now
             lhs = node.get_child(0)
@@ -641,31 +641,31 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # G[lb1,lb2]p && G[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        new = cpt.Global(node.ln, p, lb1, ub1)
+                        new = cpt.Global(node.loc, p, lb1, ub1)
                         return
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        new = cpt.Global(node.ln, p, lb2, ub2)
+                        new = cpt.Global(node.loc, p, lb2, ub2)
                         return
                     elif lb1 <= lb2 and lb2 <= ub1 + 1:
                         # lb1 <= lb2 <= ub1+1
-                        new = cpt.Global(node.ln, p, lb1, max(ub1, ub2))
+                        new = cpt.Global(node.loc, p, lb1, max(ub1, ub2))
                         return
                     elif lb2 <= lb1 and lb1 <= ub2 + 1:
                         # lb2 <= lb1 <= ub2+1
-                        new = cpt.Global(node.ln, p, lb2, max(ub1, ub2))
+                        new = cpt.Global(node.loc, p, lb2, max(ub1, ub2))
                         return
 
                 lb3: int = min(lb1, lb2)
                 ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
 
                 new = cpt.Global(
-                    node.ln,
+                    node.loc,
                     cpt.LogicalAnd(
-                        node.ln,
+                        node.loc,
                         [
-                            cpt.Global(node.ln, p, lb1 - lb3, ub1 - ub3),
-                            cpt.Global(node.ln, q, lb2 - lb3, ub2 - ub3),
+                            cpt.Global(node.loc, p, lb1 - lb3, ub1 - ub3),
+                            cpt.Global(node.loc, q, lb2 - lb3, ub2 - ub3),
                         ],
                     ),
                     lb3,
@@ -682,10 +682,10 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     ub2 = rhs.interval.ub
                     if lb1 >= lb2 and ub1 <= ub2:
                         # l2 <= l1 <= u1 <= u2
-                        new = cpt.Future(node.ln, lhs_opnd, lb1, ub1)
+                        new = cpt.Future(node.loc, lhs_opnd, lb1, ub1)
                     elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
-                        new = cpt.Future(node.ln, lhs_opnd, lb2, ub2)
+                        new = cpt.Future(node.loc, lhs_opnd, lb2, ub2)
             elif isinstance(lhs, cpt.Until) and isinstance(rhs, cpt.Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
@@ -695,8 +695,8 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
                     new = cpt.Until(
-                        node.ln,
-                        cpt.LogicalAnd(node.ln, [lhs_lhs, rhs_lhs]),
+                        node.loc,
+                        cpt.LogicalAnd(node.loc, [lhs_lhs, rhs_lhs]),
                         lhs_rhs,
                         lhs.interval.lb,
                         min(lhs.interval.ub, rhs.interval.ub),
@@ -717,19 +717,19 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # F[lb1,lb2]p || F[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        new = cpt.Future(node.ln, p, lb1, ub1)
+                        new = cpt.Future(node.loc, p, lb1, ub1)
                         return
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        new = cpt.Future(node.ln, p, lb2, ub2)
+                        new = cpt.Future(node.loc, p, lb2, ub2)
                         return
                     elif lb1 <= lb2 and lb2 <= ub1 + 1:
                         # lb1 <= lb2 <= ub1+1
-                        new = cpt.Future(node.ln, p, lb1, max(ub1, ub2))
+                        new = cpt.Future(node.loc, p, lb1, max(ub1, ub2))
                         return
                     elif lb2 <= lb1 and lb1 <= ub2 + 1:
                         # lb2 <= lb1 <= ub2+1
-                        new = cpt.Future(node.ln, p, lb2, max(ub1, ub2))
+                        new = cpt.Future(node.loc, p, lb2, max(ub1, ub2))
                         return
 
                 # TODO: check for when lb==ub==0
@@ -738,12 +738,12 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
 
                 new = cpt.Future(
-                    node.ln,
+                    node.loc,
                     cpt.LogicalOr(
-                        node.ln,
+                        node.loc,
                         [
-                            cpt.Future(node.ln, p, lb1 - lb3, ub1 - ub3),
-                            cpt.Future(node.ln, q, lb2 - lb3, ub2 - ub3),
+                            cpt.Future(node.loc, p, lb1 - lb3, ub1 - ub3),
+                            cpt.Future(node.loc, q, lb2 - lb3, ub2 - ub3),
                         ],
                     ),
                     lb3,
@@ -760,10 +760,10 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     ub2 = rhs.interval.ub
                     if lb1 >= lb2 and ub1 <= ub2:
                         # l2 <= l1 <= u1 <= u2
-                        new = cpt.Global(node.ln, lhs_opnd, lb1, ub1)
+                        new = cpt.Global(node.loc, lhs_opnd, lb1, ub1)
                     elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
-                        new = cpt.Global(node.ln, lhs_opnd, lb2, ub2)
+                        new = cpt.Global(node.loc, lhs_opnd, lb2, ub2)
             elif isinstance(lhs, cpt.Until) and isinstance(rhs, cpt.Until):
                 lhs_lhs = lhs.get_lhs()
                 lhs_rhs = lhs.get_rhs()
@@ -772,8 +772,8 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
                     new = cpt.Until(
-                        node.ln,
-                        cpt.LogicalOr(node.ln, [lhs_rhs, rhs_rhs]),
+                        node.loc,
+                        cpt.LogicalOr(node.loc, [lhs_rhs, rhs_rhs]),
                         lhs_lhs,
                         lhs.interval.lb,
                         min(lhs.interval.ub, rhs.interval.ub),
@@ -788,7 +788,7 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             ):
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
                 new = cpt.Global(
-                    node.ln, lhs, node.interval.lb, node.interval.lb + rhs.interval.ub
+                    node.loc, lhs, node.interval.lb, node.interval.lb + rhs.interval.ub
                 )
             elif (
                 isinstance(rhs, cpt.Future)
@@ -797,11 +797,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             ):
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
                 new = cpt.Future(
-                    node.ln, lhs, node.interval.lb, node.interval.lb + rhs.interval.ub
+                    node.loc, lhs, node.interval.lb, node.interval.lb + rhs.interval.ub
                 )
 
         if new:
-            log.logger.debug(f"REWRITE:\n\t{node}\n\t\t===>\n\t{new}")
+            log.debug(f"REWRITE:\n\t{node}\n\t\t===>\n\t{new}", __name__)
             node.replace(new)
 
     for node in [n for s in program.get_spec_sections() for n in cpt.postorder(s)]:
@@ -812,16 +812,16 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
     S: dict[str, cpt.Node]
 
-    log.logger.debug("CSE: Beginning CSE")
+    log.debug("CSE: Beginning CSE", __name__)
 
     def _optimize_cse(node: cpt.Node) -> None:
         nonlocal S
 
         if str(node) in S:
-            log.logger.debug(f"CSE: Replacing --- {node}")
+            log.debug(f"CSE: Replacing --- {node}", __name__)
             node.replace(S[str(node)])
         else:
-            log.logger.debug(f"CSE: Visiting ---- {node}")
+            log.debug(f"CSE: Visiting ---- {node}", __name__)
             S[str(node)] = node
 
     for spec_section in program.get_spec_sections():
@@ -856,8 +856,9 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     for node in [n for s in program.get_specs() for n in cpt.postorder(s)]:
         _compute_atomics(node)
 
-    log.logger.debug(
-        f"ATM: Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]"
+    log.debug(
+        f"ATM: Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",
+        __name__
     )
 
 

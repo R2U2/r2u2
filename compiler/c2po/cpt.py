@@ -20,8 +20,8 @@ class C2POSection(Enum):
 
 
 class Node:
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        self.ln: int = ln
+    def __init__(self, location: log.FileLocation, c: list[Node]) -> None:
+        self.loc: log.FileLocation = location
         self.symbol: str = ""
 
         self.children: list[Node] = []
@@ -93,14 +93,14 @@ class Node:
 
     def __deepcopy__(self, memo) -> Node:
         children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.ln, children)
+        new = type(self)(self.loc, children)
         self.copy_attrs(new)
         return new
 
 
 class Expression(Node):
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.engine = types.R2U2Engine.NONE
         self.atomic_id: int = -1  # only set for atomic propositions
         self.total_scq_size: int = -1
@@ -126,22 +126,22 @@ class Expression(Node):
     def to_mltl_std(self) -> str:
         if self.atomic_id < 0:
             raise TypeError(
-                f"{self.ln}: Non-atomic node type '{type(self)}' unsupported in MLTL standard."
+                f"{self.loc}: Non-atomic node type '{type(self)}' unsupported in MLTL standard."
             )
         return f"a{self.atomic_id}"
 
 
 class Literal(Expression):
-    def __init__(self, ln: int) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation) -> None:
+        super().__init__(loc, [])
 
     def __str__(self) -> str:
         return self.symbol
 
 
 class Constant(Literal):
-    def __init__(self, ln: int, a: list[Node]) -> None:
-        super().__init__(ln)
+    def __init__(self, loc: log.FileLocation, a: list[Node]) -> None:
+        super().__init__(loc)
         self.value = 0
 
     def get_value(self) -> Union[int, float]:
@@ -149,8 +149,8 @@ class Constant(Literal):
 
 
 class Bool(Constant):
-    def __init__(self, ln: int, v: bool) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation, v: bool) -> None:
+        super().__init__(loc, [])
         self.type = types.BoolType(True)
         self.bpd: int = 0
         self.wpd: int = 0
@@ -163,30 +163,32 @@ class Bool(Constant):
 
 
 class Integer(Constant):
-    def __init__(self, ln: int, v: int) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation, v: int) -> None:
+        super().__init__(loc, [])
         self.value: int = v
         self.symbol = str(v)
         self.type = types.IntType(True)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
         if v.bit_length() > types.IntType.width:
-            log.logger.error(
-                f"{ln} Constant '{v}' not representable in configured int width ('{types.IntType.width}')."
+            log.error(
+                f"Constant '{v}' not representable in configured int width ('{types.IntType.width}').",
+                __name__,
+                loc
             )
 
     def get_value(self) -> int:
         return self.value
 
     def __deepcopy__(self, memo) -> Integer:
-        new = Integer(self.ln, self.value)
+        new = Integer(self.loc, self.value)
         self.copy_attrs(new)
         return new
 
 
 class Float(Constant):
-    def __init__(self, ln: int, v: float) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation, v: float) -> None:
+        super().__init__(loc, [])
         self.type = types.FloatType(True)
         self.value: float = v
         self.symbol = str(v)
@@ -194,20 +196,20 @@ class Float(Constant):
 
         # FIXME:
         # if len(v.hex()[2:]) > FLOAT.width:
-        #     log.logger.error(f"{ln} Constant '{v}' not representable in configured float width ('{FLOAT.width}').")
+        #     log.error(f"{ln} Constant '{v}' not representable in configured float width ('{FLOAT.width}').")
 
     def get_value(self) -> float:
         return self.value
 
     def __deepcopy__(self, memo) -> Float:
-        new = Float(self.ln, self.value)
+        new = Float(self.loc, self.value)
         self.copy_attrs(new)
         return new
 
 
 class Variable(Expression):
-    def __init__(self, ln: int, s: str) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation, s: str) -> None:
+        super().__init__(loc, [])
         self.symbol: str = s
 
     def __eq__(self, __o: object) -> bool:
@@ -224,8 +226,8 @@ class Variable(Expression):
 
 
 class Signal(Literal):
-    def __init__(self, ln: int, s: str, t: types.Type) -> None:
-        super().__init__(ln)
+    def __init__(self, loc: log.FileLocation, s: str, t: types.Type) -> None:
+        super().__init__(loc)
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
@@ -238,26 +240,26 @@ class Signal(Literal):
         return id(self)
 
     def __deepcopy__(self, memo) -> Signal:
-        copy = Signal(self.ln, self.symbol, self.type)
+        copy = Signal(self.loc, self.symbol, self.type)
         return copy
 
 
 class AtomicChecker(Literal):
-    def __init__(self, ln: int, s: str) -> None:
-        super().__init__(ln)
+    def __init__(self, loc: log.FileLocation, s: str) -> None:
+        super().__init__(loc)
         self.symbol: str = s
         self.type: types.Type = types.BoolType(False)
         self.engine = types.R2U2Engine.ATOMIC_CHECKER
 
     def __deepcopy__(self, memo) -> AtomicChecker:
-        copy = AtomicChecker(self.ln, self.symbol)
+        copy = AtomicChecker(self.loc, self.symbol)
         self.copy_attrs(copy)
         return copy
 
 
 class SetExpression(Expression):
-    def __init__(self, ln: int, m: list[Node]) -> None:
-        super().__init__(ln, m)
+    def __init__(self, loc: log.FileLocation, m: list[Node]) -> None:
+        super().__init__(loc, m)
         m.sort(key=lambda x: str(x))
         self.max_size: int = len(m)
         self.dynamic_size = None
@@ -283,8 +285,8 @@ class SetExpression(Expression):
 
 
 class Struct(Expression):
-    def __init__(self, ln: int, s: str, m: dict[str, int], c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, s: str, m: dict[str, int], c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.symbol: str = s
 
         # hack to get named arguments -- see get_member
@@ -302,7 +304,7 @@ class Struct(Expression):
 
     def __deepcopy__(self, memo) -> Struct:
         children = [deepcopy(c, memo) for c in self.children]
-        new = Struct(self.ln, self.symbol, self.members, children)
+        new = Struct(self.loc, self.symbol, self.members, children)
         self.copy_attrs(new)
         return new
 
@@ -314,8 +316,8 @@ class Struct(Expression):
 
 
 class StructAccess(Expression):
-    def __init__(self, ln: int, s: Node, m: str) -> None:
-        super().__init__(ln, [s])
+    def __init__(self, loc: log.FileLocation, s: Node, m: str) -> None:
+        super().__init__(loc, [s])
         self.member: str = m
 
     def get_struct(self) -> Struct:
@@ -323,7 +325,7 @@ class StructAccess(Expression):
 
     def __deepcopy__(self, memo) -> StructAccess:
         children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.ln, children[0], self.member)
+        new = type(self)(self.loc, children[0], self.member)
         self.copy_attrs(new)
         return new
 
@@ -332,8 +334,8 @@ class StructAccess(Expression):
 
 
 class Operator(Expression):
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.arity: int = len(c)
 
     def get_operands(self) -> list[Expression]:
@@ -344,10 +346,10 @@ class Operator(Expression):
 
 
 class UnaryOperator(Operator):
-    def __init__(self, ln: int, o: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, o: list[Node]) -> None:
         if len(o) != 1:
             raise ValueError(f" '{type(self)}' requires exactly one child node.")
-        super().__init__(ln, o)
+        super().__init__(loc, o)
 
     def get_operand(self) -> Expression:
         # FIXME: Does this work if we override the above get_operand?
@@ -358,10 +360,10 @@ class UnaryOperator(Operator):
 
 
 class BinaryOperator(Operator):
-    def __init__(self, ln: int, operands: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, operands: list[Node]) -> None:
         if len(operands) != 2:
             raise ValueError(f"'{type(self)}' requires exactly two child nodes.")
-        super().__init__(ln, operands)
+        super().__init__(loc, operands)
 
     def get_lhs(self) -> Expression:
         return self.get_operand(0)
@@ -374,13 +376,13 @@ class BinaryOperator(Operator):
 
 
 class FunctionCall(Operator):
-    def __init__(self, ln: int, s: str, a: list[Node]) -> None:
-        super().__init__(ln, a)
+    def __init__(self, loc: log.FileLocation, s: str, a: list[Node]) -> None:
+        super().__init__(loc, a)
         self.symbol: str = s
 
     def __deepcopy__(self, memo) -> FunctionCall:
         return FunctionCall(
-            self.ln, self.symbol, deepcopy(cast("list[Node]", self.children), memo)
+            self.loc, self.symbol, deepcopy(cast("list[Node]", self.children), memo)
         )
 
     def __str__(self) -> str:
@@ -391,8 +393,8 @@ class FunctionCall(Operator):
 
 
 class SetAggOperator(Operator):
-    def __init__(self, ln: int, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(ln, [s, v, e])
+    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
+        super().__init__(loc, [s, v, e])
 
     def get_set(self) -> SetExpression:
         return cast(SetExpression, self.get_child(0))
@@ -406,7 +408,7 @@ class SetAggOperator(Operator):
     def __deepcopy__(self, memo) -> SetAggOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(
-            self.ln,
+            self.loc,
             cast(SetExpression, children[0]),
             cast(Variable, children[1]),
             children[2],
@@ -429,22 +431,22 @@ class SetAggOperator(Operator):
 
 
 class ForEach(SetAggOperator):
-    def __init__(self, ln: int, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(ln, s, v, e)
+    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
+        super().__init__(loc, s, v, e)
         self.symbol: str = "foreach"
 
 
 class ForSome(SetAggOperator):
-    def __init__(self, ln: int, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(ln, s, v, e)
+    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
+        super().__init__(loc, s, v, e)
         self.symbol: str = "forsome"
 
 
 class ForExactly(SetAggOperator):
     def __init__(
-        self, ln: int, s: SetExpression, n: Node, v: Variable, e: Node
+        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
     ) -> None:
-        super().__init__(ln, s, v, e)
+        super().__init__(loc, s, v, e)
         self.symbol: str = "forexactly"
         self.add_child(n)
 
@@ -454,7 +456,7 @@ class ForExactly(SetAggOperator):
     def __deepcopy__(self, memo) -> ForExactly:
         children = [deepcopy(c, memo) for c in self.children]
         new = ForExactly(
-            self.ln,
+            self.loc,
             cast(SetExpression, children[0]),
             children[3],
             cast(Variable, children[1]),
@@ -466,9 +468,9 @@ class ForExactly(SetAggOperator):
 
 class ForAtLeast(SetAggOperator):
     def __init__(
-        self, ln: int, s: SetExpression, n: Node, v: Variable, e: Node
+        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
     ) -> None:
-        super().__init__(ln, s, v, e)
+        super().__init__(loc, s, v, e)
         self.symbol: str = "foratleast"
         self.add_child(n)
 
@@ -478,7 +480,7 @@ class ForAtLeast(SetAggOperator):
     def __deepcopy__(self, memo) -> ForAtLeast:
         children = [deepcopy(c, memo) for c in self.children]
         new = ForAtLeast(
-            self.ln,
+            self.loc,
             cast(SetExpression, children[0]),
             children[3],
             cast(Variable, children[1]),
@@ -490,9 +492,9 @@ class ForAtLeast(SetAggOperator):
 
 class ForAtMost(SetAggOperator):
     def __init__(
-        self, ln: int, s: SetExpression, n: Node, v: Variable, e: Node
+        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
     ) -> None:
-        super().__init__(ln, s, v, e)
+        super().__init__(loc, s, v, e)
         self.symbol: str = "foratmost"
         self.add_child(n)
 
@@ -502,7 +504,7 @@ class ForAtMost(SetAggOperator):
     def __deepcopy__(self, memo) -> ForAtMost:
         children = [deepcopy(c, memo) for c in self.children]
         new = ForAtMost(
-            self.ln,
+            self.loc,
             cast(SetExpression, children[0]),
             children[3],
             cast(Variable, children[1]),
@@ -513,18 +515,18 @@ class ForAtMost(SetAggOperator):
 
 
 class Count(Operator):
-    def __init__(self, ln: int, n: Node, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, n: Node, c: list[Node]) -> None:
         # Note: all members of c must be of type Boolean
-        super().__init__(ln, c)
+        super().__init__(loc, c)
         self.num: Node = n
         self.name = "count"
 
     def __deepcopy__(self, memo) -> Count:
         children = [deepcopy(c, memo) for c in self.children]
         if len(children) > 1:
-            new = Count(self.ln, children[0], children[1:])
+            new = Count(self.loc, children[0], children[1:])
         else:
-            new = Count(self.ln, children[0], [])
+            new = Count(self.loc, children[0], [])
         self.copy_attrs(new)
         return new
 
@@ -536,86 +538,86 @@ class Count(Operator):
 
 
 class BitwiseOperator(Operator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
 
 class BitwiseAnd(BitwiseOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "&"
 
     def __deepcopy__(self, memo) -> BitwiseAnd:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseAnd(self.ln, children[0], children[1])
+        new = BitwiseAnd(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class BitwiseOr(BitwiseOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "|"
 
     def __deepcopy__(self, memo) -> BitwiseOr:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseOr(self.ln, children[0], children[1])
+        new = BitwiseOr(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class BitwiseXor(BitwiseOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "^"
 
     def __deepcopy__(self, memo) -> BitwiseXor:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseXor(self.ln, children[0], children[1])
+        new = BitwiseXor(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class BitwiseShiftLeft(BitwiseOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "<<"
 
     def __deepcopy__(self, memo) -> BitwiseShiftLeft:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseShiftLeft(self.ln, children[0], children[1])
+        new = BitwiseShiftLeft(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class BitwiseShiftRight(BitwiseOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = ">>"
 
     def __deepcopy__(self, memo) -> BitwiseShiftRight:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseShiftRight(self.ln, children[0], children[1])
+        new = BitwiseShiftRight(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class BitwiseNegate(BitwiseOperator, UnaryOperator):
-    def __init__(self, ln: int, o: Node) -> None:
-        super().__init__(ln, [o])
+    def __init__(self, loc: log.FileLocation, o: Node) -> None:
+        super().__init__(loc, [o])
         self.symbol = "~"
 
     def __deepcopy__(self, memo) -> BitwiseNegate:
         children = [deepcopy(c, memo) for c in self.children]
-        new = BitwiseNegate(self.ln, children[0])
+        new = BitwiseNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticOperator(Operator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __str__(self) -> str:
@@ -626,155 +628,155 @@ class ArithmeticOperator(Operator):
 
 
 class ArithmeticAdd(ArithmeticOperator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
         # force binary operator for now
         if len(c) > 2:
-            prev = ArithmeticAdd(ln, c[0:2])
+            prev = ArithmeticAdd(loc, c[0:2])
             for i in range(2, len(c) - 1):
-                prev = ArithmeticAdd(ln, [prev, c[i]])
-            super().__init__(ln, [prev, c[len(c) - 1]])
+                prev = ArithmeticAdd(loc, [prev, c[i]])
+            super().__init__(loc, [prev, c[len(c) - 1]])
             self.type = self.get_operand(0).type
         else:
-            super().__init__(ln, c)
+            super().__init__(loc, c)
             self.type = self.get_operand(0).type
 
         self.symbol = "+"
 
     def __deepcopy__(self, memo) -> ArithmeticAdd:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticAdd(self.ln, children)
+        new = ArithmeticAdd(self.loc, children)
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticSubtract(ArithmeticOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "-"
 
     def __deepcopy__(self, memo) -> ArithmeticSubtract:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticSubtract(self.ln, children[0], children[1])
+        new = ArithmeticSubtract(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticMultiply(ArithmeticOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "*"
 
     def __deepcopy__(self, memo) -> ArithmeticMultiply:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticMultiply(self.ln, children[0], children[1])
+        new = ArithmeticMultiply(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticDivide(ArithmeticOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "/"
 
     def __deepcopy__(self, memo) -> ArithmeticDivide:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticDivide(self.ln, children[0], children[1])
+        new = ArithmeticDivide(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticModulo(ArithmeticOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "%"
 
     def __deepcopy__(self, memo) -> ArithmeticModulo:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticModulo(self.ln, children[0], children[1])
+        new = ArithmeticModulo(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticNegate(UnaryOperator, ArithmeticOperator):
-    def __init__(self, ln: int, o: Node) -> None:
-        super().__init__(ln, [o])
+    def __init__(self, loc: log.FileLocation, o: Node) -> None:
+        super().__init__(loc, [o])
         self.symbol = "-"
 
     def __deepcopy__(self, memo) -> ArithmeticNegate:
         children = [deepcopy(c, memo) for c in self.children]
-        new = ArithmeticNegate(self.ln, children[0])
+        new = ArithmeticNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
 
 class RelationalOperator(BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __deepcopy__(self, memo) -> RelationalOperator:
         children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.ln, children[0], children[1])
+        new = type(self)(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class Equal(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = "=="
 
 
 class NotEqual(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = "!="
 
 
 class GreaterThan(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = ">"
 
 
 class LessThan(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = "<"
 
 
 class GreaterThanOrEqual(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = ">="
 
 
 class LessThanOrEqual(RelationalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, lhs, rhs)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, lhs, rhs)
         self.symbol = "<="
 
 
 class LogicalOperator(Operator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+        super().__init__(loc, c)
         self.bpd = min([child.bpd for child in self.get_operands()])
         self.wpd = max([child.wpd for child in self.get_operands()])
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
 
 
 class LogicalOr(LogicalOperator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
         # force binary operator for now
         if len(c) > 2:
-            prev = LogicalOr(ln, c[0:2])
+            prev = LogicalOr(loc, c[0:2])
             for i in range(2, len(c) - 1):
-                prev = LogicalOr(ln, [prev, c[i]])
-            super().__init__(ln, [prev, c[len(c) - 1]])
+                prev = LogicalOr(loc, [prev, c[i]])
+            super().__init__(loc, [prev, c[len(c) - 1]])
         else:
-            super().__init__(ln, c)
+            super().__init__(loc, c)
 
-        super().__init__(ln, c)
+        super().__init__(loc, c)
         self.symbol = "||"
 
     def __str__(self) -> str:
@@ -785,15 +787,15 @@ class LogicalOr(LogicalOperator):
 
 
 class LogicalAnd(LogicalOperator):
-    def __init__(self, ln: int, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
         # force binary operator for now
         if len(c) > 2:
-            prev = LogicalAnd(ln, c[0:2])
+            prev = LogicalAnd(loc, c[0:2])
             for i in range(2, len(c) - 1):
-                prev = LogicalAnd(ln, [prev, c[i]])
-            super().__init__(ln, [prev, c[len(c) - 1]])
+                prev = LogicalAnd(loc, [prev, c[i]])
+            super().__init__(loc, [prev, c[len(c) - 1]])
         else:
-            super().__init__(ln, c)
+            super().__init__(loc, c)
 
         self.symbol = "&&"
 
@@ -805,25 +807,25 @@ class LogicalAnd(LogicalOperator):
 
 
 class LogicalXor(LogicalOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "^^"
 
     def __deepcopy__(self, memo) -> LogicalXor:
         children = [deepcopy(c, memo) for c in self.children]
-        new = LogicalXor(self.ln, children[0], children[1])
+        new = LogicalXor(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
 class LogicalImplies(LogicalOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "->"
 
     def __deepcopy__(self, memo) -> LogicalImplies:
         children = [deepcopy(c, memo) for c in self.children]
-        new = LogicalImplies(self.ln, children[0], children[1])
+        new = LogicalImplies(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
@@ -832,13 +834,13 @@ class LogicalImplies(LogicalOperator, BinaryOperator):
 
 
 class LogicalIff(LogicalOperator, BinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node) -> None:
-        super().__init__(ln, [lhs, rhs])
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+        super().__init__(loc, [lhs, rhs])
         self.symbol = "<->"
 
     def __deepcopy__(self, memo) -> LogicalIff:
         children = [deepcopy(c, memo) for c in self.children]
-        new = LogicalIff(self.ln, children[0], children[1])
+        new = LogicalIff(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
@@ -847,13 +849,13 @@ class LogicalIff(LogicalOperator, BinaryOperator):
 
 
 class LogicalNegate(LogicalOperator, UnaryOperator):
-    def __init__(self, ln: int, o: Node) -> None:
-        super().__init__(ln, [o])
+    def __init__(self, loc: log.FileLocation, o: Node) -> None:
+        super().__init__(loc, [o])
         self.symbol = "!"
 
     def __deepcopy__(self, memo) -> LogicalNegate:
         children = [deepcopy(c, memo) for c in self.children]
-        new = LogicalNegate(self.ln, children[0])
+        new = LogicalNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
@@ -862,27 +864,27 @@ class LogicalNegate(LogicalOperator, UnaryOperator):
 
 
 class TemporalOperator(Operator):
-    def __init__(self, ln: int, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(ln, c)
+    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
+        super().__init__(loc, c)
         self.interval = types.Interval(lb=lb, ub=ub)
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
 
 
 class FutureTimeOperator(TemporalOperator):
-    def __init__(self, ln: int, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(ln, c, lb, ub)
+    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
+        super().__init__(loc, c, lb, ub)
 
 
 class PastTimeOperator(TemporalOperator):
-    def __init__(self, ln: int, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(ln, c, lb, ub)
+    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
+        super().__init__(loc, c, lb, ub)
 
 
 # subclasses cannot inherit from BinaryOperator due to multiple inheriting classes
 # with different __init__ signatures
 class FutureTimeBinaryOperator(TemporalOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, [lhs, rhs], lb, ub)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, [lhs, rhs], lb, ub)
         self.bpd = min(self.get_lhs().bpd, self.get_rhs().bpd) + self.interval.lb
         self.wpd = max(self.get_lhs().wpd, self.get_rhs().wpd) + self.interval.ub
 
@@ -895,7 +897,7 @@ class FutureTimeBinaryOperator(TemporalOperator):
     def __deepcopy__(self, memo) -> FutureTimeBinaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(
-            self.ln, children[0], children[1], self.interval.lb, self.interval.ub
+            self.loc, children[0], children[1], self.interval.lb, self.interval.ub
         )
         self.copy_attrs(new)
         return new
@@ -908,20 +910,20 @@ class FutureTimeBinaryOperator(TemporalOperator):
 
 
 class Until(FutureTimeBinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, lhs, rhs, lb, ub)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "U"
 
 
 class Release(FutureTimeBinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, lhs, rhs, lb, ub)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "R"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, [o], lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, [o], lb, ub)
         self.bpd = self.get_operand().bpd + self.interval.lb
         self.wpd = self.get_operand().wpd + self.interval.ub
 
@@ -930,7 +932,7 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
 
     def __deepcopy__(self, memo) -> FutureTimeUnaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
+        new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
 
@@ -942,20 +944,20 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
 
 
 class Global(FutureTimeUnaryOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, o, lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, o, lb, ub)
         self.symbol = "G"
 
 
 class Future(FutureTimeUnaryOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, o, lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, o, lb, ub)
         self.symbol = "F"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, [lhs, rhs], lb, ub)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, [lhs, rhs], lb, ub)
 
     def get_lhs(self) -> Expression:
         return self.get_operand(0)
@@ -966,7 +968,7 @@ class PastTimeBinaryOperator(PastTimeOperator):
     def __deepcopy__(self, memo) -> PastTimeBinaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
         new = type(self)(
-            self.ln, children[0], children[1], self.interval.lb, self.interval.ub
+            self.loc, children[0], children[1], self.interval.lb, self.interval.ub
         )
         self.copy_attrs(new)
         return new
@@ -979,21 +981,21 @@ class PastTimeBinaryOperator(PastTimeOperator):
 
 
 class Since(PastTimeBinaryOperator):
-    def __init__(self, ln: int, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, lhs, rhs, lb, ub)
+    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "S"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, [o], lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, [o], lb, ub)
 
     def get_operand(self) -> Expression:
         return cast(Expression, self.get_child(0))
 
     def __deepcopy__(self, memo) -> PastTimeUnaryOperator:
         children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.ln, children[0], self.interval.lb, self.interval.ub)
+        new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
 
@@ -1005,20 +1007,20 @@ class PastTimeUnaryOperator(PastTimeOperator):
 
 
 class Historical(PastTimeUnaryOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, o, lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, o, lb, ub)
         self.symbol = "H"
 
 
 class Once(PastTimeUnaryOperator):
-    def __init__(self, ln: int, o: Node, lb: int, ub: int) -> None:
-        super().__init__(ln, o, lb, ub)
+    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
+        super().__init__(loc, o, lb, ub)
         self.symbol = "O"
 
 
 class Specification(Expression):
-    def __init__(self, ln: int, lbl: str, f: int, e: Node) -> None:
-        super().__init__(ln, [e])
+    def __init__(self, loc: log.FileLocation, lbl: str, f: int, e: Node) -> None:
+        super().__init__(loc, [e])
         self.symbol: str = lbl
         self.formula_number: int = f
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
@@ -1028,7 +1030,7 @@ class Specification(Expression):
 
     def __deepcopy__(self, memo) -> Specification:
         children = [deepcopy(c, memo) for c in self.children]
-        new = Specification(self.ln, self.symbol, self.formula_number, children[0])
+        new = Specification(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
 
@@ -1046,7 +1048,7 @@ class Specification(Expression):
 class Contract(Node):
     def __init__(
         self,
-        ln: int,
+        loc: log.FileLocation,
         lbl: str,
         f1: int,
         f2: int,
@@ -1054,7 +1056,7 @@ class Contract(Node):
         a: Expression,
         g: Expression,
     ) -> None:
-        super().__init__(ln, [a, g])
+        super().__init__(loc, [a, g])
         self.symbol: str = lbl
         self.formula_numbers: tuple[int, int, int] = (f1, f2, f3)
 
@@ -1072,8 +1074,8 @@ class Contract(Node):
 
 
 class StructDefinition(Node):
-    def __init__(self, ln: int, symbol: str, m: list[Node]) -> None:
-        super().__init__(ln, m)
+    def __init__(self, loc: log.FileLocation, symbol: str, m: list[Node]) -> None:
+        super().__init__(loc, m)
         self.symbol = symbol
         self._members = {}
         for decl in cast("list[VariableDeclaration]", m):
@@ -1092,8 +1094,8 @@ class StructDefinition(Node):
 
 
 class VariableDeclaration(Node):
-    def __init__(self, ln: int, vars: list[str], t: types.Type) -> None:
-        super().__init__(ln, [])
+    def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:
+        super().__init__(loc, [])
         self._variables = vars
         self._type = t
 
@@ -1108,8 +1110,8 @@ class VariableDeclaration(Node):
 
 
 class Definition(Node):
-    def __init__(self, ln: int, symbol: str, e: Expression) -> None:
-        super().__init__(ln, [e])
+    def __init__(self, loc: log.FileLocation, symbol: str, e: Expression) -> None:
+        super().__init__(loc, [e])
         self.symbol = symbol
 
     def get_expr(self) -> Expression:
@@ -1120,8 +1122,8 @@ class Definition(Node):
 
 
 class AtomicCheckerDefinition(Node):
-    def __init__(self, ln: int, symbol: str, e: Expression) -> None:
-        super().__init__(ln, [e])
+    def __init__(self, loc: log.FileLocation, symbol: str, e: Expression) -> None:
+        super().__init__(loc, [e])
         self.symbol = symbol
 
     def get_expr(self) -> Expression:
@@ -1132,8 +1134,8 @@ class AtomicCheckerDefinition(Node):
 
 
 class StructSection(Node):
-    def __init__(self, ln: int, struct_defs: list[Node]) -> None:
-        super().__init__(ln, struct_defs)
+    def __init__(self, loc: log.FileLocation, struct_defs: list[Node]) -> None:
+        super().__init__(loc, struct_defs)
 
     def get_structs(self) -> list[StructDefinition]:
         return cast("list[StructDefinition]", self.children)
@@ -1147,8 +1149,8 @@ class StructSection(Node):
 
 
 class InputSection(Node):
-    def __init__(self, ln: int, signal_decls: list[Node]) -> None:
-        super().__init__(ln, signal_decls)
+    def __init__(self, loc: log.FileLocation, signal_decls: list[Node]) -> None:
+        super().__init__(loc, signal_decls)
 
     def get_signals(self) -> list[VariableDeclaration]:
         return cast("list[VariableDeclaration]", self.children)
@@ -1162,8 +1164,8 @@ class InputSection(Node):
 
 
 class DefineSection(Node):
-    def __init__(self, ln: int, defines: list[Node]) -> None:
-        super().__init__(ln, defines)
+    def __init__(self, loc: log.FileLocation, defines: list[Node]) -> None:
+        super().__init__(loc, defines)
 
     def get_definitions(self) -> list[Definition]:
         return cast("list[Definition]", self.children)
@@ -1177,8 +1179,8 @@ class DefineSection(Node):
 
 
 class AtomicSection(Node):
-    def __init__(self, ln: int, atomics: list[Node]):
-        super().__init__(ln, atomics)
+    def __init__(self, loc: log.FileLocation, atomics: list[Node]):
+        super().__init__(loc, atomics)
 
     def get_atomic_checkers(self) -> list[AtomicCheckerDefinition]:
         return cast("list[AtomicCheckerDefinition]", self.children)
@@ -1192,8 +1194,8 @@ class AtomicSection(Node):
 
 
 class SpecSection(Node):
-    def __init__(self, ln: int, s: list[Node]) -> None:
-        super().__init__(ln, s)
+    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
+        super().__init__(loc, s)
 
     def get_specs(self) -> list[Union[Specification, Contract]]:
         return cast("list[Union[Specification, Contract]]", self.children)
@@ -1210,24 +1212,24 @@ class SpecSection(Node):
 
 
 class FutureTimeSpecSection(SpecSection):
-    def __init__(self, ln: int, s: list[Node]) -> None:
-        super().__init__(ln, s)
+    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
+        super().__init__(loc, s)
 
     def __str__(self) -> str:
         return "FTPSEC\n\t" + super().__str__()
 
 
 class PastTimeSpecSection(SpecSection):
-    def __init__(self, ln: int, s: list[Node]) -> None:
-        super().__init__(ln, s)
+    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
+        super().__init__(loc, s)
 
     def __str__(self) -> str:
         return "PTSPEC\n\t" + super().__str__()
 
 
 class Program(Node):
-    def __init__(self, ln: int, sections: list[Node]) -> None:
-        super().__init__(ln, sections)
+    def __init__(self, loc: log.FileLocation, sections: list[Node]) -> None:
+        super().__init__(loc, sections)
 
         self.future_time_spec_section_idx = -1
         self.past_time_spec_section_idx = -1

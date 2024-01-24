@@ -17,10 +17,10 @@ def compute_cpu_wcet(assembly: List[Instruction], latency_table: Dict[str, int],
         operator: Optional[Operator] = instr.operator # type: ignore
 
         if not operator:
-            logger.error(f" While computing CPU WCET, found invalid instruction '{instr}'")
+            logger.error(f"While computing CPU WCET, found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            logger.error(f" Operator '{operator.symbol()}' not found in CPU latency table.")
+            logger.error(f"Operator '{operator.symbol()}' not found in CPU latency table.")
             return 0
         else:
             return int((latency_table[operator] * instr.node.scq_size) / clk)
@@ -46,7 +46,7 @@ def compute_fpga_wcet(assembly: List[Instruction], latency_table: Dict[str, Tupl
             logger.error(f"While computing CPU WCET, found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            logger.error(f" Operator '{operator.symbol()}' not found in CPU latency table.")
+            logger.error(f"Operator '{operator.symbol()}' not found in CPU latency table.")
             return 0
         else:
             sum_scq_sizeschildren = sum([c.scq_size for c in instr.node.children])

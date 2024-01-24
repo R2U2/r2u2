@@ -2,7 +2,7 @@ from itertools import count
 from typing import List, Tuple
 
 from c2po.main import compile, ReturnCode
-from c2po.ast import *
+from c2po.cpt import *
 
 TEST_DIR = "./"
 TYPE_CHECK_DIR = f"{TEST_DIR}typecheck/"

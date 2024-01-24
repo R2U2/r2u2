@@ -1,5 +1,6 @@
 #type: ignore
-from typing import Optional, Tuple, Dict
+from __future__ import annotations
+from typing import Optional
 from pathlib import Path
 
 from c2po import sly
@@ -100,12 +101,16 @@ class C2POLexer(sly.Lexer):
     SYMBOL["true"] = TL_TRUE
     SYMBOL["false"] = TL_FALSE
 
+    def __init__(self, filename: str):
+        super().__init__()
+        self.filename = filename
+
     # Extra action for newlines
     def ignore_newline(self, t):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        log.logger.error(f"{self.lineno}: Illegal character '%s' {t.value[0]}")
+        log.error(f"Illegal character '%s' {t.value[0]}", __name__, log.FileLocation(self.filename, self.lineno))
         self.index += 1
 
 
@@ -130,9 +135,10 @@ class C2POParser(sly.Parser):
         ("right", LPAREN, DOT)
     )
 
-    def __init__(self, mt: int) :
+    def __init__(self, filename: str, mission_time: int) :
         super().__init__()
-        self.mission_time = mt
+        self.filename = filename
+        self.mission_time = mission_time
         self.spec_num: int = 0
         self.literals = {}
         self.status = True
@@ -140,7 +146,16 @@ class C2POParser(sly.Parser):
     def error(self, token):
         self.status = False
         lineno = getattr(token, "lineno", 0)
-        log.logger.error(f"{lineno}: Syntax error, token='{token.value}'")
+        if token:
+            log.error(f"Syntax error, unexpected token='{token.value}'", 
+                      __name__, 
+                      log.FileLocation(self.filename, lineno)
+            )
+        else:
+            log.error(f"Syntax error, token is 'None' (EOF)",
+                      __name__, 
+                      log.FileLocation(self.filename, lineno)
+            )
 
     @_("section ft_spec_section")
     def section(self, p):
@@ -172,7 +187,7 @@ class C2POParser(sly.Parser):
 
     @_("KW_STRUCT struct struct_list")
     def struct_section(self, p):
-        return cpt.StructSection(p.lineno, [p[1]] + p[2])
+        return cpt.StructSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
     @_("struct_list struct")
     def struct_list(self, p):
@@ -193,7 +208,7 @@ class C2POParser(sly.Parser):
             # for v in variables:
             #     members[v] = type
 
-        return cpt.StructDefinition(p.lineno, p[0], members)
+        return cpt.StructDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
 
     @_("KW_INPUT variable_declaration variable_declaration_list")
     def input_section(self, p):
@@ -208,7 +223,7 @@ class C2POParser(sly.Parser):
             for var in variables:
                 self.literals[var] = cpt.Signal
 
-        return cpt.InputSection(p.lineno, signal_declarations)
+        return cpt.InputSection(log.FileLocation(self.filename, p.lineno), signal_declarations)
 
     @_("variable_declaration_list variable_declaration")
     def variable_declaration_list(self, p):
@@ -220,7 +235,7 @@ class C2POParser(sly.Parser):
 
     @_("SYMBOL symbol_list COLON type SEMI")
     def variable_declaration(self, p):
-        return (p.lineno, [p[0]]+p[1], p[3])
+        return (log.FileLocation(self.filename, p.lineno), [p[0]]+p[1], p[3])
 
     @_("symbol_list COMMA SYMBOL")
     def symbol_list(self, p):
@@ -248,13 +263,13 @@ class C2POParser(sly.Parser):
         if p[0] == "set":
             return types.SetType(False, p[2])
 
-        log.logger.error(f"{p.lineno}: Type \"{p[0]}\" not recognized")
+        log.error(f"Type '{p[0]}' not recognized", __name__, log.FileLocation(self.filename, p[0].lineno))
         self.status = False
         return types.NoType()
 
     @_("KW_DEFINE definition definition_list")
     def define_section(self, p):
-        return cpt.DefineSection(p.lineno, [p[1]] + p[2])
+        return cpt.DefineSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
     @_("definition_list definition")
     def definition_list(self, p):
@@ -266,13 +281,13 @@ class C2POParser(sly.Parser):
 
     @_("SYMBOL ASSIGN expr SEMI")
     def definition(self, p):
-        return cpt.Definition(p.lineno, p[0], p[2])
+        return cpt.Definition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("KW_ATOMIC atomic atomic_list")
     def atomic_section(self, p):
         p[2].append(p[1])
         self.literals[p[1].symbol] = cpt.AtomicChecker
-        return cpt.AtomicSection(p.lineno, p[2])
+        return cpt.AtomicSection(log.FileLocation(self.filename, p.lineno), p[2])
 
     @_("atomic_list atomic")
     def atomic_list(self, p):
@@ -285,17 +300,17 @@ class C2POParser(sly.Parser):
 
     @_("SYMBOL ASSIGN expr SEMI")
     def atomic(self, p):
-        return cpt.AtomicCheckerDefinition(p.lineno, p[0], p[2])
+        return cpt.AtomicCheckerDefinition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Future-time specification section
     @_("KW_FTSPEC spec spec_list")
     def ft_spec_section(self, p):
-        return cpt.FutureTimeSpecSection(p.lineno, [p[1]] + p[2])
+        return cpt.FutureTimeSpecSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
     # Past-time specification section
     @_("KW_PTSPEC spec spec_list")
     def pt_spec_section(self, p):
-        return cpt.PastTimeSpecSection(p.lineno, [p[1]] + p[2])
+        return cpt.PastTimeSpecSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
     @_("spec_list spec")
     def spec_list(self, p):
@@ -309,20 +324,20 @@ class C2POParser(sly.Parser):
     @_("expr SEMI")
     def spec(self, p):
         self.spec_num += 1
-        return cpt.Specification(p.lineno, "", self.spec_num-1, p[0])
+        return cpt.Specification(log.FileLocation(self.filename, p.lineno), "", self.spec_num-1, p[0])
 
     # Labeled specification
     @_("SYMBOL COLON expr SEMI")
     def spec(self, p):
         self.spec_num += 1
-        return cpt.Specification(p.lineno, p[0], self.spec_num-1, p[2])
+        return cpt.Specification(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num-1, p[2])
 
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
     def spec(self, p):
         self.spec_num += 3
         return cpt.Contract(
-            p.lineno, 
+            log.FileLocation(self.filename, p.lineno), 
             p[0], 
             self.spec_num-3, 
             self.spec_num-2, 
@@ -343,7 +358,7 @@ class C2POParser(sly.Parser):
     # Set expression
     @_("LBRACE expr expr_list RBRACE")
     def expr(self, p):
-        return cpt.SetExpression(p.lineno, [p[1]] + p[2])
+        return cpt.SetExpression(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
     # Empty set expression
     @_("LBRACE RBRACE")
@@ -353,170 +368,170 @@ class C2POParser(sly.Parser):
     # Parameterized set aggregation expression
     @_("KW_FOREXACTLY LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
     def expr(self, p):
-        boundvar = cpt.Variable(p.lineno, p[2])
-        return cpt.ForExactly(p.lineno, p[4], p[6], boundvar, p[9])
+        boundvar = cpt.Variable(log.FileLocation(self.filename, p.lineno), p[2])
+        return cpt.ForExactly(log.FileLocation(self.filename, p.lineno), p[4], p[6], boundvar, p[9])
 
     @_("KW_FORATLEAST LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
     def expr(self, p):
-        boundvar = cpt.Variable(p.lineno, p[2])
-        return cpt.ForAtLeast(p.lineno, p[4], p[6], boundvar, p[9])
+        boundvar = cpt.Variable(log.FileLocation(self.filename, p.lineno), p[2])
+        return cpt.ForAtLeast(log.FileLocation(self.filename, p.lineno), p[4], p[6], boundvar, p[9])
 
     @_("KW_FORATMOST LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
     def expr(self, p):
-        boundvar = cpt.Variable(p.lineno, p[2])
-        return cpt.ForAtMost(p.lineno, p[4], p[6], boundvar, p[9])
+        boundvar = cpt.Variable(log.FileLocation(self.filename, p.lineno), p[2])
+        return cpt.ForAtMost(log.FileLocation(self.filename, p.lineno), p[4], p[6], boundvar, p[9])
 
     # Set aggregation expression
     @_("KW_FOREACH LPAREN SYMBOL COLON expr RPAREN LPAREN expr RPAREN")
     def expr(self, p):
-        boundvar = cpt.Variable(p.lineno, p[2])
-        return cpt.ForEach(p.lineno, p[4], boundvar, p[7])
+        boundvar = cpt.Variable(log.FileLocation(self.filename, p.lineno), p[2])
+        return cpt.ForEach(log.FileLocation(self.filename, p.lineno), p[4], boundvar, p[7])
 
     @_("KW_FORSOME LPAREN SYMBOL COLON expr RPAREN LPAREN expr RPAREN")
     def expr(self, p):
-        boundvar = cpt.Variable(p.lineno, p[2])
-        return cpt.ForSome(p.lineno,  p[4], boundvar, p[7])
+        boundvar = cpt.Variable(log.FileLocation(self.filename, p.lineno), p[2])
+        return cpt.ForSome(log.FileLocation(self.filename, p.lineno),  p[4], boundvar, p[7])
 
     # Function/struct constructor expression nonempty arguments
     @_("SYMBOL LPAREN expr expr_list RPAREN")
     def expr(self, p):
         p[3].append(p[2])
         p[3].reverse()
-        return cpt.FunctionCall(p.lineno, p[0], p[3])
+        return cpt.FunctionCall(log.FileLocation(self.filename, p.lineno), p[0], p[3])
 
     # Function/struct constructor expression empty arguments
     @_("SYMBOL LPAREN RPAREN")
     def expr(self, p):
-        return cpt.FunctionCall(p.lineno, p[0], [])
+        return cpt.FunctionCall(log.FileLocation(self.filename, p.lineno), p[0], [])
 
     # Struct member access
     @_("expr DOT SYMBOL")
     def expr(self, p):
-        return cpt.StructAccess(p.lineno, p[0], p[2])
+        return cpt.StructAccess(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Unary expressions
     @_("LOG_NEG expr")
     def expr(self, p):
-        return cpt.LogicalNegate(p.lineno, p[1])
+        return cpt.LogicalNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
     @_("BW_NEG expr")
     def expr(self, p):
-        return cpt.BitwiseNegate(p.lineno, p[1])
+        return cpt.BitwiseNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
     @_("ARITH_SUB expr %prec UNARY_ARITH_SUB")
     def expr(self, p):
-        return cpt.ArithmeticNegate(p.lineno, p[1])
+        return cpt.ArithmeticNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
     # Binary expressions
     @_("expr LOG_IMPL expr")
     def expr(self, p):
-        return cpt.LogicalImplies(p.lineno, p[0], p[2])
+        return cpt.LogicalImplies(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr LOG_IFF expr")
     def expr(self, p):
-        return cpt.LogicalIff(p.lineno, p[0], p[2])
+        return cpt.LogicalIff(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr LOG_OR expr")
     def expr(self, p):
-        return cpt.LogicalOr(p.lineno, [p[0], p[2]])
+        return cpt.LogicalOr(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     @_("expr LOG_AND expr")
     def expr(self, p):
-        return cpt.LogicalAnd(p.lineno, [p[0], p[2]])
+        return cpt.LogicalAnd(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     @_("expr BW_OR expr")
     def expr(self, p):
-        return cpt.BitwiseOr(p.lineno, p[0], p[2])
+        return cpt.BitwiseOr(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr BW_XOR expr")
     def expr(self, p):
-        return cpt.BitwiseXor(p.lineno, p[0], p[2])
+        return cpt.BitwiseXor(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr BW_AND expr")
     def expr(self, p):
-        return cpt.BitwiseAnd(p.lineno, p[0], p[2])
+        return cpt.BitwiseAnd(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_EQ expr")
     def expr(self, p):
-        return cpt.Equal(p.lineno, p[0], p[2])
+        return cpt.Equal(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_NEQ expr")
     def expr(self, p):
-        return cpt.NotEqual(p.lineno, p[0], p[2])
+        return cpt.NotEqual(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_GT expr")
     def expr(self, p):
-        return cpt.GreaterThan(p.lineno, p[0], p[2])
+        return cpt.GreaterThan(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_LT expr")
     def expr(self, p):
-        return cpt.LessThan(p.lineno, p[0], p[2])
+        return cpt.LessThan(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_GTE expr")
     def expr(self, p):
-        return cpt.GreaterThanOrEqual(p.lineno, p[0], p[2])
+        return cpt.GreaterThanOrEqual(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr REL_LTE expr")
     def expr(self, p):
-        return cpt.LessThanOrEqual(p.lineno, p[0], p[2])
+        return cpt.LessThanOrEqual(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr BW_SHIFT_LEFT expr")
     def expr(self, p):
-        return cpt.BitwiseShiftLeft(p.lineno, p[0], p[2])
+        return cpt.BitwiseShiftLeft(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr BW_SHIFT_RIGHT expr")
     def expr(self, p):
-        return cpt.BitwiseShiftRight(p.lineno, p[0], p[2])
+        return cpt.BitwiseShiftRight(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_ADD expr")
     def expr(self, p):
-        return cpt.ArithmeticAdd(p.lineno, p[0], p[2])
+        return cpt.ArithmeticAdd(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_SUB expr")
     def expr(self, p):
-        return cpt.ArithmeticSubtract(p.lineno, p[0], p[2])
+        return cpt.ArithmeticSubtract(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_MUL expr")
     def expr(self, p):
-        return cpt.ArithmeticMultiply(p.lineno, p[0], p[2])
+        return cpt.ArithmeticMultiply(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_DIV expr")
     def expr(self, p):
-        return cpt.ArithmeticMultiply(p.lineno, p[0], p[2])
+        return cpt.ArithmeticMultiply(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_MOD expr")
     def expr(self, p):
-        return cpt.ArithmeticModulo(p.lineno, p[0], p[2])
+        return cpt.ArithmeticModulo(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Unary temporal expressions
     @_("TL_GLOBAL interval expr")
     def expr(self, p):
-        return cpt.Global(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Global(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_FUTURE interval expr")
     def expr(self, p):
-        return cpt.Future(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Future(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_HIST interval expr")
     def expr(self, p):
-        return cpt.Historical(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Historical(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_ONCE interval expr")
     def expr(self, p):
-        return cpt.Once(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Once(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     # Binary temporal expressions
     @_("expr TL_UNTIL interval expr")
     def expr(self, p):
-        return cpt.Until(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Until(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     @_("expr TL_RELEASE interval expr")
     def expr(self, p):
-        return cpt.Release(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Release(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
-        return cpt.Since(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Since(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -526,32 +541,32 @@ class C2POParser(sly.Parser):
     # Symbol
     @_("TL_TRUE")
     def expr(self, p):
-        return cpt.Bool(p.lineno, True)
+        return cpt.Bool(log.FileLocation(self.filename, p.lineno), True)
 
     # Symbol
     @_("TL_FALSE")
     def expr(self, p):
-        return cpt.Bool(p.lineno, False)
+        return cpt.Bool(log.FileLocation(self.filename, p.lineno), False)
 
     # Symbol
     @_("SYMBOL")
     def expr(self, p):
         if p[0] in self.literals:
             if self.literals[p[0]] is cpt.Signal:
-                return cpt.Signal(p.lineno, p[0], types.NoType())
+                return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
             elif self.literals[p[0]] is cpt.AtomicChecker:
-                return cpt.AtomicChecker(p.lineno, p[0])
-        return cpt.Variable(p.lineno, p[0])
+                return cpt.AtomicChecker(log.FileLocation(self.filename, p.lineno), p[0])
+        return cpt.Variable(log.FileLocation(self.filename, p.lineno), p[0])
 
     # Integer
     @_("NUMERAL")
     def expr(self, p):
-        return cpt.Integer(p.lineno, int(p[0]))
+        return cpt.Integer(log.FileLocation(self.filename, p.lineno), int(p[0]))
 
     # Float
     @_("DECIMAL")
     def expr(self, p):
-        return cpt.Float(p.lineno, float(p[0]))
+        return cpt.Float(log.FileLocation(self.filename, p.lineno), float(p[0]))
         
     # Shorthand interval
     @_("LBRACK bound RBRACK")
@@ -570,7 +585,7 @@ class C2POParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.logger.error(f"{p.lineno}: Mission time used but not set. Set using the '--mission-time' option.")
+            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
         return self.mission_time
 
@@ -580,9 +595,9 @@ def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
     with open(input_path, "r") as f:
         contents = f.read()
 
-    lexer: C2POLexer = C2POLexer()
-    parser: C2POParser = C2POParser(mission_time)
-    sections: List[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
+    lexer: C2POLexer = C2POLexer(input_path.name)
+    parser: C2POParser = C2POParser(input_path.name, mission_time)
+    sections: list[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
         return None
@@ -636,7 +651,7 @@ class MLTLLexer(sly.Lexer):
         return t
 
     def error(self, t):
-        log.logger.error(f"{self.lineno}: Illegal character '%s' {t.value[0]}")
+        log.error(f"Illegal character '%s' {t.value[0]}", __name__, log.FileLocation(self.filename, p[0].lineno))
         self.index += 1
 
 
@@ -653,9 +668,10 @@ class MLTLParser(sly.Parser):
         ("right", LPAREN)
     )
 
-    def __init__(self, mt: int) :
+    def __init__(self, filename: str, mission_time: int) :
         super().__init__()
-        self.mission_time = mt
+        self.filename = filename
+        self.mission_time = mission_time
         self.spec_num: int = 0
         self.atomics = set()
         self.is_ft = False
@@ -666,10 +682,16 @@ class MLTLParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.logger.error(f"{lineno}: Syntax error, token='{token.value}'")
+            log.error(f"Syntax error, unexpected token='{token.value}'", 
+                      __name__, 
+                      log.FileLocation(self.filename, lineno)
+            )
         else:
-            log.logger.error(f"{lineno}: Syntax error, token is 'None'")
-            log.logger.error(f"\tDid you forget to end the last formula with a newline?")
+            log.error(f"Syntax error, token is 'None'"
+                      f"\n\tDid you forget to end the last formula with a newline?", 
+                      __name__, 
+                      log.FileLocation(self.filename, lineno)
+            )
 
     @_("spec_list")
     def program(self, p):
@@ -699,94 +721,94 @@ class MLTLParser(sly.Parser):
     @_("expr NEWLINE")
     def spec(self, p):
         self.spec_num += 1
-        return cpt.Specification(p.lineno, "", self.spec_num-1, p[0])
+        return cpt.Specification(log.FileLocation(self.filename, p.lineno), "", self.spec_num-1, p[0])
 
     # Unary expressions
     @_("LOG_NEG expr")
     def expr(self, p):
-        return cpt.LogicalNegate(p.lineno, p[1])
+        return cpt.LogicalNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
     # Binary expressions
     @_("expr LOG_IMPL expr")
     def expr(self, p):
-        return cpt.LogicalImplies(p.lineno, p[0], p[2])
+        return cpt.LogicalImplies(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr LOG_IFF expr")
     def expr(self, p):
-        return cpt.LogicalIff(p.lineno, p[0], p[2])
+        return cpt.LogicalIff(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr LOG_OR expr")
     def expr(self, p):
-        return cpt.LogicalOr(p.lineno, [p[0], p[2]])
+        return cpt.LogicalOr(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     @_("expr LOG_AND expr")
     def expr(self, p):
-        return cpt.LogicalAnd(p.lineno, [p[0], p[2]])
+        return cpt.LogicalAnd(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     # Unary temporal expressions
     @_("TL_GLOBAL interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Global(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Global(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_FUTURE interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Future(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Future(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_HIST interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Historical(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Historical(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     @_("TL_ONCE interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Once(p.lineno, p[2], p[1].lb, p[1].ub)
+        return cpt.Once(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
 
     # Binary temporal expressions
     @_("expr TL_UNTIL interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Until(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Until(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     @_("expr TL_RELEASE interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Release(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Release(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.logger.error(f"{p.lineno}: Mixing past and future time formula not allowed.")
+            log.error(f"Mixing past and future time formula not allowed.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
 
-        return cpt.Since(p.lineno, p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.Since(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -795,16 +817,16 @@ class MLTLParser(sly.Parser):
 
     @_("TL_TRUE")
     def expr(self, p):
-        return cpt.Bool(p.lineno, True)
+        return cpt.Bool(log.FileLocation(self.filename, p.lineno), True)
 
     @_("TL_FALSE")
     def expr(self, p):
-        return cpt.Bool(p.lineno, False)
+        return cpt.Bool(log.FileLocation(self.filename, p.lineno), False)
 
     @_("TL_ATOMIC")
     def expr(self, p):
         self.atomics.add(p[0])
-        return cpt.Signal(p.lineno, p[0], types.NoType())
+        return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
 
     # Shorthand interval
     @_("LBRACK bound RBRACK")
@@ -823,19 +845,19 @@ class MLTLParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.logger.error(f"{p.lineno}: Mission time used but not set. Set using the '--mission-time' option.")
+            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", __name__, log.FileLocation(self.filename, p[0].lineno))
             self.status = False
         return self.mission_time
 
 
-def parse_mltl(input_path: Path, mission_time: int) -> Optional[Tuple[cpt.Program, Dict[str, int]]]:
+def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     with open(input_path, "r") as f:
         contents = f.read()
 
     lexer: MLTLLexer = MLTLLexer()
     parser: MLTLParser = MLTLParser(mission_time)
-    output: Tuple[List[cpt.C2POSection], Dict[str, int]] = parser.parse(lexer.tokenize(contents))
+    output: tuple[list[cpt.C2POSection], dict[str, int]] = parser.parse(lexer.tokenize(contents))
 
     if output:
         sections, signal_mapping = output

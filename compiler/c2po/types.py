@@ -33,7 +33,7 @@ def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
     elif s.lower() == "fpga" or s.lower() == "vhdl":
         return R2U2Implementation.VHDL
     else:
-        log.logger.error(f" R2U2 implementation '{s}' unsupported. Defaulting to C.")
+        log.error(f"R2U2 implementation '{s}' unsupported. Defaulting to C.", __name__)
         return R2U2Implementation.C
 
 
@@ -138,34 +138,37 @@ def set_types(
     IntType.is_signed = int_signed
 
     if int_width < 1:
-        log.logger.error(" Invalid int width, must be greater than 0")
+        log.error("Invalid int width, must be greater than 0", __name__)
 
     if float_width < 1:
-        log.logger.error(" Invalid float_width width, must be greater than 0")
+        log.error("Invalid float_width width, must be greater than 0", __name__)
 
     if int_width % 8 != 0:
-        log.logger.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment."
+        log.error(
+            " Invalid int width, must be a multiple of 8 for byte-alignment.", __name__
         )
 
     if float_width % 8 != 0:
-        log.logger.error(
-            " Invalid float width, must be a multiple of 8 for byte-alignment."
+        log.error(
+            " Invalid float width, must be a multiple of 8 for byte-alignment.",
+            __name__,
         )
 
     if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
         if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
             IntType.width = int_width
         else:
-            log.logger.error(
-                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64)."
+            log.error(
+                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
+                __name__,
             )
 
         if float_width == 32 or float_width == 64:
             FloatType.width = float_width
         else:
-            log.logger.error(
-                " Invalid float width, must correspond to a C standard float width (32 or 64)."
+            log.error(
+                " Invalid float width, must correspond to a C standard float width (32 or 64).",
+                __name__,
             )
     else:
         IntType.width = int_width

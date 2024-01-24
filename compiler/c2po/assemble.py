@@ -14,7 +14,7 @@ from c2po import cpt
 def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
-        log.logger.warning(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes")
+        log.warning(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes", __name__)
 
 
 class EngineTag(Enum):
@@ -403,7 +403,10 @@ def generate_at_instruction(
     elif isinstance(rhs, cpt.Signal):
         compare_value = rhs.signal_id
     else:
-        log.logger.critical(f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs}).\n\tWhy did this get past the type checker?")
+        log.internal(f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs})."
+                      "\n\tWhy did this get past the type checker?",
+                      __name__
+        )
         compare_value = 0
 
     return ATInstruction(
@@ -742,23 +745,23 @@ def pack_bz_instruction(
             instruction.atomic_id
         )
 
-    log.logger.debug(f" Packing: {instruction}")
-    log.logger.debug("   "
-                f"{format_strs[FieldType.ENGINE_TAG]:2} "
-                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
-                f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
-                f"{format_strs[FieldType.BZ_OPERATOR]:2} "
-                f"{format_strs[FieldType.BZ_ID]:2} "
-                f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
-                f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} ")
-    log.logger.debug("   "
-                f"{instruction.engine_tag.value:<2} "
-                f"{instruction.operand1:<2} "
-                f"{instruction.operand2:<2}"
-                f"{instruction.operator.value:<2} "
-                f"{instruction.id:<2} "
-                f"{instruction.store_atomic:<2} "
-                f"{instruction.atomic_id:<2} ")
+    log.debug(f"Packing: {instruction}\n\t"
+              f"{format_strs[FieldType.ENGINE_TAG]:2} "
+              f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
+              f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
+              f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+              f"{format_strs[FieldType.BZ_ID]:2} "
+              f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
+              f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
+               "\n\t"
+              f"{instruction.engine_tag.value:<2} "
+              f"{instruction.operand1:<2} "
+              f"{instruction.operand2:<2}"
+              f"{instruction.operator.value:<2} "
+              f"{instruction.id:<2} "
+              f"{instruction.store_atomic:<2} "
+              f"{instruction.atomic_id:<2} ",
+              __name__)
 
     return binary
 
@@ -800,19 +803,18 @@ def pack_tl_instruction(
         instruction.operator.value,
     )
 
-    log.logger.debug(f" Packing: {instruction}")
-    log.logger.debug("   "
-                f"{format_strs[FieldType.ENGINE_TAG]:2} "
-                f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-                f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-                f"{format_strs[FieldType.TL_ID]:2} "
-                f"{format_strs[FieldType.TL_OPERATOR]:2}")
-    log.logger.debug("   "
-                f"{instruction.engine_tag.value:<2} "
-                f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
-                f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
-                f"{instruction.id:<2} "
-                f"{instruction.operator.value:<2}")
+    log.debug(f"Packing: {instruction}\n\t"
+              f"{format_strs[FieldType.ENGINE_TAG]:2} "
+              f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+              f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+              f"{format_strs[FieldType.TL_ID]:2} "
+              f"{format_strs[FieldType.TL_OPERATOR]:2}"
+              f"{instruction.engine_tag.value:<2} "
+              f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
+              f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+              f"{instruction.id:<2} "
+              f"{instruction.operator.value:<2}",
+              __name__)
 
     return binary
 
@@ -832,9 +834,10 @@ def pack_cg_instruction(
 
     binary += pack_tl_instruction(instruction.instruction, format_strs, endian)
 
-    log.logger.debug(f" Packing: {instruction}")
-    log.logger.debug(f"   {format_strs[FieldType.ENGINE_TAG]:<2}")
-    log.logger.debug(f"   {instruction.engine_tag.value:<2}")
+    log.debug(f"Packing: {instruction}\n\t"
+              f"  {format_strs[FieldType.ENGINE_TAG]:<2}"
+              f"  {instruction.engine_tag.value:<2}",
+              __name__)
 
     return binary
 
@@ -852,7 +855,7 @@ def pack_instruction(
     elif isinstance(instruction, CGInstruction):
         binary = pack_cg_instruction(instruction, format_strs, endian)
     else:
-        log.logger.error(f"Invalid instruction type ({type(instruction)}).")
+        log.error(f"Invalid instruction type ({type(instruction)}).", __name__)
         binary = bytes()
 
     binary_len = CStruct(f"{endian}B").pack(len(binary)+1)
@@ -864,10 +867,10 @@ def pack_aliases(program: cpt.Program) -> bytes:
     for spec in program.get_specs():
         if isinstance(spec, cpt.Specification):
             binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
-            log.logger.debug(f" Packing: F {spec.symbol} {spec.formula_number}")
+            log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", __name__)
         elif isinstance(spec, cpt.Contract):
             binary += f"F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}".encode("ascii") +  b"\x00"
-            log.logger.debug(f" Packing: F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}")
+            log.debug(f"Packing: F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}", __name__)
 
     return binary
 
