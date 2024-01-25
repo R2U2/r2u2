@@ -1,16 +1,17 @@
-from typing import NamedTuple, Dict
-from enum import Enum
+import enum
+from typing import Dict, NamedTuple, Optional
 
 from c2po import log
 
+MODULE_CODE = "TYP"
 
-class R2U2Implementation(Enum):
+class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
     VHDL = 2
 
 
-class R2U2Engine(Enum):
+class R2U2Engine(enum.Enum):
     NONE = 0
     TEMPORAL_LOGIC = 0
     BOOLEANIZER = 1
@@ -33,11 +34,11 @@ def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
     elif s.lower() == "fpga" or s.lower() == "vhdl":
         return R2U2Implementation.VHDL
     else:
-        log.error(f"R2U2 implementation '{s}' unsupported. Defaulting to C.", __name__)
+        log.error(f"R2U2 implementation '{s}' unsupported. Defaulting to C.", MODULE_CODE)
         return R2U2Implementation.C
 
 
-class BaseType(Enum):
+class BaseType(enum.Enum):
     NOTYPE = 0
     BOOL = 1
     INT = 2
@@ -49,9 +50,9 @@ class BaseType(Enum):
 class Type:
     """Abstract base class representing a C2PO type."""
 
-    def __init__(self, type: BaseType, is_const: bool, name: str):
+    def __init__(self, type: BaseType, is_const: bool, symbol: str):
         self.value: BaseType = type
-        self.name: str = name
+        self.symbol: str = symbol
         self.is_const: bool = is_const
 
     def __eq__(self, arg: object) -> bool:
@@ -60,7 +61,7 @@ class Type:
         return False
 
     def __str__(self) -> str:
-        return self.name
+        return self.symbol
 
 
 class NoType(Type):
@@ -99,28 +100,34 @@ class FloatType(Type):
 class StructType(Type):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, is_const: bool, n: str):
-        super().__init__(BaseType.STRUCT, is_const, n)
-        self.name = n
+    def __init__(self, is_const: bool, symbol: str):
+        super().__init__(BaseType.STRUCT, is_const, symbol)
 
     def __eq__(self, arg: object) -> bool:
         if isinstance(arg, StructType):
-            return self.name == arg.name
+            return self.symbol == arg.symbol
         return False
 
 
 class SetType(Type):
     """Parameterized set C2PO type."""
 
-    def __init__(self, is_const: bool, m: Type):
-        super().__init__(BaseType.SET, is_const, "set<" + str(m) + ">")
-        self.member_type: Type = m
+    def __init__(self, is_const: bool, member_type: Type):
+        super().__init__(BaseType.SET, is_const, "set<" + str(member_type) + ">")
+        self.member_type: Type = member_type
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
             if isinstance(arg, SetType):
                 return self.member_type.__eq__(arg.member_type)
         return False
+
+    def __str__(self) -> str:
+        return f"set<{self.member_type}>"
+
+
+def is_bool_type(t: Type) -> bool:
+    return isinstance(t, BoolType)
 
 
 def is_integer_type(t: Type) -> bool:
@@ -131,6 +138,17 @@ def is_float_type(t: Type) -> bool:
     return isinstance(t, FloatType)
 
 
+def is_struct_type(t: Type, symbol: Optional[str] = None) -> bool:
+    """Returns true if `t` is a `StructType` and, if provided, has symbol `symbol`."""
+    if symbol:
+        return isinstance(t, StructType) and t.symbol == symbol
+    return isinstance(t, StructType)
+
+
+def is_set_type(t: Type) -> bool:
+    return isinstance(t, SetType)
+
+
 def set_types(
     impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int
 ):
@@ -138,20 +156,20 @@ def set_types(
     IntType.is_signed = int_signed
 
     if int_width < 1:
-        log.error("Invalid int width, must be greater than 0", __name__)
+        log.error("Invalid int width, must be greater than 0", MODULE_CODE)
 
     if float_width < 1:
-        log.error("Invalid float_width width, must be greater than 0", __name__)
+        log.error("Invalid float_width width, must be greater than 0", MODULE_CODE)
 
     if int_width % 8 != 0:
         log.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment.", __name__
+            " Invalid int width, must be a multiple of 8 for byte-alignment.", MODULE_CODE
         )
 
     if float_width % 8 != 0:
         log.error(
             " Invalid float width, must be a multiple of 8 for byte-alignment.",
-            __name__,
+            MODULE_CODE,
         )
 
     if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
@@ -160,7 +178,7 @@ def set_types(
         else:
             log.error(
                 " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
-                __name__,
+                MODULE_CODE,
             )
 
         if float_width == 32 or float_width == 64:
@@ -168,7 +186,7 @@ def set_types(
         else:
             log.error(
                 " Invalid float width, must correspond to a C standard float width (32 or 64).",
-                __name__,
+                MODULE_CODE,
             )
     else:
         IntType.width = int_width

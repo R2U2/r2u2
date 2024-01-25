@@ -44,10 +44,12 @@ parser.add_argument("--extops", action="store_true",
 parser.add_argument("--disable-rewrite", action="store_false",
                     help="disable MLTL rewrite rule optimizations")
                     
-parser.add_argument("--dump-ast", nargs="?", default=".", const="",
-                    help="dump AST in pickle format")
+parser.add_argument("--pickle", nargs="?", default=".", const="",
+                    help="pickle AST and write to argument if provided; defaults to input filename with .pickle extension")
 parser.add_argument("--dump-mltl", nargs="?", default=".", const="",
-                    help="dump input file in MLTL standard format")
+                    help="dump input file in MLTL standard format to argument if provided; defaults to input filename with .pickle extension")
+parser.add_argument("--dump-ast", nargs="?", default=".", const="",
+                    help="dump final AST to argument if provided; defaults to input filename with .pickle extension")
 
 args = parser.parse_args()
 
@@ -68,8 +70,9 @@ return_code = compile(
     enable_extops=args.extops, 
     enable_rewrite=args.disable_rewrite, 
     enable_assemble=args.disable_assemble, 
+    pickle_filename=args.pickle,
+    dump_mltl_filename=args.dump_mltl,
     dump_ast_filename=args.dump_ast,
-    dump_mltl_std_filename=args.dump_mltl,
     debug=args.debug,
     quiet=args.quiet, 
 )

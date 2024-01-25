@@ -1,16 +1,17 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
-
 from __future__ import annotations
-from typing import Optional, Union, cast
-from copy import deepcopy
+
+import copy
+import enum
 import pickle
-from enum import Enum
+from typing import Iterator, Optional, Union, cast
 
-from c2po import log
-from c2po import types
+from c2po import log, types
+
+MODULE_CODE = "CPT"
 
 
-class C2POSection(Enum):
+class C2POSection(enum.Enum):
     STRUCT = 0
     INPUT = 1
     DEFINE = 2
@@ -20,18 +21,36 @@ class C2POSection(Enum):
 
 
 class Node:
-    def __init__(self, location: log.FileLocation, c: list[Node]) -> None:
-        self.loc: log.FileLocation = location
+    def __init__(self, loc: log.FileLocation) -> None:
+        self.loc: log.FileLocation = loc
         self.symbol: str = ""
 
-        self.children: list[Node] = []
-        self.parents: list[Node] = []
+    def __str__(self) -> str:
+        return self.symbol
 
-        for child in c:
+
+class Expression(Node):
+    def __init__(self, loc: log.FileLocation, children: list[Expression]) -> None:
+        super().__init__(loc)
+        self.engine = types.R2U2Engine.NONE
+        self.atomic_id: int = -1  # only set for atomic propositions
+        self.total_scq_size: int = -1
+        self.scq_size: int = -1
+        self.bpd: int = 0
+        self.wpd: int = 0
+        self.scq: tuple[int, int] = (-1, -1)
+        self.type: types.Type = types.NoType()
+
+        self.children: list[Expression] = []
+        self.parents: list[Expression] = []
+
+        for child in children:
             self.children.append(child)
             child.parents.append(self)
 
-    def get_siblings(self) -> list[Node]:
+        self.replacement: Optional[Expression] = None
+
+    def get_siblings(self) -> list[Expression]:
         siblings = []
 
         for parent in self.parents:
@@ -50,25 +69,7 @@ class Node:
     def num_parents(self) -> int:
         return len(self.parents)
 
-    def get_child(self, i: int) -> Optional[Node]:
-        if i >= self.num_children() or i < 0:
-            return None
-        return self.children[i]
-
-    def get_parent(self, i: int) -> Optional[Node]:
-        if i >= self.num_parents() or i < 0:
-            return None
-        return self.parents[i]
-
-    def add_child(self, child: Node) -> None:
-        self.children.append(child)
-        child.parents.append(self)
-
-    def remove_child(self, child: Node) -> None:
-        self.children.remove(child)
-        child.parents.remove(self)
-
-    def replace(self, new: Node) -> None:
+    def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
         if id(self) == id(new):
@@ -85,50 +86,20 @@ class Node:
             if self in child.parents:
                 child.parents.remove(self)
 
-    def __str__(self) -> str:
-        return self.symbol
-
-    def copy_attrs(self, new: Node) -> None:
-        new.symbol = self.symbol
-
-    def __deepcopy__(self, memo) -> Node:
-        children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children)
-        self.copy_attrs(new)
-        return new
-
-
-class Expression(Node):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
-        super().__init__(loc, c)
-        self.engine = types.R2U2Engine.NONE
-        self.atomic_id: int = -1  # only set for atomic propositions
-        self.total_scq_size: int = -1
-        self.scq_size: int = -1
-        self.bpd: int = 0
-        self.wpd: int = 0
-        self.scq: tuple[int, int] = (-1, -1)
-        self.type: types.Type = types.NoType()
-
-    def get_siblings(self) -> list[Expression]:
-        return cast("list[Expression]", super().get_siblings())
-
-    def get_children(self) -> list[Expression]:
-        return cast("list[Expression]", self.children)
+        self.replacement = new
 
     def copy_attrs(self, new: Expression) -> None:
-        super().copy_attrs(new)
+        new.symbol = self.symbol
         new.scq_size = self.scq_size
         new.bpd = self.bpd
         new.wpd = self.wpd
         new.type = self.type
 
-    def to_mltl_std(self) -> str:
-        if self.atomic_id < 0:
-            raise TypeError(
-                f"{self.loc}: Non-atomic node type '{type(self)}' unsupported in MLTL standard."
-            )
-        return f"a{self.atomic_id}"
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = type(self)(self.loc, children)
+        self.copy_attrs(new)
+        return new
 
 
 class Literal(Expression):
@@ -158,9 +129,6 @@ class Bool(Constant):
         self.symbol = str(v)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
-    def to_mltl_std(self) -> str:
-        return self.symbol.lower()
-
 
 class Integer(Constant):
     def __init__(self, loc: log.FileLocation, v: int) -> None:
@@ -173,8 +141,8 @@ class Integer(Constant):
         if v.bit_length() > types.IntType.width:
             log.error(
                 f"Constant '{v}' not representable in configured int width ('{types.IntType.width}').",
-                __name__,
-                loc
+                module=MODULE_CODE,
+                location=loc,
             )
 
     def get_value(self) -> int:
@@ -258,23 +226,14 @@ class AtomicChecker(Literal):
 
 
 class SetExpression(Expression):
-    def __init__(self, loc: log.FileLocation, m: list[Node]) -> None:
-        super().__init__(loc, m)
-        m.sort(key=lambda x: str(x))
-        self.max_size: int = len(m)
+    def __init__(self, loc: log.FileLocation, members: list[Expression]) -> None:
+        super().__init__(loc, members)
+        members.sort(key=lambda x: str(x))
+        self.max_size: int = len(members)
         self.dynamic_size = None
 
-    def get_members(self) -> list[Expression]:
-        return cast("list[Expression]", self.children)
-
-    def get_max_size(self) -> int:
-        return self.max_size
-
-    def get_dynamic_size(self) -> Union[Node, None]:
-        return self.dynamic_size
-
-    def set_dynamic_size(self, s: Node) -> None:
-        self.dynamic_size = s
+    def set_dynamic_size(self, size: Node) -> None:
+        self.dynamic_size = size
 
     def __str__(self) -> str:
         s: str = "{"
@@ -285,7 +244,9 @@ class SetExpression(Expression):
 
 
 class Struct(Expression):
-    def __init__(self, loc: log.FileLocation, s: str, m: dict[str, int], c: list[Node]) -> None:
+    def __init__(
+        self, loc: log.FileLocation, s: str, m: dict[str, int], c: list[Expression]
+    ) -> None:
         super().__init__(loc, c)
         self.symbol: str = s
 
@@ -294,37 +255,49 @@ class Struct(Expression):
         self.members: dict[str, int] = m
 
     def get_member(self, name: str) -> Optional[Expression]:
-        member = self.get_child(self.members[name])
-        if member is None:
+        if name not in self.members:
+            log.internal(
+                f"Member '{name}' not in members of '{self.symbol}'",
+                module=MODULE_CODE,
+                location=self.loc,
+            )
             return None
+
+        member = self.children[self.members[name]]
+
+        if member is None:
+            log.internal(
+                f"Member '{name}' not in members of '{self.symbol}'",
+                module=MODULE_CODE,
+                location=self.loc,
+            )
+            return None
+
         return cast(Expression, member)
 
-    def get_members(self) -> list[Expression]:
-        return cast("list[Expression]", self.children)
-
     def __deepcopy__(self, memo) -> Struct:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = Struct(self.loc, self.symbol, self.members, children)
         self.copy_attrs(new)
         return new
 
     def __str__(self) -> str:
         s = self.symbol + "("
-        s += ",".join([f"{i}={self.get_child(e)}" for i, e in self.members.items()])
+        s += ",".join([f"{i}={self.children[e]}" for i, e in self.members.items()])
         s += ")"
         return s
 
 
 class StructAccess(Expression):
-    def __init__(self, loc: log.FileLocation, s: Node, m: str) -> None:
-        super().__init__(loc, [s])
-        self.member: str = m
+    def __init__(self, loc: log.FileLocation, struct: Expression, member: str) -> None:
+        super().__init__(loc, [struct])
+        self.member: str = member
 
     def get_struct(self) -> Struct:
-        return cast(Struct, self.get_child(0))
+        return cast(Struct, self.children[0])
 
     def __deepcopy__(self, memo) -> StructAccess:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(self.loc, children[0], self.member)
         self.copy_attrs(new)
         return new
@@ -334,55 +307,24 @@ class StructAccess(Expression):
 
 
 class Operator(Expression):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
-        super().__init__(loc, c)
-        self.arity: int = len(c)
-
-    def get_operands(self) -> list[Expression]:
-        return cast("list[Expression]", self.children)
+    def __init__(self, loc: log.FileLocation, children: list[Expression]) -> None:
+        super().__init__(loc, children)
+        self.arity: int = len(children)
 
     def get_operand(self, i: int) -> Expression:
-        return cast(Expression, self.get_child(i))
-
-
-class UnaryOperator(Operator):
-    def __init__(self, loc: log.FileLocation, o: list[Node]) -> None:
-        if len(o) != 1:
-            raise ValueError(f" '{type(self)}' requires exactly one child node.")
-        super().__init__(loc, o)
-
-    def get_operand(self) -> Expression:
-        # FIXME: Does this work if we override the above get_operand?
-        return cast(Expression, self.get_child(0))
-
-    def __str__(self) -> str:
-        return f"{self.symbol}({self.get_operand()})"
-
-
-class BinaryOperator(Operator):
-    def __init__(self, loc: log.FileLocation, operands: list[Node]) -> None:
-        if len(operands) != 2:
-            raise ValueError(f"'{type(self)}' requires exactly two child nodes.")
-        super().__init__(loc, operands)
-
-    def get_lhs(self) -> Expression:
-        return self.get_operand(0)
-
-    def get_rhs(self) -> Expression:
-        return self.get_operand(1)
-
-    def __str__(self) -> str:
-        return f"({self.get_lhs()}){self.symbol}({self.get_rhs()})"
+        return cast(Expression, self.children[i])
 
 
 class FunctionCall(Operator):
-    def __init__(self, loc: log.FileLocation, s: str, a: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, s: str, a: list[Expression]) -> None:
         super().__init__(loc, a)
         self.symbol: str = s
 
     def __deepcopy__(self, memo) -> FunctionCall:
         return FunctionCall(
-            self.loc, self.symbol, deepcopy(cast("list[Node]", self.children), memo)
+            self.loc,
+            self.symbol,
+            copy.deepcopy(cast("list[Expression]", self.children), memo),
         )
 
     def __str__(self) -> str:
@@ -392,35 +334,62 @@ class FunctionCall(Operator):
         return s[:-1] + ")"
 
 
-class SetAggOperator(Operator):
-    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(loc, [s, v, e])
+class Bind(Expression):
+    def __init__(
+        self, loc: log.FileLocation, var: Variable, set: SetExpression
+    ) -> None:
+        super().__init__(loc, [])
+        self.bound_var = var
+        self.set_expr = set
+
+    def get_bound_var(self) -> Variable:
+        return self.bound_var
 
     def get_set(self) -> SetExpression:
-        return cast(SetExpression, self.get_child(0))
+        return self.set_expr
 
-    def get_boundvar(self) -> Variable:
-        return cast(Variable, self.get_child(1))
+    def __str__(self) -> str:
+        return ""
+
+
+class SetAggregation(Operator):
+    """`SetAggOperator` tree structure looks like:
+
+    SetAggOperator
+    ____|___________
+    |   |     |    |
+    v   v     v    v
+    Set [Num] Bind Expression
+
+    where from the left we have the target set, (optional) number, a dummy class to do variable binding during traversal, then the argument expression. We visit these in that order when performing the standard reverse postorder traversal.
+    """
+
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Optional[Expression],
+        expr: Expression,
+    ) -> None:
+        if num:
+            super().__init__(loc, [set, num, Bind(loc, var, set), expr])
+        else:
+            super().__init__(loc, [set, Bind(loc, var, set), expr])
+        self.bound_var = var
+
+    def get_set(self) -> SetExpression:
+        return cast(SetExpression, self.children[0])
 
     def get_expr(self) -> Expression:
-        return cast(Expression, self.get_child(2))
-
-    def __deepcopy__(self, memo) -> SetAggOperator:
-        children = [deepcopy(c, memo) for c in self.children]
-        new = type(self)(
-            self.loc,
-            cast(SetExpression, children[0]),
-            cast(Variable, children[1]),
-            children[2],
-        )
-        self.copy_attrs(new)
-        return new
+        """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
+        return cast(Expression, self.children[-1])
 
     def __str__(self) -> str:
         return (
             self.symbol
             + "("
-            + str(self.get_boundvar())
+            + str(self.bound_var)
             + ":"
             + str(self.get_set())
             + ")"
@@ -430,103 +399,139 @@ class SetAggOperator(Operator):
         )
 
 
-class ForEach(SetAggOperator):
-    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(loc, s, v, e)
+class ForEach(SetAggregation):
+    def __init__(
+        self, loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+    ) -> None:
+        super().__init__(loc, var, set, None, expr)
         self.symbol: str = "foreach"
 
+    def __deepcopy__(self, memo) -> SetAggregation:
+        # assumes that __deepcopy__ is implemented by all sub-classes where num is not None
+        new = ForEach(
+            self.loc,
+            cast(Variable, copy.deepcopy(self.bound_var)),
+            cast(SetExpression, copy.deepcopy(self.children[0])),
+            copy.deepcopy(self.children[-1]),
+        )
+        self.copy_attrs(new)
+        return new
 
-class ForSome(SetAggOperator):
-    def __init__(self, loc: log.FileLocation, s: SetExpression, v: Variable, e: Node) -> None:
-        super().__init__(loc, s, v, e)
+
+class ForSome(SetAggregation):
+    def __init__(
+        self, loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+    ) -> None:
+        super().__init__(loc, var, set, None, expr)
         self.symbol: str = "forsome"
 
+    def __deepcopy__(self, memo) -> SetAggregation:
+        # assumes that __deepcopy__ is implemented by all sub-classes where num is not None
+        new = ForSome(
+            self.loc,
+            cast(Variable, copy.deepcopy(self.bound_var, memo)),
+            cast(SetExpression, copy.deepcopy(self.children[0], memo)),
+            copy.deepcopy(self.children[-1], memo),
+        )
+        self.copy_attrs(new)
+        return new
 
-class ForExactly(SetAggOperator):
+
+class ForExactly(SetAggregation):
     def __init__(
-        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
+        self,
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
     ) -> None:
-        super().__init__(loc, s, v, e)
+        super().__init__(loc, var, set, num, expr)
         self.symbol: str = "forexactly"
-        self.add_child(n)
 
     def get_num(self) -> Expression:
-        return cast(Expression, self.get_child(3))
+        return cast(Expression, self.children[1])
 
     def __deepcopy__(self, memo) -> ForExactly:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ForExactly(
             self.loc,
+            self.bound_var,
             cast(SetExpression, children[0]),
-            children[3],
-            cast(Variable, children[1]),
-            children[2],
+            children[1],
+            cast(Expression, children[:-1]),
         )
         self.copy_attrs(new)
         return new
 
 
-class ForAtLeast(SetAggOperator):
+class ForAtLeast(SetAggregation):
     def __init__(
-        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
+        self,
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
     ) -> None:
-        super().__init__(loc, s, v, e)
+        super().__init__(loc, var, set, num, expr)
         self.symbol: str = "foratleast"
-        self.add_child(n)
 
     def get_num(self) -> Expression:
-        return cast(Expression, self.get_child(3))
+        return cast(Expression, self.children[1])
 
     def __deepcopy__(self, memo) -> ForAtLeast:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ForAtLeast(
             self.loc,
-            cast(SetExpression, children[0]),
-            children[3],
             cast(Variable, children[1]),
+            cast(SetExpression, children[0]),
             children[2],
+            cast(Expression, children[:-1]),
         )
         self.copy_attrs(new)
         return new
 
 
-class ForAtMost(SetAggOperator):
+class ForAtMost(SetAggregation):
     def __init__(
-        self, loc: log.FileLocation, s: SetExpression, n: Node, v: Variable, e: Node
+        self,
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
     ) -> None:
-        super().__init__(loc, s, v, e)
+        super().__init__(loc, var, set, num, expr)
         self.symbol: str = "foratmost"
-        self.add_child(n)
 
     def get_num(self) -> Expression:
-        return cast(Expression, self.get_child(3))
+        return cast(Expression, self.children[1])
 
     def __deepcopy__(self, memo) -> ForAtMost:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ForAtMost(
             self.loc,
-            cast(SetExpression, children[0]),
-            children[3],
             cast(Variable, children[1]),
+            cast(SetExpression, children[0]),
             children[2],
+            cast(Expression, children[:-1]),
         )
         self.copy_attrs(new)
         return new
 
 
 class Count(Operator):
-    def __init__(self, loc: log.FileLocation, n: Node, c: list[Node]) -> None:
+    def __init__(
+        self, loc: log.FileLocation, num: Expression, children: list[Expression]
+    ) -> None:
         # Note: all members of c must be of type Boolean
-        super().__init__(loc, c)
-        self.num: Node = n
+        super().__init__(loc, [num] + children)
         self.name = "count"
 
     def __deepcopy__(self, memo) -> Count:
-        children = [deepcopy(c, memo) for c in self.children]
-        if len(children) > 1:
-            new = Count(self.loc, children[0], children[1:])
-        else:
-            new = Count(self.loc, children[0], [])
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = Count(self.loc, cast(Expression, children[0]), children[1:])
         self.copy_attrs(new)
         return new
 
@@ -538,355 +543,352 @@ class Count(Operator):
 
 
 class BitwiseOperator(Operator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
-        super().__init__(loc, c)
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
+        super().__init__(loc, operands)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
 
-class BitwiseAnd(BitwiseOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class BitwiseAnd(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "&"
 
     def __deepcopy__(self, memo) -> BitwiseAnd:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseAnd(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class BitwiseOr(BitwiseOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class BitwiseOr(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "|"
 
     def __deepcopy__(self, memo) -> BitwiseOr:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseOr(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class BitwiseXor(BitwiseOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class BitwiseXor(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "^"
 
     def __deepcopy__(self, memo) -> BitwiseXor:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseXor(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class BitwiseShiftLeft(BitwiseOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class BitwiseShiftLeft(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "<<"
 
     def __deepcopy__(self, memo) -> BitwiseShiftLeft:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseShiftLeft(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class BitwiseShiftRight(BitwiseOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class BitwiseShiftRight(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = ">>"
 
     def __deepcopy__(self, memo) -> BitwiseShiftRight:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseShiftRight(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class BitwiseNegate(BitwiseOperator, UnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node) -> None:
-        super().__init__(loc, [o])
+class BitwiseNegate(BitwiseOperator):
+    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
+        super().__init__(loc, [operand])
         self.symbol = "~"
 
     def __deepcopy__(self, memo) -> BitwiseNegate:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = BitwiseNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
 
 class ArithmeticOperator(Operator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
-        super().__init__(loc, c)
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
+        super().__init__(loc, operands)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __str__(self) -> str:
-        s = f"{self.get_child(0)}"
+        s = f"{self.children[0]}"
         for c in range(1, len(self.children)):
-            s += f"{self.symbol}{self.get_child(c)}"
+            s += f"{self.symbol}{self.children[c]}"
         return s
 
 
 class ArithmeticAdd(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
         # force binary operator for now
-        if len(c) > 2:
-            prev = ArithmeticAdd(loc, c[0:2])
-            for i in range(2, len(c) - 1):
-                prev = ArithmeticAdd(loc, [prev, c[i]])
-            super().__init__(loc, [prev, c[len(c) - 1]])
+        if len(operands) > 2:
+            prev = ArithmeticAdd(loc, operands[0:2])
+            for i in range(2, len(operands) - 1):
+                prev = ArithmeticAdd(loc, [prev, operands[i]])
+            super().__init__(loc, [prev, operands[len(operands) - 1]])
             self.type = self.get_operand(0).type
         else:
-            super().__init__(loc, c)
+            super().__init__(loc, operands)
             self.type = self.get_operand(0).type
 
         self.symbol = "+"
 
     def __deepcopy__(self, memo) -> ArithmeticAdd:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticAdd(self.loc, children)
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticSubtract(ArithmeticOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class ArithmeticSubtract(ArithmeticOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "-"
 
     def __deepcopy__(self, memo) -> ArithmeticSubtract:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticSubtract(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticMultiply(ArithmeticOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class ArithmeticMultiply(ArithmeticOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "*"
 
     def __deepcopy__(self, memo) -> ArithmeticMultiply:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticMultiply(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticDivide(ArithmeticOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class ArithmeticDivide(ArithmeticOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "/"
 
     def __deepcopy__(self, memo) -> ArithmeticDivide:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticDivide(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticModulo(ArithmeticOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class ArithmeticModulo(ArithmeticOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "%"
 
     def __deepcopy__(self, memo) -> ArithmeticModulo:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticModulo(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticNegate(UnaryOperator, ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, o: Node) -> None:
-        super().__init__(loc, [o])
+class ArithmeticNegate(ArithmeticOperator):
+    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
+        super().__init__(loc, [operand])
         self.symbol = "-"
 
     def __deepcopy__(self, memo) -> ArithmeticNegate:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = ArithmeticNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
 
-class RelationalOperator(BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class RelationalOperator(Operator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __deepcopy__(self, memo) -> RelationalOperator:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
+    def __str__(self) -> str:
+        return f"({self.children[0]}){self.symbol}({self.children[1]})"
+
 
 class Equal(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = "=="
 
 
 class NotEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = "!="
 
 
 class GreaterThan(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = ">"
 
 
 class LessThan(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = "<"
 
 
 class GreaterThanOrEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = ">="
 
 
 class LessThanOrEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, lhs, rhs)
         self.symbol = "<="
 
 
 class LogicalOperator(Operator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
-        super().__init__(loc, c)
-        self.bpd = min([child.bpd for child in self.get_operands()])
-        self.wpd = max([child.wpd for child in self.get_operands()])
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
+        super().__init__(loc, operands)
+        self.bpd = min([child.bpd for child in self.children])
+        self.wpd = max([child.wpd for child in self.children])
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
 
 
 class LogicalOr(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
         # force binary operator for now
-        if len(c) > 2:
-            prev = LogicalOr(loc, c[0:2])
-            for i in range(2, len(c) - 1):
-                prev = LogicalOr(loc, [prev, c[i]])
-            super().__init__(loc, [prev, c[len(c) - 1]])
+        if len(operands) > 2:
+            prev = LogicalOr(loc, operands[0:2])
+            for i in range(2, len(operands) - 1):
+                prev = LogicalOr(loc, [prev, operands[i]])
+            super().__init__(loc, [prev, operands[len(operands) - 1]])
         else:
-            super().__init__(loc, c)
+            super().__init__(loc, operands)
 
-        super().__init__(loc, c)
+        super().__init__(loc, operands)
         self.symbol = "||"
 
     def __str__(self) -> str:
-        return self.symbol.join([str(c) for c in self.get_operands()])
-
-    def to_mltl_std(self) -> str:
-        return "|".join([f"({c.to_mltl_std()})" for c in self.get_operands()])
+        return self.symbol.join([str(c) for c in self.children])
 
 
 class LogicalAnd(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, c: list[Node]) -> None:
+    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
         # force binary operator for now
-        if len(c) > 2:
-            prev = LogicalAnd(loc, c[0:2])
-            for i in range(2, len(c) - 1):
-                prev = LogicalAnd(loc, [prev, c[i]])
-            super().__init__(loc, [prev, c[len(c) - 1]])
+        if len(operands) > 2:
+            prev = LogicalAnd(loc, operands[0:2])
+            for i in range(2, len(operands) - 1):
+                prev = LogicalAnd(loc, [prev, operands[i]])
+            super().__init__(loc, [prev, operands[len(operands) - 1]])
         else:
-            super().__init__(loc, c)
+            super().__init__(loc, operands)
 
         self.symbol = "&&"
 
     def __str__(self) -> str:
-        return self.symbol.join([str(c) for c in self.get_operands()])
-
-    def to_mltl_std(self) -> str:
-        return "&".join([f"({c.to_mltl_std()})" for c in self.get_operands()])
+        return self.symbol.join([str(c) for c in self.children])
 
 
-class LogicalXor(LogicalOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class LogicalXor(LogicalOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "^^"
 
     def __deepcopy__(self, memo) -> LogicalXor:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = LogicalXor(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
 
-class LogicalImplies(LogicalOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class LogicalImplies(LogicalOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "->"
 
     def __deepcopy__(self, memo) -> LogicalImplies:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = LogicalImplies(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
-    def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()})->({self.get_rhs().to_mltl_std()})"
 
-
-class LogicalIff(LogicalOperator, BinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node) -> None:
+class LogicalIff(LogicalOperator):
+    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
         super().__init__(loc, [lhs, rhs])
         self.symbol = "<->"
 
     def __deepcopy__(self, memo) -> LogicalIff:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = LogicalIff(self.loc, children[0], children[1])
         self.copy_attrs(new)
         return new
 
-    def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()})<->({self.get_rhs().to_mltl_std()})"
 
-
-class LogicalNegate(LogicalOperator, UnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node) -> None:
-        super().__init__(loc, [o])
+class LogicalNegate(LogicalOperator):
+    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
+        super().__init__(loc, [operand])
         self.symbol = "!"
 
     def __deepcopy__(self, memo) -> LogicalNegate:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = LogicalNegate(self.loc, children[0])
         self.copy_attrs(new)
         return new
 
-    def to_mltl_std(self) -> str:
-        return f"!({self.get_operand().to_mltl_std()})"
+    def __str__(self) -> str:
+        return f"!({self.children[0]})"
 
 
 class TemporalOperator(Operator):
-    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(loc, c)
+    def __init__(
+        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operands)
         self.interval = types.Interval(lb=lb, ub=ub)
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
 
 
 class FutureTimeOperator(TemporalOperator):
-    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(loc, c, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operands, lb, ub)
 
 
 class PastTimeOperator(TemporalOperator):
-    def __init__(self, loc: log.FileLocation, c: list[Node], lb: int, ub: int) -> None:
-        super().__init__(loc, c, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operands, lb, ub)
 
 
-# subclasses cannot inherit from BinaryOperator due to multiple inheriting classes
-# with different __init__ signatures
 class FutureTimeBinaryOperator(TemporalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+    def __init__(
+        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
+    ) -> None:
         super().__init__(loc, [lhs, rhs], lb, ub)
-        self.bpd = min(self.get_lhs().bpd, self.get_rhs().bpd) + self.interval.lb
-        self.wpd = max(self.get_lhs().wpd, self.get_rhs().wpd) + self.interval.ub
+        self.bpd = min(self.children[0].bpd, self.children[1].bpd) + self.interval.lb
+        self.wpd = max(self.children[0].wpd, self.children[1].wpd) + self.interval.ub
 
     def get_lhs(self) -> Expression:
         return self.get_operand(0)
@@ -895,7 +897,7 @@ class FutureTimeBinaryOperator(TemporalOperator):
         return self.get_operand(1)
 
     def __deepcopy__(self, memo) -> FutureTimeBinaryOperator:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(
             self.loc, children[0], children[1], self.interval.lb, self.interval.ub
         )
@@ -903,35 +905,38 @@ class FutureTimeBinaryOperator(TemporalOperator):
         return new
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
-
-    def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+        return f"({self.children[0]!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})"
 
 
 class Until(FutureTimeBinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+    def __init__(
+        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
+    ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "U"
 
 
 class Release(FutureTimeBinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+    def __init__(
+        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
+    ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "R"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, [o], lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, [operand], lb, ub)
         self.bpd = self.get_operand().bpd + self.interval.lb
         self.wpd = self.get_operand().wpd + self.interval.ub
 
     def get_operand(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        return cast(Expression, self.children[0])
 
     def __deepcopy__(self, memo) -> FutureTimeUnaryOperator:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
@@ -939,24 +944,27 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
     def __str__(self) -> str:
         return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
 
-    def to_mltl_std(self) -> str:
-        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
-
 
 class Global(FutureTimeUnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, o, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operand, lb, ub)
         self.symbol = "G"
 
 
 class Future(FutureTimeUnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, o, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operands: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operands, lb, ub)
         self.symbol = "F"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+    def __init__(
+        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
+    ) -> None:
         super().__init__(loc, [lhs, rhs], lb, ub)
 
     def get_lhs(self) -> Expression:
@@ -966,7 +974,7 @@ class PastTimeBinaryOperator(PastTimeOperator):
         return self.get_operand(1)
 
     def __deepcopy__(self, memo) -> PastTimeBinaryOperator:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(
             self.loc, children[0], children[1], self.interval.lb, self.interval.ub
         )
@@ -974,27 +982,28 @@ class PastTimeBinaryOperator(PastTimeOperator):
         return new
 
     def __str__(self) -> str:
-        return f"({self.get_lhs()!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_rhs()!s})"
-
-    def to_mltl_std(self) -> str:
-        return f"({self.get_lhs().to_mltl_std()}){self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_rhs().to_mltl_std()})"
+        return f"({self.children[0]!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})"
 
 
 class Since(PastTimeBinaryOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Node, rhs: Node, lb: int, ub: int) -> None:
+    def __init__(
+        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
+    ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
         self.symbol = "S"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, [o], lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, [operand], lb, ub)
 
     def get_operand(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        return cast(Expression, self.children[0])
 
     def __deepcopy__(self, memo) -> PastTimeUnaryOperator:
-        children = [deepcopy(c, memo) for c in self.children]
+        children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
@@ -1002,35 +1011,38 @@ class PastTimeUnaryOperator(PastTimeOperator):
     def __str__(self) -> str:
         return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
 
-    def to_mltl_std(self) -> str:
-        return f"{self.symbol}[{self.interval.lb},{self.interval.ub}]({self.get_operand().to_mltl_std()})"
-
 
 class Historical(PastTimeUnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, o, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operand, lb, ub)
         self.symbol = "H"
 
 
 class Once(PastTimeUnaryOperator):
-    def __init__(self, loc: log.FileLocation, o: Node, lb: int, ub: int) -> None:
-        super().__init__(loc, o, lb, ub)
+    def __init__(
+        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
+    ) -> None:
+        super().__init__(loc, operand, lb, ub)
         self.symbol = "O"
 
 
-class Specification(Expression):
-    def __init__(self, loc: log.FileLocation, lbl: str, f: int, e: Node) -> None:
-        super().__init__(loc, [e])
-        self.symbol: str = lbl
-        self.formula_number: int = f
+class Formula(Expression):
+    def __init__(
+        self, loc: log.FileLocation, label: str, fnum: int, expr: Expression
+    ) -> None:
+        super().__init__(loc, [expr])
+        self.symbol: str = label
+        self.formula_number: int = fnum
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
 
     def get_expr(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        return cast(Expression, self.children[0])
 
-    def __deepcopy__(self, memo) -> Specification:
-        children = [deepcopy(c, memo) for c in self.children]
-        new = Specification(self.loc, self.symbol, self.formula_number, children[0])
+    def __deepcopy__(self, memo) -> Formula:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
 
@@ -1041,251 +1053,204 @@ class Specification(Expression):
             + str(self.get_expr())
         )
 
-    def to_mltl_std(self) -> str:
-        return self.get_expr().to_mltl_std()
 
-
-class Contract(Node):
+class Contract(Expression):
     def __init__(
         self,
         loc: log.FileLocation,
-        lbl: str,
-        f1: int,
-        f2: int,
-        f3: int,
-        a: Expression,
-        g: Expression,
+        label: str,
+        fnum1: int,
+        fnum2: int,
+        fnum3: int,
+        assume: Formula,
+        guarantee: Formula,
     ) -> None:
-        super().__init__(loc, [a, g])
-        self.symbol: str = lbl
-        self.formula_numbers: tuple[int, int, int] = (f1, f2, f3)
+        super().__init__(loc, [assume, guarantee])
+        self.symbol: str = label
+        self.formula_numbers: tuple[int, int, int] = (fnum1, fnum2, fnum3)
 
     def get_assumption(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        return cast(Expression, self.children[0])
 
     def get_guarantee(self) -> Expression:
-        return cast(Expression, self.get_child(1))
+        return cast(Expression, self.children[1])
 
     def __str__(self) -> str:
         return f"({self.get_assumption()})=>({self.get_guarantee()})"
 
-    def to_mltl_std(self) -> str:
-        return f"({self.get_assumption})->({self.get_guarantee()})"
+
+Specification = Union[Formula, Contract]
+
+
+class SpecificationSet(Expression):
+    def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
+        super().__init__(loc, cast("list[Expression]", specs))
+
+    def get_specs(self) -> list[Specification]:
+        return cast("list[Specification]", self.children)
 
 
 class StructDefinition(Node):
-    def __init__(self, loc: log.FileLocation, symbol: str, m: list[Node]) -> None:
-        super().__init__(loc, m)
+    def __init__(
+        self, loc: log.FileLocation, symbol: str, var_decls: list[VariableDeclaration]
+    ) -> None:
+        super().__init__(loc)
         self.symbol = symbol
-        self._members = {}
-        for decl in cast("list[VariableDeclaration]", m):
-            for sym in decl.get_symbols():
-                self._members[sym] = decl.get_type()
-
-    def get_declarations(self) -> list[VariableDeclaration]:
-        return cast("list[VariableDeclaration]", self.children)
-
-    def get_members(self) -> dict[str, types.Type]:
-        return self._members
+        self.var_decls = var_decls
+        self.members = {}
+        for var_decl in var_decls:
+            for sym in var_decl.variables:
+                self.members[sym] = var_decl.type
 
     def __str__(self) -> str:
-        members_str_list = [str(s) + ";" for s in self.children]
+        members_str_list = [str(s) + ";" for s in self.var_decls]
         return self.symbol + "{" + " ".join(members_str_list) + ")"
 
 
 class VariableDeclaration(Node):
     def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:
-        super().__init__(loc, [])
-        self._variables = vars
-        self._type = t
-
-    def get_symbols(self) -> list[str]:
-        return self._variables
-
-    def get_type(self) -> types.Type:
-        return self._type
+        super().__init__(loc)
+        self.variables = vars
+        self.type = t
 
     def __str__(self) -> str:
-        return f"{','.join(self._variables)}: {str(self._type)}"
+        return f"{','.join(self.variables)}: {str(self.type)}"
 
 
 class Definition(Node):
-    def __init__(self, loc: log.FileLocation, symbol: str, e: Expression) -> None:
-        super().__init__(loc, [e])
+    def __init__(self, loc: log.FileLocation, symbol: str, expr: Expression) -> None:
+        super().__init__(loc)
         self.symbol = symbol
-
-    def get_expr(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.symbol} := {self.get_expr()}"
+        return f"{self.symbol} := {self.expr}"
 
 
 class AtomicCheckerDefinition(Node):
-    def __init__(self, loc: log.FileLocation, symbol: str, e: Expression) -> None:
-        super().__init__(loc, [e])
+    def __init__(self, loc: log.FileLocation, symbol: str, expr: Expression) -> None:
+        super().__init__(loc)
         self.symbol = symbol
+        self.expr = expr
 
     def get_expr(self) -> Expression:
-        return cast(Expression, self.get_child(0))
+        return cast(Expression, self.expr)
 
     def __str__(self) -> str:
         return f"{self.symbol} := {self.get_expr()}"
 
 
 class StructSection(Node):
-    def __init__(self, loc: log.FileLocation, struct_defs: list[Node]) -> None:
-        super().__init__(loc, struct_defs)
-
-    def get_structs(self) -> list[StructDefinition]:
-        return cast("list[StructDefinition]", self.children)
-
-    def replace(self, node: Node) -> None:
-        raise RuntimeError("Attempting to replace a C2POStructSection.")
+    def __init__(
+        self, loc: log.FileLocation, struct_defs: list[StructDefinition]
+    ) -> None:
+        super().__init__(loc)
+        self.struct_defs = struct_defs
 
     def __str__(self) -> str:
-        structs_str_list = [str(s) + ";" for s in self.children]
+        structs_str_list = [str(s) + ";" for s in self.struct_defs]
         return "STRUCT\n\t" + "\n\t".join(structs_str_list)
 
 
 class InputSection(Node):
-    def __init__(self, loc: log.FileLocation, signal_decls: list[Node]) -> None:
-        super().__init__(loc, signal_decls)
-
-    def get_signals(self) -> list[VariableDeclaration]:
-        return cast("list[VariableDeclaration]", self.children)
-
-    def replace(self, node: Node) -> None:
-        raise RuntimeError("Attempting to replace a C2POInputSection.")
+    def __init__(
+        self, loc: log.FileLocation, signal_decls: list[VariableDeclaration]
+    ) -> None:
+        super().__init__(loc)
+        self.signal_decls = signal_decls
 
     def __str__(self) -> str:
-        signals_str_list = [str(s) + ";" for s in self.children]
+        signals_str_list = [str(s) + ";" for s in self.signal_decls]
         return "INPUT\n\t" + "\n\t".join(signals_str_list)
 
 
 class DefineSection(Node):
-    def __init__(self, loc: log.FileLocation, defines: list[Node]) -> None:
-        super().__init__(loc, defines)
-
-    def get_definitions(self) -> list[Definition]:
-        return cast("list[Definition]", self.children)
-
-    def replace(self, node: Node) -> None:
-        raise RuntimeError("Attempting to replace a C2PODefineSection.")
+    def __init__(self, loc: log.FileLocation, defines: list[Definition]) -> None:
+        super().__init__(loc)
+        self.defines = defines
 
     def __str__(self) -> str:
-        defines_str_list = [str(s) + ";" for s in self.children]
+        defines_str_list = [str(s) + ";" for s in self.defines]
         return "DEFINE\n\t" + "\n\t".join(defines_str_list)
 
 
 class AtomicSection(Node):
-    def __init__(self, loc: log.FileLocation, atomics: list[Node]):
-        super().__init__(loc, atomics)
-
-    def get_atomic_checkers(self) -> list[AtomicCheckerDefinition]:
-        return cast("list[AtomicCheckerDefinition]", self.children)
-
-    def replace(self, node: Node):
-        raise RuntimeError("Attempting to replace a C2POAtomicSection.")
+    def __init__(self, loc: log.FileLocation, atomics: list[AtomicCheckerDefinition]):
+        super().__init__(loc)
+        self.atomics = atomics
 
     def __str__(self) -> str:
-        atomics_str_list = [str(s) + ";" for s in self.children]
+        atomics_str_list = [str(s) + ";" for s in self.atomics]
         return "ATOMIC\n\t" + "\n\t".join(atomics_str_list)
 
 
 class SpecSection(Node):
-    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
-        super().__init__(loc, s)
-
-    def get_specs(self) -> list[Union[Specification, Contract]]:
-        return cast("list[Union[Specification, Contract]]", self.children)
-
-    def replace(self, node: Node) -> None:
-        raise RuntimeError("Attempting to replace a C2POSpecSection.")
-
-    def __str__(self) -> str:
-        spec_str_list = [str(s) + ";" for s in self.children]
-        return "\n\t".join(spec_str_list)
-
-    def to_mltl_std(self) -> str:
-        return "\n".join([s.to_mltl_std() for s in self.get_specs()])
+    def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
+        super().__init__(loc)
+        self.specs = specs
 
 
 class FutureTimeSpecSection(SpecSection):
-    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
-        super().__init__(loc, s)
+    def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
+        super().__init__(loc, specs)
 
     def __str__(self) -> str:
-        return "FTPSEC\n\t" + super().__str__()
+        return "FTPSEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
 
 class PastTimeSpecSection(SpecSection):
-    def __init__(self, loc: log.FileLocation, s: list[Node]) -> None:
-        super().__init__(loc, s)
+    def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
+        super().__init__(loc, specs)
 
     def __str__(self) -> str:
-        return "PTSPEC\n\t" + super().__str__()
+        return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
+
+
+ProgramSection = Union[
+    StructSection, InputSection, DefineSection, AtomicSection, SpecSection
+]
 
 
 class Program(Node):
-    def __init__(self, loc: log.FileLocation, sections: list[Node]) -> None:
-        super().__init__(loc, sections)
+    def __init__(self, loc: log.FileLocation, sections: list[ProgramSection]) -> None:
+        super().__init__(loc)
+        self.sections = sections
 
-        self.future_time_spec_section_idx = -1
-        self.past_time_spec_section_idx = -1
-
+        ft_specs: list[Specification] = []
+        pt_specs: list[Specification] = []
         for section in sections:
             if isinstance(section, FutureTimeSpecSection):
-                self.future_time_spec_section_idx = sections.index(section)
+                ft_specs += section.specs
             elif isinstance(section, PastTimeSpecSection):
-                self.past_time_spec_section_idx = sections.index(section)
+                pt_specs += section.specs
 
-    def get_sections(self) -> list[C2POSection]:
-        return cast("list[C2POSection]", self.children)
+        self.ft_spec_set = SpecificationSet(loc, ft_specs)
+        self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
-    def get_spec_sections(self) -> list[SpecSection]:
-        return [s for s in self.children if isinstance(s, SpecSection)]
+    def get_specs(self) -> list[Specification]:
+        return self.ft_spec_set.get_specs() + self.pt_spec_set.get_specs()
 
-    def get_future_time_spec_section(self) -> Optional[FutureTimeSpecSection]:
-        if self.future_time_spec_section_idx < 0:
-            return None
-        return cast(
-            FutureTimeSpecSection, self.get_child(self.future_time_spec_section_idx)
-        )
+    def postorder(self, context: Context):
+        """Performs a postorder traversal of each FT and PT specification in this `Program`."""
+        for expr in postorder(self.ft_spec_set, context):
+            yield expr
 
-    def get_past_time_spec_section(self) -> Optional[PastTimeSpecSection]:
-        if self.past_time_spec_section_idx < 0:
-            return None
-        return cast(
-            PastTimeSpecSection, self.get_child(self.past_time_spec_section_idx)
-        )
+        for expr in postorder(self.pt_spec_set, context):
+            yield expr
 
-    def get_future_time_specs(self) -> list[Union[Specification, Contract]]:
-        future_time_spec_section = self.get_future_time_spec_section()
-        if future_time_spec_section:
-            return future_time_spec_section.get_specs()
-        return []
+    def preorder(self, context: Context):
+        """Performs a preorder traversal of each FT and PT specification in this `Program`."""
+        for expr in preorder(self.ft_spec_set, context):
+            yield expr
 
-    def get_past_time_specs(self) -> list[Union[Specification, Contract]]:
-        past_time_spec_section = self.get_past_time_spec_section()
-        if past_time_spec_section:
-            return past_time_spec_section.get_specs()
-        return []
-
-    def get_specs(self) -> list[Union[Specification, Contract]]:
-        return self.get_future_time_specs() + self.get_past_time_specs()
-
-    def replace(self, node: Node) -> None:
-        raise RuntimeError("Attempting to replace a program.")
+        for expr in preorder(self.pt_spec_set, context):
+            yield expr
 
     def pickle(self) -> bytes:
         return pickle.dumps(self)
 
     def __str__(self) -> str:
-        return "\n".join([str(s) for s in self.children])
-
-    def to_mltl_std(self) -> str:
-        return "\n".join([s.to_mltl_std() for s in self.get_specs()]) + "\n"
+        return "\n".join([str(s) for s in self.sections])
 
 
 class Context:
@@ -1303,7 +1268,7 @@ class Context:
         self.signals: dict[str, types.Type] = {}
         self.variables: dict[str, types.Type] = {}
         self.atomic_checkers: dict[str, Expression] = {}
-        self.specifications: dict[str, Specification] = {}
+        self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
         self.atomics: set[Expression] = set()
         self.implementation = impl
@@ -1312,16 +1277,11 @@ class Context:
         self.mission_time = mission_time
         self.signal_mapping = signal_mapping
         self.assembly_enabled = assembly_enabled
+        self.bound_vars: dict[str, SetExpression] = {}
 
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
-
-        self.atomic_checker_filters: dict[str, list[types.Type]] = {
-            "exactly_one_of": [types.SetType(False, types.BoolType(False))],
-            "all_of": [types.SetType(False, types.BoolType(False))],
-            "none_of": [types.SetType(False, types.BoolType(False))],
-        }
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1331,6 +1291,7 @@ class Context:
         symbols += [s for s in self.atomic_checkers.keys()]
         symbols += [s for s in self.specifications.keys()]
         symbols += [s for s in self.contracts.keys()]
+        symbols += [s for s in self.bound_vars.keys()]
         return symbols
 
     def is_future_time(self) -> bool:
@@ -1361,7 +1322,7 @@ class Context:
     def add_atomic(self, symbol: str, e: Expression) -> None:
         self.atomic_checkers[symbol] = e
 
-    def add_specification(self, symbol, s: Specification) -> None:
+    def add_specification(self, symbol, s: Formula) -> None:
         self.specifications[symbol] = s
 
     def add_contract(self, symbol, c: Contract) -> None:
@@ -1371,48 +1332,82 @@ class Context:
         del self.variables[symbol]
 
 
-def postorder(node: Node):
-    """Yields C2PONodes in a postorder fashion starting from `node`."""
-    stack: list[tuple[bool, Node]] = [(False, node)]
+def postorder(
+    start: Union[Expression, list[Expression]], context: Context
+) -> Iterator[Expression]:
+    """Performs a postorder traversal of `start`. If `start` is a list of `Expression`s, then initializes the stack to `start`. Uses `context` to handle local context (for example, variable binding in set aggregation expressions)."""
+    stack: list[tuple[bool, Expression]] = []
     visited: set[int] = set()
 
+    if isinstance(start, Expression):
+        stack.append((False, start))
+    else:
+        [stack.append((False, expr)) for expr in start]
+
     while len(stack) > 0:
-        cur = stack.pop()
+        (seen, expr) = stack.pop()
 
-        if cur[0]:
-            yield cur[1]
+        if seen and isinstance(expr, SetAggregation):
+            del context.bound_vars[expr.bound_var.symbol]
+            yield expr
             continue
-        elif id(cur[1]) in visited:
+        elif seen and isinstance(expr, Bind):
+            context.bound_vars[expr.bound_var.symbol] = expr.get_set()
+            continue
+        elif seen:
+            yield expr
+            continue
+        elif id(expr) in visited:
             continue
 
-        visited.add(id(cur[1]))
-        stack.append((True, cur[1]))
-        for child in reversed(cur[1].children):
+        visited.add(id(expr))
+        stack.append((True, expr))
+
+        for child in reversed(expr.children):
             stack.append((False, child))
 
 
-def preorder(node: Node):
-    """Yields C2PONodes in a preorder fashion starting from `node`."""
-    stack: list[Node] = [node]
+def preorder(
+    start: Union[Expression, list[Expression]], context: Context
+) -> Iterator[Expression]:
+    """Performs a preorder traversal of `start`. If `start` is a list of `Expression`s, then initializes the stack to `start`. Uses `context` to handle local context (for example, variable binding in set aggregation expressions)."""
+    stack: list[Expression] = []
+    visited: set[int] = set()
+
+    if isinstance(start, Expression):
+        stack.append(start)
+    else:
+        [stack.append(expr) for expr in start]
 
     while len(stack) > 0:
-        c = stack.pop()
-        yield c
+        expr = stack.pop()
 
-        for child in reversed(c.children):
+        if id(expr) in visited:
+            continue
+
+        yield expr
+
+        # if expr has been replaced since we just yielded it, need to traverse down the replacement node
+        cur = expr.replacement if expr.replacement else expr
+
+        visited.add(id(cur))
+
+        for child in reversed(cur.children):
             stack.append(child)
 
 
-def rename(v: Node, repl: Node, expr: Node) -> Node:
-    """Traverse expr and replace each node equal to v with repl."""
-    # Special case: when expr is v
-    if expr == v:
+def rename(
+    target: Expression, repl: Expression, expr: Expression, context: Context
+) -> Expression:
+    """Traverse `expr` and replace each node equal to `target` with `repl`."""
+    # Special case: when expr is target
+    if expr == target:
         return repl
 
-    new: Node = deepcopy(expr)
+    new: Node = copy.deepcopy(expr)
 
-    for node in postorder(new):
-        if v == node:
+    for node in postorder(new, context):
+        if target == node:
             node.replace(repl)
 
     return new

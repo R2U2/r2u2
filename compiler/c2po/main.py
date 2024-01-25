@@ -1,19 +1,15 @@
 from __future__ import annotations
-from typing import Optional, NamedTuple
+
+import enum
+import pathlib
 import re
-from enum import Enum
-from pathlib import Path
+from typing import NamedTuple, Optional
 
-from c2po import log
-from c2po import types
-from c2po import cpt
-from c2po import parse
-from c2po import type_check
-from c2po import transform
-from c2po import assemble
+from c2po import assemble, cpt, log, parse, transform, type_check, types
 
+MODULE_CODE = "MAN"
 
-class ReturnCode(Enum):
+class ReturnCode(enum.Enum):
     SUCCESS = 0
     ERROR = 1
     PARSE_ERR = 2
@@ -25,8 +21,8 @@ class ReturnCode(Enum):
 
 class ValidatedInput(NamedTuple):
     status: bool
-    input_path: Optional[Path]
-    output_path: Optional[Path]
+    input_path: Optional[pathlib.Path]
+    output_path: Optional[pathlib.Path]
     mission_time: int
     endian_sigil: str
     signal_mapping: types.SignalMapping
@@ -40,7 +36,7 @@ BYTE_ORDER_SIGILS = {"native": "@", "network": "!", "big": ">", "little": "<"}
 
 
 def process_trace_file(
-    trace_path: Path, map_file_provided: bool
+    trace_path: pathlib.Path, map_file_provided: bool
 ) -> tuple[int, Optional[types.SignalMapping]]:
     """Given `trace_path`, return the inferred length of the trace and, if `return_mapping` is enabled, a signal mapping."""
     with open(trace_path, "r") as f:
@@ -61,15 +57,15 @@ def process_trace_file(
         if map_file_provided:
             log.warning(
                 "Map file given and header included in trace file; header will be ignored.",
-                __name__
+                MODULE_CODE
             )
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
                 log.warning(
                     f"Signal ID '{id}' found multiple times in csv, using right-most value.",
-                    __name__,
-                    log.FileLocation(trace_path.name, 1)
+                    module=MODULE_CODE,
+                    location=log.FileLocation(trace_path.name, 1)
                 )
             signal_mapping[id] = cnt
             cnt += 1
@@ -82,8 +78,8 @@ def process_trace_file(
     return (len(lines), None)
 
 
-def process_map_file(map_path: Path) -> Optional[types.SignalMapping]:
-    """Given `trace_path`, return the inferred mission time and, if `return_mapping` is enabled, a signal mapping."""
+def process_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
+    """Return the signal mapping from `map_path`."""
     with open(map_path, "r") as f:
         content: str = f.read()
 
@@ -99,8 +95,8 @@ def process_map_file(map_path: Path) -> Optional[types.SignalMapping]:
             if id in mapping:
                 log.warning(
                     f"Signal ID '{id}' found multiple times in map file, using latest value.",
-                    __name__,
-                    log.FileLocation(map_path.name, lines.index(line)+1)
+                    module=MODULE_CODE,
+                    location=log.FileLocation(map_path.name, lines.index(line)+1)
                 )
 
             mapping[id] = sid
@@ -108,8 +104,8 @@ def process_map_file(map_path: Path) -> Optional[types.SignalMapping]:
             log.error(
                 f"Invalid format for map line (found {line})"
                  "\n\t Should be of the form SYMBOL ':' NUMERAL",
-                __name__,
-                log.FileLocation(map_path.name, lines.index(line))
+                module=MODULE_CODE,
+                location=log.FileLocation(map_path.name, lines.index(line))
             )
             return None
 
@@ -142,37 +138,38 @@ def validate_input(
     Returns:
         A tuple with the following item types/descriptions:
         `bool`: validation status
-        `Optional[Path]`: path corresponding to `input_filename` if it is a valid file, `None` otherwise
-        `Optional[Path]`: path corresponding to `output_filename` if it is a valid file, `None` otherwise
+        `Optional[pathlib.Path]`: path corresponding to `input_filename` if it is a valid file, `None` otherwise
+        `Optional[pathlib.Path]`: path corresponding to `output_filename` if it is a valid file, `None` otherwise
         `int`: mission time, either set to `custom_mission_time` or the input trace length if not provided
         `str`: endianness string from `BYTE_ORDER_SIGILS`
         `Optional[types.SignalMapping]`: signal mapping if it was derived from `trace_filename` or `map_filebame`, `None` otherwise
         `set[C2POTransform]`: set of transforms to apply to the input
     """
+    log.debug("Validating input", MODULE_CODE)
     status: bool = True
 
-    input_path = Path(input_filename)
+    input_path = pathlib.Path(input_filename)
     if not input_path.is_file():
-        log.error(f"Input file '{input_filename} not a valid file.'", __name__)
+        log.error(f"Input file '{input_filename} not a valid file.'", MODULE_CODE)
         input_path = None
 
     trace_path = None
     if trace_filename != "":
-        trace_path = Path(trace_filename)
+        trace_path = pathlib.Path(trace_filename)
         if not trace_path.is_file():
-            log.error(f"Trace file '{trace_filename}' is not a valid file.", __name__)
+            log.error(f"Trace file '{trace_filename}' is not a valid file.", MODULE_CODE)
 
     map_path = None
     if map_filename != "":
-        map_path = Path(map_filename)
+        map_path = pathlib.Path(map_filename)
         if not map_path.is_file():
-            log.error(f"Map file '{map_filename}' is not a valid file.", __name__)
+            log.error(f"Map file '{map_filename}' is not a valid file.", MODULE_CODE)
 
     output_path = None
     if output_filename != "":
-        output_path = Path(output_filename)
+        output_path = pathlib.Path(output_filename)
         if output_path.is_file():
-            log.warning(f"Output file '{output_filename}' already exists.", __name__)
+            log.warning(f"Output file '{output_filename}' already exists.", MODULE_CODE)
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -193,7 +190,7 @@ def validate_input(
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
             log.warning(
-                f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", __name__
+                f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", MODULE_CODE
             )
     else:
         mission_time = trace_length
@@ -203,7 +200,7 @@ def validate_input(
     else:
         log.internal(
             f"Endianness option argument {endian} invalid. Check CLI options?",
-            __name__
+            MODULE_CODE
         )
         endian_sigil = "@"
 
@@ -211,7 +208,7 @@ def validate_input(
     types.set_types(impl, int_width, int_is_signed, float_width)
 
     if enable_booleanizer and enable_atomic_checkers:
-        log.error("Only one of AT and booleanizer can be enabled", __name__)
+        log.error("Only one of AT and booleanizer can be enabled", MODULE_CODE)
         status = False
 
     if impl == types.R2U2Implementation.C:
@@ -220,22 +217,22 @@ def validate_input(
         ):
             log.error(
                 "Exactly one of booleanizer or atomic checker must be enabled for C implementation.",
-                __name__
+                MODULE_CODE
             )
             status = False
     else:  # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
         if enable_booleanizer:
-            log.error("Booleanizer only available for C implementation.", __name__)
+            log.error("Booleanizer only available for C implementation.", MODULE_CODE)
             status = False
 
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
-            log.error("Extended operators only support for C implementation.", __name__)
+            log.error("Extended operators only support for C implementation.", MODULE_CODE)
             status = False
 
     if enable_nnf and enable_bnf:
         log.warning(
-            " Attempting rewrite to both NNF and BNF, defaulting to NNF.", __name__
+            " Attempting rewrite to both NNF and BNF, defaulting to NNF.", MODULE_CODE
         )
 
     transforms = set(transform.TRANSFORM_PIPELINE)
@@ -261,31 +258,73 @@ def validate_input(
     )
 
 
-def dump(
+def pickle(
     program: cpt.Program,
-    input_path: Path,
-    dump_ast_filename: str,
-    dump_mltl_std_filename: str,
+    input_path: pathlib.Path,
+    output_filename: str,
 ) -> None:
-    """Dumps pickled AST and AST in MLTL standard format if filenames are not '.'"""
-    if dump_ast_filename != ".":
-        dump_path = (
-            Path(dump_ast_filename)
-            if dump_ast_filename != ""
-            else input_path.with_suffix(".pickle").name
-        )
-        ast_bytes = program.pickle()
-        with open(dump_path, "wb") as f:
-            f.write(ast_bytes)
+    """Dumps pickled AST if `output_filename` is not '.'"""
+    if output_filename == ".":
+        return
+    
+    log.debug(f"Dumping AST to {output_filename}", MODULE_CODE)
 
-    if dump_mltl_std_filename != ".":
-        dump_path = (
-            Path(dump_mltl_std_filename)
-            if dump_mltl_std_filename != ""
-            else input_path.with_suffix(".mltl").name
-        )
-        with open(dump_path, "w") as f:
-            f.write(program.to_mltl_std())
+    pickle_path = (
+        pathlib.Path(output_filename)
+        if output_filename != ""
+        else input_path.with_suffix(".pickle").name
+    )
+
+    ast_bytes = program.pickle()
+
+    with open(pickle_path, "wb") as f:
+        f.write(ast_bytes)
+    
+
+def dump_ast(
+    program: cpt.Program,
+    input_path: pathlib.Path,
+    output_filename: str,
+) -> None:
+    """Dumps string interpretation of `program` if `output_filename` is not '.'"""
+    if output_filename == ".":
+        return
+    
+    log.debug(f"Dumping AST to {output_filename}", MODULE_CODE)
+
+    dump_path = (
+        pathlib.Path(output_filename)
+        if output_filename != ""
+        else input_path.with_suffix(".c2po").name
+    )
+
+    with open(dump_path, "w") as f:
+        f.write(str(program))
+
+
+def dump_mltl(
+    program: cpt.Program,
+    input_path: pathlib.Path,
+    output_filename: str
+) -> None:
+    """Dumps pickled AST in MLTL standard if `dump_filename` is not '.'"""
+    if output_filename == ".":
+        return
+    
+    raise NotImplementedError
+    
+    log.debug(f"Dumping MLTL-STD to {output_filename}", MODULE_CODE)
+
+    dump_path = (
+        pathlib.Path(output_filename)
+        if output_filename != ""
+        else input_path.with_suffix(".mltl").name
+    )
+
+    log.internal("MLTL-STD unsupported", MODULE_CODE)
+
+    with open(dump_path, "w") as f:
+        f.write("")
 
 
 def compile(
@@ -308,8 +347,9 @@ def compile(
     enable_arity: bool = False,
     enable_cse: bool = False,
     enable_assemble: bool = True,
+    pickle_filename: str = ".",
+    dump_mltl_filename: str = ".",
     dump_ast_filename: str = ".",
-    dump_mltl_std_filename: str = ".",
     debug: bool = False,
     quiet: bool = False,
 ) -> ReturnCode:
@@ -344,8 +384,8 @@ def compile(
         enable_arity: If true enables operator arity optimization
         enable_cse: If true enables Common Subexpression Elimination
         enable_assemble: If true outputs binary to output_filename
-        dump_ast_filename:
-        dump_mltl_std_filename:
+        pickle_filename:
+        dump_mltl_filename:
         debug:
         quiet: If true disables assembly output to stdout
     """
@@ -378,7 +418,7 @@ def compile(
     )
 
     if not options.status or not options.input_path:
-        log.error("Input invalid.", __name__)
+        log.error("Input invalid.", MODULE_CODE)
         return ReturnCode.INVALID_INPUT
 
     # ----------------------------------
@@ -390,7 +430,7 @@ def compile(
         )
 
         if not program:
-            log.error("Failed parsing.", __name__)
+            log.error("Failed parsing.", MODULE_CODE)
             return ReturnCode.PARSE_ERR
 
         # must have defined this in trace or map file
@@ -400,7 +440,7 @@ def compile(
         parse_output = parse.parse_mltl(options.input_path, options.mission_time)
 
         if not parse_output:
-            log.error("Failed parsing.", __name__)
+            log.error("Failed parsing.", MODULE_CODE)
             return ReturnCode.PARSE_ERR
 
         (program, signal_mapping) = parse_output
@@ -419,26 +459,30 @@ def compile(
     )
 
     if not well_typed:
-        log.error("Failed type check.", __name__)
+        log.error("Failed type check.", MODULE_CODE)
         return ReturnCode.TYPE_CHECK_ERR
 
     # ----------------------------------
     # Transforms
     # ----------------------------------
+    log.debug("Performing transforms", MODULE_CODE)
     for trans in [t for t in transform.TRANSFORM_PIPELINE if t in options.transforms]:
         trans(program, context)
 
     # Optional file dumps
-    dump(program, options.input_path, dump_ast_filename, dump_mltl_std_filename)
+    pickle(program, options.input_path, pickle_filename)
+    dump_mltl(program, options.input_path, dump_mltl_filename)
+    dump_ast(program, options.input_path, dump_ast_filename)
 
     if not enable_assemble:
+        log.debug(f"Final program:\n{program}", MODULE_CODE)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
     # Assembly
     # ----------------------------------
     if not options.output_path:
-        log.error("Input invalid.", __name__)
+        log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
         return ReturnCode.INVALID_INPUT
 
     binary = assemble.assemble(program, context, quiet, options.endian_sigil)

@@ -1,137 +1,143 @@
 from __future__ import annotations
-from typing import Union, Any, cast, Optional
+
 from dataclasses import dataclass
 from enum import Enum
 from struct import Struct as CStruct
+from typing import Any, Optional, Union, cast
 
-from c2po import log
-from c2po import types
-from c2po import cpt
+from c2po import cpt, log, types
 
 # See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
 
+MODULE_CODE = "ASM"
+
 def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
-        log.warning(f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes", __name__)
+        log.warning(
+            f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes",
+            MODULE_CODE,
+        )
 
 
 class EngineTag(Enum):
-    NA = 0 # Null instruction tag - acts as ENDSEQ
-    SY = 1 # System commands - reserved for monitor control
-    CG = 2 # Immediate Configuration Directive
-    AT = 3 # Original Atomic Checker
-    TL = 4 # MLTL Temporal logic engine
-    BZ = 5 # Booleanizer
+    NA = 0  # Null instruction tag - acts as ENDSEQ
+    SY = 1  # System commands - reserved for monitor control
+    CG = 2  # Immediate Configuration Directive
+    AT = 3  # Original Atomic Checker
+    TL = 4  # MLTL Temporal logic engine
+    BZ = 5  # Booleanizer
 
     def __str__(self) -> str:
         return self.name
 
 
 class BZOperator(Enum):
-    NONE    = 0b000000
-    ILOAD   = 0b000001
-    FLOAD   = 0b000010
-    ICONST  = 0b000011
-    FCONST  = 0b000100
-    BWNEG   = 0b000101
-    BWAND   = 0b000110
-    BWOR    = 0b000111
-    BWXOR   = 0b001000
-    IEQ     = 0b001001
-    FEQ     = 0b001010
-    INEQ    = 0b001011
-    FNEQ    = 0b001100
-    IGT     = 0b001101
-    FGT     = 0b001110
-    IGTE    = 0b001111
-    ILT     = 0b010000
-    FLT     = 0b010001
-    ILTE    = 0b010010
-    INEG    = 0b010011
-    FNEG    = 0b010100
-    IADD    = 0b010101
-    FADD    = 0b010110
-    ISUB    = 0b010111
-    FSUB    = 0b011000
-    IMUL    = 0b011001
-    FMUL    = 0b011010
-    IDIV    = 0b011011
-    FDIV    = 0b011100
-    MOD     = 0b011101
+    NONE = 0b000000
+    ILOAD = 0b000001
+    FLOAD = 0b000010
+    ICONST = 0b000011
+    FCONST = 0b000100
+    BWNEG = 0b000101
+    BWAND = 0b000110
+    BWOR = 0b000111
+    BWXOR = 0b001000
+    IEQ = 0b001001
+    FEQ = 0b001010
+    INEQ = 0b001011
+    FNEQ = 0b001100
+    IGT = 0b001101
+    FGT = 0b001110
+    IGTE = 0b001111
+    ILT = 0b010000
+    FLT = 0b010001
+    ILTE = 0b010010
+    INEG = 0b010011
+    FNEG = 0b010100
+    IADD = 0b010101
+    FADD = 0b010110
+    ISUB = 0b010111
+    FSUB = 0b011000
+    IMUL = 0b011001
+    FMUL = 0b011010
+    IDIV = 0b011011
+    FDIV = 0b011100
+    MOD = 0b011101
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
-    
+
     def is_load(self) -> bool:
         return self is BZOperator.ILOAD or self is BZOperator.FLOAD
 
     def __str__(self) -> str:
         return self.name.lower()
 
+
 BZ_OPERATOR_MAP = {
-    (cpt.Bool, True):                BZOperator.ILOAD,
-    (cpt.Signal, True):              BZOperator.ILOAD,
-    (cpt.Signal, False):             BZOperator.FLOAD,
-    (cpt.Integer, True):             BZOperator.ICONST,
-    (cpt.Float, False):              BZOperator.FCONST,
-    (cpt.BitwiseNegate, True):       BZOperator.BWNEG,
-    (cpt.BitwiseAnd, True):          BZOperator.BWAND,
-    (cpt.BitwiseOr, True):           BZOperator.BWOR,
-    (cpt.BitwiseXor, True):          BZOperator.BWXOR,
-    (cpt.Equal, True):               BZOperator.IEQ,
-    (cpt.Equal, False):              BZOperator.FEQ,
-    (cpt.NotEqual, True):            BZOperator.INEQ,
-    (cpt.NotEqual, False):           BZOperator.FNEQ,
-    (cpt.GreaterThan, True):         BZOperator.IGT,
-    (cpt.GreaterThan, False):        BZOperator.FGT,
-    (cpt.GreaterThanOrEqual, True):  BZOperator.IGTE,
-    (cpt.LessThan, True):            BZOperator.ILT,
-    (cpt.LessThan, False):           BZOperator.FLT,
-    (cpt.LessThanOrEqual, True):     BZOperator.ILTE,
-    (cpt.ArithmeticNegate, True):    BZOperator.INEG,
-    (cpt.ArithmeticNegate, False):   BZOperator.FNEG,
-    (cpt.ArithmeticAdd, True):       BZOperator.IADD,
-    (cpt.ArithmeticAdd, False):      BZOperator.FADD,
-    (cpt.ArithmeticSubtract, True):  BZOperator.ISUB,
+    (cpt.Bool, True): BZOperator.ILOAD,
+    (cpt.Signal, True): BZOperator.ILOAD,
+    (cpt.Signal, False): BZOperator.FLOAD,
+    (cpt.Integer, True): BZOperator.ICONST,
+    (cpt.Float, False): BZOperator.FCONST,
+    (cpt.BitwiseNegate, True): BZOperator.BWNEG,
+    (cpt.BitwiseAnd, True): BZOperator.BWAND,
+    (cpt.BitwiseOr, True): BZOperator.BWOR,
+    (cpt.BitwiseXor, True): BZOperator.BWXOR,
+    (cpt.Equal, True): BZOperator.IEQ,
+    (cpt.Equal, False): BZOperator.FEQ,
+    (cpt.NotEqual, True): BZOperator.INEQ,
+    (cpt.NotEqual, False): BZOperator.FNEQ,
+    (cpt.GreaterThan, True): BZOperator.IGT,
+    (cpt.GreaterThan, False): BZOperator.FGT,
+    (cpt.GreaterThanOrEqual, True): BZOperator.IGTE,
+    (cpt.LessThan, True): BZOperator.ILT,
+    (cpt.LessThan, False): BZOperator.FLT,
+    (cpt.LessThanOrEqual, True): BZOperator.ILTE,
+    (cpt.ArithmeticNegate, True): BZOperator.INEG,
+    (cpt.ArithmeticNegate, False): BZOperator.FNEG,
+    (cpt.ArithmeticAdd, True): BZOperator.IADD,
+    (cpt.ArithmeticAdd, False): BZOperator.FADD,
+    (cpt.ArithmeticSubtract, True): BZOperator.ISUB,
     (cpt.ArithmeticSubtract, False): BZOperator.FSUB,
-    (cpt.ArithmeticMultiply, True):  BZOperator.IMUL,
+    (cpt.ArithmeticMultiply, True): BZOperator.IMUL,
     (cpt.ArithmeticMultiply, False): BZOperator.FMUL,
-    (cpt.ArithmeticDivide, True):    BZOperator.IDIV,
-    (cpt.ArithmeticDivide, False):   BZOperator.FDIV,
-    (cpt.ArithmeticModulo, False):   BZOperator.MOD,
+    (cpt.ArithmeticDivide, True): BZOperator.IDIV,
+    (cpt.ArithmeticDivide, False): BZOperator.FDIV,
+    (cpt.ArithmeticModulo, False): BZOperator.MOD,
 }
 
 
 class ATRelOp(Enum):
-    EQ   = 0b000
-    NEQ  = 0b001
-    LT   = 0b010
-    LEQ  = 0b011
-    GT   = 0b100
-    GEQ  = 0b101
+    EQ = 0b000
+    NEQ = 0b001
+    LT = 0b010
+    LEQ = 0b011
+    GT = 0b100
+    GEQ = 0b101
     NONE = 0b111
 
     def __str__(self) -> str:
         return self.name.lower()
 
+
 AT_REL_OP_MAP = {
-    cpt.Equal:           ATRelOp.EQ,
-    cpt.NotEqual:        ATRelOp.NEQ,
-    cpt.LessThan:        ATRelOp.LT,
+    cpt.Equal: ATRelOp.EQ,
+    cpt.NotEqual: ATRelOp.NEQ,
+    cpt.LessThan: ATRelOp.LT,
     cpt.LessThanOrEqual: ATRelOp.LEQ,
-    cpt.GreaterThan:     ATRelOp.GT,
+    cpt.GreaterThan: ATRelOp.GT,
     cpt.GreaterThanOrEqual: ATRelOp.GEQ,
 }
 
 
 class ATFilter(Enum):
-    NONE           = 0b0000
-    BOOL           = 0b0001
-    INT            = 0b0010
-    FLOAT          = 0b0011
-    FORMULA        = 0b0100
+    NONE = 0b0000
+    BOOL = 0b0001
+    INT = 0b0010
+    FLOAT = 0b0011
+    FORMULA = 0b0100
     # RATE           = 0b0101
     # ABS_DIFF_ANGLE = 0b0110
     # MOVAVG         = 0b0111
@@ -142,6 +148,7 @@ class ATFilter(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
+
 AT_FILTER_MAP = {
     types.BoolType: ATFilter.BOOL,
     types.IntType: ATFilter.INT,
@@ -150,10 +157,11 @@ AT_FILTER_MAP = {
 
 
 class TLOperandType(Enum):
-    DIRECT      = 0b01
-    ATOMIC      = 0b00
-    SUBFORMULA  = 0b10
-    NONE        = 0b11
+    DIRECT = 0b01
+    ATOMIC = 0b00
+    SUBFORMULA = 0b10
+    NONE = 0b11
+
 
 TL_OPERAND_TYPE_MAP = {
     cpt.Bool: TLOperandType.DIRECT,
@@ -162,14 +170,14 @@ TL_OPERAND_TYPE_MAP = {
 
 
 class FTOperator(Enum):
-    NOP       = 0b11111
-    CONFIG    = 0b11110
-    LOAD      = 0b11101
-    RETURN    = 0b11100
-    GLOBAL    = 0b11010
-    UNTIL     = 0b11001
-    NOT       = 0b10111
-    AND       = 0b10110
+    NOP = 0b11111
+    CONFIG = 0b11110
+    LOAD = 0b11101
+    RETURN = 0b11100
+    GLOBAL = 0b11010
+    UNTIL = 0b11001
+    NOT = 0b10111
+    AND = 0b10110
 
     def is_temporal(self) -> bool:
         return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
@@ -180,8 +188,9 @@ class FTOperator(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
+
 FT_OPERATOR_MAP = {
-    cpt.Specification: FTOperator.RETURN,
+    cpt.Formula: FTOperator.RETURN,
     cpt.Global: FTOperator.GLOBAL,
     cpt.Until: FTOperator.UNTIL,
     cpt.LogicalNegate: FTOperator.NOT,
@@ -190,30 +199,35 @@ FT_OPERATOR_MAP = {
 
 
 class PTOperator(Enum):
-    NOP          = 0b01111
-    CONFIG       = 0b01110
-    LOAD         = 0b01101
-    RETURN       = 0b01100
-    ONCE         = 0b01011
-    HIST         = 0b01010
-    SINCE        = 0b01001
-    NOT          = 0b00111
-    AND          = 0b00110
-    OR           = 0b00101
-    IMPLIES      = 0b00100
-    EQUIV        = 0b00000
+    NOP = 0b01111
+    CONFIG = 0b01110
+    LOAD = 0b01101
+    RETURN = 0b01100
+    ONCE = 0b01011
+    HIST = 0b01010
+    SINCE = 0b01001
+    NOT = 0b00111
+    AND = 0b00110
+    OR = 0b00101
+    IMPLIES = 0b00100
+    EQUIV = 0b00000
 
     def is_temporal(self) -> bool:
-        return self == PTOperator.ONCE or self == PTOperator.HIST or self == PTOperator.SINCE
+        return (
+            self == PTOperator.ONCE
+            or self == PTOperator.HIST
+            or self == PTOperator.SINCE
+        )
 
     def is_load(self) -> bool:
         return self is PTOperator.LOAD
 
     def __str__(self) -> str:
         return self.name.lower()
-    
+
+
 PT_OPERATOR_MAP = {
-    cpt.Specification: PTOperator.RETURN,
+    cpt.Formula: PTOperator.RETURN,
     cpt.Once: PTOperator.ONCE,
     cpt.Historical: PTOperator.HIST,
     cpt.Since: PTOperator.SINCE,
@@ -221,7 +235,7 @@ PT_OPERATOR_MAP = {
     cpt.LogicalAnd: PTOperator.AND,
     cpt.LogicalOr: PTOperator.OR,
     cpt.LogicalImplies: PTOperator.IMPLIES,
-    Any: PTOperator.NOP
+    Any: PTOperator.NOP,
 }
 
 Operator = Union[FTOperator, PTOperator, BZOperator]
@@ -233,62 +247,63 @@ class CGType(Enum):
     LB = 1
     UB = 2
     BOXQ = 3
-    
+
     def __str__(self) -> str:
         return self.name
 
 
 class FieldType(Enum):
-    ENGINE_TAG       = 0
-    INSTR_SIZE       = 1
-    BZ_ID            = 2
-    BZ_OPERATOR      = 3
-    BZ_STORE_ATOMIC  = 4
-    BZ_ATOMIC_ID     = 5
-    BZ_OPERAND_INT   = 6
+    ENGINE_TAG = 0
+    INSTR_SIZE = 1
+    BZ_ID = 2
+    BZ_OPERATOR = 3
+    BZ_STORE_ATOMIC = 4
+    BZ_ATOMIC_ID = 5
+    BZ_OPERAND_INT = 6
     BZ_OPERAND_FLOAT = 7
-    AT_VALUE         = 8
-    AT_SIGNAL        = 9
+    AT_VALUE = 8
+    AT_SIGNAL = 9
     # AT_VALUE_BOOL    = 8
     # AT_VALUE_SIG     = 9
     # AT_VALUE_INT     = 10
     # AT_VALUE_FLOAT   = 11
-    AT_REL_OP        = 12
-    AT_FILTER        = 13
-    AT_ID            = 14
+    AT_REL_OP = 12
+    AT_FILTER = 13
+    AT_ID = 14
     AT_COMPARE_VALUE_IS_SIGNAL = 15
-    TL_ID            = 16
-    TL_OPERATOR      = 17
-    TL_OPERAND_TYPE  = 18
+    TL_ID = 16
+    TL_OPERATOR = 17
+    TL_OPERAND_TYPE = 18
     TL_OPERAND_VALUE = 19
 
+
 field_format_str_map = {
-    FieldType.ENGINE_TAG:       "B",
-    FieldType.INSTR_SIZE:       "B",
-    FieldType.BZ_ID:            "B",
-    FieldType.BZ_OPERATOR:      "i",
-    FieldType.BZ_STORE_ATOMIC:  "B",
-    FieldType.BZ_ATOMIC_ID:     "B",
-    FieldType.BZ_OPERAND_INT:   "lxxxx",
+    FieldType.ENGINE_TAG: "B",
+    FieldType.INSTR_SIZE: "B",
+    FieldType.BZ_ID: "B",
+    FieldType.BZ_OPERATOR: "i",
+    FieldType.BZ_STORE_ATOMIC: "B",
+    FieldType.BZ_ATOMIC_ID: "B",
+    FieldType.BZ_OPERAND_INT: "lxxxx",
     FieldType.BZ_OPERAND_FLOAT: "d",
-    FieldType.AT_VALUE:         "8s",
+    FieldType.AT_VALUE: "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
-    FieldType.AT_SIGNAL:        "B",
+    FieldType.AT_SIGNAL: "B",
     # FieldType.AT_VALUE_INT:     "q",
     # FieldType.AT_VALUE_FLOAT:   "d",
-    FieldType.AT_REL_OP:        "i",
-    FieldType.AT_FILTER:        "i",
-    FieldType.AT_ID:            "B",
+    FieldType.AT_REL_OP: "i",
+    FieldType.AT_FILTER: "i",
+    FieldType.AT_ID: "B",
     FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
-    FieldType.TL_ID:            "I",
-    FieldType.TL_OPERATOR:      "i",
-    FieldType.TL_OPERAND_TYPE:  "i",
+    FieldType.TL_ID: "I",
+    FieldType.TL_OPERATOR: "i",
+    FieldType.TL_OPERAND_TYPE: "i",
     FieldType.TL_OPERAND_VALUE: "Bxxx",
 }
-    
+
 
 @dataclass
-class ATInstruction():
+class ATInstruction:
     engine_tag: EngineTag
     id: int
     relational_operator: ATRelOp
@@ -308,9 +323,10 @@ class ATInstruction():
         field_strs.append(f"{f'{self.signal_type}({self.compare_value})':10}")
 
         return " ".join(field_strs)
-    
+
+
 @dataclass
-class BZInstruction():
+class BZInstruction:
     engine_tag: EngineTag
     id: int
     operator: BZOperator
@@ -332,8 +348,9 @@ class BZInstruction():
 
         return " ".join(field_strs)
 
+
 @dataclass
-class TLInstruction():
+class TLInstruction:
     engine_tag: EngineTag
     id: int
     operator: TLOperator
@@ -365,8 +382,9 @@ class TLInstruction():
 
         return " ".join(field_strs)
 
+
 @dataclass
-class CGInstruction():
+class CGInstruction:
     engine_tag: EngineTag
     type: CGType
     instruction: TLInstruction
@@ -377,8 +395,10 @@ class CGInstruction():
             field_strs.append(f"{self.instruction.engine_tag}")
             field_strs.append(f"{self.type:3}")
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
-            field_strs.append(f"({self.instruction.id}, "
-                              f"{self.instruction.id + self.instruction.operand2_value})")
+            field_strs.append(
+                f"({self.instruction.id}, "
+                f"{self.instruction.id + self.instruction.operand2_value})"
+            )
         else:
             field_strs.append(f"{self.instruction.engine_tag}")
             field_strs.append(f"{self.type:3}")
@@ -387,43 +407,42 @@ class CGInstruction():
         return " ".join(field_strs)
 
 
-def generate_at_instruction(
-    node: cpt.Expression,
-    context: cpt.Context
-) -> ATInstruction:
+def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruction:
     expr = context.atomic_checkers[node.symbol]
 
     # we can do the following since it is type-correct
     expr = cast(cpt.RelationalOperator, expr)
-    signal = cast(cpt.Signal, expr.get_lhs())
+    signal = cast(cpt.Signal, expr.children[0])
 
-    rhs = expr.get_rhs()
+    rhs = expr.children[1]
     if isinstance(rhs, cpt.Constant):
         compare_value = rhs.value
     elif isinstance(rhs, cpt.Signal):
         compare_value = rhs.signal_id
     else:
-        log.internal(f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs})."
-                      "\n\tWhy did this get past the type checker?",
-                      __name__
+        log.internal(
+            f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs})."
+            "\n\tWhy did this get past the type checker?",
+            MODULE_CODE,
         )
         compare_value = 0
 
     return ATInstruction(
         EngineTag.AT,
         node.atomic_id,
-        AT_REL_OP_MAP[type(expr)], # type: ignore
+        AT_REL_OP_MAP[type(expr)],  # type: ignore
         signal.signal_id,
-        AT_FILTER_MAP[type(signal.type)], # type: ignore
+        AT_FILTER_MAP[type(signal.type)],  # type: ignore
         compare_value,
-        isinstance(expr.get_rhs(), cpt.Signal),
-        node.atomic_id
+        isinstance(expr.children[1], cpt.Signal),
+        node.atomic_id,
     )
 
-def generate_bz_instruction(
+
+def gen_bz_instruction(
     node: cpt.Expression,
     context: cpt.Context,
-    instructions: dict[cpt.Expression, BZInstruction]
+    instructions: dict[cpt.Expression, BZInstruction],
 ) -> BZInstruction:
     bzid = len(instructions)
 
@@ -437,19 +456,23 @@ def generate_bz_instruction(
         operand1 = node.value
         operand2 = 0
     elif node.num_children() == 1:
-        operand1 = instructions[node.get_child(0)].id # type: ignore
+        operand1 = instructions[node.children[0]].id
         operand2 = 0
     elif node.num_children() == 2:
-        operand1 = instructions[node.get_child(0)].id # type: ignore
-        operand2 = instructions[node.get_child(1)].id # type: ignore
+        operand1 = instructions[node.children[0]].id
+        operand2 = instructions[node.children[1]].id
     else:
         operand1 = 0
         operand2 = 0
 
-    bz_operator = BZ_OPERATOR_MAP[(
-        type(node), 
-        types.is_integer_type(node.get_lhs().type) if isinstance(node, cpt.RelationalOperator) else types.is_integer_type(node.type)
-    )] # type: ignore
+    bz_operator = BZ_OPERATOR_MAP[
+        (
+            type(node),
+            types.is_integer_type(node.children[0].type)
+            if isinstance(node, cpt.RelationalOperator)
+            else types.is_integer_type(node.type),
+        )
+    ]  # type: ignore
 
     return BZInstruction(
         EngineTag.BZ,
@@ -458,12 +481,12 @@ def generate_bz_instruction(
         node in context.atomics,
         max(node.atomic_id, 0),
         operand1,
-        operand2
+        operand2,
     )
 
-def generate_tl_operand(
-    operand: Optional[cpt.Node],
-    instructions: dict[cpt.Expression, TLInstruction]
+
+def gen_tl_operand(
+    operand: Optional[cpt.Node], instructions: dict[cpt.Expression, TLInstruction]
 ) -> tuple[TLOperandType, Any]:
     if isinstance(operand, cpt.Bool):
         operand_type = TLOperandType.DIRECT
@@ -477,143 +500,174 @@ def generate_tl_operand(
 
     return (operand_type, operand_value)
 
-def generate_ft_instruction(
-    node: cpt.Expression, 
-    instructions: dict[cpt.Expression, TLInstruction]
-) -> TLInstruction:
-    id = len(instructions)
 
-    if isinstance(node, cpt.Specification):
-        operand1_type, operand1_value = (TLOperandType.SUBFORMULA, instructions[node.get_expr()].id)
-        operand2_type, operand2_value = (TLOperandType.DIRECT, node.formula_number)
+def gen_ft_instruction(
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
+) -> TLInstruction:
+    ftid = len(instructions)
+
+    if isinstance(expr, cpt.Formula):
+        operand1_type, operand1_value = (
+            TLOperandType.SUBFORMULA,
+            instructions[expr.get_expr()].id,
+        )
+        operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
+    elif expr.num_children() == 1:
+        operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
+    elif expr.num_children() == 2:
+        operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
+        operand2_type, operand2_value = gen_tl_operand(expr.children[1], instructions)
     else:
-        operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
-        operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
+        operand1_type, operand1_value = gen_tl_operand(None, instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
     return TLInstruction(
-        EngineTag.TL, 
-        id, 
-        FT_OPERATOR_MAP[type(node)], # type: ignore
+        EngineTag.TL,
+        ftid,
+        FT_OPERATOR_MAP[type(expr)],  # type: ignore
         operand1_type,
         operand1_value,
         operand2_type,
-        operand2_value
+        operand2_value,
     )
 
-def generate_pt_instruction(
-    node: cpt.Expression, 
-    instructions: dict[cpt.Expression, TLInstruction]
-) -> TLInstruction:
-    id = len(instructions)
 
-    if isinstance(node, cpt.Specification):
-        operand1_type, operand1_value = (TLOperandType.SUBFORMULA, instructions[node.get_expr()].id)
-        operand2_type, operand2_value = (TLOperandType.DIRECT, node.formula_number)
+def gen_pt_instruction(
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
+) -> TLInstruction:
+    ptid = len(instructions)
+
+    if isinstance(expr, cpt.Formula):
+        operand1_type, operand1_value = (
+            TLOperandType.SUBFORMULA,
+            instructions[expr.get_expr()].id,
+        )
+        operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
+    elif expr.num_children() == 1:
+        operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
+    elif expr.num_children() == 2:
+        operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
+        operand2_type, operand2_value = gen_tl_operand(expr.children[1], instructions)
     else:
-        operand1_type, operand1_value = generate_tl_operand(node.get_child(0), instructions)
-        operand2_type, operand2_value = generate_tl_operand(node.get_child(1), instructions)
+        operand1_type, operand1_value = gen_tl_operand(None, instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
     return TLInstruction(
-        EngineTag.TL, 
-        id, 
-        PT_OPERATOR_MAP[type(node)], 
+        EngineTag.TL,
+        ptid,
+        PT_OPERATOR_MAP[type(expr)],
         operand1_type,
         operand1_value,
         operand2_type,
-        operand2_value
+        operand2_value,
     )
 
-def generate_scq_instructions(
-    node: cpt.Expression,
-    instructions: dict[cpt.Expression, TLInstruction]
+
+def gen_scq_instructions(
+    node: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
     cg_scq = CGInstruction(
-        EngineTag.CG, CGType.SCQ,
+        EngineTag.CG,
+        CGType.SCQ,
         TLInstruction(
             EngineTag.TL,
             node.scq[0],
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.DIRECT, node.scq[1] - node.scq[0]
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.DIRECT,
+            node.scq[1] - node.scq[0],
+        ),
     )
 
     if not isinstance(node, cpt.TemporalOperator):
         return [cg_scq]
 
     cg_lb = CGInstruction(
-        EngineTag.CG, CGType.LB,
+        EngineTag.CG,
+        CGType.LB,
         TLInstruction(
             EngineTag.TL,
             node.interval.lb,
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.ATOMIC, 0
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.ATOMIC,
+            0,
+        ),
     )
 
     cg_ub = CGInstruction(
-        EngineTag.CG, CGType.UB,
+        EngineTag.CG,
+        CGType.UB,
         TLInstruction(
             EngineTag.TL,
             node.interval.ub,
             FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.ATOMIC, 1
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.ATOMIC,
+            1,
+        ),
     )
 
     return [cg_scq, cg_lb, cg_ub]
 
 
-def generate_boxq_instructions(
-    node: cpt.Expression,
-    instructions: dict[cpt.Expression, TLInstruction],
-    boxqs: int
+def gen_boxq_instructions(
+    node: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], boxqs: int
 ) -> list[CGInstruction]:
     if not isinstance(node, cpt.TemporalOperator):
         return []
 
     cg_boxq = CGInstruction(
-        EngineTag.CG, CGType.BOXQ,
+        EngineTag.CG,
+        CGType.BOXQ,
         TLInstruction(
             EngineTag.TL,
-            64*boxqs,
+            64 * boxqs,
             PTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.DIRECT, 64
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.DIRECT,
+            64,
+        ),
     )
 
     cg_lb = CGInstruction(
-        EngineTag.CG, CGType.BOXQ,
+        EngineTag.CG,
+        CGType.BOXQ,
         TLInstruction(
             EngineTag.TL,
             node.interval.lb,
             PTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.ATOMIC, 0
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.ATOMIC,
+            0,
+        ),
     )
 
     cg_ub = CGInstruction(
-        EngineTag.CG, CGType.BOXQ,
+        EngineTag.CG,
+        CGType.BOXQ,
         TLInstruction(
             EngineTag.TL,
             node.interval.ub,
             PTOperator.CONFIG,
-            TLOperandType.SUBFORMULA, instructions[node].id,
-            TLOperandType.ATOMIC, 1
-        )
+            TLOperandType.SUBFORMULA,
+            instructions[node].id,
+            TLOperandType.ATOMIC,
+            1,
+        ),
     )
 
     return [cg_boxq, cg_lb, cg_ub]
 
 
-def generate_assembly(
-    program: cpt.Program,
-    context: cpt.Context
-):
+def gen_assembly(program: cpt.Program, context: cpt.Context):
     at_instructions: dict[cpt.Expression, ATInstruction] = {}
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
@@ -621,61 +675,69 @@ def generate_assembly(
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
     boxqs = 1
 
-    def _generate_assembly(node: cpt.Node):
-        nonlocal boxqs
+    log.debug(f"\n{program}", MODULE_CODE)
 
-        if not isinstance(node, cpt.Expression):
-            return
+    for expr in cpt.postorder(program.ft_spec_set, context):
+        if expr == program.ft_spec_set:
+            continue
 
-        if node in context.atomics and context.is_future_time():
+        if expr in context.atomics:
             ftid = len(ft_instructions)
-            ft_instructions[node] = TLInstruction(
-                EngineTag.TL, ftid, FTOperator.LOAD, 
-                TLOperandType.ATOMIC, node.atomic_id,
-                TLOperandType.NONE, 0
+            ft_instructions[expr] = TLInstruction(
+                EngineTag.TL,
+                ftid,
+                FTOperator.LOAD,
+                TLOperandType.ATOMIC,
+                expr.atomic_id,
+                TLOperandType.NONE,
+                0,
             )
-            cg_instructions[node] = generate_scq_instructions(node, ft_instructions)
-        elif node in context.atomics and context.is_past_time():
+            cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+
+        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
+            at_instructions[expr] = gen_at_instruction(expr, context)
+        elif expr.engine == types.R2U2Engine.BOOLEANIZER:
+            bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
+        elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
+            ft_instructions[expr] = gen_ft_instruction(expr, ft_instructions)
+            cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+
+    for expr in cpt.postorder(program.pt_spec_set, context):
+        if expr == program.pt_spec_set:
+            continue
+
+        if expr in context.atomics:
             ptid = len(pt_instructions)
-            pt_instructions[node] = TLInstruction(
-                EngineTag.TL, ptid, PTOperator.LOAD, 
-                TLOperandType.ATOMIC, node.atomic_id,
-                TLOperandType.NONE, 0
+            pt_instructions[expr] = TLInstruction(
+                EngineTag.TL,
+                ptid,
+                PTOperator.LOAD,
+                TLOperandType.ATOMIC,
+                expr.atomic_id,
+                TLOperandType.NONE,
+                0,
             )
 
-        if node.engine == types.R2U2Engine.ATOMIC_CHECKER:
-            at_instructions[node] = generate_at_instruction(node, context)
-        elif node.engine == types.R2U2Engine.BOOLEANIZER:
-            bz_instructions[node] = generate_bz_instruction(node, context, bz_instructions)
-        elif node.engine == types.R2U2Engine.TEMPORAL_LOGIC and context.is_future_time():
-            ft_instructions[node] = generate_ft_instruction(node, ft_instructions)
-            cg_instructions[node] = generate_scq_instructions(node, ft_instructions)
-        elif node.engine == types.R2U2Engine.TEMPORAL_LOGIC and context.is_past_time():
-            pt_instructions[node] = generate_pt_instruction(node, pt_instructions)
-            cg_instructions[node] = generate_boxq_instructions(node, pt_instructions, boxqs)
+        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
+            at_instructions[expr] = gen_at_instruction(expr, context)
+        elif expr.engine == types.R2U2Engine.BOOLEANIZER:
+            bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
+        elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
+            pt_instructions[expr] = gen_pt_instruction(expr, pt_instructions)
+            cg_instructions[expr] = gen_boxq_instructions(expr, pt_instructions, boxqs)
             boxqs += 1
 
-    context.set_future_time() # need to set this to disambiguate PT/FT logical ops
-    spec_section = program.get_future_time_spec_section()
-    if spec_section:
-        for node in cpt.postorder(spec_section):
-            _generate_assembly(node)
-
-    context.set_past_time() # need to set this to disambiguate PT/FT logical ops
-    spec_section = program.get_past_time_spec_section()
-    if spec_section:
-        for node in cpt.postorder(spec_section):
-            _generate_assembly(node)
-
-    return (list(at_instructions.values()) +
-            list(bz_instructions.values()) + 
-            list(ft_instructions.values()) + 
-            list(pt_instructions.values()) + 
-            [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs])
+    return (
+        list(at_instructions.values())
+        + list(bz_instructions.values())
+        + list(ft_instructions.values())
+        + list(pt_instructions.values())
+        + [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+    )
 
 
 def pack_at_instruction(
-    instruction: ATInstruction, 
+    instruction: ATInstruction,
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
@@ -687,10 +749,10 @@ def pack_at_instruction(
         compare_bytes = CStruct(f"{endian}?xxxxxxx").pack(instruction.compare_value)
     elif isinstance(instruction.compare_value, int):
         compare_bytes = CStruct(f"{endian}q").pack(instruction.compare_value)
-    else: # isinstance(instruction.compare_value, float):
+    else:  # isinstance(instruction.compare_value, float):
         compare_bytes = CStruct(f"{endian}d").pack(instruction.compare_value)
 
-    format_str =  endian
+    format_str = endian
     format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_REL_OP]
@@ -705,28 +767,37 @@ def pack_at_instruction(
     )
 
     binary = engine_tag_binary + CStruct(format_str).pack(
-            compare_bytes,
-            CStruct(f"{endian}xxxxxxxx").pack(),
-            instruction.relational_operator.value,
-            instruction.signal_type.value,
-            instruction.signal_id,
-            instruction.atomic_id,
-            instruction.compare_is_signal,
-            instruction.atomic_id
-        )
+        compare_bytes,
+        CStruct(f"{endian}xxxxxxxx").pack(),
+        instruction.relational_operator.value,
+        instruction.signal_type.value,
+        instruction.signal_id,
+        instruction.atomic_id,
+        instruction.compare_is_signal,
+        instruction.atomic_id,
+    )
 
     return binary
 
+
 def pack_bz_instruction(
-    instruction: BZInstruction, 
+    instruction: BZInstruction,
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
     binary = bytes()
 
-    format_str =  endian
-    format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]
-    format_str += format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT] 
+    format_str = endian
+    format_str += (
+        format_strs[FieldType.BZ_OPERAND_FLOAT]
+        if isinstance(instruction.operand1, float)
+        else format_strs[FieldType.BZ_OPERAND_INT]
+    )
+    format_str += (
+        format_strs[FieldType.BZ_OPERAND_FLOAT]
+        if isinstance(instruction.operand2, float)
+        else format_strs[FieldType.BZ_OPERAND_INT]
+    )
     format_str += format_strs[FieldType.BZ_OPERATOR]
     format_str += format_strs[FieldType.BZ_ID]
     format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
@@ -737,56 +808,57 @@ def pack_bz_instruction(
     )
 
     binary = engine_tag_binary + CStruct(format_str).pack(
-            instruction.operand1,
-            instruction.operand2,
-            instruction.operator.value,
-            instruction.id,
-            instruction.store_atomic,
-            instruction.atomic_id
-        )
+        instruction.operand1,
+        instruction.operand2,
+        instruction.operator.value,
+        instruction.id,
+        instruction.store_atomic,
+        instruction.atomic_id,
+    )
 
-    log.debug(f"Packing: {instruction}\n\t"
-              f"{format_strs[FieldType.ENGINE_TAG]:2} "
-              f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
-              f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
-              f"{format_strs[FieldType.BZ_OPERATOR]:2} "
-              f"{format_strs[FieldType.BZ_ID]:2} "
-              f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
-              f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
-               "\n\t"
-              f"{instruction.engine_tag.value:<2} "
-              f"{instruction.operand1:<2} "
-              f"{instruction.operand2:<2}"
-              f"{instruction.operator.value:<2} "
-              f"{instruction.id:<2} "
-              f"{instruction.store_atomic:<2} "
-              f"{instruction.atomic_id:<2} ",
-              __name__)
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:2} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
+        f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+        f"{format_strs[FieldType.BZ_ID]:2} "
+        f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
+        f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2} "
+        f"{instruction.operand1:<2} "
+        f"{instruction.operand2:<2}"
+        f"{instruction.operator.value:<2} "
+        f"{instruction.id:<2} "
+        f"{instruction.store_atomic:<2} "
+        f"{instruction.atomic_id:<2} ",
+        MODULE_CODE,
+    )
 
     return binary
 
+
 def pack_tl_instruction(
-    instruction: TLInstruction, 
+    instruction: TLInstruction,
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
     binary = bytes()
 
-    operand_format_str =  endian
+    operand_format_str = endian
     operand_format_str += format_strs[FieldType.TL_OPERAND_TYPE]
     operand_format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     operand_struct = CStruct(operand_format_str)
 
     operand1_binary = operand_struct.pack(
-        instruction.operand1_type.value,
-        instruction.operand1_value
+        instruction.operand1_type.value, instruction.operand1_value
     )
     operand2_binary = operand_struct.pack(
-        instruction.operand2_type.value,
-        instruction.operand2_value
+        instruction.operand2_type.value, instruction.operand2_value
     )
 
-    format_str =  endian
+    format_str = endian
     format_str += f"{operand_struct.size}s"
     format_str += f"{operand_struct.size}s"
     format_str += format_strs[FieldType.TL_ID]
@@ -803,48 +875,52 @@ def pack_tl_instruction(
         instruction.operator.value,
     )
 
-    log.debug(f"Packing: {instruction}\n\t"
-              f"{format_strs[FieldType.ENGINE_TAG]:2} "
-              f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-              f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-              f"{format_strs[FieldType.TL_ID]:2} "
-              f"{format_strs[FieldType.TL_OPERATOR]:2}"
-              f"{instruction.engine_tag.value:<2} "
-              f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
-              f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
-              f"{instruction.id:<2} "
-              f"{instruction.operator.value:<2}",
-              __name__)
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:2} "
+        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"{format_strs[FieldType.TL_ID]:2} "
+        f"{format_strs[FieldType.TL_OPERATOR]:2}"
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2} "
+        f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
+        f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+        f"{instruction.id:<2} "
+        f"{instruction.operator.value:<2}",
+        MODULE_CODE,
+    )
 
     return binary
 
+
 def pack_cg_instruction(
-    instruction: CGInstruction, 
-    format_strs: dict[FieldType, str],
-    endian: str
+    instruction: CGInstruction, format_strs: dict[FieldType, str], endian: str
 ) -> bytes:
     binary = bytes()
 
-    format_str =  endian
+    format_str = endian
     format_str += format_strs[FieldType.ENGINE_TAG]
 
-    binary += CStruct(format_str).pack(
-        instruction.engine_tag.value
-    )
+    binary += CStruct(format_str).pack(instruction.engine_tag.value)
 
     binary += pack_tl_instruction(instruction.instruction, format_strs, endian)
 
-    log.debug(f"Packing: {instruction}\n\t"
-              f"  {format_strs[FieldType.ENGINE_TAG]:<2}"
-              f"  {instruction.engine_tag.value:<2}",
-              __name__)
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:<2}"
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2}",
+        MODULE_CODE,
+    )
 
     return binary
+
 
 def pack_instruction(
     instruction: Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction],
     format_strs: dict[FieldType, str],
-    endian: str
+    endian: str,
 ) -> bytes:
     if isinstance(instruction, ATInstruction):
         binary = pack_at_instruction(instruction, format_strs, endian)
@@ -855,38 +931,48 @@ def pack_instruction(
     elif isinstance(instruction, CGInstruction):
         binary = pack_cg_instruction(instruction, format_strs, endian)
     else:
-        log.error(f"Invalid instruction type ({type(instruction)}).", __name__)
+        log.error(f"Invalid instruction type ({type(instruction)}).", MODULE_CODE)
         binary = bytes()
 
-    binary_len = CStruct(f"{endian}B").pack(len(binary)+1)
+    binary_len = CStruct(f"{endian}B").pack(len(binary) + 1)
     return binary_len + binary
+
 
 def pack_aliases(program: cpt.Program) -> bytes:
     binary = bytes()
 
-    for spec in program.get_specs():
-        if isinstance(spec, cpt.Specification):
+    for spec in program.ft_spec_set.children + program.pt_spec_set.children:
+        if isinstance(spec, cpt.Formula):
             binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
-            log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", __name__)
+            log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", MODULE_CODE)
         elif isinstance(spec, cpt.Contract):
-            binary += f"F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}".encode("ascii") +  b"\x00"
-            log.debug(f"Packing: F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}", __name__)
+            binary += (
+                f"F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}".encode(
+                    "ascii"
+                )
+                + b"\x00"
+            )
+            log.debug(
+                f"Packing: F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}",
+                MODULE_CODE,
+            )
 
     return binary
 
 
 def assemble(
-    program: cpt.Program,
-    context: cpt.Context,
-    quiet: bool,
-    endian: str
+    program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
 ) -> bytes:
+    log.debug("Assembling", MODULE_CODE)
+
     check_sizes()
-    assembly = generate_assembly(program, context)
+    assembly = gen_assembly(program, context)
 
     binary = bytes()
-    binary_header = f"C2PO Version 1.0.0 for R2U2 V3 - BOM: {endian}".encode("ascii") + b"\x00"
-    binary += CStruct("B").pack(len(binary_header)+1) + binary_header
+    binary_header = (
+        f"C2PO Version 1.0.0 for R2U2 V3 - BOM: {endian}".encode("ascii") + b"\x00"
+    )
+    binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
     for instr in assembly:
         binary += pack_instruction(instr, field_format_str_map, endian)
