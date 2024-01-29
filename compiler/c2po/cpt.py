@@ -1045,10 +1045,16 @@ class Formula(Expression):
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
+    
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, Formula) and self.symbol == __value.symbol
+    
+    def __hash__(self) -> int:
+        return hash(self.symbol)
 
     def __str__(self) -> str:
         return (
-            (str(self.formula_number) if self.symbol == "" else self.symbol)
+            (str(self.formula_number) if self.symbol[0] == "#" else self.symbol)
             + ": "
             + str(self.get_expr())
         )
@@ -1062,21 +1068,27 @@ class Contract(Expression):
         fnum1: int,
         fnum2: int,
         fnum3: int,
-        assume: Formula,
-        guarantee: Formula,
+        assume: Expression,
+        guarantee: Expression,
     ) -> None:
         super().__init__(loc, [assume, guarantee])
         self.symbol: str = label
         self.formula_numbers: tuple[int, int, int] = (fnum1, fnum2, fnum3)
 
     def get_assumption(self) -> Expression:
-        return cast(Expression, self.children[0])
+        return self.children[0]
 
     def get_guarantee(self) -> Expression:
-        return cast(Expression, self.children[1])
+        return self.children[1]
+    
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, Contract) and self.symbol == __value.symbol
+    
+    def __hash__(self) -> int:
+        return hash(self.symbol)
 
     def __str__(self) -> str:
-        return f"({self.get_assumption()})=>({self.get_guarantee()})"
+        return f"{self.symbol}: ({self.get_assumption()})=>({self.get_guarantee()})"
 
 
 Specification = Union[Formula, Contract]
@@ -1227,6 +1239,15 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
+    def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
+        """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
+        try:
+            index = self.ft_spec_set.children.index(spec)
+            self.ft_spec_set.children[index:index+1] = new
+        except IndexError:
+            index = self.pt_spec_set.children.index(spec)
+            self.pt_spec_set.children[index:index+1] = new
+
     def get_specs(self) -> list[Specification]:
         return self.ft_spec_set.get_specs() + self.pt_spec_set.get_specs()
 
@@ -1322,7 +1343,7 @@ class Context:
     def add_atomic(self, symbol: str, e: Expression) -> None:
         self.atomic_checkers[symbol] = e
 
-    def add_specification(self, symbol, s: Formula) -> None:
+    def add_formula(self, symbol, s: Formula) -> None:
         self.specifications[symbol] = s
 
     def add_contract(self, symbol, c: Contract) -> None:

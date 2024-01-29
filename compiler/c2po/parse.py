@@ -8,7 +8,7 @@ from c2po import types
 from c2po import cpt
 from c2po import log
 
-MODULE_CODE = "PRS"
+MODULE_CODE = "PARS"
 
 class C2POLexer(sly.Lexer):
 
@@ -158,6 +158,9 @@ class C2POParser(sly.Parser):
                       MODULE_CODE, 
                       log.FileLocation(self.filename, lineno)
             )
+
+    def fresh_label(self) -> str:
+        return f"#f{self.spec_num}"
 
     @_("section ft_spec_section")
     def section(self, p):
@@ -325,28 +328,31 @@ class C2POParser(sly.Parser):
     # Basic specification
     @_("expr SEMI")
     def spec(self, p):
+        formula = cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num, p[0])
         self.spec_num += 1
-        return cpt.Formula(log.FileLocation(self.filename, p.lineno), "", self.spec_num-1, p[0])
+        return formula
 
     # Labeled specification
     @_("SYMBOL COLON expr SEMI")
     def spec(self, p):
+        formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num-1, p[2])
         self.spec_num += 1
-        return cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num-1, p[2])
+        return formula
 
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
     def spec(self, p):
-        self.spec_num += 3
-        return cpt.Contract(
+        contract = cpt.Contract(
             log.FileLocation(self.filename, p.lineno), 
             p[0], 
-            self.spec_num-3, 
-            self.spec_num-2, 
-            self.spec_num-1, 
+            self.spec_num, 
+            self.spec_num+1, 
+            self.spec_num+2, 
             p[2], 
             p[4]
         )
+        self.spec_num += 3
+        return contract
 
     @_("expr_list COMMA expr")
     def expr_list(self, p):

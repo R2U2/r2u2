@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types
 
-MODULE_CODE = "TRN"
+MODULE_CODE = "TRNS"
+
 
 def transform_definitions(program: cpt.Program, context: cpt.Context) -> None:
     """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
@@ -55,57 +56,37 @@ def transform_function_calls(program: cpt.Program, context: cpt.Context) -> None
 
 def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
-    for contract in [spec for spec in program.get_specs() if isinstance(spec, cpt.Contract)]:
-        pass
-    
-        # spec_section.remove_child(contract)
+    for contract in [
+        spec for spec in program.get_specs() if isinstance(spec, cpt.Contract)
+    ]:
+        new_formulas = [
+            cpt.Formula(
+                contract.loc,
+                f"__{contract.symbol}_active__",
+                contract.formula_numbers[0],
+                contract.get_assumption(),
+            ),
+            cpt.Formula(
+                contract.loc,
+                f"__{contract.symbol}_valid__",
+                contract.formula_numbers[1],
+                cpt.LogicalImplies(
+                    contract.loc, contract.get_assumption(), contract.get_guarantee()
+                ),
+            ),
+            cpt.Formula(
+                contract.loc,
+                f"__{contract.symbol}_verified__",
+                contract.formula_numbers[2],
+                cpt.LogicalAnd(
+                    contract.loc, [contract.get_assumption(), contract.get_guarantee()]
+                ),
+            ),
+        ]
 
-        # spec_section.add_child(
-        #     cpt.Formula(
-        #         contract.loc,
-        #         contract.symbol,
-        #         contract.formula_numbers[0],
-        #         contract.get_assumption(),
-        #     )
-        # )
+        new_formulas = cast("list[cpt.Specification]", new_formulas)
 
-        # spec_section.add_child(
-        #     cpt.Formula(
-        #         contract.loc,
-        #         contract.symbol,
-        #         contract.formula_numbers[1],
-        #         cpt.LogicalImplies(
-        #             contract.loc, contract.get_assumption(), contract.get_guarantee()
-        #         ),
-        #     )
-        # )
-
-        # spec_section.add_child(
-        #     cpt.Formula(
-        #         contract.loc,
-        #         contract.symbol,
-        #         contract.formula_numbers[2],
-        #         cpt.LogicalAnd(
-        #             contract.loc,
-        #             [contract.get_assumption(), contract.get_guarantee()],
-        #         ),
-        #     )
-        # )
-
-
-def transform_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms struct access operations to the underlying member expression."""
-    log.debug("Resolving struct accesses", MODULE_CODE)
-    # log.debug(f"{program}", MODULE_CODE)
-
-    for expr in program.postorder(context):
-        if not isinstance(expr, cpt.StructAccess):
-            continue
-
-        s: cpt.Struct = expr.get_struct()
-        member = s.get_member(expr.member)
-        if member:
-            expr.replace(member)
+        program.replace_spec(contract, new_formulas)
 
 
 def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
@@ -131,13 +112,12 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                 resolve_struct_accesses(subexpr, context)
 
             new = cpt.LogicalAnd(
-                    expr.loc,
-                    [
-                        cpt.rename(expr.bound_var, e, expr.get_expr(), context)
-                        for e 
-                        in expr.get_set().children
-                    ],
-                )
+                expr.loc,
+                [
+                    cpt.rename(expr.bound_var, e, expr.get_expr(), context)
+                    for e in expr.get_set().children
+                ],
+            )
 
             expr.replace(new)
 
@@ -221,10 +201,25 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                 resolve_struct_accesses(subexpr, context)
 
 
+def transform_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
+    """Transforms struct access operations to the underlying member expression."""
+    log.debug("Resolving struct accesses", MODULE_CODE)
+    # log.debug(f"{program}", MODULE_CODE)
+
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.StructAccess):
+            continue
+
+        s: cpt.Struct = expr.get_struct()
+        member = s.get_member(expr.member)
+        if member:
+            expr.replace(member)
+
+
 def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
     """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
 
-    def _transform_extended_operators(expr: cpt.Expression):
+    for expr in program.postorder(context):
         if isinstance(expr, cpt.LogicalOperator):
             if isinstance(expr, cpt.LogicalOr):
                 # p || q = !(!p && !q)
@@ -325,14 +320,11 @@ def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> 
                 )
             )
 
-    for expr in program.postorder(context):
-        _transform_extended_operators(expr)
-
 
 def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
 
-    def _transform_boolean_normal_form(expr: cpt.Expression) -> None:
+    for expr in program.postorder(context):
         if isinstance(expr, cpt.LogicalOr):
             # p || q = !(!p && !q)
             expr.replace(
@@ -422,14 +414,11 @@ def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) ->
                 )
             )
 
-    for expr in program.postorder(context):
-        _transform_boolean_normal_form(expr)
-
 
 def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
 
-    def _transform_negative_normal_form(expr: cpt.Expression) -> None:
+    for expr in program.postorder(context):
         if isinstance(expr, cpt.LogicalNegate):
             operand = expr.children[0]
             if isinstance(operand, cpt.LogicalNegate):
@@ -525,9 +514,6 @@ def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -
                     ],
                 )
             )
-
-    for expr in program.postorder(context):
-        _transform_negative_normal_form(expr)
 
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:

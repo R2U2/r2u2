@@ -7,7 +7,7 @@ from typing import NamedTuple, Optional
 
 from c2po import assemble, cpt, log, parse, transform, type_check, types
 
-MODULE_CODE = "MAN"
+MODULE_CODE = "MAIN"
 
 class ReturnCode(enum.Enum):
     SUCCESS = 0
@@ -123,6 +123,7 @@ def validate_input(
     int_is_signed: bool,
     float_width: int,
     endian: str,
+    overwrite: bool,
     enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
@@ -168,8 +169,10 @@ def validate_input(
     output_path = None
     if output_filename != "":
         output_path = pathlib.Path(output_filename)
-        if output_path.is_file():
-            log.warning(f"Output file '{output_filename}' already exists.", MODULE_CODE)
+        if output_path.exists() and not overwrite:
+            log.error(f"Output file '{output_filename}' already exists."
+                      "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+            status = False
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -190,7 +193,7 @@ def validate_input(
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
             log.warning(
-                f" Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", MODULE_CODE
+                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", MODULE_CODE
             )
     else:
         mission_time = trace_length
@@ -232,7 +235,7 @@ def validate_input(
 
     if enable_nnf and enable_bnf:
         log.warning(
-            " Attempting rewrite to both NNF and BNF, defaulting to NNF.", MODULE_CODE
+            "Attempting rewrite to both NNF and BNF, defaulting to NNF.", MODULE_CODE
         )
 
     transforms = set(transform.TRANSFORM_PIPELINE)
@@ -262,6 +265,7 @@ def pickle(
     program: cpt.Program,
     input_path: pathlib.Path,
     output_filename: str,
+    overwrite: bool
 ) -> None:
     """Dumps pickled AST if `output_filename` is not '.'"""
     if output_filename == ".":
@@ -272,8 +276,13 @@ def pickle(
     pickle_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
-        else input_path.with_suffix(".pickle").name
+        else input_path.with_suffix(".pickle")
     )
+
+    if pickle_path.exists() and not overwrite:
+        log.error(f"File '{pickle_path}' already exists, not pickling."
+                    "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        return
 
     ast_bytes = program.pickle()
 
@@ -285,6 +294,7 @@ def dump_ast(
     program: cpt.Program,
     input_path: pathlib.Path,
     output_filename: str,
+    overwrite: bool
 ) -> None:
     """Dumps string interpretation of `program` if `output_filename` is not '.'"""
     if output_filename == ".":
@@ -295,8 +305,13 @@ def dump_ast(
     dump_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
-        else input_path.with_suffix(".c2po").name
+        else input_path.with_suffix(".c2po")
     )
+
+    if dump_path.exists() and not overwrite:
+        log.error(f"File '{dump_path}' already exists, not dumping AST."
+                  "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        return
 
     with open(dump_path, "w") as f:
         f.write(str(program))
@@ -305,7 +320,8 @@ def dump_ast(
 def dump_mltl(
     program: cpt.Program,
     input_path: pathlib.Path,
-    output_filename: str
+    output_filename: str,
+    overwrite: bool
 ) -> None:
     """Dumps pickled AST in MLTL standard if `dump_filename` is not '.'"""
     if output_filename == ".":
@@ -320,6 +336,11 @@ def dump_mltl(
         if output_filename != ""
         else input_path.with_suffix(".mltl").name
     )
+
+    if dump_path.exists() and not overwrite:
+        log.error(f"File '{dump_path}' already exists, not dumping MLTL."
+                      "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        return
 
     log.internal("MLTL-STD unsupported", MODULE_CODE)
 
@@ -350,6 +371,7 @@ def compile(
     pickle_filename: str = ".",
     dump_mltl_filename: str = ".",
     dump_ast_filename: str = ".",
+    overwrite: bool = False,
     debug: bool = False,
     quiet: bool = False,
 ) -> ReturnCode:
@@ -406,6 +428,7 @@ def compile(
         int_signed,
         float_width,
         endian,
+        overwrite,
         enable_atomic_checkers,
         enable_booleanizer,
         enable_extops,
@@ -470,9 +493,9 @@ def compile(
         trans(program, context)
 
     # Optional file dumps
-    pickle(program, options.input_path, pickle_filename)
-    dump_mltl(program, options.input_path, dump_mltl_filename)
-    dump_ast(program, options.input_path, dump_ast_filename)
+    pickle(program, options.input_path, pickle_filename, overwrite)
+    dump_mltl(program, options.input_path, dump_mltl_filename, overwrite)
+    dump_ast(program, options.input_path, dump_ast_filename, overwrite)
 
     if not enable_assemble:
         log.debug(f"Final program:\n{program}", MODULE_CODE)

@@ -82,19 +82,7 @@ def debug(
     formatted_message = format(
         message, "DBG", Color.OKBLUE, module, submodule, location
     )
-    OUT.write(formatted_message)
-
-
-def info(
-    message: str,
-    module: str,
-    submodule: Optional[str] = None,
-    location: Optional[FileLocation] = None,
-) -> None:
-    if enable_quiet:
-        return
-    formatted_message = format(message, "INF", None, module, submodule, location)
-    OUT.write(formatted_message)
+    ERR.write(formatted_message)
 
 
 def warning(

@@ -177,17 +177,17 @@ class TestCase():
         self.configure_logger()
 
         if not mltl_path:
-            self.test_fail(f"Invalid MLTL file")
+            self.test_fail("Invalid MLTL file")
         else:
             self.mltl_path = mltl_path
 
         if not trace_path:
-            self.test_fail(f"Invalid trace file")
+            self.test_fail("Invalid trace file")
         else:
             self.trace_path = trace_path
 
         if not oracle_path:
-            self.test_fail(f"Invalid oracle file")
+            self.test_fail("Invalid oracle file")
         else:
             self.oracle_path = oracle_path
 
@@ -207,14 +207,14 @@ class TestCase():
         self.r2u2bin_command_path = self.test_results_dir / self.r2u2bin.with_suffix(".sh").name
 
         self.c2po_cli_options = collect_c2po_options(self.c2po_options)
-        self.c2po_command =  [
-            "python3", str(self.c2po)
-        ] + collect_c2po_options(self.c2po_options) + \
+        self.c2po_command =  ([
+            "python3", str(self.c2po), "--overwrite"
+        ] + collect_c2po_options(self.c2po_options) + 
         [
             "--output", str(self.spec_bin_workdir_path), 
             "--trace", str(self.trace_path),
             str(self.mltl_path)
-        ]
+        ])
 
         self.r2u2bin_command = [
             str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
@@ -263,7 +263,7 @@ class TestCase():
             f.write(self.asm)
 
         c2po_command_new = [
-            "python3", str(self.c2po)
+            "python3", str(self.c2po), "--overwrite", "--debug"
         ] + collect_c2po_options(self.c2po_options) + \
         [
             "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
@@ -287,7 +287,7 @@ class TestCase():
 
         proc = subprocess.run(self.c2po_command, capture_output=True)
 
-        self.asm = proc.stdout.replace(b"[95m",b"").replace(b"[4m[91m",b"").replace(b"[0m",b"")
+        self.asm = proc.stdout
 
         if proc.stderr != b"":
             with open(self.c2po_stderr_path, "wb") as f:
@@ -311,7 +311,7 @@ class TestCase():
             return
 
         if proc.stdout == b"":
-            self.test_fail(f"No verdicts generated.")
+            self.test_fail("No verdicts generated.")
             return
 
         with open(self.r2u2bin_workdir_log_path, "wb") as f:

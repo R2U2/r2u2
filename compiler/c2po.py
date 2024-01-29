@@ -12,12 +12,14 @@ parser.add_argument("--map", default="",
                     help="map file where variable names are mapped to signal order")
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
-parser.add_argument("-d","--debug", action="store_true",
+parser.add_argument("--debug", action="store_true",
                     help="enable debug output")
 parser.add_argument("--impl", default="c",
                     help="target R2U2 implementation version (one of 'c', 'c++', 'vhdl')")
-parser.add_argument("--output", default="spec.bin",
+parser.add_argument("-o", "--output", default="spec.bin",
                     help="location where output file will be generated")
+parser.add_argument("--overwrite", action="store_true",
+                    help="enable overwriting of files")
 
 parser.add_argument("--int-width", default=8,
                     help="bit width for integer types")
@@ -30,19 +32,19 @@ parser.add_argument("--mission-time", type=int,
 parser.add_argument("--endian", choices=['native', 'network', 'big', 'little'],
                     default=sys.byteorder, help='Select byte-order of spec file')
 
-parser.add_argument("--atomic-checkers", action="store_true",
+parser.add_argument("-at", "--atomic-checkers", action="store_true",
                     help="enable atomic checkers")
-parser.add_argument("--booleanizer", action="store_true",
+parser.add_argument("-bz", "--booleanizer", action="store_true",
                     help="enable booleanizer")
 
-parser.add_argument("--disable-assemble", action="store_false",
+parser.add_argument("-da", "--disable-assemble", action="store_false",
                     help="disable assembly generation")
-parser.add_argument("--disable-cse", action="store_false",
+parser.add_argument("-dc", "--disable-cse", action="store_false",
                     help="disable CSE optimization")
+parser.add_argument("-dr", "--disable-rewrite", action="store_false",
+                    help="disable MLTL rewrite rule optimizations")
 parser.add_argument("--extops", action="store_true",
                     help="enable extended operations")
-parser.add_argument("--disable-rewrite", action="store_false",
-                    help="disable MLTL rewrite rule optimizations")
                     
 parser.add_argument("--pickle", nargs="?", default=".", const="",
                     help="pickle AST and write to argument if provided; defaults to input filename with .pickle extension")
@@ -73,6 +75,7 @@ return_code = compile(
     pickle_filename=args.pickle,
     dump_mltl_filename=args.dump_mltl,
     dump_ast_filename=args.dump_ast,
+    overwrite=args.overwrite,
     debug=args.debug,
     quiet=args.quiet, 
 )

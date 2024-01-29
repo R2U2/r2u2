@@ -138,9 +138,6 @@ class ATFilter(Enum):
     INT = 0b0010
     FLOAT = 0b0011
     FORMULA = 0b0100
-    # RATE           = 0b0101
-    # ABS_DIFF_ANGLE = 0b0110
-    # MOVAVG         = 0b0111
     # EXACTLY_ONE_OF = 0b1000
     # NONE_OF        = 0b1001
     # ALL_OF         = 0b1010
@@ -938,26 +935,31 @@ def pack_instruction(
     return binary_len + binary
 
 
-def pack_aliases(program: cpt.Program) -> bytes:
+def pack_aliases(program: cpt.Program, context: cpt.Context) -> bytes:
     binary = bytes()
 
-    for spec in program.ft_spec_set.children + program.pt_spec_set.children:
-        if isinstance(spec, cpt.Formula):
-            binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
-            log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", MODULE_CODE)
-        elif isinstance(spec, cpt.Contract):
-            binary += (
-                f"F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}".encode(
-                    "ascii"
-                )
-                + b"\x00"
+    for spec in program.get_specs():
+        if not isinstance(spec, cpt.Formula):
+            log.internal("Contract found during assembly. Why didn't transform_contract catch this?", MODULE_CODE)
+            continue
+        
+        binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
+        log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", MODULE_CODE)
+
+    for label,contract in context.contracts.items():
+        binary += (
+            f"C {label} {' '.join([str(f) for f in contract.formula_numbers])}".encode(
+                "ascii"
             )
-            log.debug(
-                f"Packing: F {spec.symbol} {' '.join([str(f) for f in spec.formula_numbers])}",
-                MODULE_CODE,
-            )
+            + b"\x00"
+        )
+        log.debug(
+            f"Packing: C {label} {' '.join([str(f) for f in contract.formula_numbers])}",
+            MODULE_CODE,
+        )
 
     return binary
+
 
 
 def assemble(
@@ -978,7 +980,7 @@ def assemble(
         binary += pack_instruction(instr, field_format_str_map, endian)
 
     binary += b"\x00"
-    binary += pack_aliases(program)
+    binary += pack_aliases(program, context)
     binary += b"\x00"
 
     if not quiet:

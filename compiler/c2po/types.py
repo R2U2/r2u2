@@ -3,7 +3,7 @@ from typing import Dict, NamedTuple, Optional
 
 from c2po import log
 
-MODULE_CODE = "TYP"
+MODULE_CODE = "TYPE"
 
 class R2U2Implementation(enum.Enum):
     C = 0
@@ -45,6 +45,7 @@ class BaseType(enum.Enum):
     FLOAT = 3
     SET = 4
     STRUCT = 5
+    CONTRACT = 6
 
 
 class Type:
@@ -107,6 +108,13 @@ class StructType(Type):
         if isinstance(arg, StructType):
             return self.symbol == arg.symbol
         return False
+
+
+class ContractValueType(Type):
+    """Output value of Assume-Guarantee Contracts. Can be one of: inactive, invalid, or verified."""
+
+    def __init__(self, is_const: bool):
+        super().__init__(BaseType.CONTRACT, is_const, "contract")
 
 
 class SetType(Type):

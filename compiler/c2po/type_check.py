@@ -4,7 +4,7 @@ from typing import cast
 
 from c2po import cpt, log, types
 
-MODULE_CODE = "TCH"
+MODULE_CODE = "TYPC"
 
 def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
     for expr in cpt.postorder(node, context):
@@ -16,6 +16,8 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
+            
+            context.add_formula(expr.symbol, expr)
             
             expr.type = types.BoolType(False)
         elif isinstance(expr, cpt.Contract):
@@ -35,7 +37,9 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
             
-            expr.type = types.BoolType(False) # TODO: Actually ternary...but okay for now
+            context.add_contract(expr.symbol, expr)
+
+            expr.type = types.ContractValueType(False)
         elif isinstance(expr, cpt.Constant):
             pass
         elif isinstance(expr, cpt.Signal):
@@ -495,15 +499,8 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     MODULE_CODE,
                     location=spec.loc,
                 )
-
-            if isinstance(spec, cpt.Formula):
-                status = status and type_check_expr(spec, context)
-                if status:
-                    context.add_specification(spec.symbol, spec)
-            elif isinstance(spec, cpt.Contract):
-                status = status and type_check_expr(spec, context)
-                if status:
-                    context.add_contract(spec.symbol, spec)
+            
+            status = status and type_check_expr(spec, context)
 
     return status
 
