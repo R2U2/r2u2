@@ -741,13 +741,15 @@ def pack_at_instruction(
     binary = bytes()
 
     if instruction.compare_is_signal:
-        compare_bytes = CStruct(f"{endian}Bxxxxxxx").pack(instruction.compare_value)
+        compare_format_str = "Bxxxxxxx"
     elif isinstance(instruction.compare_value, bool):
-        compare_bytes = CStruct(f"{endian}?xxxxxxx").pack(instruction.compare_value)
+        compare_format_str = "?xxxxxxx"
     elif isinstance(instruction.compare_value, int):
-        compare_bytes = CStruct(f"{endian}q").pack(instruction.compare_value)
+        compare_format_str = "q"
     else:  # isinstance(instruction.compare_value, float):
-        compare_bytes = CStruct(f"{endian}d").pack(instruction.compare_value)
+        compare_format_str = "d"
+
+    compare_bytes = CStruct(f"{endian}{compare_format_str}").pack(instruction.compare_value)
 
     format_str = endian
     format_str += format_strs[FieldType.AT_VALUE]
@@ -772,6 +774,30 @@ def pack_at_instruction(
         instruction.atomic_id,
         instruction.compare_is_signal,
         instruction.atomic_id,
+    )
+
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:2} "
+        f"[{compare_format_str:<8}] "
+        f"[xxxxxxxx] "
+        f"{format_strs[FieldType.AT_REL_OP]:2} "
+        f"{format_strs[FieldType.AT_FILTER]:2} "
+        f"{format_strs[FieldType.AT_SIGNAL]:2} "
+        f"{format_strs[FieldType.AT_ID]:2} "
+        f"{format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]:2} "
+        f"{format_strs[FieldType.AT_ID]:2} "
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2} "
+        f"[{instruction.compare_value:<8}] "
+        f"[        ] "
+        f"{instruction.relational_operator.value:<2} "
+        f"{instruction.signal_type.value:<2} "
+        f"{instruction.signal_id:<2} "
+        f"{instruction.atomic_id:<2} "
+        f"{instruction.compare_is_signal:<2} ",
+        f"{instruction.atomic_id:<2} ",
+        MODULE_CODE,
     )
 
     return binary

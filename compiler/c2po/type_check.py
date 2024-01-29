@@ -395,8 +395,6 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
 def type_check_atomic(
     atomic: cpt.AtomicCheckerDefinition, context: cpt.Context
 ) -> bool:
-    raise NotImplementedError
-
     relational_expr = atomic.get_expr()
 
     if not isinstance(relational_expr, cpt.RelationalOperator):
@@ -411,7 +409,12 @@ def type_check_atomic(
     rhs = relational_expr.children[1]
 
     if isinstance(lhs, cpt.FunctionCall):
-        pass
+        log.error(
+            "Atomic checker filters unsupported",
+            MODULE_CODE,
+            location=lhs.loc,
+        )
+        return False
     elif isinstance(lhs, cpt.Signal):
         type_check_expr(lhs, context)
     else:
@@ -421,6 +424,7 @@ def type_check_atomic(
             MODULE_CODE,
             location=lhs.loc,
         )
+        return False
 
     if not isinstance(rhs, cpt.Literal):
         log.error(
@@ -429,8 +433,9 @@ def type_check_atomic(
             MODULE_CODE,
             location=rhs.loc,
         )
+        return False
 
-    return False
+    return True
 
 
 def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> bool:
