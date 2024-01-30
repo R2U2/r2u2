@@ -26,7 +26,7 @@ for file in files:
     with open(file, "r") as f:
         ltlf = f.read()
 
-    props: Set[str] = Set()
+    props: Set[str] = set()
     mltl = ltlf
 
     mltl = mltl.replace("&", "&&")
@@ -43,7 +43,7 @@ for file in files:
 
     formulas[file] = (props, mltl)
 
-    new_file = file.with_stem(file.stem[:-4]) # remove .smv
+    new_file = file.with_name(file.name[:-4]) # remove .smv
     with open(MLTLDIR / new_file.with_suffix(f".M{sys.argv[2]}.mltl").name, "w") as f:
         f.write("INPUT\n\t")
         f.write(",".join(props))

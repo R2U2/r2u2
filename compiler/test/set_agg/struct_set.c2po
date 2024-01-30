@@ -11,6 +11,6 @@ DEFINE
 FTSPEC
     foreach(s:X)(s.m1 && s.m2);
     forsome(s:X)(s.m1 && s.m2);
-    forexactlyn(s:X,n)(s.m1 & s.m2);
-    foratleastn(s:X,n)(s.m1 & s.m2);
-    foratmostn(s:X,n)(s.m1 & s.m2);
+    forexactly(s:X,n)(s.m1 & s.m2);
+    foratleast(s:X,n)(s.m1 & s.m2);
+    foratmost(s:X,n)(s.m1 & s.m2);

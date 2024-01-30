@@ -14,6 +14,8 @@ The assembled binary should be at `r2u2_spec.bin` by default and is ready to be 
 
     python r2u2prep.py -h
 
+C2PO requires Python 3.8 or newer.
+
 ## MLTL File Format
 
 MLTL files are used as input to C2PO and use C2PO's specification language. They include various sections: 

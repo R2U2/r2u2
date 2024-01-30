@@ -3,8 +3,11 @@ from pathlib import Path
 import sys
 import pickle
 
-from c2po.main import compile
-from c2po.ast import C2POProgram
+import sys
+sys.path.append(str((Path(__file__).parent / ".." / ".." ).absolute()))
+
+from compiler.c2po.cpt import Program # noqa: E402
+from compiler.c2po.main import compile # noqa: E402
 
 sys.setrecursionlimit(10000)
 
@@ -54,7 +57,7 @@ def compute_total_scq_size(
     )
 
     with open(pickle_path, "rb") as f:
-        control_program: C2POProgram = pickle.load(f)
+        control_program: Program = pickle.load(f)
 
     future_time_spec_section = control_program.get_future_time_spec_section()
     return future_time_spec_section.total_scq_size if future_time_spec_section else 0

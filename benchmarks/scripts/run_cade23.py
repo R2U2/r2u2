@@ -1,10 +1,15 @@
 from itertools import combinations
+from typing import List
 import os
 from copy import copy
 from subprocess import run
 from pathlib import Path
 from benchmark import generate_file_prefix, benchmark
-from c2po.main import optimize_rewrite_rules
+
+import sys
+sys.path.append(str((Path(__file__).parent / ".." / ".." ).absolute()))
+
+from compiler.c2po.main import optimize_rewrite_rules # noqa: E402
 
 DIR = "../cade23/"
 RESULTS_DIR = DIR+"results/"
@@ -13,7 +18,7 @@ DYN_SET_RESULTS_DIR = RESULTS_DIR+"dyn-set/"
 COUNT_RESULTS_DIR = RESULTS_DIR+"count/"
 
 
-def run_dynamic_set_benchmark(sizes: list[int]) :
+def run_dynamic_set_benchmark(sizes: List[int]) :
     formula = "(G[0,100](a0) && G[0,100](a1))"
 
     with open(f"{DYN_SET_RESULTS_DIR}select.out", "w") as f:
@@ -33,7 +38,7 @@ def run_dynamic_set_benchmark(sizes: list[int]) :
         f.write(results)
 
 
-def run_counting_benchmark(sizes: list[int], chooses: list[int]) :
+def run_counting_benchmark(sizes: List[int], chooses: List[int]) :
     formula = "(G[0,100](a0) && G[0,100](a1))"
 
     with open(f"{COUNT_RESULTS_DIR}select.out", "w") as f:
