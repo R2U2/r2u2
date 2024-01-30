@@ -5,7 +5,7 @@ import os
 import dataclasses
 import json
 import pprint
-
+from typing import Optional
 
 from c2po import cpt, log
 
@@ -25,7 +25,7 @@ PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
 class ENode:
     id: str
     op: str
-    children: list[str]
+    children: list[str] # child EClasses
     eclass_id: str
 
     @staticmethod
@@ -65,6 +65,44 @@ class EGraph:
             raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_candidates}")
         else:
             raise ValueError("No root candidates")
+        
+    def compute_reprs(self) -> dict[str, str]:
+        reps = {}
+        cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
+
+        stack: list[ENode] = []
+        visited = set()
+
+        [stack.append(enode) for enode in self.eclasses[self.root]]
+
+        while len(stack) > 0:
+            cur_enode = stack.pop()
+
+            cur_cost = 1
+            for child in cur_enode.children:
+                child_cost = cost[child]
+                if not child_cost:
+                    continue
+                cur_cost += child_cost
+
+            cur_min_cost = cost[cur_enode.eclass_id]
+            if not cur_min_cost:
+                cost[cur_enode.eclass_id] = cur_cost
+            elif cur_cost < cur_min_cost:
+                cost[cur_enode.eclass_id] = cur_cost
+
+            if cur_enode.id in visited:
+                continue
+
+            stack.append(cur_enode)
+
+            for enode in self.eclasses[cur_enode.eclass_id]:
+                for child_eclass_id in [c for c in enode.children if c not in visited]:
+                    [stack.append(child) for child in self.eclasses[child_eclass_id]]
+
+        pprint.pprint(cost)
+
+        return reps
 
 
 def from_json(content: dict):
@@ -87,6 +125,8 @@ def from_json(content: dict):
 
     egraph = EGraph.from_eclasses(eclasses)
     print(egraph.root)
+
+    return egraph
 
 
 def to_egglog(spec: cpt.Formula) -> str:
@@ -168,6 +208,7 @@ def run_egglog(spec: cpt.Formula):
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
 
-    from_json(egglog_output)
+    egraph = from_json(egglog_output)
+    egraph.compute_reprs()
 
 
