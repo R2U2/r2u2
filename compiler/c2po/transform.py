@@ -522,6 +522,8 @@ def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
+    return
+
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
 
@@ -802,6 +804,8 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
 def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
+    return
+
     S: dict[str, cpt.Expression]
 
     log.debug("Performing CSE", module=MODULE_CODE, submodule="CSE")
@@ -908,11 +912,11 @@ TRANSFORM_PIPELINE: list[C2POTransform] = [
     transform_set_aggregation,
     transform_struct_accesses,
     optimize_rewrite_rules,
-    optimize_egraph,
     transform_extended_operators,
     transform_negative_normal_form,
     transform_boolean_normal_form,
     optimize_cse,
     compute_atomics,  # not a transform, but needed for assembly+analysis
+    optimize_egraph,
     compute_scq_sizes,  # not a transform, but needed for assembly+analysis
 ]

@@ -40,4 +40,3 @@
   :ruleset mltl-rewrites
 )
 
-(run-schedule (saturate mltl-rewrites))

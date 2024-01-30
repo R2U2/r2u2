@@ -5,7 +5,7 @@ import pathlib
 import re
 from typing import NamedTuple, Optional
 
-from c2po import assemble, cpt, log, parse, transform, type_check, types
+from c2po import assemble, cpt, log, parse, transform, type_check, types, egraph
 
 MODULE_CODE = "MAIN"
 
@@ -169,7 +169,7 @@ def validate_input(
     output_path = None
     if output_filename != "":
         output_path = pathlib.Path(output_filename)
-        if output_path.exists() and not overwrite:
+        if output_path.exists() and enable_assemble and not overwrite:
             log.error(f"Output file '{output_filename}' already exists."
                       "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
             status = False
@@ -489,6 +489,8 @@ def compile(
     log.debug("Performing transforms", MODULE_CODE)
     for trans in [t for t in transform.TRANSFORM_PIPELINE if t in options.transforms]:
         trans(program, context)
+
+    egraph.run_egglog(program.ft_spec_set.children[0])
 
     # Optional file dumps
     pickle(program, options.input_path, pickle_filename, overwrite)
