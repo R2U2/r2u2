@@ -4,6 +4,8 @@ import pathlib
 import os
 import dataclasses
 import json
+import pprint
+
 
 from c2po import cpt, log
 
@@ -11,10 +13,10 @@ MODULE_CODE = "EGRF"
 
 FILE_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = FILE_DIR / "egglog"
+EGGLOG_PATH = FILE_DIR / "egglog" / "target" / "debug" / "egglog"
 PRELUDE_PATH = FILE_DIR / "mltl.egg"
 
-TMP_EGG_PATH = EGGLOG_PATH / "__tmp__.egg"
+TMP_EGG_PATH = FILE_DIR / "__tmp__.egg"
 EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
@@ -23,18 +25,68 @@ PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
 class ENode:
     id: str
     op: str
-    children: list[int]
-    eclass: int
+    children: list[str]
+    eclass_id: str
 
     @staticmethod
     def from_json(id: str, content: dict) -> ENode:
         return ENode(id, content["op"], content["children"], content["eclass"])
+    
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, ENode) and self.id ==__value.id
+    
+    def __hash__(self) -> int:
+        return hash(self.id)
 
 
-class EClass:
-    def __init__(self, id: int, nodes: set[ENode]) -> None:
-        pass
+@dataclasses.dataclass
+class EGraph:
+    root: str
+    eclasses: dict[str, set[ENode]]
 
+    @staticmethod
+    def from_eclasses(eclasses: dict[str, set[ENode]]) -> EGraph:
+        if len(eclasses) < 1:
+            log.error("Empty EGraph", MODULE_CODE)
+            return EGraph("",{})
+        
+        parents: dict[str, set[str]] = {i:set() for i in eclasses.keys()}
+
+        for eclass_id,enodes in eclasses.items():
+            for enode in enodes:
+                for child_eclass_id in enode.children:
+                    parents[child_eclass_id].add(eclass_id)
+
+        root_candidates = [id for id,pars in parents.items() if len(pars) == 0]
+
+        if len(root_candidates) == 1:
+            return EGraph(root_candidates[0], eclasses)
+        elif len(root_candidates) > 1:
+            raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_candidates}")
+        else:
+            raise ValueError("No root candidates")
+
+
+def from_json(content: dict):
+    enodes: dict[str, ENode] = {}
+    eclass_ids: dict[str, str] = {}
+    eclasses: dict[str, set[ENode]] = {}
+
+    for enode_id,node in content["nodes"].items():
+        eclass_ids[enode_id] = node["eclass"]
+
+    for enode_id,node in content["nodes"].items():
+        node["children"] = [eclass_ids[s] for s in node["children"]]
+        enode = ENode.from_json(enode_id, node)
+        enodes[enode_id] = enode
+
+        if enode.eclass_id not in eclasses:
+            eclasses[enode.eclass_id] = {enode}
+        else:
+            eclasses[enode.eclass_id].add(enode)
+
+    egraph = EGraph.from_eclasses(eclasses)
+    print(egraph.root)
 
 
 def to_egglog(spec: cpt.Formula) -> str:
@@ -101,31 +153,16 @@ def to_egglog(spec: cpt.Formula) -> str:
     return egglog + ")"
 
 
-def from_json(content: dict):
-
-    for id,node in content["nodes"].items():
-        ENode.from_json(id, node)
-
-
-
-
 def run_egglog(spec: cpt.Formula):
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
-    os.chdir(EGGLOG_PATH)
-
-    print(pathlib.Path.cwd())
-
     egglog = prelude + to_egglog(spec) + PRELUDE_END
 
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-
-    command = ["cargo", "run", "--", "--to-json", str(TMP_EGG_PATH)]
-    print(command)
-
+    command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
     subprocess.run(command)
 
     with open(EGGLOG_OUTPUT, "r") as f:
