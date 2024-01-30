@@ -335,7 +335,7 @@ class C2POParser(sly.Parser):
     # Labeled specification
     @_("SYMBOL COLON expr SEMI")
     def spec(self, p):
-        formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num-1, p[2])
+        formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2])
         self.spec_num += 1
         return formula
 

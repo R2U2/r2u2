@@ -404,6 +404,9 @@ class CGInstruction:
         return " ".join(field_strs)
 
 
+Instruction = Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction]
+
+
 def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruction:
     expr = context.atomic_checkers[node.symbol]
 
@@ -519,7 +522,7 @@ def gen_ft_instruction(
         operand1_type, operand1_value = gen_tl_operand(None, instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
-    return TLInstruction(
+    ft_instr = TLInstruction(
         EngineTag.TL,
         ftid,
         FT_OPERATOR_MAP[type(expr)],  # type: ignore
@@ -528,6 +531,12 @@ def gen_ft_instruction(
         operand2_type,
         operand2_value,
     )
+    
+    log.debug(f"Generating: {expr}\n\t"
+              f"{ft_instr}", 
+              MODULE_CODE)
+
+    return ft_instr
 
 
 def gen_pt_instruction(
@@ -551,7 +560,7 @@ def gen_pt_instruction(
         operand1_type, operand1_value = gen_tl_operand(None, instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
-    return TLInstruction(
+    pt_instr = TLInstruction(
         EngineTag.TL,
         ptid,
         PT_OPERATOR_MAP[type(expr)],
@@ -560,26 +569,35 @@ def gen_pt_instruction(
         operand2_type,
         operand2_value,
     )
+    
+    log.debug(f"Generating: {expr}\n\t"
+              f"{pt_instr}", 
+              MODULE_CODE)
+
+    return pt_instr
 
 
 def gen_scq_instructions(
-    node: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
     cg_scq = CGInstruction(
         EngineTag.CG,
         CGType.SCQ,
         TLInstruction(
             EngineTag.TL,
-            node.scq[0],
+            expr.scq[0],
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
-            instructions[node].id,
+            instructions[expr].id,
             TLOperandType.DIRECT,
-            node.scq[1] - node.scq[0],
+            expr.scq[1] - expr.scq[0],
         ),
     )
 
-    if not isinstance(node, cpt.TemporalOperator):
+    if not isinstance(expr, cpt.TemporalOperator):
+        log.debug(f"Generating: {expr}\n\t"
+                  f"{cg_scq}", 
+                  MODULE_CODE)
         return [cg_scq]
 
     cg_lb = CGInstruction(
@@ -587,10 +605,10 @@ def gen_scq_instructions(
         CGType.LB,
         TLInstruction(
             EngineTag.TL,
-            node.interval.lb,
+            expr.interval.lb,
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
-            instructions[node].id,
+            instructions[expr].id,
             TLOperandType.ATOMIC,
             0,
         ),
@@ -601,14 +619,19 @@ def gen_scq_instructions(
         CGType.UB,
         TLInstruction(
             EngineTag.TL,
-            node.interval.ub,
+            expr.interval.ub,
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
-            instructions[node].id,
+            instructions[expr].id,
             TLOperandType.ATOMIC,
             1,
         ),
     )
+
+    log.debug(f"Generating: {expr}\n\t"
+              f"{cg_scq}\n\t"
+              f"{cg_lb}\n\t"
+              f"{cg_ub}", MODULE_CODE)
 
     return [cg_scq, cg_lb, cg_ub]
 
@@ -664,7 +687,7 @@ def gen_boxq_instructions(
     return [cg_boxq, cg_lb, cg_ub]
 
 
-def gen_assembly(program: cpt.Program, context: cpt.Context):
+def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction]:
     at_instructions: dict[cpt.Expression, ATInstruction] = {}
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
@@ -761,21 +784,6 @@ def pack_at_instruction(
     format_str += format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]
     format_str += format_strs[FieldType.AT_ID]
 
-    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
-        instruction.engine_tag.value
-    )
-
-    binary = engine_tag_binary + CStruct(format_str).pack(
-        compare_bytes,
-        CStruct(f"{endian}xxxxxxxx").pack(),
-        instruction.relational_operator.value,
-        instruction.signal_type.value,
-        instruction.signal_id,
-        instruction.atomic_id,
-        instruction.compare_is_signal,
-        instruction.atomic_id,
-    )
-
     log.debug(
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
@@ -800,6 +808,21 @@ def pack_at_instruction(
         MODULE_CODE,
     )
 
+    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+        instruction.engine_tag.value
+    )
+
+    binary = engine_tag_binary + CStruct(format_str).pack(
+        compare_bytes,
+        CStruct(f"{endian}xxxxxxxx").pack(),
+        instruction.relational_operator.value,
+        instruction.signal_type.value,
+        instruction.signal_id,
+        instruction.atomic_id,
+        instruction.compare_is_signal,
+        instruction.atomic_id,
+    )
+
     return binary
 
 
@@ -808,6 +831,26 @@ def pack_bz_instruction(
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:2} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
+        f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+        f"{format_strs[FieldType.BZ_ID]:2} "
+        f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
+        f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2} "
+        f"{instruction.operand1:<2} "
+        f"{instruction.operand2:<2}"
+        f"{instruction.operator.value:<2} "
+        f"{instruction.id:<2} "
+        f"{instruction.store_atomic:<2} "
+        f"{instruction.atomic_id:<2} ",
+        MODULE_CODE,
+    )
+
     binary = bytes()
 
     format_str = endian
@@ -839,26 +882,6 @@ def pack_bz_instruction(
         instruction.atomic_id,
     )
 
-    log.debug(
-        f"Packing: {instruction}\n\t"
-        f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:2} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:2}"
-        f"{format_strs[FieldType.BZ_OPERATOR]:2} "
-        f"{format_strs[FieldType.BZ_ID]:2} "
-        f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
-        f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
-        f"\n\t"
-        f"{instruction.engine_tag.value:<2} "
-        f"{instruction.operand1:<2} "
-        f"{instruction.operand2:<2}"
-        f"{instruction.operator.value:<2} "
-        f"{instruction.id:<2} "
-        f"{instruction.store_atomic:<2} "
-        f"{instruction.atomic_id:<2} ",
-        MODULE_CODE,
-    )
-
     return binary
 
 
@@ -867,6 +890,22 @@ def pack_tl_instruction(
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:2} "
+        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"{format_strs[FieldType.TL_ID]:2} "
+        f"{format_strs[FieldType.TL_OPERATOR]:2}"
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2} "
+        f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
+        f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+        f"{instruction.id:<2} "
+        f"{instruction.operator.value:<2}",
+        MODULE_CODE,
+    )
+
     binary = bytes()
 
     operand_format_str = endian
@@ -898,28 +937,20 @@ def pack_tl_instruction(
         instruction.operator.value,
     )
 
-    log.debug(
-        f"Packing: {instruction}\n\t"
-        f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-        f"{format_strs[FieldType.TL_ID]:2} "
-        f"{format_strs[FieldType.TL_OPERATOR]:2}"
-        f"\n\t"
-        f"{instruction.engine_tag.value:<2} "
-        f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
-        f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
-        f"{instruction.id:<2} "
-        f"{instruction.operator.value:<2}",
-        MODULE_CODE,
-    )
-
     return binary
 
 
 def pack_cg_instruction(
     instruction: CGInstruction, format_strs: dict[FieldType, str], endian: str
 ) -> bytes:
+    log.debug(
+        f"Packing: {instruction}\n\t"
+        f"{format_strs[FieldType.ENGINE_TAG]:<2}"
+        f"\n\t"
+        f"{instruction.engine_tag.value:<2}",
+        MODULE_CODE,
+    )
+
     binary = bytes()
 
     format_str = endian
@@ -928,14 +959,6 @@ def pack_cg_instruction(
     binary += CStruct(format_str).pack(instruction.engine_tag.value)
 
     binary += pack_tl_instruction(instruction.instruction, format_strs, endian)
-
-    log.debug(
-        f"Packing: {instruction}\n\t"
-        f"{format_strs[FieldType.ENGINE_TAG]:<2}"
-        f"\n\t"
-        f"{instruction.engine_tag.value:<2}",
-        MODULE_CODE,
-    )
 
     return binary
 
@@ -987,10 +1010,9 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> bytes:
     return binary
 
 
-
 def assemble(
     program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
-) -> bytes:
+) -> tuple[list[Instruction], bytes]:
     log.debug("Assembling", MODULE_CODE)
 
     check_sizes()
@@ -1009,7 +1031,4 @@ def assemble(
     binary += pack_aliases(program, context)
     binary += b"\x00"
 
-    if not quiet:
-        [print(instr) for instr in assembly]
-
-    return binary
+    return (assembly, binary)

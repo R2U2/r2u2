@@ -508,7 +508,11 @@ def compile(
         log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
         return ReturnCode.INVALID_INPUT
 
-    binary = assemble.assemble(program, context, quiet, options.endian_sigil)
+    (assembly, binary) = assemble.assemble(program, context, quiet, options.endian_sigil)
+
+    if not quiet:
+        [print(instr) for instr in assembly]
+
     with open(options.output_path, "wb") as f:
         f.write(binary)
 

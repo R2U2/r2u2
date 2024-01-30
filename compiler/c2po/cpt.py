@@ -788,7 +788,7 @@ class LogicalOr(LogicalOperator):
         self.symbol = "||"
 
     def __str__(self) -> str:
-        return self.symbol.join([str(c) for c in self.children])
+        return self.symbol.join([f"({c})" for c in self.children])
 
 
 class LogicalAnd(LogicalOperator):
@@ -805,7 +805,7 @@ class LogicalAnd(LogicalOperator):
         self.symbol = "&&"
 
     def __str__(self) -> str:
-        return self.symbol.join([str(c) for c in self.children])
+        return self.symbol.join([f"({c})" for c in self.children])
 
 
 class LogicalXor(LogicalOperator):
@@ -1100,6 +1100,9 @@ class SpecificationSet(Expression):
 
     def get_specs(self) -> list[Specification]:
         return cast("list[Specification]", self.children)
+    
+    def __str__(self) -> str:
+        return "spec_set"
 
 
 class StructDefinition(Node):

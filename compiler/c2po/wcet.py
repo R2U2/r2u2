@@ -1,56 +1,106 @@
-from typing import Dict, List, Tuple
+from __future__ import annotations
 
-from c2po..logger import logger
-from c2po.assemble import Operator, FTOperator, PTOperator, BZOperator, Instruction
+from typing import Optional
 
-DEFAULT_CPU_LATENCY_TABLE: Dict[Operator, int] = { op:10 for op in
-    [op for op in FTOperator] + [op for op in PTOperator] + [op for op in BZOperator] }
+from c2po import log, assemble
 
-def compute_cpu_wcet(assembly: List[Instruction], latency_table: Dict[str, int], clk: int) -> int:
+MODULE_CODE = "WCET"
+
+
+DEFAULT_CPU_LATENCY_TABLE: dict[assemble.Operator, int] = { 
+    op:10 
+    for op in
+    ([op for op in assemble.FTOperator] + 
+     [op for op in assemble.PTOperator] + 
+     [op for op in assemble.BZOperator])
+}
+
+
+def compute_cpu_wcet(
+    assembly: list[assemble.Instruction], 
+    latency_table: dict[assemble.Operator, int], 
+    clk: int,
+) -> int:
     """
-    Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
+    Returns worst-case execution time in clock cycles for formulas running on the software version of R2U2.
 
-    latency_table is a dictionary that maps the instruction operators to their estimated computation time in CPU clock cycles. For instance, one key-value pair may be (FTOperator.GLOBALLY: 15).
+    `latency_table` is a dictionary that maps the instruction operators to their estimated computation time in CPU clock cycles. For instance, one key-value pair may be `(FTOperator.GLOBAL: 15)`.
     """
-    def compute_cpu_wcet_util(instr: Instruction) -> int:
-        nonlocal latency_table
-        operator: Optional[Operator] = instr.operator # type: ignore
+    total_wcet = 0
 
+    for instr in assembly:
+        if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):
+            continue
+
+        operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            logger.error(f"While computing CPU WCET, found invalid instruction '{instr}'")
+            log.error(f"While computing CPU WCET, found invalid instruction '{instr}'", MODULE_CODE)
             return 0
         elif operator not in latency_table:
-            logger.error(f"Operator '{operator.symbol()}' not found in CPU latency table.")
+            log.error(f"Operator '{operator.name}' not found in CPU latency table.", MODULE_CODE)
             return 0
-        else:
-            return int((latency_table[operator] * instr.node.scq_size) / clk)
+        
+        wcet = int((latency_table[operator]) / clk)
 
-    return sum([compute_cpu_wcet_util(a) for a in assembly])
+        log.debug(f"CPU_WCET({instr}) = {wcet}", MODULE_CODE)
 
-DEFAULT_FPGA_LATENCY_TABLE: Dict[Operator, Tuple[float,float]] = { op:(10.0,10.0) for op in
-    [op for op in FTOperator] + [op for op in PTOperator] + [op for op in BZOperator] }
+        total_wcet += wcet
 
-def compute_fpga_wcet(assembly: List[Instruction], latency_table: Dict[str, Tuple[float, float]], clk: float) -> float:
+    return total_wcet
+
+
+DEFAULT_FPGA_LATENCY_TABLE: dict[assemble.Operator, tuple[float, float]] = { 
+    op:(10.0,10.0) 
+    for op in
+    ([op for op in assemble.FTOperator] + 
+     [op for op in assemble.PTOperator] + 
+     [op for op in assemble.BZOperator])
+}
+
+def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[assemble.Operator, tuple[float, float]], clk: float) -> float:
     """
-    Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
+    Returns worst-case execution time in clock cycles for hardware version R2U2 running on a FPGA.
 
-    latency_table is a dictionary that maps the instruction operators to their estimated computation time in micro seconds. For instance, one key-value pair may be ('FTOperator.GLOBALLY': 15.0).
+    `latency_table` is a dictionary that maps the instruction operators to their estimated init/exec times in micro seconds. For instance, one key-value pair may be `('FTOperator.GLOBALLY': (15.0,5.0)).`
     """
-    wcet: float = 0
+    total_wcet = 0
 
-    def compute_fpga_wcet_util(instr: Instruction) -> float:
-        nonlocal latency_table
-        operator: Optional[Operator] = instr.operator # type: ignore
+    scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.SCQ]
 
+    for instr in assembly:
+        if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):
+            continue
+
+        operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            logger.error(f"While computing CPU WCET, found invalid instruction '{instr}'")
+            log.error(f"While computing FPGA WCET, found invalid instruction '{instr}'", MODULE_CODE)
             return 0
         elif operator not in latency_table:
-            logger.error(f"Operator '{operator.symbol()}' not found in CPU latency table.")
+            log.error(f"Operator '{operator.name}' not found in FPGA latency table.", MODULE_CODE)
             return 0
-        else:
-            sum_scq_sizeschildren = sum([c.scq_size for c in instr.node.children])
-            (init_time, exec_time) = latency_table[operator]
-            return init_time + exec_time*sum_scq_sizeschildren
+        
+        init_time, exec_time = latency_table[operator]
+        
+        if isinstance(operator, assemble.FTOperator) and isinstance(instr, assemble.TLInstruction):
+            sum_children_scq_size = 1
 
-    return sum([compute_fpga_wcet_util(a) for a in assembly])
+            child_ids = set()
+            if instr.operand1_type == assemble.TLOperandType.SUBFORMULA:
+                child_ids.add(instr.operand1_value)
+            if instr.operand2_type == assemble.TLOperandType.SUBFORMULA:
+                child_ids.add(instr.operand2_value)
+
+            for scq_instr in scq_instrs:
+                if scq_instr.instruction.operand1_value in child_ids: # type: ignore
+                    sum_children_scq_size += scq_instr.instruction.operand2_value
+                    break
+
+            wcet = init_time + (exec_time * sum_children_scq_size)
+        else:
+            wcet = init_time + exec_time
+
+        log.debug(f"FPGA_WCET({instr}) = {wcet}", MODULE_CODE)
+
+        total_wcet += wcet
+
+    return total_wcet

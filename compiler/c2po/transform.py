@@ -56,6 +56,8 @@ def transform_function_calls(program: cpt.Program, context: cpt.Context) -> None
 
 def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
+    log.debug("Replacing contracts", MODULE_CODE)
+
     for contract in [
         spec for spec in program.get_specs() if isinstance(spec, cpt.Contract)
     ]:
@@ -87,6 +89,8 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
         new_formulas = cast("list[cpt.Specification]", new_formulas)
 
         program.replace_spec(contract, new_formulas)
+
+        log.debug(f"Replaced contract '{contract.symbol}'", MODULE_CODE)
 
 
 def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
