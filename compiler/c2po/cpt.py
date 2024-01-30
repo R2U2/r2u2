@@ -101,13 +101,13 @@ class Expression(Node):
         self.copy_attrs(new)
         return new
 
+    def __str__(self) -> str:
+        return to_str(self)
+
 
 class Literal(Expression):
     def __init__(self, loc: log.FileLocation) -> None:
         super().__init__(loc, [])
-
-    def __str__(self) -> str:
-        return self.symbol
 
 
 class Constant(Literal):
@@ -189,9 +189,6 @@ class Variable(Expression):
         # instances of the same variable are distinct
         return id(self)
 
-    def __str__(self) -> str:
-        return self.symbol
-
 
 class Signal(Literal):
     def __init__(self, loc: log.FileLocation, s: str, t: types.Type) -> None:
@@ -235,13 +232,6 @@ class SetExpression(Expression):
     def set_dynamic_size(self, size: Node) -> None:
         self.dynamic_size = size
 
-    def __str__(self) -> str:
-        s: str = "{"
-        for m in self.children:
-            s += str(m) + ","
-        s = s[:-1] + "}"
-        return s
-
 
 class Struct(Expression):
     def __init__(
@@ -281,17 +271,12 @@ class Struct(Expression):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        s = self.symbol + "("
-        s += ",".join([f"{i}={self.children[e]}" for i, e in self.members.items()])
-        s += ")"
-        return s
-
 
 class StructAccess(Expression):
     def __init__(self, loc: log.FileLocation, struct: Expression, member: str) -> None:
         super().__init__(loc, [struct])
         self.member: str = member
+        self.symbol = "."
 
     def get_struct(self) -> Struct:
         return cast(Struct, self.children[0])
@@ -301,9 +286,6 @@ class StructAccess(Expression):
         new = type(self)(self.loc, children[0], self.member)
         self.copy_attrs(new)
         return new
-
-    def __str__(self) -> str:
-        return str(self.get_struct()) + "." + self.member
 
 
 class Operator(Expression):
@@ -326,12 +308,6 @@ class FunctionCall(Operator):
             self.symbol,
             copy.deepcopy(cast("list[Expression]", self.children), memo),
         )
-
-    def __str__(self) -> str:
-        s = f"{self.symbol}("
-        for arg in self.children:
-            s += f"{arg},"
-        return s[:-1] + ")"
 
 
 class Bind(Expression):
@@ -384,19 +360,6 @@ class SetAggregation(Operator):
     def get_expr(self) -> Expression:
         """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
         return cast(Expression, self.children[-1])
-
-    def __str__(self) -> str:
-        return (
-            self.symbol
-            + "("
-            + str(self.bound_var)
-            + ":"
-            + str(self.get_set())
-            + ")"
-            + "("
-            + str(self.get_expr())
-            + ")"
-        )
 
 
 class ForEach(SetAggregation):
@@ -527,19 +490,13 @@ class Count(Operator):
     ) -> None:
         # Note: all members of c must be of type Boolean
         super().__init__(loc, [num] + children)
-        self.name = "count"
+        self.symbol = "count"
 
     def __deepcopy__(self, memo) -> Count:
         children = [copy.deepcopy(c, memo) for c in self.children]
         new = Count(self.loc, cast(Expression, children[0]), children[1:])
         self.copy_attrs(new)
         return new
-
-    def __str__(self) -> str:
-        s = "count("
-        for c in self.children:
-            s += str(c) + ","
-        return s[:-1] + ")"
 
 
 class BitwiseOperator(Operator):
@@ -624,12 +581,6 @@ class ArithmeticOperator(Operator):
     def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
         super().__init__(loc, operands)
         self.engine = types.R2U2Engine.BOOLEANIZER
-
-    def __str__(self) -> str:
-        s = f"{self.children[0]}"
-        for c in range(1, len(self.children)):
-            s += f"{self.symbol}{self.children[c]}"
-        return s
 
 
 class ArithmeticAdd(ArithmeticOperator):
@@ -725,9 +676,6 @@ class RelationalOperator(Operator):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f"({self.children[0]}){self.symbol}({self.children[1]})"
-
 
 class Equal(RelationalOperator):
     def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
@@ -787,9 +735,6 @@ class LogicalOr(LogicalOperator):
         super().__init__(loc, operands)
         self.symbol = "||"
 
-    def __str__(self) -> str:
-        return self.symbol.join([f"({c})" for c in self.children])
-
 
 class LogicalAnd(LogicalOperator):
     def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
@@ -803,9 +748,6 @@ class LogicalAnd(LogicalOperator):
             super().__init__(loc, operands)
 
         self.symbol = "&&"
-
-    def __str__(self) -> str:
-        return self.symbol.join([f"({c})" for c in self.children])
 
 
 class LogicalXor(LogicalOperator):
@@ -855,9 +797,6 @@ class LogicalNegate(LogicalOperator):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f"!({self.children[0]})"
-
 
 class TemporalOperator(Operator):
     def __init__(
@@ -904,16 +843,13 @@ class FutureTimeBinaryOperator(TemporalOperator):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f"({self.children[0]!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})"
-
 
 class Until(FutureTimeBinaryOperator):
     def __init__(
         self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = "U"
+        self.symbol = f"U[{lb},{ub}]"
 
 
 class Release(FutureTimeBinaryOperator):
@@ -921,7 +857,7 @@ class Release(FutureTimeBinaryOperator):
         self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = "R"
+        self.symbol = f"R[{lb},{ub}]"
 
 
 class FutureTimeUnaryOperator(FutureTimeOperator):
@@ -940,17 +876,14 @@ class FutureTimeUnaryOperator(FutureTimeOperator):
         new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
         self.copy_attrs(new)
         return new
-
-    def __str__(self) -> str:
-        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
-
+    
 
 class Global(FutureTimeUnaryOperator):
     def __init__(
         self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, operand, lb, ub)
-        self.symbol = "G"
+        self.symbol = f"G[{lb},{ub}]"
 
 
 class Future(FutureTimeUnaryOperator):
@@ -958,7 +891,7 @@ class Future(FutureTimeUnaryOperator):
         self, loc: log.FileLocation, operands: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, operands, lb, ub)
-        self.symbol = "F"
+        self.symbol = f"F[{lb},{ub}]"
 
 
 class PastTimeBinaryOperator(PastTimeOperator):
@@ -981,8 +914,6 @@ class PastTimeBinaryOperator(PastTimeOperator):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f"({self.children[0]!s}){self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.children[1]!s})"
 
 
 class Since(PastTimeBinaryOperator):
@@ -990,7 +921,7 @@ class Since(PastTimeBinaryOperator):
         self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = "S"
+        self.symbol = f"S[{lb},{ub}]"
 
 
 class PastTimeUnaryOperator(PastTimeOperator):
@@ -1008,16 +939,13 @@ class PastTimeUnaryOperator(PastTimeOperator):
         self.copy_attrs(new)
         return new
 
-    def __str__(self) -> str:
-        return f"{self.symbol!s}[{self.interval.lb},{self.interval.ub}]({self.get_operand()!s})"
-
 
 class Historical(PastTimeUnaryOperator):
     def __init__(
         self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, operand, lb, ub)
-        self.symbol = "H"
+        self.symbol = f"H[{lb},{ub}]"
 
 
 class Once(PastTimeUnaryOperator):
@@ -1025,7 +953,7 @@ class Once(PastTimeUnaryOperator):
         self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
     ) -> None:
         super().__init__(loc, operand, lb, ub)
-        self.symbol = "O"
+        self.symbol = f"O[{lb},{ub}]"
 
 
 class Formula(Expression):
@@ -1051,13 +979,6 @@ class Formula(Expression):
     
     def __hash__(self) -> int:
         return hash(self.symbol)
-
-    def __str__(self) -> str:
-        return (
-            (str(self.formula_number) if self.symbol[0] == "#" else self.symbol)
-            + ": "
-            + str(self.get_expr())
-        )
 
 
 class Contract(Expression):
@@ -1435,6 +1356,104 @@ def rename(
             node.replace(repl)
 
     return new
+
+
+def to_str(start: Expression) -> str:
+    s = ""
+
+    stack: list[tuple[int, Expression]] = []
+    stack.append((0, start))
+
+    while len(stack) > 0:
+        (seen, expr) = stack.pop()
+
+        if isinstance(expr, (Literal, Variable)):
+            s += expr.symbol
+        elif isinstance(expr, (LogicalNegate, Global, Future, Once, Historical, ArithmeticNegate, BitwiseNegate)):
+            if seen == 0:
+                s += f"{expr.symbol}("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s += ")"
+        elif isinstance(expr, (Until, Release, Since, RelationalOperator)):
+            if seen == 0:
+                s += "("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += f"){expr.symbol}("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[1]))
+            else:
+                s += ")"
+        elif isinstance(expr, (LogicalAnd, LogicalOr, ArithmeticOperator)):
+            if seen == len(expr.children):
+                s += ")"
+            elif seen % 2 == 0:
+                s += "("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[seen]))
+            elif seen % 2 == 1:
+                s += f"){expr.symbol}("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[seen]))
+        elif isinstance(expr, StructAccess):
+            if seen == 0:
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s += f".{expr.member}"
+        elif isinstance(expr, SetExpression):
+            if seen == 0:
+                s += "{"
+                stack.append((seen+1, expr))
+                [stack.append((0, child)) for child in expr.children]
+            else:
+                s += ")"
+        elif isinstance(expr, (Struct, FunctionCall, Count)):
+            if seen == len(expr.children):
+                s += ")"
+            elif seen == 0:
+                s += f"{expr.symbol}("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s += ","
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+        elif isinstance(expr, SetAggregation):
+            if seen == 0:
+                s += f"{expr.symbol}({expr.bound_var}:"
+                stack.append((seen+1, expr))
+                stack.append((0, expr.get_set()))
+            elif seen == 1:
+                s += ")("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.get_expr()))
+            else:
+                s += ")"
+        elif isinstance(expr, Formula):
+            s += (str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol)
+            s += ":"
+            stack.append((0, expr.get_expr()))
+        elif isinstance(expr, Contract):
+            if seen == 0:
+                s += f"{expr.symbol}: ("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.get_assumption()))
+            elif seen == 1:
+                s += ")=>("
+                stack.append((seen+1, expr))
+                stack.append((0, expr.get_guarantee()))
+            else:
+                s += ")"
+        else:
+            log.error(f"Expression incompatible with MLTL standard ({expr.symbol})", MODULE_CODE)
+            return ""
+
+    return s
+
 
 
 def to_mltl_std(program: Program) -> str:
