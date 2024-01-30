@@ -1435,3 +1435,60 @@ def rename(
             node.replace(repl)
 
     return new
+
+
+def to_mltl_std(program: Program) -> str:
+    mltl = ""
+
+    stack: list[tuple[int, Expression]] = []
+ 
+    for spec in program.get_specs():
+        if isinstance(spec, Contract):
+            log.warning("Cannot express AGCs in MLTL standard, skipping", MODULE_CODE)
+            continue
+
+        stack.append((0, spec.get_expr()))
+
+        while len(stack) > 0:
+            (seen, expr) = stack.pop()
+
+            if isinstance(expr, Bool):
+                mltl += expr.symbol
+            elif expr.atomic_id > -1:
+                mltl += f"a{expr.atomic_id}"
+            elif isinstance(expr, (LogicalNegate, Global, Future, Once, Historical)):
+                if seen == 0:
+                    mltl += f"{expr.symbol}("
+                    stack.append((seen+1, expr))
+                    stack.append((0, expr.children[0]))
+                else:
+                    mltl += ")"
+            elif isinstance(expr, (Until, Release, Since)):
+                if seen == 0:
+                    mltl += "("
+                    stack.append((seen+1, expr))
+                    stack.append((0, expr.children[0]))
+                elif seen == 1:
+                    mltl += f"){expr.symbol}("
+                    stack.append((seen+1, expr))
+                    stack.append((0, expr.children[1]))
+                else:
+                    mltl += ")"
+            elif isinstance(expr, (LogicalAnd, LogicalOr)):
+                if seen == len(expr.children):
+                    mltl += ")"
+                elif seen % 2 == 0:
+                    mltl += "("
+                    stack.append((seen+1, expr))
+                    stack.append((0, expr.children[0]))
+                elif seen % 2 == 1:
+                    mltl += f"){expr.symbol}("
+                    stack.append((seen+1, expr))
+                    stack.append((0, expr.children[1]))
+            else:
+                log.error(f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE)
+                return ""
+
+        mltl += "\n"
+
+    return mltl

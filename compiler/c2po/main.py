@@ -327,14 +327,12 @@ def dump_mltl(
     if output_filename == ".":
         return
     
-    raise NotImplementedError
-    
     log.debug(f"Dumping MLTL-STD to {output_filename}", MODULE_CODE)
 
     dump_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
-        else input_path.with_suffix(".mltl").name
+        else input_path.with_suffix(".mltl")
     )
 
     if dump_path.exists() and not overwrite:
@@ -345,7 +343,7 @@ def dump_mltl(
     log.internal("MLTL-STD unsupported", MODULE_CODE)
 
     with open(dump_path, "w") as f:
-        f.write("")
+        f.write(cpt.to_mltl_std(program))
 
 
 def compile(
