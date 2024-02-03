@@ -226,41 +226,39 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         
       }
 
-      // Model Predictive Runtime Verification
+      // Multimodal Model Predictive Runtime Verification
       if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
         if((int)monitor->time_stamp - (int)scq->deadline >= 0){ // T_R - d >= 0
           r2u2_time index = monitor->time_stamp - scq->deadline;
           operand_data_ready(monitor, instr, 0);
           res = get_operand(monitor, instr, 0);
           if(res.time == r2u2_infinity || res.time < index){ // last i produced < index
-            r2u2_instruction_t** instructions = malloc(sizeof(r2u2_instruction_t*));
-            size_t num_instructions;
-            r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], instructions, &num_instructions, monitor->prog_count - instr->memory_reference);
-            r2u2_scq_state_t prev_real_state[num_instructions];
-            prep_prediction_scq(monitor, instructions, prev_real_state, num_instructions);
+            r2u2_time* k_trace_offset = (int*)malloc(sizeof(r2u2_time)*scq->k_modes);
+            r2u2_mltl_instruction_t** mltl_instructions = malloc(sizeof(r2u2_mltl_instruction_t*));
+            r2u2_bz_instruction_t** bz_instructions = malloc(sizeof(r2u2_bz_instruction_t*));
+            size_t num_mltl_instructions, num_bz_instructions = 0;
+            // Find child instructions for ft and booleanizer assembly (atomic checker not currently supported)
+            r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], mltl_instructions, &num_mltl_instructions, 
+                                                            bz_instructions, &num_bz_instructions, monitor->prog_count - instr->memory_reference);
+            find_trace_start_index(monitor, k_trace_offset, scq->k_modes);
+            r2u2_scq_state_t prev_real_state[num_mltl_instructions];
+            prep_prediction_scq(monitor, mltl_instructions, prev_real_state, num_mltl_instructions);
             r2u2_signal_vector_t *signal_vector_original = monitor->signal_vector;
+            r2u2_time iteration = 0;
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
-              //r2u2_atomic_vector_flip(monitor->atomic_buffer); // NEED TO RESTORE ATOMIC BUFFER STATE AFTER PREDICTION TO ENABLE
-              monitor->signal_vector = &(*(monitor->signal_vector))[monitor->num_atomics];
-              monitor->signal_vector = &(*(monitor->signal_vector))[monitor->num_signals];
               
+              for(int j = 0; j < (int)scq->k_modes; j++){
+                monitor->signal_vector = &(*(signal_vector_original))[k_trace_offset[j]+(iteration*monitor->num_signals)];
+                for(int i = num_bz_instructions - 1; i >= 0; i--){ // dispatch booleanizer instructions
+                  r2u2_bz_predict(monitor, bz_instructions[i],j);
+                }
+              }
+              iteration++;
+
               while(true){ // continue until no progress is made
-                for(int i = num_instructions - 1; i >= 0; i--){ // dispatch instructions
-                  switch(instructions[i]->engine_tag){
-                    case R2U2_ENG_TL:{
-                      r2u2_mltl_ft_predict(monitor, (r2u2_mltl_instruction_t*)instructions[i]->instruction_data);   
-                      break; 
-                    }
-                    case R2U2_ENG_AT: {
-                      r2u2_at_instruction_dispatch(monitor, (r2u2_at_instruction_t*)instructions[i]->instruction_data);
-                      break;
-                    }
-                    case R2U2_ENG_BZ: {
-                      r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)instructions[i]->instruction_data);
-                      break;
-                    }
-                  }             
+                for(int i = num_mltl_instructions - 1; i >= 0; i--){ // dispatch ft instructions
+                  r2u2_mltl_ft_predict(monitor, mltl_instructions[i]);
                 }
                 if(predicted_operand_data_ready(monitor, instr, 0)){
                   res = get_predicted_operand(monitor, instr, 0);
@@ -270,6 +268,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                   r2u2_scq_push(scq, &result, &scq->pred_wr_ptr);
 
                   if (monitor->out_file != NULL) {
+                    //printf("atomics: %s, %s, %s, %s\n", (*(monitor->signal_vector))[0], (*(monitor->signal_vector))[1], (*(monitor->signal_vector))[2], (*(monitor->signal_vector))[3]);
                     fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, min(index, res.time), res.truth ? "T" : "F", monitor->time_stamp);
                   }
 
@@ -288,7 +287,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                 monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
               }
             }
-            restore_scq(monitor, instructions, prev_real_state, num_instructions);
+            restore_scq(monitor, mltl_instructions, prev_real_state, num_mltl_instructions);
             monitor->signal_vector = signal_vector_original;
           }
         }
