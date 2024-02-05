@@ -493,7 +493,7 @@ class C2POParser(sly.Parser):
 
     @_("expr ARITH_ADD expr")
     def expr(self, p):
-        return cpt.ArithmeticAdd(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+        return cpt.ArithmeticAdd(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     @_("expr ARITH_SUB expr")
     def expr(self, p):
