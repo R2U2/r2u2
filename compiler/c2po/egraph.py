@@ -68,6 +68,8 @@ class EGraph:
         
     def compute_reprs(self) -> dict[str, str]:
         reps = {}
+        bpds: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
+        wpds: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
         cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
 
         stack: list[ENode] = []
@@ -95,6 +97,7 @@ class EGraph:
                 continue
 
             stack.append(cur_enode)
+            visited.add(cur_enode.id)
 
             for enode in self.eclasses[cur_enode.eclass_id]:
                 for child_eclass_id in [c for c in enode.children if c not in visited]:
