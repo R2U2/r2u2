@@ -1,13 +1,12 @@
 from __future__ import annotations
 import subprocess
 import pathlib
-import os
 import dataclasses
 import json
 import pprint
 from typing import Optional
 
-from c2po import cpt, log
+from c2po import cpt, log, types
 
 MODULE_CODE = "EGRF"
 
@@ -37,6 +36,30 @@ class ENode:
     
     def __hash__(self) -> int:
         return hash(self.id)
+    
+    def get_interval(self, eclasses: dict[str, set[ENode]]) -> Optional[types.Interval]:
+        for child_id in self.children:
+            enodes = eclasses[child_id]
+
+            # intervals should only be singletons
+            if len(enodes) != 1:
+                return None
+            
+            interval = enodes.pop()
+            if interval.op != "Interval":
+                return None
+            
+            # Interval should look like (with lb=4, ub=10):
+            # 'interval_id': {ENode(id='...'), op='Interval', children=['lb_id', 'ub_id']}
+            # 'lb_id': ENode(id='...', op='4')
+            # 'ub_id': ENode(id='...', op='10')
+            lb = int(eclasses[interval.children[0]].pop().op)
+            ub = int(eclasses[interval.children[1]].pop().op)
+
+            return types.Interval(lb, ub)
+        
+        # otherwise no children, no interval
+        return None
 
 
 @dataclasses.dataclass
@@ -66,11 +89,42 @@ class EGraph:
         else:
             raise ValueError("No root candidates")
         
+    @staticmethod
+    def from_json(content: dict) -> EGraph:
+        enodes: dict[str, ENode] = {}
+        eclass_ids: dict[str, str] = {}
+        eclasses: dict[str, set[ENode]] = {}
+
+        for enode_id,node in content["nodes"].items():
+            eclass_ids[enode_id] = node["eclass"]
+
+        for enode_id,node in content["nodes"].items():
+            node["children"] = [eclass_ids[s] for s in node["children"]]
+            enode = ENode.from_json(enode_id, node)
+            enodes[enode_id] = enode
+
+            if enode.eclass_id not in eclasses:
+                eclasses[enode.eclass_id] = {enode}
+            else:
+                eclasses[enode.eclass_id].add(enode)
+
+        egraph = EGraph.from_eclasses(eclasses)
+
+        pprint.pprint(egraph.eclasses)
+
+        return egraph
+    
     def compute_reprs(self) -> dict[str, str]:
         reps = {}
-        bpds: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
-        wpds: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
-        cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
+
+        # eclass_id |--> max best-case prop. delay
+        max_bpd: dict[str, int] = {s:0  for s in self.eclasses.keys()}
+
+        # eclass_id |--> min worst-case prop. delay
+        min_wpd: dict[str, int] = {s:0  for s in self.eclasses.keys()}
+
+        # eclass_id |--> min cost
+        min_cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
 
         stack: list[ENode] = []
         visited = set()
@@ -80,18 +134,37 @@ class EGraph:
         while len(stack) > 0:
             cur_enode = stack.pop()
 
+            if cur_enode.op[0:2] == "Var":
+                # all e-classes are initialized to 0
+                pass
+            elif cur_enode.op[0:2] == "And":
+                cur_bpd = min([max_bpd[i] for i in cur_enode.children])
+                cur_wpd = max([min_wpd[i] for i in cur_enode.children])
+
+                max_bpd[cur_enode.eclass_id] = max(max_bpd[cur_enode.eclass_id], cur_bpd)
+                min_wpd[cur_enode.eclass_id] = min(min_wpd[cur_enode.eclass_id], cur_wpd)
+            elif cur_enode.op == "Global":
+                interval = cur_enode.get_interval(self.eclasses)
+
+                if not interval:
+                    raise ValueError("No 'Interval' for 'Global' operator")
+
+                cur_bpd = min([max_bpd[i] for i in cur_enode.children]) + interval.lb
+                cur_wpd = max([min_wpd[i] for i in cur_enode.children]) + interval.ub
+
+                max_bpd[cur_enode.eclass_id] = max(max_bpd[cur_enode.eclass_id], cur_bpd)
+                min_wpd[cur_enode.eclass_id] = min(min_wpd[cur_enode.eclass_id], cur_wpd)
+
             cur_cost = 1
             for child in cur_enode.children:
-                child_cost = cost[child]
+                child_cost = min_cost[child]
                 if not child_cost:
                     continue
                 cur_cost += child_cost
 
-            cur_min_cost = cost[cur_enode.eclass_id]
-            if not cur_min_cost:
-                cost[cur_enode.eclass_id] = cur_cost
-            elif cur_cost < cur_min_cost:
-                cost[cur_enode.eclass_id] = cur_cost
+            cur_min_cost = min_cost[cur_enode.eclass_id]
+            if not cur_min_cost or cur_cost < cur_min_cost:
+                min_cost[cur_enode.eclass_id] = cur_cost
 
             if cur_enode.id in visited:
                 continue
@@ -103,33 +176,9 @@ class EGraph:
                 for child_eclass_id in [c for c in enode.children if c not in visited]:
                     [stack.append(child) for child in self.eclasses[child_eclass_id]]
 
-        pprint.pprint(cost)
+        pprint.pprint(min_cost)
 
         return reps
-
-
-def from_json(content: dict):
-    enodes: dict[str, ENode] = {}
-    eclass_ids: dict[str, str] = {}
-    eclasses: dict[str, set[ENode]] = {}
-
-    for enode_id,node in content["nodes"].items():
-        eclass_ids[enode_id] = node["eclass"]
-
-    for enode_id,node in content["nodes"].items():
-        node["children"] = [eclass_ids[s] for s in node["children"]]
-        enode = ENode.from_json(enode_id, node)
-        enodes[enode_id] = enode
-
-        if enode.eclass_id not in eclasses:
-            eclasses[enode.eclass_id] = {enode}
-        else:
-            eclasses[enode.eclass_id].add(enode)
-
-    egraph = EGraph.from_eclasses(eclasses)
-    print(egraph.root)
-
-    return egraph
 
 
 def to_egglog(spec: cpt.Formula) -> str:
@@ -211,7 +260,7 @@ def run_egglog(spec: cpt.Formula):
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
 
-    egraph = from_json(egglog_output)
+    egraph = EGraph.from_json(egglog_output)
     egraph.compute_reprs()
 
 
