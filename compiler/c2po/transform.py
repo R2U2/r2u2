@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, egraph
 
 MODULE_CODE = "TRNS"
 
@@ -897,15 +897,16 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def optimize_egraph(program: cpt.Program, context: cpt.Context):
-    pass
+    formula = cast(cpt.Formula, program.ft_spec_set.get_specs()[0])
+    egraph.run_egglog(formula)
 
 
-# A ast.C2POTransform is a function with the signature:
+# A Transform is a function with the signature:
 #    transform(program, context) -> None
-C2POTransform = Callable[[cpt.Program, cpt.Context], None]
+Transform = Callable[[cpt.Program, cpt.Context], None]
 
 # This is ORDER-SENSITIVE
-TRANSFORM_PIPELINE: list[C2POTransform] = [
+TRANSFORM_PIPELINE: list[Transform] = [
     transform_definitions,
     transform_function_calls,
     transform_contracts,

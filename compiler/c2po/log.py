@@ -19,6 +19,7 @@ class FileLocation(NamedTuple):
     filename: str
     lineno: int
 
+EMPTY_FILE_LOC = FileLocation("",0)
 
 class Color(enum.Enum):
     HEADER = "\033[95m"

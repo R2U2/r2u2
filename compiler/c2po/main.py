@@ -5,7 +5,7 @@ import pathlib
 import re
 from typing import NamedTuple, Optional
 
-from c2po import assemble, cpt, log, parse, transform, type_check, types, egraph
+from c2po import assemble, cpt, log, parse, transform, type_check, types
 
 MODULE_CODE = "MAIN"
 
@@ -26,7 +26,7 @@ class ValidatedInput(NamedTuple):
     mission_time: int
     endian_sigil: str
     signal_mapping: types.SignalMapping
-    transforms: set[transform.C2POTransform]
+    transforms: set[transform.Transform]
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -489,8 +489,6 @@ def compile(
     log.debug("Performing transforms", MODULE_CODE)
     for trans in [t for t in transform.TRANSFORM_PIPELINE if t in options.transforms]:
         trans(program, context)
-
-    egraph.run_egglog(program.ft_spec_set.children[0])
 
     # Optional file dumps
     pickle(program, options.input_path, pickle_filename, overwrite)
