@@ -233,7 +233,7 @@ class EGraph:
         for enode in self.traverse():
             if enode.op[0:3] == "Var":
                 # no children, so 0
-                cost[enode.enode_id] = 0
+                cost[enode.enode_id] = 1
             elif enode.op[0:3] == "And":
                 total_scq_size = 0
 
@@ -254,7 +254,7 @@ class EGraph:
                 cost[enode.enode_id] = total_scq_size
             elif enode.op == "Global":
                 # Global nodes have *lonely* single children (no siblings)
-                cost[enode.enode_id] = 0
+                cost[enode.enode_id] = 1
 
         return cost
 
@@ -263,6 +263,7 @@ class EGraph:
 
         cost: dict[ENodeID, int] = self.compute_cost()
 
+        # TODO: can the rep for an EClass change after one of its parents' rep has been computed?
         for enode in self.traverse():
             total_cost = sum([cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) + cost[enode.enode_id]
 
@@ -290,6 +291,7 @@ class EGraph:
 
         expr_tree = build_expr_tree(self.root)
         print(cpt.to_prefix(expr_tree))
+        print(rep[self.root][1])
 
         return cpt.Bool(log.FileLocation("", 0), True)
 
