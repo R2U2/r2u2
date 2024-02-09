@@ -1,3 +1,9 @@
+"""Module for computing the optimal equivalent expression with respect to SCQ sizing.
+
+We use `egglog` to perform equality saturation and do the extraction of the optimal expression ourselves (due to the complex nature of SCQ sizing). `egglog` does automatic extraction, but works best for cases where the cost of each node can be easily computed using just the children of a given node.
+
+`None` represents infinity for an `Optional[int]`.
+"""
 from __future__ import annotations
 import subprocess
 import pathlib
@@ -9,6 +15,8 @@ from typing import Optional
 from c2po import cpt, log, types
 
 MODULE_CODE = "EGRF"
+
+INF = 1_000_000_000
 
 FILE_DIR = pathlib.Path(__file__).parent
 
@@ -22,9 +30,9 @@ PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
 
 @dataclasses.dataclass
 class ENode:
-    id: str
+    enode_id: str
     op: str
-    children: list[str] # child EClasses
+    child_eclass_ids: list[str] # child EClasses
     eclass_id: str
 
     @staticmethod
@@ -32,29 +40,32 @@ class ENode:
         return ENode(id, content["op"], content["children"], content["eclass"])
     
     def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, ENode) and self.id ==__value.id
+        return isinstance(__value, ENode) and self.enode_id ==__value.enode_id
     
     def __hash__(self) -> int:
-        return hash(self.id)
+        return hash(self.enode_id)
     
     def get_interval(self, eclasses: dict[str, set[ENode]]) -> Optional[types.Interval]:
-        for child_id in self.children:
+        for child_id in self.child_eclass_ids:
             enodes = eclasses[child_id]
 
             # intervals should only be singletons
             if len(enodes) != 1:
-                return None
+                continue
             
-            interval = enodes.pop()
+            interval = enodes.copy().pop()
             if interval.op != "Interval":
-                return None
+                continue
             
             # Interval should look like (with lb=4, ub=10):
-            # 'interval_id': {ENode(id='...'), op='Interval', children=['lb_id', 'ub_id']}
-            # 'lb_id': ENode(id='...', op='4')
-            # 'ub_id': ENode(id='...', op='10')
-            lb = int(eclasses[interval.children[0]].pop().op)
-            ub = int(eclasses[interval.children[1]].pop().op)
+            # 'Interval-abcd': {ENode(id='...'), op='Interval', children=['i64-a', 'i64-b']}
+            # 'i64-a': {ENode(id='...', op='4')}
+            # 'i64-b': {ENode(id='...', op='10')}
+            lb = int(eclasses[interval.child_eclass_ids[0]].copy().pop().op)
+            ub = int(eclasses[interval.child_eclass_ids[1]].copy().pop().op)
+
+            # lb = int(cast(ENode, eclasses[interval.children[0]]).op)
+            # ub = int(cast(ENode, eclasses[interval.children[1]]).op)
 
             return types.Interval(lb, ub)
         
@@ -68,30 +79,8 @@ class EGraph:
     eclasses: dict[str, set[ENode]]
 
     @staticmethod
-    def from_eclasses(eclasses: dict[str, set[ENode]]) -> EGraph:
-        if len(eclasses) < 1:
-            log.error("Empty EGraph", MODULE_CODE)
-            return EGraph("",{})
-        
-        parents: dict[str, set[str]] = {i:set() for i in eclasses.keys()}
-
-        for eclass_id,enodes in eclasses.items():
-            for enode in enodes:
-                for child_eclass_id in enode.children:
-                    parents[child_eclass_id].add(eclass_id)
-
-        root_candidates = [id for id,pars in parents.items() if len(pars) == 0]
-
-        if len(root_candidates) == 1:
-            return EGraph(root_candidates[0], eclasses)
-        elif len(root_candidates) > 1:
-            raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_candidates}")
-        else:
-            raise ValueError("No root candidates")
-        
-    @staticmethod
     def from_json(content: dict) -> EGraph:
-        enodes: dict[str, ENode] = {}
+        """Construct a new `EGraph` from a dict representing the JSON output by `egglog`."""
         eclass_ids: dict[str, str] = {}
         eclasses: dict[str, set[ENode]] = {}
 
@@ -101,31 +90,40 @@ class EGraph:
         for enode_id,node in content["nodes"].items():
             node["children"] = [eclass_ids[s] for s in node["children"]]
             enode = ENode.from_json(enode_id, node)
-            enodes[enode_id] = enode
+
+            # pprint.pprint(node)
 
             if enode.eclass_id not in eclasses:
                 eclasses[enode.eclass_id] = {enode}
             else:
                 eclasses[enode.eclass_id].add(enode)
+            
+            # pprint.pprint(eclasses[enode.eclass_id])
+            # print("--------")
 
-        egraph = EGraph.from_eclasses(eclasses)
+        if len(eclasses) < 1:
+            log.error("Empty EGraph", MODULE_CODE)
+            return EGraph("",{})
+        
+        parents: dict[str, set[str]] = {i:set() for i in eclasses.keys()}
 
-        pprint.pprint(egraph.eclasses)
+        for eid,nodes in eclasses.items():
+            for enode in nodes:
+                for child_eclass_id in enode.child_eclass_ids:
+                    parents[child_eclass_id].add(eid)
 
-        return egraph
+        root_candidates = [id for id,pars in parents.items() if len(pars) == 0]
+
+        if len(root_candidates) == 1:
+            egraph = EGraph(root_candidates[0], eclasses)
+            # pprint.pprint(egraph.eclasses)
+            return egraph
+        elif len(root_candidates) > 1:
+            raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_candidates}")
+        else:
+            raise ValueError("No root candidates")
     
-    def compute_reprs(self) -> dict[str, str]:
-        reps = {}
-
-        # eclass_id |--> max best-case prop. delay
-        max_bpd: dict[str, int] = {s:0  for s in self.eclasses.keys()}
-
-        # eclass_id |--> min worst-case prop. delay
-        min_wpd: dict[str, int] = {s:0  for s in self.eclasses.keys()}
-
-        # eclass_id |--> min cost
-        min_cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
-
+    def traverse(self):
         stack: list[ENode] = []
         visited = set()
 
@@ -134,55 +132,137 @@ class EGraph:
         while len(stack) > 0:
             cur_enode = stack.pop()
 
-            if cur_enode.op[0:2] == "Var":
-                # all e-classes are initialized to 0
-                pass
-            elif cur_enode.op[0:2] == "And":
-                cur_bpd = min([max_bpd[i] for i in cur_enode.children])
-                cur_wpd = max([min_wpd[i] for i in cur_enode.children])
+            if cur_enode.enode_id in visited:
+                yield cur_enode
+                continue
 
-                max_bpd[cur_enode.eclass_id] = max(max_bpd[cur_enode.eclass_id], cur_bpd)
-                min_wpd[cur_enode.eclass_id] = min(min_wpd[cur_enode.eclass_id], cur_wpd)
-            elif cur_enode.op == "Global":
-                interval = cur_enode.get_interval(self.eclasses)
+            stack.append(cur_enode) # FIXME: is this necessary?
+            visited.add(cur_enode.enode_id)
+
+            for enode in self.eclasses[cur_enode.eclass_id]:
+                for child_eclass_id in [c for c in enode.child_eclass_ids if c not in visited]:
+                    [stack.append(child) for child in self.eclasses[child_eclass_id]]
+
+    def compute_reprs(self) -> dict[str, str]:
+        """Compute the representative E-Node for each E-class in `self`. We traverse the E-Graph and compute the max bpx and min wpd for each E-Class, then compute the cost of the current E-Node. If this cost is less than the current min cost of the E-Class, then we update the min cost of the E-Class.
+        
+        For propagation delays, we want BPD to be high and WPD to be low. While two E-Nodes in the same E-Class can be different, one E-Node will always have the "best" propagation delays. The only case when two nodes will differ is due to temporal vacuity:
+            (G[0,10] a) | (G[2,5] a) ==> G[2,5] a
+            (F[0,10] a) & (F[2,5] a) ==> F[2,5] a
+        where one formula always implies the other in a conjunction/disjunction. The delays of the removed operator are always inclusive of the kept operator (i.e., [2,5] is in [0,10]), so the BPD is higher and WPD is lower for the kept operator. This will always result in lower memory encoding due to the SCQ sizing formula relying on a subtraction of BPD and addition of sibling WPD.
+
+        Consider the following E-Graph (where each E-Class has a single E-Node in it):
+ 
+            op0         op1
+            |           |
+        ____|______  ___|___
+        |         |  |     |
+        v         v  v     v
+        phi0      phi1     phi2
+        (wpd=10)  (wpd=1)  (wpd=5)
+
+        To compute the cost of phi1, we see that phi0 and ph1 are siblings, as are phi1 and phi2, but wouldn't recognize this from traversing op0 and op1 separately. So, we compute each nodes' max sibling WPD as a separate pass.
+
+        """
+        reps = {}
+
+        # eclass_id |-> prop. delay
+        max_bpd: dict[str, int] = {s:0  for s in self.eclasses.keys()}
+
+        # eclass_id |-> prop. delay
+        min_wpd: dict[str, int] = {s:INF  for s in self.eclasses.keys()}
+        scq_size: dict[str, int] = {s:0  for s in self.eclasses.keys()}
+
+        # eclass_id |-> min cost
+        min_cost: dict[str, Optional[int]] = {s:None  for s in self.eclasses.keys()}
+
+        # Compute max_bpd and min_wpd for each E-Class
+        for enode in self.traverse():
+            if enode.op[0:3] == "Var":
+                max_bpd[enode.eclass_id] = 0
+                min_wpd[enode.eclass_id] = 0
+            elif enode.op[0:3] == "And":
+                cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids])
+
+                if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
+                    cur_wpd = INF
+                else:
+                    cur_wpd = max([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF])
+
+                max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
+                min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
+            elif enode.op == "Global":
+                interval = enode.get_interval(self.eclasses)
 
                 if not interval:
                     raise ValueError("No 'Interval' for 'Global' operator")
 
-                cur_bpd = min([max_bpd[i] for i in cur_enode.children]) + interval.lb
-                cur_wpd = max([min_wpd[i] for i in cur_enode.children]) + interval.ub
+                cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids]) + interval.lb
+                if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
+                    cur_wpd = INF
+                else:
+                    cur_wpd = max([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) + interval.ub
 
-                max_bpd[cur_enode.eclass_id] = max(max_bpd[cur_enode.eclass_id], cur_bpd)
-                min_wpd[cur_enode.eclass_id] = min(min_wpd[cur_enode.eclass_id], cur_wpd)
+                max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
+                min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
 
-            cur_cost = 1
-            for child in cur_enode.children:
-                child_cost = min_cost[child]
-                if not child_cost:
-                    continue
-                cur_cost += child_cost
+        # Compute SCQ size of each E-Class
+        for enode in self.traverse():
+            if enode.op[0:3] == "Var":
+                pass
+            elif enode.op[0:3] == "And":
+                # need max wpd of all children and second max wpd (for the node with the max wpd)
+                cur_max_wpd_1 = max([min_wpd[i] for i in enode.child_eclass_ids])
 
-            cur_min_cost = min_cost[cur_enode.eclass_id]
-            if not cur_min_cost or cur_cost < cur_min_cost:
-                min_cost[cur_enode.eclass_id] = cur_cost
+                if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] != cur_max_wpd_1]) == 0:
+                    cur_max_wpd_2 = cur_max_wpd_1
+                else:
+                    cur_max_wpd_2 = max([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] != cur_max_wpd_1])
 
-            if cur_enode.id in visited:
-                continue
+                for child_eclass_id in enode.child_eclass_ids:
+                    if min_wpd[child_eclass_id] == cur_max_wpd_1:
+                        scq_size[child_eclass_id] = max(scq_size[child_eclass_id], max(cur_max_wpd_2 - max_bpd[child_eclass_id], 0) + 1)
+                    else:
+                        scq_size[child_eclass_id] = max(scq_size[child_eclass_id], max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) + 1)
+            elif enode.op == "Global":
+                # Global nodes have no siblings
+                for child_eclass_id in enode.child_eclass_ids:
+                    scq_size[child_eclass_id] = 1
 
-            stack.append(cur_enode)
-            visited.add(cur_enode.id)
+        # for eclass_id,cost in scq_size.items():
+        #     print(f"{self.eclasses[eclass_id]}\n\t= {cost}")
 
-            for enode in self.eclasses[cur_enode.eclass_id]:
-                for child_eclass_id in [c for c in enode.children if c not in visited]:
-                    [stack.append(child) for child in self.eclasses[child_eclass_id]]
+        for enode in self.traverse():
+            # The cost of this node is the sum of the costs of its children E-Classes and its own SCQ size
+            new_cost = INF
+            if enode.op[0:3] == "Var":
+                new_cost = scq_size[enode.eclass_id]
+            elif enode.op[0:3] == "And":
+                new_cost = scq_size[enode.eclass_id] + sum([scq_size[c] for c in enode.child_eclass_ids])
+            elif enode.op == "Global":
+                new_cost = scq_size[enode.eclass_id] + sum([scq_size[c] for c in enode.child_eclass_ids])
 
-        pprint.pprint(min_cost)
+            print(f"{enode.op} : {new_cost}")
+
+            cur_cost = min_cost[enode.eclass_id]
+
+            if not cur_cost or new_cost < cur_cost:
+                min_cost[enode.eclass_id] = new_cost
+                reps[enode.eclass_id] = enode
+
+        # pprint.pprint(min_cost)
+
+        for eclass_id,cost in [(e,c) for e,c in min_cost.items() if c]:
+            print(f"{self.eclasses[eclass_id]}\n\t= {cost}")
+
+        print(f"{self.eclasses[self.root]}  :  {min_cost[self.root]}")
 
         return reps
 
 
 def to_egglog(spec: cpt.Formula) -> str:
-    egglog = f"(let {spec.symbol} "
+    """Returns a string that represents `spec` in egglog syntax."""
+    egglog = f"(let {spec.symbol[1:]} "
 
     stack: list["tuple[int, cpt.Expression]"] = []
     stack.append((0, spec.get_expr()))
@@ -242,7 +322,7 @@ def to_egglog(spec: cpt.Formula) -> str:
             else:
                 egglog += ")"
 
-    return egglog + ")"
+    return egglog + ")\n"
 
 
 def run_egglog(spec: cpt.Formula):
@@ -255,7 +335,7 @@ def run_egglog(spec: cpt.Formula):
         f.write(egglog)
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
-    subprocess.run(command)
+    subprocess.run(command, capture_output=True)
 
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
