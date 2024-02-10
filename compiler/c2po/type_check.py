@@ -434,6 +434,8 @@ def type_check_atomic(
             location=rhs.loc,
         )
         return False
+    
+    type_check_expr(rhs, context)
 
     return True
 

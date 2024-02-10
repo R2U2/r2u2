@@ -317,7 +317,9 @@ class ATInstruction:
         field_strs.append(f"a{self.id:<2}")
         field_strs.append(f"{self.relational_operator:3}")
         field_strs.append(f"s{self.signal_id}")
-        field_strs.append(f"{f'{self.signal_type}({self.compare_value})':10}")
+        field_strs.append(
+            f"{str(self.signal_type) + '(' + ('s' if self.compare_is_signal else '') + str(self.compare_value) + ')':10}"
+        )
 
         return " ".join(field_strs)
 
