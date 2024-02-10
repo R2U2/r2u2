@@ -18,8 +18,6 @@ parser.add_argument("--impl", default="c",
                     help="target R2U2 implementation version (one of 'c', 'c++', 'vhdl')")
 parser.add_argument("-o", "--output", default="spec.bin",
                     help="location where output file will be generated")
-parser.add_argument("--overwrite", action="store_true",
-                    help="enable overwriting of files")
 
 parser.add_argument("--int-width", default=8,
                     help="bit width for integer types")
@@ -75,7 +73,6 @@ return_code = compile(
     pickle_filename=args.pickle,
     dump_mltl_filename=args.dump_mltl,
     dump_ast_filename=args.dump_ast,
-    overwrite=args.overwrite,
     debug=args.debug,
     quiet=args.quiet, 
 )
