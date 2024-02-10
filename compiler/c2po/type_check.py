@@ -6,9 +6,11 @@ from c2po import cpt, log, types
 
 MODULE_CODE = "TYPC"
 
-def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
-    for expr in cpt.postorder(node, context):
-        if isinstance(expr, cpt.Formula):
+def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
+    """Returns True `start` is well-typed."""
+
+    for expr in cpt.postorder(start, context):
+        if type(expr) is cpt.Formula:
             if not types.is_bool_type(expr.get_expr().type):
                 log.error(
                     f"Formula must be a bool, found {expr.get_expr().type}.",
@@ -20,7 +22,7 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
             context.add_formula(expr.symbol, expr)
             
             expr.type = types.BoolType(False)
-        elif isinstance(expr, cpt.Contract):
+        elif type(expr) is cpt.Contract:
             if not types.is_bool_type(expr.children[0].type):
                 log.error(
                     f"Assume of AGC must be a bool, found {expr.children[0].type}.",
@@ -40,9 +42,9 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
             context.add_contract(expr.symbol, expr)
 
             expr.type = types.ContractValueType(False)
-        elif isinstance(expr, cpt.Constant):
+        elif type(expr) is cpt.Constant:
             pass
-        elif isinstance(expr, cpt.Signal):
+        elif type(expr) is cpt.Signal:
             if context.assembly_enabled and expr.symbol not in context.signal_mapping:
                 log.error(
                     f"Mapping does not contain signal '{expr.symbol}'.",
@@ -55,7 +57,7 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                 expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
-        elif isinstance(expr, cpt.AtomicChecker):
+        elif type(expr) is cpt.AtomicChecker:
             if expr.symbol not in context.atomic_checkers:
                 log.error(
                     f"Atomic checker '{expr.symbol}' not defined.",
@@ -63,7 +65,7 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-        elif isinstance(expr, cpt.Variable):
+        elif type(expr) is cpt.Variable:
             symbol = expr.symbol
 
             if symbol in context.bound_vars:
@@ -106,7 +108,69 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     f"Symbol '{symbol}' not recognized.", MODULE_CODE, location=expr.loc
                 )
                 return False
-        elif isinstance(expr, cpt.FunctionCall):
+        elif type(expr) is cpt.SetExpression:
+            new_type: types.Type = types.NoType()
+            is_const: bool = True
+
+            for member in expr.children:
+                is_const = is_const and member.type.is_const
+                new_type = member.type
+
+            for member in expr.children:
+                if member.type != new_type:
+                    log.error(
+                        f"Set '{expr}' must be of homogeneous type (found '{member.type}' and '{new_type}')",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+
+            expr.type = types.SetType(is_const, new_type)
+        elif type(expr) is cpt.Struct:
+            is_const: bool = True
+
+            for member in expr.children:
+                is_const = is_const and member.type.is_const
+
+            for member, new_type in context.structs[expr.symbol].items():
+                member = expr.get_member(member)
+                if not member:
+                    raise RuntimeError(
+                        f"Member '{member}' not in struct '{expr.symbol}'."
+                    )
+
+                if member.type != new_type:
+                    log.error(
+                        f"Member '{member}' invalid type for struct '{expr.symbol}' (expected '{new_type}' but got '{member.type}')",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+
+            expr.type = types.StructType(is_const, expr.symbol)
+        elif type(expr) is cpt.StructAccess:
+            struct_symbol = expr.get_struct().type.symbol
+            if struct_symbol not in context.structs:
+                log.error(
+                    f"Struct '{struct_symbol}' not defined ({expr}).",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+            valid_member: bool = False
+            for member, new_type in context.structs[struct_symbol].items():
+                if expr.member == member:
+                    expr.type = new_type
+                    valid_member = True
+
+            if not valid_member:
+                log.error(
+                    f"Member '{expr.member}' invalid for struct '{struct_symbol}'",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+        elif type(expr) is cpt.FunctionCall:
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
@@ -121,62 +185,51 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                 is_const = True
 
             expr.type = types.StructType(is_const, expr.symbol)
-        elif isinstance(expr, cpt.RelationalOperator):
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+        elif type(expr) is cpt.SetAggregation:
+            s: cpt.SetExpression = expr.get_set()
+            boundvar: cpt.Variable = expr.bound_var
 
-            if lhs.type != rhs.type:
+            if isinstance(s.type, types.SetType):
+                context.add_variable(boundvar.symbol, s.type.member_type)
+            else:
                 log.error(
-                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    f"Set aggregation set must be Set type (found '{s.type}')",
                     MODULE_CODE,
                     location=expr.loc,
                 )
                 return False
 
-            expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
-        elif isinstance(expr, cpt.ArithmeticOperator):
-            is_const: bool = True
-
-            if context.implementation != types.R2U2Implementation.C:
-                log.error(
-                    f"Arithmetic operators only support in C version of R2U2.\n\t{expr}",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-
-            if not context.booleanizer_enabled:
-                log.error(
-                    f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-
-            new_type: types.Type = expr.children[0].type
-
-            if all([c.type.is_const for c in expr.children]):
-                new_type.is_const = True
-
-            if isinstance(expr, cpt.ArithmeticDivide):
-                rhs: cpt.Expression = expr.children[1]
-                # TODO: disallow division by non-const expression entirely
-                if isinstance(rhs, cpt.Constant) and rhs.get_value() == 0:
-                    log.error(f"Divide by zero\n\t{expr}", MODULE_CODE, location=expr.loc)
-                    return False
-
-            for child in expr.children:
-                if child.type != new_type:
+            if expr.operator in {cpt.SetAggregationType.FOR_EXACTLY, cpt.SetAggregationType.FOR_AT_MOST, cpt.SetAggregationType.FOR_AT_LEAST}:
+                if not context.booleanizer_enabled:
                     log.error(
-                        f"Operand of '{expr}' must be of homogeneous type\n\t"
-                        f"Found {child.type} and {new_type}",
+                        "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.",
                         MODULE_CODE,
                         location=expr.loc,
                     )
                     return False
 
-            expr.type = new_type
-        elif isinstance(expr, cpt.BitwiseOperator):
+                n = cast(cpt.Expression, expr.get_num())
+                if not types.is_integer_type(n.type):
+                    log.error(
+                        f"Parameter for set aggregation must be integer type (found '{n.type}')",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+
+            e: cpt.Expression = expr.get_expr()
+
+            if e.type != types.BoolType(False):
+                log.error(
+                    f"Set aggregation expression must be 'bool' (found '{expr.type}')",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+            expr.type = types.BoolType(expr.type.is_const and s.type.is_const)
+        elif cpt.is_bitwise_operator(expr):
+            expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
             if context.implementation != types.R2U2Implementation.C:
@@ -210,7 +263,65 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = new_type
-        elif isinstance(expr, cpt.LogicalOperator):
+        elif cpt.is_arithmetic_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            is_const: bool = True
+
+            if context.implementation != types.R2U2Implementation.C:
+                log.error(
+                    f"Arithmetic operators only support in C version of R2U2.\n\t{expr}",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+            if not context.booleanizer_enabled:
+                log.error(
+                    f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+            new_type: types.Type = expr.children[0].type
+
+            if all([c.type.is_const for c in expr.children]):
+                new_type.is_const = True
+
+            if expr.operator is cpt.OperatorType.ARITHMETIC_DIVIDE:
+                rhs: cpt.Expression = expr.children[1]
+                # TODO: disallow division by non-const expression entirely
+                if type(rhs) in {cpt.Integer, cpt.Float} and rhs.value == 0: # type: ignore
+                    log.error(f"Divide by zero found.\n\t{expr}", MODULE_CODE, location=expr.loc)
+                    return False
+
+            for child in expr.children:
+                if child.type != new_type:
+                    log.error(
+                        f"Operand of '{expr}' must be of homogeneous type\n\t"
+                        f"Found {child.type} and {new_type}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+
+            expr.type = new_type
+        elif cpt.is_relational_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+
+            if lhs.type != rhs.type:
+                log.error(
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+            expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
+        elif cpt.is_logical_operator(expr):
+            expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
             for child in expr.children:
@@ -224,7 +335,8 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = types.BoolType(is_const)
-        elif isinstance(expr, cpt.TemporalOperator):
+        elif cpt.is_temporal_operator(expr):
+            expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
             for child in expr.children:
@@ -238,7 +350,7 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             # check for mixed-time formulas
-            if isinstance(expr, cpt.FutureTimeOperator):
+            if cpt.is_future_time_operator(expr):
                 if context.is_past_time():
                     log.error(
                         f"Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{expr}",
@@ -246,7 +358,7 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                         location=expr.loc,
                     )
                     return False
-            elif isinstance(expr, cpt.PastTimeOperator):
+            elif cpt.is_past_time_operator(expr):
                 if context.implementation != types.R2U2Implementation.C:
                     log.error(
                         f"Past-time operators only support in C version of R2U2.\n\t{expr}",
@@ -261,126 +373,27 @@ def type_check_expr(node: cpt.Expression, context: cpt.Context) -> bool:
                         location=expr.loc,
                     )
                     return False
+                
+            interval = expr.interval
+            if not interval:
+                log.internal(
+                    "Interval not set for temporal operator\n\t",
+                    f"{expr}",
+                    MODULE_CODE,
+                    location=expr.loc
+                )
+                return False
 
-            if expr.interval.lb > expr.interval.ub:
+            if interval.lb > interval.ub:
                 log.error(
                     "Time interval invalid, lower bound must less than or equal to upper bound.\n\t"
-                    f"[{expr.interval.lb},{expr.interval.ub}]",
+                    f"[{interval.lb},{interval.ub}]",
                     MODULE_CODE,
                     location=expr.loc,
                 )
                 return False
             
             expr.type = types.BoolType(is_const)
-        elif isinstance(expr, cpt.SetExpression):
-            new_type: types.Type = types.NoType()
-            is_const: bool = True
-
-            for member in expr.children:
-                is_const = is_const and member.type.is_const
-                new_type = member.type
-
-            for member in expr.children:
-                if member.type != new_type:
-                    log.error(
-                        f"Set '{expr}' must be of homogeneous type (found '{member.type}' and '{new_type}')",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-
-            expr.type = types.SetType(is_const, new_type)
-        elif isinstance(expr, cpt.SetAggregation):
-            s: cpt.SetExpression = expr.get_set()
-            boundvar: cpt.Variable = expr.bound_var
-
-            if isinstance(s.type, types.SetType):
-                context.add_variable(boundvar.symbol, s.type.member_type)
-            else:
-                log.error(
-                    f"Set aggregation set must be Set type (found '{s.type}')",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-
-            if (
-                isinstance(expr, cpt.ForExactly)
-                or isinstance(expr, cpt.ForAtLeast)
-                or isinstance(expr, cpt.ForAtMost)
-            ):
-                if not context.booleanizer_enabled:
-                    log.error(
-                        "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-
-                n: cpt.Expression = expr.get_num()
-                if not types.is_integer_type(n.type):
-                    log.error(
-                        f"Parameter for set aggregation must be integer type (found '{n.type}')",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-
-            e: cpt.Expression = expr.get_expr()
-
-            if e.type != types.BoolType(False):
-                log.error(
-                    f"Set aggregation expression must be 'bool' (found '{expr.type}')",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-
-            expr.type = types.BoolType(expr.type.is_const and s.type.is_const)
-        elif isinstance(expr, cpt.Struct):
-            is_const: bool = True
-
-            for member in expr.children:
-                is_const = is_const and member.type.is_const
-
-            for member, new_type in context.structs[expr.symbol].items():
-                member = expr.get_member(member)
-                if not member:
-                    raise RuntimeError(
-                        f"Member '{member}' not in struct '{expr.symbol}'."
-                    )
-
-                if member.type != new_type:
-                    log.error(
-                        f"Member '{member}' invalid type for struct '{expr.symbol}' (expected '{new_type}' but got '{member.type}')",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-
-            expr.type = types.StructType(is_const, expr.symbol)
-        elif isinstance(expr, cpt.StructAccess):
-            struct_symbol = expr.get_struct().type.symbol
-            if struct_symbol not in context.structs:
-                log.error(
-                    f"Struct '{struct_symbol}' not defined ({expr}).",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-
-            valid_member: bool = False
-            for member, new_type in context.structs[struct_symbol].items():
-                if expr.member == member:
-                    expr.type = new_type
-                    valid_member = True
-
-            if not valid_member:
-                log.error(
-                    f"Member '{expr.member}' invalid for struct '{struct_symbol}'",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
         else:
             log.error(
                 f"Invalid expression ({type(expr)})\n\t{expr}",
@@ -397,7 +410,7 @@ def type_check_atomic(
 ) -> bool:
     relational_expr = atomic.get_expr()
 
-    if not isinstance(relational_expr, cpt.RelationalOperator):
+    if not cpt.is_relational_operator(relational_expr):
         log.error(
             f"Atomic checker definition not a relation.\n\t" f"{atomic}",
             MODULE_CODE,
@@ -426,9 +439,9 @@ def type_check_atomic(
         )
         return False
 
-    if not isinstance(rhs, cpt.Literal):
+    if type(rhs) not in {cpt.Constant, cpt.Signal}:
         log.error(
-            "Right-hand side of atomic checker definition not a constant or signal.\n\t"
+            "Right-hand side of atomic checker definition not a constant nor signal.\n\t"
             f"{rhs}",
             MODULE_CODE,
             location=rhs.loc,

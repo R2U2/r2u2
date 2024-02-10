@@ -72,7 +72,7 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
                 contract.loc,
                 f"__{contract.symbol}_valid__",
                 contract.formula_numbers[1],
-                cpt.LogicalImplies(
+                cpt.Operator.LogicalImplies(
                     contract.loc, contract.get_assumption(), contract.get_guarantee()
                 ),
             ),
@@ -80,7 +80,7 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
                 contract.loc,
                 f"__{contract.symbol}_verified__",
                 contract.formula_numbers[2],
-                cpt.LogicalAnd(
+                cpt.Operator.LogicalAnd(
                     contract.loc, [contract.get_assumption(), contract.get_guarantee()]
                 ),
             ),
@@ -111,11 +111,14 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                 subexpr.replace(member)
 
     for expr in program.preorder(context):
-        if isinstance(expr, cpt.ForEach):
+        if type(expr) is not cpt.SetAggregation:
+            continue
+
+        if expr.operator is cpt.SetAggregationType.FOR_EACH:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.LogicalAnd(
+            new = cpt.Operator.LogicalAnd(
                 expr.loc,
                 [
                     cpt.rename(expr.bound_var, e, expr.get_expr(), context)
@@ -127,11 +130,11 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif isinstance(expr, cpt.ForSome):
+        elif expr.operator is cpt.SetAggregationType.FOR_SOME:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.LogicalOr(
+            new = cpt.Operator.LogicalOr(
                 expr.loc,
                 [
                     cpt.rename(expr.bound_var, e, expr.get_expr(), context)
@@ -143,13 +146,13 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif isinstance(expr, cpt.ForExactly):
+        elif expr.operator is cpt.SetAggregationType.FOR_EXACTLY:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.Equal(
+            new = cpt.Operator.Equal(
                 expr.loc,
-                cpt.ArithmeticAdd(
+                cpt.Operator.ArithmeticAdd(
                     expr.loc,
                     [
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
@@ -163,13 +166,13 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif isinstance(expr, cpt.ForAtLeast):
+        elif expr.operator is cpt.SetAggregationType.FOR_AT_LEAST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.GreaterThanOrEqual(
+            new = cpt.Operator.GreaterThanOrEqual(
                 expr.loc,
-                cpt.ArithmeticAdd(
+                cpt.Operator.ArithmeticAdd(
                     expr.loc,
                     [
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
@@ -183,13 +186,13 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif isinstance(expr, cpt.ForAtMost):
+        elif expr.operator is cpt.SetAggregationType.FOR_AT_MOST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.LessThanOrEqual(
+            new = cpt.Operator.LessThanOrEqual(
                 expr.loc,
-                cpt.ArithmeticAdd(
+                cpt.Operator.ArithmeticAdd(
                     expr.loc,
                     [
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
@@ -224,103 +227,105 @@ def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> 
     """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
 
     for expr in program.postorder(context):
-        if isinstance(expr, cpt.LogicalOperator):
-            if isinstance(expr, cpt.LogicalOr):
-                # p || q = !(!p && !q)
-                expr.replace(
-                    cpt.LogicalNegate(
-                        expr.loc,
-                        cpt.LogicalAnd(
-                            expr.loc,
-                            [cpt.LogicalNegate(c.loc, c) for c in expr.children],
-                        ),
-                    )
-                )
-            elif isinstance(expr, cpt.LogicalXor):
-                lhs: cpt.Expression = expr.children[0]
-                rhs: cpt.Expression = expr.children[1]
-                # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
-                expr.replace(
-                    cpt.LogicalNegate(
-                        expr.loc,
-                        cpt.LogicalAnd(
-                            expr.loc,
-                            [
-                                cpt.LogicalNegate(
-                                    expr.loc,
-                                    cpt.LogicalAnd(
-                                        expr.loc,
-                                        [lhs, cpt.LogicalNegate(rhs.loc, rhs)],
-                                    ),
-                                ),
-                                cpt.LogicalNegate(
-                                    expr.loc,
-                                    cpt.LogicalAnd(
-                                        expr.loc,
-                                        [cpt.LogicalNegate(lhs.loc, lhs), rhs],
-                                    ),
-                                ),
-                            ],
-                        ),
-                    )
-                )
-            elif isinstance(expr, cpt.LogicalImplies):
-                lhs: cpt.Expression = expr.children[0]
-                rhs: cpt.Expression = expr.children[1]
-                # p -> q = !(p && !q)
-                expr.replace(
-                    cpt.LogicalNegate(
-                        expr.loc,
-                        cpt.LogicalAnd(lhs.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]),
-                    )
-                )
-            elif isinstance(expr, cpt.LogicalIff):
-                lhs: cpt.Expression = expr.children[0]
-                rhs: cpt.Expression = expr.children[1]
-                # p <-> q = !(p && !q) && !(p && !q)
-                expr.replace(
-                    cpt.LogicalAnd(
-                        expr.loc,
-                        [
-                            cpt.LogicalNegate(
-                                expr.loc,
-                                cpt.LogicalAnd(
-                                    lhs.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
-                                ),
-                            ),
-                            cpt.LogicalNegate(
-                                expr.loc,
-                                cpt.LogicalAnd(
-                                    lhs.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs]
-                                ),
-                            ),
-                        ],
-                    )
-                )
-        elif isinstance(expr, cpt.Release):
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-            bounds: types.Interval = expr.interval
-            # p R q = !(!p U !q)
+        if type(expr) is not cpt.Operator:
+            continue
+
+        if expr.operator is cpt.OperatorType.LOGICAL_OR:
+            # p || q = !(!p && !q)
             expr.replace(
-                cpt.LogicalNegate(
+                cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.Until(
+                    cpt.Operator.LogicalAnd(
                         expr.loc,
-                        cpt.LogicalNegate(lhs.loc, lhs),
-                        cpt.LogicalNegate(rhs.loc, rhs),
-                        bounds.lb,
-                        bounds.ub,
+                        [cpt.Operator.LogicalNegate(c.loc, c) for c in expr.children],
                     ),
                 )
             )
-        elif isinstance(expr, cpt.Future):
+        elif expr.operator is cpt.OperatorType.LOGICAL_XOR:
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+            # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
+            expr.replace(
+                cpt.Operator.LogicalNegate(
+                    expr.loc,
+                    cpt.Operator.LogicalAnd(
+                        expr.loc,
+                        [
+                            cpt.Operator.LogicalNegate(
+                                expr.loc,
+                                cpt.Operator.LogicalAnd(
+                                    expr.loc,
+                                    [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)],
+                                ),
+                            ),
+                            cpt.Operator.LogicalNegate(
+                                expr.loc,
+                                cpt.Operator.LogicalAnd(
+                                    expr.loc,
+                                    [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs],
+                                ),
+                            ),
+                        ],
+                    ),
+                )
+            )
+        elif expr.operator is cpt.OperatorType.LOGICAL_IMPLIES:
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+            # p -> q = !(p && !q)
+            expr.replace(
+                cpt.Operator.LogicalNegate(
+                    expr.loc,
+                    cpt.Operator.LogicalAnd(lhs.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]),
+                )
+            )
+        elif expr.operator is cpt.OperatorType.LOGICAL_IFF:
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+            # p <-> q = !(p && !q) && !(p && !q)
+            expr.replace(
+                cpt.Operator.LogicalAnd(
+                    expr.loc,
+                    [
+                        cpt.Operator.LogicalNegate(
+                            expr.loc,
+                            cpt.Operator.LogicalAnd(
+                                lhs.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
+                            ),
+                        ),
+                        cpt.Operator.LogicalNegate(
+                            expr.loc,
+                            cpt.Operator.LogicalAnd(
+                                lhs.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
+                            ),
+                        ),
+                    ],
+                )
+            )
+        elif expr.operator is cpt.OperatorType.RELEASE:
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+            interval = expr.get_interval()
+            # p R q = !(!p U !q)
+            expr.replace(
+                cpt.Operator.LogicalNegate(
+                    expr.loc,
+                    cpt.Operator.Until(
+                        expr.loc,
+                        interval.lb,
+                        interval.ub,
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
+                    ),
+                )
+            )
+        elif expr.operator is cpt.OperatorType.FUTURE:
             operand: cpt.Expression = expr.children[0]
-            bounds: types.Interval = expr.interval
+            interval = expr.get_interval()
             # F p = True U p
             expr.replace(
-                cpt.Until(
-                    expr.loc, cpt.Bool(expr.loc, True), operand, bounds.lb, bounds.ub
+                cpt.Operator.Until(
+                    expr.loc, interval.lb, interval.ub, cpt.Constant(expr.loc, True), operand, 
                 )
             )
 
@@ -329,191 +334,200 @@ def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) ->
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
 
     for expr in program.postorder(context):
-        if isinstance(expr, cpt.LogicalOr):
+        if type(expr) is not cpt.Operator:
+            continue
+
+        if expr.operator is cpt.OperatorType.LOGICAL_OR:
             # p || q = !(!p && !q)
             expr.replace(
-                cpt.LogicalNegate(
+                cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.LogicalAnd(
-                        expr.loc, [cpt.LogicalNegate(c.loc, c) for c in expr.children]
+                    cpt.Operator.LogicalAnd(
+                        expr.loc, [cpt.Operator.LogicalNegate(c.loc, c) for c in expr.children]
                     ),
                 )
             )
-        elif isinstance(expr, cpt.LogicalImplies):
+        elif expr.operator is cpt.OperatorType.LOGICAL_IMPLIES:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p -> q = !(p && !q)
             expr.replace(
-                cpt.LogicalNegate(
+                cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.LogicalAnd(expr.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]),
+                    cpt.Operator.LogicalAnd(expr.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]),
                 )
             )
-        elif isinstance(expr, cpt.LogicalXor):
+        elif expr.operator is cpt.OperatorType.LOGICAL_XOR:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p xor q = !(!p && !q) && !(p && q)
             expr.replace(
-                cpt.LogicalAnd(
+                cpt.Operator.LogicalAnd(
                     expr.loc,
                     [
-                        cpt.LogicalNegate(
+                        cpt.Operator.LogicalNegate(
                             expr.loc,
-                            cpt.LogicalAnd(
+                            cpt.Operator.LogicalAnd(
                                 lhs.loc,
                                 [
-                                    cpt.LogicalNegate(lhs.loc, lhs),
-                                    cpt.LogicalNegate(rhs.loc, rhs),
+                                    cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                                    cpt.Operator.LogicalNegate(rhs.loc, rhs),
                                 ],
                             ),
                         ),
-                        cpt.LogicalNegate(lhs.loc, cpt.LogicalAnd(lhs.loc, [lhs, rhs])),
+                        cpt.Operator.LogicalNegate(lhs.loc, cpt.Operator.LogicalAnd(lhs.loc, [lhs, rhs])),
                     ],
                 )
             )
-        elif isinstance(expr, cpt.Future):
+        elif expr.operator is cpt.OperatorType.FUTURE:
             operand: cpt.Expression = expr.children[0]
-            bounds: types.Interval = expr.interval
+            bounds: types.Interval = expr.get_interval()
             # F p = True U p
             expr.replace(
-                cpt.Until(
+                cpt.Operator.Until(
                     expr.loc,
-                    cpt.Bool(operand.loc, True),
-                    operand,
                     bounds.lb,
                     bounds.ub,
+                    cpt.Constant(operand.loc, True),
+                    operand,
                 )
             )
-        elif isinstance(expr, cpt.Global):
+        elif expr.operator is cpt.OperatorType.GLOBAL:
             operand: cpt.Expression = expr.children[0]
-            bounds: types.Interval = expr.interval
+            bounds: types.Interval = expr.get_interval()
             # G p = !(True U !p)
             expr.replace(
-                cpt.LogicalNegate(
+                cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.Until(
+                    cpt.Operator.Until(
                         expr.loc,
-                        cpt.Bool(operand.loc, True),
-                        cpt.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Constant(operand.loc, True),
+                        cpt.Operator.LogicalNegate(operand.loc, operand),
                     ),
                 )
             )
-        elif isinstance(expr, cpt.Release):
+        elif expr.operator is cpt.OperatorType.RELEASE:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
-            bounds: types.Interval = expr.interval
+            bounds: types.Interval = expr.get_interval()
             # p R q = !(!p U !q)
             expr.replace(
-                cpt.LogicalNegate(
+                cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.Until(
+                    cpt.Operator.Until(
                         expr.loc,
-                        cpt.LogicalNegate(lhs.loc, lhs),
-                        cpt.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                     ),
                 )
             )
 
 
 def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -> None:
-    """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
+    """FIXME: currently does not work properly
+    
+    Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
+    return
 
     for expr in program.postorder(context):
-        if isinstance(expr, cpt.LogicalNegate):
+        if type(expr) is not cpt.Operator:
+            continue
+
+        if isinstance(expr, cpt.Operator.LogicalNegate):
             operand = expr.children[0]
-            if isinstance(operand, cpt.LogicalNegate):
+            if isinstance(operand, cpt.Operator.LogicalNegate):
                 # !!p = p
                 expr.replace(operand.children[0])
-            if isinstance(operand, cpt.LogicalOr):
+            if isinstance(operand, cpt.Operator.LogicalOr):
                 # !(p || q) = !p && !q
                 expr.replace(
-                    cpt.LogicalAnd(
+                    cpt.Operator.LogicalAnd(
                         expr.loc,
-                        [cpt.LogicalNegate(c.loc, c) for c in operand.children],
+                        [cpt.Operator.LogicalNegate(c.loc, c) for c in operand.children],
                     )
                 )
-            if isinstance(operand, cpt.LogicalAnd):
+            if isinstance(operand, cpt.Operator.LogicalAnd):
                 # !(p && q) = !p || !q
                 expr.replace(
-                    cpt.LogicalOr(
+                    cpt.Operator.LogicalOr(
                         expr.loc,
-                        [cpt.LogicalNegate(c.loc, c) for c in operand.children],
+                        [cpt.Operator.LogicalNegate(c.loc, c) for c in operand.children],
                     )
                 )
             elif isinstance(operand, cpt.Future):
-                bounds: types.Interval = operand.interval
+                bounds: types.Interval = operand.get_interval()
                 # !F p = G !p
                 expr.replace(
                     cpt.Global(
                         expr.loc,
-                        cpt.LogicalNegate(operand.loc, operand),
+                        cpt.Operator.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
                     )
                 )
             elif isinstance(operand, cpt.Global):
-                bounds: types.Interval = operand.interval
+                bounds: types.Interval = operand.get_interval()
                 # !G p = F !p
                 expr.replace(
                     cpt.Future(
                         expr.loc,
-                        cpt.LogicalNegate(operand.loc, operand),
+                        cpt.Operator.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
                     )
                 )
             elif isinstance(operand, cpt.Until):
-                lhs: cpt.Expression = operand.get_lhs()
-                rhs: cpt.Expression = operand.get_rhs()
-                bounds: types.Interval = operand.interval
+                lhs: cpt.Expression = operand.children[0]
+                rhs: cpt.Expression = operand.children[1]
+                bounds: types.Interval = operand.get_interval()
                 # !(p U q) = !p R !q
                 expr.replace(
                     cpt.Release(
                         expr.loc,
-                        cpt.LogicalNegate(lhs.loc, lhs),
-                        cpt.LogicalNegate(rhs.loc, rhs),
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     )
                 )
             elif isinstance(operand, cpt.Release):
-                lhs: cpt.Expression = operand.get_lhs()
-                rhs: cpt.Expression = operand.get_rhs()
-                bounds: types.Interval = operand.interval
+                lhs: cpt.Expression = operand.children[0]
+                rhs: cpt.Expression = operand.children[1]
+                bounds: types.Interval = operand.get_interval()
                 # !(p R q) = !p U !q
                 expr.replace(
                     cpt.Until(
                         expr.loc,
-                        cpt.LogicalNegate(lhs.loc, lhs),
-                        cpt.LogicalNegate(rhs.loc, rhs),
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
                     )
                 )
-        elif isinstance(expr, cpt.LogicalImplies):
+        elif isinstance(expr, cpt.Operator.LogicalImplies):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p -> q = !p || q
             expr.replace(
-                cpt.LogicalOr(expr.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs])
+                cpt.Operator.LogicalOr(expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs])
             )
-        elif isinstance(expr, cpt.LogicalXor):
+        elif isinstance(expr, cpt.Operator.LogicalXor):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p xor q = (p && !q) || (!p && q)
             expr.replace(
-                cpt.LogicalOr(
+                cpt.Operator.LogicalOr(
                     expr.loc,
                     [
-                        cpt.LogicalAnd(
-                            expr.loc, [lhs, cpt.LogicalNegate(rhs.loc, rhs)]
+                        cpt.Operator.LogicalAnd(
+                            expr.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
                         ),
-                        cpt.LogicalAnd(
-                            expr.loc, [cpt.LogicalNegate(lhs.loc, lhs), rhs]
+                        cpt.Operator.LogicalAnd(
+                            expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
                         ),
                     ],
                 )
@@ -522,113 +536,115 @@ def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
+    return
+
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
 
-        if isinstance(expr, cpt.LogicalNegate):
+        if cpt.is_operator(expr, cpt.OperatorType.LOGICAL_NEGATE):
             opnd1 = expr.children[0]
-            if isinstance(opnd1, cpt.Bool):
+            if type(opnd1) is cpt.Constant:
                 if opnd1.value is True:
                     # !true = false
-                    new = cpt.Bool(expr.loc, False)
+                    new = cpt.Constant(expr.loc, False)
                 else:
                     # !false = true
-                    new = cpt.Bool(expr.loc, True)
-            elif isinstance(opnd1, cpt.LogicalNegate):
+                    new = cpt.Constant(expr.loc, True)
+            elif cpt.is_operator(opnd1, cpt.OperatorType.LOGICAL_NEGATE):
                 # !!p = p
                 new = opnd1.children[0]
-            elif isinstance(opnd1, cpt.Global):
+            elif cpt.is_operator(opnd1, cpt.OperatorType.GLOBAL):
                 opnd2 = opnd1.children[0]
-                if isinstance(opnd2, cpt.LogicalNegate):
+                if cpt.is_operator(opnd2, cpt.OperatorType.LOGICAL_NEGATE):
                     # !(G[l,u](!p)) = F[l,u]p
-                    new = cpt.Future(
+                    new = cpt.Operator.Future(
                         expr.loc,
+                        opnd1.get_interval().lb,
+                        opnd1.get_interval().ub,
                         opnd2.children[0],
-                        opnd1.interval.lb,
-                        opnd1.interval.ub,
                     )
-            elif isinstance(opnd1, cpt.Future):
+            elif cpt.is_operator(opnd1, cpt.OperatorType.FUTURE):
                 opnd2 = opnd1.children[0]
-                if isinstance(opnd2, cpt.LogicalNegate):
+                if cpt.is_operator(opnd2, cpt.OperatorType.LOGICAL_NEGATE):
                     # !(F[l,u](!p)) = G[l,u]p
-                    new = cpt.Global(
+                    new = cpt.Operator.Global(
                         expr.loc,
+                        opnd1.get_interval().lb,
+                        opnd1.get_interval().ub,
                         opnd2.children[0],
-                        opnd1.interval.lb,
-                        opnd1.interval.ub,
                     )
-        elif isinstance(expr, cpt.Equal):
+        elif cpt.is_operator(expr, cpt.OperatorType.EQUAL):
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if isinstance(lhs, cpt.Bool) and isinstance(rhs, cpt.Bool):
+            if type(lhs) is cpt.Constant and type(rhs) is cpt.Constant:
                 pass
-            elif isinstance(lhs, cpt.Bool):
+            elif type(lhs) is cpt.Constant:
                 # (true == p) = p
                 new = rhs
-            elif isinstance(rhs, cpt.Bool):
+            elif type(rhs) is cpt.Constant:
                 # (p == true) = p
                 new = lhs
-        elif isinstance(expr, cpt.Global):
+        elif cpt.is_operator(expr, cpt.OperatorType.GLOBAL):
             opnd1 = expr.children[0]
-            if expr.interval.lb == 0 and expr.interval.ub == 0:
+            if expr.get_interval().lb == 0 and expr.get_interval().ub == 0:
                 # G[0,0]p = p
                 new = opnd1
-            if isinstance(opnd1, cpt.Bool):
+            if isinstance(opnd1, cpt.Constant):
                 if opnd1.value is True:
                     # G[l,u]True = True
-                    new = cpt.Bool(expr.loc, True)
+                    new = cpt.Constant(expr.loc, True)
                 else:
                     # G[l,u]False = False
-                    new = cpt.Bool(expr.loc, False)
-            elif isinstance(opnd1, cpt.Global):
+                    new = cpt.Constant(expr.loc, False)
+            elif cpt.is_operator(opnd1, cpt.OperatorType.GLOBAL):
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
-                lb: int = expr.interval.lb + opnd1.interval.lb
-                ub: int = expr.interval.ub + opnd1.interval.ub
+                lb: int = expr.get_interval().lb + opnd1.get_interval().lb
+                ub: int = expr.get_interval().ub + opnd1.get_interval().ub
                 new = cpt.Global(expr.loc, opnd2, lb, ub)
-            elif isinstance(opnd1, cpt.Future):
+            elif cpt.is_operator(opnd1, cpt.OperatorType.FUTURE):
                 opnd2 = opnd1.children[0]
-                if expr.interval.lb == expr.interval.ub:
+                if expr.get_interval().lb == expr.get_interval().ub:
                     # G[a,a](F[l,u]p) = F[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb: int = expr.get_interval().lb + opnd1.get_interval().lb
+                    ub: int = expr.get_interval().ub + opnd1.get_interval().ub
                     new = cpt.Future(expr.loc, opnd2, lb, ub)
-        elif isinstance(expr, cpt.Future):
+        elif cpt.is_operator(expr, cpt.OperatorType.FUTURE):
             opnd1 = expr.children[0]
-            if expr.interval.lb == 0 and expr.interval.ub == 0:
+            if expr.get_interval().lb == 0 and expr.get_interval().ub == 0:
                 # F[0,0]p = p
                 new = opnd1
-            if isinstance(opnd1, cpt.Bool):
+            if isinstance(opnd1, cpt.Constant):
                 if opnd1.value is True:
                     # F[l,u]True = True
-                    new = cpt.Bool(expr.loc, True)
+                    new = cpt.Constant(expr.loc, True)
                 else:
                     # F[l,u]False = False
-                    new = cpt.Bool(expr.loc, False)
-            elif isinstance(opnd1, cpt.Future):
+                    new = cpt.Constant(expr.loc, False)
+            elif cpt.is_operator(opnd1, cpt.OperatorType.FUTURE):
                 # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
-                lb: int = expr.interval.lb + opnd1.interval.lb
-                ub: int = expr.interval.ub + opnd1.interval.ub
+                lb: int = expr.get_interval().lb + opnd1.get_interval().lb
+                ub: int = expr.get_interval().ub + opnd1.get_interval().ub
                 new = cpt.Future(expr.loc, opnd2, lb, ub)
-            elif isinstance(opnd1, cpt.Global):
+            elif cpt.is_operator(opnd1, cpt.OperatorType.GLOBAL):
                 opnd2 = opnd1.children[0]
-                if expr.interval.lb == expr.interval.ub:
+                if expr.get_interval().lb == expr.get_interval().ub:
                     # F[a,a](G[l,u]p) = G[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb: int = expr.get_interval().lb + opnd1.get_interval().lb
+                    ub: int = expr.get_interval().ub + opnd1.get_interval().ub
                     new = cpt.Global(expr.loc, opnd2, lb, ub)
-        elif isinstance(expr, cpt.LogicalAnd):
+        elif cpt.is_operator(expr, cpt.OperatorType.LOGICAL_AND):
             # Assume binary for now
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if isinstance(lhs, cpt.Global) and isinstance(rhs, cpt.Global):
+            if cpt.is_operator(lhs, cpt.OperatorType.GLOBAL) and cpt.is_operator(rhs, cpt.OperatorType.GLOBAL):
                 p = lhs.children[0]
                 q = rhs.children[0]
-                lb1: int = lhs.interval.lb
-                ub1: int = lhs.interval.ub
-                lb2: int = rhs.interval.lb
-                ub2: int = rhs.interval.ub
+                lb1: int = lhs.get_interval().lb
+                ub1: int = lhs.get_interval().ub
+                lb2: int = rhs.get_interval().lb
+                ub2: int = rhs.get_interval().ub
 
                 if str(p) == str(q):  # check syntactic equivalence
                     # G[lb1,lb2]p && G[lb2,ub2]p
@@ -654,7 +670,7 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
                 new = cpt.Global(
                     expr.loc,
-                    cpt.LogicalAnd(
+                    cpt.Operator.LogicalAnd(
                         expr.loc,
                         [
                             cpt.Global(expr.loc, p, lb1 - lb3, ub1 - ub3),
@@ -664,47 +680,47 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb3,
                     ub3,
                 )
-            elif isinstance(lhs, cpt.Future) and isinstance(rhs, cpt.Future):
+            elif cpt.is_operator(lhs, cpt.OperatorType.FUTURE) and cpt.is_operator(rhs, cpt.OperatorType.FUTURE):
                 lhs_opnd = lhs.children[0]
                 rhs_opnd = rhs.children[0]
                 if str(lhs_opnd) == str(rhs_opnd):  # check for syntactic equivalence
                     # F[l1,u1]p && F[l2,u2]p = F[max(l1,l2),min(u1,u2)]p
-                    lb1 = lhs.interval.lb
-                    ub1 = lhs.interval.ub
-                    lb2 = rhs.interval.lb
-                    ub2 = rhs.interval.ub
+                    lb1 = lhs.get_interval().lb
+                    ub1 = lhs.get_interval().ub
+                    lb2 = rhs.get_interval().lb
+                    ub2 = rhs.get_interval().ub
                     if lb1 >= lb2 and ub1 <= ub2:
                         # l2 <= l1 <= u1 <= u2
                         new = cpt.Future(expr.loc, lhs_opnd, lb1, ub1)
                     elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
                         new = cpt.Future(expr.loc, lhs_opnd, lb2, ub2)
-            elif isinstance(lhs, cpt.Until) and isinstance(rhs, cpt.Until):
-                lhs_lhs = lhs.get_lhs()
-                lhs_rhs = lhs.get_rhs()
-                rhs_lhs = rhs.get_lhs()
-                rhs_rhs = rhs.get_rhs()
+            elif cpt.is_operator(lhs, cpt.OperatorType.UNTIL) and cpt.is_operator(rhs, cpt.OperatorType.UNTIL):
+                lhs_lhs = lhs.children[0]
+                lhs_rhs = lhs.children[1]
+                rhs_lhs = rhs.children[0]
+                rhs_rhs = rhs.children[1]
                 # check for syntactic equivalence
-                if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
+                if str(lhs_rhs) == str(rhs_rhs) and lhs.get_interval().lb == rhs.get_interval().lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
                     new = cpt.Until(
                         expr.loc,
-                        cpt.LogicalAnd(expr.loc, [lhs_lhs, rhs_lhs]),
+                        cpt.Operator.LogicalAnd(expr.loc, [lhs_lhs, rhs_lhs]),
                         lhs_rhs,
-                        lhs.interval.lb,
-                        min(lhs.interval.ub, rhs.interval.ub),
+                        lhs.get_interval().lb,
+                        min(lhs.get_interval().ub, rhs.get_interval().ub),
                     )
-        elif isinstance(expr, cpt.LogicalOr):
+        elif cpt.is_operator(expr, cpt.OperatorType.LOGICAL_OR):
             # Assume binary for now
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if isinstance(lhs, cpt.Future) and isinstance(rhs, cpt.Future):
+            if cpt.is_operator(lhs, cpt.OperatorType.FUTURE) and cpt.is_operator(rhs, cpt.OperatorType.FUTURE):
                 p = lhs.children[0]
                 q = rhs.children[0]
-                lb1: int = lhs.interval.lb
-                ub1: int = lhs.interval.ub
-                lb2: int = rhs.interval.lb
-                ub2: int = rhs.interval.ub
+                lb1: int = lhs.get_interval().lb
+                ub1: int = lhs.get_interval().ub
+                lb2: int = rhs.get_interval().lb
+                ub2: int = rhs.get_interval().ub
 
                 if str(p) == str(q):
                     # F[lb1,lb2]p || F[lb2,ub2]p
@@ -732,7 +748,7 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
                 new = cpt.Future(
                     expr.loc,
-                    cpt.LogicalOr(
+                    cpt.Operator.LogicalOr(
                         expr.loc,
                         [
                             cpt.Future(expr.loc, p, lb1 - lb3, ub1 - ub3),
@@ -742,55 +758,55 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb3,
                     ub3,
                 )
-            elif isinstance(lhs, cpt.Global) and isinstance(rhs, cpt.Global):
+            elif cpt.is_operator(lhs, cpt.OperatorType.GLOBAL) and cpt.is_operator(rhs, cpt.OperatorType.GLOBAL):
                 lhs_opnd = lhs.children[0]
                 rhs_opnd = rhs.children[0]
                 if str(lhs_opnd) == str(rhs_opnd):
                     # G[l1,u1]p || G[l2,u2]p = G[max(l1,l2),min(u1,u2)]p
-                    lb1 = lhs.interval.lb
-                    ub1 = lhs.interval.ub
-                    lb2 = rhs.interval.lb
-                    ub2 = rhs.interval.ub
+                    lb1 = lhs.get_interval().lb
+                    ub1 = lhs.get_interval().ub
+                    lb2 = rhs.get_interval().lb
+                    ub2 = rhs.get_interval().ub
                     if lb1 >= lb2 and ub1 <= ub2:
                         # l2 <= l1 <= u1 <= u2
                         new = cpt.Global(expr.loc, lhs_opnd, lb1, ub1)
                     elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
                         new = cpt.Global(expr.loc, lhs_opnd, lb2, ub2)
-            elif isinstance(lhs, cpt.Until) and isinstance(rhs, cpt.Until):
-                lhs_lhs = lhs.get_lhs()
-                lhs_rhs = lhs.get_rhs()
-                rhs_lhs = rhs.get_lhs()
-                rhs_rhs = rhs.get_rhs()
-                if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
+            elif cpt.is_operator(lhs, cpt.OperatorType.UNTIL) and cpt.is_operator(rhs, cpt.OperatorType.UNTIL):
+                lhs_lhs = lhs.children[0]
+                lhs_rhs = lhs.children[1]
+                rhs_lhs = rhs.children[0]
+                rhs_rhs = rhs.children[1]
+                if str(lhs_lhs) == str(rhs_lhs) and lhs.get_interval().lb == rhs.get_interval().lb:
                     # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
                     new = cpt.Until(
                         expr.loc,
-                        cpt.LogicalOr(expr.loc, [lhs_rhs, rhs_rhs]),
+                        cpt.Operator.LogicalOr(expr.loc, [lhs_rhs, rhs_rhs]),
                         lhs_lhs,
-                        lhs.interval.lb,
-                        min(lhs.interval.ub, rhs.interval.ub),
+                        lhs.get_interval().lb,
+                        min(lhs.get_interval().ub, rhs.get_interval().ub),
                     )
-        elif isinstance(expr, cpt.Until):
+        elif cpt.is_operator(expr, cpt.OperatorType.UNTIL):
             lhs = expr.children[0]
             rhs = expr.children[1]
             if (
                 isinstance(rhs, cpt.Global)
-                and rhs.interval.lb == 0
+                and rhs.get_interval().lb == 0
                 and str(lhs) == str(rhs.children[0])
             ):
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
                 new = cpt.Global(
-                    expr.loc, lhs, expr.interval.lb, expr.interval.lb + rhs.interval.ub
+                    expr.loc, lhs, expr.get_interval().lb, expr.get_interval().lb + rhs.get_interval().ub
                 )
             elif (
                 isinstance(rhs, cpt.Future)
-                and rhs.interval.lb == 0
+                and rhs.get_interval().lb == 0
                 and str(lhs) == str(rhs.children[0])
             ):
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
                 new = cpt.Future(
-                    expr.loc, lhs, expr.interval.lb, expr.interval.lb + rhs.interval.ub
+                    expr.loc, lhs, expr.get_interval().lb, expr.get_interval().lb + rhs.get_interval().ub
                 )
 
         if new:
@@ -833,7 +849,7 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         if expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
             continue
 
-        if isinstance(expr, cpt.Bool):
+        if isinstance(expr, cpt.Constant):
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:

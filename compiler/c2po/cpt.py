@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 import enum
 import pickle
-from typing import Iterator, Optional, Union, cast
+from typing import Iterator, Optional, Union, cast, Any
 
 from c2po import log, types
 
@@ -40,6 +40,7 @@ class Expression(Node):
         self.wpd: int = 0
         self.scq: tuple[int, int] = (-1, -1)
         self.type: types.Type = types.NoType()
+        self.interval: Optional[types.Interval] = None
 
         self.children: list[Expression] = []
         self.parents: list[Expression] = []
@@ -48,6 +49,7 @@ class Expression(Node):
             self.children.append(child)
             child.parents.append(self)
 
+        # Used for pre-order traversal, if this has been replaced during traversal
         self.replacement: Optional[Expression] = None
 
     def get_siblings(self) -> list[Expression]:
@@ -88,93 +90,64 @@ class Expression(Node):
 
         self.replacement = new
 
+    def has_only_tl_parents(self) -> bool:
+        """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
+        return all(
+            [
+                parent.engine is types.R2U2Engine.TEMPORAL_LOGIC
+                for parent in self.parents
+            ]
+        )
+    
+    def get_interval(self) -> types.Interval:
+        if not self.interval:
+            raise ValueError(f"Attempting to access interval from an expression that does not have one ({self})")
+        return self.interval
+
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
         new.scq_size = self.scq_size
         new.bpd = self.bpd
         new.wpd = self.wpd
         new.type = self.type
-
-    def __deepcopy__(self, memo):
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children)
-        self.copy_attrs(new)
-        return new
+        new.interval = self.interval
 
     def __str__(self) -> str:
-        return to_str(self)
+        return to_infix_str(self)
+
+    def __repr__(self) -> str:
+        return to_prefix_str(self)
 
 
-class Literal(Expression):
-    def __init__(self, loc: log.FileLocation) -> None:
+class Constant(Expression):
+    def __init__(self, loc: log.FileLocation, value: Any) -> None:
         super().__init__(loc, [])
-
-
-class Constant(Literal):
-    def __init__(self, loc: log.FileLocation, a: list[Node]) -> None:
-        super().__init__(loc)
-        self.value = 0
-
-    def get_value(self) -> Union[int, float]:
-        return self.value
-
-
-class Bool(Constant):
-    def __init__(self, loc: log.FileLocation, v: bool) -> None:
-        super().__init__(loc, [])
-        self.type = types.BoolType(True)
-        self.bpd: int = 0
-        self.wpd: int = 0
-        self.value: bool = v
-        self.symbol = str(v)
+        self.value: bool = value
+        self.symbol = str(value)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
-    def has_only_tl_parents(self) -> bool:
-        """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
-        return all([isinstance(parent, (LogicalOperator, Until, Release, Global, Future, Historical, Once, Since)) for parent in self.parents])
+        if isinstance(value, bool):
+            self.type = types.BoolType(True)
+        elif isinstance(value, int):
+            self.type = types.IntType(True)
 
+            if value.bit_length() > types.IntType.width:
+                log.error(
+                    f"Constant '{value}' not representable in configured int width ('{types.IntType.width}').",
+                    module=MODULE_CODE,
+                    location=loc,
+                )
+        elif isinstance(value, float):
+            self.type = types.FloatType(True)
 
-class Integer(Constant):
-    def __init__(self, loc: log.FileLocation, v: int) -> None:
-        super().__init__(loc, [])
-        self.value: int = v
-        self.symbol = str(v)
-        self.type = types.IntType(True)
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-        if v.bit_length() > types.IntType.width:
-            log.error(
-                f"Constant '{v}' not representable in configured int width ('{types.IntType.width}').",
-                module=MODULE_CODE,
-                location=loc,
-            )
-
-    def get_value(self) -> int:
-        return self.value
-
-    def __deepcopy__(self, memo) -> Integer:
-        new = Integer(self.loc, self.value)
-        self.copy_attrs(new)
-        return new
-
-
-class Float(Constant):
-    def __init__(self, loc: log.FileLocation, v: float) -> None:
-        super().__init__(loc, [])
-        self.type = types.FloatType(True)
-        self.value: float = v
-        self.symbol = str(v)
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-        # FIXME:
-        # if len(v.hex()[2:]) > FLOAT.width:
-        #     log.error(f"{ln} Constant '{v}' not representable in configured float width ('{FLOAT.width}').")
-
-    def get_value(self) -> float:
-        return self.value
-
-    def __deepcopy__(self, memo) -> Float:
-        new = Float(self.loc, self.value)
+            # FIXME:
+            # if len(value.hex()[2:]) > types.FloatType.width:
+            #     ...
+        else:
+            raise ValueError(f"Bad value ({value})")
+        
+    def __deepcopy__(self, memo):
+        new = Constant(self.loc, self.value)
         self.copy_attrs(new)
         return new
 
@@ -192,11 +165,16 @@ class Variable(Expression):
         # we hash the id so that in sets/dicts different
         # instances of the same variable are distinct
         return id(self)
+        
+    def __deepcopy__(self, memo):
+        new = Variable(self.loc, self.symbol)
+        self.copy_attrs(new)
+        return new
 
 
-class Signal(Literal):
+class Signal(Expression):
     def __init__(self, loc: log.FileLocation, s: str, t: types.Type) -> None:
-        super().__init__(loc)
+        super().__init__(loc, [])
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
@@ -209,13 +187,14 @@ class Signal(Literal):
         return id(self)
 
     def __deepcopy__(self, memo) -> Signal:
-        copy = Signal(self.loc, self.symbol, self.type)
-        return copy
+        new = Signal(self.loc, self.symbol, self.type)
+        self.copy_attrs(new)
+        return new
 
 
-class AtomicChecker(Literal):
+class AtomicChecker(Expression):
     def __init__(self, loc: log.FileLocation, s: str) -> None:
-        super().__init__(loc)
+        super().__init__(loc, [])
         self.symbol: str = s
         self.type: types.Type = types.BoolType(False)
         self.engine = types.R2U2Engine.ATOMIC_CHECKER
@@ -235,6 +214,12 @@ class SetExpression(Expression):
 
     def set_dynamic_size(self, size: Node) -> None:
         self.dynamic_size = size
+        
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = SetExpression(self.loc, children)
+        self.copy_attrs(new)
+        return new
 
 
 class Struct(Expression):
@@ -292,18 +277,11 @@ class StructAccess(Expression):
         return new
 
 
-class Operator(Expression):
-    def __init__(self, loc: log.FileLocation, children: list[Expression]) -> None:
-        super().__init__(loc, children)
-        self.arity: int = len(children)
-
-    def get_operand(self, i: int) -> Expression:
-        return cast(Expression, self.children[i])
-
-
-class FunctionCall(Operator):
-    def __init__(self, loc: log.FileLocation, s: str, a: list[Expression]) -> None:
-        super().__init__(loc, a)
+class FunctionCall(Expression):
+    def __init__(
+        self, loc: log.FileLocation, s: str, operands: list[Expression]
+    ) -> None:
+        super().__init__(loc, operands)
         self.symbol: str = s
 
     def __deepcopy__(self, memo) -> FunctionCall:
@@ -315,6 +293,8 @@ class FunctionCall(Operator):
 
 
 class Bind(Expression):
+    """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
+
     def __init__(
         self, loc: log.FileLocation, var: Variable, set: SetExpression
     ) -> None:
@@ -330,12 +310,25 @@ class Bind(Expression):
 
     def __str__(self) -> str:
         return ""
+        
+    def __deepcopy__(self, memo):
+        new = Bind(self.loc, self.bound_var, self.set_expr)
+        self.copy_attrs(new)
+        return new
 
 
-class SetAggregation(Operator):
-    """`SetAggOperator` tree structure looks like:
+class SetAggregationType(enum.Enum):
+    FOR_EACH = "foreach"
+    FOR_SOME = "forsome"
+    FOR_EXACTLY = "forexactly"
+    FOR_AT_LEAST = "foratleast"
+    FOR_AT_MOST = "foratmost"
 
-    SetAggOperator
+
+class SetAggregation(Expression):
+    """`SetAggregation` tree structure looks like:
+
+    SetAggregation
     ____|___________
     |   |     |    |
     v   v     v    v
@@ -347,6 +340,7 @@ class SetAggregation(Operator):
     def __init__(
         self,
         loc: log.FileLocation,
+        operator: SetAggregationType,
         var: Variable,
         set: SetExpression,
         num: Optional[Expression],
@@ -356,7 +350,56 @@ class SetAggregation(Operator):
             super().__init__(loc, [set, num, Bind(loc, var, set), expr])
         else:
             super().__init__(loc, [set, Bind(loc, var, set), expr])
+
+        self.operator = operator
         self.bound_var = var
+
+    @staticmethod
+    def ForEach(
+        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+    ) -> SetAggregation:
+        return SetAggregation(loc, SetAggregationType.FOR_EACH, var, set, None, expr)
+
+    @staticmethod
+    def ForSome(
+        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+    ) -> SetAggregation:
+        return SetAggregation(loc, SetAggregationType.FOR_SOME, var, set, None, expr)
+
+    @staticmethod
+    def ForExactly(
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
+    ) -> SetAggregation:
+        return SetAggregation(loc, SetAggregationType.FOR_EXACTLY, var, set, num, expr)
+
+    @staticmethod
+    def ForAtMost(
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
+    ) -> SetAggregation:
+        return SetAggregation(loc, SetAggregationType.FOR_AT_MOST, var, set, num, expr)
+
+    @staticmethod
+    def ForAtLeast(
+        loc: log.FileLocation,
+        var: Variable,
+        set: SetExpression,
+        num: Expression,
+        expr: Expression,
+    ) -> SetAggregation:
+        return SetAggregation(loc, SetAggregationType.FOR_AT_LEAST, var, set, num, expr)
+
+    def get_num(self) -> Expression:
+        if len(self.children) < 4:
+            raise ValueError(f"Attempting to access num for set agg operator that does not have one ({self})")
+        return self.children[1]
 
     def get_set(self) -> SetExpression:
         return cast(SetExpression, self.children[0])
@@ -365,599 +408,364 @@ class SetAggregation(Operator):
         """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
         return cast(Expression, self.children[-1])
 
-
-class ForEach(SetAggregation):
-    def __init__(
-        self, loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
-    ) -> None:
-        super().__init__(loc, var, set, None, expr)
-        self.symbol: str = "foreach"
-
-    def __deepcopy__(self, memo) -> SetAggregation:
-        # assumes that __deepcopy__ is implemented by all sub-classes where num is not None
-        new = ForEach(
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = SetAggregation(
             self.loc,
-            cast(Variable, copy.deepcopy(self.bound_var)),
-            cast(SetExpression, copy.deepcopy(self.children[0])),
-            copy.deepcopy(self.children[-1]),
-        )
-        self.copy_attrs(new)
-        return new
-
-
-class ForSome(SetAggregation):
-    def __init__(
-        self, loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
-    ) -> None:
-        super().__init__(loc, var, set, None, expr)
-        self.symbol: str = "forsome"
-
-    def __deepcopy__(self, memo) -> SetAggregation:
-        # assumes that __deepcopy__ is implemented by all sub-classes where num is not None
-        new = ForSome(
-            self.loc,
+            self.operator,
             cast(Variable, copy.deepcopy(self.bound_var, memo)),
-            cast(SetExpression, copy.deepcopy(self.children[0], memo)),
-            copy.deepcopy(self.children[-1], memo),
-        )
-        self.copy_attrs(new)
-        return new
-
-
-class ForExactly(SetAggregation):
-    def __init__(
-        self,
-        loc: log.FileLocation,
-        var: Variable,
-        set: SetExpression,
-        num: Expression,
-        expr: Expression,
-    ) -> None:
-        super().__init__(loc, var, set, num, expr)
-        self.symbol: str = "forexactly"
-
-    def get_num(self) -> Expression:
-        return cast(Expression, self.children[1])
-
-    def __deepcopy__(self, memo) -> ForExactly:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ForExactly(
-            self.loc,
-            self.bound_var,
             cast(SetExpression, children[0]),
-            children[1],
-            cast(Expression, children[:-1]),
+            children[1] if len(self.children) == 4 else None,
+            cast(Expression, children[-1]),
         )
+        print("done")
         self.copy_attrs(new)
         return new
 
 
-class ForAtLeast(SetAggregation):
+class OperatorType(enum.Enum):
+    # Bitwise
+    BITWISE_AND = "&"
+    BITWISE_OR = "|"
+    BITWISE_XOR = "^"
+    BITWISE_NEGATE = "~"
+    SHIFT_LEFT = "<<"
+    SHIFT_RIGHT = ">>"
+
+    # Arithmetic
+    ARITHMETIC_ADD = "+"
+    ARITHMETIC_SUBTRACT = "-"
+    ARITHMETIC_MULTPLY = "*"
+    ARITHMETIC_DIVIDE = "/"
+    ARITHMETIC_MODULO = "%"
+    ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+
+    # Relational
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUAL = ">="
+    LESS_THAN_OR_EQUAL = "<="
+
+    # Logical
+    LOGICAL_AND = "&&"
+    LOGICAL_OR = "||"
+    LOGICAL_XOR = "xor"
+    LOGICAL_IMPLIES = "->"
+    LOGICAL_IFF = "<->"
+    LOGICAL_NEGATE = "!"
+
+    # Future-time
+    GLOBAL = "G"
+    FUTURE = "F"
+    UNTIL = "U"
+    RELEASE = "R"
+
+    # Past-time
+    HISTORICAL = "H"
+    ONCE = "O"
+    SINCE = "S"
+
+    # Other
+    COUNT = "count"
+
+
+class Operator(Expression):
     def __init__(
-        self,
-        loc: log.FileLocation,
-        var: Variable,
-        set: SetExpression,
-        num: Expression,
-        expr: Expression,
+        self, loc: log.FileLocation, op_type: OperatorType, children: list[Expression]
     ) -> None:
-        super().__init__(loc, var, set, num, expr)
-        self.symbol: str = "foratleast"
+        super().__init__(loc, children)
+        self.operator: OperatorType = op_type
+        self.symbol: str = op_type.value
+        self.arity: int = len(children)
 
-    def get_num(self) -> Expression:
-        return cast(Expression, self.children[1])
-
-    def __deepcopy__(self, memo) -> ForAtLeast:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ForAtLeast(
-            self.loc,
-            cast(Variable, children[1]),
-            cast(SetExpression, children[0]),
-            children[2],
-            cast(Expression, children[:-1]),
-        )
-        self.copy_attrs(new)
-        return new
-
-
-class ForAtMost(SetAggregation):
-    def __init__(
-        self,
-        loc: log.FileLocation,
-        var: Variable,
-        set: SetExpression,
-        num: Expression,
-        expr: Expression,
-    ) -> None:
-        super().__init__(loc, var, set, num, expr)
-        self.symbol: str = "foratmost"
-
-    def get_num(self) -> Expression:
-        return cast(Expression, self.children[1])
-
-    def __deepcopy__(self, memo) -> ForAtMost:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ForAtMost(
-            self.loc,
-            cast(Variable, children[1]),
-            cast(SetExpression, children[0]),
-            children[2],
-            cast(Expression, children[:-1]),
-        )
-        self.copy_attrs(new)
-        return new
-
-
-class Count(Operator):
-    def __init__(
-        self, loc: log.FileLocation, num: Expression, children: list[Expression]
-    ) -> None:
-        # Note: all members of c must be of type Boolean
-        super().__init__(loc, [num] + children)
-        self.symbol = "count"
-
-    def __deepcopy__(self, memo) -> Count:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Count(self.loc, cast(Expression, children[0]), children[1:])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseOperator(Operator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        super().__init__(loc, operands)
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-
-class BitwiseAnd(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "&"
-
-    def __deepcopy__(self, memo) -> BitwiseAnd:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseAnd(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseOr(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "|"
-
-    def __deepcopy__(self, memo) -> BitwiseOr:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseOr(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseXor(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "^"
-
-    def __deepcopy__(self, memo) -> BitwiseXor:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseXor(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseShiftLeft(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "<<"
-
-    def __deepcopy__(self, memo) -> BitwiseShiftLeft:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseShiftLeft(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseShiftRight(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = ">>"
-
-    def __deepcopy__(self, memo) -> BitwiseShiftRight:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseShiftRight(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class BitwiseNegate(BitwiseOperator):
-    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
-        super().__init__(loc, [operand])
-        self.symbol = "~"
-
-    def __deepcopy__(self, memo) -> BitwiseNegate:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = BitwiseNegate(self.loc, children[0])
-        self.copy_attrs(new)
-        return new
-
-
-class ArithmeticOperator(Operator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        super().__init__(loc, operands)
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-
-class ArithmeticAdd(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        # force binary operator for now
-        if len(operands) > 2:
-            prev = ArithmeticAdd(loc, operands[0:2])
-            for i in range(2, len(operands) - 1):
-                prev = ArithmeticAdd(loc, [prev, operands[i]])
-            super().__init__(loc, [prev, operands[len(operands) - 1]])
-            self.type = self.get_operand(0).type
+        if is_temporal_operator(self) or is_logical_operator(self):
+            self.engine = types.R2U2Engine.TEMPORAL_LOGIC
         else:
-            super().__init__(loc, operands)
-            self.type = self.get_operand(0).type
+            self.engine = types.R2U2Engine.BOOLEANIZER
 
-        self.symbol = "+"
+    @staticmethod
+    def Count(
+        loc: log.FileLocation, num: Expression, children: list[Expression]
+    ) -> Operator:
+        return Operator(loc, OperatorType.COUNT, [num] + children)
 
-    def __deepcopy__(self, memo) -> ArithmeticAdd:
+    @staticmethod
+    def BitwiseAnd(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.BITWISE_AND, [lhs, rhs])
+
+    @staticmethod
+    def BitwiseOr(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.BITWISE_OR, [lhs, rhs])
+
+    @staticmethod
+    def BitwiseXor(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.BITWISE_XOR, [lhs, rhs])
+
+    @staticmethod
+    def BitwiseNegate(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorType.BITWISE_NEGATE, [operand])
+
+    @staticmethod
+    def ShiftLeft(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.SHIFT_LEFT, [lhs, rhs])
+
+    @staticmethod
+    def ShiftRight(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.SHIFT_RIGHT, [lhs, rhs])
+
+    @staticmethod
+    def ArithmeticAdd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_ADD, operands)
+
+    @staticmethod
+    def ArithmeticSubtract(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_SUBTRACT, [lhs, rhs])
+
+    @staticmethod
+    def ArithmeticMultiply(
+        loc: log.FileLocation, operands: list[Expression]
+    ) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_MULTPLY, operands)
+
+    @staticmethod
+    def ArithmeticDivide(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_DIVIDE, [lhs, rhs])
+
+    @staticmethod
+    def ArithmeticModulo(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_MODULO, [lhs, rhs])
+
+    @staticmethod
+    def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorType.ARITHMETIC_NEGATE, [operand])
+
+    @staticmethod
+    def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.EQUAL, [lhs, rhs])
+
+    @staticmethod
+    def NotEqual(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.NOT_EQUAL, [lhs, rhs])
+
+    @staticmethod
+    def GreaterThan(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.GREATER_THAN, [lhs, rhs])
+
+    @staticmethod
+    def LessThan(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorType.LESS_THAN, [lhs, rhs])
+
+    @staticmethod
+    def GreaterThanOrEqual(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.GREATER_THAN_OR_EQUAL, [lhs, rhs])
+
+    @staticmethod
+    def LessThanOrEqual(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        return Operator(loc, OperatorType.LESS_THAN_OR_EQUAL, [lhs, rhs])
+
+    @staticmethod
+    def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_AND, operands)
+        operator.bpd = min([opnd.bpd for opnd in operands])
+        operator.wpd = max([opnd.wpd for opnd in operands])
+        return operator
+
+    @staticmethod
+    def LogicalOr(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_OR, operands)
+        operator.bpd = min([opnd.bpd for opnd in operands])
+        operator.wpd = max([opnd.wpd for opnd in operands])
+        return operator
+
+    @staticmethod
+    def LogicalXor(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_XOR, operands)
+        operator.bpd = min([opnd.bpd for opnd in operands])
+        operator.wpd = max([opnd.wpd for opnd in operands])
+        return operator
+
+    @staticmethod
+    def LogicalIff(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_IFF, [lhs, rhs])
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        return operator
+
+    @staticmethod
+    def LogicalImplies(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_IMPLIES, [lhs, rhs])
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        return operator
+
+    @staticmethod
+    def LogicalNegate(loc: log.FileLocation, operand: Expression) -> Operator:
+        operator = Operator(loc, OperatorType.LOGICAL_NEGATE, [operand])
+        operator.bpd = operand.bpd
+        operator.wpd = operand.wpd
+        return operator
+
+    @staticmethod
+    def Global(
+        loc: log.FileLocation, lb: int, ub: int, operand: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.GLOBAL, [operand])
+        operator.interval = types.Interval(lb, ub)
+        operator.bpd = operand.bpd + lb
+        operator.wpd = operand.wpd + ub
+        operator.symbol = f"G[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Future(
+        loc: log.FileLocation, lb: int, ub: int, operand: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.FUTURE, [operand])
+        operator.interval = types.Interval(lb, ub)
+        operator.bpd = operand.bpd + lb
+        operator.wpd = operand.wpd + ub
+        operator.symbol = f"F[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Until(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.UNTIL, [lhs, rhs])
+        operator.interval = types.Interval(lb, ub)
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.symbol = f"U[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Release(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.RELEASE, [lhs, rhs])
+        operator.interval = types.Interval(lb, ub)
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.symbol = f"R[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Historical(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.HISTORICAL, [lhs, rhs])
+        operator.interval = types.Interval(lb, ub)
+        operator.symbol = f"H[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Once(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.ONCE, [lhs, rhs])
+        operator.interval = types.Interval(lb, ub)
+        operator.symbol = f"O[{lb},{ub}]"
+        return operator
+
+    @staticmethod
+    def Since(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> Operator:
+        operator = Operator(loc, OperatorType.SINCE, [lhs, rhs])
+        operator.interval = types.Interval(lb, ub)
+        operator.symbol = f"S[{lb},{ub}]"
+        return operator
+
+    def __deepcopy__(self, memo) -> Operator:
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticAdd(self.loc, children)
+        new = Operator(self.loc, self.operator, children)
         self.copy_attrs(new)
         return new
 
 
-class ArithmeticSubtract(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "-"
-
-    def __deepcopy__(self, memo) -> ArithmeticSubtract:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticSubtract(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class ArithmeticMultiply(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "*"
-
-    def __deepcopy__(self, memo) -> ArithmeticMultiply:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticMultiply(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class ArithmeticDivide(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "/"
-
-    def __deepcopy__(self, memo) -> ArithmeticDivide:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticDivide(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class ArithmeticModulo(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "%"
-
-    def __deepcopy__(self, memo) -> ArithmeticModulo:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticModulo(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class ArithmeticNegate(ArithmeticOperator):
-    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
-        super().__init__(loc, [operand])
-        self.symbol = "-"
-
-    def __deepcopy__(self, memo) -> ArithmeticNegate:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArithmeticNegate(self.loc, children[0])
-        self.copy_attrs(new)
-        return new
-
-
-class RelationalOperator(Operator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-    def __deepcopy__(self, memo) -> RelationalOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class Equal(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = "=="
-
-
-class NotEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = "!="
-
-
-class GreaterThan(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = ">"
-
-
-class LessThan(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = "<"
-
-
-class GreaterThanOrEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = ">="
-
-
-class LessThanOrEqual(RelationalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, lhs, rhs)
-        self.symbol = "<="
-
-
-class LogicalOperator(Operator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        super().__init__(loc, operands)
-        self.bpd = min([child.bpd for child in self.children])
-        self.wpd = max([child.wpd for child in self.children])
-        self.engine = types.R2U2Engine.TEMPORAL_LOGIC
-
-
-class LogicalOr(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        # force binary operator for now
-        if len(operands) > 2:
-            prev = LogicalOr(loc, operands[0:2])
-            for i in range(2, len(operands) - 1):
-                prev = LogicalOr(loc, [prev, operands[i]])
-            super().__init__(loc, [prev, operands[len(operands) - 1]])
-        else:
-            super().__init__(loc, operands)
-
-        super().__init__(loc, operands)
-        self.symbol = "||"
-
-
-class LogicalAnd(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, operands: list[Expression]) -> None:
-        # force binary operator for now
-        if len(operands) > 2:
-            prev = LogicalAnd(loc, operands[0:2])
-            for i in range(2, len(operands) - 1):
-                prev = LogicalAnd(loc, [prev, operands[i]])
-            super().__init__(loc, [prev, operands[len(operands) - 1]])
-        else:
-            super().__init__(loc, operands)
-
-        self.symbol = "&&"
-
-
-class LogicalXor(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "^^"
-
-    def __deepcopy__(self, memo) -> LogicalXor:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = LogicalXor(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class LogicalImplies(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "->"
-
-    def __deepcopy__(self, memo) -> LogicalImplies:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = LogicalImplies(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class LogicalIff(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, lhs: Expression, rhs: Expression) -> None:
-        super().__init__(loc, [lhs, rhs])
-        self.symbol = "<->"
-
-    def __deepcopy__(self, memo) -> LogicalIff:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = LogicalIff(self.loc, children[0], children[1])
-        self.copy_attrs(new)
-        return new
-
-
-class LogicalNegate(LogicalOperator):
-    def __init__(self, loc: log.FileLocation, operand: Expression) -> None:
-        super().__init__(loc, [operand])
-        self.symbol = "!"
-
-    def __deepcopy__(self, memo) -> LogicalNegate:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = LogicalNegate(self.loc, children[0])
-        self.copy_attrs(new)
-        return new
-
-
-class TemporalOperator(Operator):
-    def __init__(
-        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operands)
-        self.interval = types.Interval(lb=lb, ub=ub)
-        self.engine = types.R2U2Engine.TEMPORAL_LOGIC
-
-
-class FutureTimeOperator(TemporalOperator):
-    def __init__(
-        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operands, lb, ub)
-
-
-class PastTimeOperator(TemporalOperator):
-    def __init__(
-        self, loc: log.FileLocation, operands: list[Expression], lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operands, lb, ub)
-
-
-class FutureTimeBinaryOperator(TemporalOperator):
-    def __init__(
-        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, [lhs, rhs], lb, ub)
-        self.bpd = min(self.children[0].bpd, self.children[1].bpd) + self.interval.lb
-        self.wpd = max(self.children[0].wpd, self.children[1].wpd) + self.interval.ub
-
-    def get_lhs(self) -> Expression:
-        return self.get_operand(0)
-
-    def get_rhs(self) -> Expression:
-        return self.get_operand(1)
-
-    def __deepcopy__(self, memo) -> FutureTimeBinaryOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(
-            self.loc, children[0], children[1], self.interval.lb, self.interval.ub
-        )
-        self.copy_attrs(new)
-        return new
-
-
-class Until(FutureTimeBinaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = f"U[{lb},{ub}]"
-
-
-class Release(FutureTimeBinaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = f"R[{lb},{ub}]"
-
-
-class FutureTimeUnaryOperator(FutureTimeOperator):
-    def __init__(
-        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, [operand], lb, ub)
-        self.bpd = self.get_operand().bpd + self.interval.lb
-        self.wpd = self.get_operand().wpd + self.interval.ub
-
-    def get_operand(self) -> Expression:
-        return cast(Expression, self.children[0])
-
-    def __deepcopy__(self, memo) -> FutureTimeUnaryOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
-        self.copy_attrs(new)
-        return new
-    
-
-class Global(FutureTimeUnaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operand, lb, ub)
-        self.symbol = f"G[{lb},{ub}]"
-
-
-class Future(FutureTimeUnaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, operands: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operands, lb, ub)
-        self.symbol = f"F[{lb},{ub}]"
-
-
-class PastTimeBinaryOperator(PastTimeOperator):
-    def __init__(
-        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, [lhs, rhs], lb, ub)
-
-    def get_lhs(self) -> Expression:
-        return self.get_operand(0)
-
-    def get_rhs(self) -> Expression:
-        return self.get_operand(1)
-
-    def __deepcopy__(self, memo) -> PastTimeBinaryOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(
-            self.loc, children[0], children[1], self.interval.lb, self.interval.ub
-        )
-        self.copy_attrs(new)
-        return new
-
-
-
-class Since(PastTimeBinaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, lhs: Expression, rhs: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, lhs, rhs, lb, ub)
-        self.symbol = f"S[{lb},{ub}]"
-
-
-class PastTimeUnaryOperator(PastTimeOperator):
-    def __init__(
-        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, [operand], lb, ub)
-
-    def get_operand(self) -> Expression:
-        return cast(Expression, self.children[0])
-
-    def __deepcopy__(self, memo) -> PastTimeUnaryOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children[0], self.interval.lb, self.interval.ub)
-        self.copy_attrs(new)
-        return new
-
-
-class Historical(PastTimeUnaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operand, lb, ub)
-        self.symbol = f"H[{lb},{ub}]"
-
-
-class Once(PastTimeUnaryOperator):
-    def __init__(
-        self, loc: log.FileLocation, operand: Expression, lb: int, ub: int
-    ) -> None:
-        super().__init__(loc, operand, lb, ub)
-        self.symbol = f"O[{lb},{ub}]"
+# Helpful predicates -- especially for type checking
+def is_operator(expr: Expression, operator: OperatorType) -> bool:
+    """Returns True if `expr` is an `Operator` of type `operator`."""
+    return type(expr) is Operator and expr.operator is operator
+
+
+def is_bitwise_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.BITWISE_AND,
+        OperatorType.BITWISE_OR,
+        OperatorType.BITWISE_XOR,
+        OperatorType.BITWISE_NEGATE,
+    }
+
+
+def is_arithmetic_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.ARITHMETIC_ADD,
+        OperatorType.ARITHMETIC_SUBTRACT,
+        OperatorType.ARITHMETIC_DIVIDE,
+        OperatorType.ARITHMETIC_MULTPLY,
+        OperatorType.ARITHMETIC_MODULO,
+        OperatorType.ARITHMETIC_NEGATE,
+    }
+
+
+def is_relational_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.EQUAL,
+        OperatorType.NOT_EQUAL,
+        OperatorType.GREATER_THAN,
+        OperatorType.LESS_THAN,
+        OperatorType.GREATER_THAN_OR_EQUAL,
+        OperatorType.LESS_THAN_OR_EQUAL,
+    }
+
+
+def is_logical_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.LOGICAL_AND,
+        OperatorType.LOGICAL_OR,
+        OperatorType.LOGICAL_XOR,
+        OperatorType.LOGICAL_IMPLIES,
+        OperatorType.LOGICAL_IFF,
+        OperatorType.LOGICAL_NEGATE,
+    }
+
+
+def is_future_time_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.GLOBAL,
+        OperatorType.FUTURE,
+        OperatorType.UNTIL,
+        OperatorType.RELEASE,
+    }
+
+
+def is_past_time_operator(expr: Expression) -> bool:
+    return type(expr) is Operator and expr.operator in {
+        OperatorType.HISTORICAL,
+        OperatorType.ONCE,
+        OperatorType.SINCE,
+    }
+
+
+def is_temporal_operator(expr: Expression) -> bool:
+    return is_future_time_operator(expr) or is_past_time_operator(expr)
 
 
 class Formula(Expression):
@@ -977,10 +785,10 @@ class Formula(Expression):
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
-    
+
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Formula) and self.symbol == __value.symbol
-    
+
     def __hash__(self) -> int:
         return hash(self.symbol)
 
@@ -1005,10 +813,10 @@ class Contract(Expression):
 
     def get_guarantee(self) -> Expression:
         return self.children[1]
-    
+
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Contract) and self.symbol == __value.symbol
-    
+
     def __hash__(self) -> int:
         return hash(self.symbol)
 
@@ -1025,7 +833,7 @@ class SpecificationSet(Expression):
 
     def get_specs(self) -> list[Specification]:
         return cast("list[Specification]", self.children)
-    
+
     def __str__(self) -> str:
         return "spec_set"
 
@@ -1171,10 +979,10 @@ class Program(Node):
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:
             index = self.ft_spec_set.children.index(spec)
-            self.ft_spec_set.children[index:index+1] = new
+            self.ft_spec_set.children[index : index + 1] = new
         except ValueError:
             index = self.pt_spec_set.children.index(spec)
-            self.pt_spec_set.children[index:index+1] = new
+            self.pt_spec_set.children[index : index + 1] = new
 
     def get_specs(self) -> list[Specification]:
         return self.ft_spec_set.get_specs() + self.pt_spec_set.get_specs()
@@ -1296,11 +1104,11 @@ def postorder(
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if seen and isinstance(expr, SetAggregation):
+        if seen and type(expr) is SetAggregation:
             del context.bound_vars[expr.bound_var.symbol]
             yield expr
             continue
-        elif seen and isinstance(expr, Bind):
+        elif seen and type(expr) is Bind:
             context.bound_vars[expr.bound_var.symbol] = expr.get_set()
             continue
         elif seen:
@@ -1362,7 +1170,7 @@ def rename(
     return new
 
 
-def to_str(start: Expression) -> str:
+def to_infix_str(start: Expression) -> str:
     s = ""
 
     stack: list[tuple[int, Expression]] = []
@@ -1371,84 +1179,84 @@ def to_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Literal, Variable)):
+        if type(expr) in {Constant, Variable, Signal, AtomicChecker}:
             s += expr.symbol
-        elif isinstance(expr, (LogicalNegate, Global, Future, Once, Historical, ArithmeticNegate, BitwiseNegate)):
+        elif type(expr) is StructAccess:
             if seen == 0:
-                s += f"{expr.symbol}("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[0]))
-            else:
-                s += ")"
-        elif isinstance(expr, (Until, Release, Since, RelationalOperator, LogicalImplies)):
-            if seen == 0:
-                s += "("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[0]))
-            elif seen == 1:
-                s += f"){expr.symbol}("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[1]))
-            else:
-                s += ")"
-        elif isinstance(expr, (LogicalAnd, LogicalOr, ArithmeticOperator)):
-            if seen == len(expr.children):
-                s += ")"
-            elif seen % 2 == 0:
-                s += "("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[seen]))
-            elif seen % 2 == 1:
-                s += f"){expr.symbol}("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[seen]))
-        elif isinstance(expr, StructAccess):
-            if seen == 0:
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 s += f".{expr.member}"
-        elif isinstance(expr, SetExpression):
+        elif type(expr) is SetExpression:
             if seen == 0:
                 s += "{"
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in expr.children]
             else:
                 s += ")"
-        elif isinstance(expr, (Struct, FunctionCall, Count)):
+        elif type(expr) in {Struct, FunctionCall} or (type(expr) is Operator and expr.operator is OperatorType.COUNT):
             if seen == len(expr.children):
                 s += ")"
             elif seen == 0:
                 s += f"{expr.symbol}("
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 s += ","
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
-        elif isinstance(expr, SetAggregation):
+        elif type(expr) is SetAggregation:
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.get_set()))
             elif seen == 1:
                 s += ")("
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.get_expr()))
             else:
                 s += ")"
-        elif isinstance(expr, Formula):
-            s += (str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol)
+        elif type(expr) is Operator and len(expr.children) == 1:
+            if seen == 0:
+                s += f"{expr.symbol}("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s += ")"
+        elif type(expr) is Operator and len(expr.children) == 2:
+            if seen == 0:
+                s += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += f"){expr.symbol}("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[1]))
+            else:
+                s += ")"
+        elif type(expr) is Operator:
+            if seen == len(expr.children):
+                s += ")"
+            elif seen % 2 == 0:
+                s += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            elif seen % 2 == 1:
+                s += f"){expr.symbol}("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+        elif type(expr) is Formula:
+            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
             s += ":"
             stack.append((0, expr.get_expr()))
-        elif isinstance(expr, Contract):
+        elif type(expr) is Contract:
             if seen == 0:
                 s += f"{expr.symbol}: ("
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
                 s += ")=>("
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
                 s += ")"
@@ -1459,7 +1267,7 @@ def to_str(start: Expression) -> str:
     return s
 
 
-def to_prefix(start: Expression) -> str:
+def to_prefix_str(start: Expression) -> str:
     s = ""
 
     stack: list["tuple[int, Expression]"] = []
@@ -1468,30 +1276,65 @@ def to_prefix(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Bool, Variable)):
+        if type(expr) in {Constant, Variable, Signal, AtomicChecker}:
             s += expr.symbol + " "
-        elif isinstance(expr, (Global, Future, LogicalNegate)):
+        elif type(expr) is StructAccess:
             if seen == 0:
-                s += f"({expr.symbol} "
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s = s[:-1] + ") "
-        elif isinstance(expr, (Until, Release)):
+                s += f".{expr.member} "
+        elif type(expr) is SetExpression:
             if seen == 0:
-                s += f"({expr.symbol} "
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[1]))
+                s += "{"
+                stack.append((seen + 1, expr))
+                [stack.append((0, child)) for child in expr.children]
+            else:
+                s += ") "
+        elif type(expr) in {Struct, FunctionCall} or (type(expr) is Operator and expr.operator is OperatorType.COUNT):
+            if seen == len(expr.children):
+                s += ") "
+            elif seen == 0:
+                s += f"{expr.symbol}("
+                stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s = s[:-1] + ") "
-        elif isinstance(expr, (LogicalAnd, LogicalOr)):
+                s += ","
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+        elif type(expr) is SetAggregation:
+            if seen == 0:
+                s += f"{expr.symbol}({expr.bound_var}:"
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_set()))
+            elif seen == 1:
+                s += ")("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_expr()))
+            else:
+                s += ")"
+        elif type(expr) is Operator:
             if seen == 0:
                 s += f"({expr.symbol} "
-                stack.append((seen+1, expr))
+                stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:
                 s = s[:-1] + ") "
+        elif type(expr) is Formula:
+            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
+            s += ":"
+            stack.append((0, expr.get_expr()))
+        elif type(expr) is Contract:
+            if seen == 0:
+                s += f"{expr.symbol}:("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_assumption()))
+            elif seen == 1:
+                s += ")=>("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_guarantee()))
+            else:
+                s += ")"
 
     return s
 
@@ -1500,7 +1343,7 @@ def to_mltl_std(program: Program) -> str:
     mltl = ""
 
     stack: list[tuple[int, Expression]] = []
- 
+
     for spec in program.get_specs():
         if isinstance(spec, Contract):
             log.warning("Cannot express AGCs in MLTL standard, skipping", MODULE_CODE)
@@ -1511,41 +1354,43 @@ def to_mltl_std(program: Program) -> str:
         while len(stack) > 0:
             (seen, expr) = stack.pop()
 
-            if isinstance(expr, Bool):
-                mltl += expr.symbol
+            if type(expr) is Constant:
+                mltl += expr.symbol + " "
             elif expr.atomic_id > -1:
                 mltl += f"a{expr.atomic_id}"
-            elif isinstance(expr, (LogicalNegate, Global, Future, Once, Historical)):
+            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(expr.children) == 1:
                 if seen == 0:
                     mltl += f"{expr.symbol}("
-                    stack.append((seen+1, expr))
+                    stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
                     mltl += ")"
-            elif isinstance(expr, (Until, Release, Since)):
+            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(expr.children) == 1:
                 if seen == 0:
                     mltl += "("
-                    stack.append((seen+1, expr))
+                    stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 elif seen == 1:
                     mltl += f"){expr.symbol}("
-                    stack.append((seen+1, expr))
+                    stack.append((seen + 1, expr))
                     stack.append((0, expr.children[1]))
                 else:
                     mltl += ")"
-            elif isinstance(expr, (LogicalAnd, LogicalOr)):
+            elif (is_temporal_operator(expr) or is_logical_operator(expr)):
                 if seen == len(expr.children):
                     mltl += ")"
                 elif seen % 2 == 0:
                     mltl += "("
-                    stack.append((seen+1, expr))
-                    stack.append((0, expr.children[0]))
+                    stack.append((seen + 1, expr))
+                    stack.append((0, expr.children[seen]))
                 elif seen % 2 == 1:
                     mltl += f"){expr.symbol}("
-                    stack.append((seen+1, expr))
-                    stack.append((0, expr.children[1]))
+                    stack.append((seen + 1, expr))
+                    stack.append((0, expr.children[seen]))
             else:
-                log.error(f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE)
+                log.error(
+                    f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE
+                )
                 return ""
 
         mltl += "\n"
