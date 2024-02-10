@@ -1,8 +1,0 @@
-INPUT
-    f: float;
-
-ATOMIC
-    a := rate(f) < 5.0;
-
-FTSPEC
-    a;

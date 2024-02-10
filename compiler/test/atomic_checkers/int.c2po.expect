@@ -1,0 +1,10 @@
+AT a0  gt  s8 int(5)    
+AT a1  gt  s8 int(s9)   
+TL n0  load   a0
+TL n1  return n0 0
+TL n2  load   a1
+TL n3  return n2 1
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 4)
+CG TL SCQ n2  (4, 7)
+CG TL SCQ n3  (7, 8)
