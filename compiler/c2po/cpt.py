@@ -129,6 +129,10 @@ class Bool(Constant):
         self.symbol = str(v)
         self.engine = types.R2U2Engine.BOOLEANIZER
 
+    def has_only_tl_parents(self) -> bool:
+        """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
+        return all([isinstance(parent, (LogicalOperator, Until, Release, Global, Future, Historical, Once, Since)) for parent in self.parents])
+
 
 class Integer(Constant):
     def __init__(self, loc: log.FileLocation, v: int) -> None:

@@ -76,9 +76,9 @@ class BZOperator(Enum):
 
 
 BZ_OPERATOR_MAP = {
-    (cpt.Bool, True): BZOperator.ILOAD,
     (cpt.Signal, True): BZOperator.ILOAD,
     (cpt.Signal, False): BZOperator.FLOAD,
+    (cpt.Bool, True): BZOperator.ICONST,
     (cpt.Integer, True): BZOperator.ICONST,
     (cpt.Float, False): BZOperator.FCONST,
     (cpt.BitwiseNegate, True): BZOperator.BWNEG,
@@ -713,6 +713,12 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
                 0,
             )
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+
+        # Special case for bool -- TL ops directly embed bool literals in their operands, 
+        # so if this is a bool literal with only TL parents we should skip.
+        # TODO: Is there a case where a bool is used by the BZ engine? As in when this is ever not true for a bool?
+        if isinstance(expr, cpt.Bool) and expr.has_only_tl_parents():
+            continue
 
         if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
             at_instructions[expr] = gen_at_instruction(expr, context)
