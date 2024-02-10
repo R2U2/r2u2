@@ -1455,6 +1455,42 @@ def to_str(start: Expression) -> str:
     return s
 
 
+def to_prefix(start: Expression) -> str:
+    s = ""
+
+    stack: list["tuple[int, Expression]"] = []
+    stack.append((0, start))
+
+    while len(stack) > 0:
+        (seen, expr) = stack.pop()
+
+        if isinstance(expr, (Bool, Variable)):
+            s += expr.symbol + " "
+        elif isinstance(expr, (Global, Future, LogicalNegate)):
+            if seen == 0:
+                s += f"({expr.symbol} "
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s = s[:-1] + ") "
+        elif isinstance(expr, (Until, Release)):
+            if seen == 0:
+                s += f"({expr.symbol} "
+                stack.append((seen+1, expr))
+                stack.append((0, expr.children[1]))
+                stack.append((0, expr.children[0]))
+            else:
+                s = s[:-1] + ") "
+        elif isinstance(expr, (LogicalAnd, LogicalOr)):
+            if seen == 0:
+                s += f"({expr.symbol} "
+                stack.append((seen+1, expr))
+                [stack.append((0, child)) for child in reversed(expr.children)]
+            else:
+                s = s[:-1] + ") "
+
+    return s
+
 
 def to_mltl_std(program: Program) -> str:
     mltl = ""
