@@ -208,7 +208,7 @@ class TestCase():
 
         self.c2po_cli_options = collect_c2po_options(self.c2po_options)
         self.c2po_command =  ([
-            "python3", str(self.c2po), "--overwrite"
+            "python3", str(self.c2po)
         ] + collect_c2po_options(self.c2po_options) + 
         [
             "--output", str(self.spec_bin_workdir_path), 
@@ -263,7 +263,7 @@ class TestCase():
             f.write(self.asm)
 
         c2po_command_new = [
-            "python3", str(self.c2po), "--overwrite", "--debug"
+            "python3", str(self.c2po), "--debug"
         ] + collect_c2po_options(self.c2po_options) + \
         [
             "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
