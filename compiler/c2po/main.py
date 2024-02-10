@@ -123,7 +123,6 @@ def validate_input(
     int_is_signed: bool,
     float_width: int,
     endian: str,
-    overwrite: bool,
     enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
@@ -169,10 +168,6 @@ def validate_input(
     output_path = None
     if output_filename != "":
         output_path = pathlib.Path(output_filename)
-        if output_path.exists() and not overwrite:
-            log.error(f"Output file '{output_filename}' already exists."
-                      "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
-            status = False
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -426,7 +421,6 @@ def compile(
         int_signed,
         float_width,
         endian,
-        overwrite,
         enable_atomic_checkers,
         enable_booleanizer,
         enable_extops,

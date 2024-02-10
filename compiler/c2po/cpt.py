@@ -1168,7 +1168,7 @@ class Program(Node):
         try:
             index = self.ft_spec_set.children.index(spec)
             self.ft_spec_set.children[index:index+1] = new
-        except IndexError:
+        except ValueError:
             index = self.pt_spec_set.children.index(spec)
             self.pt_spec_set.children[index:index+1] = new
 
@@ -1376,7 +1376,7 @@ def to_str(start: Expression) -> str:
                 stack.append((0, expr.children[0]))
             else:
                 s += ")"
-        elif isinstance(expr, (Until, Release, Since, RelationalOperator)):
+        elif isinstance(expr, (Until, Release, Since, RelationalOperator, LogicalImplies)):
             if seen == 0:
                 s += "("
                 stack.append((seen+1, expr))
@@ -1449,7 +1449,7 @@ def to_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(f"Expression incompatible with MLTL standard ({expr.symbol})", MODULE_CODE)
+            log.error(f"Bad str ({expr.symbol})", MODULE_CODE)
             return ""
 
     return s
