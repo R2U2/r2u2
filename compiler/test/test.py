@@ -2,6 +2,7 @@ import pathlib
 import json
 import difflib
 import subprocess
+import sys
 
 TEST_DIR = pathlib.Path(__file__).parent
 
@@ -27,10 +28,10 @@ def print_pass(msg: str):
 
 
 def print_fail(msg: str):
-    print(f"[{Color.FAIL}PASS{Color.ENDC}] {msg}")
+    print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
 
 
-def run_test(test: dict) -> None:
+def run_test(test: dict) -> bool:
     """Runs and prints status of `test` where `test` looks like:
 
     `{
@@ -39,10 +40,13 @@ def run_test(test: dict) -> None:
         "options": ["opt", ...]
     }`
 
-    See `config.json`.
+    `"expected_stderr"` can also be present if an error is expected to occur. See `config.json`.
     """
     command = ["python3", str(C2PO_PATH.absolute())] + test["options"] + [test["input"]]
-    proc = subprocess.run(command, capture_output=True)
+
+    proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # Both stdout and stderr are captured in proc.stdout
     test_output = proc.stdout.decode().splitlines(keepends=True)
 
     with open(test["expected_output"], "r") as f:
@@ -65,9 +69,9 @@ def run_test(test: dict) -> None:
     if status:
         print_pass(f"{test['input']}")
     else:
-        print_fail(f"{test['input']}\n{diff}")
+        print_fail(f"{test['input']}\nCommand: {' '.join(command)}\n{diff}")
 
-    return
+    return status
 
 
 if __name__ == "__main__":
@@ -75,4 +79,7 @@ if __name__ == "__main__":
     with open(str(CONFIG_PATH), "r") as f:
         tests = json.load(f)
 
-    [run_test(test) for test in tests]
+    if any([not run_test(test) for test in tests]):
+        sys.exit(1)
+    sys.exit(0)
+    

@@ -501,11 +501,11 @@ class C2POParser(sly.Parser):
 
     @_("expr ARITH_MUL expr")
     def expr(self, p):
-        return cpt.Operator.ArithmeticMultiply(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+        return cpt.Operator.ArithmeticMultiply(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
 
     @_("expr ARITH_DIV expr")
     def expr(self, p):
-        return cpt.Operator.ArithmeticMultiply(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+        return cpt.Operator.ArithmeticDivide(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     @_("expr ARITH_MOD expr")
     def expr(self, p):

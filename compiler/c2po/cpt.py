@@ -30,7 +30,12 @@ class Node:
 
 
 class Expression(Node):
-    def __init__(self, loc: log.FileLocation, children: list[Expression], type: types.Type = types.NoType()) -> None:
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        children: list[Expression],
+        type: types.Type = types.NoType(),
+    ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
         self.atomic_id: int = -1  # only set for atomic propositions
@@ -138,7 +143,7 @@ class Constant(Expression):
             #     ...
         else:
             raise ValueError(f"Bad value ({value})")
-        
+
     def __deepcopy__(self, memo):
         new = Constant(self.loc, self.value)
         self.copy_attrs(new)
@@ -158,7 +163,7 @@ class Variable(Expression):
         # we hash the id so that in sets/dicts different
         # instances of the same variable are distinct
         return id(self)
-        
+
     def __deepcopy__(self, memo):
         new = Variable(self.loc, self.symbol)
         self.copy_attrs(new)
@@ -203,11 +208,7 @@ class SetExpression(Expression):
         super().__init__(loc, members)
         members.sort(key=lambda x: str(x))
         self.max_size: int = len(members)
-        self.dynamic_size = None
 
-    def set_dynamic_size(self, size: Node) -> None:
-        self.dynamic_size = size
-        
     def __deepcopy__(self, memo):
         children = [copy.deepcopy(c, memo) for c in self.children]
         new = SetExpression(self.loc, children)
@@ -303,14 +304,14 @@ class Bind(Expression):
 
     def __str__(self) -> str:
         return ""
-        
+
     def __deepcopy__(self, memo):
         new = Bind(self.loc, self.bound_var, self.set_expr)
         self.copy_attrs(new)
         return new
 
 
-class SetAggregationType(enum.Enum):
+class SetAggregationKind(enum.Enum):
     FOR_EACH = "foreach"
     FOR_SOME = "forsome"
     FOR_EXACTLY = "forexactly"
@@ -333,7 +334,7 @@ class SetAggregation(Expression):
     def __init__(
         self,
         loc: log.FileLocation,
-        operator: SetAggregationType,
+        operator: SetAggregationKind,
         var: Variable,
         set: SetExpression,
         num: Optional[Expression],
@@ -351,13 +352,13 @@ class SetAggregation(Expression):
     def ForEach(
         loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
     ) -> SetAggregation:
-        return SetAggregation(loc, SetAggregationType.FOR_EACH, var, set, None, expr)
+        return SetAggregation(loc, SetAggregationKind.FOR_EACH, var, set, None, expr)
 
     @staticmethod
     def ForSome(
         loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
     ) -> SetAggregation:
-        return SetAggregation(loc, SetAggregationType.FOR_SOME, var, set, None, expr)
+        return SetAggregation(loc, SetAggregationKind.FOR_SOME, var, set, None, expr)
 
     @staticmethod
     def ForExactly(
@@ -367,7 +368,7 @@ class SetAggregation(Expression):
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
-        return SetAggregation(loc, SetAggregationType.FOR_EXACTLY, var, set, num, expr)
+        return SetAggregation(loc, SetAggregationKind.FOR_EXACTLY, var, set, num, expr)
 
     @staticmethod
     def ForAtMost(
@@ -377,7 +378,7 @@ class SetAggregation(Expression):
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
-        return SetAggregation(loc, SetAggregationType.FOR_AT_MOST, var, set, num, expr)
+        return SetAggregation(loc, SetAggregationKind.FOR_AT_MOST, var, set, num, expr)
 
     @staticmethod
     def ForAtLeast(
@@ -387,11 +388,13 @@ class SetAggregation(Expression):
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
-        return SetAggregation(loc, SetAggregationType.FOR_AT_LEAST, var, set, num, expr)
+        return SetAggregation(loc, SetAggregationKind.FOR_AT_LEAST, var, set, num, expr)
 
     def get_num(self) -> Expression:
         if len(self.children) < 4:
-            raise ValueError(f"Attempting to access num for set agg operator that does not have one ({self})")
+            raise ValueError(
+                f"Attempting to access num for set agg operator that does not have one ({self})"
+            )
         return self.children[1]
 
     def get_set(self) -> SetExpression:
@@ -446,7 +449,7 @@ class OperatorKind(enum.Enum):
     LOGICAL_OR = "||"
     LOGICAL_XOR = "xor"
     LOGICAL_IMPLIES = "->"
-    LOGICAL_IFF = "<->"
+    LOGICAL_EQUIV = "<->"
     LOGICAL_NEGATE = "!"
 
     # Future-time
@@ -466,7 +469,11 @@ class OperatorKind(enum.Enum):
 
 class Operator(Expression):
     def __init__(
-        self, loc: log.FileLocation, op_kind: OperatorKind, children: list[Expression], type: types.Type = types.NoType()
+        self,
+        loc: log.FileLocation,
+        op_kind: OperatorKind,
+        children: list[Expression],
+        type: types.Type = types.NoType(),
     ) -> None:
         super().__init__(loc, children, type)
         self.operator: OperatorKind = op_kind
@@ -479,7 +486,10 @@ class Operator(Expression):
 
     @staticmethod
     def Count(
-        loc: log.FileLocation, num: Expression, children: list[Expression], type: types.Type = types.NoType()
+        loc: log.FileLocation,
+        num: Expression,
+        children: list[Expression],
+        type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.COUNT, [num] + children, type)
 
@@ -508,30 +518,45 @@ class Operator(Expression):
         return Operator(loc, OperatorKind.SHIFT_RIGHT, [lhs, rhs])
 
     @staticmethod
-    def ArithmeticAdd(loc: log.FileLocation, operands: list[Expression], type: types.Type = types.NoType()) -> Operator:
+    def ArithmeticAdd(
+        loc: log.FileLocation,
+        operands: list[Expression],
+        type: types.Type = types.NoType(),
+    ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_ADD, operands, type)
 
     @staticmethod
     def ArithmeticSubtract(
-        loc: log.FileLocation, lhs: Expression, rhs: Expression, type: types.Type = types.NoType()
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_SUBTRACT, [lhs, rhs], type)
 
     @staticmethod
     def ArithmeticMultiply(
-        loc: log.FileLocation, operands: list[Expression], type: types.Type = types.NoType()
+        loc: log.FileLocation,
+        operands: list[Expression],
+        type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MULTPLY, operands, type)
 
     @staticmethod
     def ArithmeticDivide(
-        loc: log.FileLocation, lhs: Expression, rhs: Expression, type: types.Type = types.NoType()
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_DIVIDE, [lhs, rhs], type)
 
     @staticmethod
     def ArithmeticModulo(
-        loc: log.FileLocation, lhs: Expression, rhs: Expression, type: types.Type = types.NoType()
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
 
@@ -592,7 +617,7 @@ class Operator(Expression):
 
     @staticmethod
     def LogicalIff(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        operator = Operator(loc, OperatorKind.LOGICAL_IFF, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
         return operator
@@ -618,9 +643,17 @@ class Operator(Expression):
         new = Operator(self.loc, self.operator, children)
         self.copy_attrs(new)
         return new
-    
+
+
 class TemporalOperator(Operator):
-    def __init__(self, loc: log.FileLocation, operator: OperatorKind, lb: int, ub: int, children: list[Expression]) -> None:
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        operator: OperatorKind,
+        lb: int,
+        ub: int,
+        children: list[Expression],
+    ) -> None:
         super().__init__(loc, operator, children)
         self.interval = types.Interval(lb, ub)
         self.symbol = f"{operator.value}[{lb},{ub}]"
@@ -682,7 +715,9 @@ class TemporalOperator(Operator):
 
     def __deepcopy__(self, memo) -> Operator:
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = TemporalOperator(self.loc, self.operator, self.interval.lb, self.interval.ub, children)
+        new = TemporalOperator(
+            self.loc, self.operator, self.interval.lb, self.interval.ub, children
+        )
         self.copy_attrs(new)
         return new
 
@@ -730,7 +765,7 @@ def is_logical_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_OR,
         OperatorKind.LOGICAL_XOR,
         OperatorKind.LOGICAL_IMPLIES,
-        OperatorKind.LOGICAL_IFF,
+        OperatorKind.LOGICAL_EQUIV,
         OperatorKind.LOGICAL_NEGATE,
     }
 
@@ -996,7 +1031,7 @@ class Program(Node):
 
     def __str__(self) -> str:
         return "\n".join([str(s) for s in self.sections])
-    
+
     def __repr__(self) -> str:
         return "\n".join([repr(s) for s in self.get_specs()])
 
@@ -1185,7 +1220,9 @@ def to_infix_str(start: Expression) -> str:
                 [stack.append((0, child)) for child in expr.children]
             else:
                 s += ")"
-        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(expr, OperatorKind.COUNT):
+        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
+            expr, OperatorKind.COUNT
+        ):
             if seen == len(expr.children):
                 s += ")"
             elif seen == 0:
@@ -1281,8 +1318,10 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in expr.children]
             else:
-               s = s[:-1] + "} "
-        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(expr, OperatorKind.COUNT):
+                s = s[:-1] + "} "
+        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
+            expr, OperatorKind.COUNT
+        ):
             if seen == len(expr.children):
                 s = s[:-1] + ") "
             elif seen == 0:
@@ -1349,14 +1388,18 @@ def to_mltl_std(program: Program) -> str:
                 mltl += expr.symbol + " "
             elif expr.atomic_id > -1:
                 mltl += f"a{expr.atomic_id}"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(expr.children) == 1:
+            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
+                expr.children
+            ) == 1:
                 if seen == 0:
                     mltl += f"{expr.symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
                     mltl += ")"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(expr.children) == 1:
+            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
+                expr.children
+            ) == 1:
                 if seen == 0:
                     mltl += "("
                     stack.append((seen + 1, expr))
@@ -1367,7 +1410,7 @@ def to_mltl_std(program: Program) -> str:
                     stack.append((0, expr.children[1]))
                 else:
                     mltl += ")"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)):
+            elif is_temporal_operator(expr) or is_logical_operator(expr):
                 if seen == len(expr.children):
                     mltl += ")"
                 elif seen % 2 == 0:

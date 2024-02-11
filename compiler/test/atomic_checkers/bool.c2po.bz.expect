@@ -1,5 +1,3 @@
-AT a0  eq  s0 bool(True)
-TL n0  load   a0
-TL n1  return n0 0
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 4)
+[TYPC][[91mERR[0m] bool.c2po:8: Atomic checkers not enabled, but found in expression.
+	a
+[MAIN][[91mERR[0m] Failed type check.

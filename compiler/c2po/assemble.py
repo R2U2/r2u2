@@ -12,6 +12,7 @@ from c2po import cpt, log, types
 
 MODULE_CODE = "ASM"
 
+
 def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
@@ -73,6 +74,7 @@ class BZOperator(Enum):
 
     def __str__(self) -> str:
         return self.name.lower()
+
 
 # (OperatorType, Is integer variant) |-> BZOperator
 BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
@@ -162,14 +164,21 @@ TL_OPERAND_TYPE_MAP = {
 
 
 class FTOperator(Enum):
+    # See monitors/static/src/engines/mltl/mltl.h
     NOP = 0b11111
     CONFIG = 0b11110
     LOAD = 0b11101
     RETURN = 0b11100
+    EVENTUALLY = 0b11011
     GLOBAL = 0b11010
     UNTIL = 0b11001
+    RELEASE = 0b11000
     NOT = 0b10111
     AND = 0b10110
+    OR = 0b10101
+    IMPLIES = 0b10100
+    EQUIV = 0b10000
+    XOR = 0b10001
 
     def is_temporal(self) -> bool:
         return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
@@ -183,9 +192,15 @@ class FTOperator(Enum):
 
 FT_OPERATOR_MAP = {
     cpt.OperatorKind.GLOBAL: FTOperator.GLOBAL,
+    cpt.OperatorKind.FUTURE: FTOperator.EVENTUALLY,
     cpt.OperatorKind.UNTIL: FTOperator.UNTIL,
+    cpt.OperatorKind.RELEASE: FTOperator.RELEASE,
     cpt.OperatorKind.LOGICAL_NEGATE: FTOperator.NOT,
     cpt.OperatorKind.LOGICAL_AND: FTOperator.AND,
+    cpt.OperatorKind.LOGICAL_OR: FTOperator.OR,
+    cpt.OperatorKind.LOGICAL_IMPLIES: FTOperator.IMPLIES,
+    cpt.OperatorKind.LOGICAL_EQUIV: FTOperator.EQUIV,
+    cpt.OperatorKind.LOGICAL_XOR: FTOperator.XOR,
 }
 
 
@@ -197,11 +212,13 @@ class PTOperator(Enum):
     ONCE = 0b01011
     HIST = 0b01010
     SINCE = 0b01001
+    LOCK = 0b01000
     NOT = 0b00111
     AND = 0b00110
     OR = 0b00101
     IMPLIES = 0b00100
     EQUIV = 0b00000
+    XOR = 0b00001
 
     def is_temporal(self) -> bool:
         return (
@@ -225,6 +242,8 @@ PT_OPERATOR_MAP = {
     cpt.OperatorKind.LOGICAL_AND: PTOperator.AND,
     cpt.OperatorKind.LOGICAL_OR: PTOperator.OR,
     cpt.OperatorKind.LOGICAL_IMPLIES: PTOperator.IMPLIES,
+    cpt.OperatorKind.LOGICAL_EQUIV: PTOperator.EQUIV,
+    cpt.OperatorKind.LOGICAL_XOR: PTOperator.XOR,
     Any: PTOperator.NOP,
 }
 
@@ -410,8 +429,8 @@ def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruct
     signal = cast(cpt.Signal, expr.children[0])
 
     rhs = expr.children[1]
-    if type(rhs) is cpt.Constant:
-        compare_value = rhs.value # type: ignore
+    if isinstance(rhs, cpt.Constant):
+        compare_value = rhs.value  # type: ignore
     elif isinstance(rhs, cpt.Signal):
         compare_value = rhs.signal_id
     else:
@@ -427,7 +446,7 @@ def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruct
         node.atomic_id,
         AT_REL_OP_MAP[expr.operator],
         signal.signal_id,
-        AT_FILTER_MAP[type(signal.type)], # type: ignore
+        AT_FILTER_MAP[type(signal.type)],  # type: ignore
         compare_value,
         isinstance(expr.children[1], cpt.Signal),
         node.atomic_id,
@@ -463,7 +482,7 @@ def gen_bz_instruction(
         is_int_operator = types.is_integer_type(expr.type)
         expr = cast(cpt.Operator, expr)
 
-        # Special case: cpt.OperatorKind.ARITHMETIC_NEGATE and cpt.OperatorKind.ARITHMETIC_SUBTRACT have the same symbol, 
+        # Special case: cpt.OperatorKind.ARITHMETIC_NEGATE and cpt.OperatorKind.ARITHMETIC_SUBTRACT have the same symbol,
         # so we need to catch this here
         if expr.operator is cpt.OperatorKind.ARITHMETIC_NEGATE:
             operator = BZOperator.INEG if is_int_operator else BZOperator.FNEG
@@ -555,10 +574,8 @@ def gen_ft_instruction(
         operand2_type,
         operand2_value,
     )
-    
-    log.debug(f"Generating: {expr}\n\t"
-              f"{ft_instr}", 
-              MODULE_CODE)
+
+    log.debug(f"Generating: {expr}\n\t" f"{ft_instr}", MODULE_CODE)
 
     return ft_instr
 
@@ -603,10 +620,8 @@ def gen_pt_instruction(
         operand2_type,
         operand2_value,
     )
-    
-    log.debug(f"Generating: {expr}\n\t"
-              f"{pt_instr}", 
-              MODULE_CODE)
+
+    log.debug(f"Generating: {expr}\n\t" f"{pt_instr}", MODULE_CODE)
 
     return pt_instr
 
@@ -629,9 +644,7 @@ def gen_scq_instructions(
     )
 
     if not isinstance(expr, cpt.TemporalOperator):
-        log.debug(f"Generating: {expr}\n\t"
-                  f"{cg_scq}", 
-                  MODULE_CODE)
+        log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
         return [cg_scq]
 
     cg_lb = CGInstruction(
@@ -662,10 +675,9 @@ def gen_scq_instructions(
         ),
     )
 
-    log.debug(f"Generating: {expr}\n\t"
-              f"{cg_scq}\n\t"
-              f"{cg_lb}\n\t"
-              f"{cg_ub}", MODULE_CODE)
+    log.debug(
+        f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
+    )
 
     return [cg_scq, cg_lb, cg_ub]
 
@@ -748,7 +760,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
             )
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
 
-        # Special case for bool -- TL ops directly embed bool literals in their operands, 
+        # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
         # TODO: Is there a case where a bool is used by the BZ engine? As in when this is ever not true for a bool?
         if isinstance(expr, cpt.Constant) and expr.has_only_tl_parents():
@@ -812,7 +824,9 @@ def pack_at_instruction(
     else:  # isinstance(instruction.compare_value, float):
         compare_format_str = "d"
 
-    compare_bytes = CStruct(f"{endian}{compare_format_str}").pack(instruction.compare_value)
+    compare_bytes = CStruct(f"{endian}{compare_format_str}").pack(
+        instruction.compare_value
+    )
 
     format_str = endian
     format_str += format_strs[FieldType.AT_VALUE]
@@ -1029,13 +1043,16 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> bytes:
 
     for spec in program.get_specs():
         if not isinstance(spec, cpt.Formula):
-            log.internal("Contract found during assembly. Why didn't transform_contract catch this?", MODULE_CODE)
+            log.internal(
+                "Contract found during assembly. Why didn't transform_contract catch this?",
+                MODULE_CODE,
+            )
             continue
-        
+
         binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
         log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", MODULE_CODE)
 
-    for label,contract in context.contracts.items():
+    for label, contract in context.contracts.items():
         binary += (
             f"C {label} {' '.join([str(f) for f in contract.formula_numbers])}".encode(
                 "ascii"

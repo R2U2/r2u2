@@ -1,0 +1,6 @@
+INPUT
+    s0,s1,s2: bool;
+
+FTSPEC
+    G[1,2] (s0 || s1); 
+    s0 U[0,2] (s1 && s2);

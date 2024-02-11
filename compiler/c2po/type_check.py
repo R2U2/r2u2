@@ -6,6 +6,7 @@ from c2po import cpt, log, types
 
 MODULE_CODE = "TYPC"
 
+
 def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
     """Returns True `start` is well-typed."""
 
@@ -18,9 +19,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
+
             context.add_formula(expr.symbol, expr)
-            
+
             expr.type = types.BoolType()
         elif isinstance(expr, cpt.Contract):
             if not types.is_bool_type(expr.children[0].type):
@@ -30,7 +31,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
+
             if not types.is_bool_type(expr.children[1].type):
                 log.error(
                     f"Guarantee of AGC must be a bool, found {expr.children[1].type}.",
@@ -38,7 +39,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
+
             context.add_contract(expr.symbol, expr)
 
             expr.type = types.ContractValueType()
@@ -58,6 +59,16 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.AtomicChecker):
+            if not context.atomic_checker_enabled:
+                log.error(
+                    "Atomic checkers not enabled, but found in expression.\n\t"
+                    f"{expr}",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+
+
             if expr.symbol not in context.atomic_checkers:
                 log.error(
                     f"Atomic checker '{expr.symbol}' not defined.",
@@ -179,7 +190,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
+
             is_const = False
             if all([child.type.is_const for child in expr.children]):
                 is_const = True
@@ -199,7 +210,11 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if expr.operator in {cpt.SetAggregationType.FOR_EXACTLY, cpt.SetAggregationType.FOR_AT_MOST, cpt.SetAggregationType.FOR_AT_LEAST}:
+            if expr.operator in {
+                cpt.SetAggregationKind.FOR_EXACTLY,
+                cpt.SetAggregationKind.FOR_AT_MOST,
+                cpt.SetAggregationKind.FOR_AT_LEAST,
+            }:
                 if not context.booleanizer_enabled:
                     log.error(
                         "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.",
@@ -265,14 +280,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         location=expr.loc,
                     )
                     return False
-                
+
             interval = expr.interval
             if not interval:
                 log.internal(
-                    "Interval not set for temporal operator\n\t"
-                    f"{expr}",
+                    "Interval not set for temporal operator\n\t" f"{expr}",
                     MODULE_CODE,
-                    location=expr.loc
+                    location=expr.loc,
                 )
                 return False
 
@@ -284,7 +298,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
+
             expr.type = types.BoolType(is_const)
         elif cpt.is_bitwise_operator(expr):
             expr = cast(cpt.Operator, expr)
@@ -349,8 +363,12 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if expr.operator is cpt.OperatorKind.ARITHMETIC_DIVIDE:
                 rhs: cpt.Expression = expr.children[1]
                 # TODO: disallow division by non-const expression entirely
-                if type(rhs) in {cpt.Integer, cpt.Float} and rhs.value == 0: # type: ignore
-                    log.error(f"Divide by zero found.\n\t{expr}", MODULE_CODE, location=expr.loc)
+                if isinstance(rhs, cpt.Constant) and rhs.value == 0:
+                    log.error(
+                        f"Divide by zero found.\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
                     return False
 
             for child in expr.children:
@@ -416,6 +434,9 @@ def type_check_atomic(
             location=relational_expr.loc,
         )
         return False
+    
+    if not type_check_expr(relational_expr, context):
+        return False
 
     lhs = relational_expr.children[0]
     rhs = relational_expr.children[1]
@@ -427,9 +448,7 @@ def type_check_atomic(
             location=lhs.loc,
         )
         return False
-    elif isinstance(lhs, cpt.Signal):
-        type_check_expr(lhs, context)
-    else:
+    elif not isinstance(lhs, cpt.Signal):
         log.error(
             "Left-hand side of atomic checker definition not a filter nor signal.\n\t"
             f"{atomic}",
@@ -438,7 +457,7 @@ def type_check_atomic(
         )
         return False
 
-    if type(rhs) not in {cpt.Constant, cpt.Signal}:
+    if not isinstance(rhs, (cpt.Constant, cpt.Signal)):
         log.error(
             "Right-hand side of atomic checker definition not a constant nor signal.\n\t"
             f"{rhs}",
@@ -446,8 +465,6 @@ def type_check_atomic(
             location=rhs.loc,
         )
         return False
-    
-    type_check_expr(rhs, context)
 
     return True
 
@@ -518,7 +535,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     MODULE_CODE,
                     location=spec.loc,
                 )
-            
+
             status = status and type_check_expr(spec, context)
 
     return status

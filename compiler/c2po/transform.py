@@ -113,10 +113,10 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                 subexpr.replace(member)
 
     for expr in program.preorder(context):
-        if type(expr) is not cpt.SetAggregation:
+        if not isinstance(expr, cpt.SetAggregation):
             continue
 
-        if expr.operator is cpt.SetAggregationType.FOR_EACH:
+        if expr.operator is cpt.SetAggregationKind.FOR_EACH:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
@@ -132,7 +132,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif expr.operator is cpt.SetAggregationType.FOR_SOME:
+        elif expr.operator is cpt.SetAggregationKind.FOR_SOME:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
@@ -148,7 +148,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif expr.operator is cpt.SetAggregationType.FOR_EXACTLY:
+        elif expr.operator is cpt.SetAggregationKind.FOR_EXACTLY:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
@@ -160,7 +160,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
                         for e in expr.get_set().children
                     ],
-                    types.IntType()
+                    types.IntType(),
                 ),
                 expr.get_num(),
             )
@@ -169,7 +169,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif expr.operator is cpt.SetAggregationType.FOR_AT_LEAST:
+        elif expr.operator is cpt.SetAggregationKind.FOR_AT_LEAST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
@@ -181,7 +181,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
                         for e in expr.get_set().children
                     ],
-                    types.IntType()
+                    types.IntType(),
                 ),
                 expr.get_num(),
             )
@@ -190,7 +190,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
 
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
-        elif expr.operator is cpt.SetAggregationType.FOR_AT_MOST:
+        elif expr.operator is cpt.SetAggregationKind.FOR_AT_MOST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
@@ -202,7 +202,7 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
                         cpt.rename(expr.bound_var, e, expr.get_expr(), context)
                         for e in expr.get_set().children
                     ],
-                    types.IntType()
+                    types.IntType(),
                 ),
                 expr.get_num(),
             )
@@ -290,7 +290,7 @@ def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> 
                     ),
                 )
             )
-        elif expr.operator is cpt.OperatorKind.LOGICAL_IFF:
+        elif expr.operator is cpt.OperatorKind.LOGICAL_EQUIV:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p <-> q = !(p && !q) && !(p && !q)
@@ -356,7 +356,7 @@ def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) ->
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
 
     for expr in program.postorder(context):
-        if type(expr) is not cpt.Operator:
+        if not isinstance(expr, cpt.Operator):
             continue
 
         if expr.operator is cpt.OperatorKind.LOGICAL_OR:
@@ -464,7 +464,7 @@ def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -
     return
 
     for expr in program.postorder(context):
-        if type(expr) is not cpt.Operator:
+        if not isinstance(expr, cpt.Operator):
             continue
 
         if isinstance(expr, cpt.Operator.LogicalNegate):
@@ -614,12 +614,12 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
         elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if type(lhs) is cpt.Constant and type(rhs) is cpt.Constant:
+            if isinstance(lhs, cpt.Constant) and isinstance(rhs, cpt.Constant):
                 pass
-            elif type(lhs) is cpt.Constant:
+            elif isinstance(lhs, cpt.Constant):
                 # (true == p) = p
                 new = rhs
-            elif type(rhs) is cpt.Constant:
+            elif isinstance(rhs, cpt.Constant):
                 # (p == true) = p
                 new = lhs
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
@@ -909,8 +909,12 @@ def transform_multi_operator(program: cpt.Program, context: cpt.Context) -> None
         }:
             new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
             for i in range(2, len(expr.children) - 1):
-                new = type(expr)(expr.loc, expr.operator, [new, expr.children[i]], expr.type)
-            new = type(expr)(expr.loc, expr.operator, [new, expr.children[-1]], expr.type)
+                new = type(expr)(
+                    expr.loc, expr.operator, [new, expr.children[i]], expr.type
+                )
+            new = type(expr)(
+                expr.loc, expr.operator, [new, expr.children[-1]], expr.type
+            )
 
             expr.replace(new)
 

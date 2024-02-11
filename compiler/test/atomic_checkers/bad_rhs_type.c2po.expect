@@ -1,0 +1,3 @@
+[TYPC][[91mERR[0m] bad_rhs_type.c2po:5: Invalid operands for '==', must be of same type (found 'bool' and 'int')
+	(b0)==(5)
+[MAIN][[91mERR[0m] Failed type check.

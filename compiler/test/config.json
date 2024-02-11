@@ -1,8 +1,13 @@
 [
     {
         "input": "atomic_checkers/bool.c2po", 
-        "expected_output": "atomic_checkers/bool.c2po.expect", 
+        "expected_output": "atomic_checkers/bool.c2po.at.expect", 
         "options": ["-at", "--map", "default.map"]
+    },
+    {
+        "input": "atomic_checkers/bool.c2po", 
+        "expected_output": "atomic_checkers/bool.c2po.bz.expect", 
+        "options": ["-bz", "--map", "default.map"]
     },
     {
         "input": "atomic_checkers/int.c2po", 
@@ -15,6 +20,11 @@
         "options": ["-at", "--map", "default.map"]
     },
     {
+        "input": "atomic_checkers/bad_rhs_type.c2po", 
+        "expected_output": "atomic_checkers/bad_rhs_type.c2po.expect", 
+        "options": ["-at", "--map", "default.map"]
+    },
+    {
         "input": "cse/at.c2po", 
         "expected_output": "cse/at.c2po.expect", 
         "options": ["-at", "--map", "default.map"]
@@ -22,6 +32,36 @@
     {
         "input": "cse/basic.c2po", 
         "expected_output": "cse/basic.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "operators/arithmetic.c2po", 
+        "expected_output": "operators/arithmetic.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "operators/bitwise.c2po", 
+        "expected_output": "operators/bitwise.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "operators/logic.c2po", 
+        "expected_output": "operators/logic.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "operators/logic.c2po", 
+        "expected_output": "operators/logic.c2po.extops.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "operators/relational.c2po", 
+        "expected_output": "operators/relational.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "operators/temporal.c2po", 
+        "expected_output": "operators/temporal.c2po.expect", 
         "options": ["-bz", "--map", "default.map"]
     }
 ]

@@ -9,6 +9,7 @@ from c2po import assemble, cpt, log, parse, transform, type_check, types
 
 MODULE_CODE = "MAIN"
 
+
 class ReturnCode(enum.Enum):
     SUCCESS = 0
     ERROR = 1
@@ -57,7 +58,7 @@ def process_trace_file(
         if map_file_provided:
             log.warning(
                 "Map file given and header included in trace file; header will be ignored.",
-                MODULE_CODE
+                MODULE_CODE,
             )
 
         for id in [s.strip() for s in header.split(",")]:
@@ -65,7 +66,7 @@ def process_trace_file(
                 log.warning(
                     f"Signal ID '{id}' found multiple times in csv, using right-most value.",
                     module=MODULE_CODE,
-                    location=log.FileLocation(trace_path.name, 1)
+                    location=log.FileLocation(trace_path.name, 1),
                 )
             signal_mapping[id] = cnt
             cnt += 1
@@ -96,16 +97,16 @@ def process_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
                 log.warning(
                     f"Signal ID '{id}' found multiple times in map file, using latest value.",
                     module=MODULE_CODE,
-                    location=log.FileLocation(map_path.name, lines.index(line)+1)
+                    location=log.FileLocation(map_path.name, lines.index(line) + 1),
                 )
 
             mapping[id] = sid
         else:
             log.error(
                 f"Invalid format for map line (found {line})"
-                 "\n\t Should be of the form SYMBOL ':' NUMERAL",
+                "\n\t Should be of the form SYMBOL ':' NUMERAL",
                 module=MODULE_CODE,
-                location=log.FileLocation(map_path.name, lines.index(line))
+                location=log.FileLocation(map_path.name, lines.index(line)),
             )
             return None
 
@@ -157,7 +158,9 @@ def validate_input(
     if trace_filename != "":
         trace_path = pathlib.Path(trace_filename)
         if not trace_path.is_file():
-            log.error(f"Trace file '{trace_filename}' is not a valid file.", MODULE_CODE)
+            log.error(
+                f"Trace file '{trace_filename}' is not a valid file.", MODULE_CODE
+            )
 
     map_path = None
     if map_filename != "":
@@ -188,7 +191,8 @@ def validate_input(
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
             log.warning(
-                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).", MODULE_CODE
+                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time}).",
+                MODULE_CODE,
             )
     else:
         mission_time = trace_length
@@ -198,7 +202,7 @@ def validate_input(
     else:
         log.internal(
             f"Endianness option argument {endian} invalid. Check CLI options?",
-            MODULE_CODE
+            MODULE_CODE,
         )
         endian_sigil = "@"
 
@@ -215,7 +219,7 @@ def validate_input(
         ):
             log.error(
                 "Exactly one of booleanizer or atomic checker must be enabled for C implementation.",
-                MODULE_CODE
+                MODULE_CODE,
             )
             status = False
     else:  # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
@@ -225,7 +229,9 @@ def validate_input(
 
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
-            log.error("Extended operators only support for C implementation.", MODULE_CODE)
+            log.error(
+                "Extended operators only support for C implementation.", MODULE_CODE
+            )
             status = False
 
     if enable_nnf and enable_bnf:
@@ -260,12 +266,12 @@ def pickle(
     program: cpt.Program,
     input_path: pathlib.Path,
     output_filename: str,
-    overwrite: bool
+    overwrite: bool,
 ) -> None:
     """Dumps pickled AST if `output_filename` is not '.'"""
     if output_filename == ".":
         return
-    
+
     log.debug(f"Dumping AST to {output_filename}", MODULE_CODE)
 
     pickle_path = (
@@ -275,26 +281,29 @@ def pickle(
     )
 
     if pickle_path.exists() and not overwrite:
-        log.error(f"File '{pickle_path}' already exists, not pickling."
-                    "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        log.error(
+            f"File '{pickle_path}' already exists, not pickling."
+            "Use '--overwrite' to enable overwriting of files.",
+            MODULE_CODE,
+        )
         return
 
     ast_bytes = program.pickle()
 
     with open(pickle_path, "wb") as f:
         f.write(ast_bytes)
-    
+
 
 def dump_ast(
     program: cpt.Program,
     input_path: pathlib.Path,
     output_filename: str,
-    overwrite: bool
+    overwrite: bool,
 ) -> None:
     """Dumps string interpretation of `program` if `output_filename` is not '.'"""
     if output_filename == ".":
         return
-    
+
     log.debug(f"Dumping AST to {output_filename}", MODULE_CODE)
 
     dump_path = (
@@ -304,8 +313,11 @@ def dump_ast(
     )
 
     if dump_path.exists() and not overwrite:
-        log.error(f"File '{dump_path}' already exists, not dumping AST."
-                  "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        log.error(
+            f"File '{dump_path}' already exists, not dumping AST."
+            "Use '--overwrite' to enable overwriting of files.",
+            MODULE_CODE,
+        )
         return
 
     with open(dump_path, "w") as f:
@@ -316,12 +328,12 @@ def dump_mltl(
     program: cpt.Program,
     input_path: pathlib.Path,
     output_filename: str,
-    overwrite: bool
+    overwrite: bool,
 ) -> None:
     """Dumps pickled AST in MLTL standard if `dump_filename` is not '.'"""
     if output_filename == ".":
         return
-    
+
     log.debug(f"Dumping MLTL-STD to {output_filename}", MODULE_CODE)
 
     dump_path = (
@@ -331,8 +343,11 @@ def dump_mltl(
     )
 
     if dump_path.exists() and not overwrite:
-        log.error(f"File '{dump_path}' already exists, not dumping MLTL."
-                      "Use '--overwrite' to enable overwriting of files.", MODULE_CODE)
+        log.error(
+            f"File '{dump_path}' already exists, not dumping MLTL."
+            "Use '--overwrite' to enable overwriting of files.",
+            MODULE_CODE,
+        )
         return
 
     log.internal("MLTL-STD unsupported", MODULE_CODE)
@@ -500,7 +515,9 @@ def compile(
         log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
         return ReturnCode.INVALID_INPUT
 
-    (assembly, binary) = assemble.assemble(program, context, quiet, options.endian_sigil)
+    (assembly, binary) = assemble.assemble(
+        program, context, quiet, options.endian_sigil
+    )
 
     if not quiet:
         [print(instr) for instr in assembly]

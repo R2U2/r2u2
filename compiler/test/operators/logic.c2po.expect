@@ -1,0 +1,36 @@
+BZ b0  iload  0 0
+BZ b1  iload  1 0
+TL n0  load   a0
+TL n1  not    n0
+TL n2  return n1 0
+TL n3  load   a1
+TL n4  and    n0 n3
+TL n5  return n4 1
+TL n6  not    n3
+TL n7  and    n1 n6
+TL n8  not    n7
+TL n9  return n8 2
+TL n10 and    n0 n6
+TL n11 not    n10
+TL n12 return n11 3
+TL n13 and    n1 n3
+TL n14 not    n13
+TL n15 and    n11 n14
+TL n16 return n15 4
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 6)
+CG TL SCQ n2  (6, 7)
+CG TL SCQ n3  (7, 10)
+CG TL SCQ n4  (10, 13)
+CG TL SCQ n5  (13, 14)
+CG TL SCQ n6  (14, 17)
+CG TL SCQ n7  (17, 20)
+CG TL SCQ n8  (20, 23)
+CG TL SCQ n9  (23, 24)
+CG TL SCQ n10 (24, 27)
+CG TL SCQ n11 (27, 30)
+CG TL SCQ n12 (30, 31)
+CG TL SCQ n13 (31, 34)
+CG TL SCQ n14 (34, 37)
+CG TL SCQ n15 (37, 40)
+CG TL SCQ n16 (40, 41)
