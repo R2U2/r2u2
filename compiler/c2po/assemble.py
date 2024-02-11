@@ -75,32 +75,32 @@ class BZOperator(Enum):
         return self.name.lower()
 
 # (OperatorType, Is integer variant) |-> BZOperator
-BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorType, bool], BZOperator] = {
-    (cpt.OperatorType.BITWISE_NEGATE, True): BZOperator.BWNEG,
-    (cpt.OperatorType.BITWISE_AND, True): BZOperator.BWAND,
-    (cpt.OperatorType.BITWISE_OR, True): BZOperator.BWOR,
-    (cpt.OperatorType.BITWISE_XOR, True): BZOperator.BWXOR,
-    (cpt.OperatorType.ARITHMETIC_ADD, True): BZOperator.IADD,
-    (cpt.OperatorType.ARITHMETIC_ADD, False): BZOperator.FADD,
-    (cpt.OperatorType.ARITHMETIC_SUBTRACT, True): BZOperator.ISUB,
-    (cpt.OperatorType.ARITHMETIC_SUBTRACT, False): BZOperator.FSUB,
-    (cpt.OperatorType.ARITHMETIC_MULTPLY, True): BZOperator.IMUL,
-    (cpt.OperatorType.ARITHMETIC_MULTPLY, False): BZOperator.FMUL,
-    (cpt.OperatorType.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
-    (cpt.OperatorType.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
-    (cpt.OperatorType.ARITHMETIC_MODULO, True): BZOperator.MOD,
-    (cpt.OperatorType.ARITHMETIC_NEGATE, True): BZOperator.INEG,
-    (cpt.OperatorType.ARITHMETIC_NEGATE, False): BZOperator.FNEG,
-    (cpt.OperatorType.EQUAL, True): BZOperator.IEQ,
-    (cpt.OperatorType.EQUAL, False): BZOperator.FEQ,
-    (cpt.OperatorType.NOT_EQUAL, True): BZOperator.INEQ,
-    (cpt.OperatorType.NOT_EQUAL, False): BZOperator.FNEQ,
-    (cpt.OperatorType.GREATER_THAN, True): BZOperator.IGT,
-    (cpt.OperatorType.GREATER_THAN, False): BZOperator.FGT,
-    (cpt.OperatorType.GREATER_THAN_OR_EQUAL, True): BZOperator.IGTE,
-    (cpt.OperatorType.LESS_THAN, True): BZOperator.ILT,
-    (cpt.OperatorType.LESS_THAN, False): BZOperator.FLT,
-    (cpt.OperatorType.LESS_THAN_OR_EQUAL, True): BZOperator.ILTE,
+BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
+    (cpt.OperatorKind.BITWISE_NEGATE, True): BZOperator.BWNEG,
+    (cpt.OperatorKind.BITWISE_AND, True): BZOperator.BWAND,
+    (cpt.OperatorKind.BITWISE_OR, True): BZOperator.BWOR,
+    (cpt.OperatorKind.BITWISE_XOR, True): BZOperator.BWXOR,
+    (cpt.OperatorKind.ARITHMETIC_ADD, True): BZOperator.IADD,
+    (cpt.OperatorKind.ARITHMETIC_ADD, False): BZOperator.FADD,
+    (cpt.OperatorKind.ARITHMETIC_SUBTRACT, True): BZOperator.ISUB,
+    (cpt.OperatorKind.ARITHMETIC_SUBTRACT, False): BZOperator.FSUB,
+    (cpt.OperatorKind.ARITHMETIC_MULTPLY, True): BZOperator.IMUL,
+    (cpt.OperatorKind.ARITHMETIC_MULTPLY, False): BZOperator.FMUL,
+    (cpt.OperatorKind.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
+    (cpt.OperatorKind.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
+    (cpt.OperatorKind.ARITHMETIC_MODULO, True): BZOperator.MOD,
+    (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
+    (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
+    (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,
+    (cpt.OperatorKind.NOT_EQUAL, False): BZOperator.FNEQ,
+    (cpt.OperatorKind.GREATER_THAN, True): BZOperator.IGT,
+    (cpt.OperatorKind.GREATER_THAN, False): BZOperator.FGT,
+    (cpt.OperatorKind.GREATER_THAN_OR_EQUAL, True): BZOperator.IGTE,
+    (cpt.OperatorKind.GREATER_THAN_OR_EQUAL, False): BZOperator.FGT,
+    (cpt.OperatorKind.LESS_THAN, True): BZOperator.ILT,
+    (cpt.OperatorKind.LESS_THAN, False): BZOperator.FLT,
+    (cpt.OperatorKind.LESS_THAN_OR_EQUAL, True): BZOperator.ILTE,
+    (cpt.OperatorKind.LESS_THAN_OR_EQUAL, False): BZOperator.FLT,
 }
 
 
@@ -118,12 +118,12 @@ class ATRelOp(Enum):
 
 
 AT_REL_OP_MAP = {
-    cpt.OperatorType.EQUAL: ATRelOp.EQ,
-    cpt.OperatorType.NOT_EQUAL: ATRelOp.NEQ,
-    cpt.OperatorType.LESS_THAN: ATRelOp.LT,
-    cpt.OperatorType.LESS_THAN_OR_EQUAL: ATRelOp.LEQ,
-    cpt.OperatorType.GREATER_THAN: ATRelOp.GT,
-    cpt.OperatorType.GREATER_THAN_OR_EQUAL: ATRelOp.GEQ,
+    cpt.OperatorKind.EQUAL: ATRelOp.EQ,
+    cpt.OperatorKind.NOT_EQUAL: ATRelOp.NEQ,
+    cpt.OperatorKind.LESS_THAN: ATRelOp.LT,
+    cpt.OperatorKind.LESS_THAN_OR_EQUAL: ATRelOp.LEQ,
+    cpt.OperatorKind.GREATER_THAN: ATRelOp.GT,
+    cpt.OperatorKind.GREATER_THAN_OR_EQUAL: ATRelOp.GEQ,
 }
 
 
@@ -182,10 +182,10 @@ class FTOperator(Enum):
 
 
 FT_OPERATOR_MAP = {
-    cpt.OperatorType.GLOBAL: FTOperator.GLOBAL,
-    cpt.OperatorType.UNTIL: FTOperator.UNTIL,
-    cpt.OperatorType.LOGICAL_NEGATE: FTOperator.NOT,
-    cpt.OperatorType.LOGICAL_AND: FTOperator.AND,
+    cpt.OperatorKind.GLOBAL: FTOperator.GLOBAL,
+    cpt.OperatorKind.UNTIL: FTOperator.UNTIL,
+    cpt.OperatorKind.LOGICAL_NEGATE: FTOperator.NOT,
+    cpt.OperatorKind.LOGICAL_AND: FTOperator.AND,
 }
 
 
@@ -218,14 +218,13 @@ class PTOperator(Enum):
 
 
 PT_OPERATOR_MAP = {
-    cpt.Formula: PTOperator.RETURN,
-    cpt.OperatorType.ONCE: PTOperator.ONCE,
-    cpt.OperatorType.HISTORICAL: PTOperator.HIST,
-    cpt.OperatorType.SINCE: PTOperator.SINCE,
-    cpt.OperatorType.LOGICAL_NEGATE: PTOperator.NOT,
-    cpt.OperatorType.LOGICAL_AND: PTOperator.AND,
-    cpt.OperatorType.LOGICAL_OR: PTOperator.OR,
-    cpt.OperatorType.LOGICAL_IMPLIES: PTOperator.IMPLIES,
+    cpt.OperatorKind.ONCE: PTOperator.ONCE,
+    cpt.OperatorKind.HISTORICAL: PTOperator.HIST,
+    cpt.OperatorKind.SINCE: PTOperator.SINCE,
+    cpt.OperatorKind.LOGICAL_NEGATE: PTOperator.NOT,
+    cpt.OperatorKind.LOGICAL_AND: PTOperator.AND,
+    cpt.OperatorKind.LOGICAL_OR: PTOperator.OR,
+    cpt.OperatorKind.LOGICAL_IMPLIES: PTOperator.IMPLIES,
     Any: PTOperator.NOP,
 }
 
@@ -424,9 +423,9 @@ def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruct
     return ATInstruction(
         EngineTag.AT,
         node.atomic_id,
-        AT_REL_OP_MAP[type(expr)],  # type: ignore
+        AT_REL_OP_MAP[expr.operator],
         signal.signal_id,
-        AT_FILTER_MAP[type(signal.type)],  # type: ignore
+        AT_FILTER_MAP[type(signal.type)], # type: ignore
         compare_value,
         isinstance(expr.children[1], cpt.Signal),
         node.atomic_id,
@@ -461,7 +460,13 @@ def gen_bz_instruction(
 
         is_int_operator = types.is_integer_type(expr.type)
         expr = cast(cpt.Operator, expr)
-        operator = BZ_OPERATOR_MAP[(expr.operator, is_int_operator)]
+
+        # Special case: cpt.OperatorKind.ARITHMETIC_NEGATE and cpt.OperatorKind.ARITHMETIC_SUBTRACT have the same symbol, 
+        # so we need to catch this here
+        if expr.operator is cpt.OperatorKind.ARITHMETIC_NEGATE:
+            operator = BZOperator.INEG if is_int_operator else BZOperator.FNEG
+        else:
+            operator = BZ_OPERATOR_MAP[(expr.operator, is_int_operator)]
     elif expr.num_children() == 2:
         operand1 = instructions[expr.children[0]].id
         operand2 = instructions[expr.children[1]].id
@@ -567,20 +572,30 @@ def gen_pt_instruction(
             instructions[expr.get_expr()].id,
         )
         operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
+        operator = PTOperator.RETURN
     elif expr.num_children() == 1:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
+
+        expr = cast(cpt.Operator, expr)
+        operator = PT_OPERATOR_MAP[expr.operator]
     elif expr.num_children() == 2:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(expr.children[1], instructions)
+
+        expr = cast(cpt.Operator, expr)
+        operator = PT_OPERATOR_MAP[expr.operator]
     else:
         operand1_type, operand1_value = gen_tl_operand(None, instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
+        expr = cast(cpt.Operator, expr)
+        operator = PT_OPERATOR_MAP[expr.operator]
+
     pt_instr = TLInstruction(
         EngineTag.TL,
         ptid,
-        PT_OPERATOR_MAP[type(expr)],
+        operator,
         operand1_type,
         operand1_value,
         operand2_type,
@@ -611,21 +626,18 @@ def gen_scq_instructions(
         ),
     )
 
-    if not cpt.is_temporal_operator(expr):
+    if not isinstance(expr, cpt.TemporalOperator):
         log.debug(f"Generating: {expr}\n\t"
                   f"{cg_scq}", 
                   MODULE_CODE)
         return [cg_scq]
-
-    expr = cast(cpt.Operator, expr)
-    interval = expr.get_interval()
 
     cg_lb = CGInstruction(
         EngineTag.CG,
         CGType.LB,
         TLInstruction(
             EngineTag.TL,
-            interval.lb,
+            expr.interval.lb,
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
             instructions[expr].id,
@@ -639,7 +651,7 @@ def gen_scq_instructions(
         CGType.UB,
         TLInstruction(
             EngineTag.TL,
-            interval.ub,
+            expr.interval.ub,
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
             instructions[expr].id,
@@ -659,7 +671,7 @@ def gen_scq_instructions(
 def gen_boxq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], boxqs: int
 ) -> list[CGInstruction]:
-    if not cpt.is_temporal_operator(expr):
+    if not isinstance(expr, cpt.TemporalOperator):
         return []
 
     cg_boxq = CGInstruction(
@@ -675,18 +687,13 @@ def gen_boxq_instructions(
             64,
         ),
     )
-    
-    expr = cast(cpt.Operator, expr)
-    interval = expr.interval
-    if not interval:
-        raise ValueError
 
     cg_lb = CGInstruction(
         EngineTag.CG,
         CGType.BOXQ,
         TLInstruction(
             EngineTag.TL,
-            interval.lb,
+            expr.interval.lb,
             PTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
             instructions[expr].id,
@@ -700,7 +707,7 @@ def gen_boxq_instructions(
         CGType.BOXQ,
         TLInstruction(
             EngineTag.TL,
-            interval.ub,
+            expr.interval.ub,
             PTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
             instructions[expr].id,
@@ -834,7 +841,7 @@ def pack_at_instruction(
         f"{instruction.signal_type.value:<2} "
         f"{instruction.signal_id:<2} "
         f"{instruction.atomic_id:<2} "
-        f"{instruction.compare_is_signal:<2} ",
+        f"{instruction.compare_is_signal:<2} "
         f"{instruction.atomic_id:<2} ",
         MODULE_CODE,
     )

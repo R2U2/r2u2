@@ -47,7 +47,6 @@ def format(
     level: str,
     color: Optional[Color],
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> str:
     formatted_message = ""
@@ -60,9 +59,6 @@ def format(
     else:
         formatted_message += f"[{level}]"
 
-    if submodule:
-        formatted_message += f"[{submodule}]"
-
     if location:
         formatted_message += f" {location.filename}:{location.lineno}:"
 
@@ -74,13 +70,12 @@ def format(
 def debug(
     message: str,
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> None:
     if not enable_debug or enable_quiet:
         return
     formatted_message = format(
-        message, "DBG", Color.OKBLUE, module, submodule, location
+        message, "DBG", Color.OKBLUE, module, location
     )
     ERR.write(formatted_message)
 
@@ -88,34 +83,31 @@ def debug(
 def warning(
     message: str,
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "WRN", Color.WARN, module, submodule, location)
+    formatted_message = format(message, "WRN", Color.WARN, module, location)
     ERR.write(formatted_message)
 
 
 def error(
     message: str,
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "ERR", Color.FAIL, module, submodule, location)
+    formatted_message = format(message, "ERR", Color.FAIL, module, location)
     ERR.write(formatted_message)
 
 
 def internal(
     message: str,
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "BUG", Color.FAIL, module, submodule, location)
+    formatted_message = format(message, "BUG", Color.FAIL, module, location)
     ERR.write(formatted_message)

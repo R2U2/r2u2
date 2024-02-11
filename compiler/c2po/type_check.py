@@ -10,7 +10,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
     """Returns True `start` is well-typed."""
 
     for expr in cpt.postorder(start, context):
-        if type(expr) is cpt.Formula:
+        if isinstance(expr, cpt.Formula):
             if not types.is_bool_type(expr.get_expr().type):
                 log.error(
                     f"Formula must be a bool, found {expr.get_expr().type}.",
@@ -21,8 +21,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             
             context.add_formula(expr.symbol, expr)
             
-            expr.type = types.BoolType(False)
-        elif type(expr) is cpt.Contract:
+            expr.type = types.BoolType()
+        elif isinstance(expr, cpt.Contract):
             if not types.is_bool_type(expr.children[0].type):
                 log.error(
                     f"Assume of AGC must be a bool, found {expr.children[0].type}.",
@@ -41,10 +41,10 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             
             context.add_contract(expr.symbol, expr)
 
-            expr.type = types.ContractValueType(False)
-        elif type(expr) is cpt.Constant:
+            expr.type = types.ContractValueType()
+        elif isinstance(expr, cpt.Constant):
             pass
-        elif type(expr) is cpt.Signal:
+        elif isinstance(expr, cpt.Signal):
             if context.assembly_enabled and expr.symbol not in context.signal_mapping:
                 log.error(
                     f"Mapping does not contain signal '{expr.symbol}'.",
@@ -57,7 +57,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
-        elif type(expr) is cpt.AtomicChecker:
+        elif isinstance(expr, cpt.AtomicChecker):
             if expr.symbol not in context.atomic_checkers:
                 log.error(
                     f"Atomic checker '{expr.symbol}' not defined.",
@@ -65,7 +65,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-        elif type(expr) is cpt.Variable:
+        elif isinstance(expr, cpt.Variable):
             symbol = expr.symbol
 
             if symbol in context.bound_vars:
@@ -93,9 +93,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
             elif symbol in context.atomic_checkers:
-                expr.type = types.BoolType(False)
+                expr.type = types.BoolType()
             elif symbol in context.specifications:
-                expr.type = types.BoolType(False)
+                expr.type = types.BoolType()
             elif symbol in context.contracts:
                 log.error(
                     f"Contracts not allowed as subexpressions ('{symbol}').",
@@ -108,7 +108,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     f"Symbol '{symbol}' not recognized.", MODULE_CODE, location=expr.loc
                 )
                 return False
-        elif type(expr) is cpt.SetExpression:
+        elif isinstance(expr, cpt.SetExpression):
             new_type: types.Type = types.NoType()
             is_const: bool = True
 
@@ -125,8 +125,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
 
-            expr.type = types.SetType(is_const, new_type)
-        elif type(expr) is cpt.Struct:
+            expr.type = types.SetType(new_type, is_const)
+        elif isinstance(expr, cpt.Struct):
             is_const: bool = True
 
             for member in expr.children:
@@ -146,8 +146,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         location=expr.loc,
                     )
 
-            expr.type = types.StructType(is_const, expr.symbol)
-        elif type(expr) is cpt.StructAccess:
+            expr.type = types.StructType(expr.symbol, is_const)
+        elif isinstance(expr, cpt.StructAccess):
             struct_symbol = expr.get_struct().type.symbol
             if struct_symbol not in context.structs:
                 log.error(
@@ -170,7 +170,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-        elif type(expr) is cpt.FunctionCall:
+        elif isinstance(expr, cpt.FunctionCall):
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
@@ -184,8 +184,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if all([child.type.is_const for child in expr.children]):
                 is_const = True
 
-            expr.type = types.StructType(is_const, expr.symbol)
-        elif type(expr) is cpt.SetAggregation:
+            expr.type = types.StructType(expr.symbol, is_const)
+        elif isinstance(expr, cpt.SetAggregation):
             s: cpt.SetExpression = expr.get_set()
             boundvar: cpt.Variable = expr.bound_var
 
@@ -219,7 +219,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             e: cpt.Expression = expr.get_expr()
 
-            if e.type != types.BoolType(False):
+            if e.type != types.BoolType():
                 log.error(
                     f"Set aggregation expression must be 'bool' (found '{expr.type}')",
                     MODULE_CODE,
@@ -228,6 +228,64 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 return False
 
             expr.type = types.BoolType(expr.type.is_const and s.type.is_const)
+        elif isinstance(expr, cpt.TemporalOperator):
+            is_const: bool = True
+
+            for child in expr.children:
+                is_const = is_const and child.type.is_const
+                if child.type != types.BoolType():
+                    log.error(
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+
+            # check for mixed-time formulas
+            if cpt.is_future_time_operator(expr):
+                if context.is_past_time():
+                    log.error(
+                        f"Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+            elif cpt.is_past_time_operator(expr):
+                if context.implementation != types.R2U2Implementation.C:
+                    log.error(
+                        f"Past-time operators only support in C version of R2U2.\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+                if context.is_future_time():
+                    log.error(
+                        f"Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+                
+            interval = expr.interval
+            if not interval:
+                log.internal(
+                    "Interval not set for temporal operator\n\t"
+                    f"{expr}",
+                    MODULE_CODE,
+                    location=expr.loc
+                )
+                return False
+
+            if interval.lb > interval.ub:
+                log.error(
+                    "Time interval invalid, lower bound must less than or equal to upper bound.\n\t"
+                    f"[{interval.lb},{interval.ub}]",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+            
+            expr.type = types.BoolType(is_const)
         elif cpt.is_bitwise_operator(expr):
             expr = cast(cpt.Operator, expr)
             is_const: bool = True
@@ -288,7 +346,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if all([c.type.is_const for c in expr.children]):
                 new_type.is_const = True
 
-            if expr.operator is cpt.OperatorType.ARITHMETIC_DIVIDE:
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_DIVIDE:
                 rhs: cpt.Expression = expr.children[1]
                 # TODO: disallow division by non-const expression entirely
                 if type(rhs) in {cpt.Integer, cpt.Float} and rhs.value == 0: # type: ignore
@@ -326,7 +384,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             for child in expr.children:
                 is_const = is_const and child.type.is_const
-                if child.type != types.BoolType(False):
+                if child.type != types.BoolType():
                     log.error(
                         f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
                         MODULE_CODE,
@@ -334,65 +392,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
 
-            expr.type = types.BoolType(is_const)
-        elif cpt.is_temporal_operator(expr):
-            expr = cast(cpt.Operator, expr)
-            is_const: bool = True
-
-            for child in expr.children:
-                is_const = is_const and child.type.is_const
-                if child.type != types.BoolType(False):
-                    log.error(
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-
-            # check for mixed-time formulas
-            if cpt.is_future_time_operator(expr):
-                if context.is_past_time():
-                    log.error(
-                        f"Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{expr}",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-            elif cpt.is_past_time_operator(expr):
-                if context.implementation != types.R2U2Implementation.C:
-                    log.error(
-                        f"Past-time operators only support in C version of R2U2.\n\t{expr}",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-                if context.is_future_time():
-                    log.error(
-                        f"Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{expr}",
-                        MODULE_CODE,
-                        location=expr.loc,
-                    )
-                    return False
-                
-            interval = expr.interval
-            if not interval:
-                log.internal(
-                    "Interval not set for temporal operator\n\t",
-                    f"{expr}",
-                    MODULE_CODE,
-                    location=expr.loc
-                )
-                return False
-
-            if interval.lb > interval.ub:
-                log.error(
-                    "Time interval invalid, lower bound must less than or equal to upper bound.\n\t"
-                    f"[{interval.lb},{interval.ub}]",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
-            
             expr.type = types.BoolType(is_const)
         else:
             log.error(

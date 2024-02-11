@@ -60,6 +60,9 @@ class Type:
         if isinstance(arg, Type):
             return self.value == arg.value
         return False
+    
+    def __hash__(self) -> int:
+        return hash(self.value)
 
     def __str__(self) -> str:
         return self.symbol
@@ -75,7 +78,7 @@ class NoType(Type):
 class BoolType(Type):
     """Boolean C2PO type."""
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.BOOL, is_const, "bool")
 
 
@@ -85,7 +88,7 @@ class IntType(Type):
     width: int = 8
     is_signed: bool = False
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.INT, is_const, "int")
 
 
@@ -94,14 +97,14 @@ class FloatType(Type):
 
     width: int = 32
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.FLOAT, is_const, "float")
 
 
 class StructType(Type):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, is_const: bool, symbol: str):
+    def __init__(self, symbol: str, is_const: bool = False):
         super().__init__(BaseType.STRUCT, is_const, symbol)
 
     def __eq__(self, arg: object) -> bool:
@@ -113,14 +116,14 @@ class StructType(Type):
 class ContractValueType(Type):
     """Output value of Assume-Guarantee Contracts. Can be one of: inactive, invalid, or verified."""
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.CONTRACT, is_const, "contract")
 
 
 class SetType(Type):
     """Parameterized set C2PO type."""
 
-    def __init__(self, is_const: bool, member_type: Type):
+    def __init__(self, member_type: Type, is_const: bool = False):
         super().__init__(BaseType.SET, is_const, "set<" + str(member_type) + ">")
         self.member_type: Type = member_type
 

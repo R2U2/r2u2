@@ -254,19 +254,19 @@ class C2POParser(sly.Parser):
     @_("SYMBOL")
     def type(self, p):
         if p[0] == "bool":
-            return types.BoolType(False)
+            return types.BoolType()
         elif p[0] == "int":
-            return types.IntType(False)
+            return types.IntType()
         elif p[0] == "float":
-            return types.FloatType(False)
+            return types.FloatType()
         else:
-            return types.StructType(False, p[0])
+            return types.StructType(p[0])
     
     # Parameterized type
     @_("SYMBOL REL_LT type REL_GT")
     def type(self, p):
         if p[0] == "set":
-            return types.SetType(False, p[2])
+            return types.SetType(p[2])
 
         log.error(f"Type '{p[0]}' not recognized", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
         self.status = False
@@ -514,32 +514,32 @@ class C2POParser(sly.Parser):
     # Unary temporal expressions
     @_("TL_GLOBAL interval expr")
     def expr(self, p):
-        return cpt.Operator.Global(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
+        return cpt.TemporalOperator.Global(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_FUTURE interval expr")
     def expr(self, p):
-        return cpt.Operator.Future(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
+        return cpt.TemporalOperator.Future(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_HIST interval expr")
     def expr(self, p):
-        return cpt.Operator.Historical(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
+        return cpt.TemporalOperator.Historical(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_ONCE interval expr")
     def expr(self, p):
-        return cpt.Operator.Once(log.FileLocation(self.filename, p.lineno),  p[1].lb, p[1].ub, p[2])
+        return cpt.TemporalOperator.Once(log.FileLocation(self.filename, p.lineno),  p[1].lb, p[1].ub, p[2])
 
     # Binary temporal expressions
     @_("expr TL_UNTIL interval expr")
     def expr(self, p):
-        return cpt.Operator.Until(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+        return cpt.TemporalOperator.Until(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     @_("expr TL_RELEASE interval expr")
     def expr(self, p):
-        return cpt.Operator.Release(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+        return cpt.TemporalOperator.Release(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
-        return cpt.Operator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+        return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -705,7 +705,7 @@ class MLTLParser(sly.Parser):
 
     @_("spec_list")
     def program(self, p):
-        declaration = [cpt.VariableDeclaration(0, list(self.atomics), types.BoolType(False))]
+        declaration = [cpt.VariableDeclaration(0, list(self.atomics), types.BoolType())]
         input_section = cpt.InputSection(0, declaration)
 
         if self.is_pt:
