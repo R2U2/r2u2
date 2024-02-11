@@ -1,0 +1,5 @@
+AT a0  eq  s0 bool(True)
+TL n0  load   a0
+TL n1  return n0 0
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 4)
