@@ -125,6 +125,7 @@ def run_test(test: dict) -> bool:
         )
 
         prefix_output_path.unlink()
+        
     if status:
         print_pass(f"{test['input']}")
     else:

@@ -408,7 +408,6 @@ class SetAggregation(Expression):
             children[1] if len(self.children) == 4 else None,
             cast(Expression, children[-1]),
         )
-        print("done")
         self.copy_attrs(new)
         return new
 
@@ -869,7 +868,7 @@ class StructDefinition(Node):
 
     def __str__(self) -> str:
         members_str_list = [str(s) + ";" for s in self.var_decls]
-        return self.symbol + "{" + " ".join(members_str_list) + ")"
+        return self.symbol + ": {" + " ".join(members_str_list) + "}"
 
 
 class VariableDeclaration(Node):
@@ -1208,12 +1207,16 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += f".{expr.member}"
         elif isinstance(expr, SetExpression):
-            if seen == 0:
+            if seen == len(expr.children):
+                s += "}"
+            elif seen == 0:
                 s += "{"
                 stack.append((seen + 1, expr))
-                [stack.append((0, child)) for child in expr.children]
+                stack.append((0, expr.children[0]))
             else:
-                s += ")"
+                s += ","
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):
@@ -1268,9 +1271,13 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, Formula):
-            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-            s += ":"
-            stack.append((0, expr.get_expr()))
+            if seen == 0:
+                s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
+                s += ":"
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_expr()))
+            else:
+                s += ";"
         elif isinstance(expr, Contract):
             if seen == 0:
                 s += f"{expr.symbol}: ("
