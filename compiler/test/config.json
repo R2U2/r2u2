@@ -97,7 +97,7 @@
     {
         "input": "mltl/future.mltl", 
         "expected_output": "mltl/future.mltl.expect", 
-        "options": ["-bz", "--map", "default.map", "--write-prefix", "-c"]
+        "options": ["-bz"]
     },
     {
         "input": "mltl/past.mltl", 
@@ -108,5 +108,10 @@
         "input": "mltl/tense_mixing.mltl", 
         "expected_output": "mltl/tense_mixing.mltl.expect", 
         "options": ["-bz"]
+    },
+    {
+        "input": "cav/cav.c2po", 
+        "expected_c2po": "cav/cav.c2po.expect", 
+        "options": ["-bz", "--write-c2po", "-c"]
     }
 ]
