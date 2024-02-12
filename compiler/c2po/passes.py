@@ -550,7 +550,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         cpt.Operator.LogicalNegate(rhs.loc, rhs),
                     )
                 )
-        elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_IMPLIES):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
 
@@ -560,7 +560,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
                 )
             )
-        elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_XOR):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_XOR):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             
