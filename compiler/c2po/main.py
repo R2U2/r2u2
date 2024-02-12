@@ -5,7 +5,7 @@ import pathlib
 import re
 from typing import NamedTuple, Optional
 
-from c2po import assemble, cpt, log, parse, transform, type_check, types
+from c2po import assemble, cpt, log, parse, type_check, types, passes
 
 MODULE_CODE = "MAIN"
 
@@ -27,7 +27,7 @@ class ValidatedInput(NamedTuple):
     mission_time: int
     endian_sigil: str
     signal_mapping: types.SignalMapping
-    transforms: set[transform.C2POTransform]
+    transforms: set[passes.Pass]
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -239,17 +239,17 @@ def validate_input(
             "Attempting rewrite to both NNF and BNF, defaulting to NNF.", MODULE_CODE
         )
 
-    transforms = set(transform.TRANSFORM_PIPELINE)
+    transforms = set(passes.PASSES)
     if not enable_rewrite:
-        transforms.remove(transform.optimize_rewrite_rules)
+        transforms.remove(passes.optimize_rewrite_rules)
     if enable_extops:
-        transforms.remove(transform.transform_extended_operators)
+        transforms.remove(passes.remove_extended_operators)
     if not enable_nnf:
-        transforms.remove(transform.transform_negative_normal_form)
+        transforms.remove(passes.to_nnf)
     if not enable_bnf:
-        transforms.remove(transform.transform_boolean_normal_form)
+        transforms.remove(passes.to_bnf)
     if not enable_cse:
-        transforms.remove(transform.optimize_cse)
+        transforms.remove(passes.optimize_cse)
 
     return ValidatedInput(
         status,
@@ -321,7 +321,7 @@ def dump_ast(
         return
 
     with open(dump_path, "w") as f:
-        f.write(str(program))
+        f.write(repr(program))
 
 
 def dump_mltl(
@@ -496,7 +496,7 @@ def compile(
     # Transforms
     # ----------------------------------
     log.debug("Performing transforms", MODULE_CODE)
-    for trans in [t for t in transform.TRANSFORM_PIPELINE if t in options.transforms]:
+    for trans in [t for t in passes.PASSES if t in options.transforms]:
         trans(program, context)
 
     # Optional file dumps

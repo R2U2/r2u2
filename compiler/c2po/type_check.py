@@ -9,12 +9,19 @@ MODULE_CODE = "TYPC"
 
 def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
     """Returns True `start` is well-typed."""
-
     for expr in cpt.postorder(start, context):
         if isinstance(expr, cpt.Formula):
             if not types.is_bool_type(expr.get_expr().type):
                 log.error(
                     f"Formula must be a bool, found {expr.get_expr().type}.",
+                    MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+            
+            if expr.get_expr().type.is_const:
+                log.error(
+                    f"Constant specification detected, remove or make this non-constant.\n\t{expr}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -44,7 +51,17 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = types.ContractValueType()
         elif isinstance(expr, cpt.Constant):
-            pass
+            if isinstance(expr.value, int) and expr.value.bit_length() > types.IntType.width:
+                log.error(
+                    f"Constant '{expr.value}' not representable in configured int width ('{types.IntType.width}').",
+                    module=MODULE_CODE,
+                    location=expr.loc,
+                )
+                return False
+            
+            # TODO: Implement a check for valid float width, maybe with something like:
+            # if len(value.hex()[2:]) > types.FloatType.width:
+            #     ...
         elif isinstance(expr, cpt.Signal):
             if context.assembly_enabled and expr.symbol not in context.signal_mapping:
                 log.error(
@@ -67,7 +84,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-
 
             if expr.symbol not in context.atomic_checkers:
                 log.error(
@@ -98,7 +114,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = context.definitions[symbol].type
             elif symbol in context.structs:
                 log.error(
-                    "Defined structs may not be used as variables. Maybe you mean to declare the struct first?",
+                    "Defined structs may not be used as variables. Try declaring the struct first.",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -109,7 +125,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
                 log.error(
-                    f"Contracts not allowed as subexpressions ('{symbol}').",
+                    f"Contracts not allowed as sub-expressions ('{symbol}').",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -394,6 +410,25 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
+            
+            if expr.operator in {
+                cpt.OperatorKind.EQUAL,
+                cpt.OperatorKind.NOT_EQUAL,
+            }:
+                if lhs.type == types.FloatType():
+                    log.error(
+                        f"Equality invalid for float expressions ({lhs}).\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+                if rhs.type == types.FloatType():
+                    log.error(
+                        f"Equality invalid for float expressions ({rhs}).\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
 
             expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
         elif cpt.is_logical_operator(expr):
@@ -434,7 +469,7 @@ def type_check_atomic(
             location=relational_expr.loc,
         )
         return False
-    
+
     if not type_check_expr(relational_expr, context):
         return False
 
@@ -494,9 +529,12 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     location=definition.loc,
                 )
 
-            status = status and type_check_expr(definition.expr, context)
-            if status:
+            is_good_def = type_check_expr(definition.expr, context)
+
+            if is_good_def:
                 context.add_definition(definition.symbol, definition.expr)
+
+            status = status and is_good_def
     elif isinstance(section, cpt.StructSection):
         for struct in section.struct_defs:
             if struct.symbol in context.get_symbols():
@@ -518,9 +556,12 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     location=atomic.loc,
                 )
 
-            status = status and type_check_atomic(atomic, context)
-            if status:
+            is_good_atomic = type_check_atomic(atomic, context)
+
+            if is_good_atomic:
                 context.add_atomic(atomic.symbol, atomic.get_expr())
+
+            status = status and is_good_atomic
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
             context.set_future_time()
@@ -536,7 +577,8 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     location=spec.loc,
                 )
 
-            status = status and type_check_expr(spec, context)
+            is_good_spec = type_check_expr(spec, context)
+            status = status and is_good_spec
 
     return status
 
@@ -563,6 +605,6 @@ def type_check(
     )
 
     for section in program.sections:
-        status = status and type_check_section(section, context)
+        status = type_check_section(section, context) and status
 
     return (status, context)

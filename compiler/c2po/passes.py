@@ -7,8 +7,8 @@ from c2po import cpt, log, types
 MODULE_CODE = "TRNS"
 
 
-def transform_definitions(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
+def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
+    """Expands each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
     log.debug("Expanding definitions", MODULE_CODE)
 
     for expr in [
@@ -27,8 +27,8 @@ def transform_definitions(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(f"Post definition expansion:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_function_calls(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms each function call in `program` that corresponds to a struct instantiation to a `ast.C2POStruct`."""
+def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
+    """Converts each function call in `program` that corresponds to a struct instantiation to a `ast.C2POStruct`."""
     for expr in [
         expr
         for define in context.definitions.values()
@@ -54,7 +54,7 @@ def transform_function_calls(program: cpt.Program, context: cpt.Context) -> None
         )
 
 
-def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
+def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
     log.debug("Replacing contracts", MODULE_CODE)
 
@@ -95,8 +95,8 @@ def transform_contracts(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(f"Post contract replacement:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
+def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
+    """Unrolls set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
     log.debug("Unrolling set aggregation expressions.", MODULE_CODE)
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
@@ -215,8 +215,8 @@ def transform_set_aggregation(program: cpt.Program, context: cpt.Context) -> Non
     log.debug(f"Post set aggregation unrolling:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms struct access operations to the underlying member expression."""
+def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
+    """Resolves struct access operations to the underlying member expression."""
     log.debug("Resolving struct accesses.", MODULE_CODE)
 
     for expr in program.postorder(context):
@@ -231,8 +231,8 @@ def transform_struct_accesses(program: cpt.Program, context: cpt.Context) -> Non
     log.debug(f"Post struct access resolution:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
-    """Transforms specifications in `program` to remove extended operators (or, xor, implies, iff, release, future)."""
+def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
+    """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
     log.debug("Removing extended operators.", MODULE_CODE)
 
     for expr in program.postorder(context):
@@ -352,7 +352,7 @@ def transform_extended_operators(program: cpt.Program, context: cpt.Context) -> 
     log.debug(f"Post extended operator removal:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) -> None:
+def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
 
     for expr in program.postorder(context):
@@ -457,7 +457,7 @@ def transform_boolean_normal_form(program: cpt.Program, context: cpt.Context) ->
             )
 
 
-def transform_negative_normal_form(program: cpt.Program, context: cpt.Context) -> None:
+def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
     """FIXME: currently does not work properly
 
     Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
@@ -893,7 +893,7 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(f"Post CSE:\n{repr(program)}", MODULE_CODE)
 
 
-def transform_multi_operator(program: cpt.Program, context: cpt.Context) -> None:
+def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> None:
     """Converts all multi-arity operators (e.g., &&, ||, +) to binary."""
     log.debug("Converting multi-arity operators", module=MODULE_CODE)
 
@@ -987,23 +987,23 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         )
 
 
-# A ast.C2POTransform is a function with the signature:
-#    transform(program, context) -> None
-C2POTransform = Callable[[cpt.Program, cpt.Context], None]
+# A Pass is a function with the signature:
+#    pass(program, context) -> None
+Pass = Callable[[cpt.Program, cpt.Context], None]
 
 # This is ORDER-SENSITIVE
-TRANSFORM_PIPELINE: list[C2POTransform] = [
-    transform_definitions,
-    transform_function_calls,
-    transform_contracts,
-    transform_set_aggregation,
-    transform_struct_accesses,
+PASSES: list[Pass] = [
+    expand_definitions,
+    convert_function_calls_to_structs,
+    resolve_contracts,
+    unroll_set_aggregation,
+    resolve_struct_accesses,
     optimize_rewrite_rules,
-    transform_extended_operators,
-    transform_negative_normal_form,
-    transform_boolean_normal_form,
+    remove_extended_operators,
+    to_nnf,
+    to_bnf,
     optimize_cse,
-    transform_multi_operator,
+    multi_operators_to_binary,
     compute_atomics,  # not a transform, but needed for assembly+analysis
     compute_scq_sizes,  # not a transform, but needed for assembly+analysis
 ]

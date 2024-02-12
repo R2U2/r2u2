@@ -69,12 +69,6 @@ class Expression(Node):
 
         return siblings
 
-    def num_children(self) -> int:
-        return len(self.children)
-
-    def num_parents(self) -> int:
-        return len(self.parents)
-
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
@@ -105,9 +99,13 @@ class Expression(Node):
 
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
+        new.engine = self.engine
+        new.atomic_id = self.atomic_id
         new.scq_size = self.scq_size
+        new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
         new.wpd = self.wpd
+        new.scq = self.scq
         new.type = self.type
 
     def __str__(self) -> str:
@@ -128,19 +126,8 @@ class Constant(Expression):
             self.type = types.BoolType(True)
         elif isinstance(value, int):
             self.type = types.IntType(True)
-
-            if value.bit_length() > types.IntType.width:
-                log.error(
-                    f"Constant '{value}' not representable in configured int width ('{types.IntType.width}').",
-                    module=MODULE_CODE,
-                    location=loc,
-                )
         elif isinstance(value, float):
             self.type = types.FloatType(True)
-
-            # FIXME:
-            # if len(value.hex()[2:]) > types.FloatType.width:
-            #     ...
         else:
             raise ValueError(f"Bad value ({value})")
 

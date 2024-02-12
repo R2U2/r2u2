@@ -160,7 +160,7 @@ class C2POParser(sly.Parser):
             )
 
     def fresh_label(self) -> str:
-        return f"#f{self.spec_num}"
+        return f"__f{self.spec_num}__"
 
     @_("section ft_spec_section")
     def section(self, p):

@@ -261,6 +261,14 @@ class CGType(Enum):
         return self.name
 
 
+class AliasType(Enum):
+    FORMULA = "F"
+    CONTRACT = "C"
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class FieldType(Enum):
     ENGINE_TAG = 0
     INSTR_SIZE = 1
@@ -418,6 +426,16 @@ class CGInstruction:
         return " ".join(field_strs)
 
 
+@dataclass
+class AliasInstruction:
+    type: AliasType
+    symbol: str
+    args: list[str]
+
+    def __str__(self) -> str:
+        return f"{self.type.value} {self.symbol} {' '.join(self.args)}"
+
+
 Instruction = Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction]
 
 
@@ -475,7 +493,7 @@ def gen_bz_instruction(
         operand1 = expr.value
         operand2 = 0
         operator = BZOperator.FCONST
-    elif expr.num_children() == 1:
+    elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id
         operand2 = 0
 
@@ -488,7 +506,7 @@ def gen_bz_instruction(
             operator = BZOperator.INEG if is_int_operator else BZOperator.FNEG
         else:
             operator = BZ_OPERATOR_MAP[(expr.operator, is_int_operator)]
-    elif expr.num_children() == 2:
+    elif len(expr.children) == 2:
         operand1 = instructions[expr.children[0]].id
         operand2 = instructions[expr.children[1]].id
 
@@ -546,13 +564,13 @@ def gen_ft_instruction(
         )
         operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
         operator = FTOperator.RETURN
-    elif expr.num_children() == 1:
+    elif len(expr.children) == 1:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
         expr = cast(cpt.Operator, expr)
         operator = FT_OPERATOR_MAP[expr.operator]
-    elif expr.num_children() == 2:
+    elif len(expr.children) == 2:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(expr.children[1], instructions)
 
@@ -592,13 +610,13 @@ def gen_pt_instruction(
         )
         operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
         operator = PTOperator.RETURN
-    elif expr.num_children() == 1:
+    elif len(expr.children) == 1:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
 
         expr = cast(cpt.Operator, expr)
         operator = PT_OPERATOR_MAP[expr.operator]
-    elif expr.num_children() == 2:
+    elif len(expr.children) == 2:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(expr.children[1], instructions)
 
@@ -1018,7 +1036,7 @@ def pack_cg_instruction(
 
 
 def pack_instruction(
-    instruction: Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction],
+    instruction: Instruction,
     format_strs: dict[FieldType, str],
     endian: str,
 ) -> bytes:
@@ -1038,38 +1056,37 @@ def pack_instruction(
     return binary_len + binary
 
 
-def pack_aliases(program: cpt.Program, context: cpt.Context) -> bytes:
+def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[AliasInstruction], bytes]:
+    aliases: list[AliasInstruction] = []
     binary = bytes()
 
     for spec in program.get_specs():
         if not isinstance(spec, cpt.Formula):
             log.internal(
-                "Contract found during assembly. Why didn't transform_contract catch this?",
+                "Contract found during assembly. Why didn't transform_contracts catch this?",
                 MODULE_CODE,
             )
             continue
 
-        binary += f"F {spec.symbol} {spec.formula_number}".encode("ascii") + b"\x00"
-        log.debug(f"Packing: F {spec.symbol} {spec.formula_number}", MODULE_CODE)
+        alias = AliasInstruction(AliasType.FORMULA, spec.symbol, [str(spec.formula_number)])
+        aliases.append(alias)
+        binary += str(alias).encode("ascii") + b"\x00"
+
+        log.debug(f"Packing: {alias}", MODULE_CODE)
 
     for label, contract in context.contracts.items():
-        binary += (
-            f"C {label} {' '.join([str(f) for f in contract.formula_numbers])}".encode(
-                "ascii"
-            )
-            + b"\x00"
-        )
-        log.debug(
-            f"Packing: C {label} {' '.join([str(f) for f in contract.formula_numbers])}",
-            MODULE_CODE,
-        )
+        alias = AliasInstruction(AliasType.CONTRACT, label, [str(f) for f in contract.formula_numbers])
+        aliases.append(alias)
+        binary += str(alias).encode("ascii") + b"\x00"
 
-    return binary
+        log.debug(f"Packing: {alias}", MODULE_CODE)
+
+    return (aliases, binary)
 
 
 def assemble(
     program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
-) -> tuple[list[Instruction], bytes]:
+) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
     log.debug("Assembling", MODULE_CODE)
 
     check_sizes()
@@ -1085,7 +1102,11 @@ def assemble(
         binary += pack_instruction(instr, field_format_str_map, endian)
 
     binary += b"\x00"
-    binary += pack_aliases(program, context)
+
+    (aliases, binary_aliases) = pack_aliases(program, context)
+    assembly += aliases
+    binary += binary_aliases
+
     binary += b"\x00"
 
     return (assembly, binary)
