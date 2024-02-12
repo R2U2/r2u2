@@ -27,7 +27,7 @@ class ValidatedInput(NamedTuple):
     mission_time: int
     endian_sigil: str
     signal_mapping: types.SignalMapping
-    transforms: set[passes.Pass]
+    passes: set[passes.Pass]
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -144,7 +144,7 @@ def validate_input(
         `int`: mission time, either set to `custom_mission_time` or the input trace length if not provided
         `str`: endianness string from `BYTE_ORDER_SIGILS`
         `Optional[types.SignalMapping]`: signal mapping if it was derived from `trace_filename` or `map_filebame`, `None` otherwise
-        `set[C2POTransform]`: set of transforms to apply to the input
+        `set[passes.Pass]`: set of pass to apply to the input
     """
     log.debug("Validating input", MODULE_CODE)
     status: bool = True
@@ -239,17 +239,17 @@ def validate_input(
             "Attempting rewrite to both NNF and BNF, defaulting to NNF.", MODULE_CODE
         )
 
-    transforms = set(passes.PASSES)
+    enabled_passes = set(passes.PASSES)
     if not enable_rewrite:
-        transforms.remove(passes.optimize_rewrite_rules)
+        enabled_passes.remove(passes.optimize_rewrite_rules)
     if enable_extops:
-        transforms.remove(passes.remove_extended_operators)
+        enabled_passes.remove(passes.remove_extended_operators)
     if not enable_nnf:
-        transforms.remove(passes.to_nnf)
+        enabled_passes.remove(passes.to_nnf)
     if not enable_bnf:
-        transforms.remove(passes.to_bnf)
+        enabled_passes.remove(passes.to_bnf)
     if not enable_cse:
-        transforms.remove(passes.optimize_cse)
+        enabled_passes.remove(passes.optimize_cse)
 
     return ValidatedInput(
         status,
@@ -258,7 +258,7 @@ def validate_input(
         mission_time,
         endian_sigil,
         signal_mapping,
-        transforms,
+        enabled_passes,
     )
 
 
@@ -389,8 +389,8 @@ def compile(
     1. Input validation
     2. Parser
     3. Type checker
-    4. Required transformations
-    5. Option-based transformations
+    4. Required passes
+    5. Option-based passes
     6. Optimizations
     7. Assembly
 
@@ -495,9 +495,9 @@ def compile(
     # ----------------------------------
     # Transforms
     # ----------------------------------
-    log.debug("Performing transforms", MODULE_CODE)
-    for trans in [t for t in passes.PASSES if t in options.transforms]:
-        trans(program, context)
+    log.debug("Performing passes", MODULE_CODE)
+    for cpass in [t for t in passes.PASSES if t in options.passes]:
+        cpass(program, context)
 
     # Optional file dumps
     pickle(program, options.input_path, pickle_filename, overwrite)

@@ -4,7 +4,7 @@ from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types
 
-MODULE_CODE = "TRNS"
+MODULE_CODE = "PASS"
 
 
 def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
@@ -1004,6 +1004,6 @@ PASSES: list[Pass] = [
     to_bnf,
     optimize_cse,
     multi_operators_to_binary,
-    compute_atomics,  # not a transform, but needed for assembly+analysis
-    compute_scq_sizes,  # not a transform, but needed for assembly+analysis
+    compute_atomics, 
+    compute_scq_sizes, 
 ]
