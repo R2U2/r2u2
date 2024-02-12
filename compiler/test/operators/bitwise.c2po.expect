@@ -25,3 +25,7 @@ CG TL SCQ n4  (8, 11)
 CG TL SCQ n5  (11, 12)
 CG TL SCQ n6  (12, 15)
 CG TL SCQ n7  (15, 16)
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3

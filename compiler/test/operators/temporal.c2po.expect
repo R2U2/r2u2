@@ -53,3 +53,10 @@ CG TL BOXQ n3  5
 CG TL BOXQ n6  320
 CG TL BOXQ n6  0
 CG TL BOXQ n6  5
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5
+F __f6__ 6

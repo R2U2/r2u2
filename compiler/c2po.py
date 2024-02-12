@@ -19,7 +19,7 @@ parser.add_argument("--impl", default="c",
 parser.add_argument("-o", "--output", default="spec.bin",
                     help="location where output file will be generated")
 
-parser.add_argument("--int-width", default=8,
+parser.add_argument("--int-width", default=8, type=int,
                     help="bit width for integer types")
 parser.add_argument("--int-signed", action="store_true",
                     help="set int types to signed")
@@ -46,6 +46,7 @@ parser.add_argument("--extops", action="store_true",
                     
 parser.add_argument("--pickle", nargs="?", default=".", const="",
                     help="pickle AST and write to argument if provided; defaults to input filename with .pickle extension")
+
 parser.add_argument("--dump-mltl", nargs="?", default=".", const="",
                     help="dump input file in MLTL standard format to argument if provided; defaults to input filename with .pickle extension")
 parser.add_argument("--dump-ast", nargs="?", default=".", const="",

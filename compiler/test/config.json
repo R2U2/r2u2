@@ -63,5 +63,20 @@
         "input": "operators/temporal.c2po", 
         "expected_output": "operators/temporal.c2po.expect", 
         "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "type_check/unmapped_input.c2po", 
+        "expected_output": "type_check/unmapped_input.c2po.expect", 
+        "options": ["-bz", "--map", "default.map"]
+    },
+    {
+        "input": "type_check/unmapped_input.c2po", 
+        "expected_output": "type_check/unmapped_input.c2po.da.expect", 
+        "options": ["-bz", "-da", "--map", "default.map"]
+    },
+    {
+        "input": "type_check/bad_int_width.c2po", 
+        "expected_output": "type_check/bad_int_width.c2po.expect", 
+        "options": ["-bz", "--int-width", "8", "--map", "default.map"]
     }
 ]

@@ -10,3 +10,5 @@ CG TL SCQ n1  (3, 6)
 CG TL SCQ n2  (6, 9)
 CG TL SCQ n3  (9, 10)
 CG TL SCQ n4  (10, 11)
+F __f0__ 0
+F __f1__ 1
