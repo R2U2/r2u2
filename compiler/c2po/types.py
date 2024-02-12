@@ -5,6 +5,7 @@ from c2po import log
 
 MODULE_CODE = "TYPE"
 
+
 class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
@@ -24,18 +25,6 @@ class Interval(NamedTuple):
 
 
 SignalMapping = Dict[str, int]
-
-
-def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
-    if s.lower() == "c":
-        return R2U2Implementation.C
-    elif s.lower() == "c++" or s.lower() == "cpp":
-        return R2U2Implementation.CPP
-    elif s.lower() == "fpga" or s.lower() == "vhdl":
-        return R2U2Implementation.VHDL
-    else:
-        log.error(f"R2U2 implementation '{s}' unsupported. Defaulting to C.", MODULE_CODE)
-        return R2U2Implementation.C
 
 
 class BaseType(enum.Enum):
@@ -60,7 +49,7 @@ class Type:
         if isinstance(arg, Type):
             return self.value == arg.value
         return False
-    
+
     def __hash__(self) -> int:
         return hash(self.value)
 
@@ -174,7 +163,8 @@ def set_types(
 
     if int_width % 8 != 0:
         log.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment.", MODULE_CODE
+            " Invalid int width, must be a multiple of 8 for byte-alignment.",
+            MODULE_CODE,
         )
 
     if float_width % 8 != 0:

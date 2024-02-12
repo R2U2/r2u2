@@ -15,7 +15,7 @@ class C2POLexer(sly.Lexer):
     tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
-               LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, #LOG_XOR,
+               LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
@@ -35,7 +35,6 @@ class C2POLexer(sly.Lexer):
     LOG_NEG  = r"!|¬"
     LOG_AND  = r"&&|∧"
     LOG_OR   = r"\|\||∨"
-    # LOG_XOR  = r"XOR|⊕"
     LOG_IMPL = r"->|→"
     LOG_IFF  = r"<->|↔"
 
@@ -92,6 +91,7 @@ class C2POLexer(sly.Lexer):
     SYMBOL["forexactly"] = KW_FOREXACTLY
     SYMBOL["foratleast"] = KW_FORATLEAST
     SYMBOL["foratmost"]  = KW_FORATMOST
+    SYMBOL["xor"] = LOG_XOR
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
     SYMBOL['H'] = TL_HIST
@@ -121,7 +121,7 @@ class C2POParser(sly.Parser):
 
     # Using C operator precedence as a guide
     precedence = (
-        ("left", LOG_IMPL, LOG_IFF),
+        ("left", LOG_IMPL, LOG_XOR, LOG_IFF),
         ("left", LOG_OR),
         ("left", LOG_AND),
         ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
@@ -431,6 +431,10 @@ class C2POParser(sly.Parser):
         return cpt.Operator.ArithmeticNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
     # Binary expressions
+    @_("expr LOG_XOR expr")
+    def expr(self, p):
+        return cpt.Operator.LogicalXor(log.FileLocation(self.filename, p.lineno), [p[0], p[2]])
+    
     @_("expr LOG_IMPL expr")
     def expr(self, p):
         return cpt.Operator.LogicalImplies(log.FileLocation(self.filename, p.lineno), p[0], p[2])

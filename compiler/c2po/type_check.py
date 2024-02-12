@@ -13,7 +13,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         if isinstance(expr, cpt.Formula):
             if not types.is_bool_type(expr.get_expr().type):
                 log.error(
-                    f"Formula must be a bool, found {expr.get_expr().type}.",
+                    f"Formula must be a bool, found {expr.get_expr().type}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -21,7 +21,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             
             if expr.get_expr().type.is_const:
                 log.error(
-                    f"Constant specification detected, remove or make this non-constant.\n\t{expr}",
+                    f"Constant specification detected, remove or make this non-constant\n\t{expr}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -33,7 +33,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.Contract):
             if not types.is_bool_type(expr.children[0].type):
                 log.error(
-                    f"Assume of AGC must be a bool, found {expr.children[0].type}.",
+                    f"Assume of AGC must be a bool, found {expr.children[0].type}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -41,7 +41,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if not types.is_bool_type(expr.children[1].type):
                 log.error(
-                    f"Guarantee of AGC must be a bool, found {expr.children[1].type}.",
+                    f"Guarantee of AGC must be a bool, found {expr.children[1].type}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -53,7 +53,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.Constant):
             if isinstance(expr.value, int) and expr.value.bit_length() > types.IntType.width:
                 log.error(
-                    f"Constant '{expr.value}' not representable in configured int width ('{types.IntType.width}').",
+                    f"Constant '{expr.value}' not representable in configured int width ('{types.IntType.width}')",
                     module=MODULE_CODE,
                     location=expr.loc,
                 )
@@ -65,7 +65,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.Signal):
             if context.assembly_enabled and expr.symbol not in context.signal_mapping:
                 log.error(
-                    f"Mapping does not contain signal '{expr.symbol}'.",
+                    f"Mapping does not contain signal '{expr.symbol}'",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -78,7 +78,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.AtomicChecker):
             if not context.atomic_checker_enabled:
                 log.error(
-                    "Atomic checkers not enabled, but found in expression.\n\t"
+                    "Atomic checkers not enabled, but found in expression\n\t"
                     f"{expr}",
                     MODULE_CODE,
                     location=expr.loc,
@@ -87,7 +87,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if expr.symbol not in context.atomic_checkers:
                 log.error(
-                    f"Atomic checker '{expr.symbol}' not defined.",
+                    f"Atomic checker '{expr.symbol}' not defined",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -114,7 +114,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = context.definitions[symbol].type
             elif symbol in context.structs:
                 log.error(
-                    "Defined structs may not be used as variables. Try declaring the struct first.",
+                    "Defined structs may not be used as variables, try declaring the struct first",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -125,14 +125,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
                 log.error(
-                    f"Contracts not allowed as sub-expressions ('{symbol}').",
+                    f"Contracts not allowed as sub-expressions ('{symbol}')",
                     MODULE_CODE,
                     location=expr.loc,
                 )
                 return False
             else:
                 log.error(
-                    f"Symbol '{symbol}' not recognized.", MODULE_CODE, location=expr.loc
+                    f"Symbol '{symbol}' not recognized", MODULE_CODE, location=expr.loc
                 )
                 return False
         elif isinstance(expr, cpt.SetExpression):
@@ -163,7 +163,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 member = expr.get_member(member)
                 if not member:
                     raise RuntimeError(
-                        f"Member '{member}' not in struct '{expr.symbol}'."
+                        f"Member '{member}' not in struct '{expr.symbol}'"
                     )
 
                 if member.type != new_type:
@@ -178,7 +178,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             struct_symbol = expr.get_struct().type.symbol
             if struct_symbol not in context.structs:
                 log.error(
-                    f"Struct '{struct_symbol}' not defined ({expr}).",
+                    f"Struct '{struct_symbol}' not defined ({expr})",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -201,7 +201,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
-                    f"General functions unsupported.\n\t{expr}",
+                    f"General functions unsupported\n\t{expr}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -233,7 +233,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             }:
                 if not context.booleanizer_enabled:
                     log.error(
-                        "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.",
+                        "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled",
                         MODULE_CODE,
                         location=expr.loc,
                     )
@@ -276,7 +276,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if cpt.is_future_time_operator(expr):
                 if context.is_past_time():
                     log.error(
-                        f"Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{expr}",
+                        f"Mixed-time formulas unsupported, found FT formula in PTSPEC\n\t{expr}",
                         MODULE_CODE,
                         location=expr.loc,
                     )
@@ -284,14 +284,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             elif cpt.is_past_time_operator(expr):
                 if context.implementation != types.R2U2Implementation.C:
                     log.error(
-                        f"Past-time operators only support in C version of R2U2.\n\t{expr}",
+                        f"Past-time operators only support in C version of R2U2\n\t{expr}",
                         MODULE_CODE,
                         location=expr.loc,
                     )
                     return False
                 if context.is_future_time():
                     log.error(
-                        f"Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{expr}",
+                        f"Mixed-time formulas unsupported, found PT formula in FTSPEC\n\t{expr}",
                         MODULE_CODE,
                         location=expr.loc,
                     )
@@ -308,7 +308,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if interval.lb > interval.ub:
                 log.error(
-                    "Time interval invalid, lower bound must less than or equal to upper bound.\n\t"
+                    "Time interval invalid, lower bound must less than or equal to upper bound\n\t"
                     f"[{interval.lb},{interval.ub}]",
                     MODULE_CODE,
                     location=expr.loc,
@@ -357,7 +357,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if context.implementation != types.R2U2Implementation.C:
                 log.error(
-                    f"Arithmetic operators only support in C version of R2U2.\n\t{expr}",
+                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
                     MODULE_CODE,
                     location=expr.loc,
                 )
@@ -381,7 +381,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 # TODO: disallow division by non-const expression entirely
                 if isinstance(rhs, cpt.Constant) and rhs.value == 0:
                     log.error(
-                        f"Divide by zero found.\n\t{expr}",
+                        f"Divide by zero found\n\t{expr}",
                         MODULE_CODE,
                         location=expr.loc,
                     )
@@ -464,7 +464,7 @@ def type_check_atomic(
 
     if not cpt.is_relational_operator(relational_expr):
         log.error(
-            f"Atomic checker definition not a relation.\n\t" f"{atomic}",
+            f"Atomic checker definition not a relation\n\t" f"{atomic}",
             MODULE_CODE,
             location=relational_expr.loc,
         )
@@ -485,7 +485,7 @@ def type_check_atomic(
         return False
     elif not isinstance(lhs, cpt.Signal):
         log.error(
-            "Left-hand side of atomic checker definition not a filter nor signal.\n\t"
+            "Left-hand side of atomic checker definition not a filter nor signal\n\t"
             f"{atomic}",
             MODULE_CODE,
             location=lhs.loc,
@@ -494,7 +494,7 @@ def type_check_atomic(
 
     if not isinstance(rhs, (cpt.Constant, cpt.Signal)):
         log.error(
-            "Right-hand side of atomic checker definition not a constant nor signal.\n\t"
+            "Right-hand side of atomic checker definition not a constant nor signal\n\t"
             f"{rhs}",
             MODULE_CODE,
             location=rhs.loc,
@@ -513,7 +513,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 if signal in context.get_symbols():
                     status = False
                     log.error(
-                        f"Symbol '{signal}' already in use.",
+                        f"Symbol '{signal}' already in use",
                         MODULE_CODE,
                         location=declaration.loc,
                     )
@@ -524,7 +524,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
             if definition.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    f"Symbol '{definition.symbol}' already in use.",
+                    f"Symbol '{definition.symbol}' already in use",
                     MODULE_CODE,
                     location=definition.loc,
                 )
@@ -540,7 +540,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
             if struct.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    f"Symbol '{struct.symbol}' already in use.",
+                    f"Symbol '{struct.symbol}' already in use",
                     MODULE_CODE,
                     location=struct.loc,
                 )
@@ -551,7 +551,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
             if atomic.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    f"Symbol '{atomic.symbol}' already in use.",
+                    f"Symbol '{atomic.symbol}' already in use",
                     MODULE_CODE,
                     location=atomic.loc,
                 )
@@ -572,7 +572,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
             if spec.symbol != "" and spec.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    f"Symbol '{spec.symbol}' already in use.",
+                    f"Symbol '{spec.symbol}' already in use",
                     MODULE_CODE,
                     location=spec.loc,
                 )

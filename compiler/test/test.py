@@ -31,6 +31,27 @@ def print_fail(msg: str):
     print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
 
 
+def run_diff(
+    expected_output: "list[str]", test_output: "list[str]", fromfile: str, tofile: str
+) -> "tuple[bool, str]":
+    """Returns a pair whose first element is True if the `expected_output` and `test_output` are the same and False otherwise, and whose second element is the diff between `expected_output` and `test_output`."""
+    result = difflib.unified_diff(
+        expected_output,
+        test_output,
+        fromfile=fromfile,
+        tofile=tofile,
+    )
+
+    status = True
+    diff = ""
+    for line in result:
+        if line[0] in {"-", "+", "?"}:
+            status = False
+        diff += line
+
+    return (status, diff)
+
+
 def run_test(test: dict) -> bool:
     """Runs and prints status of `test` where `test` looks like:
 
@@ -46,26 +67,64 @@ def run_test(test: dict) -> bool:
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    # Both stdout and stderr are captured in proc.stdout
-    test_output = proc.stdout.decode().splitlines(keepends=True)
+    if "expected_output" in test:
+        # Both stdout and stderr are captured in proc.stdout
+        test_output = proc.stdout.decode().splitlines(keepends=True)
 
-    with open(test["expected_output"], "r") as f:
-        expected_output = f.read().splitlines(keepends=True)
+        with open(test["expected_output"], "r") as f:
+            expected_output = f.read().splitlines(keepends=True)
 
-    result = difflib.unified_diff(
-        expected_output,
-        test_output,
-        fromfile=test["input"],
-        tofile=test["expected_output"],
-    )
+        status, diff = run_diff(
+            expected_output, test_output, test["input"], test["expected_output"]
+        )
+    elif "expected_c2po" in test:
+        # See serialize.py for default dump file names
+        input_path = pathlib.Path(test["input"])
+        c2po_output_path = input_path.with_suffix(".out.c2po")
 
-    diff = ""
-    status = True
-    for line in result:
-        if line[0] in {"-", "+", "?"}:
-            status = False
-        diff += line
+        with open(str(c2po_output_path), "r") as f:
+            test_output = f.read().splitlines(keepends=True)
 
+        with open(test["expected_c2po"], "r") as f:
+            expected_output = f.read().splitlines(keepends=True)
+
+        status, diff = run_diff(
+            expected_output, test_output, test["input"], test["expected_c2po"]
+        )
+
+        c2po_output_path.unlink()
+    elif "expected_mltl" in test:
+        # See serialize.py for default dump file names
+        input_path = pathlib.Path(test["input"])
+        mltl_output_path = input_path.with_suffix(".mltl")
+
+        with open(str(mltl_output_path), "r") as f:
+            test_output = f.read().splitlines(keepends=True)
+
+        with open(test["expected_mltl"], "r") as f:
+            expected_output = f.read().splitlines(keepends=True)
+
+        status, diff = run_diff(
+            expected_output, test_output, test["input"], test["expected_mltl"]
+        )
+
+        mltl_output_path.unlink()
+    elif "expected_prefix" in test:
+        # See serialize.py for default dump file names
+        input_path = pathlib.Path(test["input"])
+        prefix_output_path = input_path.with_suffix(".prefix.c2po")
+
+        with open(str(prefix_output_path), "r") as f:
+            test_output = f.read().splitlines(keepends=True)
+
+        with open(test["expected_prefix"], "r") as f:
+            expected_output = f.read().splitlines(keepends=True)
+
+        status, diff = run_diff(
+            expected_output, test_output, test["input"], test["expected_prefix"]
+        )
+
+        prefix_output_path.unlink()
     if status:
         print_pass(f"{test['input']}")
     else:
@@ -82,4 +141,3 @@ if __name__ == "__main__":
     if any([not run_test(test) for test in tests]):
         sys.exit(1)
     sys.exit(0)
-    

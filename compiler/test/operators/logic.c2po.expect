@@ -16,7 +16,9 @@ TL n12 return n11 3
 TL n13 and    n1 n3
 TL n14 not    n13
 TL n15 and    n11 n14
-TL n16 return n15 4
+TL n16 not    n15
+TL n17 return n16 4
+TL n18 return n15 5
 CG TL SCQ n0  (0, 3)
 CG TL SCQ n1  (3, 6)
 CG TL SCQ n2  (6, 7)
@@ -33,9 +35,12 @@ CG TL SCQ n12 (30, 31)
 CG TL SCQ n13 (31, 34)
 CG TL SCQ n14 (34, 37)
 CG TL SCQ n15 (37, 40)
-CG TL SCQ n16 (40, 41)
+CG TL SCQ n16 (40, 43)
+CG TL SCQ n17 (43, 44)
+CG TL SCQ n18 (44, 45)
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
 F __f3__ 3
 F __f4__ 4
+F __f5__ 5

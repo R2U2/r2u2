@@ -8,4 +8,5 @@ FTSPEC
     b0 && b1;
     b0 || b1;
     b0 -> b1;
+    b0 xor b1;
     b0 <-> b1;

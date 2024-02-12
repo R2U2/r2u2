@@ -458,21 +458,15 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
-    """FIXME: currently does not work properly
-
-    Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
-    return
-
-    for expr in program.postorder(context):
-        if not isinstance(expr, cpt.Operator):
-            continue
-
-        if isinstance(expr, cpt.Operator.LogicalNegate):
+    """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
+    for expr in program.preorder(context):
+        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             operand = expr.children[0]
-            if isinstance(operand, cpt.Operator.LogicalNegate):
+
+            if cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_NEGATE):
                 # !!p = p
                 expr.replace(operand.children[0])
-            if isinstance(operand, cpt.Operator.LogicalOr):
+            elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_OR):
                 # !(p || q) = !p && !q
                 expr.replace(
                     cpt.Operator.LogicalAnd(
@@ -483,7 +477,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         ],
                     )
                 )
-            if isinstance(operand, cpt.Operator.LogicalAnd):
+            elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_AND):
                 # !(p && q) = !p || !q
                 expr.replace(
                     cpt.Operator.LogicalOr(
@@ -494,68 +488,82 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         ],
                     )
                 )
-            elif isinstance(operand, cpt.Future):
+            elif cpt.is_operator(operand, cpt.OperatorKind.FUTURE):
+                operand = cast(cpt.TemporalOperator, operand)
                 bounds: types.Interval = operand.interval
+
                 # !F p = G !p
                 expr.replace(
-                    cpt.Global(
+                    cpt.TemporalOperator.Global(
                         expr.loc,
-                        cpt.Operator.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Operator.LogicalNegate(operand.loc, operand),
                     )
                 )
-            elif isinstance(operand, cpt.Global):
+            elif cpt.is_operator(operand, cpt.OperatorKind.GLOBAL):
+                operand = cast(cpt.TemporalOperator, operand)
                 bounds: types.Interval = operand.interval
+
                 # !G p = F !p
                 expr.replace(
-                    cpt.Future(
+                    cpt.TemporalOperator.Future(
                         expr.loc,
-                        cpt.Operator.LogicalNegate(operand.loc, operand),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Operator.LogicalNegate(operand.loc, operand),
                     )
                 )
-            elif isinstance(operand, cpt.Until):
+            elif cpt.is_operator(operand, cpt.OperatorKind.UNTIL):
+                operand = cast(cpt.TemporalOperator, operand)
+
                 lhs: cpt.Expression = operand.children[0]
                 rhs: cpt.Expression = operand.children[1]
+                
                 bounds: types.Interval = operand.interval
+
                 # !(p U q) = !p R !q
                 expr.replace(
-                    cpt.Release(
+                    cpt.TemporalOperator.Release(
                         expr.loc,
-                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
-                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                     )
                 )
-            elif isinstance(operand, cpt.Release):
+            elif cpt.is_operator(operand, cpt.OperatorKind.UNTIL):
+                operand = cast(cpt.TemporalOperator, operand)
+
                 lhs: cpt.Expression = operand.children[0]
                 rhs: cpt.Expression = operand.children[1]
+
                 bounds: types.Interval = operand.interval
+
                 # !(p R q) = !p U !q
                 expr.replace(
-                    cpt.Until(
+                    cpt.TemporalOperator.Until(
                         expr.loc,
-                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
-                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                         bounds.lb,
                         bounds.ub,
+                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
+                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
                     )
                 )
-        elif isinstance(expr, cpt.Operator.LogicalImplies):
+        elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_IMPLIES):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
+
             # p -> q = !p || q
             expr.replace(
                 cpt.Operator.LogicalOr(
                     expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
                 )
             )
-        elif isinstance(expr, cpt.Operator.LogicalXor):
+        elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_XOR):
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
+            
             # p xor q = (p && !q) || (!p && q)
             expr.replace(
                 cpt.Operator.LogicalOr(
@@ -991,8 +999,9 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 #    pass(program, context) -> None
 Pass = Callable[[cpt.Program, cpt.Context], None]
 
+
 # This is ORDER-SENSITIVE
-PASSES: list[Pass] = [
+PASS_LIST: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,

@@ -1,2 +1,2 @@
-[TYPC][[91mERR[0m] bad_int_width.c2po:5: Constant '256' not representable in configured int width ('8').
-[MAIN][[91mERR[0m] Failed type check.
+[TYPC][[91mERR[0m] bad_int_width.c2po:5: Constant '256' not representable in configured int width ('8')
+[MAIN][[91mERR[0m] Failed type check

@@ -10,8 +10,10 @@ TL n6  or     n0 n3
 TL n7  return n6 2
 TL n8  implies n0 n3
 TL n9  return n8 3
-TL n10 equiv  n0 n3
+TL n10 xor    n0 n3
 TL n11 return n10 4
+TL n12 equiv  n0 n3
+TL n13 return n12 5
 CG TL SCQ n0  (0, 3)
 CG TL SCQ n1  (3, 6)
 CG TL SCQ n2  (6, 7)
@@ -24,8 +26,11 @@ CG TL SCQ n8  (18, 21)
 CG TL SCQ n9  (21, 22)
 CG TL SCQ n10 (22, 25)
 CG TL SCQ n11 (25, 26)
+CG TL SCQ n12 (26, 29)
+CG TL SCQ n13 (29, 30)
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
 F __f3__ 3
 F __f4__ 4
+F __f5__ 5

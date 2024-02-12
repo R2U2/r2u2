@@ -20,6 +20,13 @@ class C2POSection(enum.Enum):
     PTSPEC = 5
 
 
+class CompilationStage(enum.Enum):
+    PARSE = 0
+    TYPE_CHECK = 1
+    PASSES = 2
+    ASSEMBLE = 3
+
+
 class Node:
     def __init__(self, loc: log.FileLocation) -> None:
         self.loc: log.FileLocation = loc
@@ -953,7 +960,7 @@ class FutureTimeSpecSection(SpecSection):
         super().__init__(loc, specs)
 
     def __str__(self) -> str:
-        return "FTPSEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
+        return "FTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
 
 class PastTimeSpecSection(SpecSection):
@@ -1276,7 +1283,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(f"Bad str ({expr.symbol})", MODULE_CODE)
+            log.error(f"Bad str ({expr})", MODULE_CODE)
             return ""
 
     return s
@@ -1352,6 +1359,9 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((0, expr.get_guarantee()))
             else:
                 s = s[:-1] + ")"
+        else:
+            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            return ""
 
     return s
 
