@@ -93,5 +93,20 @@
         "input": "serialize/simple.c2po", 
         "expected_prefix": "serialize/simple.c2po.prefix.expect", 
         "options": ["-bz", "--map", "default.map", "--write-prefix", "-c"]
+    },
+    {
+        "input": "mltl/future.mltl", 
+        "expected_output": "mltl/future.mltl.expect", 
+        "options": ["-bz", "--map", "default.map", "--write-prefix", "-c"]
+    },
+    {
+        "input": "mltl/past.mltl", 
+        "expected_output": "mltl/past.mltl.expect", 
+        "options": ["-bz"]
+    },
+    {
+        "input": "mltl/tense_mixing.mltl", 
+        "expected_output": "mltl/tense_mixing.mltl.expect", 
+        "options": ["-bz"]
     }
 ]

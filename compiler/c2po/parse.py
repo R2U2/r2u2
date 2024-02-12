@@ -268,7 +268,7 @@ class C2POParser(sly.Parser):
         if p[0] == "set":
             return types.SetType(p[2])
 
-        log.error(f"Type '{p[0]}' not recognized", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+        log.error(f"Type '{p[0]}' not recognized", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
         self.status = False
         return types.NoType()
 
@@ -597,7 +597,7 @@ class C2POParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
 
@@ -665,7 +665,7 @@ class MLTLLexer(sly.Lexer):
         return t
 
     def error(self, t):
-        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
         self.index += 1
 
 
@@ -707,6 +707,9 @@ class MLTLParser(sly.Parser):
                       log.FileLocation(self.filename, lineno)
             )
 
+    def fresh_label(self) -> str:
+        return f"__f{self.spec_num}__"
+
     @_("spec_list")
     def program(self, p):
         declaration = [cpt.VariableDeclaration(0, list(self.atomics), types.BoolType())]
@@ -735,7 +738,7 @@ class MLTLParser(sly.Parser):
     @_("expr NEWLINE")
     def spec(self, p):
         self.spec_num += 1
-        return cpt.Formula(log.FileLocation(self.filename, p.lineno), "", self.spec_num-1, p[0])
+        return cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num-1, p[0])
 
     # Unary expressions
     @_("LOG_NEG expr")
@@ -764,65 +767,65 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Global(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
+        return cpt.TemporalOperator.Global(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_FUTURE interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Future(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
+        return cpt.TemporalOperator.Future(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_HIST interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Historical(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
+        return cpt.TemporalOperator.Historical(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     @_("TL_ONCE interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Once(log.FileLocation(self.filename, p.lineno), p[2], p[1].lb, p[1].ub)
+        return cpt.TemporalOperator.Once(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
 
     # Binary temporal expressions
     @_("expr TL_UNTIL interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Until(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.TemporalOperator.Until(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     @_("expr TL_RELEASE interval expr")
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Release(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.TemporalOperator.Release(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
 
-        return cpt.Operator.Since(log.FileLocation(self.filename, p.lineno), p[0], p[3], p[2].lb, p[2].ub)
+        return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -859,7 +862,7 @@ class MLTLParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p[0].lineno))
+            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
 
@@ -872,7 +875,7 @@ def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Progra
         contents = f.read()
 
     lexer: MLTLLexer = MLTLLexer()
-    parser: MLTLParser = MLTLParser(mission_time)
+    parser: MLTLParser = MLTLParser(str(input_path), mission_time)
     output: tuple[list[cpt.C2POSection], dict[str, int]] = parser.parse(lexer.tokenize(contents))
 
     if output:
