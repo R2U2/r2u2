@@ -664,8 +664,12 @@ class MLTLLexer(sly.Lexer):
         self.lineno += t.value.count("\n")
         return t
 
+    def __init__(self, filename: str):
+        super().__init__()
+        self.filename = filename
+
     def error(self, t):
-        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, t.lineno))
         self.index += 1
 
 
@@ -874,7 +878,7 @@ def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Progra
     with open(input_path, "r") as f:
         contents = f.read()
 
-    lexer: MLTLLexer = MLTLLexer()
+    lexer: MLTLLexer = MLTLLexer(str(input_path))
     parser: MLTLParser = MLTLParser(str(input_path), mission_time)
     output: tuple[list[cpt.C2POSection], dict[str, int]] = parser.parse(lexer.tokenize(contents))
 
