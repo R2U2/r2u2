@@ -80,6 +80,11 @@
         "options": ["-bz", "--int-width", "8", "--map", "default.map"]
     },
     {
+        "input": "serialize/cav.c2po", 
+        "expected_c2po": "serialize/cav.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--write-c2po", "-c"]
+    },
+    {
         "input": "serialize/simple.c2po", 
         "expected_c2po": "serialize/simple.c2po.expect", 
         "options": ["-bz", "--map", "default.map", "--write-c2po", "-c"]
@@ -110,8 +115,68 @@
         "options": ["-bz"]
     },
     {
-        "input": "cav/cav.c2po", 
-        "expected_c2po": "cav/cav.c2po.expect", 
-        "options": ["-bz", "--write-c2po", "-c"]
+        "input": "normal_forms/nnf_logic.c2po", 
+        "expected_output": "normal_forms/nnf_logic.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops", "-nnf"]
+    },
+    {
+        "input": "normal_forms/nnf_logic.c2po", 
+        "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
+        "options": ["-bz", "--map", "default.map", "-nnf"]
+    },
+    {
+        "input": "normal_forms/nnf_temporal.c2po", 
+        "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops", "-nnf"]
+    },
+    {
+        "input": "rewrite/and_future.c2po", 
+        "expected_output": "rewrite/and_future.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/and_global.c2po", 
+        "expected_output": "rewrite/and_global.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/and_until.c2po", 
+        "expected_output": "rewrite/and_until.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/equality.c2po", 
+        "expected_output": "rewrite/equality.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/future.c2po", 
+        "expected_output": "rewrite/future.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/global.c2po", 
+        "expected_output": "rewrite/global.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/negate.c2po", 
+        "expected_output": "rewrite/negate.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/or_future.c2po", 
+        "expected_output": "rewrite/or_future.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/or_global.c2po", 
+        "expected_output": "rewrite/or_global.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
+    },
+    {
+        "input": "rewrite/until.c2po", 
+        "expected_output": "rewrite/until.c2po.expect", 
+        "options": ["-bz", "--map", "default.map", "--extops"]
     }
 ]

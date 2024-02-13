@@ -67,65 +67,69 @@ def run_test(test: dict) -> bool:
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    if "expected_output" in test:
-        # Both stdout and stderr are captured in proc.stdout
-        test_output = proc.stdout.decode().splitlines(keepends=True)
+    try:
+        if "expected_output" in test:
+            # Both stdout and stderr are captured in proc.stdout
+            test_output = proc.stdout.decode().splitlines(keepends=True)
 
-        with open(test["expected_output"], "r") as f:
-            expected_output = f.read().splitlines(keepends=True)
+            with open(test["expected_output"], "r") as f:
+                expected_output = f.read().splitlines(keepends=True)
 
-        status, diff = run_diff(
-            expected_output, test_output, test["input"], test["expected_output"]
-        )
-    elif "expected_c2po" in test:
-        # See serialize.py for default dump file names
-        input_path = pathlib.Path(test["input"])
-        c2po_output_path = input_path.with_suffix(".out.c2po")
+            status, diff = run_diff(
+                expected_output, test_output, test["input"], test["expected_output"]
+            )
+        elif "expected_c2po" in test:
+            # See serialize.py for default dump file names
+            input_path = pathlib.Path(test["input"])
+            c2po_output_path = input_path.with_suffix(".out.c2po")
 
-        with open(str(c2po_output_path), "r") as f:
-            test_output = f.read().splitlines(keepends=True)
+            with open(str(c2po_output_path), "r") as f:
+                test_output = f.read().splitlines(keepends=True)
 
-        with open(test["expected_c2po"], "r") as f:
-            expected_output = f.read().splitlines(keepends=True)
+            with open(test["expected_c2po"], "r") as f:
+                expected_output = f.read().splitlines(keepends=True)
 
-        status, diff = run_diff(
-            expected_output, test_output, test["input"], test["expected_c2po"]
-        )
+            status, diff = run_diff(
+                expected_output, test_output, test["input"], test["expected_c2po"]
+            )
 
-        c2po_output_path.unlink()
-    elif "expected_mltl" in test:
-        # See serialize.py for default dump file names
-        input_path = pathlib.Path(test["input"])
-        mltl_output_path = input_path.with_suffix(".mltl")
+            c2po_output_path.unlink()
+        elif "expected_mltl" in test:
+            # See serialize.py for default dump file names
+            input_path = pathlib.Path(test["input"])
+            mltl_output_path = input_path.with_suffix(".mltl")
 
-        with open(str(mltl_output_path), "r") as f:
-            test_output = f.read().splitlines(keepends=True)
+            with open(str(mltl_output_path), "r") as f:
+                test_output = f.read().splitlines(keepends=True)
 
-        with open(test["expected_mltl"], "r") as f:
-            expected_output = f.read().splitlines(keepends=True)
+            with open(test["expected_mltl"], "r") as f:
+                expected_output = f.read().splitlines(keepends=True)
 
-        status, diff = run_diff(
-            expected_output, test_output, test["input"], test["expected_mltl"]
-        )
+            status, diff = run_diff(
+                expected_output, test_output, test["input"], test["expected_mltl"]
+            )
 
-        mltl_output_path.unlink()
-    elif "expected_prefix" in test:
-        # See serialize.py for default dump file names
-        input_path = pathlib.Path(test["input"])
-        prefix_output_path = input_path.with_suffix(".prefix.c2po")
+            mltl_output_path.unlink()
+        elif "expected_prefix" in test:
+            # See serialize.py for default dump file names
+            input_path = pathlib.Path(test["input"])
+            prefix_output_path = input_path.with_suffix(".prefix.c2po")
 
-        with open(str(prefix_output_path), "r") as f:
-            test_output = f.read().splitlines(keepends=True)
+            with open(str(prefix_output_path), "r") as f:
+                test_output = f.read().splitlines(keepends=True)
 
-        with open(test["expected_prefix"], "r") as f:
-            expected_output = f.read().splitlines(keepends=True)
+            with open(test["expected_prefix"], "r") as f:
+                expected_output = f.read().splitlines(keepends=True)
 
-        status, diff = run_diff(
-            expected_output, test_output, test["input"], test["expected_prefix"]
-        )
+            status, diff = run_diff(
+                expected_output, test_output, test["input"], test["expected_prefix"]
+            )
 
-        prefix_output_path.unlink()
-        
+            prefix_output_path.unlink()
+    except FileNotFoundError:
+        print_fail(f"{test['input']}: file does not exist")
+        return False
+
     if status:
         print_pass(f"{test['input']}")
     else:

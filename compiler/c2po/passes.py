@@ -464,10 +464,10 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
             operand = expr.children[0]
 
             if cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_NEGATE):
-                # !!p = p
+                # !!p |-> p
                 expr.replace(operand.children[0])
             elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_OR):
-                # !(p || q) = !p && !q
+                # !(p || q) |-> !p && !q
                 expr.replace(
                     cpt.Operator.LogicalAnd(
                         expr.loc,
@@ -478,13 +478,59 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_AND):
-                # !(p && q) = !p || !q
+                # !(p && q) |-> !p || !q
                 expr.replace(
                     cpt.Operator.LogicalOr(
                         expr.loc,
                         [
                             cpt.Operator.LogicalNegate(c.loc, c)
                             for c in operand.children
+                        ],
+                    )
+                )
+            elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_IMPLIES):
+                lhs: cpt.Expression = operand.children[0]
+                rhs: cpt.Expression = operand.children[1]
+
+                # ! (p -> q) |-> ! (!p || q) |-> p && !q
+                expr.replace(
+                    cpt.Operator.LogicalAnd(
+                        expr.loc, [lhs, cpt.Operator.LogicalNegate(lhs.loc, rhs)]
+                    )
+                )
+            elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_XOR):
+                lhs: cpt.Expression = operand.children[0]
+                rhs: cpt.Expression = operand.children[1]
+                
+                # ! (p xor q) |-> ! ((p && !q) || (!p && q)) |-> !(p && !q) && ! (!p && q) |-> (!p || q) && (p || !q)
+                expr.replace(
+                    cpt.Operator.LogicalAnd(
+                        expr.loc,
+                        [
+                            cpt.Operator.LogicalAnd(
+                                expr.loc, [cpt.Operator.LogicalNegate(rhs.loc, lhs), rhs]
+                            ),
+                            cpt.Operator.LogicalAnd(
+                                expr.loc, [lhs, cpt.Operator.LogicalNegate(lhs.loc, rhs)]
+                            ),
+                        ],
+                    )
+                )
+            elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_EQUIV):
+                lhs: cpt.Expression = operand.children[0]
+                rhs: cpt.Expression = operand.children[1]
+                
+                # ! (p <-> q) |-> ! ((p -> q) && (q -> p)) |-> !(p -> q) || !(q -> p) |-> (p && !q) || (q && !p)
+                expr.replace(
+                    cpt.Operator.LogicalOr(
+                        expr.loc,
+                        [
+                            cpt.Operator.LogicalAnd(
+                                expr.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
+                            ),
+                            cpt.Operator.LogicalAnd(
+                                expr.loc, [cpt.Operator.LogicalNegate(rhs.loc, lhs), rhs]
+                            ),
                         ],
                     )
                 )
@@ -498,7 +544,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         expr.loc,
                         bounds.lb,
                         bounds.ub,
-                        cpt.Operator.LogicalNegate(operand.loc, operand),
+                        cpt.Operator.LogicalNegate(operand.loc, operand.children[0]),
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.GLOBAL):
@@ -511,7 +557,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         expr.loc,
                         bounds.lb,
                         bounds.ub,
-                        cpt.Operator.LogicalNegate(operand.loc, operand),
+                        cpt.Operator.LogicalNegate(operand.loc, operand.children[0]),
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.UNTIL):
@@ -532,7 +578,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                         cpt.Operator.LogicalNegate(rhs.loc, rhs),
                     )
                 )
-            elif cpt.is_operator(operand, cpt.OperatorKind.UNTIL):
+            elif cpt.is_operator(operand, cpt.OperatorKind.RELEASE):
                 operand = cast(cpt.TemporalOperator, operand)
 
                 lhs: cpt.Expression = operand.children[0]
@@ -582,14 +628,12 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
-    return
-
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
 
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             opnd1 = expr.children[0]
-            if type(opnd1) is cpt.Constant:
+            if isinstance(opnd1, cpt.Constant):
                 if opnd1.value is True:
                     # !true = false
                     new = cpt.Constant(expr.loc, False)
@@ -600,20 +644,24 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 # !!p = p
                 new = opnd1.children[0]
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
+
                 opnd2 = opnd1.children[0]
                 if cpt.is_operator(opnd2, cpt.OperatorKind.LOGICAL_NEGATE):
                     # !(G[l,u](!p)) = F[l,u]p
-                    new = cpt.Operator.Future(
+                    new = cpt.TemporalOperator.Future(
                         expr.loc,
                         opnd1.interval.lb,
                         opnd1.interval.ub,
                         opnd2.children[0],
                     )
             elif cpt.is_operator(opnd1, cpt.OperatorKind.FUTURE):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
+
                 opnd2 = opnd1.children[0]
                 if cpt.is_operator(opnd2, cpt.OperatorKind.LOGICAL_NEGATE):
                     # !(F[l,u](!p)) = G[l,u]p
-                    new = cpt.Operator.Global(
+                    new = cpt.TemporalOperator.Global(
                         expr.loc,
                         opnd1.interval.lb,
                         opnd1.interval.ub,
@@ -624,13 +672,15 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             rhs = expr.children[1]
             if isinstance(lhs, cpt.Constant) and isinstance(rhs, cpt.Constant):
                 pass
-            elif isinstance(lhs, cpt.Constant):
+            elif isinstance(lhs, cpt.Constant) and isinstance(lhs.value, bool):
                 # (true == p) = p
                 new = rhs
-            elif isinstance(rhs, cpt.Constant):
+            elif isinstance(rhs, cpt.Constant) and isinstance(rhs.value, bool):
                 # (p == true) = p
                 new = lhs
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
+
             opnd1 = expr.children[0]
             if expr.interval.lb == 0 and expr.interval.ub == 0:
                 # G[0,0]p = p
@@ -643,19 +693,23 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # G[l,u]False = False
                     new = cpt.Constant(expr.loc, False)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
                 lb: int = expr.interval.lb + opnd1.interval.lb
                 ub: int = expr.interval.ub + opnd1.interval.ub
-                new = cpt.Global(expr.loc, opnd2, lb, ub)
+                new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.FUTURE):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
                 opnd2 = opnd1.children[0]
                 if expr.interval.lb == expr.interval.ub:
                     # G[a,a](F[l,u]p) = F[l+a,u+a]p
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
-                    new = cpt.Future(expr.loc, opnd2, lb, ub)
+                    new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+
             opnd1 = expr.children[0]
             if expr.interval.lb == 0 and expr.interval.ub == 0:
                 # F[0,0]p = p
@@ -668,25 +722,31 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # F[l,u]False = False
                     new = cpt.Constant(expr.loc, False)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.FUTURE):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
                 lb: int = expr.interval.lb + opnd1.interval.lb
                 ub: int = expr.interval.ub + opnd1.interval.ub
-                new = cpt.Future(expr.loc, opnd2, lb, ub)
+                new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
+                opnd1 = cast(cpt.TemporalOperator, opnd1)
                 opnd2 = opnd1.children[0]
                 if expr.interval.lb == expr.interval.ub:
                     # F[a,a](G[l,u]p) = G[l+a,u+a]p
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
-                    new = cpt.Global(expr.loc, opnd2, lb, ub)
+                    new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             # Assume binary for now
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if cpt.is_operator(lhs, cpt.OperatorKind.GLOBAL) and cpt.is_operator(
-                rhs, cpt.OperatorKind.GLOBAL
+            if (
+                cpt.is_operator(lhs, cpt.OperatorKind.GLOBAL) and 
+                cpt.is_operator(rhs, cpt.OperatorKind.GLOBAL)
             ):
+                lhs = cast(cpt.TemporalOperator, lhs)
+                rhs = cast(cpt.TemporalOperator, rhs)
+
                 p = lhs.children[0]
                 q = rhs.children[0]
                 lb1: int = lhs.interval.lb
@@ -698,39 +758,39 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # G[lb1,lb2]p && G[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        new = cpt.Global(expr.loc, p, lb1, ub1)
-                        continue
+                        new = cpt.TemporalOperator.Global(expr.loc, lb1, ub1, p)
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        new = cpt.Global(expr.loc, p, lb2, ub2)
-                        continue
+                        new = cpt.TemporalOperator.Global(expr.loc,lb2, ub2, p)
                     elif lb1 <= lb2 and lb2 <= ub1 + 1:
                         # lb1 <= lb2 <= ub1+1
-                        new = cpt.Global(expr.loc, p, lb1, max(ub1, ub2))
-                        continue
+                        new = cpt.TemporalOperator.Global(expr.loc, lb1, max(ub1, ub2), p)
                     elif lb2 <= lb1 and lb1 <= ub2 + 1:
                         # lb2 <= lb1 <= ub2+1
-                        new = cpt.Global(expr.loc, p, lb2, max(ub1, ub2))
-                        continue
+                        new = cpt.TemporalOperator.Global(expr.loc, lb2, max(ub1, ub2), p)
+                else:
+                    lb3: int = min(lb1, lb2)
+                    ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
 
-                lb3: int = min(lb1, lb2)
-                ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
-
-                new = cpt.Global(
-                    expr.loc,
-                    cpt.Operator.LogicalAnd(
+                    new = cpt.TemporalOperator.Global(
                         expr.loc,
-                        [
-                            cpt.Global(expr.loc, p, lb1 - lb3, ub1 - ub3),
-                            cpt.Global(expr.loc, q, lb2 - lb3, ub2 - ub3),
-                        ],
-                    ),
-                    lb3,
-                    ub3,
-                )
-            elif cpt.is_operator(lhs, cpt.OperatorKind.FUTURE) and cpt.is_operator(
-                rhs, cpt.OperatorKind.FUTURE
+                        lb3,
+                        ub3,
+                        cpt.Operator.LogicalAnd(
+                            expr.loc,
+                            [
+                                cpt.TemporalOperator.Global(expr.loc, lb1 - lb3, ub1 - ub3, p),
+                                cpt.TemporalOperator.Global(expr.loc, lb2 - lb3, ub2 - ub3, q),
+                            ],
+                        )
+                    )
+            elif (
+                cpt.is_operator(lhs, cpt.OperatorKind.FUTURE) and 
+                cpt.is_operator(rhs, cpt.OperatorKind.FUTURE)
             ):
+                lhs = cast(cpt.TemporalOperator, lhs)
+                rhs = cast(cpt.TemporalOperator, rhs)
+
                 lhs_opnd = lhs.children[0]
                 rhs_opnd = rhs.children[0]
                 if str(lhs_opnd) == str(rhs_opnd):  # check for syntactic equivalence
@@ -739,15 +799,22 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     ub1 = lhs.interval.ub
                     lb2 = rhs.interval.lb
                     ub2 = rhs.interval.ub
-                    if lb1 >= lb2 and ub1 <= ub2:
-                        # l2 <= l1 <= u1 <= u2
-                        new = cpt.Future(expr.loc, lhs_opnd, lb1, ub1)
-                    elif lb2 >= lb1 and ub2 <= ub1:
-                        # l1 <= l2 <= u1
-                        new = cpt.Future(expr.loc, lhs_opnd, lb2, ub2)
-            elif cpt.is_operator(lhs, cpt.OperatorKind.UNTIL) and cpt.is_operator(
-                rhs, cpt.OperatorKind.UNTIL
+
+                    print(f'{lb1} {ub1} {lb2} {ub2} {lb1 <= lb2 and ub1 >= ub2}')
+
+                    if lb1 <= lb2 and ub1 >= ub2:
+                        # lb1 <= lb2 <= ub2 <= ub1
+                        new = cpt.TemporalOperator.Future(expr.loc, lb2, ub2, lhs_opnd)
+                    elif lb2 <= lb1 and ub2 >= ub1:
+                        # lb2 <= lb1 <= ub1 <= ub2
+                        new = cpt.TemporalOperator.Future(expr.loc, lb1, ub1, lhs_opnd)
+            elif (
+                cpt.is_operator(lhs, cpt.OperatorKind.UNTIL) and
+                cpt.is_operator(rhs, cpt.OperatorKind.UNTIL)
             ):
+                lhs = cast(cpt.TemporalOperator, lhs)
+                rhs = cast(cpt.TemporalOperator, rhs)
+
                 lhs_lhs = lhs.children[0]
                 lhs_rhs = lhs.children[1]
                 rhs_lhs = rhs.children[0]
@@ -755,20 +822,24 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 # check for syntactic equivalence
                 if str(lhs_rhs) == str(rhs_rhs) and lhs.interval.lb == rhs.interval.lb:
                     # (p U[l,u1] q) && (r U[l,u2] q) = (p && r) U[l,min(u1,u2)] q
-                    new = cpt.Until(
+                    new = cpt.TemporalOperator.Until(
                         expr.loc,
-                        cpt.Operator.LogicalAnd(expr.loc, [lhs_lhs, rhs_lhs]),
-                        lhs_rhs,
                         lhs.interval.lb,
                         min(lhs.interval.ub, rhs.interval.ub),
+                        cpt.Operator.LogicalAnd(expr.loc, [lhs_lhs, rhs_lhs]),
+                        lhs_rhs
                     )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             # Assume binary for now
             lhs = expr.children[0]
             rhs = expr.children[1]
-            if cpt.is_operator(lhs, cpt.OperatorKind.FUTURE) and cpt.is_operator(
-                rhs, cpt.OperatorKind.FUTURE
+            if (
+                cpt.is_operator(lhs, cpt.OperatorKind.FUTURE) and 
+                cpt.is_operator(rhs, cpt.OperatorKind.FUTURE)
             ):
+                lhs = cast(cpt.TemporalOperator, lhs)
+                rhs = cast(cpt.TemporalOperator, rhs)
+
                 p = lhs.children[0]
                 q = rhs.children[0]
                 lb1: int = lhs.interval.lb
@@ -780,41 +851,41 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     # F[lb1,lb2]p || F[lb2,ub2]p
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
-                        new = cpt.Future(expr.loc, p, lb1, ub1)
-                        continue
+                        new = cpt.TemporalOperator.Future(expr.loc, lb1, ub1, p)
                     elif lb2 <= lb1 and ub2 >= ub1:
                         # lb2 <= lb1 <= ub1 <= ub2
-                        new = cpt.Future(expr.loc, p, lb2, ub2)
-                        continue
+                        new = cpt.TemporalOperator.Future(expr.loc, lb2, ub2, p)
                     elif lb1 <= lb2 and lb2 <= ub1 + 1:
                         # lb1 <= lb2 <= ub1+1
-                        new = cpt.Future(expr.loc, p, lb1, max(ub1, ub2))
-                        continue
+                        new = cpt.TemporalOperator.Future(expr.loc, lb1, max(ub1, ub2), p)
                     elif lb2 <= lb1 and lb1 <= ub2 + 1:
                         # lb2 <= lb1 <= ub2+1
-                        new = cpt.Future(expr.loc, p, lb2, max(ub1, ub2))
-                        continue
+                        new = cpt.TemporalOperator.Future(expr.loc, lb2, max(ub1, ub2), p)
+                else:
+                    # TODO: check for when lb==ub==0
+                    # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
+                    lb3: int = min(lb1, lb2)
+                    ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
 
-                # TODO: check for when lb==ub==0
-                # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
-                lb3: int = min(lb1, lb2)
-                ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
-
-                new = cpt.Future(
-                    expr.loc,
-                    cpt.Operator.LogicalOr(
+                    new = cpt.TemporalOperator.Future(
                         expr.loc,
-                        [
-                            cpt.Future(expr.loc, p, lb1 - lb3, ub1 - ub3),
-                            cpt.Future(expr.loc, q, lb2 - lb3, ub2 - ub3),
-                        ],
-                    ),
-                    lb3,
-                    ub3,
-                )
-            elif cpt.is_operator(lhs, cpt.OperatorKind.GLOBAL) and cpt.is_operator(
-                rhs, cpt.OperatorKind.GLOBAL
+                        lb3,
+                        ub3,
+                        cpt.Operator.LogicalOr(
+                            expr.loc,
+                            [
+                                cpt.TemporalOperator.Future(expr.loc, lb1 - lb3, ub1 - ub3, p),
+                                cpt.TemporalOperator.Future(expr.loc, lb2 - lb3, ub2 - ub3, q),
+                            ],
+                        )
+                    )
+            elif (
+                cpt.is_operator(lhs, cpt.OperatorKind.GLOBAL) and 
+                cpt.is_operator(rhs, cpt.OperatorKind.GLOBAL)
             ):
+                lhs = cast(cpt.TemporalOperator, lhs)
+                rhs = cast(cpt.TemporalOperator, rhs)
+
                 lhs_opnd = lhs.children[0]
                 rhs_opnd = rhs.children[0]
                 if str(lhs_opnd) == str(rhs_opnd):
@@ -825,51 +896,39 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     ub2 = rhs.interval.ub
                     if lb1 >= lb2 and ub1 <= ub2:
                         # l2 <= l1 <= u1 <= u2
-                        new = cpt.Global(expr.loc, lhs_opnd, lb1, ub1)
+                        new = cpt.TemporalOperator.Global(expr.loc, lb1, ub1, lhs_opnd)
                     elif lb2 >= lb1 and ub2 <= ub1:
                         # l1 <= l2 <= u1
-                        new = cpt.Global(expr.loc, lhs_opnd, lb2, ub2)
-            elif cpt.is_operator(lhs, cpt.OperatorKind.UNTIL) and cpt.is_operator(
-                rhs, cpt.OperatorKind.UNTIL
-            ):
-                lhs_lhs = lhs.children[0]
-                lhs_rhs = lhs.children[1]
-                rhs_lhs = rhs.children[0]
-                rhs_rhs = rhs.children[1]
-                if str(lhs_lhs) == str(rhs_lhs) and lhs.interval.lb == rhs.interval.lb:
-                    # (p U[l,u1] q) && (p U[l,u2] r) = p U[l,min(u1,u2)] (q || r)
-                    new = cpt.Until(
-                        expr.loc,
-                        cpt.Operator.LogicalOr(expr.loc, [lhs_rhs, rhs_rhs]),
-                        lhs_lhs,
-                        lhs.interval.lb,
-                        min(lhs.interval.ub, rhs.interval.ub),
-                    )
+                        new = cpt.TemporalOperator.Global(expr.loc, lb2, ub2, lhs_opnd)
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
+
             lhs = expr.children[0]
             rhs = expr.children[1]
             if (
-                isinstance(rhs, cpt.Global)
+                isinstance(rhs, cpt.TemporalOperator)
+                and rhs.operator is cpt.OperatorKind.GLOBAL
                 and rhs.interval.lb == 0
                 and str(lhs) == str(rhs.children[0])
             ):
                 # p U[l,u1] (G[0,u2]p) = G[l,l+u2]p
-                new = cpt.Global(
-                    expr.loc, lhs, expr.interval.lb, expr.interval.lb + rhs.interval.ub
+                new = cpt.TemporalOperator.Global(
+                    expr.loc, expr.interval.lb, expr.interval.lb + rhs.interval.ub, lhs
                 )
             elif (
-                isinstance(rhs, cpt.Future)
+                isinstance(rhs, cpt.TemporalOperator)
+                and rhs.operator is cpt.OperatorKind.FUTURE
                 and rhs.interval.lb == 0
                 and str(lhs) == str(rhs.children[0])
             ):
                 # p U[l,u1] (F[0,u2]p) = F[l,l+u2]p
-                new = cpt.Future(
-                    expr.loc, lhs, expr.interval.lb, expr.interval.lb + rhs.interval.ub
+                new = cpt.TemporalOperator.Future(
+                    expr.loc, expr.interval.lb, expr.interval.lb + rhs.interval.ub, lhs
                 )
 
         if new:
             log.debug(
-                f"\n\t{expr}\n\t\t===>\n\t{new}", module=MODULE_CODE, submodule="RWR"
+                f"\n\t{expr}\n\t==>\n\t{new}", module=MODULE_CODE
             )
             expr.replace(new)
 
