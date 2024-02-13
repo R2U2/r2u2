@@ -1,5 +1,3 @@
-BZ b0  iload  0 0
-BZ b1  iload  1 0
 TL n0  load   a0
 TL n1  not    n0
 TL n2  eventually n1

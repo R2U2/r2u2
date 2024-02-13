@@ -61,8 +61,10 @@ def run_test(test: dict) -> bool:
         "options": ["opt", ...]
     }`
 
-    `"expected_stderr"` can also be present if an error is expected to occur. See `config.json`.
+    See `config.json`.
     """
+    status, diff = True, ""
+
     command = ["python3", str(C2PO_PATH.absolute())] + test["options"] + [test["input"]]
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

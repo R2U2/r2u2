@@ -1,51 +1,58 @@
 [MAIN][[93mWRN[0m] NNF and BNF incompatible without extended operators, output will not be in either normal form
-BZ b0  iload  0 0
-BZ b1  iload  1 0
-BZ b2  iload  2 0
 TL n0  load   a0
 TL n1  not    n0
-TL n2  load   a1
-TL n3  not    n2
-TL n4  or     n1 n3
-TL n5  return n4 0
-TL n6  and    n1 n3
-TL n7  return n6 1
-TL n8  load   a2
-TL n9  not    n8
-TL n10 and    n4 n9
-TL n11 return n10 2
-TL n12 and    n0 n3
-TL n13 return n12 3
-TL n14 or     n1 n2
-TL n15 or     n0 n3
-TL n16 and    n14 n15
-TL n17 return n16 4
-TL n18 and    n0 n9
-TL n19 and    n1 n8
-TL n20 or     n18 n19
-TL n21 return n20 5
+TL n2  not    n1
+TL n3  load   a1
+TL n4  not    n3
+TL n5  not    n4
+TL n6  and    n2 n5
+TL n7  not    n6
+TL n8  return n7 0
+TL n9  and    n1 n4
+TL n10 return n9 1
+TL n11 load   a2
+TL n12 not    n11
+TL n13 and    n7 n12
+TL n14 return n13 2
+TL n15 and    n0 n4
+TL n16 return n15 3
+TL n17 and    n1 n3
+TL n18 and    n17 n15
+TL n19 return n18 4
+TL n20 and    n0 n12
+TL n21 not    n20
+TL n22 and    n1 n11
+TL n23 not    n22
+TL n24 and    n21 n23
+TL n25 not    n24
+TL n26 return n25 5
 CG TL SCQ n0  (0, 3)
 CG TL SCQ n1  (3, 6)
 CG TL SCQ n2  (6, 9)
 CG TL SCQ n3  (9, 12)
 CG TL SCQ n4  (12, 15)
-CG TL SCQ n5  (15, 16)
-CG TL SCQ n6  (16, 19)
-CG TL SCQ n7  (19, 20)
-CG TL SCQ n8  (20, 23)
-CG TL SCQ n9  (23, 26)
-CG TL SCQ n10 (26, 29)
-CG TL SCQ n11 (29, 30)
-CG TL SCQ n12 (30, 33)
-CG TL SCQ n13 (33, 34)
-CG TL SCQ n14 (34, 37)
-CG TL SCQ n15 (37, 40)
-CG TL SCQ n16 (40, 43)
-CG TL SCQ n17 (43, 44)
-CG TL SCQ n18 (44, 47)
-CG TL SCQ n19 (47, 50)
+CG TL SCQ n5  (15, 18)
+CG TL SCQ n6  (18, 21)
+CG TL SCQ n7  (21, 24)
+CG TL SCQ n8  (24, 25)
+CG TL SCQ n9  (25, 28)
+CG TL SCQ n10 (28, 29)
+CG TL SCQ n11 (29, 32)
+CG TL SCQ n12 (32, 35)
+CG TL SCQ n13 (35, 38)
+CG TL SCQ n14 (38, 39)
+CG TL SCQ n15 (39, 42)
+CG TL SCQ n16 (42, 43)
+CG TL SCQ n17 (43, 46)
+CG TL SCQ n18 (46, 49)
+CG TL SCQ n19 (49, 50)
 CG TL SCQ n20 (50, 53)
-CG TL SCQ n21 (53, 54)
+CG TL SCQ n21 (53, 56)
+CG TL SCQ n22 (56, 59)
+CG TL SCQ n23 (59, 62)
+CG TL SCQ n24 (62, 65)
+CG TL SCQ n25 (65, 68)
+CG TL SCQ n26 (68, 69)
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
