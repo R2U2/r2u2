@@ -33,7 +33,7 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 #endif
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res) {
-  R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Lenght: (%d)\n", (void*)scq->queue, scq->length);
+  R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Length: (%d)\n", (void*)scq->queue, scq->length);
   R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d)\n", scq->wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)scq->wr_ptr)]), (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].time, (scq->queue)[-((ptrdiff_t)scq->wr_ptr)].truth);
   #if R2U2_DEBUG
   r2u2_scq_print(scq, NULL);
