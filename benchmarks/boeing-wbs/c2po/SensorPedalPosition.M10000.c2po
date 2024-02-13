@@ -1,0 +1,6 @@
+INPUT
+	mechanicalpedalpos,electricalpedalpos: bool;
+
+FTSPEC
+	(true ->  G[5277,10000] (mechanicalpedalpos <-> electricalpedalpos)) && true
+;

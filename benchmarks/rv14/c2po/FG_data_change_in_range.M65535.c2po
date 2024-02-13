@@ -1,0 +1,22 @@
+INPUT
+	abs_p_gt_theta, abs_q_gt_theta, abs_r_gt_theta,
+	abs_R_FG_x_gt_theta, abs_R_FG_y_gt_theta, abs_R_FG_z_gt_theta: bool;
+
+FTSPEC
+-- The internal buffer does not underflow; i.e., if other, related values change, this sensor should change too. In this case, the fluxgate magnetometer readings should change if the Euler rates are non-zero, indicating that the UAS is moving. The sensor is noisy so three different repeats of the same data is a good indicator that the data is not updating correctly. $FM\_X, FM\_Y, FM\_Z$ are the data stream values from the fluxgate magnetometer; $EulerRoll, EulerPitch, EulerYaw$ are the Euler rates.
+	G[0,M](
+		((
+		(abs_p_gt_theta || abs_q_gt_theta || abs_r_gt_theta) ->
+		(abs_R_FG_x_gt_theta || abs_R_FG_y_gt_theta || abs_R_FG_z_gt_theta)
+		)
+		&&
+		F[2,M] (
+		    (abs_p_gt_theta || abs_q_gt_theta || abs_r_gt_theta) ->
+		    (abs_R_FG_x_gt_theta || abs_R_FG_y_gt_theta || abs_R_FG_z_gt_theta)
+			&&
+		   	F[2,M] (
+		    (abs_p_gt_theta || abs_q_gt_theta || abs_r_gt_theta) ->
+		    (abs_R_FG_x_gt_theta || abs_R_FG_y_gt_theta || abs_R_FG_z_gt_theta)
+			)
+			)
+		));

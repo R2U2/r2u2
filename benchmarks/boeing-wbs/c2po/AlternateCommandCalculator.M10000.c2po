@@ -1,0 +1,6 @@
+INPUT
+	ascmdout,ascmdin1,power,ascmdin2: bool;
+
+FTSPEC
+	(true ->  G[4028,9534] ((power && (ascmdin1 || ascmdin2)) <-> ascmdout)) && true
+;

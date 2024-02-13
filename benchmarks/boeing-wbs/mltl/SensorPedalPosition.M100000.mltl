@@ -1,6 +1,1 @@
-INPUT
-	mechanicalpedalpos,electricalpedalpos: bool;
-
-FTSPEC
-	(true ->  G[3369,90102] (mechanicalpedalpos <-> electricalpedalpos)) && true
-;
+(!((true)&(!(G[3369,90102]((!((a1)&(!(a0))))&(!((!(a1))&(a0))))))))&(true)

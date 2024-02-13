@@ -3,16 +3,13 @@ Reads cleaned HTML source from here: https://temporallogic.org/research/DETECT20
 
 Outputs MLTL files based on specs listed.
 """
-
-import os
 import re
-import random
 
 from pathlib import Path
 
-CURDIR = Path(os.getcwd())
-MLTLDIR = CURDIR / "mltl"
-CSVDIR = CURDIR / "trace"
+CURDIR = Path(__file__).parent
+MLTL_DIR = CURDIR / "mltl"
+CSV_DIR = CURDIR / "trace"
 
 
 with open("results.html", "r") as f:
@@ -28,7 +25,7 @@ for row in s.split("<tr>"):
     if len(cells) < 3:
         continue
 
-    m = re.search("(?<=html[>] )\w+", cells[1])
+    m = re.search(r"(?<=html[>] )\w+", cells[1])
     if m:
         label = m.group()
     else:
@@ -50,20 +47,20 @@ for row in s.split("<tr>"):
     else:
         formula = ""
 
-    for m in re.finditer("\w+", formula):
+    for m in re.finditer(r"\w+", formula):
         p = m.group()
         if p == "G" or p == "F" or p == "M" or p.isdigit():
             continue
         props.add(p)
 
-    with open(MLTLDIR / f"{label}.mltl", "w") as f:
+    with open(MLTL_DIR / f"{label}.mltl", "w") as f:
         f.write("INPUT\n\t")
         f.write(",".join(props))
         f.write(": bool;\n\n")
 
         f.write(f"FTSPEC\n\t{formula};")
         
-    with open(CSVDIR / f"{label}.csv", "w") as f:
+    with open(CSV_DIR / f"{label}.csv", "w") as f:
         f.write("# ")
         f.write(",".join(props))
         f.write("\n")

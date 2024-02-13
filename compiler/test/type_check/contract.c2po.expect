@@ -1,0 +1,24 @@
+BZ b0  iload  0 0
+BZ b1  iload  1 0
+TL n0  load   a0
+TL n1  return n0 0
+TL n2  load   a1
+TL n3  not    n2
+TL n4  and    n0 n3
+TL n5  not    n4
+TL n6  return n5 1
+TL n7  and    n0 n2
+TL n8  return n7 2
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 4)
+CG TL SCQ n2  (4, 7)
+CG TL SCQ n3  (7, 10)
+CG TL SCQ n4  (10, 13)
+CG TL SCQ n5  (13, 16)
+CG TL SCQ n6  (16, 17)
+CG TL SCQ n7  (17, 20)
+CG TL SCQ n8  (20, 21)
+F __c_active__ 0
+F __c_valid__ 1
+F __c_verified__ 2
+C c 0 1 2

@@ -1,8 +1,0 @@
-INPUT
-    f: float;
-
-ATOMIC
-    a := movavg(f,3) < 5.0;
-
-FTSPEC
-    a;

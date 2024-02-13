@@ -1,6 +1,1 @@
-INPUT
-	LiVar450: bool;
-
-FTSPEC
-	(true ->  G[5388,5713] LiVar450) && true
-;
+(!((true)&(!(G[5388,5713](a0)))))&(true)
