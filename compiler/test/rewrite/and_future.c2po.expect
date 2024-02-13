@@ -1,5 +1,3 @@
-0 5 2 3 True
-2 4 0 5 False
 BZ b0  iload  0 0
 TL n0  load   a0
 TL n1  eventually n0

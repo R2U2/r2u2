@@ -70,6 +70,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
+            
+            if context.frontend is types.R2U2Engine.BOOLEANIZER:
+                expr.engine = types.R2U2Engine.BOOLEANIZER
 
             if expr.symbol in context.signal_mapping:
                 expr.signal_id = context.signal_mapping[expr.symbol]
