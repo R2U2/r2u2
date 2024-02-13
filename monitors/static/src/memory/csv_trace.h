@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "internals/errors.h"
+#include "internals/types.h"
 #include "memory/monitor.h"
 
 // This could arguably have the functions split out as an engine, however they
@@ -15,6 +16,8 @@ typedef struct {
   FILE *input_file;
 
   char in_buf[BUFSIZ]; // TODO(bckempa): LINE_MAX instead? PATH_MAX?
+
+  r2u2_bool as_atomics; // if true, load csv data directly into atomics vector
 
 } r2u2_csv_reader_t;
 

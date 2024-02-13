@@ -5,6 +5,7 @@ from c2po import log
 
 MODULE_CODE = "TYPE"
 
+
 class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
@@ -13,9 +14,9 @@ class R2U2Implementation(enum.Enum):
 
 class R2U2Engine(enum.Enum):
     NONE = 0
-    TEMPORAL_LOGIC = 0
-    BOOLEANIZER = 1
-    ATOMIC_CHECKER = 2
+    TEMPORAL_LOGIC = 1
+    BOOLEANIZER = 2
+    ATOMIC_CHECKER = 3
 
 
 class Interval(NamedTuple):
@@ -24,18 +25,6 @@ class Interval(NamedTuple):
 
 
 SignalMapping = Dict[str, int]
-
-
-def str_to_r2u2_implementation(s: str) -> R2U2Implementation:
-    if s.lower() == "c":
-        return R2U2Implementation.C
-    elif s.lower() == "c++" or s.lower() == "cpp":
-        return R2U2Implementation.CPP
-    elif s.lower() == "fpga" or s.lower() == "vhdl":
-        return R2U2Implementation.VHDL
-    else:
-        log.error(f"R2U2 implementation '{s}' unsupported. Defaulting to C.", MODULE_CODE)
-        return R2U2Implementation.C
 
 
 class BaseType(enum.Enum):
@@ -61,6 +50,9 @@ class Type:
             return self.value == arg.value
         return False
 
+    def __hash__(self) -> int:
+        return hash(self.value)
+
     def __str__(self) -> str:
         return self.symbol
 
@@ -75,7 +67,7 @@ class NoType(Type):
 class BoolType(Type):
     """Boolean C2PO type."""
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.BOOL, is_const, "bool")
 
 
@@ -85,7 +77,7 @@ class IntType(Type):
     width: int = 8
     is_signed: bool = False
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.INT, is_const, "int")
 
 
@@ -94,14 +86,14 @@ class FloatType(Type):
 
     width: int = 32
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.FLOAT, is_const, "float")
 
 
 class StructType(Type):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, is_const: bool, symbol: str):
+    def __init__(self, symbol: str, is_const: bool = False):
         super().__init__(BaseType.STRUCT, is_const, symbol)
 
     def __eq__(self, arg: object) -> bool:
@@ -113,14 +105,14 @@ class StructType(Type):
 class ContractValueType(Type):
     """Output value of Assume-Guarantee Contracts. Can be one of: inactive, invalid, or verified."""
 
-    def __init__(self, is_const: bool):
+    def __init__(self, is_const: bool = False):
         super().__init__(BaseType.CONTRACT, is_const, "contract")
 
 
 class SetType(Type):
     """Parameterized set C2PO type."""
 
-    def __init__(self, is_const: bool, member_type: Type):
+    def __init__(self, member_type: Type, is_const: bool = False):
         super().__init__(BaseType.SET, is_const, "set<" + str(member_type) + ">")
         self.member_type: Type = member_type
 
@@ -171,7 +163,8 @@ def set_types(
 
     if int_width % 8 != 0:
         log.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment.", MODULE_CODE
+            " Invalid int width, must be a multiple of 8 for byte-alignment.",
+            MODULE_CODE,
         )
 
     if float_width % 8 != 0:

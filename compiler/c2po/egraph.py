@@ -5,7 +5,7 @@ import os
 import dataclasses
 import json
 import pprint
-from typing import Optional
+from typing import Optional, cast
 
 from c2po import cpt, log
 
@@ -141,32 +141,35 @@ def to_egglog(spec: cpt.Formula) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, cpt.Bool):
+        if isinstance(expr, cpt.Constant):
             egglog += expr.symbol
         elif expr.atomic_id > -1:
             egglog += f"(Var \"a{expr.atomic_id}\")"
-        elif isinstance(expr, cpt.LogicalNegate):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             if seen == 0:
                 egglog += "(Not ("
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Global):
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Global (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Future):
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Future (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Until):
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Until (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
@@ -174,9 +177,9 @@ def to_egglog(spec: cpt.Formula) -> str:
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Release):
+        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error("Release not implemented", MODULE_CODE)
-        elif isinstance(expr, cpt.LogicalAnd):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             arity = len(expr.children)
             if seen == 0:
                 egglog += f"(And{arity} "
@@ -184,7 +187,7 @@ def to_egglog(spec: cpt.Formula) -> str:
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.LogicalOr):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             arity = len(expr.children)
             if seen == 0:
                 egglog += f"(Or{arity} "

@@ -21,7 +21,7 @@ included in r2u2/ and its sub-directories. As a brief overview:
 
 3) Feed those files to the C2PO formula compiler:
         
-        python3 compiler/r2u2prep.py --booleanizer "path/to/spec.mltl" "path/to signals.csv"
+        python3 compiler/c2po.py --booleanizer --trace "path/to signals.csv" "path/to/spec.c2po" 
 
 4) Build R2U2 monitor (this only has to be done once, not every time you 
    change the spec):

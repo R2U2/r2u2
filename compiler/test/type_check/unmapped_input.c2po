@@ -1,0 +1,5 @@
+INPUT
+    b100: bool;
+
+FTSPEC
+    b100;

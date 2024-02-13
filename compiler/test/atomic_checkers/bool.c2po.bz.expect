@@ -1,0 +1,9 @@
+[TYPC][[91mERR[0m] bool.c2po:11: Atomic checkers not enabled, but found in expression
+	a0
+[TYPC][[91mERR[0m] bool.c2po:12: Atomic checkers not enabled, but found in expression
+	a1
+[TYPC][[91mERR[0m] bool.c2po:13: Atomic checkers not enabled, but found in expression
+	a2
+[TYPC][[91mERR[0m] bool.c2po:14: Atomic checkers not enabled, but found in expression
+	a3
+[MAIN][[91mERR[0m] Failed type check

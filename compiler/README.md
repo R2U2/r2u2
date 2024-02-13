@@ -4,28 +4,28 @@ C2PO (Configuration Compiler for Property Organization) is the formula compiler 
 
 ## Usage
 
-C2PO requires an input MLTL file and a file for generating a signal mapping (i.e., to tell which variable each input corresponds to during runtime).
+C2PO requires an input file and a file for generating a signal mapping (i.e., to tell which variable each input corresponds to during runtime) in order to generate a specification binary.
 
-To compile an MLTL file, run the `r2u2prep.py` script with a `.csv` or `.map` file as argument. One of the `--booleanizer` or `--atomic-checker` flags must be set. For instance, to run an example:
+To compile a C2PO file, run the `c2po.py` script with a `.csv` or `.map` file as argument. One of the `--booleanizer`/`-bz` or `--atomic-checker`/`-at` flags must be set. For instance, to run an example:
 
-    python r2u2prep.py --booleanizer examples/cav.mltl examples/cav.csv 
+    python c2po.py --booleanizer --trace examples/cav.csv examples/cav.c2po 
 
-The assembled binary should be at `r2u2_spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
+The assembled binary is generated at `spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
 
-    python r2u2prep.py -h
+    python c2po.py -h
 
 C2PO requires Python 3.8 or newer.
 
-## MLTL File Format
+## C2PO File Format
 
-MLTL files are used as input to C2PO and use C2PO's specification language. They include various sections: 
+C2PO files are used as input to C2PO and use C2PO's specification language. They include various sections: 
 
 - **INPUT**: Where input signals and their types are declared
 - **FTSPEC**: Where future-time MLTL specifications are defined. These specifications will use SCQs for their memory.
 - **PTSPEC**: Where past-time MLTL specifications are defined. The specifications will use box queues for their memory.
 - **STRUCT**: Where C-like structs are defined.
 - **DEFINE**: Where macros can be defined.
-- **ATOMIC**: Where atomics used by the atomic checker are defined. *Must compile with `--atomic-checker` flag.*
+- **ATOMIC**: Where atomics used by the atomic checker are defined. *Must compile with `--atomic-checker`/`-at` flag.*
 
 See `syntax.md` for a formal description of the input file format and `examples/` directory for sample files.
 
@@ -50,13 +50,5 @@ The booleanizer is a general purpose engine that can perform arithmetic, bitwise
 
 ## Atomic Checker
 
-Atomic checkers are the names for the relational expression seen in `examples/atomic_checker.mltl`. They allow for the filtering of signals and then comparing the output of that signal to a constant or other signal. This is particularly useful in hardware, but is available in the software version of R2U2 as well.
+Atomic checkers are the names for the relational expression seen in `examples/atomic_checker.c2po`. They allow for the filtering of signals and then comparing the output of that signal to a constant or other signal. This is particularly useful in hardware, but is available in the software version of R2U2 as well.
 
-### Available Filters:
-
-- `rate`: `(float)` -> `float`
-    - Rate of change between time steps
-- `movavg`: `(float,int)` -> `float`
-    - Moving average with window size `int` (max window size is 5 by default)
-- `abs_diff_angle`: `(float,float)` -> `float`
-    - Absolute difference between the arguments if both treated as angles.
