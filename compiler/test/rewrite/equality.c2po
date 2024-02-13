@@ -1,0 +1,9 @@
+INPUT
+    b0,b1,b2: bool;
+
+FTSPEC
+    true == b0;
+    b0 == true;
+    false == b0;
+    b0 == false;
+    

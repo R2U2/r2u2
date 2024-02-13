@@ -1,0 +1,78 @@
+AT a0  eq  s8 int(5)    
+AT a1  eq  s8 int(s9)   
+AT a2  neq s8 int(5)    
+AT a3  neq s8 int(s9)   
+AT a4  gt  s8 int(5)    
+AT a5  gt  s8 int(s9)   
+AT a6  lt  s8 int(5)    
+AT a7  lt  s8 int(s9)   
+AT a8  geq s8 int(5)    
+AT a9  geq s8 int(s9)   
+AT a10 leq s8 int(5)    
+AT a11 leq s8 int(s9)   
+AT a12 leq s8 int(-5)   
+TL n0  load   a0
+TL n1  return n0 0
+TL n2  load   a1
+TL n3  return n2 1
+TL n4  load   a2
+TL n5  return n4 2
+TL n6  load   a3
+TL n7  return n6 3
+TL n8  load   a4
+TL n9  return n8 4
+TL n10 load   a5
+TL n11 return n10 5
+TL n12 load   a6
+TL n13 return n12 6
+TL n14 load   a7
+TL n15 return n14 7
+TL n16 load   a8
+TL n17 return n16 8
+TL n18 load   a9
+TL n19 return n18 9
+TL n20 load   a10
+TL n21 return n20 10
+TL n22 load   a11
+TL n23 return n22 11
+TL n24 load   a12
+TL n25 return n24 12
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 4)
+CG TL SCQ n2  (4, 7)
+CG TL SCQ n3  (7, 8)
+CG TL SCQ n4  (8, 11)
+CG TL SCQ n5  (11, 12)
+CG TL SCQ n6  (12, 15)
+CG TL SCQ n7  (15, 16)
+CG TL SCQ n8  (16, 19)
+CG TL SCQ n9  (19, 20)
+CG TL SCQ n10 (20, 23)
+CG TL SCQ n11 (23, 24)
+CG TL SCQ n12 (24, 27)
+CG TL SCQ n13 (27, 28)
+CG TL SCQ n14 (28, 31)
+CG TL SCQ n15 (31, 32)
+CG TL SCQ n16 (32, 35)
+CG TL SCQ n17 (35, 36)
+CG TL SCQ n18 (36, 39)
+CG TL SCQ n19 (39, 40)
+CG TL SCQ n20 (40, 43)
+CG TL SCQ n21 (43, 44)
+CG TL SCQ n22 (44, 47)
+CG TL SCQ n23 (47, 48)
+CG TL SCQ n24 (48, 51)
+CG TL SCQ n25 (51, 52)
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5
+F __f6__ 6
+F __f7__ 7
+F __f8__ 8
+F __f9__ 9
+F __f10__ 10
+F __f11__ 11
+F __f12__ 12

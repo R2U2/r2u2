@@ -208,7 +208,7 @@ class TestCase():
 
         self.c2po_cli_options = collect_c2po_options(self.c2po_options)
         self.c2po_command =  ([
-            "python3", str(self.c2po), "--overwrite"
+            "python3", str(self.c2po)
         ] + collect_c2po_options(self.c2po_options) + 
         [
             "--output", str(self.spec_bin_workdir_path), 
@@ -219,6 +219,12 @@ class TestCase():
         self.r2u2bin_command = [
             str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
         ]
+
+        if (
+            ("booleanizer" not in self.c2po_options or not self.c2po_options["booleanizer"]) and 
+            ("atomic-checkers" not in self.c2po_options or not self.c2po_options["atomic-checkers"])  
+        ):
+            self.r2u2bin_command.append("-a")
 
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
@@ -263,7 +269,7 @@ class TestCase():
             f.write(self.asm)
 
         c2po_command_new = [
-            "python3", str(self.c2po), "--overwrite", "--debug"
+            "python3", str(self.c2po), "--debug"
         ] + collect_c2po_options(self.c2po_options) + \
         [
             "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
@@ -278,6 +284,13 @@ class TestCase():
             str(self.test_results_dir / self.spec_bin_workdir_path.name), 
             str(self.test_results_dir / self.trace_path.name)
         ]
+
+        if (
+            ("booleanizer" not in self.c2po_options or not self.c2po_options["booleanizer"]) and 
+            ("atomic-checkers" not in self.c2po_options or not self.c2po_options["atomic-checkers"])  
+        ):
+            r2u2bin_command_new.append("-a")
+
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2bin_command_new))
 

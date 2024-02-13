@@ -7,8 +7,12 @@
   (Not MLTL)
   (And2 MLTL MLTL)
   (And3 MLTL MLTL MLTL)
+  (Or2 MLTL MLTL)
+  (Or3 MLTL MLTL MLTL)
   (Global IntervalSort MLTL)
+  (Future IntervalSort MLTL)
   (Until IntervalSort MLTL MLTL)
+  (Release IntervalSort MLTL MLTL)
 )
 
 (ruleset mltl-rewrites)

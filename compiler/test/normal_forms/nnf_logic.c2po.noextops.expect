@@ -1,0 +1,61 @@
+[MAIN][[93mWRN[0m] NNF and BNF incompatible without extended operators, output will not be in either normal form
+TL n0  load   a0
+TL n1  not    n0
+TL n2  not    n1
+TL n3  load   a1
+TL n4  not    n3
+TL n5  not    n4
+TL n6  and    n2 n5
+TL n7  not    n6
+TL n8  return n7 0
+TL n9  and    n1 n4
+TL n10 return n9 1
+TL n11 load   a2
+TL n12 not    n11
+TL n13 and    n7 n12
+TL n14 return n13 2
+TL n15 and    n0 n4
+TL n16 return n15 3
+TL n17 and    n1 n3
+TL n18 and    n17 n15
+TL n19 return n18 4
+TL n20 and    n0 n12
+TL n21 not    n20
+TL n22 and    n1 n11
+TL n23 not    n22
+TL n24 and    n21 n23
+TL n25 not    n24
+TL n26 return n25 5
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 6)
+CG TL SCQ n2  (6, 9)
+CG TL SCQ n3  (9, 12)
+CG TL SCQ n4  (12, 15)
+CG TL SCQ n5  (15, 18)
+CG TL SCQ n6  (18, 21)
+CG TL SCQ n7  (21, 24)
+CG TL SCQ n8  (24, 25)
+CG TL SCQ n9  (25, 28)
+CG TL SCQ n10 (28, 29)
+CG TL SCQ n11 (29, 32)
+CG TL SCQ n12 (32, 35)
+CG TL SCQ n13 (35, 38)
+CG TL SCQ n14 (38, 39)
+CG TL SCQ n15 (39, 42)
+CG TL SCQ n16 (42, 43)
+CG TL SCQ n17 (43, 46)
+CG TL SCQ n18 (46, 49)
+CG TL SCQ n19 (49, 50)
+CG TL SCQ n20 (50, 53)
+CG TL SCQ n21 (53, 56)
+CG TL SCQ n22 (56, 59)
+CG TL SCQ n23 (59, 62)
+CG TL SCQ n24 (62, 65)
+CG TL SCQ n25 (65, 68)
+CG TL SCQ n26 (68, 69)
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

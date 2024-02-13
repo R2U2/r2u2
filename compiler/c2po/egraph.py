@@ -7,7 +7,7 @@ import subprocess
 import pathlib
 import dataclasses
 import json
-from typing import Optional, NewType
+from typing import Optional, NewType, cast
 
 from c2po import cpt, log, types
 
@@ -95,6 +95,10 @@ class EGraph:
     """Class representing a saturated EGraph for an expression."""
     root: EClassID
     eclasses: dict[EClassID, set[ENode]]
+
+    @staticmethod
+    def empty() -> EGraph:
+        return EGraph(EClassID(""), {})
 
     @staticmethod
     def from_json(content: dict) -> EGraph:
@@ -258,7 +262,7 @@ class EGraph:
 
         return cost
 
-    def extract(self) -> cpt.Expression:
+    def extract(self, context: cpt.Context) -> cpt.Expression:
         rep: dict[EClassID, tuple[ENode, int]] = {}
 
         cost: dict[ENodeID, int] = self.compute_cost()
@@ -276,24 +280,39 @@ class EGraph:
             if enode.op[0:3] == "Var":
                 if not enode.string:
                     raise ValueError("No string for Var")
+                # TODO: map these back to their expressions using context.atomics
                 return cpt.Variable(log.EMPTY_FILE_LOC, enode.string.replace("\"",""))
             elif enode.op[0:3] == "And":
                 ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
-                return cpt.LogicalAnd(log.EMPTY_FILE_LOC, ch)
+                return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
             elif enode.op == "Global":
                 ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
                 ch = ch[0]
                 if not enode.interval:
                     raise ValueError("No Interval for Global")
-                return cpt.Global(log.EMPTY_FILE_LOC, ch, enode.interval.lb, enode.interval.ub)
+                return cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
+            elif enode.op == "Future":
+                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
+                ch = ch[0]
+                if not enode.interval:
+                    raise ValueError("No Interval for Future")
+                return cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
+            elif enode.op == "Until":
+                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
+                ch0 = ch[0]
+                ch1 = ch[1]
+                if not enode.interval:
+                    raise ValueError("No Interval for Until")
+                return cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
 
             raise ValueError(f"Invalid node type ({enode.op})")
 
         expr_tree = build_expr_tree(self.root)
-        print(cpt.to_prefix(expr_tree))
+
+        print(repr(expr_tree))
         print(rep[self.root][1])
 
-        return cpt.Bool(log.FileLocation("", 0), True)
+        return expr_tree
 
 
 def to_egglog(spec: cpt.Formula) -> str:
@@ -306,32 +325,35 @@ def to_egglog(spec: cpt.Formula) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, cpt.Bool):
+        if isinstance(expr, cpt.Constant):
             egglog += expr.symbol
         elif expr.atomic_id > -1:
             egglog += f"(Var \"a{expr.atomic_id}\")"
-        elif isinstance(expr, cpt.LogicalNegate):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             if seen == 0:
                 egglog += "(Not ("
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Global):
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Global (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Future):
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Future (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Until):
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
             if seen == 0:
                 egglog += f"(Until (Interval {expr.interval.lb} {expr.interval.ub}) "
                 stack.append((seen+1, expr))
@@ -339,9 +361,9 @@ def to_egglog(spec: cpt.Formula) -> str:
                 stack.append((0, expr.children[0]))
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.Release):
+        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error("Release not implemented", MODULE_CODE)
-        elif isinstance(expr, cpt.LogicalAnd):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             arity = len(expr.children)
             if seen == 0:
                 egglog += f"(And{arity} "
@@ -349,7 +371,7 @@ def to_egglog(spec: cpt.Formula) -> str:
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:
                 egglog += ")"
-        elif isinstance(expr, cpt.LogicalOr):
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             arity = len(expr.children)
             if seen == 0:
                 egglog += f"(Or{arity} "
@@ -361,7 +383,7 @@ def to_egglog(spec: cpt.Formula) -> str:
     return egglog + ")\n"
 
 
-def run_egglog(spec: cpt.Formula):
+def run_egglog(spec: cpt.Formula) -> EGraph:
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
@@ -371,12 +393,15 @@ def run_egglog(spec: cpt.Formula):
         f.write(egglog)
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
-    subprocess.run(command, capture_output=True)
+    proc = subprocess.run(command, capture_output=True)
+
+    if proc.returncode:
+        log.error(f"Error running egglog\n{proc.stderr.decode()}", MODULE_CODE)
+        return EGraph.empty()
 
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
 
     egraph = EGraph.from_json(egglog_output)
-    egraph.extract()
 
-
+    return egraph

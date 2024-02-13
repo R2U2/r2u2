@@ -8,6 +8,12 @@ before_script:
 stages:
   - test
 
+c2po-test:
+  stage: test
+  script:
+    - "cd compiler/test"
+    - "python3 test.py"
+
 cav-test:
   stage: test
   script:
