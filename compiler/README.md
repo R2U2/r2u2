@@ -10,7 +10,7 @@ To compile a C2PO file, run the `c2po.py` script with a `.csv` or `.map` file as
 
     python c2po.py --booleanizer --trace examples/cav.csv examples/cav.c2po 
 
-The assembled binary should be at `r2u2_spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
+The assembled binary is generated at `spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
 
     python c2po.py -h
 
