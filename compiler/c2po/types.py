@@ -14,9 +14,9 @@ class R2U2Implementation(enum.Enum):
 
 class R2U2Engine(enum.Enum):
     NONE = 0
-    TEMPORAL_LOGIC = 0
-    BOOLEANIZER = 1
-    ATOMIC_CHECKER = 2
+    TEMPORAL_LOGIC = 1
+    BOOLEANIZER = 2
+    ATOMIC_CHECKER = 3
 
 
 class Interval(NamedTuple):

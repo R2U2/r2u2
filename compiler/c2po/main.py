@@ -30,6 +30,7 @@ class ValidatedInput(NamedTuple):
     signal_mapping: types.SignalMapping
     passes: set[passes.Pass]
     final_stage: cpt.CompilationStage
+    frontend: types.R2U2Engine
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -206,24 +207,6 @@ def validate_input(
     impl = R2U2_IMPL_MAP[impl_str]
     types.set_types(impl, int_width, int_is_signed, float_width)
 
-    if enable_booleanizer and enable_atomic_checkers:
-        log.error("Only one of AT and booleanizer can be enabled", MODULE_CODE)
-        status = False
-
-    if impl == types.R2U2Implementation.C:
-        if (not enable_booleanizer and not enable_atomic_checkers) or (
-            enable_booleanizer and enable_atomic_checkers
-        ):
-            log.error(
-                "Exactly one of booleanizer or atomic checker must be enabled for C implementation",
-                MODULE_CODE,
-            )
-            status = False
-    else:  # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
-        if enable_booleanizer:
-            log.error("Booleanizer only available for C implementation", MODULE_CODE)
-            status = False
-
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
             log.error(
@@ -263,6 +246,20 @@ def validate_input(
     else:
         final_stage = cpt.CompilationStage.ASSEMBLE
 
+    if enable_booleanizer and enable_atomic_checkers:
+        log.error("Only one of atomic checkers and booleanizer can be enabled", MODULE_CODE)
+        status = False
+    elif enable_booleanizer and impl != types.R2U2Implementation.C:
+        log.error("Booleanizer only available for C implementation", MODULE_CODE)
+        status = False
+
+    if enable_booleanizer:
+        frontend = types.R2U2Engine.BOOLEANIZER
+    elif enable_atomic_checkers:
+        frontend = types.R2U2Engine.ATOMIC_CHECKER
+    else:
+        frontend = types.R2U2Engine.NONE
+
     return ValidatedInput(
         status,
         input_path,
@@ -272,6 +269,7 @@ def validate_input(
         signal_mapping,
         enabled_passes,
         final_stage,
+        frontend
     )
 
 
@@ -397,7 +395,7 @@ def compile(
             write_pickle_filename,
         )
         return ReturnCode.SUCCESS
-
+    
     # ----------------------------------
     # Type check
     # ----------------------------------
@@ -405,8 +403,7 @@ def compile(
         program,
         R2U2_IMPL_MAP[impl],
         options.mission_time,
-        enable_atomic_checkers,
-        enable_booleanizer,
+        options.frontend,
         options.final_stage is cpt.CompilationStage.ASSEMBLE,
         signal_mapping,
     )

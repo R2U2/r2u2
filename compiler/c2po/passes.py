@@ -800,8 +800,6 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb2 = rhs.interval.lb
                     ub2 = rhs.interval.ub
 
-                    print(f'{lb1} {ub1} {lb2} {ub2} {lb1 <= lb2 and ub1 >= ub2}')
-
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
                         new = cpt.TemporalOperator.Future(expr.loc, lb2, ub2, lhs_opnd)
@@ -1000,11 +998,13 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            if parent.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(expr)
-                if expr.atomic_id < 0:
-                    expr.atomic_id = id
-                    id += 1
+            if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
+                continue
+        
+            context.atomics.add(expr)
+            if expr.atomic_id < 0:
+                expr.atomic_id = id
+                id += 1
 
     log.debug(
         f"Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",

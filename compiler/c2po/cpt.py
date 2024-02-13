@@ -170,7 +170,6 @@ class Signal(Expression):
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
-        self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, Signal) and __o.symbol == self.symbol
@@ -1034,8 +1033,7 @@ class Context:
         self,
         impl: types.R2U2Implementation,
         mission_time: int,
-        atomic_checkers: bool,
-        booleanizer: bool,
+        frontend: types.R2U2Engine,
         assembly_enabled: bool,
         signal_mapping: types.SignalMapping,
     ):
@@ -1048,8 +1046,7 @@ class Context:
         self.contracts: dict[str, Contract] = {}
         self.atomics: set[Expression] = set()
         self.implementation = impl
-        self.booleanizer_enabled = booleanizer
-        self.atomic_checker_enabled = atomic_checkers
+        self.frontend = frontend
         self.mission_time = mission_time
         self.signal_mapping = signal_mapping
         self.assembly_enabled = assembly_enabled

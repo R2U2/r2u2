@@ -76,7 +76,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.AtomicChecker):
-            if not context.atomic_checker_enabled:
+            if context.frontend is not types.R2U2Engine.ATOMIC_CHECKER:
                 log.error(
                     "Atomic checkers not enabled, but found in expression\n\t"
                     f"{expr}",
@@ -231,7 +231,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 cpt.SetAggregationKind.FOR_AT_MOST,
                 cpt.SetAggregationKind.FOR_AT_LEAST,
             }:
-                if not context.booleanizer_enabled:
+                if context.frontend is not types.R2U2Engine.BOOLEANIZER:
                     log.error(
                         "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled",
                         MODULE_CODE,
@@ -328,7 +328,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if not context.booleanizer_enabled:
+            if context.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     f"Found context.booleanizer_enabled expression, but Booleanizer expressions disabled\n\t{expr}",
                     MODULE_CODE,
@@ -363,7 +363,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if not context.booleanizer_enabled:
+            if context.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
                     MODULE_CODE,
@@ -587,8 +587,7 @@ def type_check(
     program: cpt.Program,
     impl: types.R2U2Implementation,
     mission_time: int,
-    atomic_checkers: bool,
-    booleanizer: bool,
+    frontend: types.R2U2Engine,
     assembly_enabled: bool,
     signal_mapping: types.SignalMapping,
 ) -> tuple[bool, cpt.Context]:
@@ -598,8 +597,7 @@ def type_check(
     context = cpt.Context(
         impl,
         mission_time,
-        atomic_checkers,
-        booleanizer,
+        frontend,
         assembly_enabled,
         signal_mapping,
     )
