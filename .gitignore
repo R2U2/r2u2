@@ -291,3 +291,7 @@ venv/
 r2u2env/
 
 __*
+
+# dependencies
+egg/
+egglog/
