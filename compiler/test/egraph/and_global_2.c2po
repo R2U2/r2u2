@@ -1,0 +1,5 @@
+INPUT
+    b0,b1,b2,b3: bool;
+
+FTSPEC
+    f0: (G[0,3] b0) && (G[0,5] b1) && (G[0,100] b2);

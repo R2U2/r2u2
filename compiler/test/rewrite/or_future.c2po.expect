@@ -1,0 +1,58 @@
+TL n0  load   a0
+TL n1  eventually n0
+TL n2  return n1 0
+TL n3  return n1 1
+TL n4  eventually n0
+TL n5  return n4 2
+TL n6  return n4 3
+TL n7  eventually n0
+TL n8  load   a1
+TL n9  eventually n8
+TL n10 or     n7 n9
+TL n11 eventually n10
+TL n12 return n11 4
+TL n13 eventually n0
+TL n14 eventually n8
+TL n15 or     n13 n14
+TL n16 eventually n15
+TL n17 return n16 5
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 6)
+CG TL LB  n1  0
+CG TL UB  n1  5
+CG TL SCQ n2  (6, 7)
+CG TL SCQ n3  (7, 8)
+CG TL SCQ n4  (8, 11)
+CG TL LB  n4  0
+CG TL UB  n4  8
+CG TL SCQ n5  (11, 12)
+CG TL SCQ n6  (12, 13)
+CG TL SCQ n7  (13, 21)
+CG TL LB  n7  0
+CG TL UB  n7  0
+CG TL SCQ n8  (21, 24)
+CG TL SCQ n9  (24, 27)
+CG TL LB  n9  2
+CG TL UB  n9  5
+CG TL SCQ n10 (27, 30)
+CG TL SCQ n11 (30, 33)
+CG TL LB  n11 0
+CG TL UB  n11 5
+CG TL SCQ n12 (33, 34)
+CG TL SCQ n13 (34, 37)
+CG TL LB  n13 1
+CG TL UB  n13 1
+CG TL SCQ n14 (37, 41)
+CG TL LB  n14 0
+CG TL UB  n14 1
+CG TL SCQ n15 (41, 44)
+CG TL SCQ n16 (44, 47)
+CG TL LB  n16 1
+CG TL UB  n16 3
+CG TL SCQ n17 (47, 48)
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

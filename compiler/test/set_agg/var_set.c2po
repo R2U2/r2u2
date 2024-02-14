@@ -1,0 +1,13 @@
+INPUT
+    b0,b1,b2,b3: bool;
+
+DEFINE
+    X := {b0,b1,b2};
+    n := 1;
+
+FTSPEC
+    foreach(b:X)(b);
+    forsome(b:X)(b);
+    forexactly(b:X,n)(b);
+    foratleast(b:X,n)(b);
+    foratmost(b:X,n)(b);

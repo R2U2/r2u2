@@ -1,0 +1,7 @@
+[TYPC][[91mERR[0m] const_specs.c2po:2: Constant specification detected, remove or make this non-constant.
+	0:True
+[TYPC][[91mERR[0m] const_specs.c2po:3: Constant specification detected, remove or make this non-constant.
+	1:False
+[TYPC][[91mERR[0m] const_specs.c2po:4: Constant specification detected, remove or make this non-constant.
+	2:(True)&&(True)
+[MAIN][[91mERR[0m] Failed type check.

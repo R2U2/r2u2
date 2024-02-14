@@ -1,0 +1,132 @@
+(sort IntervalSort)
+(function Interval (i64 i64) IntervalSort)
+
+(datatype MLTL
+  (Bool bool)
+  (Var String)
+  (Not MLTL)
+  (And2 MLTL MLTL)
+  (And3 MLTL MLTL MLTL)
+  (Or2 MLTL MLTL)
+  (Or3 MLTL MLTL MLTL)
+  (Global IntervalSort MLTL)
+  (Future IntervalSort MLTL)
+  (Until IntervalSort MLTL MLTL)
+)
+
+(ruleset mltl-rewrites)
+
+; (birewrite
+;   (And2 a b)
+;   (And2 b a)
+;   :ruleset mltl-rewrites
+; )
+
+; multi-arity
+(birewrite 
+  (And2 (And2 a b) c)
+  (And3 a b c)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (Or2 (Or2 a b) c)
+  (Or3 a b c)
+  :ruleset mltl-rewrites
+)
+
+; R1
+(rewrite 
+  (Global (Interval l1 u1) (Global (Interval l2 u2) a)) 
+  (Global (Interval (+ l1 l2) (+ u1 u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Future (Interval l1 u1) (Future (Interval l2 u2) a)) 
+  (Future (Interval (+ l1 l2) (+ u1 u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+; R2
+; Distributivity
+(rewrite 
+  (And2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) b))
+  (Global (Interval (min l1 l2) (+ (min l1 l2) (min (- u1 l1) (- u2 l2)))) 
+    (And2 
+      (Global (Interval (- l1 (min l1 l2)) (- u1 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) a) 
+      (Global (Interval (- l2 (min l1 l2)) (- u2 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) b) 
+    )
+  )
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) b))
+  (Future (Interval (min l1 l2) (+ (min l1 l2) (min (- u1 l1) (- u2 l2)))) 
+    (Or2 
+      (Future (Interval (- l1 (min l1 l2)) (- u1 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) a) 
+      (Future (Interval (- l2 (min l1 l2)) (- u2 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) b) 
+    )
+  )
+  :ruleset mltl-rewrites
+)
+  
+; R3
+(rewrite 
+  (Global (Interval l l) (Future (Interval l2 u2) a)) 
+  (Future (Interval (+ l l2) (+ l u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Future (Interval l l) (Global (Interval l2 u2) a)) 
+  (Global (Interval (+ l l2) (+ l u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Global (Interval l1 u1) (Future (Interval l l) a)) 
+  (Global (Interval (+ l l1) (+ l u1)) a) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Future (Interval l1 u1) (Future (Interval l l) a)) 
+  (Future (Interval (+ l l1) (+ l u1)) a) 
+  :ruleset mltl-rewrites
+)
+
+; R4
+; (rewrite 
+;   (And2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) a))
+;   (Global (Interval l1 (max u1 u2)) a)
+;   :when ((<= l1 l2) (<= l2 (+ u1 1)))
+;   :ruleset mltl-rewrites
+; )
+
+; (rewrite 
+;   (Or2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) a))
+;   (Future (Interval l1 (max u1 u2)) a)
+;   :when ((<= l1 l2) (<= l2 (+ u1 1)))
+;   :ruleset mltl-rewrites
+; )
+
+; R5
+
+; R6
+
+; R7
+
+; R8
+
+(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
+(rewrite (Until (Interval 0 0) a b) b :ruleset mltl-rewrites)
+
+(rewrite 
+  (Global (Interval a b) (Global (Interval c d) e))
+  (Global (Interval (+ a c) (+ b d)) e)
+  :ruleset mltl-rewrites
+)
+

@@ -8,13 +8,19 @@ before_script:
 stages:
   - test
 
+c2po-test:
+  stage: test
+  script:
+    - "cd compiler/test"
+    - "python3 test.py"
+
 cav-test:
   stage: test
   script:
     - "cd monitors/static"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --r2u2prep ../compiler/r2u2prep.py --r2u2bin ../monitors/static/build/r2u2 cav"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 cav"
 
 long-trace:
   stage: test
@@ -22,7 +28,7 @@ long-trace:
     - "cd monitors/static"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --r2u2prep ../compiler/r2u2prep.py --r2u2bin ../monitors/static/build/r2u2 long_trace"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 long_trace"
 
 ft-pt-test:
   stage: test
@@ -30,4 +36,4 @@ ft-pt-test:
     - "cd monitors/static"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --r2u2prep ../compiler/r2u2prep.py --r2u2bin ../monitors/static/build/r2u2 regression"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 regression"

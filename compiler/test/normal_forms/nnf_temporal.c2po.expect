@@ -1,0 +1,36 @@
+TL n0  load   a0
+TL n1  not    n0
+TL n2  eventually n1
+TL n3  return n2 0
+TL n4  global n1
+TL n5  return n4 1
+TL n6  load   a1
+TL n7  not    n6
+TL n8  release n1 n7
+TL n9  return n8 2
+TL n10 until  n1 n7
+TL n11 return n10 3
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 6)
+CG TL SCQ n2  (6, 9)
+CG TL LB  n2  0
+CG TL UB  n2  5
+CG TL SCQ n3  (9, 10)
+CG TL SCQ n4  (10, 13)
+CG TL LB  n4  0
+CG TL UB  n4  5
+CG TL SCQ n5  (13, 14)
+CG TL SCQ n6  (14, 17)
+CG TL SCQ n7  (17, 20)
+CG TL SCQ n8  (20, 23)
+CG TL LB  n8  0
+CG TL UB  n8  5
+CG TL SCQ n9  (23, 24)
+CG TL SCQ n10 (24, 27)
+CG TL LB  n10 0
+CG TL UB  n10 5
+CG TL SCQ n11 (27, 28)
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3

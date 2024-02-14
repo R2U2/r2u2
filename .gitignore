@@ -289,3 +289,9 @@ venv/
 
 # python virtual environment
 r2u2env/
+
+__*
+
+# dependencies
+egg/
+egglog/

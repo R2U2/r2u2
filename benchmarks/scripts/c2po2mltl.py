@@ -1,4 +1,6 @@
-import re
+"""
+usage: python c2po2mltl.py path/to/r2u2prep.py
+"""
 import shutil
 import subprocess
 import sys
