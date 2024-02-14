@@ -1028,7 +1028,8 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
-    program_scq_size = 0
+    actual_program_scq_size = 0
+    theoretical_program_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
@@ -1037,10 +1038,13 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         if isinstance(expr, cpt.Formula):
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
-            program_scq_size += expr.scq_size
+
+            actual_program_scq_size += expr.scq_size
+            theoretical_program_scq_size += expr.scq_size
+
             expr.scq = (
-                program_scq_size - expr.scq_size,
-                program_scq_size,
+                actual_program_scq_size - expr.scq_size,
+                actual_program_scq_size,
             )
             continue
 
@@ -1054,18 +1058,22 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         # need the +3 b/c of implementation -- ask Brian
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
         )
-        program_scq_size += expr.scq_size
+
+        actual_program_scq_size += expr.scq_size
+        theoretical_program_scq_size += expr.scq_size - 2
 
         expr.scq = (
-            program_scq_size - expr.scq_size,
-            program_scq_size,
+            actual_program_scq_size - expr.scq_size,
+            actual_program_scq_size,
         )
 
-    log.debug(f"Program SCQ size: {program_scq_size}", MODULE_CODE)
+    log.debug(f"Actual program SCQ size: {actual_program_scq_size}", MODULE_CODE)
+    log.debug(f"Theoretical program SCQ size: {theoretical_program_scq_size}", MODULE_CODE)
 
 
 # A Pass is a function with the signature:
