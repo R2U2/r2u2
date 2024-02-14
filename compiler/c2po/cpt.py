@@ -1349,9 +1349,8 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Formula):
-            if expr.symbol[0:2] != "__":
-                s += expr.symbol
-                s += ": "
+            s += expr.symbol
+            s += ": "
             stack.append((0, expr.get_expr()))
         elif isinstance(expr, Contract):
             if seen == 0:
