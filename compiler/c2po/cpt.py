@@ -1390,36 +1390,24 @@ def to_mltl_std(program: Program) -> str:
                 mltl += expr.symbol + " "
             elif expr.atomic_id > -1:
                 mltl += f"a{expr.atomic_id}"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
+            elif len(expr.children) == 1 and (
+                is_temporal_operator(expr) or is_logical_operator(expr)
+            ):
+                print(f"{repr(expr)} {seen}")
                 if seen == 0:
                     mltl += f"{expr.symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
                     mltl += ")"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
-                if seen == 0:
-                    mltl += "("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[0]))
-                elif seen == 1:
-                    mltl += f"){expr.symbol}("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[1]))
-                else:
-                    mltl += ")"
             elif is_temporal_operator(expr) or is_logical_operator(expr):
                 if seen == len(expr.children):
                     mltl += ")"
-                elif seen % 2 == 0:
+                elif seen == 0:
                     mltl += "("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
-                elif seen % 2 == 1:
+                else:
                     mltl += f"){expr.symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
