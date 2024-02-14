@@ -1013,33 +1013,32 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
+    log.warning("E-Graph optimizations are an experimental feature", MODULE_CODE)
     log.debug("Optimizing via E-Graph", MODULE_CODE)
 
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
     e_graph = egraph.run_egglog(formula)
     new = e_graph.extract(context)
-    formula.replace(new)
+    formula.get_expr().replace(new)
 
     log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
-    spec_section_total_scq_size = 0
+    program_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
-            expr.total_scq_size = spec_section_total_scq_size
-            spec_section_total_scq_size = 0
             continue
 
         if isinstance(expr, cpt.Formula):
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
-            spec_section_total_scq_size += expr.scq_size
+            program_scq_size += expr.scq_size
             expr.scq = (
-                spec_section_total_scq_size - expr.scq_size,
-                spec_section_total_scq_size,
+                program_scq_size - expr.scq_size,
+                program_scq_size,
             )
             continue
 
@@ -1052,17 +1051,19 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
         # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
         )
-        spec_section_total_scq_size += expr.scq_size
+        program_scq_size += expr.scq_size
 
         expr.scq = (
-            spec_section_total_scq_size - expr.scq_size,
-            spec_section_total_scq_size,
+            program_scq_size - expr.scq_size,
+            program_scq_size,
         )
+
+    log.debug(f"Program SCQ size: {program_scq_size}", MODULE_CODE)
 
 
 # A Pass is a function with the signature:

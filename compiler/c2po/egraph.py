@@ -142,27 +142,26 @@ class EGraph:
             raise ValueError("No root candidates")
     
     def traverse(self):
-        stack: list[ENode] = []
-        visited = set()
+        stack: list[tuple[ENode,bool]] = []
+        done: set[ENodeID] = set()
 
-        [stack.append(enode) for enode in self.eclasses[self.root]]
+        [stack.append((enode, False)) for enode in self.eclasses[self.root]]
 
         while len(stack) > 0:
-            cur_enode = stack.pop()
+            (cur_enode, seen) = stack.pop()
 
-            if cur_enode.enode_id in visited:
+            if seen and cur_enode.enode_id not in done:
+                done.add(cur_enode.enode_id)
                 yield cur_enode
                 continue
+            elif cur_enode.enode_id in done:
+                continue
 
-            stack.append(cur_enode)
-            visited.add(cur_enode.enode_id)
+            stack.append((cur_enode, True))
 
             for enode in self.eclasses[cur_enode.eclass_id]:
                 for child_eclass_id in enode.child_eclass_ids:
-                    if child_eclass_id in visited:
-                        continue
-
-                    [stack.append(child) for child in self.eclasses[child_eclass_id]]
+                    [stack.append((child, False)) for child in self.eclasses[child_eclass_id]]
 
     def compute_propagation_delays(self) -> tuple[dict[EClassID, int], dict[EClassID, int]]:
         """Returns a pair of dicts mapping EClass IDs to propagation delays (PDs). The first dict maps to the maximum best-case PD (BPD) of the EClass and the second maps to the minimum worst-case PD (WPD).
@@ -184,7 +183,7 @@ class EGraph:
             if enode.op[0:3] == "Var":
                 max_bpd[enode.eclass_id] = 0
                 min_wpd[enode.eclass_id] = 0
-            elif enode.op[0:3] == "And":
+            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or":
                 cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids])
 
                 if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
@@ -194,10 +193,10 @@ class EGraph:
 
                 max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
                 min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
-            elif enode.op == "Global":
+            elif enode.op == "Global" or enode.op == "Future":
                 interval = enode.interval
                 if not interval:
-                    raise ValueError("No 'Interval' for 'Global' operator")
+                    raise ValueError(f"No 'Interval' for operator {enode.op}")
 
                 cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids]) + interval.lb
                 if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
@@ -207,6 +206,8 @@ class EGraph:
 
                 max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
                 min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
+            else:
+                raise ValueError(f"Invalid node type for PD computation {enode.op}")
 
         return (max_bpd, min_wpd)
 
@@ -239,78 +240,99 @@ class EGraph:
                 # no children, so 0
                 cost[enode.enode_id] = 1
             elif enode.op[0:3] == "And":
-                total_scq_size = 0
+                total_cost = 1
 
                 # need max wpd of all children and second max wpd (for the node with the max wpd)
-                cur_max_wpd_1 = max([min_wpd[i] for i in enode.child_eclass_ids])
-
-                if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] != cur_max_wpd_1]) == 0:
-                    cur_max_wpd_2 = cur_max_wpd_1
-                else:
-                    cur_max_wpd_2 = max([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] != cur_max_wpd_1])
+                min_wpds = [min_wpd[i] for i in enode.child_eclass_ids]
+                cur_max_wpd_1 = max(min_wpds)
+                min_wpds.remove(cur_max_wpd_1)
+                cur_max_wpd_2 = max(min_wpds)
 
                 for child_eclass_id in enode.child_eclass_ids:
                     if min_wpd[child_eclass_id] == cur_max_wpd_1:
-                        total_scq_size += max(cur_max_wpd_2 - max_bpd[child_eclass_id], 0) + 1
+                        total_cost += max(cur_max_wpd_2 - max_bpd[child_eclass_id], 0) 
                     else:
-                        total_scq_size += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) + 1
+                        total_cost += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) 
 
-                cost[enode.enode_id] = total_scq_size
+                cost[enode.enode_id] = total_cost
             elif enode.op == "Global":
                 # Global nodes have *lonely* single children (no siblings)
                 cost[enode.enode_id] = 1
+            else:
+                raise ValueError(f"Invalid node type for cost computation {enode.op}")
 
         return cost
+    
+    def build_expr_tree(
+            self, 
+            rep: dict[EClassID, tuple[ENode, int]], 
+            eclass: EClassID, 
+            atomics: set[cpt.Expression]
+    ) -> cpt.Expression:
+        enode,_ = rep[eclass]
+
+        if enode.op[0:3] == "Var":
+            if not enode.string:
+                raise ValueError("No string for Var")
+            
+            # map back to the expression this atomic points to
+            atomic_id = int(enode.string.replace('"','')[1:])
+
+            # this will only have one members since atomic IDs are unique
+            return {a for a in atomics if a.atomic_id == atomic_id}.pop()
+        elif enode.op[0:3] == "And":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
+        elif enode.op[0:2] == "Or":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            return cpt.Operator.LogicalOr(log.EMPTY_FILE_LOC, ch)
+        elif enode.op == "Global":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            ch = ch[0]
+            if not enode.interval:
+                raise ValueError("No Interval for Global")
+            return cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
+        elif enode.op == "Future":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            ch = ch[0]
+            if not enode.interval:
+                raise ValueError("No Interval for Future")
+            return cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
+        elif enode.op == "Until":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            ch0 = ch[0]
+            ch1 = ch[1]
+            if not enode.interval:
+                raise ValueError("No Interval for Until")
+            return cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
+        elif enode.op == "Release":
+            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
+            ch0 = ch[0]
+            ch1 = ch[1]
+            if not enode.interval:
+                raise ValueError("No Interval for Release")
+            return cpt.TemporalOperator.Release(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
+        else:
+            raise ValueError(f"Invalid node type {enode.op}")
 
     def extract(self, context: cpt.Context) -> cpt.Expression:
         rep: dict[EClassID, tuple[ENode, int]] = {}
 
         cost: dict[ENodeID, int] = self.compute_cost()
+        total_cost: dict[ENodeID, int] = {}
 
         # TODO: can the rep for an EClass change after one of its parents' rep has been computed?
         for enode in self.traverse():
-            total_cost = sum([cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) + cost[enode.enode_id]
+            child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
+            total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
 
-            if enode.eclass_id not in rep or total_cost < rep[enode.eclass_id][1]:
-                rep[enode.eclass_id] = (enode, total_cost)
+            if enode.eclass_id not in rep or total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
+                rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
 
-        def build_expr_tree(eclass: EClassID) -> cpt.Expression:
-            enode,_ = rep[eclass]
+        expr_tree = self.build_expr_tree(rep, self.root, context.atomics)
 
-            if enode.op[0:3] == "Var":
-                if not enode.string:
-                    raise ValueError("No string for Var")
-                # TODO: map these back to their expressions using context.atomics
-                return cpt.Variable(log.EMPTY_FILE_LOC, enode.string.replace("\"",""))
-            elif enode.op[0:3] == "And":
-                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
-                return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
-            elif enode.op == "Global":
-                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
-                ch = ch[0]
-                if not enode.interval:
-                    raise ValueError("No Interval for Global")
-                return cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
-            elif enode.op == "Future":
-                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
-                ch = ch[0]
-                if not enode.interval:
-                    raise ValueError("No Interval for Future")
-                return cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
-            elif enode.op == "Until":
-                ch = [build_expr_tree(c) for c in enode.child_eclass_ids]
-                ch0 = ch[0]
-                ch1 = ch[1]
-                if not enode.interval:
-                    raise ValueError("No Interval for Until")
-                return cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
-
-            raise ValueError(f"Invalid node type ({enode.op})")
-
-        expr_tree = build_expr_tree(self.root)
-
-        print(repr(expr_tree))
-        print(rep[self.root][1])
+        log.debug(f"Optimal expression: {repr(expr_tree)}", MODULE_CODE)
+        log.debug(f"Cost: {rep[self.root][1]+1}", MODULE_CODE)
 
         return expr_tree
 
@@ -393,6 +415,7 @@ def run_egglog(spec: cpt.Formula) -> EGraph:
         f.write(egglog)
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
+    log.debug(f"Running command '{' '.join(command)}'", MODULE_CODE)
     proc = subprocess.run(command, capture_output=True)
 
     if proc.returncode:

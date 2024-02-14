@@ -289,3 +289,5 @@ venv/
 
 # python virtual environment
 r2u2env/
+
+__*

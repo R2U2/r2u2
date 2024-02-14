@@ -228,18 +228,26 @@ def validate_input(
     enabled_passes = set(passes.PASS_LIST)
     if not enable_rewrite:
         enabled_passes.remove(passes.optimize_rewrite_rules)
-    if enable_rewrite and enable_egraph:
-        enabled_passes.remove(passes.optimize_rewrite_rules)
-    if not enable_egraph:
-        enabled_passes.remove(passes.optimize_egraph)
-    if enable_extops:
-        enabled_passes.remove(passes.remove_extended_operators)
-    if not enable_nnf:
-        enabled_passes.remove(passes.to_nnf)
-    if not enable_bnf:
-        enabled_passes.remove(passes.to_bnf)
+
     if not enable_cse:
         enabled_passes.remove(passes.optimize_cse)
+
+    if enable_egraph:
+        if passes.optimize_rewrite_rules in enabled_passes:
+            enabled_passes.remove(passes.optimize_rewrite_rules)
+        if passes.optimize_cse in enabled_passes:
+            enabled_passes.remove(passes.optimize_cse)
+    else: # not enable_egraph
+        enabled_passes.remove(passes.optimize_egraph)
+
+    if enable_extops:
+        enabled_passes.remove(passes.remove_extended_operators)
+        
+    if not enable_nnf:
+        enabled_passes.remove(passes.to_nnf)
+
+    if not enable_bnf:
+        enabled_passes.remove(passes.to_bnf)
 
     if only_parse:
         final_stage = cpt.CompilationStage.PARSE
