@@ -115,6 +115,16 @@
         "options": ["--write-mltl", "-c"]
     },
     {
+        "input": "serialize/multi_arity.c2po", 
+        "expected_prefix": "serialize/multi_arity.c2po.prefix.expect", 
+        "options": ["--write-prefix", "-c"]
+    },
+    {
+        "input": "serialize/multi_arity.c2po", 
+        "expected_c2po": "serialize/multi_arity.c2po.expect", 
+        "options": ["--write-c2po", "-c"]
+    },
+    {
         "input": "mltl/future.mltl", 
         "expected_output": "mltl/future.mltl.expect", 
         "options": []
