@@ -255,7 +255,7 @@ class EGraph:
                         total_cost += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) 
 
                 cost[enode.enode_id] = total_cost
-            elif enode.op == "Global":
+            elif enode.op == "Global" or enode.op == "Future":
                 # Global nodes have *lonely* single children (no siblings)
                 cost[enode.enode_id] = 1
             else:
@@ -405,7 +405,7 @@ def to_egglog(spec: cpt.Formula) -> str:
     return egglog + ")\n"
 
 
-def run_egglog(spec: cpt.Formula) -> EGraph:
+def run_egglog(spec: cpt.Formula) -> Optional[EGraph]:
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
@@ -420,7 +420,7 @@ def run_egglog(spec: cpt.Formula) -> EGraph:
 
     if proc.returncode:
         log.error(f"Error running egglog\n{proc.stderr.decode()}", MODULE_CODE)
-        return EGraph.empty()
+        return None
 
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)

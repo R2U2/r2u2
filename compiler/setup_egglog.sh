@@ -12,7 +12,8 @@ fi
 
 cd c2po/
 git clone https://github.com/egraphs-good/egglog.git
+cd egglog
 cargo install cargo-nextest
 make all
 cargo build
-cd ..
+cd ../../

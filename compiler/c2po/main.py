@@ -232,16 +232,18 @@ def validate_input(
     if not enable_cse:
         enabled_passes.remove(passes.optimize_cse)
 
+    if enable_extops:
+        enabled_passes.remove(passes.remove_extended_operators)
+
     if enable_egraph:
         if passes.optimize_rewrite_rules in enabled_passes:
             enabled_passes.remove(passes.optimize_rewrite_rules)
         if passes.optimize_cse in enabled_passes:
             enabled_passes.remove(passes.optimize_cse)
+        if passes.remove_extended_operators in enabled_passes:
+            enabled_passes.remove(passes.remove_extended_operators)
     else: # not enable_egraph
         enabled_passes.remove(passes.optimize_egraph)
-
-    if enable_extops:
-        enabled_passes.remove(passes.remove_extended_operators)
         
     if not enable_nnf:
         enabled_passes.remove(passes.to_nnf)

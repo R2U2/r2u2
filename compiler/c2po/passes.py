@@ -1018,8 +1018,10 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
 
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
     e_graph = egraph.run_egglog(formula)
-    new = e_graph.extract(context)
-    formula.get_expr().replace(new)
+
+    if e_graph:
+        new = e_graph.extract(context)
+        formula.get_expr().replace(new)
 
     log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
 

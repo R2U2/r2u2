@@ -1,5 +1,15 @@
 [
     {
+        "input": "egraph/r1_future.c2po", 
+        "expected_prefix": "egraph/r1_future.c2po.prefix.expect", 
+        "options": ["--write-prefix", "--egraph", "-c"]
+    },
+    {
+        "input": "egraph/r1_global.c2po", 
+        "expected_prefix": "egraph/r1_global.c2po.prefix.expect", 
+        "options": ["--write-prefix", "--egraph", "-c"]
+    },
+    {
         "input": "atomic_checkers/bool.c2po", 
         "expected_output": "atomic_checkers/bool.c2po.at.expect", 
         "options": ["-at", "--map", "default.map"]

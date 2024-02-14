@@ -1349,16 +1349,17 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Formula):
-            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-            s += ":"
+            if expr.symbol[0:2] != "__":
+                s += expr.symbol
+                s += ": "
             stack.append((0, expr.get_expr()))
         elif isinstance(expr, Contract):
             if seen == 0:
-                s += f"{expr.symbol}:("
+                s += f"{expr.symbol}: ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
-                s += ")=>("
+                s += ") => ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
