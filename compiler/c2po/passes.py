@@ -986,6 +986,34 @@ def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> Non
     log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
 
 
+def flatten_multi_operators(program: cpt.Program, context: cpt.Context) -> None:
+    """Flattens all multi-arity operators (e.g., &&, ||, +, etc.)."""
+    log.debug("Flattening multi-arity operators", module=MODULE_CODE)
+
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.Operator) or len(expr.children) < 3:
+            continue
+
+        if expr.operator in {
+            cpt.OperatorKind.LOGICAL_AND,
+            cpt.OperatorKind.LOGICAL_OR,
+            cpt.OperatorKind.ARITHMETIC_ADD,
+            cpt.OperatorKind.ARITHMETIC_MULTPLY,
+        }:
+            new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
+            for i in range(2, len(expr.children) - 1):
+                new = type(expr)(
+                    expr.loc, expr.operator, [new, expr.children[i]], expr.type
+                )
+            new = type(expr)(
+                expr.loc, expr.operator, [new, expr.children[-1]], expr.type
+            )
+
+            expr.replace(new)
+
+    log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
+
+
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
     id: int = 0
