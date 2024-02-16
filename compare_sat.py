@@ -22,7 +22,7 @@ for mltl,oracle in file_pairs:
     print(" ".join(command))
     try:
         proc = subprocess.run(command, capture_output=True, timeout=60)
-    except TimeoutError:
+    except subprocess.TimeoutExpired:
         continue
 
     with open(str(oracle), "r") as f:
