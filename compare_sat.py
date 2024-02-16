@@ -2,8 +2,8 @@ from pathlib import Path
 from glob import glob
 import subprocess
 
-ORACLE_DIR = Path(__file__).parent / "benchmarks" / "__random0" / "oracle"
-MLTL_DIR = Path(__file__).parent / "benchmarks" / "__random0" / "mltl"
+ORACLE_DIR = Path(__file__).parent / "benchmarks" / "random0" / "oracle"
+MLTL_DIR = Path(__file__).parent / "benchmarks" / "random0" / "mltl"
 
 file_pairs: "list[tuple[Path, Path]]" = []
 
@@ -29,4 +29,6 @@ for mltl,oracle in file_pairs:
     c2po_output = proc.stdout.decode()
     is_sat_c2po = c2po_output.find("unsat") == -1 and c2po_output.find("sat") > -1
 
-    print(f"{is_sat_oracle} : {is_sat_c2po}")
+    if is_sat_c2po != is_sat_oracle:
+        print("FAIL")
+        print(f"{is_sat_oracle} : {is_sat_c2po}")
