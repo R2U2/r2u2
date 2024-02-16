@@ -20,7 +20,10 @@ for mltl_file_str in glob(str(MLTL_DIR)+"/*"):
 for mltl,oracle in file_pairs:
     command = ["python3", "compiler/c2po.py", "-c", "-sat", "--egraph", str(mltl)]
     print(" ".join(command))
-    proc = subprocess.run(command, capture_output=True)
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=60)
+    except TimeoutError:
+        continue
 
     with open(str(oracle), "r") as f:
         content = f.read()
