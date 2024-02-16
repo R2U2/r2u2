@@ -963,55 +963,62 @@ def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> Non
     log.debug("Converting multi-arity operators", module=MODULE_CODE)
 
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.Operator) or len(expr.children) < 3:
+        if not cpt.is_multi_arity_operator(expr) or len(expr.children) < 3:
             continue
 
-        if expr.operator in {
-            cpt.OperatorKind.LOGICAL_AND,
-            cpt.OperatorKind.LOGICAL_OR,
-            cpt.OperatorKind.ARITHMETIC_ADD,
-            cpt.OperatorKind.ARITHMETIC_MULTPLY,
-        }:
-            new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
-            for i in range(2, len(expr.children) - 1):
-                new = type(expr)(
-                    expr.loc, expr.operator, [new, expr.children[i]], expr.type
-                )
-            new = type(expr)(
-                expr.loc, expr.operator, [new, expr.children[-1]], expr.type
-            )
+        expr = cast(cpt.Operator, expr)
 
-            expr.replace(new)
+        new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
+        for i in range(2, len(expr.children) - 1):
+            new = type(expr)(
+                expr.loc, expr.operator, [new, expr.children[i]], expr.type
+            )
+        new = type(expr)(
+            expr.loc, expr.operator, [new, expr.children[-1]], expr.type
+        )
+
+        expr.replace(new)
 
     log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
 
 
 def flatten_multi_operators(program: cpt.Program, context: cpt.Context) -> None:
-    """Flattens all multi-arity operators (e.g., &&, ||, +, etc.)."""
+    """Flattens all multi-arity operators (i.e., &&, ||, +, *)."""
     log.debug("Flattening multi-arity operators", module=MODULE_CODE)
 
+    MAX_ARITY = 4
+
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.Operator) or len(expr.children) < 3:
+        if not cpt.is_multi_arity_operator(expr):
             continue
 
-        if expr.operator in {
-            cpt.OperatorKind.LOGICAL_AND,
-            cpt.OperatorKind.LOGICAL_OR,
-            cpt.OperatorKind.ARITHMETIC_ADD,
-            cpt.OperatorKind.ARITHMETIC_MULTPLY,
-        }:
-            new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
-            for i in range(2, len(expr.children) - 1):
-                new = type(expr)(
-                    expr.loc, expr.operator, [new, expr.children[i]], expr.type
-                )
-            new = type(expr)(
-                expr.loc, expr.operator, [new, expr.children[-1]], expr.type
-            )
+        expr = cast(cpt.Operator, expr)
 
-            expr.replace(new)
+        new_children = []
+        for child in expr.children:
+            if cpt.is_operator(child, expr.operator) and len(new_children) < MAX_ARITY:
+                new_children += child.children
+            else:
+                new_children.append(child)
+        
+        new = type(expr)(expr.loc, expr.operator, new_children, expr.type)
+        expr.replace(new)
 
-    log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
+
+    log.debug(f"Post operator flattening:\n{repr(program)}", MODULE_CODE)
+
+
+def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
+    """Sorts all operands of commutative operators by increasing worst-case propagation delay."""
+    log.debug("Sorting operands by WPD", module=MODULE_CODE)
+
+    for expr in program.postorder(context):
+        if not cpt.is_commutative_operator(expr):
+            continue
+
+        expr.children.sort(key=lambda child: child.wpd)
+
+    log.debug(f"Post operand sorting:\n{repr(program)}", MODULE_CODE)
 
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
@@ -1041,11 +1048,14 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
-    log.warning("E-Graph optimizations are an experimental feature", MODULE_CODE)
+    log.warning("E-Graph optimizations are incompatible with R2U2", MODULE_CODE)
     log.debug("Optimizing via E-Graph", MODULE_CODE)
 
+    # flatten_multi_operators(program, context)
+    sort_operands_by_pd(program, context)
+
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
-    e_graph = egraph.run_egglog(formula)
+    e_graph = egraph.run_egglog(formula, context)
 
     if e_graph:
         new = e_graph.extract(context)

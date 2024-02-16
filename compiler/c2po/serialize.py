@@ -13,13 +13,13 @@ def write_c2po(
     if output_filename == ".":
         return
 
-    log.debug(f"Writing prefix format to {output_filename}", MODULE_CODE)
-
     output_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
         else input_path.with_suffix(".out.c2po")
     )
+
+    log.debug(f"Writing prefix format to {output_path}", MODULE_CODE)
 
     with open(output_path, "w") as f:
         f.write(str(program))
@@ -34,13 +34,13 @@ def write_prefix(
     if output_filename == ".":
         return
 
-    log.debug(f"Writing prefix format to {output_filename}", MODULE_CODE)
-
     output_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
         else input_path.with_suffix(".prefix.c2po")
     )
+
+    log.debug(f"Writing prefix format to {output_path}", MODULE_CODE)
 
     with open(output_path, "w") as f:
         f.write(repr(program))
@@ -55,15 +55,15 @@ def write_mltl(
     if output_filename == ".":
         return
 
-    log.debug(f"Dumping MLTL standard format to {output_filename}", MODULE_CODE)
-
-    dump_path = (
+    output_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
         else input_path.with_suffix(".mltl")
     )
 
-    with open(dump_path, "w") as f:
+    log.debug(f"Dumping MLTL standard format to {output_path}", MODULE_CODE)
+
+    with open(output_path, "w") as f:
         f.write(cpt.to_mltl_std(program))
 
 
@@ -76,17 +76,17 @@ def write_pickle(
     if output_filename == ".":
         return
 
-    log.debug(f"Writing pickled program to {output_filename}", MODULE_CODE)
-
-    pickle_path = (
+    output_path = (
         pathlib.Path(output_filename)
         if output_filename != ""
         else input_path.with_suffix(".pickle")
     )
 
+    log.debug(f"Writing pickled program to {output_path}", MODULE_CODE)
+
     pickled_program = program.pickle()
 
-    with open(pickle_path, "wb") as f:
+    with open(output_path, "wb") as f:
         f.write(pickled_program)
 
 

@@ -242,6 +242,9 @@ def validate_input(
             enabled_passes.remove(passes.optimize_cse)
         if passes.remove_extended_operators in enabled_passes:
             enabled_passes.remove(passes.remove_extended_operators)
+
+        # since optimize_egraph flattens operators, no need to convert them to binary
+        enabled_passes.remove(passes.multi_operators_to_binary)
     else: # not enable_egraph
         enabled_passes.remove(passes.optimize_egraph)
         

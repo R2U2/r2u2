@@ -720,6 +720,31 @@ def is_operator(expr: Expression, operator: OperatorKind) -> bool:
     return isinstance(expr, Operator) and expr.operator is operator
 
 
+def is_commutative_operator(expr) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.LOGICAL_XOR,
+        OperatorKind.LOGICAL_EQUIV,
+        OperatorKind.BITWISE_AND,
+        OperatorKind.BITWISE_OR,
+        OperatorKind.BITWISE_XOR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.EQUAL,
+        OperatorKind.NOT_EQUAL
+    }
+
+
+def is_multi_arity_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY
+    }
+
+
 def is_bitwise_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.BITWISE_AND,

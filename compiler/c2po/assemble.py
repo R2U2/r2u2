@@ -554,7 +554,7 @@ def gen_tl_operand(
 
 def gen_ft_instruction(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
-) -> TLInstruction:
+) -> Optional[TLInstruction]:
     ftid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
@@ -564,6 +564,12 @@ def gen_ft_instruction(
         )
         operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
         operator = FTOperator.RETURN
+    elif len(expr.children) == 0:
+        operand1_type, operand1_value = gen_tl_operand(None, instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
+
+        expr = cast(cpt.Operator, expr)
+        operator = FT_OPERATOR_MAP[expr.operator]
     elif len(expr.children) == 1:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
@@ -577,11 +583,10 @@ def gen_ft_instruction(
         expr = cast(cpt.Operator, expr)
         operator = FT_OPERATOR_MAP[expr.operator]
     else:
-        operand1_type, operand1_value = gen_tl_operand(None, instructions)
-        operand2_type, operand2_value = gen_tl_operand(None, instructions)
-
-        expr = cast(cpt.Operator, expr)
-        operator = FT_OPERATOR_MAP[expr.operator]
+        log.error("Trying to assemble operator with more than 2 arguments. "
+                  "Did you enable an optimization incompatible with R2U2?\n\t"
+                  f"{expr}", MODULE_CODE)
+        return None
 
     ft_instr = TLInstruction(
         EngineTag.TL,
@@ -600,7 +605,7 @@ def gen_ft_instruction(
 
 def gen_pt_instruction(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
-) -> TLInstruction:
+) -> Optional[TLInstruction]:
     ptid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
@@ -610,6 +615,12 @@ def gen_pt_instruction(
         )
         operand2_type, operand2_value = (TLOperandType.DIRECT, expr.formula_number)
         operator = PTOperator.RETURN
+    elif len(expr.children) == 0:
+        operand1_type, operand1_value = gen_tl_operand(None, instructions)
+        operand2_type, operand2_value = gen_tl_operand(None, instructions)
+
+        expr = cast(cpt.Operator, expr)
+        operator = PT_OPERATOR_MAP[expr.operator]
     elif len(expr.children) == 1:
         operand1_type, operand1_value = gen_tl_operand(expr.children[0], instructions)
         operand2_type, operand2_value = gen_tl_operand(None, instructions)
@@ -623,11 +634,10 @@ def gen_pt_instruction(
         expr = cast(cpt.Operator, expr)
         operator = PT_OPERATOR_MAP[expr.operator]
     else:
-        operand1_type, operand1_value = gen_tl_operand(None, instructions)
-        operand2_type, operand2_value = gen_tl_operand(None, instructions)
-
-        expr = cast(cpt.Operator, expr)
-        operator = PT_OPERATOR_MAP[expr.operator]
+        log.error("Trying to assemble operator with more than 2 arguments, generating NOP "
+                  "Did you enable an optimization incompatible with R2U2?\n\t"
+                  f"{expr}", MODULE_CODE)
+        return None
 
     pt_instr = TLInstruction(
         EngineTag.TL,
@@ -751,7 +761,7 @@ def gen_boxq_instructions(
     return [cg_boxq, cg_lb, cg_ub]
 
 
-def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction]:
+def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
     at_instructions: dict[cpt.Expression, ATInstruction] = {}
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
@@ -759,7 +769,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
     boxqs = 1
 
-    log.debug(f"\n{program}", MODULE_CODE)
+    log.debug(f"Generating assembly for program:\n{program}", MODULE_CODE)
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if expr == program.ft_spec_set:
@@ -789,7 +799,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
         elif expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-            ft_instructions[expr] = gen_ft_instruction(expr, ft_instructions)
+            new_pt_instruction = gen_ft_instruction(expr, ft_instructions)
+            if not new_pt_instruction:
+                return None
+            ft_instructions[expr] = new_pt_instruction
+            
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
 
     for expr in cpt.postorder(program.pt_spec_set, context):
@@ -813,7 +827,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
         elif expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-            pt_instructions[expr] = gen_pt_instruction(expr, pt_instructions)
+            new_pt_instruction = gen_pt_instruction(expr, pt_instructions)
+            if not new_pt_instruction:
+                return None
+            pt_instructions[expr] = new_pt_instruction
+
             cg_instructions[expr] = gen_boxq_instructions(expr, pt_instructions, boxqs)
             boxqs += 1
 
@@ -1091,6 +1109,9 @@ def assemble(
 
     check_sizes()
     assembly = gen_assembly(program, context)
+
+    if not assembly:
+        return ([], bytes())
 
     binary = bytes()
     binary_header = (

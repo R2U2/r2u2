@@ -337,79 +337,57 @@ class EGraph:
         return expr_tree
 
 
-def to_egglog(spec: cpt.Formula) -> str:
+def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
     """Returns a string that represents `spec` in egglog syntax."""
-    egglog = f"(let {spec.symbol[1:] if spec.symbol[0] == '#' else spec.symbol} "
+    # egglog = f"(let {spec.symbol[1:] if spec.symbol[0] == '#' else spec.symbol} "
+    egglog = ""
+    
+    expr_cnt = 0
+    expr_map = {}
 
     stack: list["tuple[int, cpt.Expression]"] = []
     stack.append((0, spec.get_expr()))
 
-    while len(stack) > 0:
-        (seen, expr) = stack.pop()
+    for expr in cpt.postorder(spec, context):
+        expr_map[expr] = expr_cnt
+        expr_cnt += 1
 
         if isinstance(expr, cpt.Constant):
-            egglog += expr.symbol
+            egglog += f"(let e{expr_map[expr]} (Bool {expr.symbol.lower()}))\n"
         elif expr.atomic_id > -1:
-            egglog += f"(Var \"a{expr.atomic_id}\")"
+            egglog += f"(let e{expr_map[expr]} (Var \"a{expr.atomic_id}\"))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-            if seen == 0:
-                egglog += "(Not ("
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[0]))
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (Not e{expr_map[expr.children[0]]}))\n"
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
+            egglog += f"(let e{expr_map[expr]} (Implies e{expr_map[expr.children[0]]} e{expr_map[expr.children[1]]}))\n"
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            egglog += f"(let e{expr_map[expr]} (Equiv e{expr_map[expr.children[0]]} e{expr_map[expr.children[1]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
-            if seen == 0:
-                egglog += f"(Global (Interval {expr.interval.lb} {expr.interval.ub}) "
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[0]))
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (Global (Interval {expr.interval.lb} {expr.interval.ub}) e{expr_map[expr.children[0]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
-            if seen == 0:
-                egglog += f"(Future (Interval {expr.interval.lb} {expr.interval.ub}) "
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[0]))
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (Future (Interval {expr.interval.lb} {expr.interval.ub}) e{expr_map[expr.children[0]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             expr = cast(cpt.TemporalOperator, expr)
-            if seen == 0:
-                egglog += f"(Until (Interval {expr.interval.lb} {expr.interval.ub}) "
-                stack.append((seen+1, expr))
-                stack.append((0, expr.children[1]))
-                stack.append((0, expr.children[0]))
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (Until (Interval {expr.interval.lb} {expr.interval.ub}) e{expr_map[expr.children[0]]} e{expr_map[expr.children[1]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error("Release not implemented", MODULE_CODE)
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             arity = len(expr.children)
-            if seen == 0:
-                egglog += f"(And{arity} "
-                stack.append((seen+1, expr))
-                [stack.append((0, child)) for child in reversed(expr.children)]
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (And{arity} {' '.join([f'e{expr_map[c]}' for c in expr.children])}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             arity = len(expr.children)
-            if seen == 0:
-                egglog += f"(Or{arity} "
-                stack.append((seen+1, expr))
-                [stack.append((0, child)) for child in reversed(expr.children)]
-            else:
-                egglog += ")"
+            egglog += f"(let e{expr_map[expr]} (Or{arity} {' '.join([f'e{expr_map[c]}' for c in expr.children])}))\n"
 
-    return egglog + ")\n"
+    return egglog + "\n"
 
 
-def run_egglog(spec: cpt.Formula) -> Optional[EGraph]:
+def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
-    egglog = prelude + to_egglog(spec) + PRELUDE_END
+    egglog = prelude + to_egglog(spec, context) + PRELUDE_END
 
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
