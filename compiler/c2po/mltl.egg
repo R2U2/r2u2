@@ -20,11 +20,17 @@
 
 (ruleset mltl-rewrites)
 
-; (birewrite
-;   (And2 a b)
-;   (And2 b a)
-;   :ruleset mltl-rewrites
-; )
+(birewrite
+  (And2 a b)
+  (And2 b a)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Or2 a b)
+  (Or2 b a)
+  :ruleset mltl-rewrites
+)
 
 (rewrite
   (Implies a b)

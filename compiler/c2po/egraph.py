@@ -180,10 +180,14 @@ class EGraph:
         min_wpd: dict[EClassID, int] = {s:INF for s in self.eclasses.keys()}
 
         for enode in self.traverse():
-            if enode.op[0:3] == "Var":
+            if enode.op in {"Bool", "true", "false", "Var"}:
                 max_bpd[enode.eclass_id] = 0
                 min_wpd[enode.eclass_id] = 0
-            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or":
+            elif enode.op == "Not":
+                operand_eclass_id = enode.child_eclass_ids[0]
+                max_bpd[enode.eclass_id] = max_bpd[operand_eclass_id]
+                min_wpd[enode.eclass_id] = min_wpd[operand_eclass_id]
+            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or" or enode.op == "Equiv" or enode.op == "Implies":
                 cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids])
 
                 if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
@@ -236,10 +240,10 @@ class EGraph:
 
         # Compute cost of each ENode
         for enode in self.traverse():
-            if enode.op[0:3] == "Var":
+            if enode.op in {"Bool", "true", "false", "Var"}:
                 # no children, so 0
                 cost[enode.enode_id] = 1
-            elif enode.op[0:3] == "And":
+            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or" or enode.op == "Equiv" or enode.op == "Implies":
                 total_cost = 1
 
                 # need max wpd of all children and second max wpd (for the node with the max wpd)
@@ -255,7 +259,7 @@ class EGraph:
                         total_cost += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) 
 
                 cost[enode.enode_id] = total_cost
-            elif enode.op == "Global" or enode.op == "Future":
+            elif enode.op in {"Global", "Future", "Not"}:
                 # Global nodes have *lonely* single children (no siblings)
                 cost[enode.enode_id] = 1
             else:
@@ -271,7 +275,9 @@ class EGraph:
     ) -> cpt.Expression:
         enode,_ = rep[eclass]
 
-        if enode.op[0:3] == "Var":
+        if enode.op == "Bool":
+            return cpt.Constant(log.EMPTY_FILE_LOC, True)
+        elif enode.op[0:3] == "Var":
             if not enode.string:
                 raise ValueError("No string for Var")
             
@@ -280,12 +286,23 @@ class EGraph:
 
             # this will only have one members since atomic IDs are unique
             return {a for a in atomics if a.atomic_id == atomic_id}.pop()
+        elif enode.op == "Not":
+            operand = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
+            return cpt.Operator.LogicalNegate(log.EMPTY_FILE_LOC, operand)
         elif enode.op[0:3] == "And":
             ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
             return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
         elif enode.op[0:2] == "Or":
             ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
             return cpt.Operator.LogicalOr(log.EMPTY_FILE_LOC, ch)
+        elif enode.op == "Equiv":
+            lhs = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
+            rhs = self.build_expr_tree(rep, enode.child_eclass_ids[1], atomics)
+            return cpt.Operator.LogicalIff(log.EMPTY_FILE_LOC, lhs, rhs)
+        elif enode.op == "Implies":
+            lhs = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
+            rhs = self.build_expr_tree(rep, enode.child_eclass_ids[1], atomics)
+            return cpt.Operator.LogicalImplies(log.EMPTY_FILE_LOC, lhs, rhs)
         elif enode.op == "Global":
             ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
             ch = ch[0]
@@ -394,7 +411,7 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
     log.debug(f"Running command '{' '.join(command)}'", MODULE_CODE)
-    proc = subprocess.run(command, capture_output=True)
+    proc = subprocess.run(command, capture_output=False)
 
     if proc.returncode:
         log.error(f"Error running egglog\n{proc.stderr.decode()}", MODULE_CODE)
