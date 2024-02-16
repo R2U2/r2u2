@@ -459,15 +459,21 @@ def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruct
         )
         compare_value = 0
 
+    if node in context.atomic_id:
+        aid = context.atomic_id[node]
+    else:
+        log.internal(f"No atomic ID assigned for '{node}'", MODULE_CODE)
+        aid = -1
+
     return ATInstruction(
         EngineTag.AT,
-        node.atomic_id,
+        aid,
         AT_REL_OP_MAP[expr.operator],
         signal.signal_id,
         AT_FILTER_MAP[type(signal.type)],  # type: ignore
         compare_value,
         isinstance(expr.children[1], cpt.Signal),
-        node.atomic_id,
+        aid,
     )
 
 
@@ -529,8 +535,8 @@ def gen_bz_instruction(
         EngineTag.BZ,
         bzid,
         operator,
-        expr in context.atomics,
-        max(expr.atomic_id, 0),
+        expr in context.atomic_id,
+        0 if expr not in context.atomic_id else context.atomic_id[expr],
         operand1,
         operand2,
     )
@@ -775,14 +781,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.ft_spec_set:
             continue
 
-        if expr in context.atomics:
+        if expr in context.atomic_id:
             ftid = len(ft_instructions)
             ft_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ftid,
                 FTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                expr.atomic_id,
+                context.atomic_id[expr],
                 TLOperandType.NONE,
                 0,
             )
@@ -810,14 +816,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.pt_spec_set:
             continue
 
-        if expr in context.atomics:
+        if expr in context.atomic_id:
             ptid = len(pt_instructions)
             pt_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ptid,
                 PTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                expr.atomic_id,
+                context.atomic_id[expr],
                 TLOperandType.NONE,
                 0,
             )

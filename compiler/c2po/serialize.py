@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 
 from c2po import cpt, log
 
@@ -90,16 +91,54 @@ def write_pickle(
         f.write(pickled_program)
 
 
+def write_smt(
+    program: cpt.Program,
+    context: cpt.Context,
+    input_path: pathlib.Path,
+    output_filename: str,
+) -> None:
+    """Writes smt interpretation of `program` to `output_filename` if not '.'"""
+    if output_filename == ".":
+        return
+
+    output_path = (
+        pathlib.Path(output_filename)
+        if output_filename != ""
+        else input_path.with_suffix(".smt")
+    )
+
+    log.debug(f"Writing SMT encoding to {output_path}", MODULE_CODE)
+
+    if output_path.is_file():
+        output_path.unlink()
+    elif output_path.is_dir():
+        shutil.rmtree(output_path)
+    
+    output_path.mkdir()
+
+    for spec in program.ft_spec_set.get_specs():
+        if isinstance(spec, cpt.Contract):
+            continue
+
+        expr = spec.get_expr()
+
+        with open(str(output_path / f"{spec.symbol}.smt"), "w") as f:
+            f.write(cpt.to_smt_sat_query(expr, context))
+
+
 def write_outputs(
     program: cpt.Program,
+    context: cpt.Context,
     input_path: pathlib.Path,
     write_c2po_filename: str,
     write_prefix_filename: str,
     write_mltl_filename: str,
     write_pickle_filename: str,
+    write_smt_dir: str,
 ) -> None:
     """Writes `program` to each of the given filenames if they are not '.'"""
     write_c2po(program, input_path, write_c2po_filename)
     write_prefix(program, input_path, write_prefix_filename)
     write_mltl(program, input_path, write_mltl_filename)
     write_pickle(program, input_path, write_pickle_filename)
+    write_smt(program, context, input_path, write_smt_dir)

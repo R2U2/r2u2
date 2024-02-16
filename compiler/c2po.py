@@ -58,6 +58,9 @@ parser.add_argument("-nnf", action="store_true",
                     help="enable negation normal form")
 parser.add_argument("-bnf", action="store_true",
                     help="enable boolean normal form")
+
+parser.add_argument("-sat", "--check-sat", action="store_true",
+                    help="enable satisfiability checking of future-time formulas")
                                   
 parser.add_argument("--write-c2po", nargs="?", default=".", const="",
                     help="write final program in C2PO input format")
@@ -67,6 +70,8 @@ parser.add_argument("--write-prefix", nargs="?", default=".", const="",
                     help="write final program in prefix notation")
 parser.add_argument("--write-pickle", nargs="?", default=".", const="",
                     help="pickle the final program")
+parser.add_argument("--write-smt", nargs="?", default=".", const="",
+                    help="write SMT SAT encoding of FT formulas")
 
 args = parser.parse_args()
 
@@ -92,10 +97,12 @@ return_code = c2po.main.compile(
     enable_egraph=args.egraph,
     enable_nnf=args.nnf,
     enable_bnf=args.bnf,
+    enable_sat=args.check_sat,
     write_c2po_filename=args.write_c2po,
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
+    write_smt_dir=args.write_smt,
     debug=args.debug,
     quiet=args.quiet, 
 )

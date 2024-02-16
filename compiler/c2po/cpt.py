@@ -45,7 +45,6 @@ class Expression(Node):
     ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
-        self.atomic_id: int = -1  # only set for atomic propositions
         self.total_scq_size: int = -1
         self.scq_size: int = -1
         self.bpd: int = 0
@@ -107,7 +106,6 @@ class Expression(Node):
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
         new.engine = self.engine
-        new.atomic_id = self.atomic_id
         new.scq_size = self.scq_size
         new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
@@ -175,7 +173,7 @@ class Signal(Expression):
         return isinstance(__o, Signal) and __o.symbol == self.symbol
 
     def __hash__(self) -> int:
-        return id(self)
+        return hash(self.symbol)
 
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)
@@ -1069,7 +1067,7 @@ class Context:
         self.atomic_checkers: dict[str, Expression] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
-        self.atomics: set[Expression] = set()
+        self.atomic_id: dict[Expression, int] = {}
         self.implementation = impl
         self.frontend = frontend
         self.mission_time = mission_time
@@ -1080,6 +1078,10 @@ class Context:
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+
+    @staticmethod
+    def Empty() -> Context:
+        return Context(types.R2U2Implementation.C, 0, types.R2U2Engine.NONE, False, {})
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1395,7 +1397,7 @@ def to_prefix_str(start: Expression) -> str:
     return s
 
 
-def to_mltl_std(program: Program) -> str:
+def to_mltl_std(program: Program, context: Context) -> str:
     mltl = ""
 
     stack: list[tuple[int, Expression]] = []
@@ -1412,8 +1414,8 @@ def to_mltl_std(program: Program) -> str:
 
             if isinstance(expr, Constant):
                 mltl += expr.symbol + " "
-            elif expr.atomic_id > -1:
-                mltl += f"a{expr.atomic_id}"
+            elif expr in context.atomic_id:
+                mltl += f"a{context.atomic_id[expr]}"
             elif len(expr.children) == 1 and (
                 is_temporal_operator(expr) or is_logical_operator(expr)
             ):
@@ -1444,3 +1446,97 @@ def to_mltl_std(program: Program) -> str:
         mltl += "\n"
 
     return mltl
+
+
+def to_smt_sat_query(start: Expression, context: Context) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
+    
+    See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
+    """
+    smt_commands: list[str] = []
+
+    if len(context.atomic_id) == 0:
+        log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
+        return ""
+    
+    smt_commands.append("(set-logic ALL)")
+
+    atomic_map: dict[Expression, str] = {}
+    for atomic,id in context.atomic_id.items():
+        atomic_map[atomic] = f"f_a{id}"
+        smt_commands.append(f"(declare-fun {atomic_map[atomic]} (Int) Bool)")
+
+    expr_map: dict[Expression, str] = {}
+    cnt = 0
+
+    for expr in postorder(start, context):
+        if expr in expr_map:
+            continue
+
+        expr_id = f"f_e{cnt}"
+        cnt += 1
+        expr_map[expr] = expr_id
+
+        fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) Bool"
+
+        if isinstance(expr, Constant) and expr.value:
+            smt_commands.append(f"({fun_signature} true)")
+        elif isinstance(expr, Constant) and not expr.value:
+            smt_commands.append(f"({fun_signature} false)")
+        elif expr in context.atomic_id:
+            smt_commands.append(f"({fun_signature} (and (>= len k) ({atomic_map[expr]} k)))")
+        elif is_operator(expr, OperatorKind.LOGICAL_NEGATE):
+            smt_commands.append(f"({fun_signature} (and (>= len k) (not ({expr_map[expr.children[0]]} k len))))")
+        elif is_operator(expr, OperatorKind.LOGICAL_AND):
+            smt_commands.append(f"({fun_signature} (and (>= len k) (and ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+        elif is_operator(expr, OperatorKind.LOGICAL_OR):
+            smt_commands.append(f"({fun_signature} (and (>= len k) (or ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+        elif is_operator(expr, OperatorKind.LOGICAL_IMPLIES):
+            smt_commands.append(f"({fun_signature} (and (>= len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+        elif is_operator(expr, OperatorKind.LOGICAL_EQUIV):
+            smt_commands.append(f"({fun_signature} (and (>= len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+        elif is_operator(expr, OperatorKind.GLOBAL):
+            # TODO: look into the semantic definition here
+            # most sources use G[l,u] phi == false R[l,u] phi, but this would mean that a trace pi such that |pi| < a satisfies G[l,u] phi
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (>= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
+            )
+        elif is_operator(expr, OperatorKind.FUTURE):
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (>= len (+ {lb} k)) (exists ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
+            )
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (>= len (+ {lb} k)) "
+                                      f"(exists ((i Int)) "
+                                        f"(and "
+                                            f"(<= (+ {lb} k) i) "
+                                            f"(<= i (+ {ub} k)) "
+                                            f"({expr_map[expr.children[1]]} i (- len i)) "
+                                            f"(forall ((j Int)) "
+                                                f"(=> "
+                                                    f"(and (<= (+ {lb} k) j) (< j i)) "
+                                                    f"({expr_map[expr.children[0]]} j (- len j)))))))))"
+            )
+        elif is_operator(expr, OperatorKind.RELEASE):
+            log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)
+            return ""
+        else:
+            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            return ""
+        
+    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[expr]} 0 len)))")
+    smt_commands.append("(check-sat)")
+
+    smt = "\n".join(smt_commands)
+
+    return smt

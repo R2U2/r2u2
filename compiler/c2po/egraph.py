@@ -210,6 +210,19 @@ class EGraph:
 
                 max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
                 min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
+            elif enode.op == "Until":
+                interval = enode.interval
+                if not interval:
+                    raise ValueError(f"No 'Interval' for operator {enode.op}")
+
+                cur_bpd = min([max_bpd[i] for i in enode.child_eclass_ids]) + interval.lb
+                if len([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) == 0:
+                    cur_wpd = INF
+                else:
+                    cur_wpd = max([min_wpd[i] for i in enode.child_eclass_ids if min_wpd[i] < INF]) + interval.ub
+
+                max_bpd[enode.eclass_id] = max(max_bpd[enode.eclass_id], cur_bpd)
+                min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
             else:
                 raise ValueError(f"Invalid node type for PD computation {enode.op}")
 
@@ -243,7 +256,7 @@ class EGraph:
             if enode.op in {"Bool", "true", "false", "Var"}:
                 # no children, so 0
                 cost[enode.enode_id] = 1
-            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or" or enode.op == "Equiv" or enode.op == "Implies":
+            elif enode.op[0:3] == "And" or enode.op[0:2] == "Or" or enode.op == "Equiv" or enode.op == "Implies" or enode.op == "Until":
                 total_cost = 1
 
                 # need max wpd of all children and second max wpd (for the node with the max wpd)
@@ -271,7 +284,7 @@ class EGraph:
             self, 
             rep: dict[EClassID, tuple[ENode, int]], 
             eclass: EClassID, 
-            atomics: set[cpt.Expression]
+            atomics: dict[cpt.Expression, int]
     ) -> cpt.Expression:
         enode,_ = rep[eclass]
 
@@ -284,8 +297,12 @@ class EGraph:
             # map back to the expression this atomic points to
             atomic_id = int(enode.string.replace('"','')[1:])
 
-            # this will only have one members since atomic IDs are unique
-            return {a for a in atomics if a.atomic_id == atomic_id}.pop()
+            try:
+                expr = next(e for e,i in atomics.items() if i == atomic_id)
+                return expr
+            except StopIteration:
+                log.internal(f"No atomic found with id {atomic_id}", MODULE_CODE)
+                return cpt.Constant(log.EMPTY_FILE_LOC, False)
         elif enode.op == "Not":
             operand = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
             return cpt.Operator.LogicalNegate(log.EMPTY_FILE_LOC, operand)
@@ -346,7 +363,7 @@ class EGraph:
             if enode.eclass_id not in rep or total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
 
-        expr_tree = self.build_expr_tree(rep, self.root, context.atomics)
+        expr_tree = self.build_expr_tree(rep, self.root, context.atomic_id)
 
         log.debug(f"Optimal expression: {repr(expr_tree)}", MODULE_CODE)
         log.debug(f"Cost: {rep[self.root][1]+1}", MODULE_CODE)
@@ -371,8 +388,8 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
         if isinstance(expr, cpt.Constant):
             egglog += f"(let e{expr_map[expr]} (Bool {expr.symbol.lower()}))\n"
-        elif expr.atomic_id > -1:
-            egglog += f"(let e{expr_map[expr]} (Var \"a{expr.atomic_id}\"))\n"
+        elif expr in context.atomic_id:
+            egglog += f"(let e{expr_map[expr]} (Var \"a{context.atomic_id[expr]}\"))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             egglog += f"(let e{expr_map[expr]} (Not e{expr_map[expr.children[0]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):

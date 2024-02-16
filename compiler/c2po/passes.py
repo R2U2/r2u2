@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types, egraph
+from c2po import cpt, log, types, egraph, sat
 
 MODULE_CODE = "PASS"
 
@@ -1032,17 +1032,20 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         if isinstance(expr, cpt.Constant):
             continue
 
+        if expr in context.atomic_id:
+            continue
+
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
         
-            context.atomics.add(expr)
-            if expr.atomic_id < 0:
-                expr.atomic_id = id
-                id += 1
+            print(f"setting {expr}: {id}")
+
+            context.atomic_id[expr] = id
+            id += 1
 
     log.debug(
-        f"Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",
+        f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
         module=MODULE_CODE,
     )
 
@@ -1054,6 +1057,12 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
     # flatten_multi_operators(program, context)
     sort_operands_by_pd(program, context)
 
+    if len(program.ft_spec_set.children) == 0:
+        return
+    
+    if len(program.ft_spec_set.children) > 1:
+        log.warning("E-Graph optimizations only support single formulas, using first only", MODULE_CODE)
+
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
     e_graph = egraph.run_egglog(formula, context)
 
@@ -1062,6 +1071,21 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         formula.get_expr().replace(new)
 
     log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
+
+
+def check_sat(program: cpt.Program, context: cpt.Context) -> None:
+    log.debug("Checking FT formulas satisfiability", MODULE_CODE)
+    results = sat.check_sat(program, context)
+    for spec,result in results.items():
+        if result is sat.SatResult.SAT:
+            # log.debug(f"{symbol}: sat", MODULE_CODE)
+            print(f"{spec.symbol}: sat")
+        elif result is sat.SatResult.UNSAT:
+            # log.warning(f"{symbol}: unsat", MODULE_CODE)
+            print(f"{spec.symbol}: unsat")
+        elif result is sat.SatResult.UNKNOWN:
+            # log.warning(f"{symbol}: unknown", MODULE_CODE)
+            print(f"{spec.symbol}: unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
@@ -1088,7 +1112,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         if (
             expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
-            and expr not in context.atomics
+            and expr not in context.atomic_id
         ):
             continue
 
@@ -1134,5 +1158,6 @@ PASS_LIST: list[Pass] = [
     multi_operators_to_binary,
     compute_atomics, 
     optimize_egraph,
+    check_sat,
     compute_scq_sizes, 
 ]
