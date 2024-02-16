@@ -1,0 +1,10 @@
+INPUT
+    b0,b1: bool;
+    i0,i1: int;
+    f0,f1: float;
+
+FTSPEC
+    (~i0) > 0;
+    (i0 & i1) > 0;
+    (i0 | i1) > 0;
+    (i0 ^ i1) > 0;

@@ -1,0 +1,10 @@
+INPUT
+    b0,b1,b2: bool;
+
+FTSPEC
+    b0 && !true;
+    b0 || !false;
+    !!b0;
+    !(G[0,5](!b0));
+    !(F[0,5](!b0));
+    

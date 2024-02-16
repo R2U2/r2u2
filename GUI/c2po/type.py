@@ -36,7 +36,7 @@ class BaseType(Enum):
 class Type():
     """Abstract base class representing a C2PO type."""
 
-    def __init__(self, t: BaseType, c: bool, n: str) -> None:
+    def __init__(self, t: BaseType, c: bool, n: str):
         self.value: BaseType = t
         self.name: str = n
         self.is_const: bool = c
@@ -53,14 +53,14 @@ class Type():
 class NOTYPE(Type):
     """An invalid C2PO type."""
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(BaseType.NOTYPE, True, 'none')
 
 
 class BOOL(Type):
     """Boolean C2PO type."""
 
-    def __init__(self, const: bool) -> None:
+    def __init__(self, const: bool):
         super().__init__(BaseType.BOOL, const, 'bool')
 
 
@@ -69,7 +69,7 @@ class INT(Type):
     width: int = 8
     is_signed: bool = False
 
-    def __init__(self, const: bool) -> None:
+    def __init__(self, const: bool):
         super().__init__(BaseType.INT, const, 'int')
 
 
@@ -77,14 +77,14 @@ class FLOAT(Type):
     """Floating point C2PO type with configurable width."""
     width: int = 32
 
-    def __init__(self, const: bool) -> None:
+    def __init__(self, const: bool):
         super().__init__(BaseType.FLOAT, const, 'float')
 
 
 class STRUCT(Type):
     """Structured date C2PO type represented via a name."""
 
-    def __init__(self, const: bool, n: str) -> None:
+    def __init__(self, const: bool, n: str):
         super().__init__(BaseType.STRUCT, const, n)
         self.name = n
 
@@ -97,7 +97,7 @@ class STRUCT(Type):
 class SET(Type):
     """Parameterized set C2PO type."""
 
-    def __init__(self, const: bool, m: Type) -> None:
+    def __init__(self, const: bool, m: Type):
         super().__init__(BaseType.SET, const, 'set<'+str(m)+'>')
         self.member_type: Type = m
 

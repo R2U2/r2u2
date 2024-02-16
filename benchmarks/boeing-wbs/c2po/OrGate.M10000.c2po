@@ -1,0 +1,6 @@
+INPUT
+	in2,out,in1: bool;
+
+FTSPEC
+	(true ->  G[85,1660] (out <-> (in1 || in2))) && true
+;

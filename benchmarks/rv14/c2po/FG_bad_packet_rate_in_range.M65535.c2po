@@ -1,0 +1,29 @@
+INPUT
+	R_N_b_ge_1, R_N_b_ge_2, R_N_b_ge_3: bool;
+
+FTSPEC
+--The number of bad packets does not increase with respect to the 
+-- number of packets. 
+--
+-- NOTE: the ratio of bad packets  N_b/(N_b+N_g) should remain
+-- constant if not zero. at least it should not grow linear
+-- over longer period of time
+	(
+	G[0,M](
+	   ! (
+		R_N_b_ge_1   &&
+		(F[0,30] R_N_b_ge_2) &&
+		(F[0,100] R_N_b_ge_3)
+	      )
+	   )
+	);
+	
+--	(
+--	G[0,M](
+--                ! (
+--		  Ratio_N_b_N_tot_gt_theta &
+--		  F[2,M] Ratio_N_b_N_tot_gt_theta
+--		  )
+--                )
+--	)
+--	&

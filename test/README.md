@@ -29,24 +29,26 @@ To add a new suite, it is likely easiest to build off of an existing JSON config
 
 ```json
 {
-    "suite": SUITE_NAME,
+    "suite": "SUITE_NAME",
     "options": {
-        "compiler-option": COMPILER_OPTION_VALUE
+        "compiler-option": "COMPILER_OPTION_VALUE"
     },
     "tests": [
         {
-            "name": TEST_NAME,
-            "mltl": MLTL_FILENAME,
-            "trace": TRACE_FILENAME,
-            "oracle": ORACLE_FILENAME,
+            "name": "TEST_NAME",
+            "mltl": "MLTL_FILENAME",
+            "trace": "TRACE_FILENAME",
+            "oracle": "ORACLE_FILENAME",
             "options": {
-                "compiler-option": COMPILER_OPTION_VALUE
+                "compiler-option": "COMPILER_OPTION_VALUE"
             }
         }
-    ]
+    ],
+    "suites": [ "SUITE_1", "SUITE_2", ... ]
 }
 ```
+where `"SUITE_NAME"` should be the same as the name of the JSON file (minus the .json extension), `"options"` is an object corresponding to the CLI options given to the compiler (these options can be overridden for individual tests), `"tests"` is an array of objects that describe test cases. 
 
-where `SUITE_NAME` should be the same as the name of the JSON file (minus the .json extension), `options` is an object corresponding to the CLI options given to the compiler (these options can be overridden for individual tests), `tests` is an array of objects that describe test cases. 
+The test cases require a `"name"`, an `"mltl"` filename that exists in in `test/mltl`, a `"trace"` filename that exists in `test/trace`, and an `"oracle"` filename that exists in `test/oracle`.
 
-The test cases require a `name`, an `mltl` filename that existsin in `test/mltl`, a `trace` filename that exists in `test/trace`, and an `oracle` filename that exists in `test/oracle`.
+Each `"SUITE_N"` in the `"suites"` attribute should be the name of a suite in the `suites/` directory, where each named suite will be run.

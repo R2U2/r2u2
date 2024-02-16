@@ -1,1083 +1,473 @@
 from __future__ import annotations
-from typing import Dict, List, Optional, Tuple
-import inspect
-import sys
+
+import enum
+import pathlib
 import re
-from logging import getLogger
-# from time import perf_counter
+import pickle
+from typing import NamedTuple, Optional
 
-from .logger import *
-from .ast import *
-from .rewrite import *
-from .parser import C2POLexer
-from .parser import C2POParser
-from .assembler import assemble
+from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize
+
+MODULE_CODE = "MAIN"
 
 
-logger = getLogger(LOGGER_NAME)
-
-
-class ReturnCode(Enum):
+class ReturnCode(enum.Enum):
     SUCCESS = 0
     ERROR = 1
-    PARSE_ERROR = 2
-    TYPE_CHECK_ERROR = 3
-    ASM_ERROR = 4
-    INVALID_OPTIONS = 5
-
-COMPILE_ERR_RETURN_VAL: Callable[[int], tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]] = lambda rc: (rc,[],[],[],[],[])
-
-
-# Stores the sub-classes of Instruction from ast.py
-INSTRUCTION_LIST = [cls for (name,cls) in inspect.getmembers(sys.modules["c2po.ast"],
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction))]
-
-DEFAULT_CPU_LATENCY_TABLE: Dict[str, int] = { name:10 for (name,value) in
-    inspect.getmembers(sys.modules["c2po.ast"],
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
-            obj != Instruction and
-            obj != TLInstruction and
-            obj != BZInstruction) }
-
-DEFAULT_FPGA_LATENCY_TABLE: Dict[str, Tuple[float,float]] = { name:(10.0,10.0) for (name,value) in
-    inspect.getmembers(sys.modules["c2po.ast"],
-        lambda obj: inspect.isclass(obj) and issubclass(obj, Instruction) and
-            obj != Instruction and
-            obj != TLInstruction and
-            obj != BZInstruction) }
+    PARSE_ERR = 2
+    TYPE_CHECK_ERR = 3
+    ASM_ERR = 4
+    INVALID_INPUT = 5
+    FILE_IO_ERR = 6
 
 
-AT_FILTER_TABLE: Dict[str, Tuple[List[Type], Type]] = {
-    "rate": ([FLOAT(False)], FLOAT(False)),
-    "movavg": ([FLOAT(False),INT(True)], FLOAT(False)),
-    "abs_diff_angle": ([FLOAT(False),FLOAT(True)], FLOAT(False))
+class ValidatedInput(NamedTuple):
+    status: bool
+    input_path: Optional[pathlib.Path]
+    output_path: Optional[pathlib.Path]
+    mission_time: int
+    endian_sigil: str
+    signal_mapping: types.SignalMapping
+    passes: set[passes.Pass]
+    final_stage: cpt.CompilationStage
+
+
+# Converts human names to struct format sigil for byte order, used by assembler
+# human named args are called 'endian' while the sigils are 'endianness'
+# See: https://docs.python.org/3.8/library/struct.html#byte-order-size-and-alignment
+BYTE_ORDER_SIGILS = {"native": "@", "network": "!", "big": ">", "little": "<"}
+
+R2U2_IMPL_MAP = {
+    "c": types.R2U2Implementation.C,
+    "cpp": types.R2U2Implementation.CPP,
+    "vhdl": types.R2U2Implementation.VHDL,
 }
 
 
-def parse_signals(filename: str) -> Dict[str,int]:
-    """Opens filename and constructs a dictionary mapping signal names to their order in the file. If filename is a csv file, uses the header for signal mapping. Otherwise filename is treated as a map file and uses the given order for signal mapping.
-    
-    Args:
-        filename: Name of file to be read
+def process_trace_file(
+    trace_path: pathlib.Path, map_file_provided: bool
+) -> tuple[int, Optional[types.SignalMapping]]:
+    """Given `trace_path`, return the inferred length of the trace and, if `return_mapping` is enabled, a signal mapping."""
+    with open(trace_path, "r") as f:
+        content: str = f.read()
 
-    Returns:
-        dict mapping signal names to their oder in the csv or mapping file
-    """
-    mapping: Dict[str,int] = {}
+    lines: list[str] = content.splitlines()
 
-    if re.match(".*\\.csv",filename):
-        with open(filename,"r") as f:
-            text: str = f.read()
-            lines: List[str] = text.splitlines()
+    if len(lines) < 1:
+        return (-1, None)
 
-            if len(lines) < 1:
-                logger.error(f" Not enough data in file '{filename}'")
-                return {}
+    cnt: int = 0
+    signal_mapping: types.SignalMapping = {}
 
-            cnt: int = 0
+    if lines[0][0] == "#":
+        # then there is a header
+        header = lines[0][1:]
 
-            if lines[0][0] != "#":
-                logger.error(f" Header missing in signals file.")
-                return {}
+        if map_file_provided:
+            log.warning(
+                "Map file given and header included in trace file; header will be ignored",
+                MODULE_CODE,
+            )
 
-            header = lines[0][1:]
+        for id in [s.strip() for s in header.split(",")]:
+            if id in signal_mapping:
+                log.warning(
+                    f"Signal ID '{id}' found multiple times in csv, using right-most value",
+                    module=MODULE_CODE,
+                    location=log.FileLocation(trace_path.name, 1),
+                )
+            signal_mapping[id] = cnt
+            cnt += 1
 
-            for id in [s.strip() for s in header.split(",")]:
-                if id in mapping:
-                    logger.warning(f" Signal ID '{id}' found multiple times in csv, using right-most value.")
-                mapping[id] = cnt
-                cnt += 1
-    else: 
-        with open(filename,"r") as f:
-            text: str = f.read()
-            cnt: int = 0
+        trace_length = len(lines) - 1
 
-            for line in text.splitlines():
-                if re.match("[a-zA-Z_]\\w*:\\d+", line):
-                    strs = line.split(":")
-                    id = strs[0]
-                    sid = int(strs[1])
+        return (trace_length, signal_mapping)
 
-                    if id in mapping:
-                        logger.warning(f" Signal ID '{id}' found multiple times in map file, using latest value.")
+    # no header, so just return number of lines in file (i.e., number of time steps in trace)
+    return (len(lines), None)
 
-                    mapping[id] = sid
-                else:
-                    logger.error(f" Invalid format for map line (found {line})\n\t Should be of the form SYMBOL ':' NUMERAL")
-                    return {}
+
+def process_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
+    """Return the signal mapping from `map_path`."""
+    with open(map_path, "r") as f:
+        content: str = f.read()
+
+    mapping: types.SignalMapping = {}
+
+    lines = content.splitlines()
+    for line in lines:
+        if re.match("[a-zA-Z_]\\w*:\\d+", line):
+            strs = line.split(":")
+            id = strs[0]
+            sid = int(strs[1])
+
+            if id in mapping:
+                log.warning(
+                    f"Signal ID '{id}' found multiple times in map file, using latest value",
+                    module=MODULE_CODE,
+                    location=log.FileLocation(map_path.name, lines.index(line) + 1),
+                )
+
+            mapping[id] = sid
+        else:
+            log.error(
+                f"Invalid format for map line (found {line})"
+                "\n\t Should be of the form SYMBOL ':' NUMERAL",
+                module=MODULE_CODE,
+                location=log.FileLocation(map_path.name, lines.index(line)),
+            )
+            return None
 
     return mapping
 
 
-def type_check(program: Program, at: bool, bz: bool) -> bool:
-    """
-    Performs type checking of the argument program. Uses type inferences to assign correct types to each
-    AST node in the program and returns whether the program is properly type checked.
-
-    Preconditions:
-        - None
-
-    Postconditions:
-        - program is type correct
-        - All descendants of program have a valid Type (i.e., none are NOTYPE)
-    """
-    status: bool = True
-    explored: List[Node] = []
-    context: Dict[str,Type] = {}
-    st: StructDict = program.structs
-    formula_type: FormulaType = FormulaType.PROP
-    in_parameterized_set_agg: bool = False
-
-    def resolve_variables_util(node: Node) -> None:
-        """Recursively replace any Variable instances to Atomic, Signal, or definitions, unless it is a set aggregation variable."""
-        nonlocal status
-
-        if isinstance(node, Variable):
-            if node.name in program.atomics:
-                if program.implementation != R2U2Implementation.C:
-                    status = False
-                    logger.error(f"{node.ln}: Atomics only support in C version of R2U2.\n\t{node}")
-                if not at:
-                    status = False
-                    logger.error(f"{node.ln}: Atomic '{node.name}' referenced, but atomic checker disabled.")
-
-                node.replace(Atomic(node.ln, node.name))
-            elif node.name in program.signals:
-                if at:
-                    if not node.name in program.signal_mapping:
-                        status = False
-                        logger.error(f"{node.ln}: Non-Boolean signals not allowed in specifications when AT enabled.\n\t{node}")
-
-                    sig = Signal(node.ln, node.name, program.signals[node.name])
-                    sig.sid = program.signal_mapping[sig.name]
-                    one = Integer(sig.ln, 1)
-                    a_copy = deepcopy(sig)
-                    instr = ATInstruction(sig.ln, sig.name, "int", [a_copy], Equal(sig.ln, a_copy, one), one)
-                    program.atomics[sig.name] = instr
-                    node.replace(Atomic(sig.ln, sig.name))
-                else:
-                    if not node.name in program.signal_mapping:
-                        status = False
-                        logger.error(f'{node.ln}: Signal \'{node}\' not referenced in signal mapping.')
-
-                    sig = Signal(node.ln, node.name, program.signals[node.name])
-                    sig.sid = program.signal_mapping[sig.name]
-                    node.replace(sig)
-            elif node.name in context:
-                pass
-            elif node.name in program.definitions:
-                define = program.definitions[node.name]
-                if isinstance(define, Specification):
-                    node.replace(define.get_expr())
-                else:
-                    node.replace(define)
-            else:
-                status = False
-                logger.error(f"{node.ln}: Variable '{node}' not recognized.")
-        elif isinstance(node, SetAggOperator):
-            context[node.get_boundvar().name] = node.get_boundvar().type
-            resolve_variables_util(node.get_set())
-            resolve_variables_util(node.get_expr())
-            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
-                resolve_variables_util(node.get_num())
-            del context[node.get_boundvar().name]
-        else:
-            for child in node.get_children():
-                resolve_variables_util(child)
-
-    def type_check_util(node: Node) -> None:
-        nonlocal formula_type
-        nonlocal status
-        nonlocal in_parameterized_set_agg
-
-        node.formula_type = formula_type
-
-        if isinstance(node, Constant):
-            return
-        elif isinstance(node, Signal):
-            return
-        elif isinstance(node, Atomic):
-            return
-        elif isinstance(node, Variable):
-            node.type = context[node.name]
-        elif isinstance(node, SpecificationSet):
-            for c in node.get_children():
-                type_check_util(c)
-        elif isinstance(node,Specification):
-            child = node.get_expr()
-            type_check_util(child)
-
-            if not child.type == BOOL(False):
-                status = False
-                logger.error(f'{node.ln}: Specification must be of boolean type (found \'{child.type}\')\n\t{node}')
-        elif isinstance(node, Contract):
-            if program.implementation != R2U2Implementation.C:
-                status = False
-                logger.error(f"{node.ln}: Contracts only support in C version of R2U2.\n\t{node}")
-
-            assume: TLInstruction = node.get_assumption()
-            guarantee: TLInstruction = node.get_guarantee()
-
-            type_check_util(assume)
-            type_check_util(guarantee)
-
-            if not assume.type == BOOL(False):
-                status = False
-                logger.error(f'{node.ln}: Assumption must be of boolean type (found \'{assume.type}\')\n\t{node}')
-
-            if not guarantee.type == BOOL(False):
-                status = False
-                logger.error(f'{node.ln}: Guarantee must be of boolean type (found \'{guarantee.type}\')\n\t{node}')
-
-            node.type = BOOL(assume.type.is_const and guarantee.type.is_const)
-        elif isinstance(node, Function):
-            status = False
-            logger.error(f"{node.ln}: Functions unsupported.\n\t{node}")
-        elif isinstance(node, RelationalOperator):
-            if program.implementation != R2U2Implementation.C:
-                status = False
-                logger.error(f"{node.ln}: Relational operators only support in C version of R2U2.\n\t{node}")
-
-            lhs = node.get_lhs()
-            rhs = node.get_rhs()
-            type_check_util(lhs)
-            type_check_util(rhs)
-
-            if lhs.type != rhs.type:
-                status = False
-                logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', must be of same type (found \'{lhs.type}\' and \'{rhs.type}\')\n\t{node}')
-
-            node.type = BOOL(lhs.type.is_const and rhs.type.is_const)
-        elif isinstance(node, ArithmeticOperator):
-            is_const: bool = True
-
-            if program.implementation != R2U2Implementation.C:
-                status = False
-                logger.error(f"{node.ln}: Arithmetic operators only support in C version of R2U2.\n\t{node}")
-
-            if not bz:
-                status = False
-                logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
-
-            for c in node.get_children():
-                type_check_util(c)
-                is_const = is_const and c.type.is_const
-            t: Type = node.get_child(0).type
-            t.is_const = is_const
-
-            if isinstance(node, ArithmeticDivide):
-                rhs: Node = node.get_rhs()
-                if isinstance(rhs, Constant) and rhs.get_value() == 0:
-                    status = False
-                    logger.error(f'{node.ln}: Divide by zero\n\t{node}')
-
-            for c in node.get_children():
-                if c.type != t:
-                    status = False
-                    logger.error(f'{node.ln}: Operand of \'{node}\' must be of homogeneous type (found \'{c.type}\' and \'{t}\')')
-
-            node.type = t
-        elif isinstance(node, BitwiseOperator):
-            is_const: bool = True
-
-            if program.implementation != R2U2Implementation.C:
-                status = False
-                logger.error(f"{node.ln}: Bitwise operators only support in C version of R2U2.\n\t{node}")
-
-            if not bz:
-                status = False
-                logger.error(f'{node.ln}: Found BZ expression, but Booleanizer expressions disabled\n\t{node}')
-
-            t: Type = NOTYPE()
-            for c in node.get_children():
-                type_check_util(c)
-                is_const = is_const and c.type.is_const
-                t = c.type
-            t.is_const = is_const
-
-            for c in node.get_children():
-                if c.type != t or not is_integer_type(c.type):
-                    status = False
-                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'{node.get_child(0).type}\'\n\t{node}')
-
-            node.type = t
-        elif isinstance(node, LogicalOperator):
-            is_const: bool = True
-
-            for c in node.get_children():
-                type_check_util(c)
-                is_const = is_const and c.type.is_const
-                if c.type != BOOL(False):
-                    status = False
-                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
-
-            node.type = BOOL(is_const)
-        elif isinstance(node, TemporalOperator):
-            is_const: bool = True
-
-            for c in node.get_children():
-                type_check_util(c)
-                is_const = is_const and c.type.is_const
-                if c.type != BOOL(False):
-                    status = False
-                    logger.error(f'{node.ln}: Invalid operands for \'{node.name}\', found \'{c.type}\' (\'{c}\') but expected \'bool\'\n\t{node}')
-
-            # check for mixed-time formulas
-            if isinstance(node, FutureTimeOperator):
-                if formula_type == FormulaType.PT:
-                    status = False
-                    logger.error(f'{node.ln}: Mixed-time formulas unsupported, found FT formula in PTSPEC.\n\t{node}')
-            elif isinstance(node, PastTimeOperator):
-                if program.implementation != R2U2Implementation.C:
-                    status = False
-                    logger.error(f"{node.ln}: Past-time operators only support in C version of R2U2.\n\t{node}")
-                if formula_type == FormulaType.FT:
-                    status = False
-                    logger.error(f'{node.ln}: Mixed-time formulas unsupported, found PT formula in FTSPEC.\n\t{node}')
-
-            if node.interval.lb > node.interval.ub:
-                status = status
-                logger.error(f'{node.ln}: Time interval invalid, lower bound must less than or equal to upper bound (found [{node.interval.lb},{node.interval.ub}])')
-
-            node.type = BOOL(is_const)
-        elif isinstance(node,Set):
-            t: Type = NOTYPE()
-            is_const: bool = True
-
-            for m in node.get_children():
-                type_check_util(m)
-                is_const = is_const and m.type.is_const
-                t = m.type
-
-            for m in node.get_children():
-                if m.type != t:
-                    status = False
-                    logger.error(f'{node.ln}: Set \'{node}\' must be of homogeneous type (found \'{m.type}\' and \'{t}\')')
-
-            node.type = SET(is_const, t)
-        elif isinstance(node, SetAggOperator):
-            s: Set = node.get_set()
-            boundvar: Variable = node.get_boundvar()
-
-            type_check_util(s)
-
-            if isinstance(s.type, SET):
-                context[boundvar.name] = s.type.member_type
-            else:
-                status = False
-                logger.error(f'{node.ln}: Set aggregation set must be Set type (found \'{s.type}\')')
-
-            if isinstance(node, ForExactlyN) or isinstance(node, ForAtLeastN) or isinstance(node, ForAtMostN):
-                in_parameterized_set_agg = True
-                if not bz:
-                    status = False
-                    logger.error(f'{node.ln}: Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled.')
-
-                n: Node = node.get_num()
-                type_check_util(n)
-                if not is_integer_type(n.type):
-                    status = False
-                    logger.error(f'{node.ln}: Parameter for set aggregation must be integer type (found \'{n.type}\')')
-
-            expr: Node = node.get_expr()
-            type_check_util(expr)
-
-            if expr.type != BOOL(False):
-                status = False
-                logger.error(f"{node.ln}: Set aggregation expression must be 'bool' (found '{expr.type}')")
-
-            del context[boundvar.name]
-            if boundvar in explored:
-                explored.remove(boundvar)
-
-            node.type = BOOL(expr.type.is_const and s.type.is_const)
-            in_parameterized_set_agg = False
-        elif isinstance(node, Struct):
-            is_const: bool = True
-
-            for member in node.get_children():
-                type_check_util(member)
-                is_const = is_const and member.type.is_const
-
-            for (m,t) in st[node.name]:
-                if node.get_member(m).type != t:
-                    logger.error(f'{node.ln}: Member \'{m}\' invalid type for struct \'{node.name}\' (expected \'{t}\' but got \'{node.get_member(m).type}\')')
-
-            node.type = STRUCT(is_const, node.name)
-        elif isinstance(node, StructAccess):
-            type_check_util(node.get_struct())
-
-            st_name = node.get_struct().type.name
-            if st_name in st.keys():
-                valid_member: bool = False
-                for (m,t) in st[st_name]:
-                    if node.member == m:
-                        node.type = t
-                        valid_member = True
-                if not valid_member:
-                    status = False
-                    logger.error(f'{node.ln}: Member \'{node.member}\' invalid for struct \'{node.get_struct().name}\'')
-            else:
-                status = False
-                logger.error(f'{node.ln}: Member \'{node.member}\' invalid for struct \'{node.get_struct().name}\'')
-        else:
-            logger.error(f'{node.ln}: Invalid expression\n\t{node}')
-            status = False
-
-        if isinstance(node, TLInstruction) and in_parameterized_set_agg:
-            status = False
-            logger.error(f'{node.ln}: Parameterized set aggregation expressions only accept Booleanizer operators.\n\tConsider using bit-wise operators in place of logical operators.\n\t{node}')
-
-    def type_check_atomic(name: str, node: Node) -> ATInstruction|None:
-        nonlocal status
-
-        if isinstance(node, RelationalOperator):
-            lhs: Node = node.get_lhs()
-            rhs: Node = node.get_rhs()
-
-            filter: str = ""
-            filter_args: List[Node] = []
-
-            # type check left-hand side
-            if isinstance(lhs, Function):
-                if not lhs.name in AT_FILTER_TABLE:
-                    status = False
-                    logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' undefined.\n\t{node}")
-                    return
-
-                if not len(AT_FILTER_TABLE[lhs.name][0]) == len(lhs.get_children()):
-                    status = False
-                    logger.error(f"{node.ln}: Atomic '{name}' malformed, filter '{lhs.name}' has incorrect number of arguments (expected {len(AT_FILTER_TABLE[lhs.name][0])}, found {len(lhs.get_children())}).\n\t{node}")
-                    return
-
-                for i in range(0, len(lhs.get_children())):
-                    arg: Node = lhs.get_child(i)
-
-                    if isinstance(arg, Variable):
-                        if arg.name not in program.signals:
-                            status = False
-                            logger.error(f"{node.ln}: Atomic '{name}' malformed, {arg.name} not a valid signal.\n\t{node}")
-                            return
-
-                        sig = Signal(arg.ln, arg.name, program.signals[arg.name])
-                        if arg.name not in program.signal_mapping:
-                            status = False
-                            logger.error(f'{arg.ln}: Signal \'{arg.name}\' not referenced in signal mapping.')
-
-                        sig.sid = program.signal_mapping[arg.name]
-                        arg.replace(sig)
-
-                        if sig.type != AT_FILTER_TABLE[lhs.name][0][i]:
-                            status = False
-                            logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{sig.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
-                            return
-                    elif isinstance(arg, Constant):
-                        if arg.type != AT_FILTER_TABLE[lhs.name][0][i]:
-                            status = False
-                            logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{arg.type}' and '{AT_FILTER_TABLE[lhs.name][0][i]}').\n\t{node}")
-                            return
-                    else:
-                        status = False
-                        logger.error(f"{node.ln}: Filter arguments must be signals or constants (found '{type(arg)}').\n\t{node}")
-
-                filter = lhs.name
-                filter_args = lhs.get_children()
-                lhs.type = AT_FILTER_TABLE[lhs.name][1]
-            elif isinstance(lhs, Variable):
-                if lhs.name in program.signals:
-                    sig = Signal(lhs.ln, lhs.name, program.signals[lhs.name])
-                    if lhs.name in program.signal_mapping:
-                        sig.sid = program.signal_mapping[lhs.name]
-                        lhs.replace(sig)
-                        lhs.type = sig.type
-                    else:
-                        status = False
-                        logger.error(f'{lhs.ln}: Signal \'{lhs.name}\' not referenced in signal mapping.')
-
-                    filter = sig.type.name
-                    filter_args = [sig]
-                elif lhs.name in program.definitions and isinstance(program.definitions[lhs.name], Specification):
-                    lhs.replace(program.definitions[lhs.name])
-                    filter = "formula"
-                    filter_args = [program.definitions[lhs.name]]
-                    lhs.type = BOOL(False)
-            else:
-                status = False
-                logger.error(f"{node.ln}: Atomic '{name}' malformed, expected filter or signal for left-hand side.\n\t{node}")
-                return
-
-            # type check right-hand side
-            if isinstance(rhs, Variable):
-                if not rhs.name in program.signals:
-                    status = False
-                    logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not declared.')
-
-                if not rhs.name in program.signal_mapping:
-                    status = False
-                    logger.error(f'{rhs.ln}: Signal \'{rhs.name}\' not referenced in signal mapping.')
-
-                if program.signals[rhs.name] != lhs.type:
-                    status = False
-                    logger.error(f"{node.ln}: 1 Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
-                    return
-
-                sig = Signal(rhs.ln, rhs.name, program.signals[rhs.name])
-                sig.sid = program.signal_mapping[sig.name]
-                rhs.replace(sig)
-                rhs = sig
-            elif isinstance(rhs, Constant):
-                if lhs.type != rhs.type:
-                    status = False
-                    logger.error(f"{node.ln}: Atomic '{name}' malformed, left- and right-hand sides must be of same type (found '{lhs.type}' and '{rhs.type}').\n\t{node}")
-                    return
-            else:
-                status = False
-                logger.error(f"{node.ln}: Atomic '{name}' malformed, expected signal or constant for right-hand side.\n\t{node}")
-                return
-
-            return ATInstruction(node.ln, name, filter, filter_args, node, rhs)
-        elif not isinstance(node, ATInstruction):
-            status = False
-            logger.error(f"{node.ln}: Atomic '{name}' malformed, expected relational operator at top-level.\n\t{node}")
-            return
-
-    resolve_variables_util(program)
-    explored = []
-
-    for definition in [d for d in program.definitions.values() if not isinstance(d, Specification)]:
-        resolve_variables_util(definition)
-        type_check_util(definition)
-
-    # Type check atomics
-    for name, expr in program.atomics.items():
-        atomic: ATInstruction|None = type_check_atomic(name, expr)
-        if atomic:
-            program.atomics[name] = atomic
-        
-    # Type check FTSPEC
-    formula_type = FormulaType.FT
-    type_check_util(program.get_ft_specs())
-
-    # Type check PTSPEC
-    formula_type = FormulaType.PT
-    type_check_util(program.get_pt_specs())
-
-    if status:
-        program.is_type_correct = True
-
-    return status
-
-
-def optimize_cse(program: Program) -> None:
-    """
-    Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately.
-
-    Preconditions:
-        - program is type correct.
-
-    Postconditions:
-        - Sets of FT/PT specifications have no distinct, syntactically equivalent sub-expressions (i.e., is CSE reduced).
-        - Some nodes in AST may have multiple parents.
-    """
-
-    if not program.is_type_correct:
-        logger.error(f' Program must be type checked before CSE.')
-        return
-
-    S: Dict[str, Node]
-
-    def optimize_cse_util(node: Node) -> None:
-        nonlocal S
-
-        if str(node) in S:
-            node.replace(S[str(node)])
-        else:
-            S[str(node)] = node
-
-    S = {}
-    postorder_iterative(program.get_ft_specs(), optimize_cse_util)
-
-    S = {k:v for (k,v) in S.items() if isinstance(v, BZInstruction)}
-    postorder_iterative(program.get_pt_specs(), optimize_cse_util)
-
-    program.is_cse_reduced = True
-
-
-def generate_aliases(program: Program) -> List[str]:
-    """
-    Generates strings corresponding to the alias file for the argument program. The alias file is used by R2U2 to print formula labels and contract status.
-
-    Preconditions:
-        - program is type correct
-
-    Postconditions:
-        - None
-    """
-    s: List[str] = []
-
-    specs = [s for s in program.get_ft_specs().get_children() + program.get_pt_specs().get_children()]
-
-    for spec in specs:
-        if spec.name in program.contracts:
-            # then formula is part of contract, ignore
-            continue
-        if isinstance(spec, Specification):
-            s.append(f"F {spec.name} {spec.formula_number}")
-
-    for label,fnums in program.contracts.items():
-        s.append(f"C {label} {fnums[0]} {fnums[1]} {fnums[2]}")
-
-    return s
-
-
-def generate_assembly(program: Program, at: bool, bz: bool) -> Tuple[List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction]]:
-    formula_type: FormulaType
-    ftid: int = 0
-    ptid: int = 0
-    bzid: int = 0
-    atid: int = 0
-
-    ft_asm = []
-    pt_asm = []
-    bz_asm = []
-    at_asm = []
-
-    def assign_ftids(node: Node) -> None:
-        nonlocal ftid, bzid, atid
-
-        if isinstance(node, TLInstruction):
-            node.ftid = ftid
-            ftid += 1
-
-        if isinstance(node, BZInstruction):
-            if node.bzid < 0:
-                node.bzid = bzid
-                bzid += 1
-
-            if node.has_tl_parent():
-                node.ftid = ftid
-                ftid += 1
-                if node.atid < 0:
-                    node.atid = atid
-                    atid += 1
-
-        if isinstance(node, Atomic):
-            # Retrieve cached atomic number from program.atomics, assign from
-            # atid counter on first lookup
-            #
-            # Key exception possible if atomic node does not appear in atomics
-            if program.atomics[node.name].atid == -1:
-                node.atid = atid
-                program.atomics[node.name].atid = atid
-                atid += 1
-            else:
-                node.atid = program.atomics[node.name].atid
-
-    def assign_ptids(node: Node) -> None:
-        nonlocal ptid, bzid, atid
-
-        if isinstance(node, TLInstruction):
-            node.ptid = ptid
-            ptid += 1
-
-        if isinstance(node, BZInstruction):
-            if node.bzid < 0:
-                node.bzid = bzid
-                bzid += 1
-
-            if node.has_tl_parent():
-                node.ptid = ptid
-                ptid += 1
-                if node.atid < 0:
-                    node.atid = atid
-                    atid += 1
-
-        if isinstance(node, Atomic):
-            # Retrieve cached atomic number from program.atomics, assign from
-            # atid counter on first lookup
-            #
-            # Key exception possible if atomic node does not appear in atomics
-            if program.atomics[node.name].atid == -1:
-                node.atid = atid
-                program.atomics[node.name].atid = atid
-                atid += 1
-            else:
-                node.atid = program.atomics[node.name].atid
-
-
-    def generate_assembly_util(node: Node) -> None:
-        nonlocal formula_type
-
-        if isinstance(node, Instruction):
-            if formula_type == FormulaType.FT and node.ftid > -1:
-                if isinstance(node, Specification):
-                   if node.ln in program.deadlines.keys():
-                    node.deadline = program.deadlines[node.ln]
-                   else:
-                    node.deadline = node.get_expr().wpd
-                   if node.ln in program.multimodality.keys():
-                    node.k_modes = program.multimodality[node.ln]
-                ft_asm.append(node)
-            elif formula_type == FormulaType.PT and node.ptid > -1:
-                pt_asm.append(node)
-            if node.bzid > -1 and not node in bz_asm:
-                bz_asm.append(node)
-        elif not isinstance(node, Bool):
-            logger.critical(f" Invalid node type for assembly generation (found '{type(node)}').")
-
-    postorder_iterative(program.get_ft_specs(), assign_ftids)
-    postorder_iterative(program.get_pt_specs(), assign_ptids)
-
-    formula_type = FormulaType.FT
-    postorder_iterative(program.get_ft_specs(), generate_assembly_util)
-    formula_type = FormulaType.PT
-    postorder_iterative(program.get_pt_specs(), generate_assembly_util)
-
-    for at_instr in [a for a in program.atomics.values() if a.atid >= 0]:
-        at_asm.append(at_instr)
-
-    at_asm.sort(key=lambda n: n.atid)
-    bz_asm.sort(key=lambda n: n.bzid)
-    ft_asm.sort(key=lambda n: n.ftid)
-    pt_asm.sort(key=lambda n: n.ptid)
-
-    return (ft_asm, pt_asm, bz_asm, at_asm)
-
-
-def compute_scq_size(node: Node, d: Dict[int, int]={}) -> int:
-    """
-    Computes SCQ sizes for each node in 'a' and returns the sum of each SCQ size. Sets this sum to the total_scq_size value of program.
-
-    Must be called *after* tlids have been assigned.
-    """
-    visited: List[int] = []
-    total: int = 0
-    spec_wpd: Dict[int,int] = {}
-    
-    def compute_node_info_util(node: Node) -> None:
-        nonlocal spec_wpd
-        if isinstance(node, SpecificationSet):
-            return
-        if(node.wpd >= spec_wpd.get(node.ln, node.wpd)): # Find wpd of each spec
-            spec_wpd[node.ln] = node.wpd
-        if(len(node.specs) == 0): # Find specs referenced by each node
-                node.specs.append(node.ln)
-        else: # Node appears in multiple specs
-            for p in node.get_parents():
-                for spec in p.specs:
-                    if not (spec in node.specs):
-                        node.specs.append(spec)
-        
-    def compute_scq_size_util(node: Node) -> None:
-        nonlocal visited
-        nonlocal total
-        if node.ftid < 0 or isinstance(node, Program):
-            return
-
-        if id(node) in visited:
-            return
-        visited.append(id(node))
-
-        if isinstance(node, Specification):
-            node.scq_size = 1
-            total += node.scq_size
-            return
-        
-        if isinstance(node, SpecificationSet):
-            return
-
-        max_sibling_wpd: int = 0
-        max_prediction_horizon = 0
-        for p in node.get_parents():
-            for s in p.get_children():
-                if not id(s) == id(node):
-                    if s.wpd > max_sibling_wpd:
-                        max_sibling_wpd = s.wpd
-
-        for node_spec in node.specs: # Iterate through and find the max prediction horizon
-            if node_spec in d.keys():
-                if (spec_wpd[node.ln] - d[node_spec]) > max_prediction_horizon:
-                    max_prediction_horizon = (spec_wpd[node.ln] - d[node_spec])
-
-        node.scq_size = max(max_sibling_wpd-node.bpd,0)+(min(max(max_sibling_wpd-node.bpd,0),max_prediction_horizon)+1)
-        total += node.scq_size
-
-    preorder(node, compute_node_info_util)
-    postorder_iterative(node, compute_scq_size_util)
-    node.total_scq_size = total
-
-    return total
-
-
-def generate_scq_assembly(program: Program) -> List[Tuple[int,int]]:
-    ret: List[Tuple[int,int]] = []
-    pos: int = 0
-
-    program.total_scq_size = compute_scq_size(program.get_ft_specs(), program.deadlines)
-
-    def gen_scq_assembly_util(a: Node) -> None:
-        nonlocal ret
-        nonlocal pos
-
-        if a.ftid < 0 or isinstance(a, SpecificationSet):
-            return
-
-        start_pos = pos
-        end_pos = start_pos + a.scq_size
-        pos = end_pos
-        ret.append((start_pos,end_pos))
-
-    postorder_iterative(program.get_ft_specs(), gen_scq_assembly_util)
-    program.scq_assembly = ret
-
-    return ret
-
-
-def compute_cpu_wcet(program: Program, latency_table: Dict[str, int], clk: int) -> int:
-    """
-    Compute and return worst-case execution time in clock cycles for software version R2U2 running on a CPU. Sets this total to the cpu_wcet value of program.
-
-    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in CPU clock cycles. For instance, one key-value pair may be ('LogicalAnd': 15). If an AST node is found that does not have a corresponding value in the table, an error is reported.
-
-    Preconditions:
-        - program has had its assembly generated
-
-    Postconditions:
-        - None
-    """
-    wcet: int = 0
-
-    def compute_cpu_wcet_util(a: Node) -> int:
-        nonlocal latency_table
-
-        classname: str = type(a).__name__
-        if classname not in latency_table:
-            logger.error(f' Operator \'{classname}\' not found in CPU latency table.')
-            return 0
-        else:
-            return int((latency_table[classname] * a.scq_size) / clk)
-
-    wcet = sum([compute_cpu_wcet_util(a) for a in program.assembly])
-    program.cpu_wcet = wcet
-    return wcet
-
-
-def compute_fpga_wcet(program: Program, latency_table: Dict[str, Tuple[float, float]], clk: float) -> float:
-    """
-    Compute and return worst-case execution time in micro seconds for hardware version R2U2 running on an FPGA. Sets this total to the fpga_wcet value of program.
-
-    latency_table is a dictionary that maps the class names of AST nodes to their estimated computation time in micro seconds. For instance, one key-value pair may be ('LogicalAnd': 15.0). If an AST node is found that does not have a corresponding value in the table, an error is reported.
-
-    Preconditions:
-        - program has had its assembly generated
-
-    Postconditions:
-        - None
-    """
-    wcet: float = 0
-
-    def compute_fpga_wcet_util(a: Node) -> float:
-        nonlocal latency_table
-
-        classname: str = type(a).__name__
-        if classname not in latency_table:
-            logger.error(f' Operator \'{classname}\' not found in FPGA latency table.')
-            return 0
-        else:
-            sum_scq_sizes_children = sum([c.scq_size for c in a.get_children()])
-            return latency_table[classname][0] + latency_table[classname][1]*sum_scq_sizes_children
-
-    wcet = sum([compute_fpga_wcet_util(a) for a in program.assembly]) / clk
-    program.fpga_wcet = wcet
-    return wcet
-
-
-def parse(input: str, mission_time: int) -> Program|None:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: C2POLexer = C2POLexer()
-    parser: C2POParser = C2POParser(mission_time)
-    specs: Dict[FormulaType, SpecificationSet] = parser.parse(lexer.tokenize(input))
-
-    if not parser.status:
-        return None
-
-    if not FormulaType.FT in specs:
-        specs[FormulaType.FT] = SpecificationSet(0, FormulaType.FT, [])
-
-    if not FormulaType.PT in specs:
-        specs[FormulaType.PT] = SpecificationSet(0, FormulaType.PT, [])
-
-    return Program(
-        0,
-        parser.signals,
-        parser.defs,
-        parser.structs,
-        parser.atomics,
-        parser.deadlines,
-        parser.multimodality,
-        specs[FormulaType.FT],
-        specs[FormulaType.PT]
-    )
-
-
-def set_options(
-    program: Program,
-    impl_str: str, 
-    int_width: int, 
-    int_is_signed: bool, 
+def validate_input(
+    input_filename: str,
+    trace_filename: str,
+    map_filename: str,
+    output_filename: str,
+    impl_str: str,
+    custom_mission_time: int,
+    int_width: int,
+    int_is_signed: bool,
     float_width: int,
-    at: bool, 
-    bz: bool, 
-    extops: bool
-) -> bool:
-    """Checks that the options are valid for the given implementation.
-    
-    Args:
-        program: Target program for compilation
-        impl_str: String representing one of the R2U2 implementation 
-            (should be one of 'c', 'c++'/'cpp', or 'fpga'/'vhdl')
-        movavg_size: Maximum size for moving average AT filter
-        int_width: Width to set C2PO INT type to
-        int_is_signed: If true sets INT type to signed
-        float_width: Width to set C2PO FLOAT type to
-        enable_at: If true enables Atomic Checker instructions
-        enable_bz: If true enables Booleanizer instructions
-    """
+    endian: str,
+    only_parse: bool = False,
+    only_type_check: bool = False,
+    only_compile: bool = False,
+    enable_atomic_checkers: bool = False,
+    enable_booleanizer: bool = False,
+    enable_extops: bool = False,
+    enable_nnf: bool = False,
+    enable_bnf: bool = False,
+    enable_rewrite: bool = False,
+    enable_arity: bool = False,
+    enable_cse: bool = False,
+) -> ValidatedInput:
+    """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options."""
+    log.debug("Validating input", MODULE_CODE)
     status: bool = True
-    
-    impl: R2U2Implementation = str_to_r2u2_implementation(impl_str)
-    program.implementation = impl
 
-    set_types(impl, int_width, int_is_signed, float_width)
+    input_path = pathlib.Path(input_filename)
+    if not input_path.is_file():
+        log.error(f"Input file '{input_filename} not a valid file.'", MODULE_CODE)
+        input_path = None
 
-    if bz and at:
-        logger.error(f" Only one of AT and BZ can be enabled")
+    trace_path = None
+    if trace_filename != "":
+        trace_path = pathlib.Path(trace_filename)
+        if not trace_path.is_file():
+            log.error(f"Trace file '{trace_filename}' is not a valid file", MODULE_CODE)
+
+    map_path = None
+    if map_filename != "":
+        map_path = pathlib.Path(map_filename)
+        if not map_path.is_file():
+            log.error(f"Map file '{map_filename}' is not a valid file", MODULE_CODE)
+
+    output_path = None
+    if output_filename != "":
+        output_path = pathlib.Path(output_filename)
+
+    signal_mapping: Optional[types.SignalMapping] = None
+    mission_time, trace_length = -1, -1
+
+    if trace_path:
+        (trace_length, signal_mapping) = process_trace_file(
+            trace_path, map_path is not None
+        )
+    if map_path:
+        signal_mapping = process_map_file(map_path)
+
+    if not signal_mapping:
+        signal_mapping = {}
+
+    if custom_mission_time > -1:
+        mission_time = custom_mission_time
+
+        # warn if the given trace is shorter than the defined mission time
+        if trace_length > -1 and trace_length < custom_mission_time:
+            log.warning(
+                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time})",
+                MODULE_CODE,
+            )
+    else:
+        mission_time = trace_length
+
+    if endian in BYTE_ORDER_SIGILS:
+        endian_sigil = BYTE_ORDER_SIGILS[endian]
+    else:
+        log.internal(
+            f"Endianness option argument {endian} invalid. Check CLI options?",
+            MODULE_CODE,
+        )
+        endian_sigil = "@"
+
+    impl = R2U2_IMPL_MAP[impl_str]
+    types.set_types(impl, int_width, int_is_signed, float_width)
+
+    if enable_booleanizer and enable_atomic_checkers:
+        log.error("Only one of AT and booleanizer can be enabled", MODULE_CODE)
         status = False
-    
-    if impl == R2U2Implementation.C:
-        if not ((not bz and at) or (bz and not at)):
-            logger.error(f" Exactly one of booleanizer or atomic checker must be enabled for C implementation.")
+
+    if impl == types.R2U2Implementation.C:
+        if (not enable_booleanizer and not enable_atomic_checkers) or (
+            enable_booleanizer and enable_atomic_checkers
+        ):
+            log.error(
+                "Exactly one of booleanizer or atomic checker must be enabled for C implementation",
+                MODULE_CODE,
+            )
             status = False
-    else: # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
-        if bz:
-            logger.error(f" Booleanizer not available for hardware implementation.")
+    else:  # impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL
+        if enable_booleanizer:
+            log.error("Booleanizer only available for C implementation", MODULE_CODE)
             status = False
 
-    if impl == R2U2Implementation.CPP or impl == R2U2Implementation.VHDL:
-        if extops:
-            logger.error(f" Extended operators only support for C implementation.")
+    if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
+        if enable_extops:
+            log.error(
+                "Extended operators only support for C implementation", MODULE_CODE
+            )
             status = False
 
-    return status
+    if enable_nnf and enable_bnf:
+        log.warning(
+            "Attempting rewrite to both NNF and BNF, defaulting to NNF", MODULE_CODE
+        )
+
+    if not enable_extops and (enable_nnf or enable_bnf):
+        log.warning(
+            "NNF and BNF incompatible without extended operators, output will not be in either normal form",
+            MODULE_CODE,
+        )
+
+    enabled_passes = set(passes.PASS_LIST)
+    if not enable_rewrite:
+        enabled_passes.remove(passes.optimize_rewrite_rules)
+    if enable_extops:
+        enabled_passes.remove(passes.remove_extended_operators)
+    if not enable_nnf:
+        enabled_passes.remove(passes.to_nnf)
+    if not enable_bnf:
+        enabled_passes.remove(passes.to_bnf)
+    if not enable_cse:
+        enabled_passes.remove(passes.optimize_cse)
+
+    if only_parse:
+        final_stage = cpt.CompilationStage.PARSE
+    elif only_type_check:
+        final_stage = cpt.CompilationStage.TYPE_CHECK
+    elif only_compile:
+        final_stage = cpt.CompilationStage.PASSES
+    else:
+        final_stage = cpt.CompilationStage.ASSEMBLE
+
+    return ValidatedInput(
+        status,
+        input_path,
+        output_path,
+        mission_time,
+        endian_sigil,
+        signal_mapping,
+        enabled_passes,
+        final_stage,
+    )
 
 
 def compile(
     input_filename: str,
-    signals_filename: str,
+    trace_filename: str = "",
+    map_filename: str = "",
+    output_filename: str = "spec.bin",
     impl: str = "c",
-    mission_time: int = -1,
+    custom_mission_time: Optional[int] = None,
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    output_filename: str = "r2u2_spec.bin",
-    enable_assemble: bool = True,
-    enable_cse: bool = False,
-    enable_at: bool = False,
-    enable_bz: bool = False,
+    endian: str = "@",
+    only_parse: bool = False,
+    only_type_check: bool = False,
+    only_compile: bool = False,
+    enable_atomic_checkers: bool = False,
+    enable_booleanizer: bool = False,
     enable_extops: bool = False,
+    enable_nnf: bool = False,
+    enable_bnf: bool = False,
     enable_rewrite: bool = False,
-    quiet: bool = False
-) -> tuple[int, List[TLInstruction], List[TLInstruction], List[BZInstruction], List[ATInstruction], List[Tuple[int,int]]]:
+    enable_arity: bool = False,
+    enable_cse: bool = False,
+    write_c2po_filename: str = ".",
+    write_prefix_filename: str = ".",
+    write_mltl_filename: str = ".",
+    write_pickle_filename: str = ".",
+    debug: bool = False,
+    quiet: bool = False,
+) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
-    
-    Args:
-        input_filename: Name of a C2PO input file
-        signals_filename: Name of a csv trace file or C2PO signals file
-        impl: An R2U2 implementation to target. Should be one of 'c', 'c++', 'cpp', 'fpga', or 'vhdl'
-        int_width: Width to set C2PO INT type to. Should be one of 8, 16, 32, or 64
-        mission_time: Value of mission-time to replace "M" with in specs
-        int_signed: If true sets INT type to signed
-        float_width: Width to set C2PO FLOAT type to. Should be one of 32 or 64
-        output_filename: Name of binary output file
-        enable_assemble: If true outputs binary to output_filename
-        enable_cse: If true enables Common Subexpression Elimination
-        enable_at: If true enables Atomic Checker instructions
-        enable_bz: If true enables Booleanizer instructions
-        enable_extops: If true enables TL extended operators
-        enable_rewrite: If true enables MLTL rewrite rule optimizations
-        quiet: If true disables assembly output to stdout
+
+    Compilation stages:
+    1. Input validation
+    2. Parser
+    3. Type checker
+    4. Required passes
+    5. Option-based passes
+    6. Optimizations
+    7. Assembly
     """
-    with open(input_filename, "r") as f:
-        program: Program|None = parse(f.read(), mission_time)
+    if debug:
+        log.set_debug()
 
-    if not program:
-        logger.error(" Failed parsing.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.PARSE_ERROR.value)
+    # ----------------------------------
+    # Input validation
+    # ----------------------------------
+    options = validate_input(
+        input_filename,
+        trace_filename,
+        map_filename,
+        output_filename,
+        impl,
+        custom_mission_time if custom_mission_time else -1,
+        int_width,
+        int_signed,
+        float_width,
+        endian,
+        only_parse,
+        only_type_check,
+        only_compile,
+        enable_atomic_checkers,
+        enable_booleanizer,
+        enable_extops,
+        enable_nnf,
+        enable_bnf,
+        enable_rewrite,
+        enable_arity,
+        enable_cse,
+    )
 
-    if not set_options(program, impl, int_width, int_signed, float_width, 
-                            enable_at, enable_bz, enable_extops):
-        logger.error(" Invalid configuration options.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.INVALID_OPTIONS.value)
+    if not options.status or not options.input_path:
+        log.error("Input invalid", MODULE_CODE)
+        return ReturnCode.INVALID_INPUT
 
-    # parse csv/signals file
-    program.signal_mapping = parse_signals(signals_filename)
+    # ----------------------------------
+    # Parse
+    # ----------------------------------
+    if options.input_path.suffix == ".c2po":
+        program: Optional[cpt.Program] = parse.parse_c2po(
+            options.input_path, options.mission_time
+        )
 
-    # type check
-    if not type_check(program, enable_at, enable_bz):
-        logger.error(" Failed type check.")
-        return COMPILE_ERR_RETURN_VAL(ReturnCode.TYPE_CHECK_ERROR.value)
+        if not program:
+            log.error("Failed parsing", MODULE_CODE)
+            return ReturnCode.PARSE_ERR
 
-    rewrite_contracts(program)
-    rewrite_set_aggregation(program)
-    rewrite_struct_access(program)
+        # must have defined this in trace or map file
+        signal_mapping = options.signal_mapping
 
-    if enable_rewrite:
-        optimize_rewrite_rules(program)
+    elif options.input_path.suffix == ".mltl":
+        parse_output = parse.parse_mltl(options.input_path, options.mission_time)
 
-    # rewrite without extended operators if enabled
-    if not enable_extops:
-        rewrite_extended_operators(program)
+        if not parse_output:
+            log.error("Failed parsing", MODULE_CODE)
+            return ReturnCode.PARSE_ERR
 
-    # common sub-expressions elimination
-    if enable_cse:
-        optimize_cse(program)
+        (program, signal_mapping) = parse_output
+    elif options.input_path.suffix == ".pickle":
+        with open(str(options.input_path), "rb") as f:
+            program = pickle.load(f)
 
-    # generate alias file
-    aliases = generate_aliases(program)
+        if not isinstance(program, cpt.Program):
+            log.error("Bad pickle file", MODULE_CODE)
+            return ReturnCode.PARSE_ERR
 
-    # generate assembly
-    (ft_asm, pt_asm, bz_asm, at_asm) = generate_assembly(program, enable_at, enable_bz)
-    scq_asm: List[Tuple[int,int]] = generate_scq_assembly(program)
+        signal_mapping = options.signal_mapping
+    else:
+        log.error(
+            f"Unsupported input format ({options.input_path.suffix})", MODULE_CODE
+        )
+        return ReturnCode.INVALID_INPUT
 
-    # print assembly if 'quiet' option not enabled
+    if only_parse:
+        serialize.write_outputs(
+            program,
+            options.input_path,
+            write_c2po_filename,
+            write_prefix_filename,
+            write_mltl_filename,
+            write_pickle_filename,
+        )
+        return ReturnCode.SUCCESS
+
+    # ----------------------------------
+    # Type check
+    # ----------------------------------
+    (well_typed, context) = type_check.type_check(
+        program,
+        R2U2_IMPL_MAP[impl],
+        options.mission_time,
+        enable_atomic_checkers,
+        enable_booleanizer,
+        options.final_stage is cpt.CompilationStage.ASSEMBLE,
+        signal_mapping,
+    )
+
+    if not well_typed:
+        log.error("Failed type check", MODULE_CODE)
+        return ReturnCode.TYPE_CHECK_ERR
+
+    if only_type_check:
+        serialize.write_outputs(
+            program,
+            options.input_path,
+            write_c2po_filename,
+            write_prefix_filename,
+            write_mltl_filename,
+            write_pickle_filename,
+        )
+        return ReturnCode.SUCCESS
+
+    # ----------------------------------
+    # Transforms
+    # ----------------------------------
+    log.debug("Performing passes", MODULE_CODE)
+    for cpass in [t for t in passes.PASS_LIST if t in options.passes]:
+        cpass(program, context)
+
+    if only_compile:
+        serialize.write_outputs(
+            program,
+            options.input_path,
+            write_c2po_filename,
+            write_prefix_filename,
+            write_mltl_filename,
+            write_pickle_filename,
+        )
+        return ReturnCode.SUCCESS
+
+    # ----------------------------------
+    # Assembly
+    # ----------------------------------
+    if not options.output_path:
+        log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
+        return ReturnCode.INVALID_INPUT
+
+    (assembly, binary) = assemble.assemble(
+        program, context, quiet, options.endian_sigil
+    )
+
     if not quiet:
-        if enable_at:
-            logger.info(Color.HEADER+"AT Assembly"+Color.ENDC+":")
-            for s in at_asm:
-                logger.info(f"\t{s.at_asm()}")
-        if enable_bz:
-            logger.info(Color.HEADER+"BZ Assembly"+Color.ENDC+":")
-            for s in bz_asm:
-                logger.info(f"\t{s.bz_asm()}")
+        [print(instr) for instr in assembly]
 
-        logger.info(Color.HEADER+"FT Assembly"+Color.ENDC+":")
-        for a in ft_asm:
-            logger.info(f"\t{a.ft_asm()}")
+    with open(options.output_path, "wb") as f:
+        f.write(binary)
 
-        logger.info(Color.HEADER+"PT Assembly"+Color.ENDC+":")
-        for a in pt_asm:
-            logger.info(f"\t{a.pt_asm()}")
+    serialize.write_outputs(
+        program,
+        options.input_path,
+        write_c2po_filename,
+        write_prefix_filename,
+        write_mltl_filename,
+        write_pickle_filename,
+    )
 
-        logger.info(Color.HEADER+"SCQ Assembly"+Color.ENDC+":")
-        for s in scq_asm:
-            logger.info(f"\t{s}")
-
-        logger.info(Color.HEADER+"Aliases"+Color.ENDC+":")
-        for a in aliases:
-            logger.info(f"\t{a}")
-
-    if enable_assemble:
-        assemble(output_filename, at_asm, bz_asm, ft_asm, scq_asm, pt_asm, aliases)
-
-    return (ReturnCode.SUCCESS.value, ft_asm, pt_asm, bz_asm, at_asm, scq_asm)
-
+    return ReturnCode.SUCCESS

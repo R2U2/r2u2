@@ -1,6 +1,1 @@
-INPUT
-	LiVar749,LiVar395,LiVar784,ascmd,LiVar748,LiVar783: bool;
-
-FTSPEC
-	(true -> ( G[4532,10000] ((LiVar784 || ascmd) -> LiVar749) &&  G[4244,10000] ((LiVar783 && !ascmd) -> (LiVar748 && LiVar395)))) && true
-;
+(!((true)&(!(G[4244,9712]((G[288,288](!((!((!(a0))&(!(a1))))&(!(a2)))))&(G[0,288](!(((a3)&(!(a1)))&(!((a4)&(a5)))))))))))&(true)

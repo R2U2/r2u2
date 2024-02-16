@@ -121,7 +121,7 @@ class C2POParser(Parser):
         ('right', LPAREN, DOT)
     )
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self.structs: StructDict = {}
         self.signals: Dict[str,Type] = {}

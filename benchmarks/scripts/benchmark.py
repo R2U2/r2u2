@@ -1,11 +1,15 @@
 import csv
 from random import randint
-from typing import Callable
+from typing import Callable, Tuple
 from time import perf_counter
 from pathlib import Path
 
-from c2po.ast import *
-from c2po.main import *
+import sys
+sys.path.append(str((Path(__file__).parent / ".." / ".." ).absolute()))
+
+from compiler.c2po.log import logger # noqa: E402
+from compiler.c2po.cpt import Node # noqa: E402
+from compiler.c2po.main import * # noqa: E402
 
 """
 Process for running benchmark:
@@ -30,7 +34,7 @@ def generate_file_prefix(n: int) -> str:
     return s
 
 
-def generate_random_csv(filename: str, r: int, n: int) -> None:
+def generate_random_csv(filename: str, r: int, n: int) :
     """Generate csv file with 'r' rows of 'n' Boolean variables"""
     if not Path(filename).exists():
         with open(filename, "w") as f:
@@ -52,20 +56,20 @@ def generate_random_csv(filename: str, r: int, n: int) -> None:
 # Benchmarking
 # ------------------------------------------------------------------------------
 
-def benchmark(input: str, func: Callable[[AST],None]) -> tuple[float,int,int]:
+def benchmark(input: str, func: Callable[[Node],None]) -> Tuple[float,int,int]:
     """Runs 'func' as a benchmark, returns a tuple with (time,pre,post) where 
     'time' is the time taken to run 'func' and 'pre'/'post' are the memory of 
     a before and after running func respectively"""
     programs = parse(input)
 
     if len(programs) < 1:
-        logger.error(' Failed parsing.')
+        log.error(' Failed parsing.')
         return (0,0,0)
     elif len(programs) > 1:
-        logger.error('Only one program allowed in benchmark')
+        log.error('Only one program allowed in benchmark')
         return (0,0,0)
 
-    a: AST = programs[0]
+    a: Node = programs[0]
 
     pre: int = compute_scq_size(a)
     t1: float = perf_counter()
@@ -78,19 +82,19 @@ def benchmark(input: str, func: Callable[[AST],None]) -> tuple[float,int,int]:
 
 def benchmark_list(
     input: str, 
-    funcs: list[Callable[[AST],None]],
+    funcs: list[Callable[[Node],None]],
 ) -> list[tuple[float,int,int]]:
     """Benchmarks each function in 'funcs'"""  
     programs = parse(input)
 
     if len(programs) < 1:
-        logger.error(' Failed parsing.')
+        log.error(' Failed parsing.')
         return []
     elif len(programs) > 1:
-        logger.error('Only one program allowed in benchmark')
+        log.error('Only one program allowed in benchmark')
         return []
 
-    a: AST = programs[0]
+    a: Node = programs[0]
     results: list[tuple[float,int,int]] = []
 
     pre: int = compute_scq_size(a)

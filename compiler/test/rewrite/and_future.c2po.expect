@@ -1,0 +1,19 @@
+0 5 2 3 True
+2 4 0 5 False
+BZ b0  iload  0 0
+TL n0  load   a0
+TL n1  eventually n0
+TL n2  return n1 0
+TL n3  eventually n0
+TL n4  return n3 1
+CG TL SCQ n0  (0, 3)
+CG TL SCQ n1  (3, 6)
+CG TL LB  n1  2
+CG TL UB  n1  3
+CG TL SCQ n2  (6, 7)
+CG TL SCQ n3  (7, 10)
+CG TL LB  n3  2
+CG TL UB  n3  4
+CG TL SCQ n4  (10, 11)
+F __f0__ 0
+F __f1__ 1

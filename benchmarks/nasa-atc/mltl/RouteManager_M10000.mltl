@@ -1,6 +1,0 @@
-INPUT
-	LiVar652,LiVar449,LiVar651,LiVar612: bool;
-
-FTSPEC
-	(((LiVar449 && LiVar612) &&               LiVar651) && LiVar652) && true
-;

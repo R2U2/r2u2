@@ -1,6 +1,1 @@
-INPUT
-	wheelrolling,LiVar691: bool;
-
-FTSPEC
-	(true ->  G[81298,100000] (wheelrolling <-> LiVar691)) && true
-;
+(!((true)&(!(G[81298,100000]((!((a1)&(!(a0))))&(!((!(a1))&(a0))))))))&(true)

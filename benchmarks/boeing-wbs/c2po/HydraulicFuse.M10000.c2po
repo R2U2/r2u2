@@ -1,0 +1,6 @@
+INPUT
+	LiVar395: bool;
+
+FTSPEC
+	(true ->  G[1954,5235] LiVar395) && true
+;
