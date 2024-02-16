@@ -23,6 +23,7 @@ for mltl,oracle in file_pairs:
     try:
         proc = subprocess.run(command, capture_output=True, timeout=60)
     except subprocess.TimeoutExpired:
+        print("timeout")
         continue
 
     with open(str(oracle), "r") as f:
@@ -33,5 +34,7 @@ for mltl,oracle in file_pairs:
     is_sat_c2po = c2po_output.find("unsat") == -1 and c2po_output.find("sat") > -1
 
     if is_sat_c2po != is_sat_oracle:
-        print("FAIL")
-        print(f"{is_sat_oracle} : {is_sat_c2po}")
+        print("fail")
+        print(f"\t{is_sat_oracle} : {is_sat_c2po}")
+    else:
+        print("pass")
