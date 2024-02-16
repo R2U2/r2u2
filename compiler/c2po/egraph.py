@@ -428,7 +428,7 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
     log.debug(f"Running command '{' '.join(command)}'", MODULE_CODE)
-    proc = subprocess.run(command, capture_output=False)
+    proc = subprocess.run(command, capture_output=True)
 
     if proc.returncode:
         log.error(f"Error running egglog\n{proc.stderr.decode()}", MODULE_CODE)

@@ -1039,8 +1039,6 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
         
-            print(f"setting {expr}: {id}")
-
             context.atomic_id[expr] = id
             id += 1
 
