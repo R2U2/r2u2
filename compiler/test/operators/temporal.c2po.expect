@@ -11,12 +11,12 @@ TL n9  not    n5
 TL n10 until  n8 n9
 TL n11 not    n10
 TL n12 return n11 3
-TL n0  load   a2
+TL n0  load   a0
 TL n1  hist   n0
 TL n2  return n1 4
 TL n3  once   n0
 TL n4  return n3 5
-TL n5  load   a3
+TL n5  load   a1
 TL n6  since  n0 n5
 TL n7  return n6 6
 CG TL SCQ n0  (0, 3)

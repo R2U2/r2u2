@@ -11,7 +11,7 @@ SMT_FILE = "tmp.smt"
 for mltl_file_str in glob(str(MLTL_DIR)+"/*"):
     mltl_file = Path(mltl_file_str)
 
-    command = ["python3", "compiler/c2po.py", "-c", "-sat", "--egraph", str(mltl_file)]
+    command = ["python3", "compiler/c2po.py", "-c", "-sat", "--extops", str(mltl_file)]
     print(" ".join(command))
     try:
         proc = subprocess.run(command, capture_output=True, timeout=60)
