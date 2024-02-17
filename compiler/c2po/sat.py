@@ -19,6 +19,11 @@ class SatResult(enum.Enum):
     UNKNOWN = 2
 
 
+def check_solver_installed(solver: str) -> bool:
+    proc = subprocess.run([solver, "-version"], capture_output=True)
+    return proc.returncode == 0
+
+
 def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
     
@@ -100,10 +105,39 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     return smt
 
 
+def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
+    """Returns result of running SMT solver on the SMT encoding of `expr`."""
+    if not check_solver_installed(Z3):
+        log.error("z3 not found", MODULE_CODE)
+        return SatResult.UNKNOWN
+
+    if WORK_DIR.is_file():
+        WORK_DIR.unlink()
+
+    if not WORK_DIR.is_dir():
+        WORK_DIR.mkdir()
+
+    smt = to_smt_sat_query(expr, context)
+
+    smt_file_path = WORK_DIR / "__tmp__.smt"
+    with open(smt_file_path, "w") as f:
+        f.write(smt)
+
+    command = [Z3, str(smt_file_path)]
+    log.debug(f"Running '{' '.join(command)}'", MODULE_CODE)
+    proc = subprocess.run(command, capture_output=True)
+
+    if proc.stdout.decode().find("unsat") > -1:
+        return SatResult.UNSAT
+    elif proc.stdout.decode().find("sat") > -1:
+        return SatResult.SAT
+    else:
+        return SatResult.UNKNOWN
+
+
 def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver (Z3 by default) on the SMT encoding of the MLTL formulas in `program`."""
-    proc = subprocess.run([Z3, "-version"], capture_output=True)
-    if proc.returncode != 0:
+    if not check_solver_installed(Z3):
         log.error("z3 not found", MODULE_CODE)
         return {}
 
@@ -122,23 +156,7 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specifica
             continue
             
         expr = spec.get_expr()
-
-        smt = to_smt_sat_query(expr, context)
-
-        smt_file_path = WORK_DIR / f"{spec.symbol}.smt"
-        with open(smt_file_path, "w") as f:
-            f.write(smt)
-
-        command = [Z3, str(smt_file_path)]
-        log.debug(f"Running '{' '.join(command)}'", MODULE_CODE)
-        proc = subprocess.run(command, capture_output=True)
-
-        if proc.stdout.decode().find("unsat") > -1:
-            results[spec] = SatResult.UNSAT
-        elif proc.stdout.decode().find("sat") > -1:
-            results[spec] = SatResult.SAT
-        else:
-            results[spec] = SatResult.UNKNOWN
+        results[spec] = check_sat_expr(expr, context)
 
     shutil.rmtree(WORK_DIR)
         
