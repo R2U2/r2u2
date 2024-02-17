@@ -91,22 +91,22 @@
     },
     {
         "input": "serialize/simple.c2po", 
-        "expected_mltl": "serialize/simple.c2po.mltl.expect", 
+        "expected_mltl": "serialize/simple.mltl.c2po.expect", 
         "options": ["--write-mltl", "-c"]
     },
     {
         "input": "serialize/simple.c2po", 
-        "expected_prefix": "serialize/simple.c2po.prefix.expect", 
+        "expected_prefix": "serialize/simple.prefix.c2po.expect", 
         "options": ["--write-prefix", "-c"]
     },
     {
         "input": "serialize/multi_arity.c2po", 
-        "expected_mltl": "serialize/multi_arity.c2po.mltl.expect", 
+        "expected_mltl": "serialize/multi_arity.mltl.c2po.expect", 
         "options": ["--write-mltl", "-c"]
     },
     {
         "input": "serialize/multi_arity.c2po", 
-        "expected_prefix": "serialize/multi_arity.c2po.prefix.expect", 
+        "expected_prefix": "serialize/multi_arity.prefix.c2po.expect", 
         "options": ["--write-prefix", "-c"]
     },
     {

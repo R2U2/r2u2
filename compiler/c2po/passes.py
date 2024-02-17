@@ -1098,7 +1098,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     actual_program_scq_size = 0
     theoretical_program_scq_size = 0
 
-    EXTRA_SCQ_SIZE = 4
+    EXTRA_SCQ_SIZE = 3
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
