@@ -3,7 +3,7 @@ set -o errexit
 set -o nounset
 
 infile="${1:-}"
-if [[ ! -f "${infile}" ]]; then
+if [ ! -f "${infile}" ]; then
   echo "File '${infile}' not found"
 else
   echo "Splitting ${infile} by formula ID"
