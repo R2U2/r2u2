@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 
-from c2po import cpt, log
+from c2po import cpt, log, sat
 
 MODULE_CODE = "SRLZ"
 
@@ -124,7 +124,7 @@ def write_smt(
         expr = spec.get_expr()
 
         with open(str(output_path / f"{spec.symbol}.smt"), "w") as f:
-            f.write(cpt.to_smt_sat_query(expr, context))
+            f.write(sat.to_smt_sat_query(expr, context))
 
 
 def write_outputs(

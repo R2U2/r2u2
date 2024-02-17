@@ -933,25 +933,25 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
 def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
-    S: dict[str, cpt.Expression]
+    expr_map: dict[str, cpt.Expression]
 
     log.debug("Performing CSE", module=MODULE_CODE)
 
     def _optimize_cse(expr: cpt.Expression) -> None:
-        nonlocal S
+        nonlocal expr_map
 
-        if str(expr) in S:
-            log.debug(f"Replacing --- {expr}", module=MODULE_CODE)
-            expr.replace(S[str(expr)])
+        if str(expr) in expr_map:
+            log.debug(f"Replacing ---- {expr}", module=MODULE_CODE)
+            expr.replace(expr_map[str(expr)])
         else:
-            log.debug(f"Visiting ---- {expr}", module=MODULE_CODE)
-            S[str(expr)] = expr
+            log.debug(f"Visiting ----- {expr}", module=MODULE_CODE)
+            expr_map[str(expr)] = expr
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.ft_spec_set, context):
         _optimize_cse(expr)
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.pt_spec_set, context):
         _optimize_cse(expr)
 
@@ -1080,7 +1080,9 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
     log.debug("Checking FT formulas satisfiability", MODULE_CODE)
+    
     results = sat.check_sat(program, context)
+
     for spec,result in results.items():
         if result is sat.SatResult.SAT:
             # log.debug(f"{symbol}: sat", MODULE_CODE)
