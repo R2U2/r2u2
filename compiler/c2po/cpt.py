@@ -75,6 +75,37 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
+    
+    def get_max_prediction_horizon(self) -> int:
+        prev_visited_parents: list[Expression] = [self]
+        visited_parents: list[Expression] = []
+        max_prediction_horizon: int = 0
+        # iterate through all parental (i.e., parent, grandparent, etc.) nodes to find the max prediction horizon
+        while(True):  
+            desired_num_parents = 0
+            num_parents = 0
+            for node in prev_visited_parents:
+                desired_num_parents = desired_num_parents + len(node.parents)
+            if desired_num_parents == 0:
+                return max_prediction_horizon
+            for node in prev_visited_parents:
+                for parent in node.parents:
+                    if isinstance(parent, Formula):
+                        for child in parent.children:
+                            if parent.deadline is not None:
+                                if child.wpd - parent.deadline >= max_prediction_horizon:
+                                    max_prediction_horizon = child.wpd - parent.deadline
+                        num_parents = num_parents + 1
+                    elif len(parent.parents) == 0:
+                        num_parents = num_parents + 1
+                    else:
+                        visited_parents.append(parent)
+                    if(desired_num_parents == num_parents):
+                        return max_prediction_horizon
+            prev_visited_parents = visited_parents
+            visited_parents = []
+
+
 
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
@@ -428,6 +459,8 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+    ARITHMETIC_POWER = "pow"
+    ARITHMETIC_SQRT = "sqrt"
 
     # Relational
     EQUAL = "=="
@@ -552,6 +585,19 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticPower(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
 
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
@@ -738,6 +784,8 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
+        OperatorKind.ARITHMETIC_POWER,
+        OperatorKind.ARITHMETIC_SQRT,
     }
 
 
@@ -786,19 +834,22 @@ def is_temporal_operator(expr: Expression) -> bool:
 
 class Formula(Expression):
     def __init__(
-        self, loc: log.FileLocation, label: str, fnum: int, expr: Expression
+        self, loc: log.FileLocation, label: str, fnum: int, expr: Expression,
+        deadline: int = None, k_modes: int = None
     ) -> None:
         super().__init__(loc, [expr])
         self.symbol: str = label
         self.formula_number: int = fnum
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
+        self.deadline = deadline
+        self.k_modes = k_modes
 
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
 
     def __deepcopy__(self, memo) -> Formula:
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Formula(self.loc, self.symbol, self.formula_number, children[0])
+        new = Formula(self.loc, self.symbol, self.formula_number, children[0], self.deadline, self.k_modes)
         self.copy_attrs(new)
         return new
 

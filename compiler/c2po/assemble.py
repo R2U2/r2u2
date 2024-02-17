@@ -65,6 +65,10 @@ class BZOperator(Enum):
     IDIV = 0b011011
     FDIV = 0b011100
     MOD = 0b011101
+    IPOW    = 0b011110
+    FPOW    = 0b011111
+    ISQRT   = 0b100000
+    FSQRT   = 0b100001
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
@@ -91,6 +95,10 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
     (cpt.OperatorKind.ARITHMETIC_MODULO, True): BZOperator.MOD,
+    (cpt.OperatorKind.ARITHMETIC_POWER, True): BZOperator.IPOW,
+    (cpt.OperatorKind.ARITHMETIC_POWER, False): BZOperator.FPOW,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, True): BZOperator.ISQRT,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, False): BZOperator.FSQRT,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
     (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
     (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,
@@ -255,7 +263,9 @@ class CGType(Enum):
     SCQ = 0
     LB = 1
     UB = 2
-    BOXQ = 3
+    DEADLINE = 3
+    K_MODES = 4
+    BOXQ = 5
 
     def __str__(self) -> str:
         return self.name
@@ -312,7 +322,7 @@ field_format_str_map = {
     FieldType.AT_FILTER: "i",
     FieldType.AT_ID: "B",
     FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
-    FieldType.TL_ID: "I",
+    FieldType.TL_ID: "i",
     FieldType.TL_OPERATOR: "i",
     FieldType.TL_OPERAND_TYPE: "i",
     FieldType.TL_OPERAND_VALUE: "Bxxx",
@@ -661,10 +671,48 @@ def gen_scq_instructions(
         ),
     )
 
-    if not isinstance(expr, cpt.TemporalOperator):
+    if not isinstance(expr, cpt.TemporalOperator) and not isinstance(expr, cpt.Formula):
         log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
         return [cg_scq]
-
+    
+    if isinstance(expr, cpt.Formula):
+        if expr.deadline is not None:
+            cg_deadline = CGInstruction(
+                EngineTag.CG,
+                CGType.DEADLINE,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.deadline,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    2,
+                ),
+            )
+            if expr.k_modes is not None:
+                cg_k_modes = CGInstruction(
+                    EngineTag.CG,
+                    CGType.K_MODES,
+                    TLInstruction(
+                        EngineTag.TL,
+                        expr.k_modes,
+                        FTOperator.CONFIG,
+                        TLOperandType.SUBFORMULA,
+                        instructions[expr].id,
+                        TLOperandType.ATOMIC,
+                        3,
+                    ),
+                )
+                log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline, cg_k_modes}", MODULE_CODE)
+                return [cg_scq, cg_deadline, cg_k_modes]
+            else:
+                log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline}", MODULE_CODE)
+                return [cg_scq, cg_deadline]
+        else:
+            log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
+            return [cg_scq]
+        
     cg_lb = CGInstruction(
         EngineTag.CG,
         CGType.LB,
