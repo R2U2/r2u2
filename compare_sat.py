@@ -23,13 +23,14 @@ for mltl,oracle in file_pairs:
     try:
         proc = subprocess.run(command, capture_output=True, timeout=60)
     except subprocess.TimeoutExpired:
-        print("timeout")
+        print("c2po timeout")
         continue
 
     with open(str(oracle), "r") as f:
         content = f.read()
 
     if content.find("timeout") > -1:
+        print("cav timeout")
         continue
     is_sat_oracle = content.find("unsat") == -1 and content.find("sat") > -1
 
