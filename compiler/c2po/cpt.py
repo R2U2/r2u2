@@ -113,12 +113,6 @@ class Expression(Node):
         new.scq = self.scq
         new.type = self.type
 
-    def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, Expression) and str(self) == str(__value)
-
-    def __hash__(self) -> int:
-        return hash(str(self))
-
     def __str__(self) -> str:
         return to_infix_str(self)
 
@@ -174,12 +168,6 @@ class Signal(Expression):
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Signal) and __o.symbol == self.symbol
-
-    def __hash__(self) -> int:
-        return hash(self.symbol)
 
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)

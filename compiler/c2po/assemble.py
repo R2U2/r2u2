@@ -785,7 +785,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.ft_spec_set:
             continue
 
-        if expr in context.atomic_id and expr not in ft_instructions:
+        if expr in context.atomic_id:
             ftid = len(ft_instructions)
             ft_instructions[expr] = TLInstruction(
                 EngineTag.TL,
@@ -796,6 +796,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 TLOperandType.NONE,
                 0,
             )
+            log.debug(f"Generating: {expr}\n\t" f"{ft_instructions[expr]}", MODULE_CODE)
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
@@ -804,11 +805,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if isinstance(expr, cpt.Constant) and expr.has_only_tl_parents():
             continue
 
-        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER and expr not in at_instructions:
+        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
             at_instructions[expr] = gen_at_instruction(expr, context)
-        elif expr.engine == types.R2U2Engine.BOOLEANIZER and expr not in bz_instructions:
+        elif expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
-        elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC and expr not in ft_instructions:
+        elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
             new_ft_instruction = gen_ft_instruction(expr, ft_instructions)
             if not new_ft_instruction:
                 return None
