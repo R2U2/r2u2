@@ -28,8 +28,11 @@ for mltl,oracle in file_pairs:
 
     with open(str(oracle), "r") as f:
         content = f.read()
-        is_sat_oracle = content.find("unsat") == -1 and content.find("sat") > -1
-    
+
+    if content.find("timeout") > -1:
+        continue
+    is_sat_oracle = content.find("unsat") == -1 and content.find("sat") > -1
+
     c2po_output = proc.stdout.decode()
     is_sat_c2po = c2po_output.find("unsat") == -1 and c2po_output.find("sat") > -1
 
@@ -38,3 +41,4 @@ for mltl,oracle in file_pairs:
         print(f"\t{is_sat_oracle} : {is_sat_c2po}")
     else:
         print("pass")
+    
