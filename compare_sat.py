@@ -2,23 +2,16 @@ from pathlib import Path
 from glob import glob
 import subprocess
 
-ORACLE_DIR = Path(__file__).parent / "benchmarks" / "random0" / "oracle"
 MLTL_DIR = Path(__file__).parent / "benchmarks" / "random0" / "mltl"
 
-file_pairs: "list[tuple[Path, Path]]" = []
-
-oracle_files: "list[Path]" = []
-for oracle_file in glob(str(ORACLE_DIR)+"/*"):
-    oracle_files.append(Path(oracle_file))
+MLTL_CONVERTER = Path(__file__).parent / "mltlsat" / "translator" / "src" / "MLTLConvertor"
+Z3 = "z3"
+SMT_FILE = "tmp.smt"
 
 for mltl_file_str in glob(str(MLTL_DIR)+"/*"):
     mltl_file = Path(mltl_file_str)
-    for oracle_file in oracle_files:
-        if oracle_file.with_suffix("").name == mltl_file.with_suffix("").name:
-            file_pairs.append((mltl_file,oracle_file))
 
-for mltl,oracle in file_pairs:
-    command = ["python3", "compiler/c2po.py", "-c", "-sat", "--egraph", str(mltl)]
+    command = ["python3", "compiler/c2po.py", "-c", "-sat", "--egraph", str(mltl_file)]
     print(" ".join(command))
     try:
         proc = subprocess.run(command, capture_output=True, timeout=60)
@@ -26,20 +19,32 @@ for mltl,oracle in file_pairs:
         print("c2po timeout")
         continue
 
-    with open(str(oracle), "r") as f:
-        content = f.read()
-
-    if content.find("timeout") > -1:
-        print("cav timeout")
-        continue
-    is_sat_oracle = content.find("unsat") == -1 and content.find("sat") > -1
-
     c2po_output = proc.stdout.decode()
     is_sat_c2po = c2po_output.find("unsat") == -1 and c2po_output.find("sat") > -1
 
-    if is_sat_c2po != is_sat_oracle:
+    with open(str(mltl_file), "r") as f:
+        content = f.read().strip()
+
+    command = [str(MLTL_CONVERTER), "-smtlib", content]
+    # print(" ".join(command))
+    proc = subprocess.run(command, capture_output=True)
+    with open(SMT_FILE, "wb") as f:
+        f.write(proc.stdout)
+
+    command = [Z3, SMT_FILE]
+    print(" ".join(command))
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        print("mltlsat timeout")
+        continue
+
+    mltlsat_output = proc.stdout.decode()
+    is_sat_mltlsat = mltlsat_output.find("unsat") == -1 and mltlsat_output.find("sat") > -1
+
+    if is_sat_c2po != is_sat_mltlsat:
         print("fail")
-        print(f"\t{is_sat_oracle} : {is_sat_c2po}")
+        print(f"\t{is_sat_c2po} : {is_sat_mltlsat}")
     else:
         print("pass")
     
