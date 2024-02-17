@@ -1072,8 +1072,17 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
     e_graph = egraph.run_egglog(formula, context)
 
     if e_graph:
+        old = formula.get_expr()
         new = e_graph.extract(context)
-        formula.get_expr().replace(new)
+
+        is_equiv = sat.check_equiv(old, new, context)
+        
+        if is_equiv:
+            old.replace(new)
+        elif isinstance(is_equiv, bool) and not is_equiv:
+            log.error("E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula", MODULE_CODE)
+        else:
+            log.error("E-Graph optimization could not be validated, defaulting to non-optimized formula", MODULE_CODE)
 
     log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
 

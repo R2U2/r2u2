@@ -3,7 +3,7 @@ import shutil
 import subprocess
 import enum
 
-from typing import cast
+from typing import cast, Optional
 
 from c2po import cpt, log
 
@@ -62,9 +62,11 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(f"({fun_signature} (and (> len k) (not ({expr_map[expr.children[0]]} k len))))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-            smt_commands.append(f"({fun_signature} (and (> len k) (and ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
+            smt_commands.append(f"({fun_signature} (and (> len k) (and {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-            smt_commands.append(f"({fun_signature} (and (> len k) (or ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
+            smt_commands.append(f"({fun_signature} (and (> len k) (or {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             smt_commands.append(f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
@@ -74,21 +76,21 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j (- len j))))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)
@@ -161,4 +163,21 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specifica
     shutil.rmtree(WORK_DIR)
         
     return results
+
+
+def check_equiv(expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Context) -> Optional[bool]:
+    """Returns true if `expr1` is equivalent to `expr2`, false if they are not, and None if the check timed our or failed in some other way.
+    
+    To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |= expr` and `pi |/= expr` or vice versa.  
+    """
+    neg_equiv_expr = cpt.Operator.LogicalNegate(expr1.loc, cpt.Operator.LogicalIff(expr1.loc, expr1, expr2))
+
+    result = check_sat_expr(neg_equiv_expr, context)
+
+    if result is SatResult.SAT:
+        return False
+    elif result is SatResult.UNSAT:
+        return True
+    else:
+        return None
 
