@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types, egraph
+from c2po import cpt, log, types, egraph, sat
 
 MODULE_CODE = "PASS"
 
@@ -933,25 +933,25 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
 def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
-    S: dict[str, cpt.Expression]
+    expr_map: dict[str, cpt.Expression]
 
     log.debug("Performing CSE", module=MODULE_CODE)
 
     def _optimize_cse(expr: cpt.Expression) -> None:
-        nonlocal S
+        nonlocal expr_map
 
-        if str(expr) in S:
-            log.debug(f"Replacing --- {expr}", module=MODULE_CODE)
-            expr.replace(S[str(expr)])
+        if str(expr) in expr_map:
+            log.debug(f"Replacing ---- {expr}", module=MODULE_CODE)
+            expr.replace(expr_map[str(expr)])
         else:
-            log.debug(f"Visiting ---- {expr}", module=MODULE_CODE)
-            S[str(expr)] = expr
+            log.debug(f"Visiting ----- {expr}", module=MODULE_CODE)
+            expr_map[str(expr)] = expr
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.ft_spec_set, context):
         _optimize_cse(expr)
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.pt_spec_set, context):
         _optimize_cse(expr)
 
@@ -1023,26 +1023,34 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
-    id: int = 0
+    aid: int = 0
 
     for expr in program.postorder(context):
-        if expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
+        if (
+            expr.engine == types.R2U2Engine.TEMPORAL_LOGIC 
+            or isinstance(expr, cpt.Constant) 
+            or expr in context.atomic_id
+        ):
             continue
 
-        if isinstance(expr, cpt.Constant):
+        if (
+            context.frontend is types.R2U2Engine.NONE 
+            and isinstance(expr, cpt.Signal) 
+            and context.assembly_enabled
+        ):
+            context.atomic_id[expr] = expr.signal_id
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
-        
-            context.atomics.add(expr)
-            if expr.atomic_id < 0:
-                expr.atomic_id = id
-                id += 1
+
+            context.atomic_id[expr] = aid
+            aid += 1
+            break
 
     log.debug(
-        f"Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",
+        f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
         module=MODULE_CODE,
     )
 
@@ -1054,6 +1062,12 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
     # flatten_multi_operators(program, context)
     sort_operands_by_pd(program, context)
 
+    if len(program.ft_spec_set.children) == 0:
+        return
+    
+    if len(program.ft_spec_set.children) > 1:
+        log.warning("E-Graph optimizations only support single formulas, using first only", MODULE_CODE)
+
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
     e_graph = egraph.run_egglog(formula, context)
 
@@ -1064,10 +1078,29 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
 
 
+def check_sat(program: cpt.Program, context: cpt.Context) -> None:
+    log.debug("Checking FT formulas satisfiability", MODULE_CODE)
+    
+    results = sat.check_sat(program, context)
+
+    for spec,result in results.items():
+        if result is sat.SatResult.SAT:
+            # log.debug(f"{symbol}: sat", MODULE_CODE)
+            print(f"{spec.symbol}: sat")
+        elif result is sat.SatResult.UNSAT:
+            # log.warning(f"{symbol}: unsat", MODULE_CODE)
+            print(f"{spec.symbol}: unsat")
+        elif result is sat.SatResult.UNKNOWN:
+            # log.warning(f"{symbol}: unknown", MODULE_CODE)
+            print(f"{spec.symbol}: unknown")
+
+
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
     actual_program_scq_size = 0
     theoretical_program_scq_size = 0
+
+    EXTRA_SCQ_SIZE = 3
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
@@ -1084,18 +1117,21 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
                 actual_program_scq_size - expr.scq_size,
                 actual_program_scq_size,
             )
+
+            log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+
             continue
 
         if (
             expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
-            and expr not in context.atomics
+            and expr not in context.atomic_id
         ):
             continue
 
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
         # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + EXTRA_SCQ_SIZE
 
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
@@ -1103,12 +1139,15 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         )
 
         actual_program_scq_size += expr.scq_size
-        theoretical_program_scq_size += expr.scq_size - 2
+        theoretical_program_scq_size += expr.scq_size - (EXTRA_SCQ_SIZE - 1)
 
         expr.scq = (
             actual_program_scq_size - expr.scq_size,
             actual_program_scq_size,
         )
+
+        log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+
 
     log.debug(f"Actual program SCQ size: {actual_program_scq_size}", MODULE_CODE)
     log.debug(f"Theoretical program SCQ size: {theoretical_program_scq_size}", MODULE_CODE)
@@ -1134,5 +1173,6 @@ PASS_LIST: list[Pass] = [
     multi_operators_to_binary,
     compute_atomics, 
     optimize_egraph,
+    check_sat,
     compute_scq_sizes, 
 ]

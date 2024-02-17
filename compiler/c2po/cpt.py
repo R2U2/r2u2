@@ -45,7 +45,6 @@ class Expression(Node):
     ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
-        self.atomic_id: int = -1  # only set for atomic propositions
         self.total_scq_size: int = -1
         self.scq_size: int = -1
         self.bpd: int = 0
@@ -107,7 +106,6 @@ class Expression(Node):
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
         new.engine = self.engine
-        new.atomic_id = self.atomic_id
         new.scq_size = self.scq_size
         new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
@@ -170,12 +168,6 @@ class Signal(Expression):
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Signal) and __o.symbol == self.symbol
-
-    def __hash__(self) -> int:
-        return id(self)
 
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)
@@ -1069,7 +1061,7 @@ class Context:
         self.atomic_checkers: dict[str, Expression] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
-        self.atomics: set[Expression] = set()
+        self.atomic_id: dict[Expression, int] = {}
         self.implementation = impl
         self.frontend = frontend
         self.mission_time = mission_time
@@ -1080,6 +1072,10 @@ class Context:
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+
+    @staticmethod
+    def Empty() -> Context:
+        return Context(types.R2U2Implementation.C, 0, types.R2U2Engine.NONE, False, {})
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1392,10 +1388,10 @@ def to_prefix_str(start: Expression) -> str:
             log.error(f"Bad repr ({expr})", MODULE_CODE)
             return ""
 
-    return s
+    return s[:-1]
 
 
-def to_mltl_std(program: Program) -> str:
+def to_mltl_std(program: Program, context: Context) -> str:
     mltl = ""
 
     stack: list[tuple[int, Expression]] = []
@@ -1412,8 +1408,8 @@ def to_mltl_std(program: Program) -> str:
 
             if isinstance(expr, Constant):
                 mltl += expr.symbol + " "
-            elif expr.atomic_id > -1:
-                mltl += f"a{expr.atomic_id}"
+            elif expr in context.atomic_id:
+                mltl += f"a{context.atomic_id[expr]}"
             elif len(expr.children) == 1 and (
                 is_temporal_operator(expr) or is_logical_operator(expr)
             ):
@@ -1444,3 +1440,6 @@ def to_mltl_std(program: Program) -> str:
         mltl += "\n"
 
     return mltl
+
+
+

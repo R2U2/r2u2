@@ -144,6 +144,7 @@ def validate_input(
     enable_rewrite: bool = False,
     enable_egraph: bool = False,
     enable_cse: bool = False,
+    enable_sat: bool = False,
 ) -> ValidatedInput:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options."""
     log.debug("Validating input", MODULE_CODE)
@@ -254,6 +255,9 @@ def validate_input(
     if not enable_bnf:
         enabled_passes.remove(passes.to_bnf)
 
+    if not enable_sat:
+        enabled_passes.remove(passes.check_sat)
+
     if only_parse:
         final_stage = cpt.CompilationStage.PARSE
     elif only_type_check:
@@ -312,10 +316,12 @@ def compile(
     enable_rewrite: bool = False,
     enable_egraph: bool = False,
     enable_cse: bool = False,
+    enable_sat: bool = False,
     write_c2po_filename: str = ".",
     write_prefix_filename: str = ".",
     write_mltl_filename: str = ".",
     write_pickle_filename: str = ".",
+    write_smt_dir: str = ".",
     debug: bool = False,
     quiet: bool = False,
 ) -> ReturnCode:
@@ -358,6 +364,7 @@ def compile(
         enable_rewrite,
         enable_egraph,
         enable_cse,
+        enable_sat,
     )
 
     if not options.status or not options.input_path:
@@ -405,11 +412,13 @@ def compile(
     if only_parse:
         serialize.write_outputs(
             program,
+            cpt.Context.Empty(),
             options.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
             write_pickle_filename,
+            write_smt_dir,
         )
         return ReturnCode.SUCCESS
     
@@ -432,11 +441,13 @@ def compile(
     if only_type_check:
         serialize.write_outputs(
             program,
+            context,
             options.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
             write_pickle_filename,
+            write_smt_dir,
         )
         return ReturnCode.SUCCESS
 
@@ -450,11 +461,13 @@ def compile(
     if only_compile:
         serialize.write_outputs(
             program,
+            context,
             options.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
             write_pickle_filename,
+            write_smt_dir,
         )
         return ReturnCode.SUCCESS
 
@@ -477,11 +490,13 @@ def compile(
 
     serialize.write_outputs(
         program,
+        context,
         options.input_path,
         write_c2po_filename,
         write_prefix_filename,
         write_mltl_filename,
         write_pickle_filename,
+        write_smt_dir,
     )
 
     return ReturnCode.SUCCESS

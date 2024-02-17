@@ -1,7 +1,7 @@
-TL n0  load   a0
-TL n1  load   a1
+TL n0  load   a1
+TL n1  load   a2
 TL n2  and    n0 n1
-TL n3  load   a2
+TL n3  load   a0
 TL n4  until  n2 n3
 TL n5  return n4 0
 CG TL SCQ n0  (0, 3)
