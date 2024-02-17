@@ -49,6 +49,7 @@ def write_prefix(
 
 def write_mltl(
     program: cpt.Program,
+    context: cpt.Context,
     input_path: pathlib.Path,
     output_filename: str,
 ) -> None:
@@ -65,7 +66,7 @@ def write_mltl(
     log.debug(f"Dumping MLTL standard format to {output_path}", MODULE_CODE)
 
     with open(output_path, "w") as f:
-        f.write(cpt.to_mltl_std(program))
+        f.write(cpt.to_mltl_std(program, context))
 
 
 def write_pickle(
@@ -139,6 +140,6 @@ def write_outputs(
     """Writes `program` to each of the given filenames if they are not '.'"""
     write_c2po(program, input_path, write_c2po_filename)
     write_prefix(program, input_path, write_prefix_filename)
-    write_mltl(program, input_path, write_mltl_filename)
+    write_mltl(program, context, input_path, write_mltl_filename)
     write_pickle(program, input_path, write_pickle_filename)
     write_smt(program, context, input_path, write_smt_dir)

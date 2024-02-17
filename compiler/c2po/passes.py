@@ -1023,24 +1023,31 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
-    id: int = 0
+    aid: int = 0
 
     for expr in program.postorder(context):
-        if expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
+        if (
+            expr.engine == types.R2U2Engine.TEMPORAL_LOGIC 
+            or isinstance(expr, cpt.Constant) 
+            or expr in context.atomic_id
+        ):
             continue
 
-        if isinstance(expr, cpt.Constant):
-            continue
-
-        if expr in context.atomic_id:
+        if (
+            context.frontend is types.R2U2Engine.NONE 
+            and isinstance(expr, cpt.Signal) 
+            and context.assembly_enabled
+        ):
+            context.atomic_id[expr] = expr.signal_id
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
-        
-            context.atomic_id[expr] = id
-            id += 1
+
+            context.atomic_id[expr] = aid
+            aid += 1
+            break
 
     log.debug(
         f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
@@ -1091,6 +1098,8 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     actual_program_scq_size = 0
     theoretical_program_scq_size = 0
 
+    EXTRA_SCQ_SIZE = 4
+
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
             continue
@@ -1106,6 +1115,9 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
                 actual_program_scq_size - expr.scq_size,
                 actual_program_scq_size,
             )
+
+            log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+
             continue
 
         if (
@@ -1117,7 +1129,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
         # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + EXTRA_SCQ_SIZE
 
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
@@ -1125,12 +1137,15 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         )
 
         actual_program_scq_size += expr.scq_size
-        theoretical_program_scq_size += expr.scq_size - 2
+        theoretical_program_scq_size += expr.scq_size - (EXTRA_SCQ_SIZE - 1)
 
         expr.scq = (
             actual_program_scq_size - expr.scq_size,
             actual_program_scq_size,
         )
+
+        log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+
 
     log.debug(f"Actual program SCQ size: {actual_program_scq_size}", MODULE_CODE)
     log.debug(f"Theoretical program SCQ size: {theoretical_program_scq_size}", MODULE_CODE)

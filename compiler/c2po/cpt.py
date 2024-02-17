@@ -113,6 +113,12 @@ class Expression(Node):
         new.scq = self.scq
         new.type = self.type
 
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, Expression) and str(self) == str(__value)
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
     def __str__(self) -> str:
         return to_infix_str(self)
 
@@ -1394,7 +1400,7 @@ def to_prefix_str(start: Expression) -> str:
             log.error(f"Bad repr ({expr})", MODULE_CODE)
             return ""
 
-    return s
+    return s[:-1]
 
 
 def to_mltl_std(program: Program, context: Context) -> str:
@@ -1478,21 +1484,21 @@ def to_smt_sat_query(start: Expression, context: Context) -> str:
         fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) Bool"
 
         if isinstance(expr, Constant) and expr.value:
-            smt_commands.append(f"({fun_signature} (and (> len 0) true)")
+            smt_commands.append(f"({fun_signature} (and (> len k) true))")
         elif isinstance(expr, Constant) and not expr.value:
-            smt_commands.append(f"({fun_signature} (and (> len 0) false)")
+            smt_commands.append(f"({fun_signature} (and (> len k) false))")
         elif expr in context.atomic_id:
-            smt_commands.append(f"({fun_signature} (and (> len 0) ({atomic_map[expr]} k)))")
+            smt_commands.append(f"({fun_signature} (and (> len k) ({atomic_map[expr]} k)))")
         elif is_operator(expr, OperatorKind.LOGICAL_NEGATE):
-            smt_commands.append(f"({fun_signature} (and (> len 0) (not ({expr_map[expr.children[0]]} k len))))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (not ({expr_map[expr.children[0]]} k len))))")
         elif is_operator(expr, OperatorKind.LOGICAL_AND):
-            smt_commands.append(f"({fun_signature} (and (> len 0) (and ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (and ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif is_operator(expr, OperatorKind.LOGICAL_OR):
-            smt_commands.append(f"({fun_signature} (and (> len 0) (or ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (or ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif is_operator(expr, OperatorKind.LOGICAL_IMPLIES):
-            smt_commands.append(f"({fun_signature} (and (> len 0) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif is_operator(expr, OperatorKind.LOGICAL_EQUIV):
-            smt_commands.append(f"({fun_signature} (and (> len 0) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif is_operator(expr, OperatorKind.GLOBAL):
             # TODO: look into the semantic definition here
             # most sources use G[l,u] phi == false R[l,u] phi, but this would mean that a trace pi such that |pi| < a satisfies G[l,u] phi
@@ -1507,23 +1513,14 @@ def to_smt_sat_query(start: Expression, context: Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
             )
         elif is_operator(expr, OperatorKind.UNTIL):
             expr = cast(TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) "
-                                      f"(exists ((i Int)) "
-                                        f"(and "
-                                            f"(<= (+ {lb} k) i) "
-                                            f"(<= i (+ {ub} k)) "
-                                            f"({expr_map[expr.children[1]]} i (- len i)) "
-                                            f"(forall ((j Int)) "
-                                                f"(implies "
-                                                    f"(and (<= (+ {lb} k) j) (< j i)) "
-                                                    f"({expr_map[expr.children[0]]} j (- len j))))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j (- len j))))))))"
             )
         elif is_operator(expr, OperatorKind.RELEASE):
             log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)
