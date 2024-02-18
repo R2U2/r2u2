@@ -179,12 +179,14 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
-    smt_commands: list[str] = []
-
     if len(context.atomic_id) == 0:
         log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
         return ""
+
+    smt_commands: list[str] = []
     
+    smt_commands.append("(set-logic AUFLIA)")
+
     atomic_map: dict[cpt.Expression, str] = {}
     for atomic,id in context.atomic_id.items():
         atomic_map[atomic] = f"f_a{id}"
