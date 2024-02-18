@@ -109,6 +109,8 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
 
 def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
+    log.debug(f"Checking satisfiability:\n\t{repr(expr)}", MODULE_CODE)
+
     if not check_solver_installed(Z3):
         log.error("z3 not found", MODULE_CODE)
         return SatResult.UNKNOWN
@@ -130,10 +132,13 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     proc = subprocess.run(command, capture_output=True)
 
     if proc.stdout.decode().find("unsat") > -1:
+        log.debug("unsat", MODULE_CODE)
         return SatResult.UNSAT
     elif proc.stdout.decode().find("sat") > -1:
+        log.debug("sat", MODULE_CODE)
         return SatResult.SAT
     else:
+        log.debug("unsat", MODULE_CODE)
         return SatResult.UNKNOWN
 
 
@@ -170,14 +175,19 @@ def check_equiv(expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Conte
     
     To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |= expr` and `pi |/= expr` or vice versa.  
     """
+    log.debug(f"Checking equivalence:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}", MODULE_CODE)
+
     neg_equiv_expr = cpt.Operator.LogicalNegate(expr1.loc, cpt.Operator.LogicalIff(expr1.loc, expr1, expr2))
 
     result = check_sat_expr(neg_equiv_expr, context)
 
     if result is SatResult.SAT:
+        log.debug("Not equivalent", MODULE_CODE)
         return False
     elif result is SatResult.UNSAT:
+        log.debug("Equivalent", MODULE_CODE)
         return True
     else:
+        log.debug("Unknown", MODULE_CODE)
         return None
 

@@ -91,7 +91,7 @@
     },
     {
         "input": "serialize/simple.c2po", 
-        "expected_mltl": "serialize/simple.mltl.c2po.expect", 
+        "expected_mltl": "serialize/simple.mltl.expect", 
         "options": ["--write-mltl", "-c"]
     },
     {
@@ -101,7 +101,7 @@
     },
     {
         "input": "serialize/multi_arity.c2po", 
-        "expected_mltl": "serialize/multi_arity.mltl.c2po.expect", 
+        "expected_mltl": "serialize/multi_arity.mltl.expect", 
         "options": ["--write-mltl", "-c"]
     },
     {

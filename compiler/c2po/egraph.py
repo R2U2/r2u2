@@ -36,6 +36,7 @@ class ENode:
     string: Optional[str]
     child_eclass_ids: list[EClassID]
     eclass_id: EClassID
+    has_self_loop: bool = False
 
     @staticmethod
     def from_json(id: str, content: dict) -> ENode:
@@ -130,6 +131,8 @@ class EGraph:
         for eclass_id,nodes in eclasses.items():
             for enode in nodes:
                 for child_eclass_id in enode.child_eclass_ids:
+                    if child_eclass_id == enode.eclass_id:
+                        enode.has_self_loop = True
                     parents[child_eclass_id].add(eclass_id)
 
         root_candidates = [id for id,pars in parents.items() if len(pars) == 0]
@@ -150,6 +153,8 @@ class EGraph:
         while len(stack) > 0:
             (cur_enode, seen) = stack.pop()
 
+            # print(f"{cur_enode.op} : {seen} : {cur_enode.enode_id in done} : {cur_enode.has_self_loop}\n\t{cur_enode.enode_id}")
+
             if seen and cur_enode.enode_id not in done:
                 done.add(cur_enode.enode_id)
                 yield cur_enode
@@ -158,10 +163,14 @@ class EGraph:
                 continue
 
             stack.append((cur_enode, True))
+            # print(f"1: {cur_enode.op} ({cur_enode.enode_id})")
 
-            for enode in self.eclasses[cur_enode.eclass_id]:
+            for enode in [e for e in self.eclasses[cur_enode.eclass_id] if not e.has_self_loop]:
                 for child_eclass_id in enode.child_eclass_ids:
-                    [stack.append((child, False)) for child in self.eclasses[child_eclass_id]]
+                    # for child in self.eclasses[child_eclass_id]:
+                    #     if not child.has_self_loop:
+                    #         print(f"2: {child.op} ({child.enode_id})")
+                    [stack.append((child, False)) for child in self.eclasses[child_eclass_id] if not child.has_self_loop]
 
     def compute_propagation_delays(self) -> tuple[dict[EClassID, int], dict[EClassID, int]]:
         """Returns a pair of dicts mapping EClass IDs to propagation delays (PDs). The first dict maps to the maximum best-case PD (BPD) of the EClass and the second maps to the minimum worst-case PD (WPD).

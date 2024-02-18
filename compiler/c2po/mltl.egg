@@ -147,6 +147,12 @@
 )
 
 ; R5
+(rewrite 
+  (Or2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) a))
+  (Global (Interval l2 u2) a)
+ :when ((>= l2 l1) (<= u2 u1))
+  :ruleset mltl-rewrites
+)
 
 ; R6
 

@@ -1413,7 +1413,6 @@ def to_mltl_std(program: Program, context: Context) -> str:
             elif len(expr.children) == 1 and (
                 is_temporal_operator(expr) or is_logical_operator(expr)
             ):
-                print(f"{repr(expr)} {seen}")
                 if seen == 0:
                     mltl += f"{expr.symbol}("
                     stack.append((seen + 1, expr))
@@ -1428,7 +1427,14 @@ def to_mltl_std(program: Program, context: Context) -> str:
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
                 else:
-                    mltl += f"){expr.symbol}("
+                    if is_operator(expr, OperatorKind.LOGICAL_AND):
+                        symbol = "&"
+                    elif is_operator(expr, OperatorKind.LOGICAL_OR):
+                        symbol = "|"
+                    else:
+                        symbol = expr.symbol
+
+                    mltl += f"){symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
             else:

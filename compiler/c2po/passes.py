@@ -1033,11 +1033,16 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         ):
             continue
 
+        # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
         if (
             context.frontend is types.R2U2Engine.NONE 
             and isinstance(expr, cpt.Signal) 
-            and context.assembly_enabled
         ):
+            if expr.signal_id < 0 and not context.assembly_enabled:
+                context.atomic_id[expr] = aid
+                aid += 1
+                continue
+
             context.atomic_id[expr] = expr.signal_id
             continue
 
@@ -1076,7 +1081,7 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         new = e_graph.extract(context)
 
         is_equiv = sat.check_equiv(old, new, context)
-        
+
         if is_equiv:
             old.replace(new)
         elif isinstance(is_equiv, bool) and not is_equiv:
