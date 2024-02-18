@@ -38,8 +38,12 @@ def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
     smt_commands.append("(set-logic AUFLIA)")
     
     atomic_map: dict[cpt.Expression, str] = {}
-    for atomic,id in context.atomic_id.items():
-        atomic_map[atomic] = f"f_a{id}"
+    visited: set[int] = set()
+    for atomic,id in [(a,i) for a,i in context.atomic_id.items()]:
+        atomic_map[atomic] = f"a{id}"
+        if id in visited:
+            continue
+        visited.add(id)
         smt_commands.append(f"(declare-fun {atomic_map[atomic]} (Int) Bool)")
 
     qvar_cnt = 0
@@ -47,7 +51,7 @@ def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
     stack: list["tuple[int, cpt.Expression, str, str, str, str]"] = []
     stack.append((0, start, "", "", "len", "0"))
 
-    define_fun = "(define-fun f_e ((k Int) (len Int)) Bool "
+    define_fun = "(define-fun f ((k Int) (len Int)) Bool "
 
     while len(stack) > 0:
         (seen, expr, qvar_id_1, qvar_id_2, length, loc) = stack.pop()
@@ -162,7 +166,7 @@ def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
     define_fun += ")"
     smt_commands.append(define_fun)
 
-    smt_commands.append("(assert (exists ((len Int)) (f_e 0 len)))")
+    smt_commands.append("(assert (exists ((len Int)) (f 0 len)))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
