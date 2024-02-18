@@ -1160,7 +1160,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             actual_program_scq_size,
         )
 
-        log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+        # log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
 
 
     log.debug(f"Actual program SCQ size: {actual_program_scq_size}", MODULE_CODE)
