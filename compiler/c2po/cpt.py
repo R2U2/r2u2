@@ -1384,6 +1384,8 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((0, expr.get_guarantee()))
             else:
                 s = s[:-1] + ")"
+        elif isinstance(expr, SpecificationSet):
+            [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
             log.error(f"Bad repr ({expr})", MODULE_CODE)
             return ""

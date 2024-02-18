@@ -25,7 +25,7 @@ def check_solver_installed(solver: str) -> bool:
 
 
 def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
-    """Returns a single-formula string representing an SMT-LIB2 encoding of the MLTL sat problem.
+    """Returns a single-formula string representing an SMT-LIB2 encoding of the MLTL sat problem. This is more faithful than `to_smt_sat_query` to the encoding found in the artifact repo: https://github.com/cgjohannsen/mltlsat
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """

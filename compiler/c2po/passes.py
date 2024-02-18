@@ -940,12 +940,12 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal expr_map
 
-        if str(expr) in expr_map:
-            log.debug(f"Replacing ---- {expr}", module=MODULE_CODE)
-            expr.replace(expr_map[str(expr)])
+        if repr(expr) in expr_map:
+            log.debug(f"Replacing ---- {repr(expr)[:25]}", module=MODULE_CODE)
+            expr.replace(expr_map[repr(expr)])
         else:
-            log.debug(f"Visiting ----- {expr}", module=MODULE_CODE)
-            expr_map[str(expr)] = expr
+            log.debug(f"Visiting ----- {repr(expr)[:25]}", module=MODULE_CODE)
+            expr_map[repr(expr)] = expr
 
     expr_map = {}
     for expr in cpt.postorder(program.ft_spec_set, context):

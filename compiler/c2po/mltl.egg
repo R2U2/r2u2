@@ -20,6 +20,42 @@
 
 (ruleset mltl-rewrites)
 
+(rewrite
+  (Not (Bool true))
+  (Bool false)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Not (Bool false))
+  (Bool true)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Bool true) a)
+  (a)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Bool false) a)
+  (Bool False)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or (Bool true) a)
+  (Bool true)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Bool false) a)
+  (a)
+  :ruleset mltl-rewrites
+)
+
 (birewrite
   (And2 a b)
   (And2 b a)
