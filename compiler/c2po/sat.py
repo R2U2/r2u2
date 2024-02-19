@@ -24,8 +24,10 @@ def check_solver_installed(solver: str) -> bool:
     return proc.returncode == 0
 
 
-def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
-    """Returns a single-formula string representing an SMT-LIB2 encoding of the MLTL sat problem. This is more faithful than `to_smt_sat_query` to the encoding found in the artifact repo: https://github.com/cgjohannsen/mltlsat
+def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
+    """FIXME: Until not implemented correctly
+     
+    Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic.
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
@@ -33,140 +35,120 @@ def to_smt_sat_query_rec(start: cpt.Expression, context: cpt.Context) -> str:
         log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
         return ""
     
+    if context.mission_time > 0:
+        mission_time = context.mission_time
+    else:
+        mission_time = start.wpd
+
+    idx_size = mission_time.bit_length()
+
+    trace_sort = f"(_ BitVec {mission_time})"
+    idx_sort = f"(_ BitVec {idx_size})"
+    # const_one_trace = f"#b{'0'*(mission_time-1)}1"
+    # const_zero_trace = f"#b{'0'*(mission_time-1)}1"
+
+    def ones(length: int):
+        return f"#b{'1'*length}"
+
+    def zeroes(length: int):
+        return f"#b{'0'*length}"
+
+    def one_in_idx(length: int, idx: int):
+        return f"#b{'0'*(length-(length-idx))}1{'0'*(length-idx-1)}"
+
+    def to_bv(length: int, value: int):
+        return f"(_ bv{value} {length})"
+
     smt_commands: list[str] = []
+    smt_commands.append("(set-logic QF_UFBV)")
 
-    smt_commands.append("(set-logic AUFLIA)")
-    
+    expr_map: dict[cpt.Expression, str] = {}
+    cnt = 0
+
     atomic_map: dict[cpt.Expression, str] = {}
-    visited: set[int] = set()
-    for atomic,id in [(a,i) for a,i in context.atomic_id.items()]:
-        atomic_map[atomic] = f"a{id}"
-        if id in visited:
+    for atomic,id in context.atomic_id.items():
+        atomic_map[atomic] = f"f_a{id}"
+        smt_commands.append(f"(declare-const {atomic_map[atomic]} {trace_sort})")
+
+    for expr in cpt.postorder(start, context):
+        if expr in expr_map:
             continue
-        visited.add(id)
-        smt_commands.append(f"(declare-fun {atomic_map[atomic]} (Int) Bool)")
 
-    qvar_cnt = 0
+        expr_id = f"f_e{cnt}"
+        cnt += 1
+        expr_map[expr] = expr_id
 
-    stack: list["tuple[int, cpt.Expression, str, str, str, str]"] = []
-    stack.append((0, start, "", "", "len", "0"))
-
-    define_fun = "(define-fun f ((k Int) (len Int)) Bool "
-
-    while len(stack) > 0:
-        (seen, expr, qvar_id_1, qvar_id_2, length, loc) = stack.pop()
-
+        fun_signature = f"define-fun {expr_id} ((k {idx_sort}) (len {idx_sort})) Bool"
+        
         if isinstance(expr, cpt.Constant) and expr.value:
-            define_fun += f"(and (> {length} 0) true)"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) true))")
         elif isinstance(expr, cpt.Constant) and not expr.value:
-            define_fun += f"(and (> {length} 0) false))"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
         elif expr in context.atomic_id:
-            define_fun += f"(and (> {length} 0) ({atomic_map[expr]} k))"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (= ((_ extract 0 0) (bvshl {atomic_map[expr]} ((_ zero_extend {mission_time - idx_size}) k)) #b1) ))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-            if seen == 0:
-                define_fun += f"(and (> {length} 0) (not "
-                stack.append((seen + 1, expr, "", "", length, loc))
-                stack.append((0, expr.children[0], "", "", length, loc))
-            else:
-                define_fun += "))"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (not ({expr_map[expr.children[0]]} k len))))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-            if seen == 0:
-                define_fun += f"(and (> {length} 0) (and "
-                stack.append((seen + 1, expr, "", "", length, loc))
-                [stack.append((0, child, "", "", length, loc)) for child in reversed(expr.children)]
-            else:
-                define_fun += "))"
+            operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (and {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-            if seen == 0:
-                define_fun += f"(and (> {length} 0) (or "
-                stack.append((seen + 1, expr, "", "", length, loc))
-                [stack.append((0, child, "", "", length, loc)) for child in reversed(expr.children)]
-            else:
-                define_fun += "))"
+            operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (or {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            if seen == 0:
-                define_fun += f"(and (> {length} 0) (=> "
-                stack.append((seen + 1, expr, "", "", length, loc))
-                stack.append((0, expr.children[0], "", "", length, loc))
-                stack.append((0, expr.children[1], "", "", length, loc))
-            else:
-                define_fun += "))"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
-            if seen == 0:
-                define_fun += f"(and (> {length} 0) (= "
-                stack.append((seen + 1, expr, "", "", length, loc))
-                stack.append((0, expr.children[0], "", "", length, loc))
-                stack.append((0, expr.children[1], "", "", length, loc))
-            else:
-                define_fun += "))"
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
-            if seen == 0:
-                expr = cast(cpt.TemporalOperator, expr)
-                lb = expr.interval.lb
-                ub = expr.interval.ub
-                
-                qvar = f"v{qvar_cnt}"
-                qvar_cnt += 1
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
 
-                define_fun += (
-                    f"(and (> {length} {lb}) (forall (({qvar} Int)) (=> (and (<= (+ {loc} {lb}) {qvar}) (<= {qvar} (+ {ub} {loc}))) "
-                )
-                
-                stack.append((seen + 1, expr, qvar, "", length, loc))
-                stack.append((0, expr.children[0], "", "", f"(- {length} {qvar})", qvar))
+            if lb == ub:
+                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
             else:
-                define_fun += ")))"
+                smt_expr = f"(and {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
+
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-            if seen == 0:
-                expr = cast(cpt.TemporalOperator, expr)
-                lb = expr.interval.lb
-                ub = expr.interval.ub
-                
-                qvar = f"v{qvar_cnt}"
-                qvar_cnt += 1
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
 
-                define_fun += (
-                    f"(and (> {length} {lb}) (exists (({qvar} Int)) (and (and (<= (+ {loc} {lb}) {qvar}) (<= {qvar} (+ {ub} {loc}))) "
-                )
-
-                stack.append((seen + 1, expr, qvar, "", length, loc))
-                stack.append((0, expr.children[0], "", "", f"(- {length} {qvar})", qvar))
+            if lb == ub:
+                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
             else:
-                define_fun += ")))"
+                smt_expr = f"(or {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
+
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            if seen == 0:
-                expr = cast(cpt.TemporalOperator, expr)
-                lb = expr.interval.lb
-                ub = expr.interval.ub
-                
-                qvar1 = f"v{qvar_cnt}"
-                qvar_cnt += 1
-                qvar2 = f"v{qvar_cnt}"
-                qvar_cnt += 1
+            log.error(f"Until not implemented for MLTL-SAT via QF_BV\n\t{expr}", MODULE_CODE)
+            return ""
+        
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
 
-                define_fun += (
-                    f"(and (> {length} {lb}) (exists (({qvar1} Int)) (and (<= (+ {loc} {lb}) {qvar1}) (<= {qvar1} (+ {ub} {loc})) "
-                )
-
-                stack.append((seen + 1, expr, qvar1, qvar2, length, loc))
-                stack.append((0, expr.children[0], "", "", f"(- {length} {qvar})", qvar))
-                stack.append((seen + 1, expr, qvar1, qvar2, length, loc))
-                stack.append((0, expr.children[1], "", "", f"(- {length} {qvar})", qvar))
-            elif seen == 1:
-                define_fun += f"(forall (({qvar_id_2} Int)) (=> (and (<= (+ {loc} {lb}) {qvar_id_2}) (< {qvar_id_2} {qvar_id_1})) "
+            if lb == ub:
+                smt_expr = f"({expr_map[expr.children[1]]} {lb} len)"
             else:
-                define_fun += ")))))"
+                cases = " ".join([f"(and ({expr_map[expr.children[0]]} {i} len))" for i in range(lb,ub+1)])
+                smt_expr = f"(or {cases})"
+            
+            smt_commands.append(
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)
+            log.error(f"Release not implemented for MLTL-SAT via QF_BV\n\t{expr}", MODULE_CODE)
             return ""
         else:
             log.error(f"Bad repr ({expr})", MODULE_CODE)
             return ""
-    
-    define_fun += ")"
-    smt_commands.append(define_fun)
-
-    smt_commands.append("(assert (exists ((len Int)) (f 0 len)))")
+        
+    smt_commands.append(f"(assert ({expr_map[expr]} 0 {mission_time}))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -178,6 +160,16 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
+
+    The paper's implementation is actually incorrect because of the way that duals are defined, especially with regard to the end-of-trace semantics. In the semantics for `p U[lb,ub] q`, where we evaluate `pi` at time `i`, both:
+    
+        1) `pi` must be as least as long so as to have data at index `lower_bound + i` (`|pi| > i+lb`) and 
+        
+        2) there is some `j` where `i+lb <= j <= i+ub` such that `pi` models `q` at `j` and for all `k` where `i+lb <= k < j` we have that `pi` models `p` at `k`. 
+    
+    Assuming that `(p U[lb,ub] q) = !(!p R[lb,ub] !q)`, then, the semantics of `p R[lb,ub] q` must be such that EITHER 1 fails to hold or the negation of 2 holds. For example, `!(p U[lb,ub] q) = (!p R[lb,ub] !q)` could be true for trace `pi` at time `i` because `|pi| >= i+lb` (this is easier to see when we read the Until expression as "it's NOT the case that `p U[lb,ub] q` holds"). The implementation does not handle the case with `pi` not being long enough correctly. This is only a problem because the operators are defined as duals. 
+    
+    The same goes for future and global -- `F[l,u] p = ! G[l,u] !p`, where the expression `G[l,u] !p` could be true because `!p` held from `l` to `u` starting at `i`, or because the trace had a length shorter than or equal to `i+l`.
     """
     if len(context.atomic_id) == 0:
         log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
@@ -228,7 +220,7 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
+                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)

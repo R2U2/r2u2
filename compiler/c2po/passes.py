@@ -628,6 +628,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
+    log.debug("Performing rewrites", module=MODULE_CODE)
+
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
 
@@ -707,6 +709,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
+                elif opnd1.interval.lb == opnd1.interval.ub:
+                    # G[l,u](F[a,a]p) = G[l+a,u+a]p
+                    lb: int = expr.interval.lb + opnd1.interval.lb
+                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
 
@@ -736,6 +743,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
+                elif opnd1.interval.lb == opnd1.interval.ub:
+                    # F[l,u](G[a,a]p) = F[l+a,u+a]p
+                    lb: int = expr.interval.lb + opnd1.interval.lb
+                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             # Assume binary for now
             lhs = expr.children[0]
@@ -1132,7 +1144,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
                 actual_program_scq_size,
             )
 
-            log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+            # log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
 
             continue
 

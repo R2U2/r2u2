@@ -124,7 +124,7 @@ def write_smt(
         expr = spec.get_expr()
 
         with open(str(output_path / f"{spec.symbol}.smt"), "w") as f:
-            f.write(sat.to_smt_sat_query_rec(expr, context))
+            f.write(sat.to_smt_sat_query(expr, context))
 
 
 def write_outputs(
