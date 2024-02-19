@@ -34,25 +34,25 @@
 
 (rewrite
   (And2 (Bool true) a)
-  (a)
+  a
   :ruleset mltl-rewrites
 )
 
 (rewrite
   (And2 (Bool false) a)
-  (Bool False)
+  (Bool false)
   :ruleset mltl-rewrites
 )
 
 (rewrite
-  (Or (Bool true) a)
+  (Or2 (Bool true) a)
   (Bool true)
   :ruleset mltl-rewrites
 )
 
 (rewrite
   (Or2 (Bool false) a)
-  (a)
+  a
   :ruleset mltl-rewrites
 )
 
