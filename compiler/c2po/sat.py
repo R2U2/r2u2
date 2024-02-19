@@ -31,10 +31,6 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
-    if len(context.atomic_id) == 0:
-        log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
-        return ""
-    
     if context.mission_time > 0:
         mission_time = context.mission_time
     else:
@@ -170,11 +166,9 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     Assuming that `(p U[lb,ub] q) = !(!p R[lb,ub] !q)`, then, the semantics of `p R[lb,ub] q` must be such that EITHER 1 fails to hold or the negation of 2 holds. For example, `!(p U[lb,ub] q) = (!p R[lb,ub] !q)` could be true for trace `pi` at time `i` because `|pi| >= i+lb` (this is easier to see when we read the Until expression as "it's NOT the case that `p U[lb,ub] q` holds"). The implementation does not handle the case with `pi` not being long enough correctly. This is only a problem because the operators are defined as duals. 
     
     The same goes for future and global -- `F[l,u] p = ! G[l,u] !p`, where the expression `G[l,u] !p` could be true because `!p` held from `l` to `u` starting at `i`, or because the trace had a length shorter than or equal to `i+l`.
-    """
-    if len(context.atomic_id) == 0:
-        log.error("No atomics found while writing SMT, SMT can only be output after compilation", MODULE_CODE)
-        return ""
 
+    mltlsat translates all `! G[lb,ub] p` to `True U[lb,ub] !p` and `! F[lb,ub] p` to `False R[lb,ub] !p`
+    """
     smt_commands: list[str] = []
     
     smt_commands.append("(set-logic AUFLIA)")
@@ -198,9 +192,9 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
         fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) Bool"
 
         if isinstance(expr, cpt.Constant) and expr.value:
-            smt_commands.append(f"({fun_signature} (and (> len k) true))")
+            smt_commands.append(f"({fun_signature} (> len k))")
         elif isinstance(expr, cpt.Constant) and not expr.value:
-            smt_commands.append(f"({fun_signature} (and (> len k) false))")
+            smt_commands.append(f"({fun_signature} false)")
         elif expr in context.atomic_id:
             smt_commands.append(f"({fun_signature} (and (> len k) ({atomic_map[expr]} k)))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
@@ -220,21 +214,21 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
+                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i (- len i))) ({expr_map[expr.children[0]]} i (- len i))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i (- len i))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j (- len j))))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)

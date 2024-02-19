@@ -18,14 +18,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     location=expr.loc,
                 )
                 return False
-            
-            if expr.get_expr().type.is_const:
-                log.error(
-                    f"Constant specification detected, remove or make this non-constant\n\t{expr}",
-                    MODULE_CODE,
-                    location=expr.loc,
-                )
-                return False
 
             context.add_formula(expr.symbol, expr)
 
