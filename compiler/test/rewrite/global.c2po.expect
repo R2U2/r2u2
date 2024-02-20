@@ -2,28 +2,23 @@ TL n0  load   a0
 TL n1  return n0 0
 TL n2  and    n0 True
 TL n3  return n2 1
-TL n4  and    n0 False
+TL n4  global n0
 TL n5  return n4 2
-TL n6  global n0
+TL n6  eventually n0
 TL n7  return n6 3
-TL n8  eventually n0
-TL n9  return n8 4
 CG TL SCQ n0  (0, 3)
 CG TL SCQ n1  (3, 4)
 CG TL SCQ n2  (4, 7)
 CG TL SCQ n3  (7, 8)
 CG TL SCQ n4  (8, 11)
+CG TL LB  n4  5
+CG TL UB  n4  10
 CG TL SCQ n5  (11, 12)
 CG TL SCQ n6  (12, 15)
 CG TL LB  n6  5
 CG TL UB  n6  10
 CG TL SCQ n7  (15, 16)
-CG TL SCQ n8  (16, 19)
-CG TL LB  n8  5
-CG TL UB  n8  10
-CG TL SCQ n9  (19, 20)
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
 F __f3__ 3
-F __f4__ 4
