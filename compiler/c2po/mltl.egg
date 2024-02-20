@@ -105,6 +105,12 @@
   :ruleset mltl-rewrites
 )
 
+(birewrite 
+  (Future (Interval l l) a) 
+  (Global (Interval l l) a) 
+  :ruleset mltl-rewrites
+)
+
 ; R1
 (rewrite 
   (Global (Interval l1 u1) (Global (Interval l2 u2) a)) 
@@ -186,23 +192,55 @@
 (rewrite 
   (Or2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) a))
   (Global (Interval l2 u2) a)
- :when ((>= l2 l1) (<= u2 u1))
+  :when ((>= l2 l1) (<= u2 u1))
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) a))
+  (Future (Interval l2 u2) a)
+  :when ((>= l2 l1) (<= u2 u1))
   :ruleset mltl-rewrites
 )
 
 ; R6
+(rewrite 
+  (Global (Interval l l) (Until (Interval l1 u1) a b))
+  (Until (Interval (+ l1 l) (+ u1 l)) a b)
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) (Global (Interval l l) a) (Global (Interval l l) b))
+  (Until (Interval (+ l1 l) (+ u1 l)) a b)
+  :ruleset mltl-rewrites
+)
 
 ; R7
+(rewrite 
+  (And2 
+    (Until (Interval l u1) a b)
+    (Until (Interval l u2) c b)
+  )
+  (Until (Interval l (min u1 u2)) (And2 a c) b)
+  :ruleset mltl-rewrites
+)
 
 ; R8
+(rewrite 
+  (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
+  (Global (Interval l1 (+ l1 u2)) a)
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) a (Future (Interval 0 u2) a))
+  (Future (Interval l1 (+ l1 u2)) a)
+  :ruleset mltl-rewrites
+)
 
 (rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
 (rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
 (rewrite (Until (Interval 0 0) a b) b :ruleset mltl-rewrites)
 
-(rewrite 
-  (Global (Interval a b) (Global (Interval c d) e))
-  (Global (Interval (+ a c) (+ b d)) e)
-  :ruleset mltl-rewrites
-)
 

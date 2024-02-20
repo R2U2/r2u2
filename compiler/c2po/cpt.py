@@ -817,7 +817,7 @@ class Formula(Expression):
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
-
+    
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Formula) and self.symbol == __value.symbol
 

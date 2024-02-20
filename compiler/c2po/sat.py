@@ -198,17 +198,17 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
         elif expr in context.atomic_id:
             smt_commands.append(f"({fun_signature} (and (> len k) ({atomic_map[expr]} k)))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-            smt_commands.append(f"({fun_signature} (or (<= len k) (not ({expr_map[expr.children[0]]} k len))))")
+            smt_commands.append(f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
-            smt_commands.append(f"({fun_signature} (and (> len k) (and {operands})))")
+            smt_commands.append(f"({fun_signature} (and {operands}))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join([f'({expr_map[child]} k len)' for child in expr.children])
-            smt_commands.append(f"({fun_signature} (and (> len k) (or {operands})))")
+            smt_commands.append(f"({fun_signature} (or {operands}))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            smt_commands.append(f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
-            smt_commands.append(f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))")
+            smt_commands.append(f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))")
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb

@@ -1077,6 +1077,8 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
+    compute_scq_sizes(program, context)
+
     log.warning("E-Graph optimizations are incompatible with R2U2", MODULE_CODE)
     log.debug("Optimizing via E-Graph", MODULE_CODE)
 
