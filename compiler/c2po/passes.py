@@ -693,7 +693,9 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     new = cpt.Constant(expr.loc, True)
                 else:
                     # G[l,u]False = False
-                    new = cpt.Constant(expr.loc, False)
+                    # erroneous: the empty trace satisfies "G[l,u] False", but not "False"
+                    # new = cpt.Constant(expr.loc, False)
+                    pass
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
@@ -724,7 +726,9 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             if isinstance(opnd1, cpt.Constant):
                 if opnd1.value is True:
                     # F[l,u]True = True
-                    new = cpt.Constant(expr.loc, True)
+                    # erroneous: the empty trace satisfies "True", but not "F[l,u] True"
+                    # new = cpt.Constant(expr.loc, True)
+                    pass
                 else:
                     # F[l,u]False = False
                     new = cpt.Constant(expr.loc, False)
