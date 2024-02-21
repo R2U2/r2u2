@@ -6,7 +6,7 @@ import re
 import pickle
 from typing import NamedTuple, Optional
 
-from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize
+from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize, util
 
 MODULE_CODE = "MAIN"
 
@@ -454,6 +454,8 @@ def compile(
     # ----------------------------------
     # Transforms
     # ----------------------------------
+    util.setup_work_dir()
+
     log.debug("Performing passes", MODULE_CODE)
     for cpass in [t for t in passes.PASS_LIST if t in options.passes]:
         cpass(program, context)
@@ -469,6 +471,7 @@ def compile(
             write_pickle_filename,
             write_smt_dir,
         )
+        util.cleanup_work_dir()
         return ReturnCode.SUCCESS
 
     # ----------------------------------
@@ -476,6 +479,7 @@ def compile(
     # ----------------------------------
     if not options.output_path:
         log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
+        util.cleanup_work_dir()
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
@@ -498,5 +502,7 @@ def compile(
         write_pickle_filename,
         write_smt_dir,
     )
+
+    util.cleanup_work_dir()
 
     return ReturnCode.SUCCESS

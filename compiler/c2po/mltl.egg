@@ -106,8 +106,8 @@
 )
 
 (birewrite 
-  (Future (Interval l l) a) 
-  (Global (Interval l l) a) 
+  (Or3 (And2 a b) c d)
+  (Or4 a b c d)
   :ruleset mltl-rewrites
 )
 
@@ -148,30 +148,18 @@
   :ruleset mltl-rewrites
 )
   
-; R3
-(rewrite 
-  (Global (Interval l l) (Future (Interval l2 u2) a)) 
-  (Future (Interval (+ l l2) (+ l u2)) a) 
-  :ruleset mltl-rewrites
-)
+; R3 -- erroneous
+;(rewrite 
+;  (Global (Interval l1 u1) (Future (Interval l l) a)) 
+;  (Global (Interval (+ l l1) (+ l u1)) a) 
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite 
-  (Future (Interval l l) (Global (Interval l2 u2) a)) 
-  (Global (Interval (+ l l2) (+ l u2)) a) 
-  :ruleset mltl-rewrites
-)
-
-(rewrite 
-  (Global (Interval l1 u1) (Future (Interval l l) a)) 
-  (Global (Interval (+ l l1) (+ l u1)) a) 
-  :ruleset mltl-rewrites
-)
-
-(rewrite 
-  (Future (Interval l1 u1) (Future (Interval l l) a)) 
-  (Future (Interval (+ l l1) (+ l u1)) a) 
-  :ruleset mltl-rewrites
-)
+;(rewrite 
+;  (Future (Interval l1 u1) (Global (Interval l l) a)) 
+;  (Future (Interval (+ l l1) (+ l u1)) a) 
+;  :ruleset mltl-rewrites
+;)
 
 ; R4
 (rewrite 
@@ -205,13 +193,13 @@
 
 ; R6
 (rewrite 
-  (Global (Interval l l) (Until (Interval l1 u1) a b))
+  (Future (Interval l l) (Until (Interval l1 u1) a b))
   (Until (Interval (+ l1 l) (+ u1 l)) a b)
   :ruleset mltl-rewrites
 )
 
 (rewrite 
-  (Until (Interval l1 u1) (Global (Interval l l) a) (Global (Interval l l) b))
+  (Until (Interval l1 u1) (Future (Interval l l) a) (Future (Interval l l) b))
   (Until (Interval (+ l1 l) (+ u1 l)) a b)
   :ruleset mltl-rewrites
 )
@@ -226,12 +214,12 @@
   :ruleset mltl-rewrites
 )
 
-; R8
-(rewrite 
-  (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
-  (Global (Interval l1 (+ l1 u2)) a)
-  :ruleset mltl-rewrites
-)
+; R8 -- erroneous (would work with Release/Global, however)
+;(rewrite 
+;  (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
+;  (Global (Interval l1 (+ l1 u2)) a)
+;  :ruleset mltl-rewrites
+;)
 
 (rewrite 
   (Until (Interval l1 u1) a (Future (Interval 0 u2) a))

@@ -9,7 +9,7 @@ import dataclasses
 import json
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, util
 
 MODULE_CODE = "EGRF"
 
@@ -20,7 +20,7 @@ FILE_DIR = pathlib.Path(__file__).parent
 EGGLOG_PATH = FILE_DIR / "egglog" / "target" / "debug" / "egglog"
 PRELUDE_PATH = FILE_DIR / "mltl.egg"
 
-TMP_EGG_PATH = FILE_DIR / "__tmp__.egg"
+TMP_EGG_PATH = util.WORK_DIR / "__tmp__.egg"
 EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
@@ -135,7 +135,7 @@ class EGraph:
                         enode.has_self_loop = True
                     parents[child_eclass_id].add(eclass_id)
 
-        root_candidates = [id for id,pars in parents.items() if len(pars) == 0]
+        root_candidates = [id for id,pars in parents.items() if len(pars) == 0 or all([id == p for p in pars])]
 
         if len(root_candidates) == 1:
             return EGraph(EClassID(root_candidates[0]), eclasses)
@@ -148,7 +148,7 @@ class EGraph:
         stack: list[tuple[ENode,bool]] = []
         done: set[ENodeID] = set()
 
-        [stack.append((enode, False)) for enode in self.eclasses[self.root]]
+        [stack.append((enode, False)) for enode in self.eclasses[self.root] if not enode.has_self_loop]
 
         while len(stack) > 0:
             (cur_enode, seen) = stack.pop()
@@ -163,6 +163,7 @@ class EGraph:
                 continue
 
             stack.append((cur_enode, True))
+
             # print(f"1: {cur_enode.op} ({cur_enode.enode_id})")
 
             for enode in [e for e in self.eclasses[cur_enode.eclass_id] if not e.has_self_loop]:

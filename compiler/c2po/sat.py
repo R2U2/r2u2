@@ -1,15 +1,11 @@
-import pathlib
-import shutil
 import subprocess
 import enum
 
 from typing import cast, Optional
 
-from c2po import cpt, log
+from c2po import cpt, log, util
 
 MODULE_CODE = "SAT"
-
-WORK_DIR = pathlib.Path(__file__).parent / "__workdir__"
 
 Z3 = "z3"
 
@@ -253,21 +249,17 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         log.error("z3 not found", MODULE_CODE)
         return SatResult.UNKNOWN
 
-    if WORK_DIR.is_file():
-        WORK_DIR.unlink()
-
-    if not WORK_DIR.is_dir():
-        WORK_DIR.mkdir()
-
     smt = to_smt_sat_query(expr, context)
 
-    smt_file_path = WORK_DIR / "__tmp__.smt"
+    smt_file_path = util.WORK_DIR / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 
     command = [Z3, str(smt_file_path)]
     log.debug(f"Running '{' '.join(command)}'", MODULE_CODE)
     proc = subprocess.run(command, capture_output=True)
+
+    smt_file_path.unlink()
 
     if proc.stdout.decode().find("unsat") > -1:
         log.debug("unsat", MODULE_CODE)
@@ -286,13 +278,6 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specifica
         log.error("z3 not found", MODULE_CODE)
         return {}
 
-    if WORK_DIR.is_file():
-        WORK_DIR.unlink()
-    elif WORK_DIR.is_dir():
-        shutil.rmtree(WORK_DIR)
-    
-    WORK_DIR.mkdir()
-
     results: dict[cpt.Specification, SatResult] = {}
     
     for spec in program.ft_spec_set.get_specs():
@@ -303,8 +288,6 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specifica
         expr = spec.get_expr()
         results[spec] = check_sat_expr(expr, context)
 
-    shutil.rmtree(WORK_DIR)
-        
     return results
 
 
