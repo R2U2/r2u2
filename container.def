@@ -1,0 +1,38 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%setup
+    mkdir ${SINGULARITY_ROOTFS}/opt/compiler
+
+%files
+    ../compiler/c2po /opt/compiler
+    ../compiler/test /opt/compiler
+    ../compiler/c2po.py /opt/compiler
+    ../script.py /opt
+
+%post
+    apt-get -y update
+    apt-get -y install python3 z3 xz-utils libc6 build-essential curl
+
+    curl https://sh.rustup.rs -sSf | bash -s -- -y
+    export PATH="$HOME/.cargo/bin:$PATH"
+    cd /opt/compiler/c2po/egglog
+    cargo build
+
+    alias script="python3 /opt/script.py"
+
+%environment
+    export PATH="$HOME/.cargo/bin:$PATH"
+
+%test
+    cd /opt/compiler/test
+    python3 test.py
+
+%runscript
+    cd /opt/
+    python3 script.py
+    cd "$HOME"
+    cat /opt/results.csv > results.csv
+
+%labels
+    Author chris
