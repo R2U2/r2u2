@@ -7,10 +7,9 @@ import subprocess
 import pathlib
 import dataclasses
 import json
-import time
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, util
 
 MODULE_CODE = "EGRF"
 
@@ -440,9 +439,14 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
-    start = time.process_time()
+    start = util.get_rusage_time()
 
-    proc = subprocess.run(command, capture_output=True)
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=context.config.timeout_egglog)
+    except subprocess.TimeoutExpired:
+        log.warning(MODULE_CODE, f"egglog timeout after {context.config.timeout_egglog}s")
+        log.stat(MODULE_CODE, "egraph_time=timeout")
+        return None
 
     if proc.returncode:
         log.error(MODULE_CODE, f"Error running egglog\n{proc.stderr.decode()}")
@@ -453,7 +457,7 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
 
     egraph = EGraph.from_json(egglog_output)
 
-    end = time.process_time()
+    end = util.get_rusage_time()
     egraph_time = end - start
     log.stat(MODULE_CODE, f"egraph_time={egraph_time}")
 

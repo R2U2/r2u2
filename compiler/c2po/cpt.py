@@ -1060,6 +1060,8 @@ class Config:
     frontend: types.R2U2Engine
     assembly_enabled: bool
     signal_mapping: types.SignalMapping
+    timeout_egglog: int
+    timeout_sat: int
 
     @staticmethod
     def Empty() -> Config:
@@ -1072,7 +1074,9 @@ class Config:
             "",
             types.R2U2Engine.NONE, 
             False, 
-            {}
+            {},
+            0,
+            0
         )
 
 

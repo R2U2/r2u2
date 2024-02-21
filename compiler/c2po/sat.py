@@ -1,10 +1,9 @@
 import subprocess
 import enum
-import time
 
 from typing import cast
 
-from c2po import cpt, log
+from c2po import cpt, log, util
 
 MODULE_CODE = "SAT"
 
@@ -14,7 +13,6 @@ class SatResult(enum.Enum):
     SAT = 0
     UNSAT = 1
     UNKNOWN = 2
-
 
 def check_solver_installed(solver: str) -> bool:
     proc = subprocess.run([solver, "-version"], capture_output=True)
@@ -259,11 +257,16 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     command = [Z3, str(smt_file_path)]
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
-    start = time.process_time()
+    start = util.get_rusage_time()
 
-    proc = subprocess.run(command, capture_output=True)
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=context.config.timeout_sat)
+    except subprocess.TimeoutExpired:
+        log.warning(MODULE_CODE, f"z3 timeout after {context.config.timeout_sat}s")
+        log.stat(MODULE_CODE, "sat_check_time=timeout")
+        return SatResult.UNKNOWN
 
-    end = time.process_time()
+    end = util.get_rusage_time()
     sat_time = end - start
     log.stat(MODULE_CODE, f"sat_check_time={sat_time}")
 
@@ -308,13 +311,16 @@ def check_equiv(expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Conte
 
     neg_equiv_expr = cpt.Operator.LogicalNegate(expr1.loc, cpt.Operator.LogicalIff(expr1.loc, expr1, expr2))
 
-    start = time.process_time()
+    start = util.get_rusage_time()
 
     result = check_sat_expr(neg_equiv_expr, context)
 
-    end = time.process_time()
+    end = util.get_rusage_time()
     equiv_time = end - start
-    log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")
+    if equiv_time > float(context.config.timeout_sat):
+        log.stat(MODULE_CODE, "equiv_check_time=timeout")
+    else:
+        log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")
 
     if result is SatResult.SAT:
         log.debug(MODULE_CODE, 1, "Not equivalent")

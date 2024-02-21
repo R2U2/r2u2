@@ -134,6 +134,8 @@ def validate_input(
     enable_egraph: bool = False,
     enable_cse: bool = False,
     enable_sat: bool = False,
+    timeout_egglog: int = 3600,
+    timeout_sat: int = 3600,
 ) -> Optional[tuple[cpt.Config, set[passes.Pass]]]:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options."""
     log.debug(MODULE_CODE, 1, "Validating input")
@@ -292,6 +294,8 @@ def validate_input(
         frontend,
         final_stage is cpt.CompilationStage.ASSEMBLE,
         signal_mapping,
+        timeout_egglog,
+        timeout_sat,
     )
 
     return (config, enabled_passes)
@@ -325,6 +329,8 @@ def compile(
     write_mltl_filename: str = ".",
     write_pickle_filename: str = ".",
     write_smt_dir: str = ".",
+    timeout_egglog: int = 3600,
+    timeout_sat: int = 3600,
     keep: bool = False,
     workdir: str = "",
     stats: bool = False,
@@ -375,6 +381,8 @@ def compile(
         enable_egraph,
         enable_cse,
         enable_sat,
+        timeout_egglog,
+        timeout_sat,
     )
 
     if not validated_input:

@@ -63,7 +63,12 @@ parser.add_argument("-bnf", action="store_true",
 
 parser.add_argument("-sat", "--check-sat", action="store_true",
                     help="enable satisfiability checking of future-time formulas")
-                                  
+
+parser.add_argument("--timeout-egglog", type=int, default=3600, 
+                    help="set the timeout of egglog calls in seconds (default: 3600)")
+parser.add_argument("--timeout-sat", type=int, default=3600, 
+                    help="set the timeout of sat calls in seconds (default: 3600)")
+
 parser.add_argument("--write-c2po", nargs="?", default=".", const="",
                     help="write final program in C2PO input format")
 parser.add_argument("--write-mltl", nargs="?", default=".", const="",
@@ -109,6 +114,8 @@ return_code = c2po.main.compile(
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
     write_smt_dir=args.write_smt,
+    timeout_egglog=args.timeout_egglog,
+    timeout_sat=args.timeout_sat,
     keep=args.keep,
     workdir=args.workdir,
     stats=args.stats,
