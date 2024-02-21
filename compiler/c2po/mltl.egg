@@ -106,7 +106,7 @@
 )
 
 (birewrite 
-  (Or3 (And2 a b) c d)
+  (Or3 (Or2 a b) c d)
   (Or4 a b c d)
   :ruleset mltl-rewrites
 )

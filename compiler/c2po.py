@@ -14,8 +14,10 @@ parser.add_argument("--map", default="",
 
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
-parser.add_argument("--debug", action="store_true",
-                    help="enable debug output")
+parser.add_argument("--debug", nargs="?", default=0, const=1, type=int,
+                    help="set debug level (0=none, 1=basic, 2=extra)")
+parser.add_argument("--stats", action="store_true",
+                    help="enable stat output")
 
 parser.add_argument("--impl", default="c", choices=["c","cpp","vhdl"],
                     help="specifies target R2U2 implementation version (default: c)")
@@ -73,6 +75,9 @@ parser.add_argument("--write-pickle", nargs="?", default=".", const="",
 parser.add_argument("--write-smt", nargs="?", default=".", const="",
                     help="write SMT SAT encoding of FT formulas")
 
+parser.add_argument("--keep", action="store_true",
+                    help="keep working directory")
+
 args = parser.parse_args()
 
 return_code = c2po.main.compile(
@@ -103,6 +108,8 @@ return_code = c2po.main.compile(
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
     write_smt_dir=args.write_smt,
+    keep=args.keep,
+    stats=args.stats,
     debug=args.debug,
     quiet=args.quiet, 
 )

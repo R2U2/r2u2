@@ -17,8 +17,8 @@ def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
         log.warning(
-            f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes",
             MODULE_CODE,
+            f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes",
         )
 
 
@@ -453,16 +453,16 @@ def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruct
         compare_value = rhs.signal_id
     else:
         log.internal(
+            MODULE_CODE,
             f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs})."
             "\n\tWhy did this get past the type checker?",
-            MODULE_CODE,
         )
         compare_value = 0
 
     if node in context.atomic_id:
         aid = context.atomic_id[node]
     else:
-        log.internal(f"No atomic ID assigned for '{node}'", MODULE_CODE)
+        log.internal(MODULE_CODE, f"No atomic ID assigned for '{node}'")
         aid = -1
 
     return ATInstruction(
@@ -541,7 +541,7 @@ def gen_bz_instruction(
         operand2,
     )
 
-    log.debug(f"Generating: {expr}\n\t" f"{bz_instr}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{bz_instr}")
 
     return bz_instr
 
@@ -593,9 +593,12 @@ def gen_ft_instruction(
         expr = cast(cpt.Operator, expr)
         operator = FT_OPERATOR_MAP[expr.operator]
     else:
-        log.error("Trying to assemble operator with more than 2 arguments. "
-                  "Did you enable an optimization incompatible with R2U2?\n\t"
-                  f"{expr}", MODULE_CODE)
+        log.error(
+            MODULE_CODE,
+            "Trying to assemble operator with more than 2 arguments. "
+            "Did you enable an optimization incompatible with R2U2?\n\t"
+            f"{expr}"
+        )
         return None
 
     ft_instr = TLInstruction(
@@ -608,7 +611,7 @@ def gen_ft_instruction(
         operand2_value,
     )
 
-    log.debug(f"Generating: {expr}\n\t" f"{ft_instr}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instr}")
 
     return ft_instr
 
@@ -644,9 +647,12 @@ def gen_pt_instruction(
         expr = cast(cpt.Operator, expr)
         operator = PT_OPERATOR_MAP[expr.operator]
     else:
-        log.error("Trying to assemble operator with more than 2 arguments, generating NOP "
-                  "Did you enable an optimization incompatible with R2U2?\n\t"
-                  f"{expr}", MODULE_CODE)
+        log.error(
+            MODULE_CODE,
+            "Trying to assemble operator with more than 2 arguments. "
+            "Did you enable an optimization incompatible with R2U2?\n\t"
+            f"{expr}"
+        )
         return None
 
     pt_instr = TLInstruction(
@@ -659,7 +665,7 @@ def gen_pt_instruction(
         operand2_value,
     )
 
-    log.debug(f"Generating: {expr}\n\t" f"{pt_instr}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instr}")
 
     return pt_instr
 
@@ -682,7 +688,7 @@ def gen_scq_instructions(
     )
 
     if not isinstance(expr, cpt.TemporalOperator):
-        log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
         return [cg_scq]
 
     cg_lb = CGInstruction(
@@ -714,7 +720,7 @@ def gen_scq_instructions(
     )
 
     log.debug(
-        f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
+        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}"
     )
 
     return [cg_scq, cg_lb, cg_ub]
@@ -779,7 +785,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
     boxqs = 1
 
-    log.debug(f"Generating assembly for program:\n{program}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Generating assembly for program:\n{program}")
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if expr == program.ft_spec_set:
@@ -796,7 +802,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 TLOperandType.NONE,
                 0,
             )
-            log.debug(f"Generating: {expr}\n\t" f"{ft_instructions[expr]}", MODULE_CODE)
+            log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
@@ -886,6 +892,7 @@ def pack_at_instruction(
     format_str += format_strs[FieldType.AT_ID]
 
     log.debug(
+        MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"[{compare_format_str:<8}] "
@@ -906,7 +913,6 @@ def pack_at_instruction(
         f"{instruction.atomic_id:<2} "
         f"{instruction.compare_is_signal:<2} "
         f"{instruction.atomic_id:<2} ",
-        MODULE_CODE,
     )
 
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
@@ -933,6 +939,7 @@ def pack_bz_instruction(
     endian: str,
 ) -> bytes:
     log.debug(
+        MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:5} "
@@ -949,7 +956,6 @@ def pack_bz_instruction(
         f"{instruction.id:<2} "
         f"{instruction.store_atomic:<2} "
         f"{instruction.atomic_id:<2} ",
-        MODULE_CODE,
     )
 
     binary = bytes()
@@ -992,6 +998,7 @@ def pack_tl_instruction(
     endian: str,
 ) -> bytes:
     log.debug(
+        MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
@@ -1004,7 +1011,6 @@ def pack_tl_instruction(
         f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
         f"{instruction.id:<2} "
         f"{instruction.operator.value:<2}",
-        MODULE_CODE,
     )
 
     binary = bytes()
@@ -1045,11 +1051,11 @@ def pack_cg_instruction(
     instruction: CGInstruction, format_strs: dict[FieldType, str], endian: str
 ) -> bytes:
     log.debug(
+        MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:<2}"
         f"\n\t"
         f"{instruction.engine_tag.value:<2}",
-        MODULE_CODE,
     )
 
     binary = bytes()
@@ -1078,7 +1084,7 @@ def pack_instruction(
     elif isinstance(instruction, CGInstruction):
         binary = pack_cg_instruction(instruction, format_strs, endian)
     else:
-        log.error(f"Invalid instruction type ({type(instruction)}).", MODULE_CODE)
+        log.error(MODULE_CODE, f"Invalid instruction type ({type(instruction)}).")
         binary = bytes()
 
     binary_len = CStruct(f"{endian}B").pack(len(binary) + 1)
@@ -1101,14 +1107,14 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
         aliases.append(alias)
         binary += str(alias).encode("ascii") + b"\x00"
 
-        log.debug(f"Packing: {alias}", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Packing: {alias}")
 
     for label, contract in context.contracts.items():
         alias = AliasInstruction(AliasType.CONTRACT, label, [str(f) for f in contract.formula_numbers])
         aliases.append(alias)
         binary += str(alias).encode("ascii") + b"\x00"
 
-        log.debug(f"Packing: {alias}", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Packing: {alias}")
 
     return (aliases, binary)
 
@@ -1116,7 +1122,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 def assemble(
     program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
-    log.debug("Assembling", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Assembling")
 
     check_sizes()
     assembly = gen_assembly(program, context)

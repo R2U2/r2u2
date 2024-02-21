@@ -20,7 +20,7 @@ def write_c2po(
         else input_path.with_suffix(".out.c2po")
     )
 
-    log.debug(f"Writing prefix format to {output_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Writing prefix format to {output_path}")
 
     with open(output_path, "w") as f:
         f.write(str(program))
@@ -41,7 +41,7 @@ def write_prefix(
         else input_path.with_suffix(".prefix.c2po")
     )
 
-    log.debug(f"Writing prefix format to {output_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Writing prefix format to {output_path}")
 
     with open(output_path, "w") as f:
         f.write(repr(program))
@@ -63,7 +63,7 @@ def write_mltl(
         else input_path.with_suffix(".mltl")
     )
 
-    log.debug(f"Dumping MLTL standard format to {output_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Dumping MLTL standard format to {output_path}")
 
     with open(output_path, "w") as f:
         f.write(cpt.to_mltl_std(program, context))
@@ -84,7 +84,7 @@ def write_pickle(
         else input_path.with_suffix(".pickle")
     )
 
-    log.debug(f"Writing pickled program to {output_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Writing pickled program to {output_path}")
 
     pickled_program = program.pickle()
 
@@ -108,7 +108,7 @@ def write_smt(
         else input_path.with_suffix(".smt")
     )
 
-    log.debug(f"Writing SMT encoding to {output_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Writing SMT encoding to {output_path}")
 
     if output_path.is_file():
         output_path.unlink()

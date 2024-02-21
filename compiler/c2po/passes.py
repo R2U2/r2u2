@@ -9,7 +9,7 @@ MODULE_CODE = "PASS"
 
 def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
     """Expands each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
-    log.debug("Expanding definitions", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Expanding definitions")
 
     for expr in [
         expr
@@ -24,7 +24,7 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
         elif expr.symbol in context.specifications:
             expr.replace(context.specifications[expr.symbol].get_expr())
 
-    log.debug(f"Post definition expansion:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post definition expansion:\n{repr(program)}")
 
 
 def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
@@ -56,7 +56,7 @@ def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context
 
 def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
-    log.debug("Replacing contracts", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Replacing contracts")
 
     for contract in [
         spec for spec in program.get_specs() if isinstance(spec, cpt.Contract)
@@ -90,14 +90,14 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
 
         program.replace_spec(contract, new_formulas)
 
-        log.debug(f"Replaced contract '{contract.symbol}'", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Replaced contract '{contract.symbol}'")
 
-    log.debug(f"Post contract replacement:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post contract replacement:\n{repr(program)}")
 
 
 def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
     """Unrolls set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
-    log.debug("Unrolling set aggregation expressions.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Unrolling set aggregation expressions.")
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
         for subexpr in cpt.postorder(expr, context):
@@ -212,12 +212,12 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
 
-    log.debug(f"Post set aggregation unrolling:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post set aggregation unrolling:\n{repr(program)}")
 
 
 def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
     """Resolves struct access operations to the underlying member expression."""
-    log.debug("Resolving struct accesses.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Resolving struct accesses.")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.StructAccess):
@@ -228,12 +228,12 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         if member:
             expr.replace(member)
 
-    log.debug(f"Post struct access resolution:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
 
 def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
     """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
-    log.debug("Removing extended operators.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Removing extended operators.")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -349,11 +349,12 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                 )
             )
 
-    log.debug(f"Post extended operator removal:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post extended operator removal:\n{repr(program)}")
 
 
 def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
+    log.debug(MODULE_CODE, 1, "Converting to BNF")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -456,9 +457,13 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
 
+    log.debug(MODULE_CODE, 1, f"Post BNF conversion:\n{repr(program)}")
+
 
 def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
+    log.debug(MODULE_CODE, 1, "Converting to NNF")
+
     for expr in program.preorder(context):
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             operand = expr.children[0]
@@ -625,10 +630,12 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
 
+    log.debug(MODULE_CODE, 1, f"Post NNF conversion:\n{repr(program)}")
+
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
-    log.debug("Performing rewrites", module=MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Performing rewrites")
 
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
@@ -942,25 +949,27 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
         if new:
             log.debug(
-                f"\n\t{expr}\n\t==>\n\t{new}", module=MODULE_CODE
+                MODULE_CODE, 2, f"\n\t{expr}\n\t==>\n\t{new}"
             )
             expr.replace(new)
+
+    log.debug(MODULE_CODE, 1, f"Post rewrite:\n{repr(program)}")
 
 
 def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
-    expr_map: dict[str, cpt.Expression]
+    log.debug(MODULE_CODE, 1, "Performing CSE")
 
-    log.debug("Performing CSE", module=MODULE_CODE)
+    expr_map: dict[str, cpt.Expression]
 
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal expr_map
 
         if repr(expr) in expr_map:
-            log.debug(f"Replacing ---- {repr(expr)[:25]}", module=MODULE_CODE)
+            log.debug(MODULE_CODE, 2, f"Replacing ---- {repr(expr)[:25]}")
             expr.replace(expr_map[repr(expr)])
         else:
-            log.debug(f"Visiting ----- {repr(expr)[:25]}", module=MODULE_CODE)
+            log.debug(MODULE_CODE, 2, f"Visiting ----- {repr(expr)[:25]}")
             expr_map[repr(expr)] = expr
 
     expr_map = {}
@@ -971,12 +980,12 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     for expr in cpt.postorder(program.pt_spec_set, context):
         _optimize_cse(expr)
 
-    log.debug(f"Post CSE:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post CSE:\n{repr(program)}")
 
 
 def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> None:
     """Converts all multi-arity operators (e.g., &&, ||, +) to binary."""
-    log.debug("Converting multi-arity operators", module=MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Converting multi-arity operators")
 
     for expr in program.postorder(context):
         if not cpt.is_multi_arity_operator(expr) or len(expr.children) < 3:
@@ -995,12 +1004,12 @@ def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> Non
 
         expr.replace(new)
 
-    log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post multi-arity operator conversion:\n{repr(program)}")
 
 
 def flatten_multi_operators(program: cpt.Program, context: cpt.Context) -> None:
     """Flattens all multi-arity operators (i.e., &&, ||, +, *)."""
-    log.debug("Flattening multi-arity operators", module=MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Flattening multi-arity operators")
 
     MAX_ARITY = 4
 
@@ -1021,12 +1030,12 @@ def flatten_multi_operators(program: cpt.Program, context: cpt.Context) -> None:
         expr.replace(new)
 
 
-    log.debug(f"Post operator flattening:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post operator flattening:\n{repr(program)}")
 
 
 def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
     """Sorts all operands of commutative operators by increasing worst-case propagation delay."""
-    log.debug("Sorting operands by WPD", module=MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Sorting operands by WPD")
 
     for expr in program.postorder(context):
         if not cpt.is_commutative_operator(expr):
@@ -1034,7 +1043,7 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 
         expr.children.sort(key=lambda child: child.wpd)
 
-    log.debug(f"Post operand sorting:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post operand sorting:\n{repr(program)}")
 
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
@@ -1071,16 +1080,18 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             break
 
     log.debug(
+        MODULE_CODE, 1,
         f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
-        module=MODULE_CODE,
     )
 
 
 def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
     compute_scq_sizes(program, context)
 
-    log.warning("E-Graph optimizations are incompatible with R2U2", MODULE_CODE)
-    log.debug("Optimizing via E-Graph", MODULE_CODE)
+    log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
+
+    log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
+    log.debug(MODULE_CODE, 1, "Optimizing via E-Graph")
 
     # flatten_multi_operators(program, context)
     sort_operands_by_pd(program, context)
@@ -1089,7 +1100,7 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         return
     
     if len(program.ft_spec_set.children) > 1:
-        log.warning("E-Graph optimizations only support single formulas, using first only", MODULE_CODE)
+        log.warning(MODULE_CODE, "E-Graph optimizations only support single formulas, using first only")
 
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
     e_graph = egraph.run_egglog(formula, context)
@@ -1098,33 +1109,38 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         old = formula.get_expr()
         new = e_graph.extract(context)
 
-        is_equiv = sat.check_equiv(old, new, context)
+        sat_result = sat.check_equiv(old, new, context)
 
-        if is_equiv:
+        if sat_result is sat.SatResult.UNSAT:
             old.replace(new)
-        elif isinstance(is_equiv, bool) and not is_equiv:
-            log.error("E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula", MODULE_CODE)
+            equiv_result = "equiv"
+        elif sat_result is sat.SatResult.SAT:
+            log.error(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
+            equiv_result = "not-equiv"
         else:
-            log.error("E-Graph optimization could not be validated, defaulting to non-optimized formula", MODULE_CODE)
+            log.error(MODULE_CODE, "E-Graph optimization could not be validated, defaulting to non-optimized formula")
+            equiv_result = "unknown"
 
-    log.debug(f"Post E-Graph:\n{repr(program)}", MODULE_CODE)
+        compute_scq_sizes(program, context)
+
+        log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
+        log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
+
+    log.debug(MODULE_CODE, 1, f"Post E-Graph:\n{repr(program)}")
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
-    log.debug("Checking FT formulas satisfiability", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
     
     results = sat.check_sat(program, context)
 
     for spec,result in results.items():
         if result is sat.SatResult.SAT:
-            # log.debug(f"{symbol}: sat", MODULE_CODE)
-            print(f"{spec.symbol}: sat")
+            log.debug(MODULE_CODE, 1, f"{spec.symbol} is sat")
         elif result is sat.SatResult.UNSAT:
-            # log.warning(f"{symbol}: unsat", MODULE_CODE)
-            print(f"{spec.symbol}: unsat")
+            log.warning(MODULE_CODE, f"{spec.symbol} is unsat")
         elif result is sat.SatResult.UNKNOWN:
-            # log.warning(f"{symbol}: unknown", MODULE_CODE)
-            print(f"{spec.symbol}: unknown")
+            log.warning(MODULE_CODE, f"{spec.symbol} is unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
@@ -1149,8 +1165,6 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
                 actual_program_scq_size - expr.scq_size,
                 actual_program_scq_size,
             )
-
-            # log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
 
             continue
 
@@ -1178,11 +1192,10 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             actual_program_scq_size,
         )
 
-        # log.debug(f"{expr.scq} = scq({repr(expr)})", MODULE_CODE)
+    program.theoretical_scq_size = theoretical_program_scq_size
 
-
-    log.debug(f"Actual program SCQ size: {actual_program_scq_size}", MODULE_CODE)
-    log.debug(f"Theoretical program SCQ size: {theoretical_program_scq_size}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Actual program SCQ size: {actual_program_scq_size}")
+    log.debug(MODULE_CODE, 1, f"Theoretical program SCQ size: {theoretical_program_scq_size}")
 
 
 # A Pass is a function with the signature:

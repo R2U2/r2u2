@@ -7,6 +7,7 @@ import subprocess
 import pathlib
 import dataclasses
 import json
+import time
 from typing import Optional, NewType, cast
 
 from c2po import cpt, log, types, util
@@ -123,7 +124,7 @@ class EGraph:
                 eclasses[enode.eclass_id].add(enode)
 
         if len(eclasses) < 1:
-            log.error("Empty EGraph", MODULE_CODE)
+            log.error(MODULE_CODE, "Empty EGraph")
             return EGraph(EClassID(""),{})
         
         parents: dict[str, set[str]] = {i:set() for i in eclasses.keys()}
@@ -375,8 +376,8 @@ class EGraph:
 
         expr_tree = self.build_expr_tree(rep, self.root, context.atomic_id)
 
-        log.debug(f"Optimal expression: {repr(expr_tree)}", MODULE_CODE)
-        log.debug(f"Cost: {rep[self.root][1]+1}", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Optimal expression: {repr(expr_tree)}")
+        log.debug(MODULE_CODE, 1, f"Cost: {rep[self.root][1]+1}")
 
         return expr_tree
 
@@ -416,7 +417,7 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
             expr = cast(cpt.TemporalOperator, expr)
             egglog += f"(let e{expr_map[expr]} (Until (Interval {expr.interval.lb} {expr.interval.ub}) e{expr_map[expr.children[0]]} e{expr_map[expr.children[1]]}))\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error("Release not implemented", MODULE_CODE)
+            log.error(MODULE_CODE, "Release not implemented")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             arity = len(expr.children)
             egglog += f"(let e{expr_map[expr]} (And{arity} {' '.join([f'e{expr_map[c]}' for c in expr.children])}))\n"
@@ -437,16 +438,23 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
         f.write(egglog)
 
     command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
-    log.debug(f"Running command '{' '.join(command)}'", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
+
+    start = time.process_time()
+
     proc = subprocess.run(command, capture_output=True)
 
     if proc.returncode:
-        log.error(f"Error running egglog\n{proc.stderr.decode()}", MODULE_CODE)
+        log.error(MODULE_CODE, f"Error running egglog\n{proc.stderr.decode()}")
         return None
 
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
 
     egraph = EGraph.from_json(egglog_output)
+
+    end = time.process_time()
+    egraph_time = end - start
+    log.stat(MODULE_CODE, f"egraph_time={egraph_time}")
 
     return egraph

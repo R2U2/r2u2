@@ -215,9 +215,9 @@ class Struct(Expression):
     def get_member(self, name: str) -> Optional[Expression]:
         if name not in self.members:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -225,9 +225,9 @@ class Struct(Expression):
 
         if member is None:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -1007,6 +1007,8 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
+        self.theoretical_scq_size = -1
+
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:
@@ -1308,7 +1310,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(f"Bad str ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad str ({expr})")
             return ""
 
     return s
@@ -1387,7 +1389,7 @@ def to_prefix_str(start: Expression) -> str:
         elif isinstance(expr, SpecificationSet):
             [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
-            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
     return s[:-1]
@@ -1400,7 +1402,7 @@ def to_mltl_std(program: Program, context: Context) -> str:
 
     for spec in program.get_specs():
         if isinstance(spec, Contract):
-            log.warning("Cannot express AGCs in MLTL standard, skipping", MODULE_CODE)
+            log.warning(MODULE_CODE, "Cannot express AGCs in MLTL standard, skipping")
             continue
 
         stack.append((0, spec.get_expr()))
@@ -1441,7 +1443,8 @@ def to_mltl_std(program: Program, context: Context) -> str:
                     stack.append((0, expr.children[seen]))
             else:
                 log.error(
-                    f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE
+                    MODULE_CODE,
+                    f"Expression incompatible with MLTL standard ({expr})"
                 )
                 return ""
 

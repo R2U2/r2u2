@@ -1,7 +1,8 @@
 import subprocess
 import enum
+import time
 
-from typing import cast, Optional
+from typing import cast
 
 from c2po import cpt, log, util
 
@@ -117,7 +118,7 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            log.error(f"Until not implemented for MLTL-SAT via QF_BV\n\t{expr}", MODULE_CODE)
+            log.error(MODULE_CODE, f"Until not implemented for MLTL-SAT via QF_BV\n\t{expr}")
             return ""
         
             expr = cast(cpt.TemporalOperator, expr)
@@ -134,10 +135,10 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error(f"Release not implemented for MLTL-SAT via QF_BV\n\t{expr}", MODULE_CODE)
+            log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT via QF_BV\n\t{expr}")
             return ""
         else:
-            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
         
     smt_commands.append(f"(assert ({expr_map[expr]} 0 {mission_time}))")
@@ -227,10 +228,10 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error(f"Release not implemented for MLTL-SAT\n\t{expr}", MODULE_CODE)
+            log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT\n\t{expr}")
             return ""
         else:
-            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
         
     smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[expr]} 0 len)))")
@@ -243,10 +244,10 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
 
 def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
-    log.debug(f"Checking satisfiability:\n\t{repr(expr)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
     if not check_solver_installed(Z3):
-        log.error("z3 not found", MODULE_CODE)
+        log.error(MODULE_CODE, "z3 not found")
         return SatResult.UNKNOWN
 
     smt = to_smt_sat_query(expr, context)
@@ -256,33 +257,40 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         f.write(smt)
 
     command = [Z3, str(smt_file_path)]
-    log.debug(f"Running '{' '.join(command)}'", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
+
+    start = time.process_time()
+
     proc = subprocess.run(command, capture_output=True)
+
+    end = time.process_time()
+    sat_time = end - start
+    log.stat(MODULE_CODE, f"sat_check_time={sat_time}")
 
     smt_file_path.unlink()
 
     if proc.stdout.decode().find("unsat") > -1:
-        log.debug("unsat", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, "unsat")
         return SatResult.UNSAT
     elif proc.stdout.decode().find("sat") > -1:
-        log.debug("sat", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, "sat")
         return SatResult.SAT
     else:
-        log.debug("unsat", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, "unsat")
         return SatResult.UNKNOWN
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver (Z3 by default) on the SMT encoding of the MLTL formulas in `program`."""
     if not check_solver_installed(Z3):
-        log.error("z3 not found", MODULE_CODE)
+        log.error(MODULE_CODE, "z3 not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}
     
     for spec in program.ft_spec_set.get_specs():
         if isinstance(spec, cpt.Contract):
-            log.warning("Found contract, skipping", MODULE_CODE)
+            log.warning(MODULE_CODE, "Found contract, skipping")
             continue
             
         expr = spec.get_expr()
@@ -291,24 +299,28 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> "dict[cpt.Specifica
     return results
 
 
-def check_equiv(expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Context) -> Optional[bool]:
+def check_equiv(expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns true if `expr1` is equivalent to `expr2`, false if they are not, and None if the check timed our or failed in some other way.
     
     To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |= expr` and `pi |/= expr` or vice versa.  
     """
-    log.debug(f"Checking equivalence:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Checking equivalence:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}")
 
     neg_equiv_expr = cpt.Operator.LogicalNegate(expr1.loc, cpt.Operator.LogicalIff(expr1.loc, expr1, expr2))
 
+    start = time.process_time()
+
     result = check_sat_expr(neg_equiv_expr, context)
 
-    if result is SatResult.SAT:
-        log.debug("Not equivalent", MODULE_CODE)
-        return False
-    elif result is SatResult.UNSAT:
-        log.debug("Equivalent", MODULE_CODE)
-        return True
-    else:
-        log.debug("Unknown", MODULE_CODE)
-        return None
+    end = time.process_time()
+    equiv_time = end - start
+    log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")
 
+    if result is SatResult.SAT:
+        log.debug(MODULE_CODE, 1, "Not equivalent")
+    elif result is SatResult.UNSAT:
+        log.debug(MODULE_CODE, 1, "Equivalent")
+    else:
+        log.debug(MODULE_CODE, 1, "Unknown")
+
+    return result

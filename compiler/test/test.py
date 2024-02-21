@@ -3,6 +3,7 @@ import json
 import difflib
 import subprocess
 import sys
+import argparse
 
 TEST_DIR = pathlib.Path(__file__).parent
 
@@ -141,10 +142,25 @@ def run_test(test: dict) -> bool:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("subset", nargs="?", default="",
+                        help="name of subset to run")
+    args = parser.parse_args()
+
     # tests is an array of JSON objects
     with open(str(CONFIG_PATH), "r") as f:
-        tests = json.load(f)
+        config = json.load(f)
+
+    if args.subset == "":
+        # no subset given, so concatenate all the tests together
+        tests = [s for _,arr in config.items() for s in arr]
+    elif args.subset in config:
+        tests = config[args.subset]
+    else:
+        print_fail(f"Subset {args.subset} not in {CONFIG_PATH}")
+        sys.exit(1)
 
     if any([not run_test(test) for test in tests]):
         sys.exit(1)
+        
     sys.exit(0)

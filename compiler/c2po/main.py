@@ -66,16 +66,16 @@ def process_trace_file(
 
         if map_file_provided:
             log.warning(
-                "Map file given and header included in trace file; header will be ignored",
                 MODULE_CODE,
+                "Map file given and header included in trace file; header will be ignored"
             )
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
                 log.warning(
+                    MODULE_CODE,
                     f"Signal ID '{id}' found multiple times in csv, using right-most value",
-                    module=MODULE_CODE,
-                    location=log.FileLocation(trace_path.name, 1),
+                    log.FileLocation(trace_path.name, 1)
                 )
             signal_mapping[id] = cnt
             cnt += 1
@@ -104,18 +104,18 @@ def process_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
 
             if id in mapping:
                 log.warning(
+                    MODULE_CODE,
                     f"Signal ID '{id}' found multiple times in map file, using latest value",
-                    module=MODULE_CODE,
-                    location=log.FileLocation(map_path.name, lines.index(line) + 1),
+                    log.FileLocation(map_path.name, lines.index(line) + 1),
                 )
 
             mapping[id] = sid
         else:
             log.error(
+                MODULE_CODE,
                 f"Invalid format for map line (found {line})"
                 "\n\t Should be of the form SYMBOL ':' NUMERAL",
-                module=MODULE_CODE,
-                location=log.FileLocation(map_path.name, lines.index(line)),
+                log.FileLocation(map_path.name, lines.index(line)),
             )
             return None
 
@@ -147,25 +147,25 @@ def validate_input(
     enable_sat: bool = False,
 ) -> ValidatedInput:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options."""
-    log.debug("Validating input", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Validating input")
     status: bool = True
 
     input_path = pathlib.Path(input_filename)
     if not input_path.is_file():
-        log.error(f"Input file '{input_filename} not a valid file.'", MODULE_CODE)
+        log.error(MODULE_CODE, f"Input file '{input_filename} not a valid file.'")
         input_path = None
 
     trace_path = None
     if trace_filename != "":
         trace_path = pathlib.Path(trace_filename)
         if not trace_path.is_file():
-            log.error(f"Trace file '{trace_filename}' is not a valid file", MODULE_CODE)
+            log.error(MODULE_CODE, f"Trace file '{trace_filename}' is not a valid file")
 
     map_path = None
     if map_filename != "":
         map_path = pathlib.Path(map_filename)
         if not map_path.is_file():
-            log.error(f"Map file '{map_filename}' is not a valid file", MODULE_CODE)
+            log.error(MODULE_CODE, f"Map file '{map_filename}' is not a valid file")
 
     output_path = None
     if output_filename != "":
@@ -190,8 +190,8 @@ def validate_input(
         # warn if the given trace is shorter than the defined mission time
         if trace_length > -1 and trace_length < custom_mission_time:
             log.warning(
-                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time})",
                 MODULE_CODE,
+                f"Trace length is shorter than given mission time ({trace_length} < {custom_mission_time})",
             )
     else:
         mission_time = trace_length
@@ -200,8 +200,8 @@ def validate_input(
         endian_sigil = BYTE_ORDER_SIGILS[endian]
     else:
         log.internal(
-            f"Endianness option argument {endian} invalid. Check CLI options?",
             MODULE_CODE,
+            f"Endianness option argument {endian} invalid. Check CLI options?",
         )
         endian_sigil = "@"
 
@@ -211,19 +211,19 @@ def validate_input(
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
             log.error(
-                "Extended operators only support for C implementation", MODULE_CODE
+                MODULE_CODE, "Extended operators only support for C implementation"
             )
             status = False
 
     if enable_nnf and enable_bnf:
         log.warning(
-            "Attempting rewrite to both NNF and BNF, defaulting to NNF", MODULE_CODE
+            MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
         )
 
     if not enable_extops and (enable_nnf or enable_bnf):
         log.warning(
-            "NNF and BNF incompatible without extended operators, output will not be in either normal form",
             MODULE_CODE,
+            "NNF and BNF incompatible without extended operators, output will not be in either normal form",
         )
 
     enabled_passes = set(passes.PASS_LIST)
@@ -268,10 +268,10 @@ def validate_input(
         final_stage = cpt.CompilationStage.ASSEMBLE
 
     if enable_booleanizer and enable_atomic_checkers:
-        log.error("Only one of atomic checkers and booleanizer can be enabled", MODULE_CODE)
+        log.error(MODULE_CODE, "Only one of atomic checkers and booleanizer can be enabled")
         status = False
     elif enable_booleanizer and impl != types.R2U2Implementation.C:
-        log.error("Booleanizer only available for C implementation", MODULE_CODE)
+        log.error(MODULE_CODE, "Booleanizer only available for C implementation")
         status = False
 
     if enable_booleanizer:
@@ -322,7 +322,9 @@ def compile(
     write_mltl_filename: str = ".",
     write_pickle_filename: str = ".",
     write_smt_dir: str = ".",
-    debug: bool = False,
+    keep: bool = False,
+    stats: bool = False,
+    debug: int = 0,
     quiet: bool = False,
 ) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
@@ -337,7 +339,10 @@ def compile(
     7. Assembly
     """
     if debug:
-        log.set_debug()
+        log.set_debug(debug)
+
+    if stats:
+        log.set_stat()
 
     # ----------------------------------
     # Input validation
@@ -368,7 +373,7 @@ def compile(
     )
 
     if not options.status or not options.input_path:
-        log.error("Input invalid", MODULE_CODE)
+        log.error(MODULE_CODE, "Input invalid")
         return ReturnCode.INVALID_INPUT
 
     # ----------------------------------
@@ -380,7 +385,7 @@ def compile(
         )
 
         if not program:
-            log.error("Failed parsing", MODULE_CODE)
+            log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
         # must have defined this in trace or map file
@@ -390,7 +395,7 @@ def compile(
         parse_output = parse.parse_mltl(options.input_path, options.mission_time)
 
         if not parse_output:
-            log.error("Failed parsing", MODULE_CODE)
+            log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
         (program, signal_mapping) = parse_output
@@ -399,13 +404,13 @@ def compile(
             program = pickle.load(f)
 
         if not isinstance(program, cpt.Program):
-            log.error("Bad pickle file", MODULE_CODE)
+            log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
 
         signal_mapping = options.signal_mapping
     else:
         log.error(
-            f"Unsupported input format ({options.input_path.suffix})", MODULE_CODE
+            MODULE_CODE, f"Unsupported input format ({options.input_path.suffix})"
         )
         return ReturnCode.INVALID_INPUT
 
@@ -435,7 +440,7 @@ def compile(
     )
 
     if not well_typed:
-        log.error("Failed type check", MODULE_CODE)
+        log.error(MODULE_CODE, "Failed type check")
         return ReturnCode.TYPE_CHECK_ERR
 
     if only_type_check:
@@ -456,7 +461,7 @@ def compile(
     # ----------------------------------
     util.setup_work_dir()
 
-    log.debug("Performing passes", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Performing passes")
     for cpass in [t for t in passes.PASS_LIST if t in options.passes]:
         cpass(program, context)
 
@@ -471,15 +476,17 @@ def compile(
             write_pickle_filename,
             write_smt_dir,
         )
-        util.cleanup_work_dir()
+        if not keep:
+            util.cleanup_work_dir()
         return ReturnCode.SUCCESS
 
     # ----------------------------------
     # Assembly
     # ----------------------------------
     if not options.output_path:
-        log.error(f"Output path invalid: {options.output_path}", MODULE_CODE)
-        util.cleanup_work_dir()
+        log.error(MODULE_CODE, f"Output path invalid: {options.output_path}")
+        if not keep:
+            util.cleanup_work_dir()
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
@@ -503,6 +510,7 @@ def compile(
         write_smt_dir,
     )
 
-    util.cleanup_work_dir()
+    if not keep:
+        util.cleanup_work_dir()
 
     return ReturnCode.SUCCESS
