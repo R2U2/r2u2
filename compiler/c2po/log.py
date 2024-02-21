@@ -85,7 +85,7 @@ def stat(
     formatted_message = format(
         message, "STAT", None, module, location
     )
-    ERR.write(formatted_message)
+    OUT.write(formatted_message)
 
 
 def debug(
