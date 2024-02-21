@@ -77,6 +77,7 @@ parser.add_argument("--write-smt", nargs="?", default=".", const="",
 
 parser.add_argument("--keep", action="store_true",
                     help="keep working directory")
+parser.add_argument("--workdir", help="location to place temporary files")
 
 args = parser.parse_args()
 
@@ -109,6 +110,7 @@ return_code = c2po.main.compile(
     write_pickle_filename=args.write_pickle,
     write_smt_dir=args.write_smt,
     keep=args.keep,
+    workdir=args.workdir,
     stats=args.stats,
     debug=args.debug,
     quiet=args.quiet, 

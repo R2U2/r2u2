@@ -55,7 +55,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             # if len(value.hex()[2:]) > types.FloatType.width:
             #     ...
         elif isinstance(expr, cpt.Signal):
-            if context.assembly_enabled and expr.symbol not in context.signal_mapping:
+            if context.config.assembly_enabled and expr.symbol not in context.config.signal_mapping:
                 log.error(
                     MODULE_CODE,
                     f"Mapping does not contain signal '{expr.symbol}'",
@@ -63,15 +63,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
             
-            if context.frontend is types.R2U2Engine.BOOLEANIZER:
+            if context.config.frontend is types.R2U2Engine.BOOLEANIZER:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
 
-            if expr.symbol in context.signal_mapping:
-                expr.signal_id = context.signal_mapping[expr.symbol]
+            if expr.symbol in context.config.signal_mapping:
+                expr.signal_id = context.config.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.AtomicChecker):
-            if context.frontend is not types.R2U2Engine.ATOMIC_CHECKER:
+            if context.config.frontend is not types.R2U2Engine.ATOMIC_CHECKER:
                 log.error(
                     MODULE_CODE,
                     "Atomic checkers not enabled, but found in expression\n\t"
@@ -226,7 +226,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 cpt.SetAggregationKind.FOR_AT_MOST,
                 cpt.SetAggregationKind.FOR_AT_LEAST,
             }:
-                if context.frontend is not types.R2U2Engine.BOOLEANIZER:
+                if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
                     log.error(
                         MODULE_CODE,
                         "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled",
@@ -277,7 +277,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
             elif cpt.is_past_time_operator(expr):
-                if context.implementation != types.R2U2Implementation.C:
+                if context.config.implementation != types.R2U2Implementation.C:
                     log.error(
                         MODULE_CODE,
                         f"Past-time operators only support in C version of R2U2\n\t{expr}",
@@ -315,7 +315,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
-            if context.implementation != types.R2U2Implementation.C:
+            if context.config.implementation != types.R2U2Implementation.C:
                 log.error(
                     MODULE_CODE,
                     f"Bitwise operators only support in C version of R2U2.\n\t{expr}",
@@ -323,7 +323,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.frontend is not types.R2U2Engine.BOOLEANIZER:
+            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     MODULE_CODE,
                     f"Found context.booleanizer_enabled expression, but Booleanizer expressions disabled\n\t{expr}",
@@ -350,7 +350,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
-            if context.implementation != types.R2U2Implementation.C:
+            if context.config.implementation != types.R2U2Implementation.C:
                 log.error(
                     MODULE_CODE,
                     f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
@@ -358,7 +358,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.frontend is not types.R2U2Engine.BOOLEANIZER:
+            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     MODULE_CODE,
                     f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
@@ -579,23 +579,12 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
 
 
 def type_check(
-    program: cpt.Program,
-    impl: types.R2U2Implementation,
-    mission_time: int,
-    frontend: types.R2U2Engine,
-    assembly_enabled: bool,
-    signal_mapping: types.SignalMapping,
+    program: cpt.Program, config: cpt.Config
 ) -> tuple[bool, cpt.Context]:
     log.debug(MODULE_CODE, 1, "Type checking")
 
     status: bool = True
-    context = cpt.Context(
-        impl,
-        mission_time,
-        frontend,
-        assembly_enabled,
-        signal_mapping,
-    )
+    context = cpt.Context(config)
 
     for section in program.sections:
         status = type_check_section(section, context) and status

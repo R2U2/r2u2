@@ -4,9 +4,11 @@ from __future__ import annotations
 import copy
 import enum
 import pickle
+import dataclasses
+import pathlib
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types
+from c2po import log, types, util
 
 MODULE_CODE = "CPT"
 
@@ -1047,15 +1049,37 @@ class Program(Node):
         return "\n".join([repr(s) for s in self.get_specs()])
 
 
+@dataclasses.dataclass
+class Config:
+    input_path: pathlib.Path
+    output_path: pathlib.Path
+    workdir: pathlib.Path
+    implementation: types.R2U2Implementation
+    mission_time: int
+    endian_sigil: str
+    frontend: types.R2U2Engine
+    assembly_enabled: bool
+    signal_mapping: types.SignalMapping
+
+    @staticmethod
+    def Empty() -> Config:
+        return Config(
+            pathlib.Path(),
+            pathlib.Path(),
+            util.DEFAULT_WORKDIR, 
+            types.R2U2Implementation.C, 
+            0, 
+            "",
+            types.R2U2Engine.NONE, 
+            False, 
+            {}
+        )
+
+
 class Context:
-    def __init__(
-        self,
-        impl: types.R2U2Implementation,
-        mission_time: int,
-        frontend: types.R2U2Engine,
-        assembly_enabled: bool,
-        signal_mapping: types.SignalMapping,
-    ):
+    def __init__(self, config: Config):
+        self.config = config
+
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1064,11 +1088,6 @@ class Context:
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
-        self.implementation = impl
-        self.frontend = frontend
-        self.mission_time = mission_time
-        self.signal_mapping = signal_mapping
-        self.assembly_enabled = assembly_enabled
         self.bound_vars: dict[str, SetExpression] = {}
 
         self.is_ft = False
@@ -1077,7 +1096,7 @@ class Context:
 
     @staticmethod
     def Empty() -> Context:
-        return Context(types.R2U2Implementation.C, 0, types.R2U2Engine.NONE, False, {})
+        return Context(Config.Empty())
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]

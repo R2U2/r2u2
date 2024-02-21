@@ -10,19 +10,16 @@ import json
 import time
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types, util
+from c2po import cpt, log, types
 
 MODULE_CODE = "EGRF"
 
 INF = 1_000_000_000
 
-FILE_DIR = pathlib.Path(__file__).parent
+SRC_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = FILE_DIR / "egglog" / "target" / "debug" / "egglog"
-PRELUDE_PATH = FILE_DIR / "mltl.egg"
-
-TMP_EGG_PATH = util.WORK_DIR / "__tmp__.egg"
-EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
+EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "release" / "egglog"
+PRELUDE_PATH = SRC_DIR / "mltl.egg"
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
 
@@ -429,6 +426,9 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
 
 def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
+    TMP_EGG_PATH = context.config.workdir / "__tmp__.egg"
+    EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
+
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     

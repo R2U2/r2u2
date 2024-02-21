@@ -4,7 +4,7 @@ import time
 
 from typing import cast
 
-from c2po import cpt, log, util
+from c2po import cpt, log
 
 MODULE_CODE = "SAT"
 
@@ -28,8 +28,8 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
     
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
-    if context.mission_time > 0:
-        mission_time = context.mission_time
+    if context.config.mission_time > 0:
+        mission_time = context.config.mission_time
     else:
         mission_time = start.wpd
 
@@ -252,7 +252,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
 
     smt = to_smt_sat_query(expr, context)
 
-    smt_file_path = util.WORK_DIR / "__tmp__.smt"
+    smt_file_path = context.config.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 

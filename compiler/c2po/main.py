@@ -4,7 +4,7 @@ import enum
 import pathlib
 import re
 import pickle
-from typing import NamedTuple, Optional
+from typing import Optional
 
 from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize, util
 
@@ -19,18 +19,6 @@ class ReturnCode(enum.Enum):
     ASM_ERR = 4
     INVALID_INPUT = 5
     FILE_IO_ERR = 6
-
-
-class ValidatedInput(NamedTuple):
-    status: bool
-    input_path: Optional[pathlib.Path]
-    output_path: Optional[pathlib.Path]
-    mission_time: int
-    endian_sigil: str
-    signal_mapping: types.SignalMapping
-    passes: set[passes.Pass]
-    final_stage: cpt.CompilationStage
-    frontend: types.R2U2Engine
 
 
 # Converts human names to struct format sigil for byte order, used by assembler
@@ -127,6 +115,7 @@ def validate_input(
     trace_filename: str,
     map_filename: str,
     output_filename: str,
+    workdir: str,
     impl_str: str,
     custom_mission_time: int,
     int_width: int,
@@ -145,7 +134,7 @@ def validate_input(
     enable_egraph: bool = False,
     enable_cse: bool = False,
     enable_sat: bool = False,
-) -> ValidatedInput:
+) -> Optional[tuple[cpt.Config, set[passes.Pass]]]:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options."""
     log.debug(MODULE_CODE, 1, "Validating input")
     status: bool = True
@@ -153,7 +142,7 @@ def validate_input(
     input_path = pathlib.Path(input_filename)
     if not input_path.is_file():
         log.error(MODULE_CODE, f"Input file '{input_filename} not a valid file.'")
-        input_path = None
+        status = False
 
     trace_path = None
     if trace_filename != "":
@@ -167,9 +156,18 @@ def validate_input(
         if not map_path.is_file():
             log.error(MODULE_CODE, f"Map file '{map_filename}' is not a valid file")
 
-    output_path = None
-    if output_filename != "":
-        output_path = pathlib.Path(output_filename)
+    output_path = pathlib.Path(output_filename)
+
+    if not workdir or workdir == "":
+        workdir_path = util.DEFAULT_WORKDIR
+    else:
+        workdir_parent = pathlib.Path(workdir) 
+
+        if not workdir_parent.exists():
+            log.warning(MODULE_CODE, f"workdir parent path {workdir_parent} does not exist, defaulting to {util.DEFAULT_WORKDIR}")
+            workdir_path = util.DEFAULT_WORKDIR
+        else:
+            workdir_path = pathlib.Path(workdir) / util.DEFAULT_WORKDIR_NAME
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -281,17 +279,22 @@ def validate_input(
     else:
         frontend = types.R2U2Engine.NONE
 
-    return ValidatedInput(
-        status,
+    if not status:
+        return None
+
+    config = cpt.Config(
         input_path,
         output_path,
+        workdir_path,
+        impl,
         mission_time,
         endian_sigil,
+        frontend,
+        final_stage is cpt.CompilationStage.ASSEMBLE,
         signal_mapping,
-        enabled_passes,
-        final_stage,
-        frontend
     )
+
+    return (config, enabled_passes)
 
 
 def compile(
@@ -323,6 +326,7 @@ def compile(
     write_pickle_filename: str = ".",
     write_smt_dir: str = ".",
     keep: bool = False,
+    workdir: str = "",
     stats: bool = False,
     debug: int = 0,
     quiet: bool = False,
@@ -347,11 +351,12 @@ def compile(
     # ----------------------------------
     # Input validation
     # ----------------------------------
-    options = validate_input(
+    validated_input = validate_input(
         input_filename,
         trace_filename,
         map_filename,
         output_filename,
+        workdir,
         impl,
         custom_mission_time if custom_mission_time else -1,
         int_width,
@@ -372,45 +377,43 @@ def compile(
         enable_sat,
     )
 
-    if not options.status or not options.input_path:
+    if not validated_input:
         log.error(MODULE_CODE, "Input invalid")
         return ReturnCode.INVALID_INPUT
+    
+    config, enabled_passes = validated_input
 
     # ----------------------------------
     # Parse
     # ----------------------------------
-    if options.input_path.suffix == ".c2po":
+    if config.input_path.suffix == ".c2po":
         program: Optional[cpt.Program] = parse.parse_c2po(
-            options.input_path, options.mission_time
+            config.input_path, config.mission_time
         )
 
         if not program:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
-        # must have defined this in trace or map file
-        signal_mapping = options.signal_mapping
-
-    elif options.input_path.suffix == ".mltl":
-        parse_output = parse.parse_mltl(options.input_path, options.mission_time)
+    elif config.input_path.suffix == ".mltl":
+        parse_output = parse.parse_mltl(config.input_path, config.mission_time)
 
         if not parse_output:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
         (program, signal_mapping) = parse_output
-    elif options.input_path.suffix == ".pickle":
-        with open(str(options.input_path), "rb") as f:
+        config.signal_mapping = signal_mapping
+    elif config.input_path.suffix == ".pickle":
+        with open(str(config.input_path), "rb") as f:
             program = pickle.load(f)
 
         if not isinstance(program, cpt.Program):
             log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
-
-        signal_mapping = options.signal_mapping
     else:
         log.error(
-            MODULE_CODE, f"Unsupported input format ({options.input_path.suffix})"
+            MODULE_CODE, f"Unsupported input format ({config.input_path.suffix})"
         )
         return ReturnCode.INVALID_INPUT
 
@@ -418,7 +421,7 @@ def compile(
         serialize.write_outputs(
             program,
             cpt.Context.Empty(),
-            options.input_path,
+            config.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
@@ -430,14 +433,7 @@ def compile(
     # ----------------------------------
     # Type check
     # ----------------------------------
-    (well_typed, context) = type_check.type_check(
-        program,
-        R2U2_IMPL_MAP[impl],
-        options.mission_time,
-        options.frontend,
-        options.final_stage is cpt.CompilationStage.ASSEMBLE,
-        signal_mapping,
-    )
+    (well_typed, context) = type_check.type_check(program, config)
 
     if not well_typed:
         log.error(MODULE_CODE, "Failed type check")
@@ -447,7 +443,7 @@ def compile(
         serialize.write_outputs(
             program,
             context,
-            options.input_path,
+            config.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
@@ -459,17 +455,17 @@ def compile(
     # ----------------------------------
     # Transforms
     # ----------------------------------
-    util.setup_work_dir()
+    util.setup_dir(config.workdir)
 
     log.debug(MODULE_CODE, 1, "Performing passes")
-    for cpass in [t for t in passes.PASS_LIST if t in options.passes]:
+    for cpass in [t for t in passes.PASS_LIST if t in enabled_passes]:
         cpass(program, context)
 
     if only_compile:
         serialize.write_outputs(
             program,
             context,
-            options.input_path,
+            config.input_path,
             write_c2po_filename,
             write_prefix_filename,
             write_mltl_filename,
@@ -477,32 +473,32 @@ def compile(
             write_smt_dir,
         )
         if not keep:
-            util.cleanup_work_dir()
+            util.cleanup_dir(config.workdir)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
     # Assembly
     # ----------------------------------
-    if not options.output_path:
-        log.error(MODULE_CODE, f"Output path invalid: {options.output_path}")
+    if not config.output_path:
+        log.error(MODULE_CODE, f"Output path invalid: {config.output_path}")
         if not keep:
-            util.cleanup_work_dir()
+            util.cleanup_dir(config.workdir)
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
-        program, context, quiet, options.endian_sigil
+        program, context, quiet, config.endian_sigil
     )
 
     if not quiet:
         [print(instr) for instr in assembly]
 
-    with open(options.output_path, "wb") as f:
+    with open(config.output_path, "wb") as f:
         f.write(binary)
 
     serialize.write_outputs(
         program,
         context,
-        options.input_path,
+        config.input_path,
         write_c2po_filename,
         write_prefix_filename,
         write_mltl_filename,
@@ -511,6 +507,6 @@ def compile(
     )
 
     if not keep:
-        util.cleanup_work_dir()
+        util.cleanup_dir(config.workdir)
 
     return ReturnCode.SUCCESS
