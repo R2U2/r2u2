@@ -1090,7 +1090,7 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
 
     log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
 
-    log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
+    # log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
     log.debug(MODULE_CODE, 1, "Optimizing via E-Graph")
 
     # flatten_multi_operators(program, context)
