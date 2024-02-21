@@ -5,10 +5,10 @@ From: ubuntu:22.04
     mkdir ${SINGULARITY_ROOTFS}/opt/compiler
 
 %files
-    ../compiler/c2po /opt/compiler
-    ../compiler/test /opt/compiler
-    ../compiler/c2po.py /opt/compiler
-    ../script.py /opt
+    compiler/c2po /opt/compiler
+    compiler/test /opt/compiler
+    compiler/c2po.py /opt/compiler
+    script.py /opt
 
 %post
     apt-get -y update
@@ -19,8 +19,6 @@ From: ubuntu:22.04
     cd /opt/compiler/c2po/egglog
     cargo build
 
-    alias script="python3 /opt/script.py"
-
 %environment
     export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -30,7 +28,7 @@ From: ubuntu:22.04
 
 %runscript
     cd /opt/
-    python3 script.py
+    python3 script.py $*
     cd "$HOME"
     cat /opt/results.csv > results.csv
 
