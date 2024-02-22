@@ -110,10 +110,6 @@ class EGraph:
 
             enode = ENode.from_json(enode_id, content["nodes"])
 
-            # If this is a temporal op with interval [0,0] then it's redundant, so don't add it
-            if enode.interval and enode.interval.lb == 0 and enode.interval.ub == 0:
-                continue
-
             if enode.eclass_id not in eclasses:
                 eclasses[enode.eclass_id] = {enode}
             else:

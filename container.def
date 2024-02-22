@@ -12,13 +12,10 @@ From: rust:1.76
 
 %post
     apt-get -y update
-    apt-get -y install python3 z3 xz-utils libc6 build-essential curl
+    apt-get -y install python3 z3
 
     cd /opt/compiler/c2po/egglog
     cargo build --release
-
-%environment
-    export PATH="$HOME/.cargo/bin:$PATH"
 
 %test
     cd /opt/compiler/test
