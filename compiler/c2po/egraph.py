@@ -17,7 +17,7 @@ INF = 1_000_000_000
 
 SRC_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "debug" / "egglog"
+EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "release" / "egglog"
 PRELUDE_PATH = SRC_DIR / "mltl.egg"
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
