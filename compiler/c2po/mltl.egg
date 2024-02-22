@@ -20,41 +20,41 @@
 
 (ruleset mltl-rewrites)
 
-(rewrite
-  (Not (Bool true))
-  (Bool false)
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (Not (Bool true))
+;  (Bool false)
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite
-  (Not (Bool false))
-  (Bool true)
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (Not (Bool false))
+;  (Bool true)
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite
-  (And2 (Bool true) a)
-  a
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (And2 (Bool true) a)
+;  a
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite
-  (And2 (Bool false) a)
-  (Bool false)
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (And2 (Bool false) a)
+;  (Bool false)
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite
-  (Or2 (Bool true) a)
-  (Bool true)
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (Or2 (Bool true) a)
+;  (Bool true)
+;  :ruleset mltl-rewrites
+;)
 
-(rewrite
-  (Or2 (Bool false) a)
-  a
-  :ruleset mltl-rewrites
-)
+;(rewrite
+;  (Or2 (Bool false) a)
+;  a
+;  :ruleset mltl-rewrites
+;)
 
 (birewrite
   (And2 a b)
@@ -227,8 +227,8 @@
   :ruleset mltl-rewrites
 )
 
-(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
-(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
-(rewrite (Until (Interval 0 0) a b) b :ruleset mltl-rewrites)
+;(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+;(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
+;(rewrite (Until (Interval 0 0) a b) b :ruleset mltl-rewrites)
 
 
