@@ -20,41 +20,49 @@
 
 (ruleset mltl-rewrites)
 
-;(rewrite
-;  (Not (Bool true))
-;  (Bool false)
-;  :ruleset mltl-rewrites
-;)
+(rewrite
+  (Not (Bool true))
+  (Bool false)
+  :ruleset mltl-rewrites
+)
 
-;(rewrite
-;  (Not (Bool false))
-;  (Bool true)
-;  :ruleset mltl-rewrites
-;)
+(rewrite
+  (Not (Bool false))
+  (Bool true)
+  :ruleset mltl-rewrites
+)
 
-;(rewrite
-;  (And2 (Bool true) a)
-;  a
-;  :ruleset mltl-rewrites
-;)
+; this rule makes manual extraction impossible
+; introduces cycles in the EGraph that are not just self-loops --> no way to determine the root eclass
+(rewrite
+  (Not (Not a))
+  a
+  :ruleset mltl-rewrites
+)
 
-;(rewrite
-;  (And2 (Bool false) a)
-;  (Bool false)
-;  :ruleset mltl-rewrites
-;)
+(rewrite
+  (And2 (Bool true) a)
+  a
+  :ruleset mltl-rewrites
+)
 
-;(rewrite
-;  (Or2 (Bool true) a)
-;  (Bool true)
-;  :ruleset mltl-rewrites
-;)
+(rewrite
+  (And2 (Bool false) a)
+  (Bool false)
+  :ruleset mltl-rewrites
+)
 
-;(rewrite
-;  (Or2 (Bool false) a)
-;  a
-;  :ruleset mltl-rewrites
-;)
+(rewrite
+  (Or2 (Bool true) a)
+  (Bool true)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Bool false) a)
+  a
+  :ruleset mltl-rewrites
+)
 
 (birewrite
   (And2 a b)
@@ -227,8 +235,18 @@
   :ruleset mltl-rewrites
 )
 
+; erroneous -- empty trace satsifies "G[0,0] a" but not "a"
 ;(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+
+; these can be bad if the resulting expression has a Global as its top expr 
 ;(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
-;(rewrite (Until (Interval 0 0) a b) b :ruleset mltl-rewrites)
+
+; this is safe -- maintains trace length constraint but removes binary op
+(rewrite 
+  (Until (Interval 0 0) a b) 
+  (Future (Interval 0 0) b) 
+  :ruleset mltl-rewrites
+)
+
 
 

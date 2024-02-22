@@ -1112,14 +1112,17 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         sat_result = sat.check_equiv(old, new, context)
 
         if sat_result is sat.SatResult.UNSAT:
-            old.replace(new)
             equiv_result = "equiv"
         elif sat_result is sat.SatResult.SAT:
-            log.error(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
+            # log.error(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
             equiv_result = "not-equiv"
         else:
-            log.error(MODULE_CODE, "E-Graph optimization could not be validated, defaulting to non-optimized formula")
+            # log.error(MODULE_CODE, "E-Graph optimization could not be validated, still using optimized formula")
             equiv_result = "unknown"
+
+        # FIXME: only for benchmarking -- 
+        # change this to only replace if proved equiv after done with benchmarking
+        old.replace(new)
 
         compute_scq_sizes(program, context)
 

@@ -1,4 +1,12 @@
 {
+    "egraph": [
+        {
+            "input": "egraph/and_global_1.mltl", 
+            "expected_prefix": "egraph/and_global_1.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        }
+
+    ],
     "atomic_checkers": [
         {
             "input": "atomic_checkers/bool.c2po", 

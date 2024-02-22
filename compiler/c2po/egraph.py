@@ -31,15 +31,16 @@ class ENode:
     op: str
     interval: Optional[types.Interval]
     string: Optional[str]
+    value: Optional[bool]
     child_eclass_ids: list[EClassID]
     eclass_id: EClassID
-    has_self_loop: bool = False
+    has_back_edge: bool = False
 
     @staticmethod
     def from_json(id: str, content: dict) -> ENode:
         """Return an `ENode` from egglog-generated JSON, integrating Interval data into a temporal operators ENode."""
         enode_content = content[id]
-        child_eclass_ids = [content[c]["eclass"] for c in enode_content["children"] if "Interval" not in c and "String" not in c]
+        child_eclass_ids = [content[c]["eclass"] for c in enode_content["children"] if "Interval" not in c and "String" not in c and "bool" not in c]
 
         if enode_content["op"] in {"Global", "Future", "Until", "Release"}:
             # Temporal op "G[4,10] (...)" should look like:
@@ -64,28 +65,117 @@ class ENode:
             lb = int(content[lb_id]["op"])
             ub = int(content[ub_id]["op"])
 
-            return ENode(ENodeID(id), enode_content["op"], types.Interval(lb,ub), None, child_eclass_ids, enode_content["eclass"])
+            return ENode(ENodeID(id), enode_content["op"], types.Interval(lb,ub), None, None, child_eclass_ids, enode_content["eclass"])
         elif enode_content["op"][0:3] == "Var":
             # Var "a0" should look like:
             # "Var-abc":   {"op"="Var","children"=["String-def"],...}
             # "String-def": {"op"="a0",...}
-            string_id = [i for i in enode_content["children"] if "String" in i]
+            bool_id = [i for i in enode_content["children"] if "String" in i]
 
-            if len(string_id) != 1:
-                raise ValueError(f"Invalid number of strings for var {id} ({len(string_id)})")
+            if len(bool_id) != 1:
+                raise ValueError(f"Invalid number of strings for var {id} ({len(bool_id)})")
             
-            string_id = string_id[0]
-            string_value = content[string_id]["op"]
+            bool_id = bool_id[0]
+            string_value = content[bool_id]["op"]
             
-            return ENode(ENodeID(id), enode_content["op"], None, string_value, child_eclass_ids, enode_content["eclass"])
+            return ENode(ENodeID(id), enode_content["op"], None, string_value, None, child_eclass_ids, enode_content["eclass"])
+        elif enode_content["op"][0:4] == "Bool":
+            # Bool true should look like:
+            # "Bool-abc":   {"op"="Bool","children"=["bool-def"],...}
+            # "bool-def": {"op"="true",...}
+            bool_id = [i for i in enode_content["children"] if "bool" in i]
+
+            if len(bool_id) != 1:
+                raise ValueError(f"Invalid number of bools for var {id} ({len(bool_id)})")
+            
+            bool_id = bool_id[0]
+            bool_value = True if content[bool_id]["op"].find("true") > -1 else False
+            
+            return ENode(ENodeID(id), enode_content["op"], None, None, bool_value, child_eclass_ids, enode_content["eclass"])
         else:
-            return ENode(ENodeID(id), enode_content["op"], None, None, child_eclass_ids, enode_content["eclass"])
+            return ENode(ENodeID(id), enode_content["op"], None, None, None, child_eclass_ids, enode_content["eclass"])
     
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, ENode) and self.enode_id ==__value.enode_id
     
     def __hash__(self) -> int:
         return hash(self.enode_id)
+
+
+def _is_match_top_level(enode: ENode, expr: cpt.Expression, context: cpt.Context) -> bool:
+    """Returns True if `enode` matches the top-level expression of `expr`."""
+    if enode.op == "Bool":
+        return isinstance(expr, cpt.Constant) and enode.value == expr.value
+    elif enode.op == "Var" and enode.string:
+        return expr in context.atomic_id and int(enode.string[2:-1]) == context.atomic_id[expr]
+    elif enode.op == "Not":
+        return cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE)
+    elif enode.op[0:3] == "And":
+        return cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND) and len(expr.children) == len(enode.child_eclass_ids)
+    elif enode.op[0:2] == "Or":
+        return cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR) and len(expr.children) == len(enode.child_eclass_ids)
+    elif enode.op == "Equiv":
+        return cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV)
+    elif enode.op == "Implies":
+        return cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES)
+    elif enode.op == "Global":
+        return isinstance(expr, cpt.TemporalOperator) and enode.interval == expr.interval # type: ignore
+    elif enode.op == "Future":
+        return cpt.is_operator(expr, cpt.OperatorKind.FUTURE) and enode.interval == expr.interval # type: ignore
+    elif enode.op == "Until":
+        return cpt.is_operator(expr, cpt.OperatorKind.UNTIL) and enode.interval == expr.interval # type: ignore
+    elif enode.op == "Release":
+        return cpt.is_operator(expr, cpt.OperatorKind.RELEASE) and enode.interval == expr.interval # type: ignore
+    else:
+        return False
+
+
+def _find_match(expr: cpt.Expression, enodes: set[ENode], eclasses: dict[EClassID, set[ENode]], context: cpt.Context) -> Optional[ENode]:
+    """Returns the ENode in `enodes` that matches `expr`, if one exists."""
+    num_matches_needed = 0
+    for _ in cpt.postorder(expr, context):
+        num_matches_needed += 1
+
+    for candidate in enodes:
+        if not _is_match_top_level(candidate, expr, context):
+            continue
+
+        log.debug(MODULE_CODE, 2, "---------------")
+        log.debug(MODULE_CODE, 2, f"{num_matches_needed}")
+
+        num_matches = 1
+        stack: list[tuple[cpt.Expression, ENode]] = []
+
+        stack.append((expr, candidate))
+
+        while len(stack) > 0:
+            cur_expr,cur_enode = stack.pop()
+
+            log.debug(MODULE_CODE, 2, repr(cur_expr))
+            log.debug(MODULE_CODE, 2, cur_enode.op)
+
+            for child_expr,child_eclass_id in zip(cur_expr.children, cur_enode.child_eclass_ids):
+                log.debug(MODULE_CODE, 2, f"\t{repr(child_expr)}")
+                for c in eclasses[child_eclass_id]:
+                    log.debug(MODULE_CODE, 2, f"\t\t{c.op}")
+
+                child_enode_matches = [c for c in eclasses[child_eclass_id] if _is_match_top_level(c, child_expr, context)]
+                log.debug(MODULE_CODE, 2, f"\t{[c.op for c in child_enode_matches]}")
+
+                if len(child_enode_matches) == 0:
+                    log.debug(MODULE_CODE, 2, f"\t\tnum_matches = {num_matches} - 1 = {num_matches - 1}")
+                    num_matches -= 1
+                    break
+
+                log.debug(MODULE_CODE, 2, f"\t\tnum_matches = {num_matches} + {len(child_enode_matches)} = {num_matches + len(child_enode_matches)}")
+                num_matches += len(child_enode_matches)
+
+                for child_enode in child_enode_matches:
+                    stack.append((child_expr,child_enode))
+
+        if num_matches_needed <= num_matches:
+            log.debug(MODULE_CODE, 2, candidate.enode_id)
+            return candidate
 
 
 @dataclasses.dataclass
@@ -99,9 +189,10 @@ class EGraph:
         return EGraph(EClassID(""), {})
 
     @staticmethod
-    def from_json(content: dict) -> EGraph:
+    def from_json(content: dict, original: cpt.Expression, context: cpt.Context) -> EGraph:
         """Construct a new `EGraph` from a dict representing the JSON output by `egglog`."""
         eclasses: dict[EClassID, set[ENode]] = {}
+        enodes: set[ENode] = set()
 
         for enode_id,_ in content["nodes"].items():
             # do not add intervals nor i64s to the EGraph
@@ -109,6 +200,7 @@ class EGraph:
                 continue
 
             enode = ENode.from_json(enode_id, content["nodes"])
+            enodes.add(enode)
 
             if enode.eclass_id not in eclasses:
                 eclasses[enode.eclass_id] = {enode}
@@ -119,52 +211,45 @@ class EGraph:
             log.error(MODULE_CODE, "Empty EGraph")
             return EGraph(EClassID(""),{})
         
-        parents: dict[str, set[str]] = {i:set() for i in eclasses.keys()}
+        # to find the root node, we iterate through all the ENodes in the EGraph and 
+        # attempt to match against the original expression -- only the root ENode (EClass) will match
+        root_enode = _find_match(original, enodes, eclasses, context)
 
-        for eclass_id,nodes in eclasses.items():
-            for enode in nodes:
-                for child_eclass_id in enode.child_eclass_ids:
-                    if child_eclass_id == enode.eclass_id:
-                        enode.has_self_loop = True
-                    parents[child_eclass_id].add(eclass_id)
+        if root_enode:
+            root_eclass_candidates = [root_enode.eclass_id]
+        else:
+            root_eclass_candidates = []
 
-        root_candidates = [id for id,pars in parents.items() if len(pars) == 0 or all([id == p for p in pars])]
-
-        if len(root_candidates) == 1:
-            return EGraph(EClassID(root_candidates[0]), eclasses)
-        elif len(root_candidates) > 1:
-            raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_candidates}")
+        if len(root_eclass_candidates) == 1:
+            return EGraph(EClassID(root_eclass_candidates[0]), eclasses)
+        elif len(root_eclass_candidates) > 1:
+            raise ValueError(f"Many root candidates -- possible self-loop back to true root node {root_eclass_candidates}")
         else:
             raise ValueError("No root candidates")
-    
+        
     def traverse(self):
         stack: list[tuple[ENode,bool]] = []
-        done: set[ENodeID] = set()
+        visited: set[EClassID] = set()
 
-        [stack.append((enode, False)) for enode in self.eclasses[self.root] if not enode.has_self_loop]
+        [stack.append((enode, False)) for enode in self.eclasses[self.root]]
 
         while len(stack) > 0:
             (cur_enode, seen) = stack.pop()
 
-            # print(f"{cur_enode.op} : {seen} : {cur_enode.enode_id in done} : {cur_enode.has_self_loop}\n\t{cur_enode.enode_id}")
-
-            if seen and cur_enode.enode_id not in done:
-                done.add(cur_enode.enode_id)
+            if seen:
+                # log.debug(MODULE_CODE, 2, cur_enode.op)
                 yield cur_enode
-                continue
-            elif cur_enode.enode_id in done:
                 continue
 
             stack.append((cur_enode, True))
+            visited.add(cur_enode.eclass_id)
 
-            # print(f"1: {cur_enode.op} ({cur_enode.enode_id})")
+            for child_eclass_id in cur_enode.child_eclass_ids:
+                if child_eclass_id in visited:
+                    # cur_enode.has_back_edge = True
+                    continue
 
-            for enode in [e for e in self.eclasses[cur_enode.eclass_id] if not e.has_self_loop]:
-                for child_eclass_id in enode.child_eclass_ids:
-                    # for child in self.eclasses[child_eclass_id]:
-                    #     if not child.has_self_loop:
-                    #         print(f"2: {child.op} ({child.enode_id})")
-                    [stack.append((child, False)) for child in self.eclasses[child_eclass_id] if not child.has_self_loop]
+                [stack.append((child, False)) for child in self.eclasses[child_eclass_id]]
 
     def compute_propagation_delays(self) -> tuple[dict[EClassID, int], dict[EClassID, int]]:
         """Returns a pair of dicts mapping EClass IDs to propagation delays (PDs). The first dict maps to the maximum best-case PD (BPD) of the EClass and the second maps to the minimum worst-case PD (WPD).
@@ -358,10 +443,16 @@ class EGraph:
         cost: dict[ENodeID, int] = self.compute_cost()
         total_cost: dict[ENodeID, int] = {}
 
+        for enode in self.traverse():
+            total_cost[enode.enode_id] = INF
+            rep[enode.eclass_id] = (enode, INF)
+
         # TODO: can the rep for an EClass change after one of its parents' rep has been computed?
         for enode in self.traverse():
             child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
             total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
+
+            log.debug(MODULE_CODE, 2, f"cost({enode.op}) = {total_cost[enode.enode_id]}")
 
             if enode.eclass_id not in rep or total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
@@ -451,7 +542,7 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(EGGLOG_OUTPUT, "r") as f:
         egglog_output = json.load(f)
 
-    egraph = EGraph.from_json(egglog_output)
+    egraph = EGraph.from_json(egglog_output, spec.get_expr(), context)
 
     end = util.get_rusage_time()
     egraph_time = end - start
