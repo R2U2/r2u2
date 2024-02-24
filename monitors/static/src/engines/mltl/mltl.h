@@ -23,7 +23,7 @@ typedef enum {
     R2U2_MLTL_OP_FT_OR           = 0b10101,
     R2U2_MLTL_OP_FT_IMPLIES      = 0b10100,
 
-    R2U2_MLTL_OP_FT_NAND         = 0b10011,
+    R2U2_MLTL_OP_FT_PROB         = 0b10011,
     R2U2_MLTL_OP_FT_NOR          = 0b10010,
     R2U2_MLTL_OP_FT_XOR          = 0b10001,
     R2U2_MLTL_OP_FT_EQUIVALENT   = 0b10000,

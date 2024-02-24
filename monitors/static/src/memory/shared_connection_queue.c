@@ -34,7 +34,7 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_ptr) {
   R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Length: (%d)\n", (void*)scq->queue, scq->length);
-  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
+  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
   #if R2U2_DEBUG
   r2u2_scq_print(scq, NULL);
   #endif
@@ -50,7 +50,7 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     R2U2_DEBUG_PRINT("\t\tInitial Write\n");
     (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
     *wr_ptr = (*wr_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth,  (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -77,7 +77,7 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     }else{
       *wr_ptr = (*wr_ptr + 1) % scq->length;
     }
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -97,14 +97,8 @@ r2u2_verdict r2u2_scq_pop(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
 //                Need to verify algotihmic implication, though may reduce redundent data
 r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desired_time_stamp, bool predict) {
   R2U2_DEBUG_PRINT("\t\tSCQ before finding read:\n");
-  r2u2_scq_print(scq);
   // NOTE: This should be the child SCQ, but the parent's read ptr
   // this ensureds CSE works by allowing many readers
-
-  // Checks if trying to read predicted data when not in predictice mode
-  if(!predict && *rd_ptr == scq->pred_wr_ptr){
-    return true; 
-  }
 
   r2u2_time *wr_ptr;
   if(predict){
@@ -114,10 +108,15 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
   }
 
   R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");
-  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth);
+  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d, %f)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth, (scq->queue)[-((ptrdiff_t)*rd_ptr)].prob);
   #if R2U2_DEBUG
   r2u2_scq_print(scq, rd_ptr);
   #endif
+
+  // Checks if trying to read predicted data when not in predictice mode
+  if(!predict && *rd_ptr == scq->pred_wr_ptr){
+    return true; 
+  }
 
   if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time >= *desired_time_stamp && (scq->queue)[-((ptrdiff_t)*rd_ptr)].time != r2u2_infinity) {
     // New data available

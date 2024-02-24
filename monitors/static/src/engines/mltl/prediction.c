@@ -74,13 +74,13 @@ r2u2_verdict get_predicted_operand(r2u2_monitor_t *monitor, r2u2_mltl_instructio
 
     switch (op->opnd_type) {
       case R2U2_FT_OP_DIRECT:
-          res = (r2u2_verdict){r2u2_infinity, op->value};
+          res = (r2u2_verdict){r2u2_infinity, op->value, 1.0};
           break;
       
       case R2U2_FT_OP_ATOMIC:
           // TODO(bckempa) This might remove the need for load...
           source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
-          res = (r2u2_verdict){source_scq->desired_time_stamp, (*(monitor->atomic_buffer[0]))[op->value]};
+          res = (r2u2_verdict){source_scq->desired_time_stamp, (*(monitor->atomic_buffer[0]))[op->value],(*(monitor->atomic_prob_buffer))[op->value]};
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
@@ -107,11 +107,68 @@ r2u2_verdict get_predicted_operand(r2u2_monitor_t *monitor, r2u2_mltl_instructio
     return res;
 }
 
+static r2u2_status_t r2u2_scq_push_predicted(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_ptr) {
+  R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Length: (%d)\n", (void*)scq->queue, scq->length);
+  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+  #if R2U2_DEBUG
+  r2u2_scq_print(scq, NULL);
+  #endif
+
+  // When overwriting predicted data with real data reset pred_wr_ptr
+  if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){
+    scq->pred_wr_ptr = r2u2_infinity;
+  }
+
+  // TODO(bckempa): Verify compiler removes redundant modulo arith, else inline
+  if ((scq->queue)[-((ptrdiff_t)*wr_ptr)].time == r2u2_infinity) {
+    // Initialization behavior
+    R2U2_DEBUG_PRINT("\t\tInitial Write\n");
+    (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
+    *wr_ptr = (*wr_ptr + 1) % scq->length;
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth,  (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    #if R2U2_DEBUG
+    r2u2_scq_print(scq, NULL);
+    #endif
+    return R2U2_OK;
+  }
+  #ifndef R2U2_PROBABILISTIC
+  if (((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].truth == res->truth) && \
+      ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].time < res->time) && \
+      (scq->wr_ptr != scq->pred_wr_ptr)) {
+    R2U2_DEBUG_PRINT("\t\tAggregate Write\n");
+    // Aggregate write, overwrite the previous cell to update timestamp
+    (scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))] = *res;
+
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
+    #if R2U2_DEBUG
+    r2u2_scq_print(scq, NULL);
+    #endif
+    return R2U2_OK;
+  } else 
+  #endif
+  {
+    // Standard write
+    R2U2_DEBUG_PRINT("\t\tStandard Write\n");
+    (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
+    if(wr_ptr == &scq->pred_wr_ptr){ // Ensure that predicted data never overwrites real relevant data
+      *wr_ptr = (((*wr_ptr + 1) % scq->length) == ((scq->wr_ptr + ((scq->length-1)/2)+1) % scq->length)) ? *wr_ptr = scq->wr_ptr : ((*wr_ptr + 1) % scq->length);
+    }else{
+      *wr_ptr = (*wr_ptr + 1) % scq->length;
+    }
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    #if R2U2_DEBUG
+    r2u2_scq_print(scq, NULL);
+    #endif
+    return R2U2_OK;
+  }
+  return R2U2_ERR_OTHER;
+}
+
 static r2u2_status_t push_result_predicted(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_verdict *res) {
   // Pushes result to SCQ, sets tau and flags progress if nedded
   r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
 
-  r2u2_scq_push(scq, res, &scq->pred_wr_ptr);
+  r2u2_scq_push_predicted(scq, res, &scq->pred_wr_ptr);
   R2U2_DEBUG_PRINT("\t(%d,%d)\n", res->time, res->truth);
 
   scq->desired_time_stamp = (res->time)+1;
@@ -122,7 +179,7 @@ static r2u2_status_t push_result_predicted(r2u2_monitor_t *monitor, r2u2_mltl_in
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
+r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_verdict* scq_prob_buffer) {
   r2u2_verdict op0, op1, res;
   r2u2_status_t error_cond;
   r2u2_bool op0_rdy, op1_rdy;
@@ -150,8 +207,33 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
       if (predicted_operand_data_ready(monitor, instr, 0)) {
         op0 = get_predicted_operand(monitor, instr, 0);
 
-        // We only need to see every timesetp once, even if we don't output
+        // We only need to see every timestep once, even if we don't output
         scq->desired_time_stamp = (op0.time)+1;
+
+        #ifdef R2U2_PROBABILISTIC
+        for(int i = 0; i < (scq->interval_end-scq->interval_start); i++){
+          R2U2_DEBUG_PRINT("Previous value at %d: (%d, %s, %f)\n", i, scq_prob_buffer[i].time, scq_prob_buffer[i].truth ? "T" : "F", scq_prob_buffer[i].prob);
+        }
+          for(int i = 0; i < (scq->interval_end-scq->interval_start); i++){
+            if(scq_prob_buffer[i].time == op0.time-scq->interval_end && (int)scq_prob_buffer[i].time >= 0){
+              R2U2_DEBUG_PRINT("Pushing %d with previous value: (%d, %s, %f)\n", op0.time, scq_prob_buffer[i].time, scq_prob_buffer[i].truth ? "T" : "F", scq_prob_buffer[i].prob);
+              res = (r2u2_verdict){op0.time - scq->interval_end, scq_prob_buffer[i].truth && op0.truth, scq_prob_buffer[i].prob * op0.prob};
+              r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
+              R2U2_DEBUG_PRINT("Initializing %d to overwrite %d with: (%d, %s, %f)\n", op0.time, op0.time-scq->interval_end, op0.time, op0.truth ? "T" : "F", op0.prob);
+              scq_prob_buffer[i] = (r2u2_verdict){op0.time, op0.truth, op0.prob}; 
+            }
+            else if((int)scq_prob_buffer[i].time > (int)(op0.time-scq->interval_end) && (int)scq_prob_buffer[i].time >= 0){
+              R2U2_DEBUG_PRINT("Adding %d to previous values: (%d, %s, %f)\n", op0.time, scq_prob_buffer[i].time, scq_prob_buffer[i].truth ? "T" : "F", scq_prob_buffer[i].prob);
+              scq_prob_buffer[i].truth = scq_prob_buffer[i].truth && op0.truth;
+              scq_prob_buffer[i].prob = scq_prob_buffer[i].prob * op0.prob;
+            }
+            else{
+              R2U2_DEBUG_PRINT("Initializing %d with: (%d, %s, %f)\n", op0.time, op0.time, op0.truth ? "T" : "F", op0.prob);
+              scq_prob_buffer[i] = op0;
+              break;
+            }
+          }
+        #else
 
         // interval compression aware rising edge detection
         if(op0.truth && !scq->previous.truth) {
@@ -160,16 +242,18 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
         }
 
         if (op0.truth && (op0.time >= scq->interval_end - scq->interval_start + scq->edge) && (op0.time >= scq->interval_end)) {
-          res = (r2u2_verdict){op0.time - scq->interval_end, true};
-          r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
+          res = (r2u2_verdict){op0.time - scq->interval_end, true, 1.0}; //To-Do
+          r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-        } else if (!op0.truth && (op0.time >= scq->interval_start)) {
-          res = (r2u2_verdict){op0.time - scq->interval_start, false};
-          r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
+        } 
+        else if (!op0.truth && (op0.time >= scq->interval_start)) {
+          res = (r2u2_verdict){op0.time - scq->interval_start, false, 0.0}; //To-Do
+          r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d, %d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
         }
+        #endif
 
         scq->previous = op0;
       }
@@ -198,22 +282,22 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
         if (op1.truth && (tau >= scq->max_out + scq->interval_start)) {
           // TODO(bckempa): Factor out repeated output logic
           R2U2_DEBUG_PRINT("\tRight Op True\n");
-          res = (r2u2_verdict){tau - scq->interval_start, true};
-          r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
+          res = (r2u2_verdict){tau - scq->interval_start, true, 1.0}; //To-Do
+          r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
           scq->max_out = res.time + 1;
         } else if (!op0.truth && (tau >= scq->max_out + scq->interval_start)) {
           R2U2_DEBUG_PRINT("\tLeft Op False\n");
-          res = (r2u2_verdict){tau - scq->interval_start, false};
-          r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
+          res = (r2u2_verdict){tau - scq->interval_start, false, 0.0}; //To-Do
+          r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
           scq->max_out = res.time +1;
         } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->max_out + scq->interval_end)) {
           R2U2_DEBUG_PRINT("\tTime Elapsed\n");
-          res = (r2u2_verdict){tau - scq->interval_end, false};
-          r2u2_scq_push(scq, &res, &scq->pred_wr_ptr);
+          res = (r2u2_verdict){tau - scq->interval_end, false, 0.0}; //To-Do
+          r2u2_scq_push_predicted(scq, &res, &scq->pred_wr_ptr);
           R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
           if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
           scq->max_out = res.time + 1;
@@ -237,7 +321,7 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
 
       if (predicted_operand_data_ready(monitor, instr, 0)) {
         res = get_predicted_operand(monitor, instr, 0);
-        push_result_predicted(monitor, instr, &(r2u2_verdict){res.time, !res.truth});
+        push_result_predicted(monitor, instr, &(r2u2_verdict){res.time, !res.truth, 1-res.prob});
       }
 
       error_cond = R2U2_OK;
@@ -257,31 +341,45 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
         R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", op0.time, op0.truth, op1.time, op1.truth);
         if (op0.truth && op1.truth){
           R2U2_DEBUG_PRINT("\tBoth True\n");
-          push_result_predicted(monitor, instr, &(r2u2_verdict){min(op0.time, op1.time), true});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){min(op0.time, op1.time), true, op0.prob * op1.prob});
         } else if (!op0.truth && !op1.truth) {
           R2U2_DEBUG_PRINT("\tBoth False\n");
-          push_result_predicted(monitor, instr, &(r2u2_verdict){max(op0.time, op1.time), false});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){max(op0.time, op1.time), false, op0.prob * op1.prob});
         } else if (op0.truth) {
           R2U2_DEBUG_PRINT("\tOnly Left True\n");
-          push_result_predicted(monitor, instr, &(r2u2_verdict){op1.time, false});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){op1.time, false, op0.prob * op1.prob});
         } else {
           R2U2_DEBUG_PRINT("\tOnly Right True\n");
-          push_result_predicted(monitor, instr, &(r2u2_verdict){op0.time, false});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){op0.time, false, op0.prob * op1.prob});
         }
-      } else if (op0_rdy) {
+      } 
+      #ifndef R2U2_PROBABILISTIC
+      else if (op0_rdy) {
         op0 = get_predicted_operand(monitor, instr, 0);
         R2U2_DEBUG_PRINT("\tOnly Left Ready: (%d, %d)\n", op0.time, op0.truth);
         if(!op0.truth) {
-          push_result_predicted(monitor, instr, &(r2u2_verdict){op0.time, false});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){op0.time, false, 0.0}); //To-Do
         }
       } else if (op1_rdy) {
         op1 = get_predicted_operand(monitor, instr, 1);
         R2U2_DEBUG_PRINT("\tOnly Right Ready: (%d, %d)\n", op1.time, op1.truth);
         if(!op1.truth) {
-          push_result_predicted(monitor, instr, &(r2u2_verdict){op1.time, false});
+          push_result_predicted(monitor, instr, &(r2u2_verdict){op1.time, false, 0.0}); //To-Do
         }
       }
+      #endif
       
+      error_cond = R2U2_OK;
+      break;
+    }
+    case R2U2_MLTL_OP_FT_PROB: {
+      R2U2_DEBUG_PRINT("\tFT PREDICT PROB\n");
+
+      if (predicted_operand_data_ready(monitor, instr, 0)) {
+        res = get_predicted_operand(monitor, instr, 0);
+        push_result_predicted(monitor, instr, &(r2u2_verdict){res.time, res.prob >= scq->prob, 1.0});
+      }
+
       error_cond = R2U2_OK;
       break;
     }
@@ -295,14 +393,27 @@ r2u2_status_t r2u2_mltl_ft_predict(r2u2_monitor_t *monitor, r2u2_mltl_instructio
   return error_cond;
 }
 
-r2u2_status_t r2u2_bz_predict(r2u2_monitor_t *monitor, r2u2_bz_instruction_t *instr, r2u2_time k_mode)
+r2u2_status_t r2u2_bz_predict(r2u2_monitor_t *monitor, r2u2_bz_instruction_t *instr, r2u2_time k_mode, float prob)
 {
     r2u2_status_t status = R2U2_OK;
-    if(instr->store && k_mode != 0) {
-        r2u2_bool prev = (*(monitor->atomic_buffer)[0])[instr->at_addr];
-        status = r2u2_bz_instruction_dispatch(monitor, instr);
-        (*(monitor->atomic_buffer)[0])[instr->at_addr] = prev && (*(monitor->atomic_buffer)[0])[instr->at_addr];
-    }else{
+    if(instr->store) {
+        if(k_mode == 0){
+          status = r2u2_bz_instruction_dispatch(monitor, instr);
+          #ifdef R2U2_PROBABILISTIC
+          (*(monitor->atomic_prob_buffer))[instr->at_addr] = ((*(monitor->atomic_buffer)[0])[instr->at_addr] ? prob : 0.0);
+          #endif
+        }
+        else{
+          r2u2_bool prev_atomic = (*(monitor->atomic_buffer)[0])[instr->at_addr];
+          status = r2u2_bz_instruction_dispatch(monitor, instr);
+          #ifdef R2U2_PROBABILISTIC
+          r2u2_float prev_prob = (*(monitor->atomic_prob_buffer))[instr->at_addr];
+          (*(monitor->atomic_prob_buffer))[instr->at_addr] = prev_prob + ((*(monitor->atomic_buffer)[0])[instr->at_addr] ? prob : 0.0);
+          #endif
+          (*(monitor->atomic_buffer)[0])[instr->at_addr] = prev_atomic && (*(monitor->atomic_buffer)[0])[instr->at_addr];
+        }
+    }
+    else{
       status = r2u2_bz_instruction_dispatch(monitor, instr);
     }
 
@@ -315,7 +426,6 @@ r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instructi
     r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)instr->instruction_data);
     if (bz_instr->store == 1 && bz_instr->at_addr == desired_atom){
       instr = &(*monitor->instruction_tbl)[curr_index];
-      bz_instructions = realloc(bz_instructions, sizeof(bz_instructions) + sizeof(r2u2_bz_instruction_t*));
       bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
       *bz_size = *bz_size + 1;
       return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, 0);
@@ -347,10 +457,10 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
         return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
       }
       case R2U2_MLTL_OP_FT_GLOBALLY:
-      case R2U2_MLTL_OP_FT_NOT: {
+      case R2U2_MLTL_OP_FT_NOT: 
+      case R2U2_MLTL_OP_FT_PROB:{
         if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
           instr = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
-          mltl_instructions = realloc(mltl_instructions, sizeof(mltl_instructions) + sizeof(r2u2_mltl_instruction_t*));
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -363,14 +473,12 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
         r2u2_status_t status = R2U2_OK;
         if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
           instr = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
-          mltl_instructions = realloc(mltl_instructions, sizeof(mltl_instructions) + sizeof(r2u2_mltl_instruction_t*));
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
         }
         if(status == R2U2_OK && (mltl_instr->op2.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op2.opnd_type == R2U2_FT_OP_SUBFORMULA)){
           instr = &(*monitor->instruction_tbl)[mltl_instr->op2.value+difference];
-          mltl_instructions = realloc(mltl_instructions, sizeof(mltl_instructions) + sizeof(r2u2_mltl_instruction_t*));
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -382,7 +490,6 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_MLTL_OP_FT_RELEASE:
       case R2U2_MLTL_OP_FT_OR:
       case R2U2_MLTL_OP_FT_IMPLIES:
-      case R2U2_MLTL_OP_FT_NAND:
       case R2U2_MLTL_OP_FT_NOR:
       case R2U2_MLTL_OP_FT_XOR:
       case R2U2_MLTL_OP_FT_EQUIVALENT: {
@@ -412,7 +519,6 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_BZ_OP_ISQRT:
       case R2U2_BZ_OP_FSQRT: {
         instr = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
-        bz_instructions = realloc(bz_instructions, sizeof(bz_instructions) + sizeof(r2u2_bz_instruction_t*));
         bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
         *bz_size = *bz_size + 1;
         return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -442,13 +548,11 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_BZ_OP_IPOW:
       case R2U2_BZ_OP_FPOW:{
         instr = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
-        bz_instructions = realloc(bz_instructions, sizeof(bz_instructions) + sizeof(r2u2_bz_instruction_t*));
         bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
         *bz_size = *bz_size + 1;
         r2u2_status_t status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
         if(status == R2U2_OK){
           instr = &(*monitor->instruction_tbl)[bz_instr->param2.bz_addr];
-          bz_instructions = realloc(bz_instructions, sizeof(bz_instructions) + sizeof(r2u2_bz_instruction_t*));
           bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
           *bz_size = *bz_size + 1;
           return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -502,6 +606,25 @@ void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions
       scq->edge = prev_real_state[i].edge;
       scq->max_out = prev_real_state[i].max_out;
       scq->previous = prev_real_state[i].previous;
+  }
+}
+
+void prep_prediction_prob(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_verdict** scq_prob_buffer, size_t size){
+  for(size_t i = 0; i < size; i++){
+    if(instructions[i]->opcode == R2U2_MLTL_OP_FT_GLOBALLY || instructions[i]->opcode == R2U2_MLTL_OP_FT_UNTIL){
+      r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
+      scq_prob_buffer[i] = malloc(sizeof(r2u2_verdict) * (scq->interval_end - scq->interval_start));
+      for(int j = 0; j < (scq->interval_end - scq->interval_start); j++){
+          scq_prob_buffer[i][j] = (r2u2_verdict){r2u2_infinity, false, 0.0};
+      }
+      if(scq->previous.truth){
+        int temp = 0;
+        for(int j = max((int)scq->edge, (int)(monitor->time_stamp - scq->interval_end)); j <= monitor->time_stamp; j++){
+          scq_prob_buffer[i][temp] = (r2u2_verdict){j, true, 1.0};
+          temp++;
+        }
+      }
+    }
   }
 }
 

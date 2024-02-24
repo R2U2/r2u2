@@ -48,6 +48,7 @@ typedef struct {
   r2u2_signal_vector_t    *signal_vector;
   r2u2_value_buffer_t     *value_buffer;
   r2u2_atomic_buffer_t    atomic_buffer;
+  r2u2_atomic_prob_buffer_t *atomic_prob_buffer;
   r2u2_atomic_buffer_t    past_time_result_buffer;
   r2u2_box_queue_memory_t *past_time_queue_mem;
   r2u2_scq_queue_memory_t *future_time_queue_mem;
@@ -75,6 +76,7 @@ typedef struct {
     &(void*[R2U2_MAX_SIGNALS]){0}, \
     &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
+    &(r2u2_float [R2U2_MAX_ATOMICS]){0}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     &(uint8_t [R2U2_MAX_BOXQ_BYTES]){0}, \
     &(uint8_t [R2U2_MAX_SCQ_BYTES]){0}, \

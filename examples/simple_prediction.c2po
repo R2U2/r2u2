@@ -2,5 +2,5 @@ INPUT
     s0,s1,s2: bool;
 
 FTSPEC
-    s0 && (F[0,3](s1 && s2)) with d = -5;
+    P_0.87 (s0 && (F[0,3](s1 && s2))) with d = -5;
     s0 && (F[0,3](s1 && s2));

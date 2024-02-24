@@ -112,6 +112,7 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
 
   r2u2_scq_push(scq, res, &scq->wr_ptr);
+
   R2U2_DEBUG_PRINT("\t(%d,%d)\n", res->time, res->truth);
 
   scq->desired_time_stamp = (res->time)+1;
@@ -180,10 +181,13 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             scq->interval_end = (r2u2_time) instr->memory_reference;
           } else if(instr->op2.value == 2){
             R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tDeadline: %d\n", instr->op1.value, instr->memory_reference);
-            scq->deadline = (r2u2_time) instr->memory_reference;
+            scq->deadline = (int) instr->memory_reference;
           } else if(instr->op2.value == 3){
             R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tK: %d\n", instr->op1.value, instr->memory_reference);
             scq->k_modes = (r2u2_time) instr->memory_reference;
+          } else if(instr->op2.value == 4){
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tProbability: %d\n", instr->op1.value, instr->memory_reference);
+            scq->prob = instr->memory_reference / 1000000.0;
           }
           break;
         }
@@ -233,9 +237,9 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           operand_data_ready(monitor, instr, 0);
           res = get_operand(monitor, instr, 0);
           if(res.time == r2u2_infinity || res.time < index){ // last i produced < index
-            r2u2_time* k_trace_offset = (int*)malloc(sizeof(r2u2_time)*scq->k_modes);
-            r2u2_mltl_instruction_t** mltl_instructions = malloc(sizeof(r2u2_mltl_instruction_t*));
-            r2u2_bz_instruction_t** bz_instructions = malloc(sizeof(r2u2_bz_instruction_t*));
+            r2u2_time k_trace_offset[scq->k_modes];
+            r2u2_mltl_instruction_t* mltl_instructions[R2U2_MAX_INSTRUCTIONS];
+            r2u2_bz_instruction_t* bz_instructions[R2U2_MAX_BZ_INSTRUCTIONS];
             size_t num_mltl_instructions, num_bz_instructions = 0;
             // Find child instructions for ft and booleanizer assembly (atomic checker not currently supported)
             r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], mltl_instructions, &num_mltl_instructions, 
@@ -243,7 +247,10 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             find_trace_start_index(monitor, k_trace_offset, scq->k_modes);
             r2u2_scq_state_t prev_real_state[num_mltl_instructions];
             prep_prediction_scq(monitor, mltl_instructions, prev_real_state, num_mltl_instructions);
+            r2u2_verdict* scq_prob_buffer[num_mltl_instructions];
+            prep_prediction_prob(monitor, mltl_instructions, scq_prob_buffer, num_mltl_instructions);
             r2u2_signal_vector_t *signal_vector_original = monitor->signal_vector;
+
             r2u2_time iteration = 0;
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
@@ -251,14 +258,16 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               for(int j = 0; j < (int)scq->k_modes; j++){
                 monitor->signal_vector = &(*(signal_vector_original))[k_trace_offset[j]+(iteration*monitor->num_signals)];
                 for(int i = num_bz_instructions - 1; i >= 0; i--){ // dispatch booleanizer instructions
-                  r2u2_bz_predict(monitor, bz_instructions[i],j);
+                  R2U2_DEBUG_PRINT("%d.%d.%zu.%d\n",monitor->time_stamp,iteration, i, j);
+                  r2u2_bz_predict(monitor, bz_instructions[i],j, 1.0/scq->k_modes);
                 }
               }
               iteration++;
 
               while(true){ // continue until no progress is made
                 for(int i = num_mltl_instructions - 1; i >= 0; i--){ // dispatch ft instructions
-                  r2u2_mltl_ft_predict(monitor, mltl_instructions[i]);
+                  R2U2_DEBUG_PRINT("%d.%d.%zu.%d\n",monitor->time_stamp, iteration-1, i, monitor->progress);
+                  r2u2_mltl_ft_predict(monitor, mltl_instructions[i], scq_prob_buffer[i]);
                 }
                 if(predicted_operand_data_ready(monitor, instr, 0)){
                   res = get_predicted_operand(monitor, instr, 0);
@@ -454,14 +463,15 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
 
-    case R2U2_MLTL_OP_FT_NAND: {
-      R2U2_DEBUG_PRINT("\tFT NAND\n");
-      error_cond = R2U2_UNIMPL;
-      break;
-    }
-    case R2U2_MLTL_OP_FT_NOR: {
-      R2U2_DEBUG_PRINT("\tFT NOR\n");
-      error_cond = R2U2_UNIMPL;
+    case R2U2_MLTL_OP_FT_PROB: {
+      R2U2_DEBUG_PRINT("\tFT PROB\n");
+
+      if (operand_data_ready(monitor, instr, 0)) {
+        res = get_operand(monitor, instr, 0);
+        push_result(monitor, instr, &(r2u2_verdict){res.time, res.truth});
+      }
+
+      error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_FT_XOR: {

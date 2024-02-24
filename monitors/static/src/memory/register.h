@@ -30,6 +30,8 @@ typedef r2u2_value_t (r2u2_value_buffer_t)[];
 typedef r2u2_bool (r2u2_atomic_vector_t)[];
 typedef r2u2_atomic_vector_t *(r2u2_atomic_buffer_t)[2];
 
+typedef r2u2_float (r2u2_atomic_prob_buffer_t)[]; 
+
 static inline void r2u2_atomic_vector_flip(r2u2_atomic_buffer_t buf) {
   // Swap the pointers in the buffer to "move" current values to previous
   r2u2_atomic_vector_t *tmp = buf[1];
