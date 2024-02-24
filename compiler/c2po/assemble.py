@@ -185,8 +185,9 @@ class FTOperator(Enum):
     AND = 0b10110
     OR = 0b10101
     IMPLIES = 0b10100
-    EQUIV = 0b10000
+    PROB = 0b10011
     XOR = 0b10001
+    EQUIV = 0b10000
 
     def is_temporal(self) -> bool:
         return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
@@ -209,6 +210,7 @@ FT_OPERATOR_MAP = {
     cpt.OperatorKind.LOGICAL_IMPLIES: FTOperator.IMPLIES,
     cpt.OperatorKind.LOGICAL_EQUIV: FTOperator.EQUIV,
     cpt.OperatorKind.LOGICAL_XOR: FTOperator.XOR,
+    cpt.OperatorKind.PROBABILITY: FTOperator.PROB,
 }
 
 
@@ -265,7 +267,8 @@ class CGType(Enum):
     UB = 2
     DEADLINE = 3
     K_MODES = 4
-    BOXQ = 5
+    PROB = 5
+    BOXQ = 6
 
     def __str__(self) -> str:
         return self.name
@@ -322,7 +325,7 @@ field_format_str_map = {
     FieldType.AT_FILTER: "i",
     FieldType.AT_ID: "B",
     FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
-    FieldType.TL_ID: "i",
+    FieldType.TL_ID: "I",
     FieldType.TL_OPERATOR: "i",
     FieldType.TL_OPERAND_TYPE: "i",
     FieldType.TL_OPERAND_VALUE: "Bxxx",
@@ -670,10 +673,6 @@ def gen_scq_instructions(
             expr.scq[1] - expr.scq[0],
         ),
     )
-
-    if not isinstance(expr, cpt.TemporalOperator) and not isinstance(expr, cpt.Formula):
-        log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
-        return [cg_scq]
     
     if isinstance(expr, cpt.Formula):
         if expr.deadline is not None:
@@ -682,7 +681,7 @@ def gen_scq_instructions(
                 CGType.DEADLINE,
                 TLInstruction(
                     EngineTag.TL,
-                    expr.deadline,
+                    expr.deadline+2**32, # convert signed int to unsigned int
                     FTOperator.CONFIG,
                     TLOperandType.SUBFORMULA,
                     instructions[expr].id,
@@ -712,40 +711,60 @@ def gen_scq_instructions(
         else:
             log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
             return [cg_scq]
-        
-    cg_lb = CGInstruction(
-        EngineTag.CG,
-        CGType.LB,
-        TLInstruction(
-            EngineTag.TL,
-            expr.interval.lb,
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.ATOMIC,
-            0,
-        ),
-    )
+    elif isinstance(expr, cpt.ProbabilisticOperator):
+        cg_prob = CGInstruction(
+            EngineTag.CG,
+            CGType.PROB,
+            TLInstruction(
+                EngineTag.TL,
+                int(expr.prob*1000000),
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                instructions[expr].id,
+                TLOperandType.ATOMIC,
+                4,
+            ),
+        )
+        log.debug(
+            f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_prob}", MODULE_CODE
+        )
+        return [cg_scq, cg_prob]
+    elif isinstance(expr, cpt.TemporalOperator):
+        cg_lb = CGInstruction(
+            EngineTag.CG,
+            CGType.LB,
+            TLInstruction(
+                EngineTag.TL,
+                expr.interval.lb,
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                instructions[expr].id,
+                TLOperandType.ATOMIC,
+                0,
+            ),
+        )
 
-    cg_ub = CGInstruction(
-        EngineTag.CG,
-        CGType.UB,
-        TLInstruction(
-            EngineTag.TL,
-            expr.interval.ub,
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.ATOMIC,
-            1,
-        ),
-    )
+        cg_ub = CGInstruction(
+            EngineTag.CG,
+            CGType.UB,
+            TLInstruction(
+                EngineTag.TL,
+                expr.interval.ub,
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                instructions[expr].id,
+                TLOperandType.ATOMIC,
+                1,
+            ),
+        )
 
-    log.debug(
-        f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
-    )
-
-    return [cg_scq, cg_lb, cg_ub]
+        log.debug(
+            f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
+        )
+        return [cg_scq, cg_lb, cg_ub]
+    else:
+        log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
+        return [cg_scq]
 
 
 def gen_boxq_instructions(

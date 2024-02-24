@@ -21,7 +21,7 @@ class C2POLexer(sly.Lexer):
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, #ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, 
-               DEADLINE, MULTI_MODAL }
+               PROBABILITY, DEADLINE, MULTI_MODAL }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -65,6 +65,7 @@ class C2POLexer(sly.Lexer):
     # ARITH_PM    = r"\+/-|±"
 
     # Others'
+    PROBABILITY = r"P_"
     DEADLINE = r"with d =|with d="
     MULTI_MODAL = r", k =|,k =|, k=|,k="
     CONTRACT_ASSIGN = r"=>"
@@ -137,7 +138,7 @@ class C2POParser(sly.Parser):
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT)
+        ("right", LPAREN, DOT, PROBABILITY)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -376,6 +377,14 @@ class C2POParser(sly.Parser):
     @_('deadline MULTI_MODAL NUMERAL')
     def multimodal(self, p):
         self.k_modes = int(p.NUMERAL) 
+
+    @_("DECIMAL")
+    def probability(self, p):
+        return float(p[0])
+    
+    @_("PROBABILITY probability expr")
+    def expr(self, p):
+        return cpt.ProbabilisticOperator(log.FileLocation(self.filename, p.lineno), p[1], p[2])
 
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
@@ -669,8 +678,7 @@ class MLTLLexer(sly.Lexer):
     tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, 
                TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, 
-               NEWLINE, NUMERAL, COMMA, LBRACK, RBRACK, LPAREN, RPAREN, 
-               DEADLINE, MULTI_MODAL }
+               NEWLINE, NUMERAL, COMMA, LBRACK, RBRACK, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -684,8 +692,6 @@ class MLTLLexer(sly.Lexer):
     LOG_IFF  = r"<->"
 
     # Others
-    DEADLINE = r"with d =|with d="
-    MULTI_MODAL = r", k =|,k =|, k=|,k="
     NEWLINE = r"\n"
     NUMERAL = r"[1-9][0-9]*|0"
     COMMA   = r","
@@ -743,8 +749,6 @@ class MLTLParser(sly.Parser):
         self.is_ft = False
         self.is_pt = False
         self.status = True
-        self.deadline: int = None
-        self.k_modes: int = None
 
     def error(self, token):
         self.status = False
@@ -793,25 +797,6 @@ class MLTLParser(sly.Parser):
     def spec(self, p):
         self.spec_num += 1
         return cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num-1, p[0])
-
-    # MMPRV
-    @_("expr deadline NEWLINE")
-    def spec(self, p):
-        self.spec_num += 1
-        return cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num-1, p[0], self.deadline)
-
-    @_("expr multimodal NEWLINE")
-    def spec(self, p):
-        self.spec_num += 1
-        return cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num-1, p[0], self.deadline, self.k_modes)
-
-    @_('DEADLINE NUMERAL')
-    def deadline(self, p):
-        self.deadline = int(p.NUMERAL) 
-
-    @_('deadline MULTI_MODAL NUMERAL')
-    def multimodal(self, p):
-        self.k_modes = int(p.NUMERAL) 
 
     # Unary expressions
     @_("LOG_NEG expr")

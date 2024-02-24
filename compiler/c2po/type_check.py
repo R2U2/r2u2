@@ -446,6 +446,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = types.BoolType(is_const)
+        elif cpt.is_probabilistic_operator(expr):
+            return True
         else:
             log.error(
                 f"Invalid expression ({type(expr)})\n\t{expr}",

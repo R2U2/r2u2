@@ -483,6 +483,7 @@ class OperatorKind(enum.Enum):
     FUTURE = "F"
     UNTIL = "U"
     RELEASE = "R"
+    PROBABILITY = "P"
 
     # Past-time
     HISTORICAL = "H"
@@ -491,7 +492,6 @@ class OperatorKind(enum.Enum):
 
     # Other
     COUNT = "count"
-
 
 class Operator(Expression):
     def __init__(
@@ -759,6 +759,23 @@ class TemporalOperator(Operator):
         )
         self.copy_attrs(new)
         return new
+    
+class ProbabilisticOperator(Operator):
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        prob: float,
+        expr: Expression,
+    ) -> None:
+        super().__init__(loc, OperatorKind.PROBABILITY, [expr])
+        self.prob = prob
+        self.symbol = f"{OperatorKind.PROBABILITY.value}_{prob}"
+
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = ProbabilisticOperator(self.loc, self.operator, self.prob, children)
+        self.copy_attrs(new)
+        return new
 
 
 # Helpful predicates -- especially for type checking
@@ -817,6 +834,7 @@ def is_future_time_operator(expr: Expression) -> bool:
         OperatorKind.FUTURE,
         OperatorKind.UNTIL,
         OperatorKind.RELEASE,
+        OperatorKind.PROBABILITY,
     }
 
 
@@ -825,6 +843,11 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.HISTORICAL,
         OperatorKind.ONCE,
         OperatorKind.SINCE,
+    }
+
+def is_probabilistic_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.PROBABILITY,
     }
 
 
