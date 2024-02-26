@@ -25,8 +25,10 @@ def test(cmd) -> None:
 
     proc = subprocess.run(cmd, capture_output=True)
 
+    print(proc.stdout.decode())
+    print(proc.stderr.decode())
+
     if proc.returncode:
-        print(proc.stderr.decode())
         write_result( {"filename": cmd[-1], "status": "err"})
         return
     
@@ -58,6 +60,7 @@ if __name__ == "__main__":
             "--stats", 
             "--timeout-egglog", "3600",
             "--timeout-sat", "3600", 
+            "--debug", "1",
             file
         ] 
         for file in test_files]

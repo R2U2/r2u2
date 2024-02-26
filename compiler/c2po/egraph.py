@@ -335,7 +335,7 @@ class EGraph:
         But if it IS in the extracted expression. then the SCQ size of phi1 will be 10.
         The cost of each ENode is the sum of the SCQ sizes of its children. 
         """
-        cost: dict[ENodeID, int] = {s.enode_id:INF  for s in self.traverse()}
+        cost: dict[ENodeID, int] = {s.enode_id:INF for s in self.traverse()}
 
         max_bpd, min_wpd = self.compute_propagation_delays()
 
@@ -359,12 +359,18 @@ class EGraph:
                     else:
                         total_cost += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) 
 
+                print(f"{enode.enode_id} : {total_cost}\n\t{cur_max_wpd_1} {cur_max_wpd_2}\n\t{max_bpd[child_eclass_id]}")
+
                 cost[enode.enode_id] = total_cost
             elif enode.op in {"Global", "Future", "Not"}:
                 # Global nodes have *lonely* single children (no siblings)
                 cost[enode.enode_id] = 1
             else:
                 raise ValueError(f"Invalid node type for cost computation {enode.op}")
+
+        for e,c in cost.items():
+            if c >= INF:
+                print(e)
 
         return cost
     
@@ -452,10 +458,23 @@ class EGraph:
             child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
             total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
 
-            log.debug(MODULE_CODE, 2, f"cost({enode.op}) = {total_cost[enode.enode_id]}")
+            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}")
 
-            if enode.eclass_id not in rep or total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
+            if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
+                
+        for enode in self.traverse():
+            child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
+            total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
+
+            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}\n\t{cost[enode.enode_id]}")
+
+            if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
+                rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
+
+        # FIXME: make build_expr_tree non-recursive so we don't need to do this...
+        import sys
+        sys.setrecursionlimit(10_000)
 
         expr_tree = self.build_expr_tree(rep, self.root, context.atomic_id)
 
