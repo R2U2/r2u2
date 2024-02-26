@@ -130,7 +130,7 @@ def _is_match_top_level(enode: ENode, expr: cpt.Expression, context: cpt.Context
         return False
 
 
-def _find_match(expr: cpt.Expression, enodes: set[ENode], eclasses: dict[EClassID, set[ENode]], context: cpt.Context) -> Optional[ENode]:
+def _find_match(expr: cpt.Expression, enodes: set[ENode], eclasses: dict[EClassID, list[ENode]], context: cpt.Context) -> Optional[ENode]:
     """Returns the ENode in `enodes` that matches `expr`, if one exists."""
     num_matches_needed = 0
     for _ in cpt.postorder(expr, context):
@@ -182,7 +182,7 @@ def _find_match(expr: cpt.Expression, enodes: set[ENode], eclasses: dict[EClassI
 class EGraph:
     """Class representing a saturated EGraph for an expression."""
     root: EClassID
-    eclasses: dict[EClassID, set[ENode]]
+    eclasses: dict[EClassID, list[ENode]]
 
     @staticmethod
     def empty() -> EGraph:
@@ -191,7 +191,7 @@ class EGraph:
     @staticmethod
     def from_json(content: dict, original: cpt.Expression, context: cpt.Context) -> EGraph:
         """Construct a new `EGraph` from a dict representing the JSON output by `egglog`."""
-        eclasses: dict[EClassID, set[ENode]] = {}
+        eclasses: dict[EClassID, list[ENode]] = {}
         enodes: set[ENode] = set()
 
         for enode_id,_ in content["nodes"].items():
@@ -203,14 +203,19 @@ class EGraph:
             enodes.add(enode)
 
             if enode.eclass_id not in eclasses:
-                eclasses[enode.eclass_id] = {enode}
+                eclasses[enode.eclass_id] = [enode]
             else:
-                eclasses[enode.eclass_id].add(enode)
+                eclasses[enode.eclass_id].append(enode)
 
         if len(eclasses) < 1:
             log.error(MODULE_CODE, "Empty EGraph")
             return EGraph(EClassID(""),{})
         
+        # We want to make sure that we visit the variables first in their respective EClass, 
+        # so we sort by number of children
+        for _enodes in eclasses.values():
+            _enodes.sort(key=lambda x: len(x.child_eclass_ids))
+
         # to find the root node, we iterate through all the ENodes in the EGraph and 
         # attempt to match against the original expression -- only the root ENode (EClass) will match
         root_enode = _find_match(original, enodes, eclasses, context)
@@ -359,18 +364,12 @@ class EGraph:
                     else:
                         total_cost += max(cur_max_wpd_1 - max_bpd[child_eclass_id], 0) 
 
-                print(f"{enode.enode_id} : {total_cost}\n\t{cur_max_wpd_1} {cur_max_wpd_2}\n\t{max_bpd[child_eclass_id]}")
-
                 cost[enode.enode_id] = total_cost
             elif enode.op in {"Global", "Future", "Not"}:
                 # Global nodes have *lonely* single children (no siblings)
                 cost[enode.enode_id] = 1
             else:
                 raise ValueError(f"Invalid node type for cost computation {enode.op}")
-
-        for e,c in cost.items():
-            if c >= INF:
-                print(e)
 
         return cost
     
@@ -459,15 +458,6 @@ class EGraph:
             total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
 
             log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}")
-
-            if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
-                rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
-                
-        for enode in self.traverse():
-            child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
-            total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
-
-            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}\n\t{cost[enode.enode_id]}")
 
             if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
