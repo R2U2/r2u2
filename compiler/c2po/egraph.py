@@ -214,7 +214,7 @@ class EGraph:
         # We want to make sure that we visit the variables first in their respective EClass, 
         # so we sort by number of children
         for _enodes in eclasses.values():
-            _enodes.sort(key=lambda x: len(x.child_eclass_ids))
+            _enodes.sort(key=lambda x: len(x.child_eclass_ids), reverse=True)
 
         # to find the root node, we iterate through all the ENodes in the EGraph and 
         # attempt to match against the original expression -- only the root ENode (EClass) will match
@@ -251,7 +251,6 @@ class EGraph:
 
             for child_eclass_id in cur_enode.child_eclass_ids:
                 if child_eclass_id in visited:
-                    # cur_enode.has_back_edge = True
                     continue
 
                 [stack.append((child, False)) for child in self.eclasses[child_eclass_id]]
@@ -269,7 +268,7 @@ class EGraph:
 
         TODO: what to do about nodes that do not share optimal PD?
         """
-        max_bpd: dict[EClassID, int] = {s:0  for s in self.eclasses.keys()}
+        max_bpd: dict[EClassID, int] = {s:-1  for s in self.eclasses.keys()}
         min_wpd: dict[EClassID, int] = {s:INF for s in self.eclasses.keys()}
 
         for enode in self.traverse():
@@ -318,6 +317,9 @@ class EGraph:
                 min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
             else:
                 raise ValueError(f"Invalid node type for PD computation {enode.op}")
+            
+        if any([wpd >= INF for wpd in min_wpd.values()]) or any([bpd < 0 for bpd in max_bpd.values()]):
+            log.error(MODULE_CODE, "Error computing PDs")
 
         return (max_bpd, min_wpd)
 
@@ -376,71 +378,84 @@ class EGraph:
     def build_expr_tree(
             self, 
             rep: dict[EClassID, tuple[ENode, int]], 
-            eclass: EClassID, 
+            root_eclass: EClassID, 
             atomics: dict[cpt.Expression, int]
     ) -> cpt.Expression:
-        enode,_ = rep[eclass]
+        rep_map: dict[EClassID, cpt.Expression] = {}
+        
+        stack: list[tuple[bool,EClassID]] = []
+        stack.append((False, root_eclass))
 
-        if enode.op == "Bool":
-            return cpt.Constant(log.EMPTY_FILE_LOC, True)
-        elif enode.op[0:3] == "Var":
-            if not enode.string:
-                raise ValueError("No string for Var")
+        while len(stack) != 0:
+            seen,eclass_id = stack.pop()
+            enode,_ = rep[eclass_id]
+
+            if eclass_id in rep_map:
+                continue
+            elif seen:
+                if enode.op == "Bool":
+                    rep_map[eclass_id] = cpt.Constant(log.EMPTY_FILE_LOC, True)
+                elif enode.op[0:3] == "Var":
+                    if not enode.string:
+                        raise ValueError("No string for Var")
+                    
+                    # map back to the expression this atomic points to
+                    atomic_id = int(enode.string.replace('"','')[1:])
+
+                    try:
+                        expr = next(e for e,i in atomics.items() if i == atomic_id)
+                        rep_map[eclass_id] = expr
+                    except StopIteration:
+                        log.internal(f"No atomic found with id {atomic_id}", MODULE_CODE)
+                        rep_map[eclass_id] =  cpt.Constant(log.EMPTY_FILE_LOC, False)
+                elif enode.op == "Not":
+                    operand = rep_map[enode.child_eclass_ids[0]]
+                    rep_map[eclass_id] = cpt.Operator.LogicalNegate(log.EMPTY_FILE_LOC, operand)
+                elif enode.op[0:3] == "And":
+                    ch = [rep_map[c] for c in enode.child_eclass_ids]
+                    rep_map[eclass_id] = cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
+                elif enode.op[0:2] == "Or":
+                    ch = [rep_map[c] for c in enode.child_eclass_ids]
+                    rep_map[eclass_id] = cpt.Operator.LogicalOr(log.EMPTY_FILE_LOC, ch)
+                elif enode.op == "Equiv":
+                    lhs = rep_map[enode.child_eclass_ids[0]]
+                    rhs = rep_map[enode.child_eclass_ids[1]]
+                    rep_map[eclass_id] =  cpt.Operator.LogicalIff(log.EMPTY_FILE_LOC, lhs, rhs)
+                elif enode.op == "Implies":
+                    lhs = rep_map[enode.child_eclass_ids[0]]
+                    rhs = rep_map[enode.child_eclass_ids[1]]
+                    rep_map[eclass_id] =  cpt.Operator.LogicalImplies(log.EMPTY_FILE_LOC, lhs, rhs)
+                elif enode.op == "Global":
+                    operand = rep_map[enode.child_eclass_ids[0]]
+                    if not enode.interval:
+                        raise ValueError("No Interval for Global")
+                    rep_map[eclass_id] =  cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, operand)
+                elif enode.op == "Future":
+                    operand = rep_map[enode.child_eclass_ids[0]]
+                    if not enode.interval:
+                        raise ValueError("No Interval for Future")
+                    rep_map[eclass_id] =  cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, operand)
+                elif enode.op == "Until":
+                    lhs = rep_map[enode.child_eclass_ids[0]]
+                    rhs = rep_map[enode.child_eclass_ids[1]]
+                    if not enode.interval:
+                        raise ValueError("No Interval for Until")
+                    rep_map[eclass_id] =  cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, lhs, rhs)
+                elif enode.op == "Release":
+                    lhs = rep_map[enode.child_eclass_ids[0]]
+                    rhs = rep_map[enode.child_eclass_ids[1]]
+                    if not enode.interval:
+                        raise ValueError("No Interval for Release")
+                    rep_map[eclass_id] =  cpt.TemporalOperator.Release(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, lhs, rhs)
+                else:
+                    raise ValueError(f"Invalid node type {enode.op}")
+                
+                continue
+                
+            stack.append((True,eclass_id))
+            stack += [(False,c) for c in enode.child_eclass_ids if c not in rep_map]
             
-            # map back to the expression this atomic points to
-            atomic_id = int(enode.string.replace('"','')[1:])
-
-            try:
-                expr = next(e for e,i in atomics.items() if i == atomic_id)
-                return expr
-            except StopIteration:
-                log.internal(f"No atomic found with id {atomic_id}", MODULE_CODE)
-                return cpt.Constant(log.EMPTY_FILE_LOC, False)
-        elif enode.op == "Not":
-            operand = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
-            return cpt.Operator.LogicalNegate(log.EMPTY_FILE_LOC, operand)
-        elif enode.op[0:3] == "And":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, ch)
-        elif enode.op[0:2] == "Or":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            return cpt.Operator.LogicalOr(log.EMPTY_FILE_LOC, ch)
-        elif enode.op == "Equiv":
-            lhs = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
-            rhs = self.build_expr_tree(rep, enode.child_eclass_ids[1], atomics)
-            return cpt.Operator.LogicalIff(log.EMPTY_FILE_LOC, lhs, rhs)
-        elif enode.op == "Implies":
-            lhs = self.build_expr_tree(rep, enode.child_eclass_ids[0], atomics)
-            rhs = self.build_expr_tree(rep, enode.child_eclass_ids[1], atomics)
-            return cpt.Operator.LogicalImplies(log.EMPTY_FILE_LOC, lhs, rhs)
-        elif enode.op == "Global":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            ch = ch[0]
-            if not enode.interval:
-                raise ValueError("No Interval for Global")
-            return cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
-        elif enode.op == "Future":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            ch = ch[0]
-            if not enode.interval:
-                raise ValueError("No Interval for Future")
-            return cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch)
-        elif enode.op == "Until":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            ch0 = ch[0]
-            ch1 = ch[1]
-            if not enode.interval:
-                raise ValueError("No Interval for Until")
-            return cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
-        elif enode.op == "Release":
-            ch = [self.build_expr_tree(rep, c, atomics) for c in enode.child_eclass_ids]
-            ch0 = ch[0]
-            ch1 = ch[1]
-            if not enode.interval:
-                raise ValueError("No Interval for Release")
-            return cpt.TemporalOperator.Release(log.EMPTY_FILE_LOC, enode.interval.lb, enode.interval.ub, ch0 ,ch1)
-        else:
-            raise ValueError(f"Invalid node type {enode.op}")
+        return rep_map[root_eclass]
 
     def extract(self, context: cpt.Context) -> cpt.Expression:
         rep: dict[EClassID, tuple[ENode, int]] = {}
@@ -457,14 +472,10 @@ class EGraph:
             child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
             total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
 
-            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}")
+            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}\n\t{cost[enode.enode_id]}")
 
             if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
-
-        # FIXME: make build_expr_tree non-recursive so we don't need to do this...
-        import sys
-        sys.setrecursionlimit(10_000)
 
         expr_tree = self.build_expr_tree(rep, self.root, context.atomic_id)
 
