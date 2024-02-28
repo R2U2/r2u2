@@ -49,6 +49,11 @@ static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instructi
           // TODO(bckempa): This should set R2U2 error?
           res = false;
           break;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          res = false;
+          break;
     }
 
     return res;
@@ -99,6 +104,11 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
       case R2U2_FT_OP_NOT_SET:
           // TODO(bckempa): This should set R2U2 error?
           res = (r2u2_verdict){0};
+          break;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          res = false;
           break;
     }
 
@@ -182,6 +192,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           break;
         }
         default: {
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
           break;
         }
       }
@@ -402,6 +413,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     default: {
       // Somehow got into wrong tense dispatch
+      R2U2_DEBUG_PRINT("Warning: Bad Inst Type\n");
       error_cond = R2U2_INVALID_INST;
       break;
     }

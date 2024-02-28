@@ -41,6 +41,11 @@ static uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *ins
       case R2U2_FT_OP_NOT_SET:
           res = 0;
           break;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          res = 0;
+          break;
     }
 
     return res;
@@ -70,6 +75,10 @@ r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_in
       // Literals have no edges
       case R2U2_FT_OP_DIRECT:
       case R2U2_FT_OP_NOT_SET:
+          return R2U2_MLTL_PT_OPRND_EDGE_NONE;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
           return R2U2_MLTL_PT_OPRND_EDGE_NONE;
     }
     // At monitor->time_stamp = 0, we need either a rising or falling edge.
@@ -128,6 +137,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           break;
         }
         default: {
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
           break;
         }
       }
@@ -426,6 +436,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     default: {
       // Somehow got into wrong tense dispatch
+      R2U2_DEBUG_PRINT("Warning: Bad Inst Type\n");
       error_cond = R2U2_INVALID_INST;
       break;
     }
