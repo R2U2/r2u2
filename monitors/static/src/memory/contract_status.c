@@ -90,7 +90,7 @@ r2u2_status_t r2u2_contract_status_report(r2u2_contract_status_reporter_t *statu
         }
         default: {
           /* Unreachable */
-          R2U2_DEBUG_PRINT("Warning: hit unreachable case (i%3 not in {0,1,2})\n");
+          R2U2_DEBUG_PRINT("Warning: hit unreachable case (i%%3 not in {0,1,2})\n");
         }
       }
       /* We'd like to stop searching after a contract has been found

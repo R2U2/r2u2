@@ -20,11 +20,11 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
   }
 
   R2U2_DEBUG_PRINT("\t\t\t|");
-  for (unsigned int i = 0; i < scq->length; ++i) {
+  for (r2u2_time i = 0; i < scq->length; ++i) {
     R2U2_DEBUG_PRINT(" %03d |", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].time);
   }
   R2U2_DEBUG_PRINT("\n\t\t\t|");
-  for (unsigned int i = 0; i < scq->length; ++i) {
+  for (r2u2_time i = 0; i < scq->length; ++i) {
     R2U2_DEBUG_PRINT("  %1d  |", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].truth);
   }
   R2U2_DEBUG_PRINT(" <%p>\n", (void*)scq->queue);
