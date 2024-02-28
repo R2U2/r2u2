@@ -17,12 +17,6 @@
 #include "extra_filters/filter_movavg.h"
 #endif
 
-#if R2U2_AT_Signal_Sets
-#include "signal_set_filters/filter_exactly_one_of.h"
-#include "signal_set_filters/filter_none_of.h"
-#include "signal_set_filters/filter_all_of.h"
-#endif
-
 // #if R2U2_AT_EXTRA_FILTERS
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;

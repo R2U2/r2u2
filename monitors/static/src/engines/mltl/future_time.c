@@ -108,7 +108,7 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
 
       default:
           R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
-          res = false;
+          res = (r2u2_verdict){0};
           break;
     }
 
