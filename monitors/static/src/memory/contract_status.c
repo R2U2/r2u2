@@ -68,7 +68,7 @@ r2u2_status_t r2u2_contract_status_report(r2u2_contract_status_reporter_t *statu
   // Right now contracts are only supported by the TL engine so we can cast to mltl inst
   // There is a good argument that this belongs in an engine since it needs other engine details
   for (size_t i = 0; i < 3*(status_reporter->aux_con_max); ++i) {
-    if (((r2u2_mltl_instruction_t*)(inst->instruction_data))->op2.value == (status_reporter->aux_con_forms)[i]) {
+    if (((r2u2_mltl_instruction_t*)(inst->instruction_data))->op2_value == (status_reporter->aux_con_forms)[i]) {
       switch(i%3){
         case 0: {
           if(!(res->truth)){

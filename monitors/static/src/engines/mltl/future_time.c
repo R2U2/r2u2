@@ -9,20 +9,16 @@ static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
     r2u2_bool res;
     r2u2_time *rd_ptr;
-    r2u2_mltl_operand_t *op;
     r2u2_scq_t *source_scq, *target_scq;
 
-    #if R2U2_DEBUG
-      // TODO(bckempa): Debug build bounds checking
-      // assert();
-    #endif
-    if (n == 0) {
-      op = &(instr->op1);
-    } else {
-      op = &(instr->op2);
-    }
+    r2u2_mltl_operand_type_t type;
+    uint32_t value;
 
-    switch (op->opnd_type) {
+    type  = (n == 0) ? (instr->op1_type)  : (instr->op2_type);
+    value = (n == 0) ? (instr->op1_value) : (instr->op2_value);
+
+    switch (type) {
+
       case R2U2_FT_OP_DIRECT:
         res = true;
         break;
@@ -34,13 +30,9 @@ static r2u2_bool operand_data_ready(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_SUBFORMULA:
         source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
-        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
+        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[value]);
 
-        if (n==0) {
-          rd_ptr = &(source_scq->rd_ptr);
-        } else {
-          rd_ptr = &(source_scq->rd_ptr2);
-        }
+        rd_ptr  = (n == 0) ? &(source_scq->rd_ptr) : &(source_scq->rd_ptr2);
 
         res = !r2u2_scq_is_empty(target_scq, rd_ptr, &(source_scq->desired_time_stamp));
         break;
@@ -63,38 +55,31 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
 
     r2u2_verdict res;
     r2u2_time *rd_ptr;
-    r2u2_mltl_operand_t *op;
     r2u2_scq_t *source_scq, *target_scq;
 
-    #if R2U2_DEBUG
-      // TODO(bckempa): Debug build bounds checking
-      // assert();
-    #endif
-    if (n == 0) {
-      op = &(instr->op1);
-    } else {
-      op = &(instr->op2);
-    }
+    r2u2_mltl_operand_type_t type;
+    uint32_t value;
 
-    switch (op->opnd_type) {
+    type  = (n == 0) ? (instr->op1_type)  : (instr->op2_type);
+    value = (n == 0) ? (instr->op1_value) : (instr->op2_value);
+
+
+    switch (type) {
+
       case R2U2_FT_OP_DIRECT:
-          res = (r2u2_verdict){monitor->time_stamp, op->value};
+          res = (r2u2_verdict){monitor->time_stamp, value};
           break;
 
       case R2U2_FT_OP_ATOMIC:
           // TODO(bckempa) This might remove the need for load...
-          res = (r2u2_verdict){monitor->time_stamp, (*(monitor->atomic_buffer[0]))[op->value]};
+          res = (r2u2_verdict){monitor->time_stamp, (*(monitor->atomic_buffer[0]))[value]};
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
         source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
-        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[op->value]);
+        target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[value]);
 
-        if (n==0) {
-          rd_ptr = &(source_scq->rd_ptr);
-        } else {
-          rd_ptr = &(source_scq->rd_ptr2);
-        }
+        rd_ptr  = (n == 0) ? &(source_scq->rd_ptr) : &(source_scq->rd_ptr2);
 
         // NOTE: Must always check if queue is empty before poping
         // in tis case we always call operand_data_ready first
@@ -148,18 +133,18 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       R2U2_DEBUG_PRINT("\tFT Configure\n");
 
       // Configuration store target SCQ index in first operand instead
-      scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
+      scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1_value]);
 
-      switch (instr->op2.opnd_type) {
+      switch (instr->op2_type) {
         case R2U2_FT_OP_DIRECT: {
           // TODO(bckempa): Lots of queue logic here, move to `shared_connection_queue.c`
-          scq->length = instr->op2.value;
+          scq->length = instr->op2_value;
           r2u2_verdict *elements = ((r2u2_verdict*)(*(monitor->future_time_queue_mem)));
           // TODO(bckempa): need better sizing of array extents when switch elements
           // TODO(bckempa): ANSAN requires offset due to global layout shadow, fix and remove "+ 50"
           scq->queue = &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + 50)]);
           scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
-          R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %u\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, (void*)scq->queue);
+          R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %u\n\t\tAddr: %p\n", instr->op1_value, scq->length, instr->memory_reference, (void*)scq->queue);
 
           #if R2U2_DEBUG
           // Check for SCQ memory arena collision
@@ -182,11 +167,11 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
         case R2U2_FT_OP_ATOMIC: {
           // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
-          if (instr->op2.value) {
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %u\n", instr->op1.value, instr->memory_reference);
+          if (instr->op2_value) {
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tUB: %u\n", instr->op1_value, instr->memory_reference);
             scq->interval_end = (r2u2_time) instr->memory_reference;
           } else {
-            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %u\n", instr->op1.value, instr->memory_reference);
+            R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tLB: %u\n", instr->op1_value, instr->memory_reference);
             scq->interval_start = (r2u2_time) instr->memory_reference;
           }
           break;
@@ -220,7 +205,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         scq->desired_time_stamp = (res.time)+1;
 
         if (monitor->out_file != NULL) {
-          fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2.value, res.time, res.truth ? "T" : "F");
+          fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2_value, res.time, res.truth ? "T" : "F");
         }
 
         if (monitor->out_func != NULL) {

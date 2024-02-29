@@ -315,7 +315,7 @@ field_format_str_map = {
     FieldType.TL_ID: "I",
     FieldType.TL_OPERATOR: "i",
     FieldType.TL_OPERAND_TYPE: "i",
-    FieldType.TL_OPERAND_VALUE: "Bxxx",
+    FieldType.TL_OPERAND_VALUE: "I",
 }
 
 
@@ -965,37 +965,31 @@ def pack_tl_instruction(
     log.debug(
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
+        f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
         f"{format_strs[FieldType.TL_ID]:2} "
+        f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
+        f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
         f"{format_strs[FieldType.TL_OPERATOR]:2}"
         f"\n\t"
         f"{instruction.engine_tag.value:<2} "
-        f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
-        f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+        f"{instruction.operand1_value:<4} "
+        f"{instruction.operand2_value:<4} "
         f"{instruction.id:<2} "
+        f"{instruction.operand1_type.value:<2} "
+        f"{instruction.operand2_type.value:<2} "
         f"{instruction.operator.value:<2}",
         MODULE_CODE,
     )
 
     binary = bytes()
 
-    operand_format_str = endian
-    operand_format_str += format_strs[FieldType.TL_OPERAND_TYPE]
-    operand_format_str += format_strs[FieldType.TL_OPERAND_VALUE]
-    operand_struct = CStruct(operand_format_str)
-
-    operand1_binary = operand_struct.pack(
-        instruction.operand1_type.value, instruction.operand1_value
-    )
-    operand2_binary = operand_struct.pack(
-        instruction.operand2_type.value, instruction.operand2_value
-    )
-
     format_str = endian
-    format_str += f"{operand_struct.size}s"
-    format_str += f"{operand_struct.size}s"
+    format_str += format_strs[FieldType.TL_OPERAND_VALUE]
+    format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     format_str += format_strs[FieldType.TL_ID]
+    format_str += format_strs[FieldType.TL_OPERAND_TYPE]
+    format_str += format_strs[FieldType.TL_OPERAND_TYPE]
     format_str += format_strs[FieldType.TL_OPERATOR]
 
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
@@ -1003,9 +997,11 @@ def pack_tl_instruction(
     )
 
     binary = engine_tag_binary + CStruct(format_str).pack(
-        operand1_binary,
-        operand2_binary,
+        instruction.operand1_value,
+        instruction.operand2_value,
         instruction.id,
+        instruction.operand1_type.value,
+        instruction.operand2_type.value,
         instruction.operator.value,
     )
 
