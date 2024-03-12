@@ -15,7 +15,6 @@ typedef struct {
   r2u2_time rd_ptr2;
   r2u2_time desired_time_stamp;
   r2u2_time edge;
-  r2u2_time max_out;
   r2u2_time interval_start;
   r2u2_time interval_end;
   r2u2_verdict previous;

@@ -273,57 +273,47 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       error_cond = R2U2_OK;
       break;
     }
-    case R2U2_MLTL_OP_FT_UNTIL: {
-      R2U2_DEBUG_PRINT("\tFT UNTIL\n");
+case R2U2_MLTL_OP_FT_UNTIL: {
+  R2U2_DEBUG_PRINT("\tFT UNTIL\n");
 
-      if (operand_data_ready(monitor, instr, 0) && operand_data_ready(monitor, instr, 1)) {
-        op0 = get_operand(monitor, instr, 0);
-        op1 = get_operand(monitor, instr, 1);
+  if (operand_data_ready(monitor, instr, 0) && operand_data_ready(monitor, instr, 1)) {
+    op0 = get_operand(monitor, instr, 0);
+    op1 = get_operand(monitor, instr, 1);
 
-        // We need to see every timesetp as an op0 op1 pair
-        r2u2_time tau = min(op0.time, op1.time);
-        scq->desired_time_stamp = tau+1;
+    // We need to see every timesetp as an (op0, op1) pair
+    r2u2_time tau = min(op0.time, op1.time);
+    scq->desired_time_stamp = tau+1;
 
-        // interval compression aware falling edge detection on op1
-        if(!op1.truth && scq->previous.truth) {
-          // TODO(bckempa): Not clear why this isn't stil pre.time+1
-          scq->edge = scq->previous.time;
-          R2U2_DEBUG_PRINT("\tRight operand falling edge at t=%d\n", scq->edge);
-        }
+    if(op1.truth) {scq->edge = op1.time;}
+    R2U2_DEBUG_PRINT("\tTime since right operand high: %d\n", tau - scq->edge);
 
-        if (op1.truth && (tau >= scq->max_out + scq->interval_start)) {
-          // TODO(bckempa): Factor out repeated outuput logic
-          // We don't want to reset desired_time_stamp based on the result
-          // so we don't use `push_result`
-          R2U2_DEBUG_PRINT("\tRight Op True\n");
-          res = (r2u2_verdict){tau - scq->interval_start, true};
-          r2u2_scq_push(scq, &res);
-          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->max_out = res.time +1;
-        } else if (!op0.truth && (tau >= scq->max_out + scq->interval_start)) {
-          R2U2_DEBUG_PRINT("\tLeft Op False\n");
-          res = (r2u2_verdict){tau - scq->interval_start, false};
-          r2u2_scq_push(scq, &res);
-          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->max_out = res.time +1;
-        } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->max_out + scq->interval_end)) {
-          R2U2_DEBUG_PRINT("\tTime Elapsed\n");
-          res = (r2u2_verdict){tau - scq->interval_end, false};
-          r2u2_scq_push(scq, &res);
-          R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
-          if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
-          scq->max_out = res.time +1;
-        }
-
-        scq->previous = op1;
-
-      }
-
+    if (op1.truth && (tau >= scq->previous.time + scq->interval_start)) {
+      R2U2_DEBUG_PRINT("\tRight Op True\n");
+      res = (r2u2_verdict){tau - scq->interval_start, true};
+    } else if (!op0.truth && (tau >= scq->previous.time + scq->interval_start)) {
+      R2U2_DEBUG_PRINT("\tLeft Op False\n");
+      res = (r2u2_verdict){tau - scq->interval_start, false};
+    } else if ((tau >= scq->interval_end - scq->interval_start + scq->edge) && (tau >= scq->previous.time + scq->interval_end)) {
+      R2U2_DEBUG_PRINT("\tTime Elapsed\n");
+      res = (r2u2_verdict){tau - scq->interval_end, false};
+    } else {
+      /* Still waiting, return early */
       error_cond = R2U2_OK;
       break;
     }
+
+    // Didn't hit the else case above means we have data to return
+    // We don't want to reset desired_time_stamp based on the result
+    // so we don't use `push_result`
+    r2u2_scq_push(scq, &res);
+    R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
+    if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}
+    scq->previous = res;
+  }
+
+  error_cond = R2U2_OK;
+  break;
+}
     case R2U2_MLTL_OP_FT_RELEASE: {
       R2U2_DEBUG_PRINT("\tFT RELEASE\n");
       error_cond = R2U2_UNIMPL;
