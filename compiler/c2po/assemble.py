@@ -681,7 +681,7 @@ def gen_scq_instructions(
                 CGType.DEADLINE,
                 TLInstruction(
                     EngineTag.TL,
-                    expr.deadline+2**32, # convert signed int to unsigned int
+                    expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
                     FTOperator.CONFIG,
                     TLOperandType.SUBFORMULA,
                     instructions[expr].id,
@@ -705,13 +705,23 @@ def gen_scq_instructions(
                 )
                 log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline, cg_k_modes}", MODULE_CODE)
                 return [cg_scq, cg_deadline, cg_k_modes]
-            else:
-                log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline}", MODULE_CODE)
-                return [cg_scq, cg_deadline]
         else:
-            log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
-            return [cg_scq]
-    elif isinstance(expr, cpt.ProbabilisticOperator):
+            cg_deadline = CGInstruction(
+                EngineTag.CG,
+                CGType.DEADLINE,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.children[0].wpd,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    2,
+                ),
+            )
+        log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline}", MODULE_CODE)
+        return [cg_scq, cg_deadline]
+    elif isinstance(expr, cpt.ProbabilityOperator):
         cg_prob = CGInstruction(
             EngineTag.CG,
             CGType.PROB,
@@ -729,39 +739,91 @@ def gen_scq_instructions(
             f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_prob}", MODULE_CODE
         )
         return [cg_scq, cg_prob]
+    elif expr.is_probabilistic_operator():
+        cg_prob = CGInstruction(
+            EngineTag.CG,
+            CGType.PROB,
+            TLInstruction(
+                EngineTag.TL,
+                2000000,
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                instructions[expr].id,
+                TLOperandType.ATOMIC,
+                4,
+            ),
+        )
+        if isinstance(expr, cpt.TemporalOperator):
+            cg_lb = CGInstruction(
+                EngineTag.CG,
+                CGType.LB,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.interval.lb,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    0,
+                ),
+            )
+
+            cg_ub = CGInstruction(
+                EngineTag.CG,
+                CGType.UB,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.interval.ub,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    1,
+                ),
+            )
+
+            log.debug(
+                f"Generating: {expr}\n\t" f"{cg_prob}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
+            )
+            return [cg_prob, cg_scq, cg_lb, cg_ub]
+        else:
+            log.debug(
+                f"Generating: {expr}\n\t" f"{cg_prob}\n\t" f"{cg_scq}", MODULE_CODE
+            )
+            return [cg_prob, cg_scq]
     elif isinstance(expr, cpt.TemporalOperator):
-        cg_lb = CGInstruction(
-            EngineTag.CG,
-            CGType.LB,
-            TLInstruction(
-                EngineTag.TL,
-                expr.interval.lb,
-                FTOperator.CONFIG,
-                TLOperandType.SUBFORMULA,
-                instructions[expr].id,
-                TLOperandType.ATOMIC,
-                0,
-            ),
-        )
+            cg_lb = CGInstruction(
+                EngineTag.CG,
+                CGType.LB,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.interval.lb,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    0,
+                ),
+            )
 
-        cg_ub = CGInstruction(
-            EngineTag.CG,
-            CGType.UB,
-            TLInstruction(
-                EngineTag.TL,
-                expr.interval.ub,
-                FTOperator.CONFIG,
-                TLOperandType.SUBFORMULA,
-                instructions[expr].id,
-                TLOperandType.ATOMIC,
-                1,
-            ),
-        )
+            cg_ub = CGInstruction(
+                EngineTag.CG,
+                CGType.UB,
+                TLInstruction(
+                    EngineTag.TL,
+                    expr.interval.ub,
+                    FTOperator.CONFIG,
+                    TLOperandType.SUBFORMULA,
+                    instructions[expr].id,
+                    TLOperandType.ATOMIC,
+                    1,
+                ),
+            )
 
-        log.debug(
-            f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
-        )
-        return [cg_scq, cg_lb, cg_ub]
+            log.debug(
+                f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
+            )
+            return [cg_scq, cg_lb, cg_ub]
     else:
         log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
         return [cg_scq]

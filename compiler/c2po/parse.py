@@ -384,7 +384,7 @@ class C2POParser(sly.Parser):
     
     @_("PROBABILITY probability expr")
     def expr(self, p):
-        return cpt.ProbabilisticOperator(log.FileLocation(self.filename, p.lineno), p[1], p[2])
+        return cpt.ProbabilityOperator(log.FileLocation(self.filename, p.lineno), p[1], p[2])
 
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")

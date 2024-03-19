@@ -942,7 +942,7 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal S
 
-        if str(expr) in S:
+        if str(expr) in S and expr.is_probabilistic_operator() == S[str(expr)].is_probabilistic_operator():
             log.debug(f"Replacing --- {expr}", module=MODULE_CODE)
             expr.replace(S[str(expr)])
         else:
