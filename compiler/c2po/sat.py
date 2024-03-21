@@ -187,7 +187,7 @@ def to_smt_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
         fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) Bool"
 
         if isinstance(expr, cpt.Constant) and expr.value:
-            smt_commands.append(f"({fun_signature} (> len k))")
+            smt_commands.append(f"({fun_signature} true)")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} false)")
         elif expr in context.atomic_id:

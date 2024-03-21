@@ -213,8 +213,8 @@ class EGraph:
         
         # We want to make sure that we visit the variables first in their respective EClass, 
         # so we sort by number of children
-        for _enodes in eclasses.values():
-            _enodes.sort(key=lambda x: len(x.child_eclass_ids), reverse=True)
+        # for _enodes in eclasses.values():
+        #     _enodes.sort(key=lambda x: len(x.child_eclass_ids))
 
         # to find the root node, we iterate through all the ENodes in the EGraph and 
         # attempt to match against the original expression -- only the root ENode (EClass) will match
@@ -242,7 +242,6 @@ class EGraph:
             (cur_enode, seen) = stack.pop()
 
             if seen:
-                # log.debug(MODULE_CODE, 2, cur_enode.op)
                 yield cur_enode
                 continue
 
@@ -254,6 +253,7 @@ class EGraph:
                     continue
 
                 [stack.append((child, False)) for child in self.eclasses[child_eclass_id]]
+
 
     def compute_propagation_delays(self) -> tuple[dict[EClassID, int], dict[EClassID, int]]:
         """Returns a pair of dicts mapping EClass IDs to propagation delays (PDs). The first dict maps to the maximum best-case PD (BPD) of the EClass and the second maps to the minimum worst-case PD (WPD).
@@ -271,7 +271,10 @@ class EGraph:
         max_bpd: dict[EClassID, int] = {s:-1  for s in self.eclasses.keys()}
         min_wpd: dict[EClassID, int] = {s:INF for s in self.eclasses.keys()}
 
-        for enode in self.traverse():
+        def _compute_pd(enode: ENode) -> None:
+            nonlocal max_bpd
+            nonlocal min_wpd
+            
             if enode.op in {"Bool", "true", "false", "Var"}:
                 max_bpd[enode.eclass_id] = 0
                 min_wpd[enode.eclass_id] = 0
@@ -317,9 +320,19 @@ class EGraph:
                 min_wpd[enode.eclass_id] = min(min_wpd[enode.eclass_id], cur_wpd)
             else:
                 raise ValueError(f"Invalid node type for PD computation {enode.op}")
-            
-        if any([wpd >= INF for wpd in min_wpd.values()]) or any([bpd < 0 for bpd in max_bpd.values()]):
-            log.error(MODULE_CODE, "Error computing PDs")
+
+            log.debug(MODULE_CODE, 2, f"{enode.op}\n\t{max_bpd[enode.eclass_id]} {min_wpd[enode.eclass_id]}")
+        # end _compute_pd
+
+        for enode in self.traverse():
+            _compute_pd(enode)
+
+        # go through a second time and calculate any that weren't calculated the first time
+        # this resolves the cases of loops in the EGraph
+        for enode in self.traverse():
+            if max_bpd[enode.eclass_id] >= 0 and min_wpd[enode.eclass_id] < INF:
+                continue
+            _compute_pd(enode)
 
         return (max_bpd, min_wpd)
 
