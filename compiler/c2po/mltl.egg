@@ -156,18 +156,18 @@
   :ruleset mltl-rewrites
 )
   
-; R3 -- erroneous
-;(rewrite 
-;  (Global (Interval l1 u1) (Future (Interval l l) a)) 
-;  (Global (Interval (+ l l1) (+ l u1)) a) 
-;  :ruleset mltl-rewrites
-;)
+; R3 -- erroneous for non-monitoring semantics
+(rewrite 
+ (Global (Interval l1 u1) (Future (Interval l l) a)) 
+ (Global (Interval (+ l l1) (+ l u1)) a) 
+ :ruleset mltl-rewrites
+)
 
-;(rewrite 
-;  (Future (Interval l1 u1) (Global (Interval l l) a)) 
-;  (Future (Interval (+ l l1) (+ l u1)) a) 
-;  :ruleset mltl-rewrites
-;)
+(rewrite 
+ (Future (Interval l1 u1) (Global (Interval l l) a)) 
+ (Future (Interval (+ l l1) (+ l u1)) a) 
+ :ruleset mltl-rewrites
+)
 
 ; R4
 (rewrite 
@@ -222,12 +222,12 @@
   :ruleset mltl-rewrites
 )
 
-; R8 -- erroneous (would work with Release/Global, however)
-;(rewrite 
-;  (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
-;  (Global (Interval l1 (+ l1 u2)) a)
-;  :ruleset mltl-rewrites
-;)
+; R8 -- erroneous for non-monitoring semantics
+(rewrite 
+ (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
+ (Global (Interval l1 (+ l1 u2)) a)
+ :ruleset mltl-rewrites
+)
 
 (rewrite 
   (Until (Interval l1 u1) a (Future (Interval 0 u2) a))
@@ -235,16 +235,22 @@
   :ruleset mltl-rewrites
 )
 
-; erroneous -- empty trace satsifies "G[0,0] a" but not "a"
-;(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+; erroneous for non-monitoring semantics -- empty trace satsifies "G[0,0] a" but not "a"
+(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
 
 ; these can be bad if the resulting expression has a Global as its top expr 
-;(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
+(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
 
-; this is safe -- maintains trace length constraint but removes binary op
+; this is safe for non-monitoring semantics -- maintains trace length constraint but removes binary op
 (rewrite 
   (Until (Interval 0 0) a b) 
   (Future (Interval 0 0) b) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) (Bool true) a)
+  (Future (Interval l1 u1) a)
   :ruleset mltl-rewrites
 )
 

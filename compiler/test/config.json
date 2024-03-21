@@ -4,6 +4,46 @@
             "input": "egraph/and_global_1.mltl", 
             "expected_prefix": "egraph/and_global_1.prefix.c2po.expect", 
             "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/and_global_2.mltl", 
+            "expected_prefix": "egraph/and_global_2.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/and_global_3.mltl", 
+            "expected_prefix": "egraph/and_global_3.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r1_future.mltl", 
+            "expected_prefix": "egraph/r1_future.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r1_global.mltl", 
+            "expected_prefix": "egraph/r1_global.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r2_global_1.mltl", 
+            "expected_prefix": "egraph/r2_global_1.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r2_global_2.mltl", 
+            "expected_prefix": "egraph/r2_global_2.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r2_future_1.mltl", 
+            "expected_prefix": "egraph/r2_future_1.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
+        },
+        {
+            "input": "egraph/r2_future_2.mltl", 
+            "expected_prefix": "egraph/r2_future_2.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--egraph"]
         }
 
     ],
