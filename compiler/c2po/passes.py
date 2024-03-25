@@ -1047,7 +1047,8 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
-    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
+    atomic_map: dict[str, int] = {}
     aid: int = 0
 
     for expr in program.postorder(context):
@@ -1058,6 +1059,10 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         ):
             continue
 
+        if cpt.to_prefix_str(expr) in atomic_map:
+            context.atomic_id[expr] = atomic_map[cpt.to_prefix_str(expr)]
+            continue
+
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
         if (
             context.config.frontend is types.R2U2Engine.NONE 
@@ -1065,10 +1070,12 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         ):
             if expr.signal_id < 0 and not context.config.assembly_enabled:
                 context.atomic_id[expr] = aid
+                atomic_map[cpt.to_prefix_str(expr)] = aid
                 aid += 1
                 continue
 
             context.atomic_id[expr] = expr.signal_id
+            atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
@@ -1076,6 +1083,7 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
                 continue
 
             context.atomic_id[expr] = aid
+            atomic_map[cpt.to_prefix_str(expr)] = aid
             aid += 1
             break
 
@@ -1213,14 +1221,14 @@ PASS_LIST: list[Pass] = [
     resolve_contracts,
     unroll_set_aggregation,
     resolve_struct_accesses,
+    compute_atomics, 
     optimize_rewrite_rules,
+    optimize_egraph,
     to_nnf,
     to_bnf,
     remove_extended_operators,
-    optimize_cse,
     multi_operators_to_binary,
-    compute_atomics, 
-    optimize_egraph,
+    optimize_cse,
     check_sat,
     compute_scq_sizes, 
 ]
