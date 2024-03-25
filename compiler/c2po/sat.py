@@ -17,9 +17,9 @@ class SatResult(enum.Enum):
 def check_solver_installed(solver: str) -> bool:
     try:
         proc = subprocess.run([solver, "-version"], capture_output=True)
+        return proc.returncode == 0
     except FileNotFoundError:
         return False
-    return proc.returncode == 0
 
 
 def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
