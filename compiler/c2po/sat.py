@@ -15,7 +15,10 @@ class SatResult(enum.Enum):
     UNKNOWN = 2
 
 def check_solver_installed(solver: str) -> bool:
-    proc = subprocess.run([solver, "-version"], capture_output=True)
+    try:
+        proc = subprocess.run([solver, "-version"], capture_output=True)
+    except FileNotFoundError:
+        return False
     return proc.returncode == 0
 
 
