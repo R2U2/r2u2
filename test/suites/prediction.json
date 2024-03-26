@@ -1,0 +1,16 @@
+{
+    "suite": "prediction",
+    "options": {
+        "booleanizer":  true,
+        "impl":  "c"
+    },
+    "tests": [
+        {
+            "name": "probability",
+            "mltl":  "probability.c2po",
+            "trace":  "probability.csv",
+            "prob_trace": "probability2.csv",
+            "oracle":  "probability.log"
+        }
+    ]
+}

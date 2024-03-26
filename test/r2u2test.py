@@ -150,6 +150,7 @@ class TestCase():
         test_name: Optional[str], 
         mltl_path: Optional[Path], 
         trace_path: Optional[Path], 
+        prob_path: Optional[Path],
         oracle_path: Optional[Path], 
         top_results_dir: Path,
         c2po_options: dict[str,str|bool],
@@ -186,6 +187,9 @@ class TestCase():
         else:
             self.trace_path = trace_path
 
+        if prob_path:
+            self.prob_path = prob_path
+
         if not oracle_path:
             self.test_fail("Invalid oracle file")
         else:
@@ -216,9 +220,14 @@ class TestCase():
             str(self.mltl_path)
         ])
 
-        self.r2u2bin_command = [
-            str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
-        ]
+        if not prob_path:
+            self.r2u2bin_command = [
+                    str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
+                ]
+        else:
+            self.r2u2bin_command = [
+                    str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path), str(self.prob_path)
+                ]
 
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
@@ -254,6 +263,7 @@ class TestCase():
 
         shutil.copy(self.mltl_path, self.test_results_dir)
         shutil.copy(self.trace_path, self.test_results_dir)
+        shutil.copy(self.prob_path, self.test_results_dir)
         shutil.copy(self.oracle_path, self.test_results_dir)
 
         if self.spec_bin_workdir_path.exists():
@@ -273,11 +283,19 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
-        r2u2bin_command_new = [
-            str(self.r2u2bin), 
-            str(self.test_results_dir / self.spec_bin_workdir_path.name), 
-            str(self.test_results_dir / self.trace_path.name)
-        ]
+        if not self.prob_path:
+            r2u2bin_command_new = [
+                str(self.r2u2bin), 
+                str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+                str(self.test_results_dir / self.trace_path.name)
+            ]
+        else:
+            r2u2bin_command_new = [
+                str(self.r2u2bin), 
+                str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+                str(self.test_results_dir / self.trace_path.name),
+                str(self.test_results_dir / self.prob_path.name)
+            ]
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2bin_command_new))
 
@@ -445,13 +463,14 @@ class TestSuite():
                 name: Optional[str] = testcase["name"] if "name" in testcase else None
                 mltl: Optional[Path] = C2PO_INPUT_DIR / testcase["mltl"] if "mltl" in testcase else None
                 trace: Optional[Path] = TRACE_DIR / testcase["trace"] if "trace" in testcase else None
+                prob_trace: Optional[Path] = TRACE_DIR / testcase["prob_trace"] if "prob_trace" in testcase else None
                 oracle: Optional[Path] = ORACLE_DIR / testcase["oracle"] if "oracle" in testcase else None
 
                 options = copy(self.c2po_options)
                 if "options" in testcase:
                     options.update(testcase["options"])
 
-                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.c2po, self.r2u2bin, self._copyback))
+                self.tests.append(TestCase(self.suite_name, name, mltl, trace, prob_trace, oracle, self.top_results_dir, options, self.c2po, self.r2u2bin, self._copyback))
 
         if "suites" in config:
             for suite in config["suites"]:
