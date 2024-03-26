@@ -703,24 +703,14 @@ def gen_scq_instructions(
                         3,
                     ),
                 )
-                log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline, cg_k_modes}", MODULE_CODE)
+                log.debug(f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_deadline}\n\t" f"{cg_k_modes}", MODULE_CODE)
                 return [cg_scq, cg_deadline, cg_k_modes]
+            else:
+                log.debug(f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_deadline}", MODULE_CODE)
+                return [cg_scq, cg_deadline]
         else:
-            cg_deadline = CGInstruction(
-                EngineTag.CG,
-                CGType.DEADLINE,
-                TLInstruction(
-                    EngineTag.TL,
-                    expr.children[0].wpd,
-                    FTOperator.CONFIG,
-                    TLOperandType.SUBFORMULA,
-                    instructions[expr].id,
-                    TLOperandType.ATOMIC,
-                    2,
-                ),
-            )
-        log.debug(f"Generating: {expr}\n\t" f"{cg_scq, cg_deadline}", MODULE_CODE)
-        return [cg_scq, cg_deadline]
+            log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
+            return [cg_scq]
     elif isinstance(expr, cpt.ProbabilityOperator):
         cg_prob = CGInstruction(
             EngineTag.CG,
