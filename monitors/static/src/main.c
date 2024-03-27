@@ -23,10 +23,12 @@
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
 const char *help = "<configuration> [trace]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
-                   "\ttrace: optional path to input CSV\n";
+                   "\ttrace: optional path to input CSV\n"
+                   "\tprobabilities: optional path to input atomic probability CSV\n";
 
 // Create CSV reader and monitor with default extents using macro
-r2u2_csv_reader_t r2u2_csv_reader = {0};
+r2u2_csv_reader_t r2u2_trace_csv_reader = {0};
+r2u2_csv_reader_t r2u2_prob_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
@@ -49,7 +51,7 @@ int main(int argc, char const *argv[]) {
 
   // Arg Parsing - for now just check for the correct number and look for flags
   //               short-circuiting helps avoid unnecessary checks here
-  if ((argc < 2) || (argc > 3) ||
+  if ((argc < 2) || (argc > 4) ||
       (argv[1][0] == '-') || ((argc == 3) && (argv[2][0] == '-'))) {
       PRINT_VERSION();
       PRINT_USAGE();
@@ -117,12 +119,12 @@ int main(int argc, char const *argv[]) {
     r2u2_monitor.out_func = contract_status_callback;
   #endif
 
-  // Select CSV reader input file
+  // Select CSV reader trace input file
   if(argc > 2) {
     // The trace file was specified
     if (access(argv[2], F_OK) == 0) {
-      r2u2_csv_reader.input_file = fopen(argv[2], "r");
-      if (r2u2_csv_reader.input_file == NULL) {
+      r2u2_trace_csv_reader.input_file = fopen(argv[2], "r");
+      if (r2u2_trace_csv_reader.input_file == NULL) {
         PRINT_USAGE();
         perror("Error opening trace file");
         return 1;
@@ -134,13 +136,30 @@ int main(int argc, char const *argv[]) {
     }
   } else {
     // Trace file not specified, use stdin
-    r2u2_csv_reader.input_file = stdin;
+    r2u2_trace_csv_reader.input_file = stdin;
   }
   // Debug assert - input_file != Null
 
+  // Select CSV reader probability input file
+  if(argc > 3) {
+    // The trace file was specified
+    if (access(argv[3], F_OK) == 0) {
+      r2u2_prob_csv_reader.input_file = fopen(argv[3], "r");
+      if (r2u2_prob_csv_reader.input_file == NULL) {
+        PRINT_USAGE();
+        perror("Error opening probability file");
+        return 1;
+      }
+    } else {
+        PRINT_USAGE();
+        perror("Cannot access probability file");
+        return 1;
+    }
+  }
+
   // Main processing loop
   do {
-    err_cond = r2u2_csv_load_next_signals(&r2u2_csv_reader, &r2u2_monitor);
+    err_cond = r2u2_csv_load_next_signals(&r2u2_trace_csv_reader, &r2u2_prob_csv_reader, &r2u2_monitor);
     if ((err_cond != R2U2_OK)) break;
 
     err_cond = r2u2_tic(&r2u2_monitor);

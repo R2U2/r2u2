@@ -43,10 +43,12 @@
 // Common Derived Types
 
 typedef struct {
-    // Time & Truth
+    // Time & either Truth or Probability
     r2u2_time time;
-    r2u2_bool truth;
-    r2u2_float prob;
+    union{
+        r2u2_bool truth;
+        r2u2_float prob;
+    };
 } r2u2_verdict;
 
 typedef union r2u2_value {

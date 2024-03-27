@@ -29,12 +29,16 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
   }
   R2U2_DEBUG_PRINT(" <%p>\n", (void*)scq->queue);
   R2U2_DEBUG_PRINT("\t\t\t%*cW\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->wr_ptr))), ' ');
+  R2U2_DEBUG_PRINT("\t\t\t%*cW_p\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->pred_wr_ptr))), ' ');
 }
 #endif
 
 r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_ptr) {
   R2U2_DEBUG_PRINT("\t\tPushing to SCQ <%p> Length: (%d)\n", (void*)scq->queue, scq->length);
-  R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+  if(scq->prob == 2.0)
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+  else
+    R2U2_DEBUG_PRINT("\t\tWrite Pointer Pre: [%d]<%p> -> (%d, %s)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth ? "T" : "F");
   #if R2U2_DEBUG
   r2u2_scq_print(scq, NULL);
   #endif
@@ -50,20 +54,26 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     R2U2_DEBUG_PRINT("\t\tInitial Write\n");
     (scq->queue)[-((ptrdiff_t)*wr_ptr)] = *res;
     *wr_ptr = (*wr_ptr + 1) % scq->length;
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth,  (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    if(scq->prob == 2.0)
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    else
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %s)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth ? "T" : "F");
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
     return R2U2_OK;
   }
-  if (((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].truth == res->truth) && \
-      ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].time < res->time) && \
-      (scq->wr_ptr != scq->pred_wr_ptr)) {
+  if ((scq->prob != 2.0) && (scq->wr_ptr != scq->pred_wr_ptr) && \
+      ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].truth == res->truth) && \
+      ((scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))].time < res->time)) {
     R2U2_DEBUG_PRINT("\t\tAggregate Write\n");
     // Aggregate write, overwrite the previous cell to update timestamp
     (scq->queue)[-((ptrdiff_t)((*wr_ptr == 0) ? scq->length-1 : *wr_ptr-1))] = *res;
 
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth);
+    if(scq->prob == 2.0)
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    else
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %s)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth ? "T" : "F");
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -77,7 +87,10 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     }else{
       *wr_ptr = (*wr_ptr + 1) % scq->length;
     }
-    R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    if(scq->prob == 2.0)
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
+    else
+      R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %s)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].truth ? "T" : "F");
     #if R2U2_DEBUG
     r2u2_scq_print(scq, NULL);
     #endif
@@ -108,12 +121,15 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
   }
 
   R2U2_DEBUG_PRINT("\t\tSCQ Empty Check\n");
-  R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %d, %f)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth, (scq->queue)[-((ptrdiff_t)*rd_ptr)].prob);
+  if(scq->prob == 2.0)
+    R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %f)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].prob);
+  else
+    R2U2_DEBUG_PRINT("\t\tRead Pointer Pre: [%d]<%p> -> (%d, %s)\n", *rd_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*rd_ptr)]), (scq->queue)[-((ptrdiff_t)*rd_ptr)].time, (scq->queue)[-((ptrdiff_t)*rd_ptr)].truth ? "T" : "F");
   #if R2U2_DEBUG
   r2u2_scq_print(scq, rd_ptr);
   #endif
 
-  // Checks if trying to read predicted data when not in predictice mode
+  // Checks if trying to read predicted data when not in predictive mode
   if(!predict && *rd_ptr == scq->pred_wr_ptr){
     return true; 
   }
@@ -134,12 +150,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
     }
 
     if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp) {
-      // Ternary conditional handles pointer decriment modulo SCQ length without casting to and back from signed integers
-      *rd_ptr = (*rd_ptr == 0) ? scq->length-1 : *rd_ptr-1;
       R2U2_DEBUG_PRINT("\t\tNo new data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);
-      #if R2U2_DEBUG
-      r2u2_scq_print(scq, rd_ptr);
-      #endif
       return true;
     } else {
       R2U2_DEBUG_PRINT("\t\tNew data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);

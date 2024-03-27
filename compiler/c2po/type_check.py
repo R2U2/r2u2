@@ -455,7 +455,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         location=expr.loc,
                     )
                 return False
-            expr.type = types.BoolType(False)
+            expr.type = types.BoolType()
         else:
             log.error(
                 f"Invalid expression ({type(expr)})\n\t{expr}",
