@@ -63,6 +63,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
             
+            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER and expr.type in {types.IntType, types.FloatType}:
+                log.error(
+                    MODULE_CODE,
+                    f"Non-bool type found '{expr.symbol}' ({expr.type})\n\t"
+                    f"Did you mean to enable the Booleanizer?",
+                    expr.loc,
+                )
+                return False
+
             if context.config.frontend is types.R2U2Engine.BOOLEANIZER:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
 

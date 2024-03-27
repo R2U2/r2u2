@@ -11,7 +11,7 @@ from typing import Optional, NewType, cast
 
 from c2po import cpt, log, types, util
 
-MODULE_CODE = "EGRF"
+MODULE_CODE = "EQST"
 
 INF = 1_000_000_000
 

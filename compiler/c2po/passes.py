@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types, egraph, sat
+from c2po import cpt, log, types, sat, eqsat
 
 MODULE_CODE = "PASS"
 
@@ -1111,7 +1111,7 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
         log.warning(MODULE_CODE, "E-Graph optimizations only support single formulas, using first only")
 
     formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
-    e_graph = egraph.run_egglog(formula, context)
+    e_graph = eqsat.run_egglog(formula, context)
 
     if e_graph:
         old = formula.get_expr()
