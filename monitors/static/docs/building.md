@@ -12,7 +12,7 @@ A standard build of the included R2U2 monitor CLI as provided requires:
 - Make
 
 :::{note}
-The requirement for make can be worked around by manually configuring your own build system (see [below](#Building-Without-the-Makefile)) and the Posix file assumptions are primarily required the CLI in `main.c` and aren't needed when used as a library, leaving only C99 compatibility as a hard requirement for deeply embedded contexts.
+The requirement for make can be worked around by manually configuring your own build system (see [below](##Building-Without-the-Makefile)) and the Posix file assumptions are primarily required the CLI in `main.c` and aren't needed when used as a library, leaving only C99 compatibility as a hard requirement for deeply embedded contexts.
 :::
 
 ## The Makefile
