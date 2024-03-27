@@ -27,6 +27,9 @@ release = '3.0'
 
 # -- General configuration ---------------------------------------------------
 
+#KYR: explicitly enable auto-generated header anchors to get rid of some myst.xref_missing warnings
+myst_heading_anchors = 3
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
