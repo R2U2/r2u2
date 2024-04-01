@@ -8,7 +8,6 @@
 
 #include "memory/instruction.h"
 #include "memory/register.h"
-#include "memory/box_queue.h"
 #include "memory/duo_queue.h"
 
 // TODO(bckempa): This is a smell, there sholnd't be any engine stuff in here, only memory...

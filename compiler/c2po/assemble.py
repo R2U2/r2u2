@@ -717,7 +717,7 @@ def gen_pt_duoq_instructions(
             duoqs,
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            64+1,    # +1 to hold the effective ID
+            (2*expr.interval.ub)+1, # +1 to hold the effective ID
             TLOperandType.ATOMIC,
             instructions[expr].id,
         ),

@@ -19,7 +19,6 @@ static void r2u2_duoq_queue_print(r2u2_duoq_arena_t *arena, r2u2_time queue_id) 
     R2U2_DEBUG_PRINT("  %s:%9d  |", ((ctrl->queue)[i] & R2U2_TNT_TRUE) ? "T" : "F", ((ctrl->queue)[i] & R2U2_TNT_TIME));
   }
   R2U2_DEBUG_PRINT("\n");
-  // R2U2_DEBUG_PRINT("\n\t\t\t%*cW\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->wr_ptr))), ' ');
 }
 #endif
 
