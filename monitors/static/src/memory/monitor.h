@@ -9,7 +9,7 @@
 #include "memory/instruction.h"
 #include "memory/register.h"
 #include "memory/box_queue.h"
-#include "memory/shared_connection_queue.h"
+#include "memory/duo_queue.h"
 
 // TODO(bckempa): This is a smell, there sholnd't be any engine stuff in here, only memory...
 #include "engines/atomic_checker/aux_data.h"
@@ -48,8 +48,7 @@ typedef struct {
   r2u2_value_buffer_t     *value_buffer;
   r2u2_atomic_buffer_t    atomic_buffer;
   r2u2_atomic_buffer_t    past_time_result_buffer;
-  r2u2_box_queue_memory_t *past_time_queue_mem;
-  r2u2_scq_queue_memory_t *future_time_queue_mem;
+  r2u2_duoq_arena_t       duo_queue_mem;
 
   // TODO
   // #if R2U2_AT_EXTRA_FILTERS
@@ -75,8 +74,7 @@ typedef struct {
     &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
-    &(uint8_t [R2U2_MAX_BOXQ_BYTES]){0}, \
-    &(uint8_t [R2U2_MAX_SCQ_BYTES]){0}, \
+    {NULL, NULL}, \
     &(r2u2_at_filter_aux_data_t [R2U2_MAX_AT_INSTRUCTIONS]){0}, \
   }
 

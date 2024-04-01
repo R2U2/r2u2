@@ -5,8 +5,14 @@
 #include <stdbool.h>  // For booleans
 #include <stdint.h>
 #include <string.h> // memcpy
+#include <limits.h> // CHAR_BIT
 
 #include "internals/bounds.h"
+
+// Use with care! Much better leave off than be wrong, really only for one-off
+// branches, like first time checks.
+#define r2u2_likely(x)       __builtin_expect(!!(x), 1)
+#define r2u2_unlikely(x)     __builtin_expect(!!(x), 0)
 
 // Punning
 #ifndef r2u2_bool
@@ -41,6 +47,19 @@
 // https://stackoverflow.com/questions/174356/ways-to-assert-expressions-at-build-time-in-c
 
 // Common Derived Types
+
+/* Truth-n'-Time (TNT)
+ * Combines truth (as the MSB) and the timestamp into a single value.
+ * Typdefed seperatly to ensure differentiation from pure timestamps.
+ * This signficantly improves queue memory effiency since booleans took full
+ * bytes and then required additioanl padding wasting about 31 bits per queue
+ * slot depending on the platform and timestep width.
+ */
+typedef r2u2_time r2u2_tnt_t;
+static const size_t R2U2_TNT_BITS = sizeof(r2u2_tnt_t) * CHAR_BIT;
+static const r2u2_tnt_t R2U2_TNT_TIME = (((r2u2_tnt_t)-1) >> 1);
+static const r2u2_tnt_t R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
+static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
 
 typedef struct {
     // Time & Truth
