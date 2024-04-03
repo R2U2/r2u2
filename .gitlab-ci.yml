@@ -45,3 +45,11 @@ ft-pt-test:
     - "make"
     - "cd ../../test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 regression"
+
+prediction-test:
+  stage: test
+  script:
+    - "cd monitors/static"
+    - "make"
+    - "cd ../../test"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 prediction"

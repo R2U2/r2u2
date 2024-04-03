@@ -1,0 +1,9 @@
+INPUT
+a0,a1:bool;
+s1:float;
+
+FTSPEC
+a0 with d = -3, k = 3;
+(P_0.4 G[0,1] a0) && a1 with d = -1, k = 3;
+a0 U[0,2] (P_0.95 F[1,2] a1) with d = 1, k = 3;
+P_0.6 (a0 && G[0,1] a1) with d = 0, k = 3;
