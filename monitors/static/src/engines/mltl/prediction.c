@@ -3,33 +3,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-r2u2_status_t r2u2_bz_predict(r2u2_monitor_t *monitor, r2u2_bz_instruction_t *instr, r2u2_time k_mode, float prob)
-{
-    r2u2_status_t status = R2U2_OK;
-    if(instr->store) {
-        if(k_mode == 0){
-          status = r2u2_bz_instruction_dispatch(monitor, instr);
-          #ifdef R2U2_PROBABILISTIC
-          (*(monitor->atomic_prob_buffer))[instr->at_addr] = ((*(monitor->atomic_buffer)[0])[instr->at_addr] ? prob : 0.0);
-          #endif
-        }
-        else{
-          r2u2_bool prev_atomic = (*(monitor->atomic_buffer)[0])[instr->at_addr];
-          status = r2u2_bz_instruction_dispatch(monitor, instr);
-          #ifdef R2U2_PROBABILISTIC
-          r2u2_float prev_prob = (*(monitor->atomic_prob_buffer))[instr->at_addr];
-          (*(monitor->atomic_prob_buffer))[instr->at_addr] = prev_prob + ((*(monitor->atomic_buffer)[0])[instr->at_addr] ? prob : 0.0);
-          #endif
-          (*(monitor->atomic_buffer)[0])[instr->at_addr] = prev_atomic && (*(monitor->atomic_buffer)[0])[instr->at_addr];
-        }
-    }
-    else{
-      status = r2u2_bz_instruction_dispatch(monitor, instr);
-    }
-
-    return status;
-}
-
 // Helper function to find booleanizer child instruction for MLTL atomic
 r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_bz_instruction_t** bz_instructions, size_t *bz_size, uint8_t desired_atom, uint8_t curr_index){
   if(instr->engine_tag == R2U2_ENG_BZ){
@@ -176,18 +149,34 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
   return R2U2_OK;
 }
 
-void find_trace_start_index(r2u2_monitor_t *monitor, r2u2_time* trace_start_index, size_t size){
-  int temp = 0;
+void find_k_start_index(r2u2_monitor_t *monitor, r2u2_time* trace_start_index, r2u2_time* prob_start_index, size_t size){
+  int temp1 = 0;
+  int temp2 = 0;
   for(int i = 0; i < size; i++){
     while(true){
-      if(strcmp((*(monitor->signal_vector))[temp], "|") == 0){
-        trace_start_index[i] = temp+1;
-        R2U2_DEBUG_PRINT("%d trace starts at %d\n", i, temp+1);
-        temp = temp + monitor->num_signals + 1;
+      if(strcmp((*(monitor->signal_vector))[temp1], "|") == 0){
+        trace_start_index[i] = temp1+1;
+        R2U2_DEBUG_PRINT("trace %d starts at %d\n", i, temp1+1);
+        temp1 = temp1 + monitor->num_signals + 1;
         break;
       }
       else{
-        temp = temp + monitor->num_signals;
+        temp1 = temp1 + monitor->num_signals;
+      }
+    }
+    while(true){
+      if((*(monitor->atomic_prob_buffer))[temp2] == 1000.0){
+        prob_start_index[i] = temp2 + 1;
+        R2U2_DEBUG_PRINT("probability trace %d starts at %d\n", i, temp2+1);
+        temp2 = temp2 + monitor->num_atomics + 1;
+        break;
+      }
+      else if((*(monitor->atomic_prob_buffer))[temp2] < 0){
+        prob_start_index[i] = 0;
+        break;
+      }
+      else{
+        temp2 = temp2 + monitor->num_atomics;
       }
     }
   }

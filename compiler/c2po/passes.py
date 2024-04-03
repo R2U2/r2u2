@@ -942,12 +942,17 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal S
 
-        if str(expr) in S and expr.is_probabilistic_operator() == S[str(expr)].is_probabilistic_operator():
+        key = str(expr)
+        if expr.is_probabilistic_operator():
+            key = 'Pr(' + key + ')'
+
+        if key in S:
             log.debug(f"Replacing --- {expr}", module=MODULE_CODE)
-            expr.replace(S[str(expr)])
+            print(S)
+            expr.replace(S[key])
         else:
             log.debug(f"Visiting ---- {expr}", module=MODULE_CODE)
-            S[str(expr)] = expr
+            S[key] = expr
 
     S = {}
     for expr in cpt.postorder(program.ft_spec_set, context):
@@ -991,6 +996,7 @@ def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> Non
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
     id: int = 0
+    S = {}
 
     for expr in program.postorder(context):
         if expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
@@ -1003,8 +1009,12 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             if parent.engine == types.R2U2Engine.TEMPORAL_LOGIC:
                 context.atomics.add(expr)
                 if expr.atomic_id < 0:
-                    expr.atomic_id = id
-                    id += 1
+                    if str(expr) in S:
+                        expr.atomic_id = S[str(expr)].atomic_id
+                    else:
+                        S[str(expr)] = expr
+                        expr.atomic_id = id
+                        id += 1
 
     log.debug(
         f"Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",

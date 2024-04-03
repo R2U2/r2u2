@@ -29,6 +29,7 @@ typedef struct {
   r2u2_monitor_progress_state_t progress; // TODO(bckempa): Track value in debug
   size_t    prog_count; // TODO(bckempa): type justification and bounds check
   size_t num_signals;
+  size_t num_atomics;
   r2u2_bool predictive_mode;
 
   // Specification Instructions
@@ -70,7 +71,7 @@ typedef struct {
 // TODO(bckempa): Can we use the typedef for the initialization instead?
 #define R2U2_DEFAULT_MONITOR \
   { \
-    0, 0, 0, 0, 0,\
+    0, 0, 0, 0, 0, 0,\
     &(uint8_t [R2U2_MAX_INST_LEN]){0}, \
     &(r2u2_instruction_t [R2U2_MAX_INSTRUCTIONS]){0}, \
     NULL, NULL, \

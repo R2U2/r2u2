@@ -55,8 +55,12 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
         // Follow the pointer to the signal vector, then assign the ith element
         // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
         // stay in place while the signal vector is live
-        sscanf(signal, "%lf", &prob);
-        (*(monitor->atomic_prob_buffer))[i] = prob;
+        if (strcmp(signal, "|") == 0){
+          (*(monitor->atomic_prob_buffer))[i] = 1000.0;
+        }else{
+          sscanf(signal, "%lf", &prob);
+          (*(monitor->atomic_prob_buffer))[i] = prob;
+        }
       }
 
       #else
@@ -65,11 +69,19 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
         // Follow the pointer to the signal vector, then assign the ith element
         // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
         // stay in place while the signal vector is live
-        sscanf(signal, "%lf", &prob);
-        (*(monitor->atomic_prob_buffer))[i] = prob;
+        if (strcmp(signal, "|") == 0){
+          (*(monitor->atomic_prob_buffer))[i] = 1000.0;
+        }else{
+          sscanf(signal, "%lf", &prob);
+          (*(monitor->atomic_prob_buffer))[i] = prob;
+        }
       }
 
       #endif
+  }else{
+    for(i = 0; i < monitor->num_atomics; i++) {
+        (*(monitor->atomic_prob_buffer))[i] = -1;
+    }
   }
 
   return R2U2_OK;

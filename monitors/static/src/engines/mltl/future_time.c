@@ -89,7 +89,10 @@ static r2u2_verdict get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t
           source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
           res.time = source_scq->desired_time_stamp;
           if (source_scq->prob == 2.0){ // Indicates probabilistic operator
-            res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? (*(monitor->atomic_prob_buffer))[op->value] : 0.0;
+            if ((*(monitor->atomic_prob_buffer))[op->value] < 0)
+              res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? 1.0 : 0.0;
+            else
+              res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? (*(monitor->atomic_prob_buffer))[op->value] : 1-(*(monitor->atomic_prob_buffer))[op->value];
           }else{
             res.truth = (*(monitor->atomic_buffer[0]))[op->value];
           }
@@ -146,7 +149,10 @@ static r2u2_verdict get_child_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruc
           source_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->memory_reference]);
           res.time = source_scq->desired_time_stamp;
           if (source_scq->prob == 2.0){ // Indicates probabilistic operator
-            res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? (*(monitor->atomic_prob_buffer))[op->value] : 0.0;
+            if ((*(monitor->atomic_prob_buffer))[op->value] < 0)
+              res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? 1.0 : 0.0;
+            else
+              res.prob = (*(monitor->atomic_buffer[0]))[op->value] ? (*(monitor->atomic_prob_buffer))[op->value] : 1-(*(monitor->atomic_prob_buffer))[op->value];
           }else{
             res.truth = (*(monitor->atomic_buffer[0]))[op->value];
           }
@@ -301,25 +307,50 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             r2u2_bz_instruction_t* bz_instructions[R2U2_MAX_BZ_INSTRUCTIONS];
             r2u2_scq_state_t prev_real_state[R2U2_MAX_INSTRUCTIONS];
             r2u2_time k_trace_offset[scq->k_modes];
+            r2u2_time k_prob_offset[scq->k_modes];
             size_t num_mltl_instructions, num_bz_instructions = 0;
             // Find child instructions for ft and booleanizer assembly (atomic checker not currently supported)
             r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], mltl_instructions, &num_mltl_instructions, 
                                                             bz_instructions, &num_bz_instructions, monitor->prog_count - instr->memory_reference);
-            find_trace_start_index(monitor, k_trace_offset, scq->k_modes);
+            find_k_start_index(monitor, k_trace_offset, k_prob_offset, scq->k_modes);
             prep_prediction_scq(monitor, mltl_instructions, instr, prev_real_state, num_mltl_instructions);
             r2u2_signal_vector_t *signal_vector_original = monitor->signal_vector;
+            r2u2_atomic_buffer_t *atomic_prob_buffer_original = monitor->atomic_prob_buffer;
 
             r2u2_time iteration = 0;
             while(res.time == r2u2_infinity || res.time < index){ // while prediction is required
               monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
               
+              r2u2_float temp_prob_buffer[monitor->num_atomics];
               for(int j = 0; j < (int)scq->k_modes; j++){
                 monitor->signal_vector = &(*(signal_vector_original))[k_trace_offset[j]+(iteration*monitor->num_signals)];
+                monitor->atomic_prob_buffer = &(*(atomic_prob_buffer_original))[k_prob_offset[j]+(iteration*monitor->num_atomics)];
+                if(k_prob_offset[j] == 0 && scq->k_modes > 1){
+                  for(int k = 0; k < monitor->num_atomics; k++){
+                    (*(monitor->atomic_prob_buffer))[k] = 1.0 / scq->k_modes;
+                  }
+                }
                 for(int i = num_bz_instructions - 1; i >= 0; i--){ // dispatch booleanizer instructions
                   R2U2_DEBUG_PRINT("%d.%d.%zu.%d\n",monitor->time_stamp,iteration, i, j);
-                  r2u2_bz_predict(monitor, bz_instructions[i],j, 1.0/scq->k_modes);
+                  if(bz_instructions[i]->store && j != 0) {
+                    r2u2_float prev_prob = temp_prob_buffer[bz_instructions[i]->at_addr];
+                    r2u2_bool prev_atomic = (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr];
+                    r2u2_bz_instruction_dispatch(monitor, bz_instructions[i]);
+                    if(prev_atomic && !((*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr])){ // Going from true to false
+                      temp_prob_buffer[bz_instructions[i]->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
+                      (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr] = false;
+                    }else if(prev_atomic == ((*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr])){ // Staying same atomic value
+                      temp_prob_buffer[bz_instructions[i]->at_addr] = prev_prob + (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
+                    }else{ // Value is false and will remain false even if true for one mode
+                      (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr] = prev_atomic;
+                    }
+                  }else{
+                    r2u2_bz_instruction_dispatch(monitor, bz_instructions[i]);
+                    temp_prob_buffer[bz_instructions[i]->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
+                  }
                 }
               }
+              monitor->atomic_prob_buffer = &temp_prob_buffer;
               iteration++;
 
               while(true){ // continue until no progress is made
@@ -336,7 +367,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                   r2u2_scq_push(scq, &result, &scq->pred_wr_ptr);
 
                   if (monitor->out_file != NULL) {
-                    //printf("atomics: %s, %s, %s, %s\n", (*(monitor->signal_vector))[0], (*(monitor->signal_vector))[1], (*(monitor->signal_vector))[2], (*(monitor->signal_vector))[3]);
                     fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, min(index, res.time), res.truth ? "T" : "F", monitor->time_stamp);
                   }
 
@@ -357,6 +387,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
             }
             restore_scq(monitor, mltl_instructions, instr, prev_real_state, num_mltl_instructions);
             monitor->signal_vector = signal_vector_original;
+            monitor->atomic_prob_buffer = atomic_prob_buffer_original;
             monitor->predictive_mode = false;
           }
         }
@@ -388,18 +419,16 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
             }else{ //Iterate backwards through operand queue
               r2u2_float p_temp = op0.prob;
-              printf("p_temp = %lf\n", p_temp);
+              R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
               r2u2_scq_t *target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
               for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){
                 r2u2_time curr_index = ((int)scq->rd_ptr - t < 0) ? (target_scq->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
                 p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index).prob;
-                //p_temp = p_temp * r2u2_scq_pop(target_scq, &curr_index).prob;
-                printf("p_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index).prob, p_temp);
+                R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index).prob, p_temp);
               }
               res.time = op0.time - scq->interval_end;
               res.prob = p_temp;
               r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
-              printf("Pushed result\n");
             }
           }
         }else{
@@ -446,16 +475,16 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
             }else{ //Iterate backwards through operand queue
               r2u2_float p_temp = op1.prob;
-              printf("p_temp = %lf\n", p_temp);
+              R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
               r2u2_scq_t *target_scq1 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
               r2u2_scq_t *target_scq2 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op2.value]);
               for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){
                 r2u2_time curr_index1 = ((int)scq->rd_ptr - t < 0) ? (target_scq1->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
                 r2u2_time curr_index2 = ((int)scq->rd_ptr2 - t < 0) ? (target_scq2->length) + ((int)scq->rd_ptr2 - t) : (scq->rd_ptr2 - t);
                 p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index1).prob;
-                printf("p_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index1).prob, p_temp);
+                R2U2_DEBUG_PRINT("p_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index1).prob, p_temp);
                 p_temp = 1 - ((1 - get_child_operand(monitor, instr, 1, &curr_index2).prob)*(1 - p_temp));
-                printf("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand(monitor, instr, 1, &curr_index2).prob, p_temp);
+                R2U2_DEBUG_PRINT("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand(monitor, instr, 1, &curr_index2).prob, p_temp);
               }
               res.time = op0.time - scq->interval_end;
               res.prob = p_temp;
@@ -537,7 +566,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           op1 = get_operand(monitor, instr, 1);
           res.time = op0.time;
           res.prob = op0.prob * op1.prob;
-          printf("Result for AND: (%d,%f)\n", res.time, res.prob);
           push_result(monitor, instr, &res);
         }
       }

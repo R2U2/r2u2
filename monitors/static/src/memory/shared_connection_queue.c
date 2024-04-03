@@ -25,7 +25,11 @@ static void r2u2_scq_print(r2u2_scq_t *scq, r2u2_time *rd_ptr) {
   }
   R2U2_DEBUG_PRINT("\n\t\t\t|");
   for (unsigned int i = 0; i < scq->length; ++i) {
-    R2U2_DEBUG_PRINT("  %1d  |", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].truth);
+    if (scq->prob == 2.0) { //Indicate Probabilistic Operator
+      R2U2_DEBUG_PRINT("%0.3f|", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].prob);
+    }else{
+      R2U2_DEBUG_PRINT("  %1d  |", (scq->queue)[(1 - (ptrdiff_t)scq->length) + i].truth);
+    }
   }
   R2U2_DEBUG_PRINT(" <%p>\n", (void*)scq->queue);
   R2U2_DEBUG_PRINT("\t\t\t%*cW\n", (int)(((6 * (ptrdiff_t)scq->length)-3)-(6 * (scq->wr_ptr))), ' ');

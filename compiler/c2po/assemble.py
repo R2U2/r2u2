@@ -877,6 +877,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
     boxqs = 1
+    S = {}
 
     log.debug(f"\n{program}", MODULE_CODE)
 
@@ -896,6 +897,10 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> list[Instruction
                 0,
             )
             cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+            if str(expr) in S:
+                continue
+            else:
+                S[str(expr)] = expr
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
