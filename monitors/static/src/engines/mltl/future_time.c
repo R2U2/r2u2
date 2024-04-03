@@ -139,7 +139,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       R2U2_DEBUG_PRINT("\tFT RETURN\n");
 
       if (check_operand_data(monitor, instr, 0, &op0)) {
-        R2U2_DEBUG_PRINT("\t(%d,%d)\n", (op0 & R2U2_TNT_TIME), (op0 & R2U2_TNT_TRUE));
+        R2U2_DEBUG_PRINT("\t(%d,%s)\n", (op0 & R2U2_TNT_TIME), (op0 & R2U2_TNT_TRUE) ? "T" : "F");
 
         // The bookkeeping of tau and progress noramlly happen in `push_result`
         // so we have to handle that manually here since return doesn't push
@@ -178,25 +178,17 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         // verdict compaction aware rising edge detection
         // To avoid reserving a null, sentinal, or "infinity" timestamp, we
         // also have to check for satarting conditions.
-        // TODO(bckempa): THere must be a better way...
+        // TODO(bckempa): There must be a better way, is it cheaper to count?
         if((op0 & R2U2_TNT_TRUE) && !(temp->previous & R2U2_TNT_TRUE)) {
-          temp->edge = (temp->previous & R2U2_TNT_TIME) + 1;
-          if (r2u2_unlikely(op0 == R2U2_TNT_TRUE)) {temp->edge = 0;}
-          R2U2_DEBUG_PRINT("\tRising edge at t= %d\n", temp->edge);
+          if (ctrl->next_time != 0) {
+            temp->edge = (temp->previous | R2U2_TNT_TRUE) + 1;
+          } else {
+            temp->edge = R2U2_TNT_TRUE;
+          }
+          R2U2_DEBUG_PRINT("\tRising edge at t= %d\n", (temp->edge & R2U2_TNT_TIME));
         }
 
-        if ((op0 & R2U2_TNT_TRUE)) {
-          R2U2_DEBUG_PRINT("\top0 is True\n");
-        }
-        if (!(op0 & R2U2_TNT_TRUE)) {
-          R2U2_DEBUG_PRINT("\top0 is False\n");
-        }
-
-        R2U2_DEBUG_PRINT("\top0 Time: %u\n", (op0 & R2U2_TNT_TIME));
-        R2U2_DEBUG_PRINT("\tLower bound: %u\n", temp->lower_bound);
-        R2U2_DEBUG_PRINT("\tUpper bound: %u\n", temp->upper_bound);
-
-        if ((op0 & R2U2_TNT_TRUE) && ((op0 & R2U2_TNT_TIME) >= temp->upper_bound - temp->lower_bound + temp->edge) && ((op0 & R2U2_TNT_TIME) >= temp->upper_bound)) {
+        if ((op0 & R2U2_TNT_TRUE) && (temp->edge >= R2U2_TNT_TRUE) && ((op0 & R2U2_TNT_TIME) >= temp->upper_bound - temp->lower_bound + (temp->edge & R2U2_TNT_TIME)) && ((op0 & R2U2_TNT_TIME) >= temp->upper_bound)) {
           R2U2_DEBUG_PRINT("\tPassed\n");
           push_result(monitor, instr, ((op0 & R2U2_TNT_TIME) - temp->upper_bound) | R2U2_TNT_TRUE);
         } else if (!(op0 & R2U2_TNT_TRUE) && ((op0 & R2U2_TNT_TIME) >= temp->lower_bound)) {
