@@ -108,20 +108,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
       }
 
-
-          // // Rise/Fall edge detection initialization
-          // switch (instr->opcode) {
-          //   case R2U2_MLTL_OP_FT_GLOBALLY:
-          //       temp->previous = (r2u2_verdict) {r2u2_infinity, false};
-          //       break;
-          //   case R2U2_MLTL_OP_FT_UNTIL:
-          //       temp->previous = (r2u2_verdict) {r2u2_infinity, true};
-          //       break;
-          //   default:
-          //       temp->previous = (r2u2_verdict) {0, true};
-          // }
-
-
       error_cond = R2U2_OK;
       break;
     }
@@ -230,6 +216,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           result = (tau - temp->upper_bound) | R2U2_TNT_FALSE;
         } else {
           /* Still waiting, return early */
+          R2U2_DEBUG_PRINT("\tWaiting...\n");
           error_cond = R2U2_OK;
           break;
         }
@@ -237,14 +224,23 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         // Didn't hit the else case above means we a result. If it is new, that
         // is the timestamp is grater than the one in temp->previous, we push.
         // We don't want to reset desired_time_stamp based on the result
-        // so we reset `next_time` after we push to avoid one-off return logic
+        // so we reset `next_time` after we push to avoid one-off return logic.
+        // To handle startup behavior, the truth bit of the previous result
+        // storage is used to flag that an ouput has been produced, which can
+        // differentate between a value of 0 for no output vs what would be 0
+        // for an output of false at time 0. Since only the timestamp of the
+        // previous result is ever checked, this overloading of the truth bit
+        // doesn't cause confict with other logic and preserves startup
+        // behavior when memory is nulled out
+        R2U2_TRACE_PRINT("\tCandidate Result: (%d, %s)\n", (result & R2U2_TNT_TIME), (result & R2U2_TNT_TRUE) ? "T" : "F");
+        R2U2_TRACE_PRINT("\t\tCheck 1: %d > %d == %d\n", (result & R2U2_TNT_TIME), (temp->previous & R2U2_TNT_TIME), ((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)));
+        R2U2_TRACE_PRINT("\t\tCheck 2: %d && %d\n", ((result & R2U2_TNT_TIME) == 0), !(temp->previous & R2U2_TNT_TRUE));
         if (((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)) || \
-            (((result & R2U2_TNT_TIME) == 0) && (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP))) {
+            (((result & R2U2_TNT_TIME) == 0) && !(temp->previous & R2U2_TNT_TRUE))) {
           push_result(monitor, instr, result);
           ctrl->next_time = tau+1;
+          temp->previous = R2U2_TNT_TRUE | result;
         }
-        // TODO(bckempa): Should this be in the above block? Does it matter?
-        temp->previous = result;
       }
 
       error_cond = R2U2_OK;
