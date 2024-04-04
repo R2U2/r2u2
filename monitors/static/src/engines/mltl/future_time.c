@@ -24,7 +24,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_DIRECT:
         *result = monitor->time_stamp | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
-        return true;
+        return (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
 
       case R2U2_FT_OP_ATOMIC:
         // Only load in atomics on first loop of time step

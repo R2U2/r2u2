@@ -87,8 +87,14 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
   // TODO(bckempa): Which is faster? Probably the modulo if it's safe...
   // r2u2_tnt_t prev = (ctrl->write == 0) ? ctrl->length-1 : ctrl->write-1;
   r2u2_tnt_t prev = (ctrl->write-1) % ctrl->length;
-  if ((((ctrl->queue)[prev] ^ value) <= ((r2u2_tnt_t)-1) >> 1) && \
-      !((value << 1) == 0)) {
+  // Two checks:
+  //    1: Is the new verdict the same as the previous? i.e. truth bit is clear
+  //       in an xor and therefore the value is less than max time
+  //    2: Coherence, if the previous timestamp matches the one under the write
+  //       pointer, either this is the first write or we're in an incoherent
+  //       state, write to the next cell instead.
+  if ((((ctrl->queue)[prev] ^ value) <= R2U2_TNT_TIME) && \
+      ((ctrl->queue)[prev] != (ctrl->queue)[ctrl->write])) {
     R2U2_DEBUG_PRINT("\t\tCompating write\n");
     ctrl->write = prev;
   }
@@ -156,7 +162,6 @@ r2u2_status_t r2u2_duoq_pt_effective_id_set(r2u2_duoq_arena_t *arena, r2u2_time 
 
   return R2U2_OK;
 }
-
 
 r2u2_status_t r2u2_duoq_pt_push(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_duoq_pt_interval_t value) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
