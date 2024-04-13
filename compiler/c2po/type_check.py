@@ -210,6 +210,22 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
+            
+            target_types = [m for m in context.structs[expr.symbol].values()]
+            actual_types = [c.type for c in expr.children]
+
+            if any([target_type != actual_type 
+                    for target_type,actual_type 
+                    in zip(target_types, actual_types)]
+            ):
+                log.error(
+                    MODULE_CODE,
+                    f"Struct instantiation/function call does not match signature."
+                    f"\n\tFound:    {expr.symbol}({', '.join([str(t) for t in actual_types])})"
+                    f"\n\tExpected: {expr.symbol}({', '.join([str(t) for t in target_types])})",
+                    expr.loc,
+                )
+                return False
 
             is_const = False
             if all([child.type.is_const for child in expr.children]):

@@ -85,6 +85,11 @@
             "input": "type_check/bad_int_width.c2po", 
             "expected_output": "type_check/bad_int_width.c2po.expect", 
             "options": ["-bz", "--int-width", "8", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_struct.c2po", 
+            "expected_output": "type_check/bad_struct.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
         }
     ],
     "serialize": [
