@@ -4,9 +4,6 @@ before_script:
   - "gcc --version"
   - "python3 --version"
   - "apt update && apt -y install z3"
-  - "cd compiler"
-  - "sh setup_egglog.sh"
-  # - "apt update && apt -y install libfftw3-dev"
 
 stages:
   - test
