@@ -380,7 +380,10 @@ class TLInstruction:
         field_strs: list[str] = []
 
         field_strs.append(f"{self.engine_tag.name}")
-        field_strs.append(f"n{self.id:<2}")
+        if isinstance(self.operator, PTOperator) and self.operator.is_temporal():
+            field_strs.append(f"q{self.id:<2}")
+        else:
+            field_strs.append(f"n{self.id:<2}")
         field_strs.append(f"{self.operator:6}")
 
         if self.operand1_type == TLOperandType.DIRECT:
@@ -846,7 +849,6 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions, duoqs)
             # Duoq used, save queue id to replace effective ID later
             if len(cg_instructions[expr]) > 0:
-                print(cg_instructions[expr])
                 eid_map[expr] = duoqs
                 duoqs += 1
 
