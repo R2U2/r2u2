@@ -1,0 +1,26 @@
+STRUCT
+    Task: { 
+        id: int; 
+        in_sched, exec: bool; 
+    };
+
+INPUT
+    i0: int;
+    f0, f1: float;
+
+DEFINE
+    task := Task(
+        i0, 
+        f0,
+        f1
+    );
+
+FTSPEC
+    task.id < 100;
+    task.in_sched -> F[0,3] task.exec;
+
+
+
+
+
+    
