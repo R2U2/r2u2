@@ -8,6 +8,7 @@
 
 #include "memory/monitor.h"
 
+// TODO(bckempa): Use high bit as immediate flag to replace cfg directives
 typedef enum {
     R2U2_ENG_NA = 0, // Null instruction tag - acts as ENDSEQ
     R2U2_ENG_SY = 1, // System commands - reserved for monitor control

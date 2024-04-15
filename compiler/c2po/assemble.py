@@ -252,10 +252,8 @@ TLOperator = Union[FTOperator, PTOperator]
 
 
 class CGType(Enum):
-    SCQ = 0
-    LB = 1
-    UB = 2
-    BOXQ = 3
+    DUOQ = 0
+    TEMP = 1
 
     def __str__(self) -> str:
         return self.name
@@ -315,7 +313,7 @@ field_format_str_map = {
     FieldType.TL_ID: "I",
     FieldType.TL_OPERATOR: "i",
     FieldType.TL_OPERAND_TYPE: "i",
-    FieldType.TL_OPERAND_VALUE: "Bxxx",
+    FieldType.TL_OPERAND_VALUE: "I",
 }
 
 
@@ -410,17 +408,18 @@ class CGInstruction:
 
     def __str__(self) -> str:
         field_strs: list[str] = [f"{self.engine_tag.name}"]
-        if self.type == CGType.SCQ:
-            field_strs.append(f"{self.instruction.engine_tag}")
-            field_strs.append(f"{self.type:3}")
-            field_strs.append(f"n{self.instruction.operand1_value:<2}")
-            field_strs.append(
-                f"({self.instruction.id}, "
-                f"{self.instruction.id + self.instruction.operand2_value})"
-            )
+        field_strs.append(f"{self.instruction.engine_tag}")
+        field_strs.append(f"{self.type:3}")
+        if self.type == CGType.DUOQ:
+            field_strs.append(f"q{self.instruction.id}")
+            field_strs.append(f"|{self.instruction.operand1_value}|")
+            if self.instruction.operand2_type == TLOperandType.ATOMIC:
+                field_strs.append(f"<{self.instruction.operand2_value}>")
+        elif self.type == CGType.TEMP:
+            field_strs.append(f"q{self.instruction.id}")
+            field_strs.append(f"[{self.instruction.operand1_value}, "
+                              f"{self.instruction.operand2_value}]")
         else:
-            field_strs.append(f"{self.instruction.engine_tag}")
-            field_strs.append(f"{self.type:3}")
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
             field_strs.append(f"{self.instruction.id}")
         return " ".join(field_strs)
@@ -670,111 +669,101 @@ def gen_pt_instruction(
     return pt_instr
 
 
-def gen_scq_instructions(
+def gen_ft_duoq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
-    cg_scq = CGInstruction(
-        EngineTag.CG,
-        CGType.SCQ,
-        TLInstruction(
-            EngineTag.TL,
-            expr.scq[0],
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.DIRECT,
-            expr.scq[1] - expr.scq[0],
-        ),
-    )
 
+    # Propositional operators only need simple queues
     if not isinstance(expr, cpt.TemporalOperator):
-        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
-        return [cg_scq]
+        cg_duoq = CGInstruction(
+            EngineTag.CG,
+            CGType.DUOQ,
+            TLInstruction(
+                EngineTag.TL,
+                instructions[expr].id,
+                FTOperator.CONFIG,
+                TLOperandType.ATOMIC,
+                expr.scq[1] - expr.scq[0],
+                TLOperandType.NONE,
+                0,
+            ),
+        )
+        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
+        return [cg_duoq]
 
-    cg_lb = CGInstruction(
+    # Temporal operators need to reserve queue length for temporal parameter
+    # blocks, and emit an additional configuration instruction
+    cg_duoq = CGInstruction(
         EngineTag.CG,
-        CGType.LB,
+        CGType.DUOQ,
         TLInstruction(
             EngineTag.TL,
-            expr.interval.lb,
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
             instructions[expr].id,
+            FTOperator.CONFIG,
             TLOperandType.ATOMIC,
+            # TODO: Move magic number (size of temporal block)
+            (expr.scq[1] - expr.scq[0]) + 4,
+            TLOperandType.NONE,
             0,
         ),
     )
 
-    cg_ub = CGInstruction(
+    cg_temp = CGInstruction(
         EngineTag.CG,
-        CGType.UB,
+        CGType.TEMP,
         TLInstruction(
             EngineTag.TL,
-            expr.interval.ub,
+            instructions[expr].id,
             FTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.ATOMIC,
-            1,
+            expr.interval.lb,
+            TLOperandType.SUBFORMULA,
+            expr.interval.ub,
         ),
     )
 
     log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}"
+        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
     )
 
-    return [cg_scq, cg_lb, cg_ub]
+    return [cg_duoq, cg_temp]
 
 
-def gen_boxq_instructions(
-    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], boxqs: int
+def gen_pt_duoq_instructions(
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], duoqs: int
 ) -> list[CGInstruction]:
     if not isinstance(expr, cpt.TemporalOperator):
         return []
 
-    cg_boxq = CGInstruction(
+    cg_duoq = CGInstruction(
         EngineTag.CG,
-        CGType.BOXQ,
+        CGType.DUOQ,
         TLInstruction(
             EngineTag.TL,
-            64 * boxqs,
+            duoqs,
             PTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
+            TLOperandType.ATOMIC,
+            (2*expr.interval.ub)+1, # +1 to hold the effective ID
+            TLOperandType.ATOMIC,
             instructions[expr].id,
-            TLOperandType.DIRECT,
-            64,
         ),
     )
 
-    cg_lb = CGInstruction(
+    cg_temp = CGInstruction(
         EngineTag.CG,
-        CGType.BOXQ,
+        CGType.TEMP,
         TLInstruction(
             EngineTag.TL,
+            duoqs,
+            PTOperator.CONFIG,
+            TLOperandType.SUBFORMULA,
             expr.interval.lb,
-            PTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.ATOMIC,
-            0,
-        ),
-    )
-
-    cg_ub = CGInstruction(
-        EngineTag.CG,
-        CGType.BOXQ,
-        TLInstruction(
-            EngineTag.TL,
             expr.interval.ub,
-            PTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            instructions[expr].id,
-            TLOperandType.ATOMIC,
-            1,
         ),
     )
 
-    return [cg_boxq, cg_lb, cg_ub]
+    return [cg_duoq, cg_temp]
 
 
 def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
@@ -783,7 +772,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
-    boxqs = 1
+
+    # For tracking duoq usage across FT and PT
+    duoqs: int = 0
+    # For tracking effective and duoq ids of PT nodes
+    eid_map: dict[cpt.Expression, int] = {}
 
     log.debug(MODULE_CODE, 1, f"Generating assembly for program:\n{program}")
 
@@ -802,8 +795,10 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 TLOperandType.NONE,
                 0,
             )
+
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
-            cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+            cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
+            duoqs += 1
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
@@ -820,8 +815,8 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             if not new_ft_instruction:
                 return None
             ft_instructions[expr] = new_ft_instruction
-            
-            cg_instructions[expr] = gen_scq_instructions(expr, ft_instructions)
+            cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
+            duoqs += 1
 
     for expr in cpt.postorder(program.pt_spec_set, context):
         if expr == program.pt_spec_set:
@@ -848,9 +843,16 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             if not new_pt_instruction:
                 return None
             pt_instructions[expr] = new_pt_instruction
+            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions, duoqs)
+            # Duoq used, save queue id to replace effective ID later
+            if len(cg_instructions[expr]) > 0:
+                print(cg_instructions[expr])
+                eid_map[expr] = duoqs
+                duoqs += 1
 
-            cg_instructions[expr] = gen_boxq_instructions(expr, pt_instructions, boxqs)
-            boxqs += 1
+    # Replace effective ID with duoq id in pt temporal operators
+    for expr, duoq_id in eid_map.items():
+        pt_instructions[expr].id = duoq_id
 
     return (
         list(at_instructions.values())
@@ -1001,36 +1003,30 @@ def pack_tl_instruction(
         MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
-        f"[{format_strs[FieldType.TL_OPERAND_TYPE]:2} {format_strs[FieldType.TL_OPERAND_VALUE]:4}] "
+        f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
+        f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
         f"{format_strs[FieldType.TL_ID]:2} "
+        f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
+        f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
         f"{format_strs[FieldType.TL_OPERATOR]:2}"
         f"\n\t"
         f"{instruction.engine_tag.value:<2} "
-        f"[{instruction.operand1_type.value:<2} {instruction.operand1_value:<4}] "
-        f"[{instruction.operand2_type.value:<2} {instruction.operand2_value:<4}] "
+        f"{instruction.operand1_value:<4} "
+        f"{instruction.operand2_value:<4} "
         f"{instruction.id:<2} "
+        f"{instruction.operand1_type.value:<2} "
+        f"{instruction.operand2_type.value:<2} "
         f"{instruction.operator.value:<2}",
     )
 
     binary = bytes()
 
-    operand_format_str = endian
-    operand_format_str += format_strs[FieldType.TL_OPERAND_TYPE]
-    operand_format_str += format_strs[FieldType.TL_OPERAND_VALUE]
-    operand_struct = CStruct(operand_format_str)
-
-    operand1_binary = operand_struct.pack(
-        instruction.operand1_type.value, instruction.operand1_value
-    )
-    operand2_binary = operand_struct.pack(
-        instruction.operand2_type.value, instruction.operand2_value
-    )
-
     format_str = endian
-    format_str += f"{operand_struct.size}s"
-    format_str += f"{operand_struct.size}s"
+    format_str += format_strs[FieldType.TL_OPERAND_VALUE]
+    format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     format_str += format_strs[FieldType.TL_ID]
+    format_str += format_strs[FieldType.TL_OPERAND_TYPE]
+    format_str += format_strs[FieldType.TL_OPERAND_TYPE]
     format_str += format_strs[FieldType.TL_OPERATOR]
 
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
@@ -1038,9 +1034,11 @@ def pack_tl_instruction(
     )
 
     binary = engine_tag_binary + CStruct(format_str).pack(
-        operand1_binary,
-        operand2_binary,
+        instruction.operand1_value,
+        instruction.operand2_value,
         instruction.id,
+        instruction.operand1_type.value,
+        instruction.operand2_type.value,
         instruction.operator.value,
     )
 
@@ -1132,7 +1130,7 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3 - BOM: {endian}".encode("ascii") + b"\x00"
+        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {endian}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 

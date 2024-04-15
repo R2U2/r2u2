@@ -1187,9 +1187,8 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
-        # need the +3 b/c of implementation -- ask Brian
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + EXTRA_SCQ_SIZE
-
+        # minimum size of 3 so pointers don't crash while a value is "inflight"
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
