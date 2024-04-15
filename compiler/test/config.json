@@ -271,5 +271,47 @@
             "expected_output": "sat/unsat_5.mltl.expect", 
             "options": ["-c", "-sat", "--extops"]
         }
+    ],
+    "eqsat": [
+        {
+            "input": "eqsat/r4_future_1.mltl", 
+            "expected_prefix": "eqsat/r4_future_1.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_future_2.mltl", 
+            "expected_prefix": "eqsat/r4_future_2.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_future_3.mltl", 
+            "expected_prefix": "eqsat/r4_future_3.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_future_3.mltl", 
+            "expected_prefix": "eqsat/r4_future_3.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_global_1.mltl", 
+            "expected_prefix": "eqsat/r4_global_1.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_global_2.mltl", 
+            "expected_prefix": "eqsat/r4_global_2.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_global_3.mltl", 
+            "expected_prefix": "eqsat/r4_global_3.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        },
+        {
+            "input": "eqsat/r4_global_4.mltl", 
+            "expected_prefix": "eqsat/r4_global_4.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c", "--eqsat"]
+        }
     ]
 }
