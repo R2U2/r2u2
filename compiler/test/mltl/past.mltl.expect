@@ -1,20 +1,17 @@
 TL n0  load   a0
-TL n1  hist   n0
+TL q0  hist   n0
 TL n2  return n1 0
-TL n3  once   n0
+TL q1  once   n0
 TL n4  return n3 1
 TL n5  load   a1
-TL n6  since  n0 n5
+TL q2  since  n0 n5
 TL n7  return n6 2
-CG TL BOXQ n1  64
-CG TL BOXQ n1  0
-CG TL BOXQ n1  5
-CG TL BOXQ n3  192
-CG TL BOXQ n3  0
-CG TL BOXQ n3  5
-CG TL BOXQ n6  320
-CG TL BOXQ n6  0
-CG TL BOXQ n6  5
+CG TL DUOQ q0 |11| <1>
+CG TL TEMP q0 [0, 5]
+CG TL DUOQ q1 |11| <3>
+CG TL TEMP q1 [0, 5]
+CG TL DUOQ q2 |11| <6>
+CG TL TEMP q2 [0, 5]
 F __f1__ 0
 F __f2__ 1
 F __f3__ 2

@@ -1093,7 +1093,8 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     )
 
 
-def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
+def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
+    """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
     log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
@@ -1141,6 +1142,7 @@ def optimize_egraph(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
+    """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
     log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
     
     results = sat.check_sat(program, context)
@@ -1222,7 +1224,7 @@ PASS_LIST: list[Pass] = [
     resolve_struct_accesses,
     compute_atomics, 
     optimize_rewrite_rules,
-    optimize_egraph,
+    optimize_eqsat,
     to_nnf,
     to_bnf,
     remove_extended_operators,

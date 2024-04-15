@@ -12,20 +12,20 @@ TL n10 xor    n0 n3
 TL n11 return n10 4
 TL n12 equiv  n0 n3
 TL n13 return n12 5
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL SCQ n2  (6, 7)
-CG TL SCQ n3  (7, 10)
-CG TL SCQ n4  (10, 13)
-CG TL SCQ n5  (13, 14)
-CG TL SCQ n6  (14, 17)
-CG TL SCQ n7  (17, 18)
-CG TL SCQ n8  (18, 21)
-CG TL SCQ n9  (21, 22)
-CG TL SCQ n10 (22, 25)
-CG TL SCQ n11 (25, 26)
-CG TL SCQ n12 (26, 29)
-CG TL SCQ n13 (29, 30)
+CG TL DUOQ q0 |3|
+CG TL DUOQ q1 |3|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |3|
+CG TL DUOQ q4 |3|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |3|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |3|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |3|
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |3|
+CG TL DUOQ q13 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

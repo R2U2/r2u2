@@ -545,6 +545,7 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
 
 def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
+    """Encodes `spec` into an egglog query, runs egglog, then returns an EGraph if no error occurred during construction. Returns None otherwise."""
     TMP_EGG_PATH = context.config.workdir / "__tmp__.egg"
     EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 

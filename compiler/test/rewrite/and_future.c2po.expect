@@ -3,14 +3,12 @@ TL n1  eventually n0
 TL n2  return n1 0
 TL n3  eventually n0
 TL n4  return n3 1
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL LB  n1  2
-CG TL UB  n1  3
-CG TL SCQ n2  (6, 7)
-CG TL SCQ n3  (7, 10)
-CG TL LB  n3  2
-CG TL UB  n3  4
-CG TL SCQ n4  (10, 11)
+CG TL DUOQ q0 |3|
+CG TL DUOQ q1 |7|
+CG TL TEMP q1 [2, 3]
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |7|
+CG TL TEMP q3 [2, 4]
+CG TL DUOQ q4 |1|
 F __f0__ 0
 F __f1__ 1

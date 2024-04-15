@@ -11,27 +11,23 @@ TL n9  not    n5
 TL n10 until  n8 n9
 TL n11 not    n10
 TL n12 return n11 3
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL LB  n1  0
-CG TL UB  n1  5
-CG TL SCQ n2  (6, 7)
-CG TL SCQ n3  (7, 10)
-CG TL LB  n3  0
-CG TL UB  n3  5
-CG TL SCQ n4  (10, 11)
-CG TL SCQ n5  (11, 14)
-CG TL SCQ n6  (14, 17)
-CG TL LB  n6  0
-CG TL UB  n6  5
-CG TL SCQ n7  (17, 18)
-CG TL SCQ n8  (18, 21)
-CG TL SCQ n9  (21, 24)
-CG TL SCQ n10 (24, 27)
-CG TL LB  n10 0
-CG TL UB  n10 5
-CG TL SCQ n11 (27, 30)
-CG TL SCQ n12 (30, 31)
+CG TL DUOQ q0 |3|
+CG TL DUOQ q1 |7|
+CG TL TEMP q1 [0, 5]
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |7|
+CG TL TEMP q3 [0, 5]
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |3|
+CG TL DUOQ q6 |7|
+CG TL TEMP q6 [0, 5]
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |3|
+CG TL DUOQ q9 |3|
+CG TL DUOQ q10 |7|
+CG TL TEMP q10 [0, 5]
+CG TL DUOQ q11 |3|
+CG TL DUOQ q12 |1|
 F __f1__ 0
 F __f2__ 1
 F __f3__ 2

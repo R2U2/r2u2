@@ -131,7 +131,7 @@ def validate_input(
     enable_nnf: bool = False,
     enable_bnf: bool = False,
     enable_rewrite: bool = False,
-    enable_egraph: bool = False,
+    enable_eqsat: bool = False,
     enable_cse: bool = False,
     enable_sat: bool = False,
     timeout_egglog: int = 3600,
@@ -236,7 +236,7 @@ def validate_input(
     if enable_extops:
         enabled_passes.remove(passes.remove_extended_operators)
 
-    if enable_egraph:
+    if enable_eqsat:
         if passes.optimize_rewrite_rules in enabled_passes:
             enabled_passes.remove(passes.optimize_rewrite_rules)
         if passes.optimize_cse in enabled_passes:
@@ -247,7 +247,7 @@ def validate_input(
         # since optimize_egraph flattens operators, no need to convert them to binary
         enabled_passes.remove(passes.multi_operators_to_binary)
     else: # not enable_egraph
-        enabled_passes.remove(passes.optimize_egraph)
+        enabled_passes.remove(passes.optimize_eqsat)
         
     if not enable_nnf:
         enabled_passes.remove(passes.to_nnf)
@@ -321,7 +321,7 @@ def compile(
     enable_nnf: bool = False,
     enable_bnf: bool = False,
     enable_rewrite: bool = False,
-    enable_egraph: bool = False,
+    enable_eqsat: bool = False,
     enable_cse: bool = False,
     enable_sat: bool = False,
     write_c2po_filename: str = ".",
@@ -378,7 +378,7 @@ def compile(
         enable_nnf,
         enable_bnf,
         enable_rewrite,
-        enable_egraph,
+        enable_eqsat,
         enable_cse,
         enable_sat,
         timeout_egglog,
