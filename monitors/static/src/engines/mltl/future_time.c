@@ -215,6 +215,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           // TODO(bckempa): ANSAN requires offset due to global layout shadow, fix and remove "+ 50"
           scq->queue = &(elements[(R2U2_MAX_SCQ_BYTES / sizeof(r2u2_verdict)) - (instr->memory_reference + 50)]);
           scq->queue[0].time = r2u2_infinity;  // Initialize empty queue
+          scq->pred_wr_ptr = r2u2_infinity; // Initialize null prediction writer
           R2U2_DEBUG_PRINT("\t\tInst: %d\n\t\tSCQ Len: %d\n\t\tSCQ Offset: %u\n\t\tAddr: %p\n", instr->op1.value, scq->length, instr->memory_reference, (void*)scq->queue);
           scq->deadline = INT32_MAX;
           scq->k_modes = 1;
@@ -282,7 +283,9 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         res = get_operand(monitor, instr, 0);
         R2U2_DEBUG_PRINT("\t(%d,%d)\n", res.time, res.truth);
         scq->desired_time_stamp = (res.time)+1;
-
+        r2u2_verdict result = {res.time, res.truth};
+        r2u2_scq_push(scq, &result, &scq->wr_ptr);
+        
         if (monitor->out_file != NULL) {
           fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2.value, res.time, res.truth ? "T" : "F");
         }
@@ -299,8 +302,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
         if((int)monitor->time_stamp - (int)scq->deadline >= 0){ // T_R - d >= 0
           r2u2_time index = monitor->time_stamp - scq->deadline;
-          operand_data_ready(monitor, instr, 0);
-          res = get_operand(monitor, instr, 0);
+          res = r2u2_scq_pop(scq, &scq->wr_ptr);
           if(res.time == r2u2_infinity || res.time < index && scq->desired_time_stamp <= index){ // last i produced < index; therefore, prediction required
             monitor->predictive_mode = true;
             r2u2_mltl_instruction_t* mltl_instructions[R2U2_MAX_INSTRUCTIONS];
@@ -364,8 +366,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                   // Only store result up to 'index'; don't predict for values after 'index'
                   scq->desired_time_stamp = min(index, res.time) + 1;
                   r2u2_verdict result = {min(index, res.time), res.truth};
-                  r2u2_scq_push(scq, &result, &scq->pred_wr_ptr);
-
+                  r2u2_scq_push(scq, &result, &scq->wr_ptr);
+                  
                   if (monitor->out_file != NULL) {
                     fprintf(monitor->out_file, "%d:%u,%s (Predicted at time stamp %d)\n", instr->op2.value, min(index, res.time), res.truth ? "T" : "F", monitor->time_stamp);
                   }

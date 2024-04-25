@@ -47,11 +47,6 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
   r2u2_scq_print(scq, NULL);
   #endif
 
-  // When overwriting predicted data with real data reset pred_wr_ptr
-  if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){
-    scq->pred_wr_ptr = r2u2_infinity;
-  }
-
   // TODO(bckempa): Verify compiler removes redundant modulo arith, else inline
   if ((scq->queue)[-((ptrdiff_t)*wr_ptr)].time == r2u2_infinity) {
     // Initialization behavior
@@ -91,6 +86,11 @@ r2u2_status_t r2u2_scq_push(r2u2_scq_t *scq, r2u2_verdict *res, r2u2_time *wr_pt
     }else{
       *wr_ptr = (*wr_ptr + 1) % scq->length;
     }
+    // When overwriting predicted data with real data reset pred_wr_ptr
+    if(wr_ptr == &scq->wr_ptr && *wr_ptr == scq->pred_wr_ptr){
+      scq->pred_wr_ptr = r2u2_infinity;
+    }
+
     if(scq->prob == 2.0)
       R2U2_DEBUG_PRINT("\t\tWrite Pointer Post: [%d]<%p> -> (%d, %f)\n", *wr_ptr, (void*)&((scq->queue)[-((ptrdiff_t)*wr_ptr)]), (scq->queue)[-((ptrdiff_t)*wr_ptr)].time, (scq->queue)[-((ptrdiff_t)*wr_ptr)].prob);
     else
@@ -135,7 +135,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
 
   // Checks if trying to read predicted data when not in predictive mode
   if(!predict && *rd_ptr == scq->pred_wr_ptr){
-    return true; 
+      return true; 
   }
 
   if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time >= *desired_time_stamp && (scq->queue)[-((ptrdiff_t)*rd_ptr)].time != r2u2_infinity) {
@@ -153,7 +153,7 @@ r2u2_bool r2u2_scq_is_empty(r2u2_scq_t *scq, r2u2_time *rd_ptr, r2u2_time *desir
       #endif
     }
 
-    if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp) {
+    if ((scq->queue)[-((ptrdiff_t)*rd_ptr)].time < *desired_time_stamp || (scq->queue)[-((ptrdiff_t)*rd_ptr)].time == r2u2_infinity) {
       R2U2_DEBUG_PRINT("\t\tNo new data found after scanning t=%d\n", (scq->queue)[-((ptrdiff_t)*rd_ptr)].time);
       return true;
     } else {

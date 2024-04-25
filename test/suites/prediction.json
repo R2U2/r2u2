@@ -7,23 +7,29 @@
     "tests": [
         {
             "name": "probability",
-            "mltl":  "probability.c2po",
-            "trace":  "probability.csv",
-            "prob_trace": "probability2.csv",
-            "oracle":  "probability.log"
+            "mltl":  "mmprv0000.c2po",
+            "trace":  "mmprv0000.csv",
+            "prob_trace": "mmprv0000_prob.csv",
+            "oracle":  "mmprv0000.log"
         },
         {
             "name": "mprv",
-            "mltl":  "mprv.c2po",
-            "trace":  "mprv.csv",
-            "oracle":  "mprv.log"
+            "mltl":  "mmprv0001.c2po",
+            "trace":  "mmprv0001.csv",
+            "oracle":  "mmprv0001.log"
+        },
+        {
+            "name": "mprv_part2",
+            "mltl":  "mmprv0002.c2po",
+            "trace":  "mmprv0002.csv",
+            "oracle":  "mmprv0002.log"
         },
         {
             "name": "mmprv",
-            "mltl":  "mmprv.c2po",
-            "trace":  "mmprv.csv",
-            "prob_trace": "mmprv2.csv",
-            "oracle":  "mmprv.log"
+            "mltl":  "mmprv0003.c2po",
+            "trace":  "mmprv0003.csv",
+            "prob_trace": "mmprv0003_prob.csv",
+            "oracle":  "mmprv0003.log"
         }
     ]
 }

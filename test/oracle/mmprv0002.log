@@ -1,0 +1,27 @@
+0:0,F
+0:1,F
+0:2,F
+0:3,T
+0:4,F
+0:5,T
+0:6,F
+0:7,T
+1:0,F
+1:1,F (Predicted at time stamp 0)
+1:2,T (Predicted at time stamp 0)
+1:3,F (Predicted at time stamp 0)
+1:4,T (Predicted at time stamp 1)
+1:5,F (Predicted at time stamp 2)
+1:6,T (Predicted at time stamp 3)
+1:7,F (Predicted at time stamp 4)
+1:8,F (Predicted at time stamp 5)
+1:9,F (Predicted at time stamp 6)
+1:10,T (Predicted at time stamp 7)
+2:0,F
+2:1,T (Predicted at time stamp 3)
+2:2,F
+2:3,F (Predicted at time stamp 5)
+2:4,F
+2:5,T
+2:6,F
+2:7,T
