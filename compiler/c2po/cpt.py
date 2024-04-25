@@ -640,7 +640,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -648,7 +648,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -656,7 +656,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_XOR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -664,7 +664,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -674,7 +674,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_IMPLIES, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -682,7 +682,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_NEGATE, [operand])
         operator.bpd = operand.bpd
         operator.wpd = operand.wpd
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     def __deepcopy__(self, memo) -> Operator:
@@ -712,7 +712,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd 
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd 
         return operator
 
     @staticmethod
@@ -722,7 +722,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.FUTURE, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         operator.symbol = f"F[{lb},{ub}]"
         return operator
 
@@ -733,7 +733,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -743,7 +743,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
-        if operator.is_probabilistic_operator: operator.bpd = operator.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod

@@ -413,23 +413,17 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
         if(scq->prob == 2.0){ //Indicates probabilisitic operator
           if (op0.time >= scq->interval_end){
-            if (scq->interval_start == scq->interval_end){
-              res.time = op0.time - scq->interval_end;
-              res.prob = op0.prob;
-              r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
-            }else{ //Iterate backwards through operand queue
-              r2u2_float p_temp = op0.prob;
-              R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
-              r2u2_scq_t *target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
-              for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){
-                r2u2_time curr_index = ((int)scq->rd_ptr - t < 0) ? (target_scq->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
-                p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index).prob;
-                R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index).prob, p_temp);
-              }
-              res.time = op0.time - scq->interval_end;
-              res.prob = p_temp;
-              r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
+            r2u2_float p_temp = op0.prob;
+            R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
+            r2u2_scq_t *target_scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
+            for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){ //Iterate backwards through operand queue
+              r2u2_time curr_index = ((int)scq->rd_ptr - t < 0) ? (target_scq->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
+              p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index).prob;
+              R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index).prob, p_temp);
             }
+            res.time = op0.time - scq->interval_end;
+            res.prob = p_temp;
+            r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
           }
         }else{
           // interval compression aware rising edge detection
@@ -469,27 +463,21 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
         if(scq->prob == 2.0){ //Indicates probabilisitic operator
           if (op0.time >= scq->interval_end){
-            if (scq->interval_start == scq->interval_end){
-              res.time = op1.time - scq->interval_end;
-              res.prob = op1.prob;
-              r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
-            }else{ //Iterate backwards through operand queue
-              r2u2_float p_temp = op1.prob;
-              R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
-              r2u2_scq_t *target_scq1 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
-              r2u2_scq_t *target_scq2 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op2.value]);
-              for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){
-                r2u2_time curr_index1 = ((int)scq->rd_ptr - t < 0) ? (target_scq1->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
-                r2u2_time curr_index2 = ((int)scq->rd_ptr2 - t < 0) ? (target_scq2->length) + ((int)scq->rd_ptr2 - t) : (scq->rd_ptr2 - t);
-                p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index1).prob;
-                R2U2_DEBUG_PRINT("p_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index1).prob, p_temp);
-                p_temp = 1 - ((1 - get_child_operand(monitor, instr, 1, &curr_index2).prob)*(1 - p_temp));
-                R2U2_DEBUG_PRINT("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand(monitor, instr, 1, &curr_index2).prob, p_temp);
-              }
-              res.time = op0.time - scq->interval_end;
-              res.prob = p_temp;
-              r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
+            r2u2_float p_temp = op1.prob;
+            R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
+            r2u2_scq_t *target_scq1 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op1.value]);
+            r2u2_scq_t *target_scq2 = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instr->op2.value]);
+            for(int t = 1; t <= (scq->interval_end-scq->interval_start); t++){ //Iterate backwards through operand queue
+              r2u2_time curr_index1 = ((int)scq->rd_ptr - t < 0) ? (target_scq1->length) + ((int)scq->rd_ptr - t) : (scq->rd_ptr - t);
+              r2u2_time curr_index2 = ((int)scq->rd_ptr2 - t < 0) ? (target_scq2->length) + ((int)scq->rd_ptr2 - t) : (scq->rd_ptr2 - t);
+              p_temp = p_temp * get_child_operand(monitor, instr, 0, &curr_index1).prob;
+              R2U2_DEBUG_PRINT("p_temp = p_temp * %lf = %lf\n", get_child_operand(monitor, instr, 0, &curr_index1).prob, p_temp);
+              p_temp = 1 - ((1 - get_child_operand(monitor, instr, 1, &curr_index2).prob)*(1 - p_temp));
+              R2U2_DEBUG_PRINT("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand(monitor, instr, 1, &curr_index2).prob, p_temp);
             }
+            res.time = op0.time - scq->interval_end;
+            res.prob = p_temp;
+            r2u2_scq_push(scq, &res, monitor->predictive_mode ? &scq->pred_wr_ptr : &scq->wr_ptr);
           }
         }else{
           // interval compression aware falling edge detection on op1
