@@ -3,7 +3,6 @@ INPUT
 
 FTSPEC
     F[0,0] b0;
-    b0 && F[0,5] true;
     b0 && F[0,5] false;
     F[5,5] (G[0,5] b0);
     F[5,5] (F[0,5] b0);

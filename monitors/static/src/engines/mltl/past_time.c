@@ -8,21 +8,15 @@ typedef enum {
     R2U2_MLTL_PT_OPRND_EDGE_RISING
 } r2u2_mltl_pt_oprnd_edge_t;
 
-r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n);
-
-
-static uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
-    uint8_t res;
+// We can't pull this up the the MLTL level because the subformula cases are
+// tense dependent.
+static inline uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n){
+    uint32_t res;
     r2u2_mltl_operand_type_t type;
     uint32_t value;
 
     type  = (n == 0) ? (instr->op1_type)  : (instr->op2_type);
     value = (n == 0) ? (instr->op1_value) : (instr->op2_value);
-
-    #if R2U2_DEBUG
-      // TODO(bckempa): Debug build bounds checking
-      // assert();
-    #endif
 
     switch (type) {
       case R2U2_FT_OP_DIRECT:
@@ -34,18 +28,24 @@ static uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *ins
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
+          R2U2_DEBUG_PRINT("\t\t");
           res = (*(monitor->past_time_result_buffer[0]))[value];
           break;
 
       case R2U2_FT_OP_NOT_SET:
           res = 0;
           break;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          res = 0;
+          break;
     }
 
-    return res;
+    return (uint8_t)res;
 }
 
-r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
+static inline r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
     r2u2_bool v, v_p;
     r2u2_mltl_operand_type_t type;
     uint32_t value;
@@ -68,6 +68,10 @@ r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_in
       case R2U2_FT_OP_DIRECT:
       case R2U2_FT_OP_NOT_SET:
           return R2U2_MLTL_PT_OPRND_EDGE_NONE;
+
+      default:
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          return R2U2_MLTL_PT_OPRND_EDGE_NONE;
     }
     // At monitor->time_stamp = 0, we need either a rising or falling edge.
     // v determines the edge
@@ -83,8 +87,9 @@ r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_in
 r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
   r2u2_status_t error_cond;
   r2u2_mltl_pt_oprnd_edge_t edge;
-  r2u2_boxq_t *boxq;
-  r2u2_boxq_intvl_t intrvl;
+  r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
+  r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+  r2u2_duoq_pt_interval_t intrvl;
   r2u2_bool *res = &((*(monitor->past_time_result_buffer[0]))[instr->memory_reference]);
 
   // TODO(bckempa): We can split these out to static inline functions for
@@ -98,37 +103,24 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_PT_CONFIGURE: {
       R2U2_DEBUG_PRINT("PT Configure\n");
 
-      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->op1_value]);
-
-      switch (instr->op2_type) {
-        case R2U2_FT_OP_DIRECT: {
-          R2U2_DEBUG_PRINT("\tBox Queue setup\n");
-          // Encodes box queue info; op[1] is length, mem_ref is offset
-          r2u2_boxq_reset(boxq);
-          boxq->length = get_operand(monitor, instr, 1);
-          r2u2_boxq_intvl_t *elements = ((r2u2_boxq_intvl_t*)(*(monitor->past_time_queue_mem)));
-          // TODO(bckempa): need better sizing of array extents when switch elements
-          boxq->queue = &(elements[(R2U2_MAX_BOXQ_BYTES / sizeof(r2u2_boxq_intvl_t)) - instr->memory_reference]);
+      switch (instr->op1_type) {
+        case R2U2_FT_OP_ATOMIC: {
+          R2U2_DEBUG_PRINT("\tBox Queue length setup\n");
+          r2u2_duoq_config(arena, instr->memory_reference, instr->op1_value);
+          r2u2_duoq_pt_effective_id_set(arena, instr->memory_reference, instr->op2_value);
           break;
         }
-        case R2U2_FT_OP_ATOMIC: {
-          // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
-          if (instr->op2_value) {
-            R2U2_DEBUG_PRINT("\tHigh interval setup\n");
-            boxq->interval.end = (r2u2_time) instr->memory_reference;
-            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1_value, boxq->interval.start, boxq->interval.end);
-          } else {
-            R2U2_DEBUG_PRINT("\tLow interval setup\n");
-            boxq->interval.start = (r2u2_time) instr->memory_reference;
-            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1_value, boxq->interval.start, boxq->interval.end);
-          }
+        case R2U2_FT_OP_SUBFORMULA: {
+          R2U2_DEBUG_PRINT("\tBox Queue interval setup\n");
+          ctrl->next_time = instr->op1_value;
+          ctrl->read2 = instr->op2_value;
           break;
         }
         default: {
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
           break;
         }
       }
-
 
       error_cond = R2U2_OK;
       break;
@@ -163,13 +155,15 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       // We use the queue to track intervals of all false values.
       // as long as the region of interest isn't entirely within this interval.
       // then the operator evaluates true
-      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] O[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value);
 
-      intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end != r2u2_infinity) && ((intrvl.end + boxq->interval.start) < monitor->time_stamp)) {
+      // Temporal operator, store result at effective memory_reference from duoq
+      res = &((*(monitor->past_time_result_buffer[0]))[r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference)]);
+      R2U2_DEBUG_PRINT("\tPT[%u] O[%d,%d] PT[%d]\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), ctrl->next_time, ctrl->read2, instr->op1_value);
+
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
+      if ((intrvl.end != R2U2_TNT_TRUE) && ((intrvl.end + ctrl->next_time) < monitor->time_stamp)) {
           // Garbage collection
-          intrvl = r2u2_boxq_pop_tail(boxq);
+          intrvl = r2u2_duoq_pt_tail_pop(arena, instr->memory_reference);
           R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
@@ -177,44 +171,44 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       edge = get_operand_edge(monitor, instr, 0);
       if (edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) {
           R2U2_DEBUG_PRINT("\tFalling edge detected, pushing to queue\n");
-          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
-      } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_boxq_is_empty(boxq)) {
+          r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){monitor->time_stamp, R2U2_TNT_TRUE});
+      } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_duoq_pt_is_empty(arena, instr->memory_reference)) {
           R2U2_DEBUG_PRINT("\tRising edge detected, closing interval\n");
-          intrvl = r2u2_boxq_pop_head(boxq);
-          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          intrvl = r2u2_duoq_pt_head_pop(arena, instr->memory_reference);
+          r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
           // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
-          // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
+          // if(((monitor->time_stamp + ctrl->next_time) >= (intrvl.start + ctrl->read2 + 1)) && ((monitor->time_stamp == 0) || (ctrl->next_time >= 1))){
           //     //R2U2_DEBUG_PRINT("***** Feasibility Check *****\n");
-          //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          //     r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
           // }
       }
 
       // Since this logic is identical to the historically operator, we use the
       // same conditionals before inverting the result
 
-      intrvl = r2u2_boxq_peek(boxq);
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
 
-      if (boxq->interval.start > monitor->time_stamp) {
+      if (ctrl->next_time > monitor->time_stamp) {
         // Insufficient data, true by definition
         R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
         *res = true;
-      } else if (intrvl.start != r2u2_infinity) {
+      } else if (intrvl.start != R2U2_TNT_TRUE) {
         R2U2_DEBUG_PRINT("\tChecking interval start\n");
-        if (boxq->interval.end > monitor->time_stamp) {
+        if (ctrl->read2 > monitor->time_stamp) {
             R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
             *res = intrvl.start == 0;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
-            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, ctrl->read2, monitor->time_stamp, (intrvl.start + ctrl->read2 <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + ctrl->read2 <= monitor->time_stamp;
         }
 
         R2U2_DEBUG_PRINT("\tChecking interval end:\n");
-        if (intrvl.end == r2u2_infinity) {
+        if (intrvl.end == R2U2_TNT_TRUE) {
             R2U2_DEBUG_PRINT("\t  Open interval: T\n");
             *res &= true;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
-            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, ctrl->next_time, monitor->time_stamp, (intrvl.end + ctrl->next_time >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + ctrl->next_time >= monitor->time_stamp;
         }
       } else {
         R2U2_DEBUG_PRINT("\tNo interval to check\n");
@@ -222,17 +216,18 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       }
 
       *res = !*res;
-      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", instr->memory_reference, *res);
+      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), *res);
 
       error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_PT_HISTORICALLY: {
-      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] H[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value);
-      intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
-          intrvl = r2u2_boxq_pop_tail(boxq);
+      // Temporal operator, store result at effective memory_reference from duoq
+      res = &((*(monitor->past_time_result_buffer[0]))[r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference)]);
+      R2U2_DEBUG_PRINT("\tPT[%u] H[%d,%d] PT[%d]\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), ctrl->next_time, ctrl->read2, instr->op1_value);
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
+      if ((intrvl.end != R2U2_TNT_TRUE) && (intrvl.end + ctrl->next_time) < monitor->time_stamp) {
+          intrvl = r2u2_duoq_pt_tail_pop(arena, instr->memory_reference);
           R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
@@ -240,51 +235,51 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       if (edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) {
           // Start new open interval on rising edge
           R2U2_DEBUG_PRINT("\tRising edge detected, pushing to queue\n");
-          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
+          r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){monitor->time_stamp, R2U2_TNT_TRUE});
       }
-      else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) && !r2u2_boxq_is_empty(boxq)) {
+      else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) && !r2u2_duoq_pt_is_empty(arena, instr->memory_reference)) {
           // Here we can close the interval
           // However, as an optimization, we discard infeasible intervals
           R2U2_DEBUG_PRINT("\tFalling edge detected, closing interval\n");
-          intrvl = r2u2_boxq_pop_head(boxq);
-          r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          intrvl = r2u2_duoq_pt_head_pop(arena, instr->memory_reference);
+          r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
           // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
-          // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
-          //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+          // if(((monitor->time_stamp + ctrl->next_time) >= (intrvl.start + ctrl->read2 + 1)) && ((monitor->time_stamp == 0) || (ctrl->next_time >= 1))){
+          //     r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
           //     R2U2_DEBUG_PRINT("\t\tAdding valid interval to queue: [%d, %d]\n", intrvl.start, monitor->time_stamp - 1);
           // }
       }
 
-      intrvl = r2u2_boxq_peek(boxq);
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
 
-      if (boxq->interval.start > monitor->time_stamp) {
+      if (ctrl->next_time > monitor->time_stamp) {
         // Insufficient data, true by definition
         R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
         *res = true;
-      } else if (intrvl.start != r2u2_infinity) {
+      } else if (intrvl.start != R2U2_TNT_TRUE) {
         R2U2_DEBUG_PRINT("\tChecking interval start\n");
-        if (boxq->interval.end > monitor->time_stamp) {
+        if (ctrl->read2 > monitor->time_stamp) {
             R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
             *res = intrvl.start == 0;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
-            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, ctrl->read2, monitor->time_stamp, (intrvl.start + ctrl->read2 <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + ctrl->read2 <= monitor->time_stamp;
         }
 
         R2U2_DEBUG_PRINT("\tChecking interval end:\n");
-        if (intrvl.end == r2u2_infinity) {
+        if (intrvl.end == R2U2_TNT_TRUE) {
             R2U2_DEBUG_PRINT("\t  Open interval: T\n");
             *res &= true;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
-            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, ctrl->next_time, monitor->time_stamp, (intrvl.end + ctrl->next_time >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + ctrl->next_time >= monitor->time_stamp;
         }
       } else {
         R2U2_DEBUG_PRINT("\tNo interval to check\n");
         *res = false;
       }
 
-      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", instr->memory_reference, *res);
+      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), *res);
 
       error_cond = R2U2_OK;
       break;
@@ -292,11 +287,12 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_PT_SINCE: {
       // Works similar to Once, but with additional reset logic when
 
-      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] S[%d,%d] PT[%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value, instr->op2_value);
-      intrvl = r2u2_boxq_peek(boxq);
-      if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
-          intrvl = r2u2_boxq_pop_tail(boxq);
+      // Temporal operator, store result at effective memory_reference from duoq
+      res = &((*(monitor->past_time_result_buffer[0]))[r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference)]);
+      R2U2_DEBUG_PRINT("\tPT[%u] S[%d,%d] PT[%d] PT[%d]\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), ctrl->next_time, ctrl->read2, instr->op1_value, instr->op2_value);
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
+      if ((intrvl.end != R2U2_TNT_TRUE) && (intrvl.end + ctrl->next_time) < monitor->time_stamp) {
+          intrvl = r2u2_duoq_pt_tail_pop(arena, instr->memory_reference);
           R2U2_DEBUG_PRINT("\tGarbage collection, popping interval [%d, %d]\n", intrvl.start, intrvl.end);
       }
 
@@ -305,53 +301,53 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           edge = get_operand_edge(monitor, instr, 1);
           if (edge == R2U2_MLTL_PT_OPRND_EDGE_FALLING) {
               R2U2_DEBUG_PRINT("\tFalling edge detected on right operand, pushing to queue\n");
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){monitor->time_stamp, r2u2_infinity});
-          } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_boxq_is_empty(boxq)) {
+              r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){monitor->time_stamp, R2U2_TNT_TRUE});
+          } else if ((edge == R2U2_MLTL_PT_OPRND_EDGE_RISING) && !r2u2_duoq_pt_is_empty(arena, instr->memory_reference)) {
               R2U2_DEBUG_PRINT("\tRising edge detected on right operand, closing interval\n");
-              intrvl = r2u2_boxq_pop_head(boxq);
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+              intrvl = r2u2_duoq_pt_head_pop(arena, instr->memory_reference);
+              r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
               // TODO(bckempa): Verify and re-enable this optimization - don't store intervals that will never be true
-              // if(((monitor->time_stamp + boxq->interval.start) >= (intrvl.start + boxq->interval.end + 1)) && ((monitor->time_stamp == 0) || (boxq->interval.start >= 1))){
-              //     r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){intrvl.start, monitor->time_stamp - 1});
+              // if(((monitor->time_stamp + ctrl->next_time) >= (intrvl.start + ctrl->read2 + 1)) && ((monitor->time_stamp == 0) || (ctrl->next_time >= 1))){
+              //     r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){intrvl.start, monitor->time_stamp - 1});
               // }
           }
       } else { // p1 does not hold
           R2U2_DEBUG_PRINT("\tLeft operand false, resetting based on right operand\n");
           if (get_operand(monitor, instr, 1)) {
               R2U2_DEBUG_PRINT("\tRight operand holds, setting queue\n");
-              r2u2_boxq_reset(boxq);
+              r2u2_duoq_pt_reset(arena, instr->memory_reference);
               if (monitor->time_stamp != 0) {
-                r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){0, monitor->time_stamp - 1});
+                r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){0, monitor->time_stamp - 1});
               }
           } else {
               R2U2_DEBUG_PRINT("\tRight operand false, resetting queue\n");
-              intrvl = r2u2_boxq_pop_tail(boxq);
-              r2u2_boxq_push(boxq, (r2u2_boxq_intvl_t){0, r2u2_infinity});
+              intrvl = r2u2_duoq_pt_tail_pop(arena, instr->memory_reference);
+              r2u2_duoq_pt_push(arena, instr->memory_reference, (r2u2_duoq_pt_interval_t){0, R2U2_TNT_TRUE});
           }
       }
-      intrvl = r2u2_boxq_peek(boxq);
+      intrvl = r2u2_duoq_pt_peek(arena, instr->memory_reference);
 
-      if (boxq->interval.start > monitor->time_stamp) {
+      if (ctrl->next_time > monitor->time_stamp) {
         // Insufficient data, true by definition
         R2U2_DEBUG_PRINT("\t  Startup behavior: t < lower bound\n");
         *res = true;
-      } else if (intrvl.start != r2u2_infinity) {
+      } else if (intrvl.start != R2U2_TNT_TRUE) {
         R2U2_DEBUG_PRINT("\tChecking interval start\n");
-        if (boxq->interval.end > monitor->time_stamp) {
+        if (ctrl->read2 > monitor->time_stamp) {
             R2U2_DEBUG_PRINT("\t  Partial interval check: (%d == 0) = %c\n", intrvl.start, (intrvl.start == 0)?'T':'F');
             *res = intrvl.start == 0;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, boxq->interval.end, monitor->time_stamp, (intrvl.start + boxq->interval.end <= monitor->time_stamp)?'T':'F');
-            *res = intrvl.start + boxq->interval.end <= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d <= %d) = %c\n", intrvl.start, ctrl->read2, monitor->time_stamp, (intrvl.start + ctrl->read2 <= monitor->time_stamp)?'T':'F');
+            *res = intrvl.start + ctrl->read2 <= monitor->time_stamp;
         }
 
         R2U2_DEBUG_PRINT("\tChecking interval end:\n");
-        if (intrvl.end == r2u2_infinity) {
+        if (intrvl.end == R2U2_TNT_TRUE) {
             R2U2_DEBUG_PRINT("\t  Open interval: T\n");
             *res &= true;
         } else {
-            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, boxq->interval.start, monitor->time_stamp, (intrvl.end + boxq->interval.start >= monitor->time_stamp)?'T':'F');
-            *res &= intrvl.end + boxq->interval.start >= monitor->time_stamp;
+            R2U2_DEBUG_PRINT("\t  Standard interval check: (%d + %d >= %d) = %c\n", intrvl.end, ctrl->next_time, monitor->time_stamp, (intrvl.end + ctrl->next_time >= monitor->time_stamp)?'T':'F');
+            *res &= intrvl.end + ctrl->next_time >= monitor->time_stamp;
         }
       } else {
         R2U2_DEBUG_PRINT("\tNo interval to check\n");
@@ -359,7 +355,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       }
 
       *res = !*res;
-      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", instr->memory_reference, *res);
+      R2U2_DEBUG_PRINT("\tPT[%u] = %d\n", r2u2_duoq_pt_effective_id_get(arena, instr->memory_reference), *res);
 
       error_cond = R2U2_OK;
       break;
@@ -423,6 +419,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     default: {
       // Somehow got into wrong tense dispatch
+      R2U2_DEBUG_PRINT("Warning: Bad Inst Type\n");
       error_cond = R2U2_INVALID_INST;
       break;
     }

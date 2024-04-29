@@ -171,7 +171,7 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
    */
   // TODO(bckempa): There a tons of ways to structure this conditional flow,
   // but figuring out which is best would depend too much on the target and
-  // compiler to select, so just stick with something readable
+  // compiler to slect, so just stick with something readable
 
   // Compation check -
 

@@ -42,7 +42,11 @@
             "name": "simple",
             "mltl": "simple.c2po",
             "trace": "simple.csv",
-            "oracle": "simple.log"
+            "oracle": "simple.log",
+            "options": {
+                "booleanizer": false,
+                "atomic-checkers": false
+            }
         },
         {
             "name": "struct",

@@ -205,6 +205,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
   #endif
   r2u2_status_t error_cond;
   r2u2_bool op0_rdy, op1_rdy;
+  r2u2_tnt_t op0, op1, result;
+  r2u2_status_t error_cond;
 
   r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
   r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
@@ -214,6 +216,8 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
   #endif
 
   switch (instr->opcode) {
+
+    /* Control Commands */
     case R2U2_MLTL_OP_FT_NOP: {
       R2U2_DEBUG_PRINT("\tFT NOP\n");
       error_cond = R2U2_OK;
@@ -398,6 +402,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
 
+    /* Future Temporal Observers */
     case R2U2_MLTL_OP_FT_EVENTUALLY: {
       R2U2_DEBUG_PRINT("\tFT EVENTUALLY\n");
       error_cond = R2U2_UNIMPL;
@@ -610,6 +615,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
 
+    /* Propositional Logic Observers */
     case R2U2_MLTL_OP_FT_NOT: {
       R2U2_DEBUG_PRINT("\tFT NOT\n");
 
@@ -743,8 +749,11 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       error_cond = R2U2_UNIMPL;
       break;
     }
+
+    /* Error Case */
     default: {
       // Somehow got into wrong tense dispatch
+      R2U2_DEBUG_PRINT("Warning: Bad Inst Type\n");
       error_cond = R2U2_INVALID_INST;
       break;
     }

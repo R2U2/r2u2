@@ -160,7 +160,7 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
 /*
  *
  *
- * Since this moves the queue pointer but reduces the length by the same step
+ * Since this moves the queue poninter but reduces the length by the same step
  *
  * Checking for a temporal block by comparing the queue pointer against the
  * previous queue's pointer + length isn't guarenteed but should be sufficent.

@@ -361,6 +361,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
                 f2, f1, inst_buff.param1.bz_addr);
             break;
         default:
+            R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
             break;
     }
 

@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "internals/errors.h"
+#include "internals/types.h"
 #include "memory/monitor.h"
 
 // This could arguably have the functions split out as an engine, however they

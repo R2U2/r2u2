@@ -25,7 +25,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
   offset = data[0];
 
   // TODO(bckempa): Double check, size_t should always fit?
-  for (size_t i=0; (data[offset] != 0) && (i<R2U2_MAX_INSTRUCTIONS); offset += data[offset]) {
+  for (size_t i=0; (data[offset] != 0); offset += data[offset]) {
     // TODO(bckempa): Until engines.c is refactored to separate raw dispatch
     // from monitor state transform, we'll look for config commands here.
     // Currently, only MLTL needs config commands, so we'll just check

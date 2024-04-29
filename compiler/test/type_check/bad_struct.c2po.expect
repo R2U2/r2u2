@@ -1,0 +1,6 @@
+[TYPC][[91mERR[0m] bad_struct.c2po:12: Struct instantiation/function call does not match signature.
+	Found:    Task(int, float, float)
+	Expected: Task(int, bool, bool)
+[TYPC][[91mERR[0m] bad_struct.c2po:19: Symbol 'task' not recognized
+[TYPC][[91mERR[0m] bad_struct.c2po:20: Symbol 'task' not recognized
+[MAIN][[91mERR[0m] Failed type check

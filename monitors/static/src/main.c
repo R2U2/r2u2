@@ -31,6 +31,10 @@ const char *help = "<configuration> [trace] [-a --as_atomics]\n"
 r2u2_csv_reader_t r2u2_trace_csv_reader = {0};
 r2u2_csv_reader_t r2u2_prob_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
+
+// Create Queue memory arena
+uint8_t *arena = &(uint8_t [R2U2_DUOQ_BYTES]){0};
+
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
 r2u2_contract_status_reporter_t r2u2_contact_status = {0};
@@ -99,6 +103,9 @@ int main(int argc, char const *argv[]) {
       return 1;
   }
 
+  // Connect monitor to queue memory arena
+  r2u2_monitor.duo_queue_mem.blocks = (r2u2_duoq_control_block_t*) arena;
+  r2u2_monitor.duo_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_DUOQ_BYTES - 4);
 
   // Reset monitor and build instuction table from spec binary
   r2u2_init(&r2u2_monitor);
