@@ -16,7 +16,7 @@
 #define R2U2_C_VERSION_MINOR 0
 #define R2U2_C_VERSION_PATCH 0
 
-#define R2U2_PROBABILISTIC
+#define R2U2_DEBUG 1
 
 /* Target and feature flags */
 /* Conditional compilation in R2U2:
@@ -85,6 +85,13 @@
 #ifndef R2U2_TRACE
     /* Enables memory trace printing to stderr */
     #define R2U2_TRACE INHIBIT
+#endif
+
+#ifndef R2U2_PRED_PROB
+    /* Enables reasoning over probabilistic atomics and 
+     * prediction to evaluate by deadline d
+     */
+    #define R2U2_PRED_PROB EXHIBIT
 #endif
 
 // TODO(bckempa): Require a flag for unsupported platform builds?

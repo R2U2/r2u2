@@ -16,6 +16,8 @@ typedef struct {
 
   char in_buf[BUFSIZ]; // TODO(bckempa): LINE_MAX instead? PATH_MAX?
 
+  r2u2_bool as_atomics; // if true, load csv data directly into atomics vector
+
 } r2u2_csv_reader_t;
 
 r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_csv_reader_t *prob_reader, r2u2_monitor_t *monitor);

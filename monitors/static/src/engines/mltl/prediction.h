@@ -8,11 +8,10 @@
 #include "stdlib.h"
 
 typedef struct {
-  r2u2_time rd_ptr;
-  r2u2_time rd_ptr2;
-  r2u2_time desired_time_stamp;
-  r2u2_time edge;
-  r2u2_time max_out;
+  r2u2_tnt_t read1;
+  r2u2_tnt_t read2;
+  r2u2_tnt_t next_time;
+  r2u2_tnt_t edge;
   r2u2_verdict previous;
 } r2u2_scq_state_t;
 

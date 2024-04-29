@@ -75,10 +75,12 @@ typedef struct {
 //  OPC:5 op1:10 op2:10 intvl:8 scratch:7
 //
 typedef struct {
-    r2u2_mltl_operand_t   op1;
-    r2u2_mltl_operand_t   op2;
-    uint32_t              memory_reference;
-    r2u2_mltl_opcode_t    opcode;
+  uint32_t                   op1_value;
+  uint32_t                   op2_value;
+  uint32_t                   memory_reference;
+  r2u2_mltl_operand_type_t   op1_type;
+  r2u2_mltl_operand_type_t   op2_type;
+  r2u2_mltl_opcode_t         opcode;
 } r2u2_mltl_instruction_t;
 
 // data structure for address info of SCQ

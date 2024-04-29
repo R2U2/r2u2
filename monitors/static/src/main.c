@@ -14,16 +14,17 @@
 #endif
 
 
-// R2U2 Reference Implmentation
+// R2U2 Reference Implementation
 // Provides example of library usage and "offline" monitoring
 //
 //
 #define PRINT_VERSION() fprintf(stderr, "R2U2 Version %d.%d.%d\n", \
         R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR, R2U2_C_VERSION_PATCH)
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
-const char *help = "<configuration> [trace]\n"
+const char *help = "<configuration> [trace] [-a --as_atomics]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
                    "\ttrace: optional path to input CSV\n"
+                   "\t-a --as_atomics: optional enable loading CSV values directly as atomics\n"
                    "\tprobabilities: optional path to input atomic probability CSV\n";
 
 // Create CSV reader and monitor with default extents using macro
@@ -51,8 +52,8 @@ int main(int argc, char const *argv[]) {
 
   // Arg Parsing - for now just check for the correct number and look for flags
   //               short-circuiting helps avoid unnecessary checks here
-  if ((argc < 2) || (argc > 4) ||
-      (argv[1][0] == '-') || ((argc == 3) && (argv[2][0] == '-'))) {
+  if ((argc < 2) || (argc > 5) ||
+      (argv[1][0] == '-') || ((argc > 2) && (argv[2][0] == '-'))) {
       PRINT_VERSION();
       PRINT_USAGE();
       return 1;
@@ -103,9 +104,6 @@ int main(int argc, char const *argv[]) {
   r2u2_init(&r2u2_monitor);
 
   // Open output File
-  // TODO(cgjohann): Set to stdout for now, can always redirect as needed
-  // optimal solution is probably taking an optional path to outfile,
-  // but the arg parsing we have currently is pretty difficult to change
   r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
@@ -140,11 +138,32 @@ int main(int argc, char const *argv[]) {
   }
   // Debug assert - input_file != Null
 
-  // Select CSV reader probability input file
-  if(argc > 3) {
-    // The trace file was specified
-    if (access(argv[3], F_OK) == 0) {
+  // Directly load CSV values as atomics
+  if (argc > 3) {
+    // -a/--as_atomics was specified
+    if (strcmp(argv[3], "-a") == 0 || strcmp(argv[3], "--as_atomics") == 0) {
+      r2u2_trace_csv_reader.as_atomics = true;
+    } else if (access(argv[3], F_OK) == 0) {
       r2u2_prob_csv_reader.input_file = fopen(argv[3], "r");
+      if (r2u2_prob_csv_reader.input_file == NULL) {
+        PRINT_USAGE();
+        perror("Error opening probability file");
+        return 1;
+      }
+    } else {
+      PRINT_USAGE();
+      perror("Invalid argument");
+      return 1;
+    }
+  } else {
+    r2u2_trace_csv_reader.as_atomics = false;
+  }
+
+    // Select CSV reader probability input file
+  if(argc > 4) {
+    // The trace file was specified
+    if (access(argv[4], F_OK) == 0) {
+      r2u2_prob_csv_reader.input_file = fopen(argv[4], "r");
       if (r2u2_prob_csv_reader.input_file == NULL) {
         PRINT_USAGE();
         perror("Error opening probability file");

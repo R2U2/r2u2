@@ -13,29 +13,28 @@ r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_in
 
 static uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
     uint8_t res;
-    r2u2_mltl_operand_t *op;
+    r2u2_mltl_operand_type_t type;
+    uint32_t value;
+
+    type  = (n == 0) ? (instr->op1_type)  : (instr->op2_type);
+    value = (n == 0) ? (instr->op1_value) : (instr->op2_value);
 
     #if R2U2_DEBUG
       // TODO(bckempa): Debug build bounds checking
       // assert();
     #endif
-    if (n == 0) {
-      op = &(instr->op1);
-    } else {
-      op = &(instr->op2);
-    }
 
-    switch (op->opnd_type) {
+    switch (type) {
       case R2U2_FT_OP_DIRECT:
-          res = op->value;
+          res = value;
           break;
 
       case R2U2_FT_OP_ATOMIC:
-          res = (*(monitor->atomic_buffer[0]))[op->value];
+          res = (*(monitor->atomic_buffer[0]))[value];
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
-          res = (*(monitor->past_time_result_buffer[0]))[op->value];
+          res = (*(monitor->past_time_result_buffer[0]))[value];
           break;
 
       case R2U2_FT_OP_NOT_SET:
@@ -48,23 +47,21 @@ static uint8_t get_operand(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *ins
 
 r2u2_mltl_pt_oprnd_edge_t get_operand_edge(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, int n) {
     r2u2_bool v, v_p;
-    r2u2_mltl_operand_t *op;
+    r2u2_mltl_operand_type_t type;
+    uint32_t value;
 
-    if (n == 0) {
-      op = &(instr->op1);
-    } else {
-      op = &(instr->op2);
-    }
+    type  = (n == 0) ? (instr->op1_type)  : (instr->op2_type);
+    value = (n == 0) ? (instr->op1_value) : (instr->op2_value);
 
-    switch (op->opnd_type) {
+    switch (type) {
       case R2U2_FT_OP_ATOMIC:
-          v = (*(monitor->atomic_buffer[0]))[op->value];
-          v_p = (*(monitor->atomic_buffer[1]))[op->value];
+          v = (*(monitor->atomic_buffer[0]))[value];
+          v_p = (*(monitor->atomic_buffer[1]))[value];
           break;
 
       case R2U2_FT_OP_SUBFORMULA:
-          v = (*(monitor->past_time_result_buffer[0]))[op->value];
-          v_p = (*(monitor->past_time_result_buffer[1]))[op->value];
+          v = (*(monitor->past_time_result_buffer[0]))[value];
+          v_p = (*(monitor->past_time_result_buffer[1]))[value];
           break;
 
       // Literals have no edges
@@ -101,9 +98,9 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_PT_CONFIGURE: {
       R2U2_DEBUG_PRINT("PT Configure\n");
 
-      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->op1.value]);
+      boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->op1_value]);
 
-      switch (instr->op2.opnd_type) {
+      switch (instr->op2_type) {
         case R2U2_FT_OP_DIRECT: {
           R2U2_DEBUG_PRINT("\tBox Queue setup\n");
           // Encodes box queue info; op[1] is length, mem_ref is offset
@@ -116,14 +113,14 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         }
         case R2U2_FT_OP_ATOMIC: {
           // Encodes interval in mem_ref; op[1] is low (0) or high (1) bound
-          if (instr->op2.value) {
+          if (instr->op2_value) {
             R2U2_DEBUG_PRINT("\tHigh interval setup\n");
             boxq->interval.end = (r2u2_time) instr->memory_reference;
-            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1.value, boxq->interval.start, boxq->interval.end);
+            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1_value, boxq->interval.start, boxq->interval.end);
           } else {
             R2U2_DEBUG_PRINT("\tLow interval setup\n");
             boxq->interval.start = (r2u2_time) instr->memory_reference;
-            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1.value, boxq->interval.start, boxq->interval.end);
+            R2U2_DEBUG_PRINT("\tPT[%d] [%d,%d]\n", instr->op1_value, boxq->interval.start, boxq->interval.end);
           }
           break;
         }
@@ -137,14 +134,14 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
     case R2U2_MLTL_OP_PT_LOAD: {
-      R2U2_DEBUG_PRINT("\tPT[%u] LOAD a%d\t", instr->memory_reference, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] LOAD a%d\t", instr->memory_reference, instr->op1_value);
       *res = get_operand(monitor, instr, 0);
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_PT_RETURN: {
-      R2U2_DEBUG_PRINT("\tPT[%u] RETURN PT[%d] f:%d\t", instr->memory_reference, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] RETURN PT[%d] f:%d\t", instr->memory_reference, instr->op1_value, instr->op2_value);
       if (monitor->out_file != NULL) {
         fprintf(monitor->out_file, "%d:%u,%s\n",
                 get_operand(monitor, instr, 1), monitor->time_stamp,
@@ -167,7 +164,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       // as long as the region of interest isn't entirely within this interval.
       // then the operator evaluates true
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] O[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] O[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value);
 
       intrvl = r2u2_boxq_peek(boxq);
       if ((intrvl.end != r2u2_infinity) && ((intrvl.end + boxq->interval.start) < monitor->time_stamp)) {
@@ -232,7 +229,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
     case R2U2_MLTL_OP_PT_HISTORICALLY: {
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] H[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] H[%d,%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value);
       intrvl = r2u2_boxq_peek(boxq);
       if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
           intrvl = r2u2_boxq_pop_tail(boxq);
@@ -296,7 +293,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       // Works similar to Once, but with additional reset logic when
 
       boxq = &(((r2u2_boxq_t*)(*(monitor->past_time_queue_mem)))[instr->memory_reference]);
-      R2U2_DEBUG_PRINT("\tPT[%u] S[%d,%d] PT[%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] S[%d,%d] PT[%d] PT[%d]\n", instr->memory_reference, boxq->interval.start, boxq->interval.end, instr->op1_value, instr->op2_value);
       intrvl = r2u2_boxq_peek(boxq);
       if ((intrvl.end != r2u2_infinity) && (intrvl.end + boxq->interval.start) < monitor->time_stamp) {
           intrvl = r2u2_boxq_pop_tail(boxq);
@@ -374,28 +371,28 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     }
 
     case R2U2_MLTL_OP_PT_NOT: {
-      R2U2_DEBUG_PRINT("\tPT[%u] NOT PT[%d]\t", instr->memory_reference, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] NOT PT[%d]\t", instr->memory_reference, instr->op1_value);
       *res = !get_operand(monitor, instr, 0);
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_PT_AND: {
-      R2U2_DEBUG_PRINT("\tPT[%u] AND PT[%d] PT[%d]\t", instr->memory_reference, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] AND PT[%d] PT[%d]\t", instr->memory_reference, instr->op1_value, instr->op2_value);
       *res = get_operand(monitor, instr, 0) && get_operand(monitor, instr, 1);
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_PT_OR: {
-      R2U2_DEBUG_PRINT("\tPT[%u] OR PT[%d]\t", instr->memory_reference, instr->op1.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] OR PT[%d]\t", instr->memory_reference, instr->op1_value);
       *res = get_operand(monitor, instr, 0) || get_operand(monitor, instr, 1);
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;
       break;
     }
     case R2U2_MLTL_OP_PT_IMPLIES: {
-      R2U2_DEBUG_PRINT("\tPT[%u] IMPLIES PT[%d] PT[%d]\t", instr->memory_reference, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] IMPLIES PT[%d] PT[%d]\t", instr->memory_reference, instr->op1_value, instr->op2_value);
       *res = (!get_operand(monitor, instr, 0)) || get_operand(monitor, instr, 1);
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;
@@ -418,7 +415,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       break;
     }
     case R2U2_MLTL_OP_PT_EQUIVALENT: {
-      R2U2_DEBUG_PRINT("\tPT[%u] EQUIVALENT PT[%d] PT[%d]\t", instr->memory_reference, instr->op1.value, instr->op2.value);
+      R2U2_DEBUG_PRINT("\tPT[%u] EQUIVALENT PT[%d] PT[%d]\t", instr->memory_reference, instr->op1_value, instr->op2_value);
       *res = (get_operand(monitor, instr, 0) == get_operand(monitor, instr, 1));
       R2U2_DEBUG_PRINT("= %d\n", *res);
       error_cond = R2U2_OK;

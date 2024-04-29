@@ -31,10 +31,10 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
     switch (mltl_instr->opcode){
       case R2U2_MLTL_OP_FT_LOAD: {
         instr = &(*monitor->instruction_tbl)[difference-1];
-        return find_bz_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, mltl_instr->op1.value, difference-1);
+        return find_bz_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, mltl_instr->op1_value, difference-1);
       }
       case R2U2_MLTL_OP_FT_RETURN: {
-        instr = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+        instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
         mltl_instructions[0] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
         *mltl_size = 1;
         return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -42,8 +42,8 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_MLTL_OP_FT_GLOBALLY:
       case R2U2_MLTL_OP_FT_NOT: 
       case R2U2_MLTL_OP_FT_PROB:{
-        if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
-          instr = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+        if(mltl_instr->op1_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1_type == R2U2_FT_OP_SUBFORMULA){
+          instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -54,14 +54,14 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_MLTL_OP_FT_UNTIL:
       case R2U2_MLTL_OP_FT_AND: {
         r2u2_status_t status = R2U2_OK;
-        if(mltl_instr->op1.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1.opnd_type == R2U2_FT_OP_SUBFORMULA){
-          instr = &(*monitor->instruction_tbl)[mltl_instr->op1.value+difference];
+        if(mltl_instr->op1_type == R2U2_FT_OP_ATOMIC || mltl_instr->op1_type == R2U2_FT_OP_SUBFORMULA){
+          instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
         }
-        if(status == R2U2_OK && (mltl_instr->op2.opnd_type == R2U2_FT_OP_ATOMIC || mltl_instr->op2.opnd_type == R2U2_FT_OP_SUBFORMULA)){
-          instr = &(*monitor->instruction_tbl)[mltl_instr->op2.value+difference];
+        if(status == R2U2_OK && (mltl_instr->op2_type == R2U2_FT_OP_ATOMIC || mltl_instr->op2_type == R2U2_FT_OP_SUBFORMULA)){
+          instr = &(*monitor->instruction_tbl)[mltl_instr->op2_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
           return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
@@ -184,30 +184,32 @@ void find_k_start_index(r2u2_monitor_t *monitor, r2u2_time* trace_start_index, r
 
 void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_mltl_instruction_t* return_instr, r2u2_scq_state_t* prev_real_state, size_t size){
   R2U2_DEBUG_PRINT("-----------------Starting New Round of Prediction (at time stamp %d)-----------------\n", monitor->time_stamp);
+  r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
   for(size_t i = 0; i < size; i++){
-      r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
-      prev_real_state[i].rd_ptr = scq->rd_ptr;
-      prev_real_state[i].rd_ptr2 = scq->rd_ptr2;
-      prev_real_state[i].desired_time_stamp = scq->desired_time_stamp;
-      prev_real_state[i].edge = scq->edge;
-      prev_real_state[i].max_out = scq->max_out;
-      prev_real_state[i].previous = scq->previous;
-      scq->pred_wr_ptr = scq->wr_ptr;
+    r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instructions[i]->memory_reference]);
+    r2u2_duoq_temporal_block_t *temp = r2u2_duoq_ft_temporal_get(arena, instructions[i]->memory_reference);
+    prev_real_state[i].read1 = ctrl->read1;
+    prev_real_state[i].read2 = ctrl->read2;
+    prev_real_state[i].next_time = ctrl->next_time;
+    prev_real_state[i].edge = temp->edge;
+    prev_real_state[i].previous = temp->previous;
+    ctrl->pred_write = ctrl->write;
   }
-  r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[return_instr->memory_reference]);
-  prev_real_state[size].rd_ptr = scq->rd_ptr;
+  r2u2_duoq_control_block_t *ctrl_return_instr = &(arena->blocks[return_instr->memory_reference]);
+  prev_real_state[size].read1 = ctrl_return_instr->read1;
 }
 
 void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_mltl_instruction_t* return_instr, r2u2_scq_state_t* prev_real_state, size_t size){
+  r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
   for(size_t i = 0; i < size; i++){
-      r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[instructions[i]->memory_reference]);
-      scq->rd_ptr = prev_real_state[i].rd_ptr;
-      scq->rd_ptr2 = prev_real_state[i].rd_ptr2;
-      scq->desired_time_stamp = prev_real_state[i].desired_time_stamp;
-      scq->edge = prev_real_state[i].edge;
-      scq->max_out = prev_real_state[i].max_out;
-      scq->previous = prev_real_state[i].previous;
+    r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instructions[i]->memory_reference]);
+    r2u2_duoq_temporal_block_t *temp = r2u2_duoq_ft_temporal_get(arena, instructions[i]->memory_reference);
+    ctrl->read1 = prev_real_state[i].read1;
+    ctrl->read2 = prev_real_state[i].read2;
+    ctrl->next_time = prev_real_state[i].next_time;
+    temp->edge = prev_real_state[i].edge;
+    temp->previous = prev_real_state[i].previous;
   }
-  r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[return_instr->memory_reference]);
-  scq->rd_ptr = prev_real_state[size].rd_ptr;
+  r2u2_duoq_control_block_t *ctrl_return_instr = &(arena->blocks[return_instr->memory_reference]);
+  ctrl_return_instr->read1 = prev_real_state[size].read1;
 }
