@@ -106,7 +106,7 @@ r2u2_status_t r2u2_mltl_pt_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       switch (instr->op1_type) {
         case R2U2_FT_OP_ATOMIC: {
           R2U2_DEBUG_PRINT("\tBox Queue length setup\n");
-          r2u2_duoq_config(arena, instr->memory_reference, instr->op1_value);
+          r2u2_duoq_config(arena, instr->memory_reference, instr->op1_value, instr->op2_value);
           r2u2_duoq_pt_effective_id_set(arena, instr->memory_reference, instr->op2_value);
           break;
         }

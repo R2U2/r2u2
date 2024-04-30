@@ -61,22 +61,16 @@ static const r2u2_tnt_t R2U2_TNT_TIME = (((r2u2_tnt_t)-1) >> 1);
 static const r2u2_tnt_t R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
 
-#ifdef R2U2_PRED_PROB
 typedef struct {
-    // Time & either Truth or Probability
-    r2u2_time time;
-    union{
-        r2u2_bool truth;
-        r2u2_float prob;
-    };
-} r2u2_verdict;
-#else
+    r2u2_tnt_t time;
+    r2u2_float prob;
+} r2u2_probability;
+
 typedef struct {
     // Time & Truth
     r2u2_time time;
     r2u2_bool truth;
 } r2u2_verdict;
-#endif
 
 typedef union r2u2_value {
     r2u2_bool b;

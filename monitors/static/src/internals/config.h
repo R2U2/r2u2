@@ -16,7 +16,7 @@
 #define R2U2_C_VERSION_MINOR 0
 #define R2U2_C_VERSION_PATCH 0
 
-#define R2U2_DEBUG 1
+#define R2U2_PRED_PROB 0
 
 /* Target and feature flags */
 /* Conditional compilation in R2U2:

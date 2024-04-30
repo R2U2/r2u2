@@ -16,7 +16,7 @@
  *
  */
 
-#ifdef R2U2_PRED_PROB
+#if R2U2_PRED_PROB
 typedef struct {
   r2u2_tnt_t length;
   r2u2_tnt_t write;
@@ -47,7 +47,7 @@ typedef struct {
   #else
      #error DUO Queues are only aligned for 32 or 64 bit pointer sizes
   #endif
-  r2u2_verdict *queue;
+  r2u2_tnt_t *queue;
 } r2u2_duoq_control_block_t;
 #else
 typedef struct {
@@ -81,20 +81,6 @@ typedef struct {
 } r2u2_duoq_control_block_t;
 #endif
 
-#ifdef R2U2_PRED_PROB
-// Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
-typedef struct {
-    /* 64 or 32-bit platform:
-     *   Size:     16 bytes
-     *   Padding:   0 bytes
-     *   Alignment: 4 bytes
-     */
-  r2u2_tnt_t lower_bound;
-  r2u2_tnt_t upper_bound;
-  r2u2_tnt_t edge;
-  r2u2_verdict previous;
-} r2u2_duoq_temporal_block_t;
-#else
 // Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
 typedef struct {
     /* 64 or 32-bit platform:
@@ -107,9 +93,8 @@ typedef struct {
   r2u2_tnt_t edge;
   r2u2_tnt_t previous;
 } r2u2_duoq_temporal_block_t;
-#endif
 
-#ifdef R2U2_PRED_PROB
+#if R2U2_PRED_PROB
 // Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
 typedef struct {
     /* 64 or 32-bit platform:
@@ -143,10 +128,16 @@ static inline r2u2_duoq_temporal_block_t* r2u2_duoq_ft_temporal_get(r2u2_duoq_ar
   return (r2u2_duoq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
 }
 
-#ifdef R2U2_PRED_PROB
+#if R2U2_PRED_PROB
 static inline r2u2_duoq_predict_block_t* r2u2_duoq_ft_predict_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return (r2u2_duoq_predict_block_t*)&((ctrl->queue)[ctrl->length]);
+  // Checks to see if predict block even exists
+  if (((arena->blocks)[queue_id-1].queue - ctrl->queue) < sizeof(r2u2_duoq_predict_block_t)/sizeof(r2u2_tnt_t)){
+    return NULL;
+  }
+  else{
+    return (r2u2_duoq_predict_block_t*)&((ctrl->queue)[ctrl->length]);
+  }
 }
 #endif
 
@@ -167,14 +158,16 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
  */
 r2u2_status_t r2u2_duoq_ft_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
 
-#ifdef R2U2_PRED_PROB
+#if R2U2_PRED_PROB
 r2u2_status_t r2u2_duoq_ft_predict_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
 #endif
 
 /* FT (SCQ replacement) */
-#ifdef R2U2_PRED_PROB
-r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_verdict value, r2u2_bool predict);
-r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_verdict *value, r2u2_bool predict);
+#if R2U2_PRED_PROB
+r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value, r2u2_bool predict);
+r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value, r2u2_bool predict);
+r2u2_status_t r2u2_duoq_ft_write_probability(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_probability value, r2u2_bool predict);
+r2u2_bool r2u2_duoq_ft_check_probability(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_probability *value, r2u2_bool predict);
 #else
 r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
 r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
@@ -193,11 +186,7 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
 
 static inline r2u2_time r2u2_duoq_pt_effective_id_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  #ifdef R2U2_PRED_PROB
-    return (r2u2_time)((ctrl->queue)[ctrl->length].time);
-  #else
-    return (r2u2_time)((ctrl->queue)[ctrl->length]);
-  #endif
+  return (r2u2_time)((ctrl->queue)[ctrl->length]);
 }
 
 r2u2_status_t r2u2_duoq_pt_effective_id_set(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_time effective_id);

@@ -264,6 +264,7 @@ TLOperator = Union[FTOperator, PTOperator]
 class CGType(Enum):
     DUOQ = 0
     TEMP = 1
+    PREDICT = 2
 
     def __str__(self) -> str:
         return self.name
@@ -432,6 +433,10 @@ class CGInstruction:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"[{self.instruction.operand1_value}, "
                               f"{self.instruction.operand2_value}]")
+        elif self.type == CGType.PREDICT:
+            field_strs.append(f"q{self.instruction.id}")
+            field_strs.append(f"d={self.instruction.operand1_value}, "
+                              f"K={self.instruction.operand2_value}")
         else:
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
             field_strs.append(f"{self.instruction.id}")
@@ -685,167 +690,142 @@ def gen_pt_instruction(
 def gen_ft_duoq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
-    # cg_scq = CGInstruction(
-    #     EngineTag.CG,
-    #     CGType.SCQ,
-    #     TLInstruction(
-    #         EngineTag.TL,
-    #         expr.scq[0],
-    #         FTOperator.CONFIG,
-    #         TLOperandType.SUBFORMULA,
-    #         instructions[expr].id,
-    #         TLOperandType.DIRECT,
-    #         expr.scq[1] - expr.scq[0],
-    #     ),
-    # )
-    
-    # if isinstance(expr, cpt.Formula):
-    #     if expr.deadline is not None:
-    #         cg_deadline = CGInstruction(
-    #             EngineTag.CG,
-    #             CGType.DEADLINE,
-    #             TLInstruction(
-    #                 EngineTag.TL,
-    #                 expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
-    #                 FTOperator.CONFIG,
-    #                 TLOperandType.SUBFORMULA,
-    #                 instructions[expr].id,
-    #                 TLOperandType.ATOMIC,
-    #                 2,
-    #             ),
-    #         )
-    #         if expr.k_modes is not None:
-    #             cg_k_modes = CGInstruction(
-    #                 EngineTag.CG,
-    #                 CGType.K_MODES,
-    #                 TLInstruction(
-    #                     EngineTag.TL,
-    #                     expr.k_modes,
-    #                     FTOperator.CONFIG,
-    #                     TLOperandType.SUBFORMULA,
-    #                     instructions[expr].id,
-    #                     TLOperandType.ATOMIC,
-    #                     3,
-    #                 ),
-    #             )
-    #             log.debug(f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_deadline}\n\t" f"{cg_k_modes}", MODULE_CODE)
-    #             return [cg_scq, cg_deadline, cg_k_modes]
-    #         else:
-    #             log.debug(f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_deadline}", MODULE_CODE)
-    #             return [cg_scq, cg_deadline]
-    #     else:
-    #         log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
-    #         return [cg_scq]
-    # elif isinstance(expr, cpt.ProbabilityOperator):
-    #     cg_prob = CGInstruction(
-    #         EngineTag.CG,
-    #         CGType.PROB,
-    #         TLInstruction(
-    #             EngineTag.TL,
-    #             int(expr.prob*1000000),
-    #             FTOperator.CONFIG,
-    #             TLOperandType.SUBFORMULA,
-    #             instructions[expr].id,
-    #             TLOperandType.ATOMIC,
-    #             4,
-    #         ),
-    #     )
-    #     log.debug(
-    #         f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_prob}", MODULE_CODE
-    #     )
-    #     return [cg_scq, cg_prob]
-    # elif expr.is_probabilistic_operator():
-    #     cg_prob = CGInstruction(
-    #         EngineTag.CG,
-    #         CGType.PROB,
-    #         TLInstruction(
-    #             EngineTag.TL,
-    #             2000000,
-    #             FTOperator.CONFIG,
-    #             TLOperandType.SUBFORMULA,
-    #             instructions[expr].id,
-    #             TLOperandType.ATOMIC,
-    #             4,
-    #         ),
-    #     )
-    #     if isinstance(expr, cpt.TemporalOperator):
-    #         cg_lb = CGInstruction(
-    #             EngineTag.CG,
-    #             CGType.LB,
-    #             TLInstruction(
-    #                 EngineTag.TL,
-    #                 expr.interval.lb,
-    #                 FTOperator.CONFIG,
-    #                 TLOperandType.SUBFORMULA,
-    #                 instructions[expr].id,
-    #                 TLOperandType.ATOMIC,
-    #                 0,
-    #             ),
-    #         )
+    if isinstance(expr, cpt.Formula):
+        if expr.deadline is not None:
+            if expr.k_modes is not None:
+                cg_predict = CGInstruction(
+                    EngineTag.CG,
+                    CGType.PREDICT,
+                    TLInstruction(
+                        EngineTag.TL,
+                        instructions[expr].id,
+                        FTOperator.CONFIG,
+                        TLOperandType.DIRECT,
+                        expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
+                        TLOperandType.DIRECT,
+                        expr.k_modes,
+                    ),
+                )
+            else:
+                cg_predict = CGInstruction(
+                    EngineTag.CG,
+                    CGType.PREDICT,
+                    TLInstruction(
+                        EngineTag.TL,
+                        instructions[expr].id,
+                        FTOperator.CONFIG,
+                        TLOperandType.DIRECT,
+                        expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
+                        TLOperandType.DIRECT,
+                        1,
+                    ),
+                )
+    elif isinstance(expr, cpt.TemporalOperator):
+        cg_temp = CGInstruction(
+            EngineTag.CG,
+            CGType.TEMP,
+            TLInstruction(
+                EngineTag.TL,
+                instructions[expr].id,
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                expr.interval.lb,
+                TLOperandType.SUBFORMULA,
+                expr.interval.ub,
+            ),
+        )
 
-    #         cg_ub = CGInstruction(
-    #             EngineTag.CG,
-    #             CGType.UB,
-    #             TLInstruction(
-    #                 EngineTag.TL,
-    #                 expr.interval.ub,
-    #                 FTOperator.CONFIG,
-    #                 TLOperandType.SUBFORMULA,
-    #                 instructions[expr].id,
-    #                 TLOperandType.ATOMIC,
-    #                 1,
-    #             ),
-    #         )
-
-    #         log.debug(
-    #             f"Generating: {expr}\n\t" f"{cg_prob}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
-    #         )
-    #         return [cg_prob, cg_scq, cg_lb, cg_ub]
-    #     else:
-    #         log.debug(
-    #             f"Generating: {expr}\n\t" f"{cg_prob}\n\t" f"{cg_scq}", MODULE_CODE
-    #         )
-    #         return [cg_prob, cg_scq]
-    # elif isinstance(expr, cpt.TemporalOperator):
-    #         cg_lb = CGInstruction(
-    #             EngineTag.CG,
-    #             CGType.LB,
-    #             TLInstruction(
-    #                 EngineTag.TL,
-    #                 expr.interval.lb,
-    #                 FTOperator.CONFIG,
-    #                 TLOperandType.SUBFORMULA,
-    #                 instructions[expr].id,
-    #                 TLOperandType.ATOMIC,
-    #                 0,
-    #             ),
-    #         )
-
-    #         cg_ub = CGInstruction(
-    #             EngineTag.CG,
-    #             CGType.UB,
-    #             TLInstruction(
-    #                 EngineTag.TL,
-    #                 expr.interval.ub,
-    #                 FTOperator.CONFIG,
-    #                 TLOperandType.SUBFORMULA,
-    #                 instructions[expr].id,
-    #                 TLOperandType.ATOMIC,
-    #                 1,
-    #             ),
-    #         )
-
-    #         log.debug(
-    #             f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_lb}\n\t" f"{cg_ub}", MODULE_CODE
-    #         )
-    #         return [cg_scq, cg_lb, cg_ub]
-    # else:
-    #     log.debug(f"Generating: {expr}\n\t" f"{cg_scq}", MODULE_CODE)
-    #     return [cg_scq]
-
-
-    # Propositional operators only need simple queues
-    if not isinstance(expr, cpt.TemporalOperator):
+    if isinstance(expr, cpt.TemporalOperator):
+        if expr.is_probabilistic_operator():
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 4,
+                    TLOperandType.ATOMIC,
+                    3000000,
+                ),
+            )
+        else:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 4,
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+    elif isinstance(expr, cpt.Formula):
+        if expr.deadline is not None:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 2,
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+        else:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    (expr.scq[1] - expr.scq[0]),
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+    elif isinstance(expr, cpt.ProbabilityOperator):
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    (expr.scq[1] - expr.scq[0]),
+                    TLOperandType.ATOMIC,
+                    int(expr.prob*1000000),
+                ),
+            )
+    elif expr.is_probabilistic_operator():
+        cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 4,
+                    TLOperandType.ATOMIC,
+                    2000000,
+                ),
+            )
+    else:
         cg_duoq = CGInstruction(
             EngineTag.CG,
             CGType.DUOQ,
@@ -859,45 +839,20 @@ def gen_ft_duoq_instructions(
                 0,
             ),
         )
+
+    if isinstance(expr, cpt.Formula) and expr.deadline is not None:
+        log.debug(
+            MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_predict}"
+        )
+        return [cg_duoq, cg_predict]
+    elif isinstance(expr, cpt.TemporalOperator):
+        log.debug(
+            MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
+        )
+        return [cg_duoq, cg_temp]
+    else:
         log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
         return [cg_duoq]
-
-    # Temporal operators need to reserve queue length for temporal parameter
-    # blocks, and emit an additional configuration instruction
-    cg_duoq = CGInstruction(
-        EngineTag.CG,
-        CGType.DUOQ,
-        TLInstruction(
-            EngineTag.TL,
-            instructions[expr].id,
-            FTOperator.CONFIG,
-            TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
-            0,
-        ),
-    )
-
-    cg_temp = CGInstruction(
-        EngineTag.CG,
-        CGType.TEMP,
-        TLInstruction(
-            EngineTag.TL,
-            instructions[expr].id,
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            expr.interval.lb,
-            TLOperandType.SUBFORMULA,
-            expr.interval.ub,
-        ),
-    )
-
-    log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
-    )
-
-    return [cg_duoq, cg_temp]
 
 
 def gen_pt_duoq_instructions(

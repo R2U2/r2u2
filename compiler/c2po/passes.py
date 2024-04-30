@@ -1111,7 +1111,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
-    log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
+    log.stat(MODULE_CODE, f"old_scq_size={program.program_scq_size}")
 
     # log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
     log.debug(MODULE_CODE, 1, "Optimizing via E-Graph")
@@ -1150,7 +1150,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
         compute_scq_sizes(program, context)
 
         log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
-        log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
+        log.stat(MODULE_CODE, f"new_scq_size={program.program_scq_size}")
 
     log.debug(MODULE_CODE, 1, f"Post E-Graph:\n{repr(program)}")
 
@@ -1172,10 +1172,7 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> None:
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
-    actual_program_scq_size = 0
-    theoretical_program_scq_size = 0
-
-    EXTRA_SCQ_SIZE = 3
+    program_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
@@ -1185,12 +1182,11 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
 
-            actual_program_scq_size += expr.scq_size
-            theoretical_program_scq_size += expr.scq_size
+            program_scq_size += expr.scq_size
 
             expr.scq = (
-                actual_program_scq_size - expr.scq_size,
-                actual_program_scq_size,
+                program_scq_size - expr.scq_size,
+                program_scq_size,
             )
 
             continue
@@ -1220,18 +1216,16 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             + expr.scq_size
         )
 
-        actual_program_scq_size += expr.scq_size
-        theoretical_program_scq_size += expr.scq_size - (EXTRA_SCQ_SIZE - 1)
+        program_scq_size += expr.scq_size
 
         expr.scq = (
-            actual_program_scq_size - expr.scq_size,
-            actual_program_scq_size,
+            program_scq_size - expr.scq_size,
+            program_scq_size,
         )
 
-    program.theoretical_scq_size = theoretical_program_scq_size
+    program.program_scq_size = program_scq_size
 
-    log.debug(MODULE_CODE, 1, f"Actual program SCQ size: {actual_program_scq_size}")
-    log.debug(MODULE_CODE, 1, f"Theoretical program SCQ size: {theoretical_program_scq_size}")
+    log.debug(MODULE_CODE, 1, f"Program SCQ size: {program_scq_size}")
 
 
 # A Pass is a function with the signature:

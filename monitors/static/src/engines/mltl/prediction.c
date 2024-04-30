@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#if R2U2_PRED_PROB
+
 // Helper function to find booleanizer child instruction for MLTL atomic
 r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_bz_instruction_t** bz_instructions, size_t *bz_size, uint8_t desired_atom, uint8_t curr_index){
   if(instr->engine_tag == R2U2_ENG_BZ){
@@ -197,6 +199,7 @@ void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** inst
   }
   r2u2_duoq_control_block_t *ctrl_return_instr = &(arena->blocks[return_instr->memory_reference]);
   prev_real_state[size].read1 = ctrl_return_instr->read1;
+  ctrl_return_instr->pred_write = ctrl_return_instr->write;
 }
 
 void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_mltl_instruction_t* return_instr, r2u2_scq_state_t* prev_real_state, size_t size){
@@ -213,3 +216,4 @@ void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions
   r2u2_duoq_control_block_t *ctrl_return_instr = &(arena->blocks[return_instr->memory_reference]);
   ctrl_return_instr->read1 = prev_real_state[size].read1;
 }
+#endif

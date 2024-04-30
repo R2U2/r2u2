@@ -235,12 +235,6 @@ class TestCase():
         ):
             self.r2u2bin_command.append("-a")
 
-        if (
-            ("booleanizer" not in self.c2po_options or not self.c2po_options["booleanizer"]) and 
-            ("atomic-checkers" not in self.c2po_options or not self.c2po_options["atomic-checkers"])  
-        ):
-            self.r2u2bin_command.append("-a")
-
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
 
