@@ -163,14 +163,12 @@ r2u2_status_t r2u2_duoq_ft_predict_config(r2u2_duoq_arena_t *arena, r2u2_time qu
 #endif
 
 /* FT (SCQ replacement) */
-#if R2U2_PRED_PROB
 r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value, r2u2_bool predict);
 r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value, r2u2_bool predict);
+
+#if R2U2_PRED_PROB
 r2u2_status_t r2u2_duoq_ft_write_probability(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_probability value, r2u2_bool predict);
 r2u2_bool r2u2_duoq_ft_check_probability(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_probability *value, r2u2_bool predict);
-#else
-r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
 #endif
 
 /* PT (Box Queue replacement)

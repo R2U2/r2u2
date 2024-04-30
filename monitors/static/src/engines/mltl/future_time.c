@@ -80,11 +80,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
         // Handled by the duo queue check function, just need the arguments
         rd_ptr = (op_num == 0) ? &(ctrl->read1) : &(ctrl->read2);
 
-        #if R2U2_PRED_PROB
-          return r2u2_duoq_ft_check(arena, value, rd_ptr, ctrl->next_time, result, monitor->predictive_mode);
-        #else
-          return r2u2_duoq_ft_check(arena, value, rd_ptr, ctrl->next_time, result);
-        #endif
+        return r2u2_duoq_ft_check(arena, value, rd_ptr, ctrl->next_time, result, monitor->predictive_mode);
 
       case R2U2_FT_OP_NOT_SET:
         *result = 0;
@@ -161,11 +157,8 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
   r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
 
-  #if R2U2_PRED_PROB
-    r2u2_duoq_ft_write(arena, instr->memory_reference, result, monitor->predictive_mode);
-  #else
-    r2u2_duoq_ft_write(arena, instr->memory_reference, result);
-  #endif
+  r2u2_duoq_ft_write(arena, instr->memory_reference, result, monitor->predictive_mode);
+
   R2U2_DEBUG_PRINT("\t(%d,%s)\n", result & R2U2_TNT_TIME, (result & R2U2_TNT_TRUE) ? "T" : "F" );
 
   ctrl->next_time = (result & R2U2_TNT_TIME)+1;
