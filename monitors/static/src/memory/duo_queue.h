@@ -7,7 +7,7 @@
 /*
  *
  * Why we use time for so many things - fits because it's max you can meaningfully address
- * for example, we can safely do write_ptr +1 then modulo becase if it was going to overflow there woun't be room for the queue with control block
+ * for example, we can safely do write_ptr +1 then modulo becase if it was going to overflow there wouldn't be room for the queue with control block
  *
  * Length, Size, and Capacity:
  * The length is the number of _____ required by the queue and is ...
@@ -125,6 +125,11 @@ typedef struct {
 
 static inline r2u2_duoq_temporal_block_t* r2u2_duoq_ft_temporal_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+  #if R2U2_PRED_PROB
+    if (ctrl->prob > 1.0){ // Indicates probabilistic operator
+      return (r2u2_duoq_temporal_block_t*)&((ctrl->queue)[ctrl->length*(sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))]);
+    }
+  #endif
   return (r2u2_duoq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
 }
 

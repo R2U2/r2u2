@@ -746,7 +746,7 @@ def gen_ft_duoq_instructions(
                     FTOperator.CONFIG,
                     TLOperandType.ATOMIC,
                     # TODO: Move magic number (size of temporal block)
-                    (expr.scq[1] - expr.scq[0]) + 4,
+                    (expr.scq[1] - expr.scq[0])*2 + 4,
                     TLOperandType.ATOMIC,
                     3000000,
                 ),
@@ -820,7 +820,7 @@ def gen_ft_duoq_instructions(
                     FTOperator.CONFIG,
                     TLOperandType.ATOMIC,
                     # TODO: Move magic number (size of temporal block)
-                    (expr.scq[1] - expr.scq[0]) + 4,
+                    (expr.scq[1] - expr.scq[0])*2,
                     TLOperandType.ATOMIC,
                     2000000,
                 ),
@@ -898,6 +898,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
+    S = {}
 
     # For tracking duoq usage across FT and PT
     duoqs: int = 0
@@ -925,6 +926,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
             cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
             duoqs += 1
+            
+            # Checks to see if there is a probabilistic and non-probabilistic version of the
+            # same atomic. Since probability is loaded with the LOAD instruction,
+            # don't store same atomic more than once (e.g., booleanizer store)
+            if str(expr) in S:
+                continue
+            else:
+                S[str(expr)] = expr
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.

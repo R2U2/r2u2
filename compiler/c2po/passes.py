@@ -4,6 +4,8 @@ from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat
 
+from copy import copy
+
 MODULE_CODE = "PASS"
 
 
@@ -19,6 +21,15 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
         if not isinstance(expr, cpt.Variable):
             continue
 
+        # Makes sure probabilistic and non-probabilistic definitions are seperate
+        if expr.symbol in context.definitions and expr.is_probabilistic_operator() and "Pr(" + expr.symbol + ")" not in context.definitions:
+            new_expr = copy(context.definitions[expr.symbol])
+            new_expr.parents = []
+            expr.symbol = "Pr(" + expr.symbol + ")"
+            context.add_definition(expr.symbol, new_expr)
+        elif expr.is_probabilistic_operator():
+            expr.symbol = "Pr(" + expr.symbol + ")"
+        
         if expr.symbol in context.definitions:
             expr.replace(context.definitions[expr.symbol])
         elif expr.symbol in context.specifications:
@@ -965,6 +976,8 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal expr_map
 
+        # Makes sure probabilistic and non-probabilistic expressions
+        # are never combined.
         key = repr(expr)
         if expr.is_probabilistic_operator():
             key = 'Pr(' + key + ')'
@@ -1054,7 +1067,6 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
     atomic_map: dict[str, int] = {}
     aid: int = 0
-    # S = {}
 
     for expr in program.postorder(context):
         if (
@@ -1084,15 +1096,6 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            # if parent.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-            #     context.atomics.add(expr)
-            #     if expr.atomic_id < 0:
-            #         if str(expr) in S:
-            #             expr.atomic_id = S[str(expr)].atomic_id
-            #         else:
-            #             S[str(expr)] = expr
-            #             expr.atomic_id = aid
-            #             aid += 1
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
 

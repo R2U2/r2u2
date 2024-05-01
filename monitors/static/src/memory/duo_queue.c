@@ -17,7 +17,7 @@ static void r2u2_duoq_queue_print(r2u2_duoq_arena_t *arena, r2u2_time queue_id) 
     }
     R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
     for (r2u2_time i = 0; i < ctrl->length; ++i) {
-      if(ctrl->prob > 1.0){ //Indicates Probabilistic operator
+      if(ctrl->prob > 1.0){ //Indicates probabilistic operator
         r2u2_probability value = (*(r2u2_probability*)&((ctrl->queue)[(i) * (sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))]));
         R2U2_DEBUG_PRINT("  %0.4f:%4d  |", value.prob, value.time);
       } 
@@ -51,10 +51,10 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
     ctrl->prob = prob / 1000000.0;
     if (ctrl->prob == 3.0){ // Temporal Probabilistic Operator
       int reserved_for_temp_block = sizeof(r2u2_duoq_temporal_block_t) / sizeof(r2u2_tnt_t);
-      ctrl->length = (sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))*(queue_length - reserved_for_temp_block) + reserved_for_temp_block;
+      ctrl->length = ((queue_length - reserved_for_temp_block)/(sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))) + reserved_for_temp_block;
     }
     else if(ctrl->prob == 2.0){ // Probabilistic Operator
-      ctrl->length = (sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))*queue_length;
+      ctrl->length = queue_length/(sizeof(r2u2_probability)/sizeof(r2u2_tnt_t));
     }
     else{
       ctrl->length = queue_length;
@@ -79,8 +79,15 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
 
   ctrl->queue[0] = r2u2_infinity;
 
+  #if R2U2_PRED_PROB
+    if (ctrl->prob > 1.0){ // Temporal Probabilistic Operator
+      r2u2_probability* init_slot = (r2u2_probability*)&((ctrl->queue)[0]);
+      init_slot->time = r2u2_infinity;
+    }
+  #endif
+
   #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
+    r2u2_duoq_queue_print(arena, queue_id);
   #endif
 
   return R2U2_OK;
@@ -137,7 +144,6 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
   #if R2U2_DEBUG
   r2u2_duoq_queue_print(arena, queue_id);
   #endif
-
 
   r2u2_tnt_t prev = ((*temp_write) == 0) ? ctrl->length-1 : *temp_write-1;
 
@@ -265,7 +271,7 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
 
   do {
     // Check if time pointed to is >= desired time by discarding truth bits
-    if (((ctrl->queue)[*read] & R2U2_TNT_TIME) >= next_time && ((ctrl->queue)[*read] != r2u2_infinity)) {
+    if (((ctrl->queue)[*read] & R2U2_TNT_TIME) >= next_time) {
       // Return value
       R2U2_DEBUG_PRINT("New data found after scanning t=%d\n", (ctrl->queue)[*read] & R2U2_TNT_TIME);
       *value = (ctrl->queue)[*read];
@@ -291,34 +297,28 @@ r2u2_bool r2u2_duoq_ft_check_probability(r2u2_duoq_arena_t *arena, r2u2_time que
   r2u2_duoq_queue_print(arena, queue_id);
   #endif
 
-  R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u\n", *read, next_time);
-
   // Checks if trying to read predicted data when not in predictive mode
   if(!predict && *read == ctrl->pred_write){
-    R2U2_DEBUG_PRINT("\t\tNot predicting and Read Ptr %u == Prediction Write Ptr %u\n", *read, ctrl->pred_write);
+    R2U2_DEBUG_PRINT("\t\tNot in predictive mode and Read Ptr %u == Prediction Write Ptr %u\n", *read, ctrl->pred_write);
     return false; 
   }
 
   r2u2_tnt_t *temp_write;
   if (predict){
     temp_write = &ctrl->pred_write;
+    R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tPrediction Write: %u\n", *read, next_time, *temp_write);
   }
   else{
     temp_write = &ctrl->write;
+    R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tWrite: %u\n", *read, next_time, *temp_write);
   }
 
-  if (*read == *temp_write) {
-    *value = (*(r2u2_probability*)&((ctrl->queue)[(*read) * (sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))]));
-    if (value->time >= next_time && *temp_write != r2u2_infinity && ((ctrl->queue)[*read] != r2u2_infinity)){
-      // Return value
-      R2U2_DEBUG_PRINT("\t\tNew data found in place t=%d >= %d\n", value->time, next_time);
-      return true;
-    }
-    // Queue is empty
-    R2U2_DEBUG_PRINT("\t\tEmpty Queue Read Ptr %u == Write Ptr %u and t=%d\n", *read, ctrl->write, next_time);
-    return false;
+  *value = (*(r2u2_probability*)&((ctrl->queue)[(*read) * (sizeof(r2u2_probability)/sizeof(r2u2_tnt_t))]));
+  if (value->time == r2u2_infinity){
+      //Empty Queue
+      R2U2_DEBUG_PRINT("\t\tEmpty Queue\n");
+      return false;
   }
-
 
   do {
     // Check if time pointed to is >= desired time by discarding truth bits
@@ -335,6 +335,9 @@ r2u2_bool r2u2_duoq_ft_check_probability(r2u2_duoq_arena_t *arena, r2u2_time que
   // Here we hit the write pointer while scanning forwards, take a step back
   // in case the next value is compacted onto the slot we just checked.
   *read = (*read == 0) ? ctrl->length-1 : *read-1;
+
+  // No new data in Queue
+  R2U2_DEBUG_PRINT("\t\tNo new data Read Ptr %u and Write Ptr %u and t=%d\n", *read, ctrl->write, next_time);
   return false;
 }
 #endif

@@ -226,6 +226,16 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_FT_LOAD: {
       R2U2_DEBUG_PRINT("\tFT LOAD\n");
 
+      #if R2U2_PRED_PROB
+        if (ctrl->prob > 1.0){ // Indicates probabilistic operator
+          if (check_operand_data_probability(monitor, instr, 0, &op0_prob)) {
+            push_result_probability(monitor, instr, op0_prob);
+          }
+          error_cond = R2U2_OK;
+          break;
+        }
+      #endif
+      
       if (check_operand_data(monitor, instr, 0, &op0)) {
         push_result(monitor, instr, op0);
       }
@@ -265,7 +275,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           if((int)monitor->time_stamp - (int)predict->deadline >= 0){ // T_R - d >= 0
             r2u2_time index = monitor->time_stamp - predict->deadline;
             op0 = (ctrl->queue)[ctrl->write];
-            if((op0 & R2U2_TNT_TIME) == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index && ctrl->next_time <= index){ // last i produced < index; therefore, prediction required
+            if(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index && ctrl->next_time <= index){ // last i produced < index; therefore, prediction required
               monitor->predictive_mode = true;
               r2u2_mltl_instruction_t* mltl_instructions[R2U2_MAX_INSTRUCTIONS];
               r2u2_bz_instruction_t* bz_instructions[R2U2_MAX_BZ_INSTRUCTIONS];
@@ -283,7 +293,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
               r2u2_time timestamp_original = monitor->time_stamp;
 
               r2u2_time iteration = 0;
-              while((op0 & R2U2_TNT_TIME) == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index){ // while prediction is required
+              while(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index){ // while prediction is required
                 monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
                 monitor->time_stamp++; // increment time step
                 
@@ -324,10 +334,11 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                     R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration-1, i, monitor->progress);
                     r2u2_mltl_ft_update(monitor, mltl_instructions[i]);
                   }
+
+                  R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration-1, num_mltl_instructions, monitor->progress);
                   R2U2_DEBUG_PRINT("\tFT RETURN\n");
                   if(check_operand_data(monitor, instr, 0, &op0)){
                     // Only store result up to 'index'; don't predict for values after 'index'
-                    //ctrl->next_time = min(index, op0 & R2U2_TNT_TIME) + 1;
                     result = min(index, op0 & R2U2_TNT_TIME) | (op0 & R2U2_TNT_TRUE);
                     push_result(monitor, instr, result);
 
@@ -380,18 +391,21 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           R2U2_DEBUG_PRINT("\tGot data\n");
           temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
           if (op0_prob.time >= temp->upper_bound){
-              r2u2_float p_temp = op0_prob.prob;
-              R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
-              r2u2_duoq_control_block_t *ctrl_child = &(arena->blocks[instr->op1_value]);
-              for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
-                r2u2_time curr_index = ((int)ctrl->read1 - t < 0) ? (ctrl_child->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
-                p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index).prob;
-                R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand_probability(monitor, instr, 0, curr_index).prob, p_temp);
-              }
-              result_prob.time = op0_prob.time - temp->upper_bound;
-              result_prob.prob = p_temp;
-              push_result_probability(monitor, instr, result_prob);
+            r2u2_float p_temp = op0_prob.prob;
+            R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
+            r2u2_duoq_control_block_t *ctrl_child = &(arena->blocks[instr->op1_value]);
+            for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
+              r2u2_time curr_index = ((int)ctrl->read1 - t < 0) ? (ctrl_child->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
+              p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index).prob;
+              R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand_probability(monitor, instr, 0, curr_index).prob, p_temp);
+            }
+            result_prob.time = op0_prob.time - temp->upper_bound;
+            result_prob.prob = p_temp;
+            push_result_probability(monitor, instr, result_prob);
+          } else {
+            R2U2_DEBUG_PRINT("\tWaiting...\n");
           }
+          ctrl->next_time = op0_prob.time + 1;
         }
         error_cond = R2U2_OK;
         break;
@@ -422,8 +436,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
           push_result(monitor, instr, ((op0 & R2U2_TNT_TIME) - temp->lower_bound) | R2U2_TNT_FALSE);
         } else {
           R2U2_DEBUG_PRINT("\tWaiting...\n");
-          // We only need to see each timestep once, regaurdless of outcome
-          ctrl->next_time = (op0 & R2U2_TNT_TIME)+1;
         }
         
         // We only need to see each timestep once, regaurdless of outcome
@@ -437,38 +449,44 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_FT_UNTIL: {
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
 
-        #if R2U2_PRED_PROB
-          if(ctrl->prob > 1.0){ //Indicates probabilisitic operator
-            if (check_operand_data_probability(monitor, instr, 0, &op0_prob) && check_operand_data_probability(monitor, instr, 1, &op1_prob)) {
-              temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
-              // We need to see every timesetp as an op0 op1 pair
-              r2u2_time tau = min(op0_prob.time, op1_prob.time);
-              ctrl->next_time = tau+1;
-              if (op0_prob.time >= temp->upper_bound){
-                r2u2_float p_temp = op1_prob.prob;
-                R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
-                r2u2_duoq_control_block_t *ctrl_child1 = &(arena->blocks[instr->op1_value]);
-                r2u2_duoq_control_block_t *ctrl_child2 = &(arena->blocks[instr->op2_value]);
-                for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
-                  r2u2_time curr_index1 = ((int)ctrl->read1 - t < 0) ? (ctrl_child1->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
-                  r2u2_time curr_index2 = ((int)ctrl->read2 - t < 0) ? (ctrl_child2->length) + ((int)ctrl->read2 - t) : (ctrl->read2 - t);
-                  p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index1).prob;
-                  R2U2_DEBUG_PRINT("p_temp = p_temp * %lf = %lf\n", get_child_operand_probability(monitor, instr, 0, curr_index1).prob, p_temp);
-                  p_temp = 1 - ((1 - get_child_operand_probability(monitor, instr, 1, curr_index2).prob)*(1 - p_temp));
-                  R2U2_DEBUG_PRINT("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand_probability(monitor, instr, 1, curr_index2).prob, p_temp);
-                }
-                result_prob.time = op0_prob.time - temp->upper_bound;
-                result_prob.prob = p_temp;
-                push_result_probability(monitor, instr, result_prob);
+      #if R2U2_PRED_PROB
+        if(ctrl->prob > 1.0){ //Indicates probabilisitic operator
+          if (check_operand_data_probability(monitor, instr, 0, &op0_prob) && check_operand_data_probability(monitor, instr, 1, &op1_prob)) {
+            temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
+            // We need to see every timestep as an op0 op1 pair
+            // both times should be equal at this point
+            #if R2U2_DEBUG
+              assert(op0_prob.time == op1_prob.time);
+            #endif
+            r2u2_time tau = min(op0_prob.time, op1_prob.time);            
+            if (tau >= temp->upper_bound){
+              r2u2_float p_temp = op1_prob.prob;
+              R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
+              r2u2_duoq_control_block_t *ctrl_child1 = &(arena->blocks[instr->op1_value]);
+              r2u2_duoq_control_block_t *ctrl_child2 = &(arena->blocks[instr->op2_value]);
+              for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
+                r2u2_time curr_index1 = ((int)ctrl->read1 - t < 0) ? (ctrl_child1->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
+                r2u2_time curr_index2 = ((int)ctrl->read2 - t < 0) ? (ctrl_child2->length) + ((int)ctrl->read2 - t) : (ctrl->read2 - t);
+                p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index1).prob;
+                R2U2_DEBUG_PRINT("p_temp = p_temp * %lf = %lf\n", get_child_operand_probability(monitor, instr, 0, curr_index1).prob, p_temp);
+                p_temp = 1 - ((1 - get_child_operand_probability(monitor, instr, 1, curr_index2).prob)*(1 - p_temp));
+                R2U2_DEBUG_PRINT("p_temp = 1 - ((1 - %lf) * (1 - p_temp)) = %lf\n", get_child_operand_probability(monitor, instr, 1, curr_index2).prob, p_temp);
               }
+              result_prob.time = op0_prob.time - temp->upper_bound;
+              result_prob.prob = p_temp;
+              push_result_probability(monitor, instr, result_prob);
             }
-            error_cond = R2U2_OK;
-            break;
+            ctrl->next_time = tau+1;
+          } else {
+            R2U2_DEBUG_PRINT("\tWaiting...\n");
+          }
+          error_cond = R2U2_OK;
+          break;
         }
       #endif
       if (check_operand_data(monitor, instr, 0, &op0) && check_operand_data(monitor, instr, 1, &op1)) {
         temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
-          // We need to see every timesetp as an (op0, op1) pair
+          // We need to see every timestep as an (op0, op1) pair
           r2u2_time tau = min(op0 & R2U2_TNT_TIME, op1 & R2U2_TNT_TIME);
           ctrl->next_time = tau+1;
 
@@ -547,7 +565,7 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       R2U2_DEBUG_PRINT("\tFT AND\n");
 
       #if R2U2_PRED_PROB
-        if (ctrl->prob == 2.0){ // Indicates probabilistic operator
+        if (ctrl->prob > 1.0){ // Indicates probabilistic operator
           op0_rdy = check_operand_data_probability(monitor, instr, 0, &op0_prob);
           op1_rdy = check_operand_data_probability(monitor, instr, 1, &op1_prob);
 
@@ -615,14 +633,13 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
         if (check_operand_data_probability(monitor, instr, 0, &op0_prob)) {
           R2U2_DEBUG_PRINT("\t\tProbability for i = %d is %f\n", op0_prob.time, op0_prob.prob);
           if(op0_prob.prob >= ctrl->prob)
-            push_result(monitor, instr, op0 |  R2U2_TNT_TRUE);
+            push_result(monitor, instr, (op0_prob.time & R2U2_TNT_TIME) |  R2U2_TNT_TRUE);
           else
-            push_result(monitor, instr, op0 |  R2U2_TNT_FALSE);
+            push_result(monitor, instr, (op0_prob.time & R2U2_TNT_TIME) |  R2U2_TNT_FALSE);
         }
-
+      #endif
         error_cond = R2U2_OK;
         break;
-      #endif
     }
     case R2U2_MLTL_OP_FT_NOR: {
       R2U2_DEBUG_PRINT("\tFT NOR\n");

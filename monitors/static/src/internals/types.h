@@ -63,7 +63,7 @@ static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
 
 typedef struct {
     r2u2_tnt_t time;
-    r2u2_float prob;
+    float prob;
 } r2u2_probability;
 
 typedef struct {
