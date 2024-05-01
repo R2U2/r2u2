@@ -148,7 +148,8 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
   //       pointer, either this is the first write or we're in an incoherent
   //       state, write to the next cell instead.
   if ((((ctrl->queue)[prev] ^ value) <= R2U2_TNT_TIME) && \
-      ((ctrl->queue)[prev] != (ctrl->queue)[*temp_write])) {
+      ((ctrl->queue)[prev] != (ctrl->queue)[*temp_write]) && \
+      ((ctrl->queue)[*temp_write] != r2u2_infinity)) {
     #if R2U2_PRED_PROB
       // Is the previous data real data? If so, don't overwrite with compact writing.
       if (ctrl->write != ctrl->pred_write){
@@ -239,7 +240,7 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
   #if R2U2_PRED_PROB
   // Checks if trying to read predicted data when not in predictive mode
   if(!predict && *read == ctrl->pred_write){
-    R2U2_DEBUG_PRINT("\t\tRead Ptr %u == Prediction Write Ptr %u\n", *read, ctrl->pred_write);
+    R2U2_DEBUG_PRINT("\t\tNot in predictive mode and Read Ptr %u == Prediction Write Ptr %u\n", *read, ctrl->pred_write);
     return false; 
   }
 
@@ -255,6 +256,12 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
     temp_write = &ctrl->write;
     R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tWrite: %u\n", *read, next_time, *temp_write);
   #endif
+
+  if ((ctrl->queue)[*read] == r2u2_infinity){
+      //Empty Queue
+      R2U2_DEBUG_PRINT("\t\tEmpty Queue\n");
+      return false;
+  }
 
   do {
     // Check if time pointed to is >= desired time by discarding truth bits
@@ -272,7 +279,7 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
   // in case the next value is compacted onto the slot we just checked.
   *read = (*read == 0) ? ctrl->length-1 : *read-1;
 
-  // Queue is empty
+  // No new data in queue
   R2U2_DEBUG_PRINT("\t\tNo new data Read Ptr %u and Write Ptr %u and t=%d\n", *read, ctrl->write, next_time);
   return false;
 }
