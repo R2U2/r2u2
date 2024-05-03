@@ -3,7 +3,7 @@ TL n1  return n0 0
 TL n2  return n0 1
 TL n3  return n0 2
 TL n4  return n0 3
-CG TL DUOQ q0 |3|
+CG TL DUOQ q0 |1|
 CG TL DUOQ q1 |1|
 CG TL DUOQ q2 |1|
 CG TL DUOQ q3 |1|
