@@ -8,7 +8,7 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
   char *signal;
   // Since this can store a pointer, it must be able to store an index
   uintptr_t i;
-  r2u2_float prob;
+  uintptr_t k = 0;
 
   // Read in next line of trace to internal buffer for processing
   if(fgets(trace_reader->in_buf, sizeof(trace_reader->in_buf), trace_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
@@ -31,7 +31,19 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
     #else
 
     if (trace_reader->as_atomics) {
-        for(i = 0, signal = strtok(trace_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
+      for(i = 0, signal = strtok(trace_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
+        #if R2U2_PRED_PROB
+          // Check if starting next mode of prediction and store in offset buffer
+          if(strcmp(signal, "|") == 0){
+            if(k == 0){
+              monitor->num_atomics = i;
+            }
+            (*(monitor->k_offset_buffer)[1])[k] = i;
+            k++;
+            i--;
+            continue;
+          }
+        #endif
         // Follow the pointer to the current atomic buffer, then assign the ith element
         // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
         // stay in place while the atomic buffer is live
@@ -41,6 +53,15 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
       }
     } else {
       for(i = 0, signal = strtok(trace_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
+        #if R2U2_PRED_PROB
+          // Check if starting next mode of prediction and store in offset buffer
+          if(strcmp(signal, "|") == 0){
+            (*(monitor->k_offset_buffer)[0])[k] = i;
+            k++;
+            i--;
+            continue;
+          }
+        #endif
         // Follow the pointer to the signal vector, then assign the ith element
         // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
         // stay in place while the signal vector is live
@@ -49,7 +70,9 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
     }
 
     #endif
-
+  
+  #if R2U2_PRED_PROB
+  k = 0;
   if (prob_reader->input_file != NULL){
     // Read in next line of trace probabilities to internal buffer for processing
     if(fgets(prob_reader->in_buf, sizeof(prob_reader->in_buf), prob_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
@@ -77,23 +100,25 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *trace_reader, r2u2_c
       #else
 
       for(i = 0, signal = strtok(prob_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
-        // Follow the pointer to the signal vector, then assign the ith element
-        // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
-        // stay in place while the signal vector is live
-        if (strcmp(signal, "|") == 0){
-          (*(monitor->atomic_prob_buffer))[i] = 1000.0;
+        // Check if starting next mode of prediction and store in offset buffer
+        // Note: Technically don't need to restore in k_offset_buffer if trace_reader->as_atomics
+        if(strcmp(signal, "|") == 0){
+          (*(monitor->k_offset_buffer)[1])[k] = i;
+          k++;
+          i--;
         }else{
+          // Follow the pointer to the atomic probability vector, then assign the ith element
+          // Note this is a pointer into the r2u2_csv_reader_t in_buf which must
+          // stay in place while the atomic probability vector is live
+          r2u2_float prob;
           sscanf(signal, "%lf", &prob);
           (*(monitor->atomic_prob_buffer))[i] = prob;
         }
       }
 
       #endif
-  }else{
-    for(i = 0; i < monitor->num_atomics; i++) {
-        (*(monitor->atomic_prob_buffer))[i] = -1;
-    }
   }
+  #endif
 
   return R2U2_OK;
 }

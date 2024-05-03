@@ -6,12 +6,12 @@
 #if R2U2_PRED_PROB
 
 // Helper function to find booleanizer child instruction for MLTL atomic
-r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_bz_instruction_t** bz_instructions, size_t *bz_size, uint8_t desired_atom, uint8_t curr_index){
+r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_instruction_t** bz_instructions, size_t *bz_size, uint8_t desired_atom, uint8_t curr_index){
   if(instr->engine_tag == R2U2_ENG_BZ){
     r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)instr->instruction_data);
     if (bz_instr->store == 1 && bz_instr->at_addr == desired_atom){
       instr = &(*monitor->instruction_tbl)[curr_index];
-      bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
+      bz_instructions[*bz_size] = instr;
       *bz_size = *bz_size + 1;
       return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, 0);
     }
@@ -27,19 +27,33 @@ r2u2_status_t find_bz_child_instructions(r2u2_monitor_t *monitor, r2u2_instructi
 }
 
 
-r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_bz_instruction_t** bz_instructions, size_t *bz_size, uint8_t difference){
+r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_t *instr, r2u2_mltl_instruction_t** mltl_instructions, size_t *mltl_size, r2u2_instruction_t** load_instructions, size_t *load_size, uint8_t difference){
   if(instr->engine_tag == R2U2_ENG_TL) {
     r2u2_mltl_instruction_t* mltl_instr = (r2u2_mltl_instruction_t*)instr->instruction_data;
     switch (mltl_instr->opcode){
       case R2U2_MLTL_OP_FT_LOAD: {
-        instr = &(*monitor->instruction_tbl)[difference-1];
-        return find_bz_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, mltl_instr->op1_value, difference-1);
+        if(difference > 0){
+          instr = &(*monitor->instruction_tbl)[difference-1];
+          return find_bz_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, mltl_instr->op1_value, difference-1);
+        } else { // No booleanizer or atomic checker
+          r2u2_mltl_instruction_t* load_instr = ((r2u2_mltl_instruction_t*)instr->instruction_data);
+          // Only store one instance of each load instruction for a single atomic (e.g., don't include loading a0 and Pr(a0))
+          for(int i = 0; i < *load_size; i++){
+            r2u2_mltl_instruction_t* prev_load_instr = ((r2u2_mltl_instruction_t*)load_instructions[i]->instruction_data);
+            if(load_instr->op1_value == prev_load_instr->op1_value){
+              return R2U2_OK;
+            }
+          }
+          load_instructions[*load_size] = instr;
+          *load_size = *load_size + 1;
+          return R2U2_OK;
+        }
       }
       case R2U2_MLTL_OP_FT_RETURN: {
         instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
         mltl_instructions[0] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
         *mltl_size = 1;
-        return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+        return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
       }
       case R2U2_MLTL_OP_FT_GLOBALLY:
       case R2U2_MLTL_OP_FT_NOT: 
@@ -48,7 +62,7 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
           instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
-          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
         }else{
           return R2U2_OK;
         }
@@ -60,13 +74,13 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
           instr = &(*monitor->instruction_tbl)[mltl_instr->op1_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
-          status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+          status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
         }
         if(status == R2U2_OK && (mltl_instr->op2_type == R2U2_FT_OP_ATOMIC || mltl_instr->op2_type == R2U2_FT_OP_SUBFORMULA)){
           instr = &(*monitor->instruction_tbl)[mltl_instr->op2_value+difference];
           mltl_instructions[*mltl_size] = (r2u2_mltl_instruction_t*)(instr->instruction_data);
           *mltl_size = *mltl_size + 1;
-          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
         }else{
           return status;
         }
@@ -104,9 +118,9 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_BZ_OP_ISQRT:
       case R2U2_BZ_OP_FSQRT: {
         instr = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
-        bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
-        *bz_size = *bz_size + 1;
-        return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+        load_instructions[*load_size] = instr;
+        *load_size = *load_size + 1;
+        return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
       } 
       case R2U2_BZ_OP_BWAND:
       case R2U2_BZ_OP_BWOR:
@@ -133,14 +147,14 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
       case R2U2_BZ_OP_IPOW:
       case R2U2_BZ_OP_FPOW:{
         instr = &(*monitor->instruction_tbl)[bz_instr->param1.bz_addr];
-        bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
-        *bz_size = *bz_size + 1;
-        r2u2_status_t status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+        load_instructions[*load_size] = instr;
+        *load_size = *load_size + 1;
+        r2u2_status_t status = find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
         if(status == R2U2_OK){
           instr = &(*monitor->instruction_tbl)[bz_instr->param2.bz_addr];
-          bz_instructions[*bz_size] = (r2u2_bz_instruction_t*)(instr->instruction_data);
-          *bz_size = *bz_size + 1;
-          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, bz_instructions, bz_size, difference);
+          load_instructions[*load_size] = instr->instruction_data;
+          *load_size = *load_size + 1;
+          return find_child_instructions(monitor, instr, mltl_instructions, mltl_size, load_instructions, load_size, difference);
         }
       }
       default: {
@@ -149,39 +163,6 @@ r2u2_status_t find_child_instructions(r2u2_monitor_t *monitor, r2u2_instruction_
     }
   }
   return R2U2_OK;
-}
-
-void find_k_start_index(r2u2_monitor_t *monitor, r2u2_time* trace_start_index, r2u2_time* prob_start_index, size_t size){
-  int temp1 = 0;
-  int temp2 = 0;
-  for(int i = 0; i < size; i++){
-    while(true){
-      if(strcmp((*(monitor->signal_vector))[temp1], "|") == 0){
-        trace_start_index[i] = temp1+1;
-        R2U2_DEBUG_PRINT("trace %d starts at %d\n", i, temp1+1);
-        temp1 = temp1 + monitor->num_signals + 1;
-        break;
-      }
-      else{
-        temp1 = temp1 + monitor->num_signals;
-      }
-    }
-    while(true){
-      if((*(monitor->atomic_prob_buffer))[temp2] == 1000.0){
-        prob_start_index[i] = temp2 + 1;
-        R2U2_DEBUG_PRINT("probability trace %d starts at %d\n", i, temp2+1);
-        temp2 = temp2 + monitor->num_atomics + 1;
-        break;
-      }
-      else if((*(monitor->atomic_prob_buffer))[temp2] < 0){
-        prob_start_index[i] = 0;
-        break;
-      }
-      else{
-        temp2 = temp2 + monitor->num_atomics;
-      }
-    }
-  }
 }
 
 void prep_prediction_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions, r2u2_mltl_instruction_t* return_instr, r2u2_scq_state_t* prev_real_state, size_t size){
@@ -215,5 +196,6 @@ void restore_scq(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t** instructions
   }
   r2u2_duoq_control_block_t *ctrl_return_instr = &(arena->blocks[return_instr->memory_reference]);
   ctrl_return_instr->read1 = prev_real_state[size].read1;
+  R2U2_DEBUG_PRINT("--------------------Ending Round of Prediction (at time step %d)---------------------\n",monitor->time_stamp);
 }
 #endif

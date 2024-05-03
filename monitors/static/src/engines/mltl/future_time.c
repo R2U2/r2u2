@@ -248,7 +248,6 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
 
       if (check_operand_data(monitor, instr, 0, &op0)) {
         R2U2_DEBUG_PRINT("\t(%d,%s)\n", (op0 & R2U2_TNT_TIME), (op0 & R2U2_TNT_TRUE) ? "T" : "F");
-        //ctrl->next_time = (op0 & R2U2_TNT_TIME)+1;
         push_result(monitor, instr, op0);
 
         if (monitor->out_file != NULL) {
@@ -265,77 +264,112 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       }
 
       #if R2U2_PRED_PROB
-        // Multimodal Model Predictive Runtime Verification
+        // Multimodal Model Predictive Runtime Verification (MMPRV)
         predict = r2u2_duoq_ft_predict_get(arena, instr->memory_reference);
-        if (predict == NULL){
+        if (predict == NULL){ // Predict block never set; therefore never requires prediction
           error_cond = R2U2_OK;
           break;
         }
         if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS){
           if((int)monitor->time_stamp - (int)predict->deadline >= 0){ // T_R - d >= 0
-            r2u2_time index = monitor->time_stamp - predict->deadline;
+            r2u2_time index = monitor->time_stamp - predict->deadline; // index = T_R - d
             op0 = (ctrl->queue)[ctrl->write];
-            if(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index && ctrl->next_time <= index){ // last i produced < index; therefore, prediction required
+            if(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index && ctrl->next_time <= index){ // Last i produced < index; therefore, prediction required
               monitor->predictive_mode = true;
               r2u2_mltl_instruction_t* mltl_instructions[R2U2_MAX_INSTRUCTIONS];
-              r2u2_bz_instruction_t* bz_instructions[R2U2_MAX_BZ_INSTRUCTIONS];
+              r2u2_instruction_t* load_instructions[max(R2U2_MAX_BZ_INSTRUCTIONS, R2U2_MAX_AT_INSTRUCTIONS)];
               r2u2_scq_state_t prev_real_state[R2U2_MAX_INSTRUCTIONS];
-              r2u2_time k_trace_offset[predict->k_modes];
-              r2u2_time k_prob_offset[predict->k_modes];
-              size_t num_mltl_instructions, num_bz_instructions = 0;
+              size_t num_mltl_instructions, num_load_instructions = 0;
               // Find child instructions for ft and booleanizer assembly (atomic checker not currently supported)
               r2u2_status_t status = find_child_instructions(monitor, &(*monitor->instruction_tbl)[monitor->prog_count], mltl_instructions, &num_mltl_instructions, 
-                                                              bz_instructions, &num_bz_instructions, monitor->prog_count - instr->memory_reference);
-              find_k_start_index(monitor, k_trace_offset, k_prob_offset, predict->k_modes);
+                                                              load_instructions, &num_load_instructions, monitor->prog_count - instr->memory_reference);
               prep_prediction_scq(monitor, mltl_instructions, instr, prev_real_state, num_mltl_instructions);
+              // Keep track of original monitor values
               r2u2_signal_vector_t *signal_vector_original = monitor->signal_vector;
+              r2u2_atomic_vector_t *atomic_vector_original = monitor->atomic_buffer[0];
               r2u2_atomic_buffer_t *atomic_prob_buffer_original = monitor->atomic_prob_buffer;
               r2u2_time timestamp_original = monitor->time_stamp;
 
               r2u2_time iteration = 0;
-              while(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index){ // while prediction is required
-                monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // reset monitor state
-                monitor->time_stamp++; // increment time step
+              while(op0 == r2u2_infinity || (op0 & R2U2_TNT_TIME) < index){ // While prediction is required
+                monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP; // Reset monitor state
+                monitor->time_stamp++; // Increment timestamp
                 
+                // Load in atomics/signals
+                // Note, we calculate for both atomic values and probability whether we care about both or not
                 r2u2_float temp_prob_buffer[monitor->num_atomics];
+                r2u2_bool temp_atomic_buffer[monitor->num_atomics];
                 for(int j = 0; j < (int)predict->k_modes; j++){
-                  monitor->signal_vector = &(*(signal_vector_original))[k_trace_offset[j]+(iteration*monitor->num_signals)];
-                  monitor->atomic_prob_buffer = &(*(atomic_prob_buffer_original))[k_prob_offset[j]+(iteration*monitor->num_atomics)];
-                  if(k_prob_offset[j] == 0 && predict->k_modes > 1){
-                    for(int k = 0; k < monitor->num_atomics; k++){
-                      (*(monitor->atomic_prob_buffer))[k] = 1.0 / predict->k_modes;
-                    }
-                  }
-                  for(int i = num_bz_instructions - 1; i >= 0; i--){ // dispatch booleanizer instructions
-                    R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",monitor->time_stamp,iteration, i, j);
-                    if(bz_instructions[i]->store && j != 0) {
-                      r2u2_float prev_prob = temp_prob_buffer[bz_instructions[i]->at_addr];
-                      r2u2_bool prev_atomic = (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr];
-                      r2u2_bz_instruction_dispatch(monitor, bz_instructions[i]);
-                      if(prev_atomic && !((*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr])){ // Going from true to false
-                        temp_prob_buffer[bz_instructions[i]->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
-                        (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr] = false;
-                      }else if(prev_atomic == ((*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr])){ // Staying same atomic value
-                        temp_prob_buffer[bz_instructions[i]->at_addr] = prev_prob + (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
-                      }else{ // Value is false and will remain false even if true for one mode
-                        (*(monitor->atomic_buffer)[0])[bz_instructions[i]->at_addr] = prev_atomic;
+                  // Slide atomic_prob_buffer over to the current mode at the current predicted time step
+                  monitor->atomic_prob_buffer = &(*(atomic_prob_buffer_original))[(*(monitor->k_offset_buffer)[1])[j]+(iteration*monitor->num_atomics)];
+                  for(int i = num_load_instructions - 1; i >= 0; i--){ // Dispatch load instructions
+                    R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original,iteration, i, j);
+                    if(load_instructions[i]->engine_tag == R2U2_ENG_BZ){ // Booleanizer instructions
+                      r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)load_instructions[i]->instruction_data);
+                      // Slide signal_vector over to the current mode at the current predicted time step
+                      monitor->signal_vector = &(*(signal_vector_original))[(*(monitor->k_offset_buffer)[0])[j]+(iteration*monitor->num_signals)];
+                      if(bz_instr->store && j != 0) {
+                        r2u2_float prev_prob = temp_prob_buffer[bz_instr->at_addr];
+                        r2u2_bool prev_atomic = (*(monitor->atomic_buffer)[0])[bz_instr->at_addr];
+                        r2u2_bz_instruction_dispatch(monitor, bz_instr);
+                        if(prev_atomic && !((*(monitor->atomic_buffer)[0])[bz_instr->at_addr])){ // Going from true to false
+                          temp_prob_buffer[bz_instr->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instr->at_addr];
+                          (*(monitor->atomic_buffer)[0])[bz_instr->at_addr] = false;
+                        }else if(prev_atomic == ((*(monitor->atomic_buffer)[0])[bz_instr->at_addr])){ // Staying same atomic value
+                          temp_prob_buffer[bz_instr->at_addr] = prev_prob + (*(monitor->atomic_prob_buffer))[bz_instr->at_addr];
+                        }else{ // Value is false and will remain false even if true for one mode
+                          (*(monitor->atomic_buffer)[0])[bz_instr->at_addr] = prev_atomic;
+                        }
+                      }else{
+                        r2u2_bz_instruction_dispatch(monitor, bz_instr);
+                        temp_prob_buffer[bz_instr->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instr->at_addr];
                       }
-                    }else{
-                      r2u2_bz_instruction_dispatch(monitor, bz_instructions[i]);
-                      temp_prob_buffer[bz_instructions[i]->at_addr] = (*(monitor->atomic_prob_buffer))[bz_instructions[i]->at_addr];
+                    }
+                    else if(load_instructions[i]->engine_tag == R2U2_ENG_AT){
+                      // To-Do: Atomic checker currently not supported within MMPRV
+                    }
+                    else if(load_instructions[i]->engine_tag == R2U2_ENG_TL){ // Loading atomics directly
+                      r2u2_mltl_instruction_t* load_instr = ((r2u2_mltl_instruction_t*)load_instructions[i]->instruction_data);
+                      // Slide atomic_buffer over to the current mode at the current predicted time step
+                      monitor->atomic_buffer[0] = &(*(atomic_vector_original))[(*(monitor->k_offset_buffer)[1])[j]+(iteration*monitor->num_atomics)];
+                      if(j != 0) {
+                        r2u2_float prev_prob = temp_prob_buffer[load_instr->op1_value];
+                        r2u2_bool prev_atomic = temp_atomic_buffer[load_instr->op1_value];
+                        if(prev_atomic && !((*(monitor->atomic_buffer)[0])[load_instr->op1_value])){ // Going from true to false
+                          temp_prob_buffer[load_instr->op1_value] = (*(monitor->atomic_prob_buffer))[load_instr->op1_value];
+                          temp_atomic_buffer[load_instr->op1_value] = false;
+                        }else if(prev_atomic == ((*(monitor->atomic_buffer)[0])[load_instr->op1_value])){ // Staying same atomic value
+                          temp_prob_buffer[load_instr->op1_value] = prev_prob + (*(monitor->atomic_prob_buffer))[load_instr->op1_value];
+                        }else{ // Value is false and will remain false even if true for one mode
+                          temp_atomic_buffer[load_instr->op1_value] = prev_atomic;
+                        }
+                      } else{
+                        // Initialize temp_atomic_buffer and temp_prob_buffer
+                        temp_atomic_buffer[load_instr->op1_value] = (*(monitor->atomic_buffer)[0])[load_instr->op1_value];
+                        temp_prob_buffer[load_instr->op1_value] = (*(monitor->atomic_prob_buffer))[load_instr->op1_value];
+                      }
+                      if(i == 0){
+                        // Point the atomic_buffer to the new atomic values calculated using MMPRV
+                        monitor->atomic_buffer[0] = &temp_atomic_buffer;
+                      }
+                    }
+                    else{
+                      error_cond = R2U2_INVALID_INST;
+                      break;
                     }
                   }
                 }
+                // Point the atomic_prob_buffer to the new probability values calculated using MMPRV
                 monitor->atomic_prob_buffer = &temp_prob_buffer;
-                iteration++;
 
-                while(true){ // continue until no progress is made
-                  for(int i = num_mltl_instructions - 1; i >= 0; i--){ // dispatch ft instructions
-                    R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration-1, i, monitor->progress);
+                while(true){ // Continue until no progress is made
+                  for(int i = num_mltl_instructions - 1; i >= 0; i--){ // Dispatch ft instructions
+                    R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration, i, monitor->progress);
                     r2u2_mltl_ft_update(monitor, mltl_instructions[i]);
                   }
 
-                  R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration-1, num_mltl_instructions, monitor->progress);
+                  // Specialized return instruction 
+                  R2U2_DEBUG_PRINT("%d.%d.%d.%d\n",timestamp_original, iteration, num_mltl_instructions, monitor->progress);
                   R2U2_DEBUG_PRINT("\tFT RETURN\n");
                   if(check_operand_data(monitor, instr, 0, &op0)){
                     // Only store result up to 'index'; don't predict for values after 'index'
@@ -361,9 +395,12 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
                   }
                   monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
                 }
+                iteration++; // Predict another time step
               }
+              // Prediction is done; therefore, reset original monitor values
               restore_scq(monitor, mltl_instructions, instr, prev_real_state, num_mltl_instructions);
               monitor->signal_vector = signal_vector_original;
+              monitor->atomic_buffer[0] = atomic_vector_original;
               monitor->atomic_prob_buffer = atomic_prob_buffer_original;
               monitor->predictive_mode = false;
               monitor->time_stamp = timestamp_original;
@@ -386,15 +423,15 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       R2U2_DEBUG_PRINT("\tFT GLOBALLY\n");
 
       #if R2U2_PRED_PROB
-      if(ctrl->prob > 1.0) { //Indicates probabilisitic operator
+      if(ctrl->prob > 1.0) { // Indicates probabilisitic operator
         if (check_operand_data_probability(monitor, instr, 0, &op0_prob)) {
           R2U2_DEBUG_PRINT("\tGot data\n");
           temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
           if (op0_prob.time >= temp->upper_bound){
-            r2u2_float p_temp = op0_prob.prob;
+            float p_temp = op0_prob.prob;
             R2U2_DEBUG_PRINT("\t\tp_temp = %lf\n", p_temp);
             r2u2_duoq_control_block_t *ctrl_child = &(arena->blocks[instr->op1_value]);
-            for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
+            for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ // Iterate backwards through operand queue
               r2u2_time curr_index = ((int)ctrl->read1 - t < 0) ? (ctrl_child->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
               p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index).prob;
               R2U2_DEBUG_PRINT("\t\tp_temp = p_temp * %lf = %lf\n", get_child_operand_probability(monitor, instr, 0, curr_index).prob, p_temp);
@@ -450,21 +487,20 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
 
       #if R2U2_PRED_PROB
-        if(ctrl->prob > 1.0){ //Indicates probabilisitic operator
+        if(ctrl->prob > 1.0){ // Indicates probabilisitic operator
           if (check_operand_data_probability(monitor, instr, 0, &op0_prob) && check_operand_data_probability(monitor, instr, 1, &op1_prob)) {
             temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
-            // We need to see every timestep as an op0 op1 pair
-            // both times should be equal at this point
             #if R2U2_DEBUG
+              // We need to see every timestep as an (op0, op1) pair such that both timestamps should be equal at this point
               assert(op0_prob.time == op1_prob.time);
             #endif
             r2u2_time tau = min(op0_prob.time, op1_prob.time);            
             if (tau >= temp->upper_bound){
-              r2u2_float p_temp = op1_prob.prob;
+              float p_temp = op1_prob.prob;
               R2U2_DEBUG_PRINT("p_temp = %lf\n", p_temp);
               r2u2_duoq_control_block_t *ctrl_child1 = &(arena->blocks[instr->op1_value]);
               r2u2_duoq_control_block_t *ctrl_child2 = &(arena->blocks[instr->op2_value]);
-              for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ //Iterate backwards through operand queue
+              for(int t = 1; t <= (temp->upper_bound-temp->lower_bound); t++){ // Iterate backwards through operand queue
                 r2u2_time curr_index1 = ((int)ctrl->read1 - t < 0) ? (ctrl_child1->length) + ((int)ctrl->read1 - t) : (ctrl->read1 - t);
                 r2u2_time curr_index2 = ((int)ctrl->read2 - t < 0) ? (ctrl_child2->length) + ((int)ctrl->read2 - t) : (ctrl->read2 - t);
                 p_temp = p_temp * get_child_operand_probability(monitor, instr, 0, curr_index1).prob;

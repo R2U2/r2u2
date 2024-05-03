@@ -30,7 +30,14 @@ typedef r2u2_value_t (r2u2_value_buffer_t)[];
 typedef r2u2_bool (r2u2_atomic_vector_t)[];
 typedef r2u2_atomic_vector_t *(r2u2_atomic_buffer_t)[2];
 
-typedef r2u2_float (r2u2_atomic_prob_buffer_t)[]; 
+typedef r2u2_float (r2u2_atomic_prob_buffer_t)[];
+
+// A k offset vector is an array of indices representing where the next
+// mode starts in the trace buffers, the k_offset buffer contains the 
+// pointers to two k offset vectors with the signal and atomic buffer 
+// k offsets respectively.
+typedef r2u2_time (r2u2_k_offset_vector_t)[];
+typedef r2u2_k_offset_vector_t *(r2u2_k_offset_buffer_t)[2];
 
 static inline void r2u2_atomic_vector_flip(r2u2_atomic_buffer_t buf) {
   // Swap the pointers in the buffer to "move" current values to previous

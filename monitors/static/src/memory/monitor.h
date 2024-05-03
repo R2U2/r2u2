@@ -52,6 +52,7 @@ typedef struct {
   r2u2_atomic_prob_buffer_t *atomic_prob_buffer;
   r2u2_atomic_buffer_t    past_time_result_buffer;
   r2u2_duoq_arena_t       duo_queue_mem;
+  r2u2_k_offset_buffer_t k_offset_buffer;
 
   // TODO
   // #if R2U2_AT_EXTRA_FILTERS
@@ -79,6 +80,7 @@ typedef struct {
     &(r2u2_float [R2U2_MAX_ATOMICS]){0}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     {NULL, NULL}, \
+    {&(r2u2_time [R2U2_MAX_K_MODES]){0}, &(r2u2_time [R2U2_MAX_K_MODES]){0}}, \
     &(r2u2_at_filter_aux_data_t [R2U2_MAX_AT_INSTRUCTIONS]){0}, \
   }
 

@@ -9,6 +9,8 @@
 #define R2U2_MAX_AT_INSTRUCTIONS 256
 #define R2U2_MAX_BZ_INSTRUCTIONS 256
 
+#define R2U2_MAX_K_MODES 6
+
 // Size of string arena, in bytes, for auxillary output
 // Only reserved if used
 #define R2U2_MAX_AUX_STRINGS 1024

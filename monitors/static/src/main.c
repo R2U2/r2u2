@@ -145,7 +145,7 @@ int main(int argc, char const *argv[]) {
   }
   // Debug assert - input_file != Null
 
-  // Directly load CSV values as atomics
+  // Directly load CSV values as atomics or input probability file
   if (argc > 3) {
     // -a/--as_atomics was specified
     if (strcmp(argv[3], "-a") == 0 || strcmp(argv[3], "--as_atomics") == 0) {
@@ -166,20 +166,14 @@ int main(int argc, char const *argv[]) {
     r2u2_trace_csv_reader.as_atomics = false;
   }
 
-    // Select CSV reader probability input file
+  // Directly load CSV values as atomics
   if(argc > 4) {
-    // The trace file was specified
-    if (access(argv[4], F_OK) == 0) {
-      r2u2_prob_csv_reader.input_file = fopen(argv[4], "r");
-      if (r2u2_prob_csv_reader.input_file == NULL) {
-        PRINT_USAGE();
-        perror("Error opening probability file");
-        return 1;
-      }
+    if (strcmp(argv[4], "-a") == 0 || strcmp(argv[4], "--as_atomics") == 0) {
+      r2u2_trace_csv_reader.as_atomics = true;
     } else {
-        PRINT_USAGE();
-        perror("Cannot access probability file");
-        return 1;
+      PRINT_USAGE();
+      perror("Invalid argument");
+      return 1;
     }
   }
 
