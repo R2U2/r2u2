@@ -1,0 +1,258 @@
+(sort IntervalSort)
+(function Interval (i64 i64) IntervalSort)
+
+(datatype MLTL
+  (Bool bool)
+  (Var String)
+  (Not MLTL)
+  (Implies MLTL MLTL)
+  (Equiv MLTL MLTL)
+  (And2 MLTL MLTL)
+  (And3 MLTL MLTL MLTL)
+  (And4 MLTL MLTL MLTL MLTL)
+  (Or2 MLTL MLTL)
+  (Or3 MLTL MLTL MLTL)
+  (Or4 MLTL MLTL MLTL MLTL)
+  (Global IntervalSort MLTL)
+  (Future IntervalSort MLTL)
+  (Until IntervalSort MLTL MLTL)
+)
+
+(ruleset mltl-rewrites)
+
+(rewrite
+  (Not (Bool true))
+  (Bool false)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Not (Bool false))
+  (Bool true)
+  :ruleset mltl-rewrites
+)
+
+; this rule makes manual extraction impossible
+; introduces cycles in the EGraph that are not just self-loops --> no way to determine the root eclass
+(rewrite
+  (Not (Not a))
+  a
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Bool true) a)
+  a
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Bool false) a)
+  (Bool false)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Bool true) a)
+  (Bool true)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Bool false) a)
+  a
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (And2 a b)
+  (And2 b a)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Or2 a b)
+  (Or2 b a)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Implies a b)
+  (Or2 (Not a) b)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Equiv a b)
+  (And2 (Or2 (Not a) b) (Or2 (Not b) a))
+  :ruleset mltl-rewrites
+)
+
+; multi-arity
+(birewrite 
+  (And2 (And2 a b) c)
+  (And3 a b c)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (And2 (And3 a b c) d)
+  (And4 a b c d)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (And3 (And2 a b) c d)
+  (And4 a b c d)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (Or2 (Or2 a b) c)
+  (Or3 a b c)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (Or3 (Or2 a b) c d)
+  (Or4 a b c d)
+  :ruleset mltl-rewrites
+)
+
+; R1
+(rewrite 
+  (Global (Interval l1 u1) (Global (Interval l2 u2) a)) 
+  (Global (Interval (+ l1 l2) (+ u1 u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Future (Interval l1 u1) (Future (Interval l2 u2) a)) 
+  (Future (Interval (+ l1 l2) (+ u1 u2)) a) 
+  :ruleset mltl-rewrites
+)
+
+; R2
+; Distributivity
+(rewrite 
+  (And2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) b))
+  (Global (Interval (min l1 l2) (+ (min l1 l2) (min (- u1 l1) (- u2 l2)))) 
+    (And2 
+      (Global (Interval (- l1 (min l1 l2)) (- u1 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) a) 
+      (Global (Interval (- l2 (min l1 l2)) (- u2 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) b) 
+    )
+  )
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) b))
+  (Future (Interval (min l1 l2) (+ (min l1 l2) (min (- u1 l1) (- u2 l2)))) 
+    (Or2 
+      (Future (Interval (- l1 (min l1 l2)) (- u1 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) a) 
+      (Future (Interval (- l2 (min l1 l2)) (- u2 (+ (min l1 l2) (min (- u1 l1) (- u2 l2))))) b) 
+    )
+  )
+  :ruleset mltl-rewrites
+)
+  
+; R3 -- erroneous for non-monitoring semantics
+(rewrite 
+ (Global (Interval l1 u1) (Future (Interval l l) a)) 
+ (Global (Interval (+ l l1) (+ l u1)) a) 
+ :ruleset mltl-rewrites
+)
+
+(rewrite 
+ (Future (Interval l1 u1) (Global (Interval l l) a)) 
+ (Future (Interval (+ l l1) (+ l u1)) a) 
+ :ruleset mltl-rewrites
+)
+
+; R4
+(rewrite 
+  (And2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) a))
+  (Global (Interval l1 (max u1 u2)) a)
+  :when ((<= l1 l2) (<= l2 (+ u1 1)))
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) a))
+  (Future (Interval l1 (max u1 u2)) a)
+  :when ((<= l1 l2) (<= l2 (+ u1 1)))
+  :ruleset mltl-rewrites
+)
+
+; R5
+(rewrite 
+  (Or2 (Global (Interval l1 u1) a) (Global (Interval l2 u2) a))
+  (Global (Interval l2 u2) a)
+  :when ((>= l2 l1) (<= u2 u1))
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And2 (Future (Interval l1 u1) a) (Future (Interval l2 u2) a))
+  (Future (Interval l2 u2) a)
+  :when ((>= l2 l1) (<= u2 u1))
+  :ruleset mltl-rewrites
+)
+
+; R6
+(rewrite 
+  (Future (Interval l l) (Until (Interval l1 u1) a b))
+  (Until (Interval (+ l1 l) (+ u1 l)) a b)
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) (Future (Interval l l) a) (Future (Interval l l) b))
+  (Until (Interval (+ l1 l) (+ u1 l)) a b)
+  :ruleset mltl-rewrites
+)
+
+; R7
+(rewrite 
+  (And2 
+    (Until (Interval l u1) a b)
+    (Until (Interval l u2) c b)
+  )
+  (Until (Interval l (min u1 u2)) (And2 a c) b)
+  :ruleset mltl-rewrites
+)
+
+; R8 -- erroneous for non-monitoring semantics
+(rewrite 
+ (Until (Interval l1 u1) a (Global (Interval 0 u2) a))
+ (Global (Interval l1 (+ l1 u2)) a)
+ :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) a (Future (Interval 0 u2) a))
+  (Future (Interval l1 (+ l1 u2)) a)
+  :ruleset mltl-rewrites
+)
+
+; erroneous for non-monitoring semantics -- empty trace satsifies "G[0,0] a" but not "a"
+(rewrite (Global (Interval 0 0) a) a :ruleset mltl-rewrites)
+
+; these can be bad if the resulting expression has a Global as its top expr 
+(rewrite (Future (Interval 0 0) a) a :ruleset mltl-rewrites)
+
+; this is safe for non-monitoring semantics -- maintains trace length constraint but removes binary op
+(rewrite 
+  (Until (Interval 0 0) a b) 
+  (Future (Interval 0 0) b) 
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Until (Interval l1 u1) (Bool true) a)
+  (Future (Interval l1 u1) a)
+  :ruleset mltl-rewrites
+)
+
+
+

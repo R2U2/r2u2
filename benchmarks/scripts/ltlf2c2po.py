@@ -13,7 +13,6 @@ from pathlib import Path
 
 CURDIR = Path(os.getcwd())
 MLTLDIR = CURDIR / "mltl"
-CSVDIR = CURDIR / "trace"
 
 files: List[Path] = []
 for f in glob(sys.argv[1]+"/**", recursive=True):
@@ -51,12 +50,4 @@ for file in files:
 
         f.write("FTSPEC\n\t")
         f.write(mltl + ";")
-        
-    with open(CSVDIR / new_file.with_suffix(".csv").name, "w") as f:
-        f.write("# ")
-        f.write(",".join(props))
-        f.write("\n")
-        # for i in range(0,int(sys.argv[2])):
-        #     row = ",".join([str(random.randint(0,1)) for r in props])
-        #     f.write(row + "\n")
 

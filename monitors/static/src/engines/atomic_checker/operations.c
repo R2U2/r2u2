@@ -17,12 +17,6 @@
 #include "extra_filters/filter_movavg.h"
 #endif
 
-#if R2U2_AT_Signal_Sets
-#include "signal_set_filters/filter_exactly_one_of.h"
-#include "signal_set_filters/filter_none_of.h"
-#include "signal_set_filters/filter_all_of.h"
-#endif
-
 // #if R2U2_AT_EXTRA_FILTERS
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
@@ -244,13 +238,18 @@ r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) 
 
   if (mltl_inst->opcode & 0b10000) {
     // FT: Read SCQ
-    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
-    R2U2_DEBUG_PRINT("\t\tReading from FT SCQ <%p> ", (void*)scq->queue);
-    r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
-    R2U2_DEBUG_PRINT("slot %d ", rd_ptr);
-    r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
-    R2U2_DEBUG_PRINT("= (%d, %d)\n", res.time, res.truth);
-    formula_val = (res.time != r2u2_infinity) ? res.truth : false;
+    // TODO(bckempa): Was this even correct? It doesn't maintain a read pointer....
+    // r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
+    // R2U2_DEBUG_PRINT("\t\tReading from FT SCQ <%p> ", (void*)scq->queue);
+    // r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
+    // R2U2_DEBUG_PRINT("slot %d ", rd_ptr);
+    // r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
+    // R2U2_DEBUG_PRINT("= (%d, %d)\n", res.time, res.truth);
+    // formula_val = (res.time != r2u2_infinity) ? res.truth : false;
+
+    // TODO(bckempa): Add DUO Queue read for arbitrary data flow
+    return R2U2_INVALID_INST;
+
   } else {
     // FT: Read from vector
     formula_val = (*(monitor->past_time_result_buffer[0]))[mltl_inst->memory_reference];

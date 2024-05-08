@@ -14,20 +14,25 @@
 #endif
 
 
-// R2U2 Reference Implmentation
+// R2U2 Reference Implementation
 // Provides example of library usage and "offline" monitoring
 //
 //
 #define PRINT_VERSION() fprintf(stderr, "R2U2 Version %d.%d.%d\n", \
         R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR, R2U2_C_VERSION_PATCH)
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
-const char *help = "<configuration> [trace]\n"
+const char *help = "<configuration> [trace] [-a --as_atomics]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
-                   "\ttrace: optional path to input CSV\n";
+                   "\ttrace: optional path to input CSV\n"
+                   "\t-a --as_atomics: enable loading CSV values directly as atomics\n";
 
 // Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
+
+// Create Queue memory arena
+uint8_t *arena = &(uint8_t [R2U2_DUOQ_BYTES]){0};
+
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
 r2u2_contract_status_reporter_t r2u2_contact_status = {0};
@@ -49,8 +54,8 @@ int main(int argc, char const *argv[]) {
 
   // Arg Parsing - for now just check for the correct number and look for flags
   //               short-circuiting helps avoid unnecessary checks here
-  if ((argc < 2) || (argc > 3) ||
-      (argv[1][0] == '-') || ((argc == 3) && (argv[2][0] == '-'))) {
+  if ((argc < 2) || (argc > 4) ||
+      (argv[1][0] == '-') || ((argc > 2) && (argv[2][0] == '-'))) {
       PRINT_VERSION();
       PRINT_USAGE();
       return 1;
@@ -96,14 +101,14 @@ int main(int argc, char const *argv[]) {
       return 1;
   }
 
+  // Connect monitor to queue memory arena
+  r2u2_monitor.duo_queue_mem.blocks = (r2u2_duoq_control_block_t*) arena;
+  r2u2_monitor.duo_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_DUOQ_BYTES - 4);
 
   // Reset monitor and build instuction table from spec binary
   r2u2_init(&r2u2_monitor);
 
   // Open output File
-  // TODO(cgjohann): Set to stdout for now, can always redirect as needed
-  // optimal solution is probably taking an optional path to outfile,
-  // but the arg parsing we have currently is pretty difficult to change
   r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
@@ -118,7 +123,7 @@ int main(int argc, char const *argv[]) {
   #endif
 
   // Select CSV reader input file
-  if(argc > 2) {
+  if (argc > 2) {
     // The trace file was specified
     if (access(argv[2], F_OK) == 0) {
       r2u2_csv_reader.input_file = fopen(argv[2], "r");
@@ -137,6 +142,20 @@ int main(int argc, char const *argv[]) {
     r2u2_csv_reader.input_file = stdin;
   }
   // Debug assert - input_file != Null
+
+  // Directly load CSV values as atomics
+  if (argc > 3) {
+    // -a/--as_atomics was specified
+    if (strcmp(argv[2], "-a") || strcmp(argv[2], "--as_atomics")) {
+      r2u2_csv_reader.as_atomics = true;
+    } else {
+        PRINT_USAGE();
+        perror("Cannot access trace file");
+        return 1;
+    }
+  } else {
+    r2u2_csv_reader.as_atomics = false;
+  }
 
   // Main processing loop
   do {

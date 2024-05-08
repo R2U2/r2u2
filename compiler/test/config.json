@@ -1,182 +1,275 @@
-[
-    {
-        "input": "atomic_checkers/bool.c2po", 
-        "expected_output": "atomic_checkers/bool.c2po.at.expect", 
-        "options": ["-at", "--map", "default.map"]
-    },
-    {
-        "input": "atomic_checkers/bool.c2po", 
-        "expected_output": "atomic_checkers/bool.c2po.bz.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "atomic_checkers/int.c2po", 
-        "expected_output": "atomic_checkers/int.c2po.expect", 
-        "options": ["-at", "--map", "default.map"]
-    },
-    {
-        "input": "atomic_checkers/float.c2po", 
-        "expected_output": "atomic_checkers/float.c2po.expect", 
-        "options": ["-at", "--map", "default.map"]
-    },
-    {
-        "input": "atomic_checkers/bad_rhs_type.c2po", 
-        "expected_output": "atomic_checkers/bad_rhs_type.c2po.expect", 
-        "options": ["-at", "--map", "default.map"]
-    },
-    {
-        "input": "cse/at.c2po", 
-        "expected_output": "cse/at.c2po.expect", 
-        "options": ["-at", "--map", "default.map"]
-    },
-    {
-        "input": "cse/basic.c2po", 
-        "expected_output": "cse/basic.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "operators/arithmetic.c2po", 
-        "expected_output": "operators/arithmetic.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "operators/bitwise.c2po", 
-        "expected_output": "operators/bitwise.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "operators/logic.c2po", 
-        "expected_output": "operators/logic.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "operators/logic.c2po", 
-        "expected_output": "operators/logic.c2po.extops.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "operators/relational.c2po", 
-        "expected_output": "operators/relational.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "operators/temporal.c2po", 
-        "expected_output": "operators/temporal.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "type_check/unmapped_input.c2po", 
-        "expected_output": "type_check/unmapped_input.c2po.expect", 
-        "options": ["-bz", "--map", "default.map"]
-    },
-    {
-        "input": "type_check/unmapped_input.c2po", 
-        "expected_output": "type_check/unmapped_input.c2po.compile.expect", 
-        "options": ["-bz", "-c", "--map", "default.map"]
-    },
-    {
-        "input": "type_check/bad_int_width.c2po", 
-        "expected_output": "type_check/bad_int_width.c2po.expect", 
-        "options": ["-bz", "--int-width", "8", "--map", "default.map"]
-    },
-    {
-        "input": "serialize/cav.c2po", 
-        "expected_c2po": "serialize/cav.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--write-c2po", "-c"]
-    },
-    {
-        "input": "serialize/simple.c2po", 
-        "expected_c2po": "serialize/simple.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--write-c2po", "-c"]
-    },
-    {
-        "input": "serialize/simple.c2po", 
-        "expected_mltl": "serialize/simple.c2po.mltl.expect", 
-        "options": ["-bz", "--map", "default.map", "--write-mltl", "-c"]
-    },
-    {
-        "input": "serialize/simple.c2po", 
-        "expected_prefix": "serialize/simple.c2po.prefix.expect", 
-        "options": ["-bz", "--map", "default.map", "--write-prefix", "-c"]
-    },
-    {
-        "input": "mltl/future.mltl", 
-        "expected_output": "mltl/future.mltl.expect", 
-        "options": ["-bz"]
-    },
-    {
-        "input": "mltl/past.mltl", 
-        "expected_output": "mltl/past.mltl.expect", 
-        "options": ["-bz"]
-    },
-    {
-        "input": "mltl/tense_mixing.mltl", 
-        "expected_output": "mltl/tense_mixing.mltl.expect", 
-        "options": ["-bz"]
-    },
-    {
-        "input": "normal_forms/nnf_logic.c2po", 
-        "expected_output": "normal_forms/nnf_logic.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops", "-nnf"]
-    },
-    {
-        "input": "normal_forms/nnf_logic.c2po", 
-        "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
-        "options": ["-bz", "--map", "default.map", "-nnf"]
-    },
-    {
-        "input": "normal_forms/nnf_temporal.c2po", 
-        "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops", "-nnf"]
-    },
-    {
-        "input": "rewrite/and_future.c2po", 
-        "expected_output": "rewrite/and_future.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/and_global.c2po", 
-        "expected_output": "rewrite/and_global.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/and_until.c2po", 
-        "expected_output": "rewrite/and_until.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/equality.c2po", 
-        "expected_output": "rewrite/equality.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/future.c2po", 
-        "expected_output": "rewrite/future.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/global.c2po", 
-        "expected_output": "rewrite/global.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/negate.c2po", 
-        "expected_output": "rewrite/negate.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/or_future.c2po", 
-        "expected_output": "rewrite/or_future.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/or_global.c2po", 
-        "expected_output": "rewrite/or_global.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    },
-    {
-        "input": "rewrite/until.c2po", 
-        "expected_output": "rewrite/until.c2po.expect", 
-        "options": ["-bz", "--map", "default.map", "--extops"]
-    }
-]
+{
+    "atomic_checkers": [
+        {
+            "input": "atomic_checkers/bool.c2po", 
+            "expected_output": "atomic_checkers/bool.c2po.at.expect", 
+            "options": ["-at", "--map", "default.map"]
+        },
+        {
+            "input": "atomic_checkers/bool.c2po", 
+            "expected_output": "atomic_checkers/bool.c2po.bz.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "atomic_checkers/int.c2po", 
+            "expected_output": "atomic_checkers/int.c2po.expect", 
+            "options": ["-at", "--map", "default.map"]
+        },
+        {
+            "input": "atomic_checkers/float.c2po", 
+            "expected_output": "atomic_checkers/float.c2po.expect", 
+            "options": ["-at", "--map", "default.map"]
+        },
+        {
+            "input": "atomic_checkers/bad_rhs_type.c2po", 
+            "expected_output": "atomic_checkers/bad_rhs_type.c2po.expect", 
+            "options": ["-at", "--map", "default.map"]
+        }
+    ],
+    "cse": [
+        {
+            "input": "cse/at.c2po", 
+            "expected_output": "cse/at.c2po.expect", 
+            "options": ["-at", "--map", "default.map"]
+        },
+        {
+            "input": "cse/basic.c2po", 
+            "expected_output": "cse/basic.c2po.expect", 
+            "options": ["--map", "default.map"]
+        }
+    ],
+    "operators": [
+        {
+            "input": "operators/arithmetic.c2po", 
+            "expected_output": "operators/arithmetic.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "operators/bitwise.c2po", 
+            "expected_output": "operators/bitwise.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "operators/logic.c2po", 
+            "expected_output": "operators/logic.c2po.expect", 
+            "options": ["--map", "default.map"]
+        },
+        {
+            "input": "operators/logic.c2po", 
+            "expected_output": "operators/logic.c2po.extops.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "operators/relational.c2po", 
+            "expected_output": "operators/relational.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "operators/temporal.c2po", 
+            "expected_output": "operators/temporal.c2po.expect", 
+            "options": ["--map", "default.map"]
+        }
+    ],
+    "type_check": [
+        {
+            "input": "type_check/unmapped_input.c2po", 
+            "expected_output": "type_check/unmapped_input.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/unmapped_input.c2po", 
+            "expected_output": "type_check/unmapped_input.c2po.compile.expect", 
+            "options": ["-bz", "-c", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_int_width.c2po", 
+            "expected_output": "type_check/bad_int_width.c2po.expect", 
+            "options": ["-bz", "--int-width", "8", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_struct.c2po", 
+            "expected_output": "type_check/bad_struct.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        }
+    ],
+    "serialize": [
+        {
+            "input": "serialize/cav.c2po", 
+            "expected_c2po": "serialize/cav.c2po.expect", 
+            "options": ["-bz", "--write-c2po", "-c"]
+        },
+        {
+            "input": "serialize/simple.c2po", 
+            "expected_c2po": "serialize/simple.c2po.expect", 
+            "options": ["--write-c2po", "-c"]
+        },
+        {
+            "input": "serialize/simple.c2po", 
+            "expected_mltl": "serialize/simple.mltl.expect", 
+            "options": ["--write-mltl", "-c"]
+        },
+        {
+            "input": "serialize/simple.c2po", 
+            "expected_prefix": "serialize/simple.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c"]
+        },
+        {
+            "input": "serialize/multi_arity.c2po", 
+            "expected_mltl": "serialize/multi_arity.mltl.expect", 
+            "options": ["--write-mltl", "-c"]
+        },
+        {
+            "input": "serialize/multi_arity.c2po", 
+            "expected_prefix": "serialize/multi_arity.prefix.c2po.expect", 
+            "options": ["--write-prefix", "-c"]
+        },
+        {
+            "input": "serialize/multi_arity.c2po", 
+            "expected_c2po": "serialize/multi_arity.c2po.expect", 
+            "options": ["--write-c2po", "-c"]
+        }
+    ],
+    "mltl": [
+        {
+            "input": "mltl/future.mltl", 
+            "expected_output": "mltl/future.mltl.expect", 
+            "options": []
+        },
+        {
+            "input": "mltl/past.mltl", 
+            "expected_output": "mltl/past.mltl.expect", 
+            "options": []
+        },
+        {
+            "input": "mltl/tense_mixing.mltl", 
+            "expected_output": "mltl/tense_mixing.mltl.expect", 
+            "options": []
+        }
+    ],
+    "normal_forms": [
+        {
+            "input": "normal_forms/nnf_logic.c2po", 
+            "expected_output": "normal_forms/nnf_logic.c2po.expect", 
+            "options": ["--map", "default.map", "--extops", "-nnf"]
+        },
+        {
+            "input": "normal_forms/nnf_logic.c2po", 
+            "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
+            "options": ["--map", "default.map", "-nnf"]
+        },
+        {
+            "input": "normal_forms/nnf_temporal.c2po", 
+            "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
+            "options": ["--map", "default.map", "--extops", "-nnf"]
+        }
+    ],
+    "rewrite": [
+        {
+            "input": "rewrite/and_future.c2po", 
+            "expected_output": "rewrite/and_future.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/and_global.c2po", 
+            "expected_output": "rewrite/and_global.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/and_until.c2po", 
+            "expected_output": "rewrite/and_until.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/equality.c2po", 
+            "expected_output": "rewrite/equality.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/future.c2po", 
+            "expected_output": "rewrite/future.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/global.c2po", 
+            "expected_output": "rewrite/global.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/negate.c2po", 
+            "expected_output": "rewrite/negate.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/or_future.c2po", 
+            "expected_output": "rewrite/or_future.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/or_global.c2po", 
+            "expected_output": "rewrite/or_global.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        },
+        {
+            "input": "rewrite/until.c2po", 
+            "expected_output": "rewrite/until.c2po.expect", 
+            "options": ["--map", "default.map", "--extops"]
+        }
+    ],
+    "sat": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops"]
+        }
+    ]
+}

@@ -4,9 +4,11 @@ from __future__ import annotations
 import copy
 import enum
 import pickle
+import dataclasses
+import pathlib
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types
+from c2po import log, types, util
 
 MODULE_CODE = "CPT"
 
@@ -45,7 +47,6 @@ class Expression(Node):
     ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
-        self.atomic_id: int = -1  # only set for atomic propositions
         self.total_scq_size: int = -1
         self.scq_size: int = -1
         self.bpd: int = 0
@@ -107,7 +108,6 @@ class Expression(Node):
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
         new.engine = self.engine
-        new.atomic_id = self.atomic_id
         new.scq_size = self.scq_size
         new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
@@ -170,13 +170,6 @@ class Signal(Expression):
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Signal) and __o.symbol == self.symbol
-
-    def __hash__(self) -> int:
-        return id(self)
 
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)
@@ -224,9 +217,9 @@ class Struct(Expression):
     def get_member(self, name: str) -> Optional[Expression]:
         if name not in self.members:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -234,9 +227,9 @@ class Struct(Expression):
 
         if member is None:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -721,6 +714,31 @@ def is_operator(expr: Expression, operator: OperatorKind) -> bool:
     return isinstance(expr, Operator) and expr.operator is operator
 
 
+def is_commutative_operator(expr) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.LOGICAL_XOR,
+        OperatorKind.LOGICAL_EQUIV,
+        OperatorKind.BITWISE_AND,
+        OperatorKind.BITWISE_OR,
+        OperatorKind.BITWISE_XOR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.EQUAL,
+        OperatorKind.NOT_EQUAL
+    }
+
+
+def is_multi_arity_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY
+    }
+
+
 def is_bitwise_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.BITWISE_AND,
@@ -801,7 +819,7 @@ class Formula(Expression):
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
-
+    
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Formula) and self.symbol == __value.symbol
 
@@ -991,6 +1009,8 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
+        self.theoretical_scq_size = -1
+
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:
@@ -1029,16 +1049,41 @@ class Program(Node):
         return "\n".join([repr(s) for s in self.get_specs()])
 
 
+@dataclasses.dataclass
+class Config:
+    input_path: pathlib.Path
+    output_path: pathlib.Path
+    workdir: pathlib.Path
+    implementation: types.R2U2Implementation
+    mission_time: int
+    endian_sigil: str
+    frontend: types.R2U2Engine
+    assembly_enabled: bool
+    signal_mapping: types.SignalMapping
+    timeout_egglog: int
+    timeout_sat: int
+
+    @staticmethod
+    def Empty() -> Config:
+        return Config(
+            pathlib.Path(),
+            pathlib.Path(),
+            util.DEFAULT_WORKDIR, 
+            types.R2U2Implementation.C, 
+            0, 
+            "",
+            types.R2U2Engine.NONE, 
+            False, 
+            {},
+            0,
+            0
+        )
+
+
 class Context:
-    def __init__(
-        self,
-        impl: types.R2U2Implementation,
-        mission_time: int,
-        atomic_checkers: bool,
-        booleanizer: bool,
-        assembly_enabled: bool,
-        signal_mapping: types.SignalMapping,
-    ):
+    def __init__(self, config: Config):
+        self.config = config
+
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1046,18 +1091,16 @@ class Context:
         self.atomic_checkers: dict[str, Expression] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
-        self.atomics: set[Expression] = set()
-        self.implementation = impl
-        self.booleanizer_enabled = booleanizer
-        self.atomic_checker_enabled = atomic_checkers
-        self.mission_time = mission_time
-        self.signal_mapping = signal_mapping
-        self.assembly_enabled = assembly_enabled
+        self.atomic_id: dict[Expression, int] = {}
         self.bound_vars: dict[str, SetExpression] = {}
 
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+
+    @staticmethod
+    def Empty() -> Context:
+        return Context(Config.Empty())
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1290,7 +1333,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(f"Bad str ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad str ({expr})")
             return ""
 
     return s
@@ -1352,35 +1395,37 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Formula):
-            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-            s += ":"
+            s += expr.symbol
+            s += ": "
             stack.append((0, expr.get_expr()))
         elif isinstance(expr, Contract):
             if seen == 0:
-                s += f"{expr.symbol}:("
+                s += f"{expr.symbol}: ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
-                s += ")=>("
+                s += ") => ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
                 s = s[:-1] + ")"
+        elif isinstance(expr, SpecificationSet):
+            [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
-            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
-    return s
+    return s[:-1]
 
 
-def to_mltl_std(program: Program) -> str:
+def to_mltl_std(program: Program, context: Context) -> str:
     mltl = ""
 
     stack: list[tuple[int, Expression]] = []
 
     for spec in program.get_specs():
         if isinstance(spec, Contract):
-            log.warning("Cannot express AGCs in MLTL standard, skipping", MODULE_CODE)
+            log.warning(MODULE_CODE, "Cannot express AGCs in MLTL standard, skipping")
             continue
 
         stack.append((0, spec.get_expr()))
@@ -1390,47 +1435,45 @@ def to_mltl_std(program: Program) -> str:
 
             if isinstance(expr, Constant):
                 mltl += expr.symbol + " "
-            elif expr.atomic_id > -1:
-                mltl += f"a{expr.atomic_id}"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
+            elif expr in context.atomic_id:
+                mltl += f"a{context.atomic_id[expr]}"
+            elif len(expr.children) == 1 and (
+                is_temporal_operator(expr) or is_logical_operator(expr)
+            ):
                 if seen == 0:
                     mltl += f"{expr.symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
                     mltl += ")"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
-                if seen == 0:
-                    mltl += "("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[0]))
-                elif seen == 1:
-                    mltl += f"){expr.symbol}("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[1]))
-                else:
-                    mltl += ")"
             elif is_temporal_operator(expr) or is_logical_operator(expr):
                 if seen == len(expr.children):
                     mltl += ")"
-                elif seen % 2 == 0:
+                elif seen == 0:
                     mltl += "("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
-                elif seen % 2 == 1:
-                    mltl += f"){expr.symbol}("
+                else:
+                    if is_operator(expr, OperatorKind.LOGICAL_AND):
+                        symbol = "&"
+                    elif is_operator(expr, OperatorKind.LOGICAL_OR):
+                        symbol = "|"
+                    else:
+                        symbol = expr.symbol
+
+                    mltl += f"){symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
             else:
                 log.error(
-                    f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE
+                    MODULE_CODE,
+                    f"Expression incompatible with MLTL standard ({expr})"
                 )
                 return ""
 
         mltl += "\n"
 
     return mltl
+
+
+

@@ -76,6 +76,10 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
             monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
             break;
           }
+          default:{
+            R2U2_DEBUG_PRINT("Warning: Bad Progress State\n");
+            break;
+          }
         }
 
         return R2U2_OK; // Early return to keep program counter at 0
@@ -110,6 +114,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
         break;
       }
       default: {
+          R2U2_DEBUG_PRINT("Warning: Bad Engine Type\n");
           return R2U2_ERR_OTHER;
       }
     }

@@ -14,14 +14,17 @@ class R2U2Implementation(enum.Enum):
 
 class R2U2Engine(enum.Enum):
     NONE = 0
-    TEMPORAL_LOGIC = 0
-    BOOLEANIZER = 1
-    ATOMIC_CHECKER = 2
+    TEMPORAL_LOGIC = 1
+    BOOLEANIZER = 2
+    ATOMIC_CHECKER = 3
 
 
 class Interval(NamedTuple):
     lb: int
     ub: int
+
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, Interval) and self.lb == __value.lb and self.ub == __value.ub
 
 
 SignalMapping = Dict[str, int]
@@ -156,21 +159,21 @@ def set_types(
     IntType.is_signed = int_signed
 
     if int_width < 1:
-        log.error("Invalid int width, must be greater than 0", MODULE_CODE)
+        log.error(MODULE_CODE, "Invalid int width, must be greater than 0")
 
     if float_width < 1:
-        log.error("Invalid float_width width, must be greater than 0", MODULE_CODE)
+        log.error(MODULE_CODE, "Invalid float_width width, must be greater than 0")
 
     if int_width % 8 != 0:
         log.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment.",
             MODULE_CODE,
+            " Invalid int width, must be a multiple of 8 for byte-alignment.",
         )
 
     if float_width % 8 != 0:
         log.error(
-            " Invalid float width, must be a multiple of 8 for byte-alignment.",
             MODULE_CODE,
+            " Invalid float width, must be a multiple of 8 for byte-alignment.",
         )
 
     if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
@@ -178,16 +181,16 @@ def set_types(
             IntType.width = int_width
         else:
             log.error(
-                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
                 MODULE_CODE,
+                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
             )
 
         if float_width == 32 or float_width == 64:
             FloatType.width = float_width
         else:
             log.error(
-                " Invalid float width, must correspond to a C standard float width (32 or 64).",
                 MODULE_CODE,
+                " Invalid float width, must correspond to a C standard float width (32 or 64).",
             )
     else:
         IntType.width = int_width
