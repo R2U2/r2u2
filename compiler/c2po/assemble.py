@@ -65,6 +65,10 @@ class BZOperator(Enum):
     IDIV = 0b011011
     FDIV = 0b011100
     MOD = 0b011101
+    IPOW    = 0b011110
+    FPOW    = 0b011111
+    ISQRT   = 0b100000
+    FSQRT   = 0b100001
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
@@ -91,6 +95,10 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
     (cpt.OperatorKind.ARITHMETIC_MODULO, True): BZOperator.MOD,
+    (cpt.OperatorKind.ARITHMETIC_POWER, True): BZOperator.IPOW,
+    (cpt.OperatorKind.ARITHMETIC_POWER, False): BZOperator.FPOW,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, True): BZOperator.ISQRT,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, False): BZOperator.FSQRT,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
     (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
     (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,
@@ -177,8 +185,9 @@ class FTOperator(Enum):
     AND = 0b10110
     OR = 0b10101
     IMPLIES = 0b10100
-    EQUIV = 0b10000
+    PROB = 0b10011
     XOR = 0b10001
+    EQUIV = 0b10000
 
     def is_temporal(self) -> bool:
         return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
@@ -201,6 +210,7 @@ FT_OPERATOR_MAP = {
     cpt.OperatorKind.LOGICAL_IMPLIES: FTOperator.IMPLIES,
     cpt.OperatorKind.LOGICAL_EQUIV: FTOperator.EQUIV,
     cpt.OperatorKind.LOGICAL_XOR: FTOperator.XOR,
+    cpt.OperatorKind.PROBABILITY: FTOperator.PROB,
 }
 
 
@@ -254,6 +264,7 @@ TLOperator = Union[FTOperator, PTOperator]
 class CGType(Enum):
     DUOQ = 0
     TEMP = 1
+    PREDICT = 2
 
     def __str__(self) -> str:
         return self.name
@@ -422,6 +433,10 @@ class CGInstruction:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"[{self.instruction.operand1_value}, "
                               f"{self.instruction.operand2_value}]")
+        elif self.type == CGType.PREDICT:
+            field_strs.append(f"q{self.instruction.id}")
+            field_strs.append(f"d={self.instruction.operand1_value}, "
+                              f"K={self.instruction.operand2_value}")
         else:
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
             field_strs.append(f"{self.instruction.id}")
@@ -675,9 +690,142 @@ def gen_pt_instruction(
 def gen_ft_duoq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
+    if isinstance(expr, cpt.Formula):
+        if expr.deadline is not None:
+            if expr.k_modes is not None:
+                cg_predict = CGInstruction(
+                    EngineTag.CG,
+                    CGType.PREDICT,
+                    TLInstruction(
+                        EngineTag.TL,
+                        instructions[expr].id,
+                        FTOperator.CONFIG,
+                        TLOperandType.DIRECT,
+                        expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
+                        TLOperandType.DIRECT,
+                        expr.k_modes,
+                    ),
+                )
+            else:
+                cg_predict = CGInstruction(
+                    EngineTag.CG,
+                    CGType.PREDICT,
+                    TLInstruction(
+                        EngineTag.TL,
+                        instructions[expr].id,
+                        FTOperator.CONFIG,
+                        TLOperandType.DIRECT,
+                        expr.deadline+2**32 if expr.deadline < 0 else expr.deadline, # convert signed int to unsigned int
+                        TLOperandType.DIRECT,
+                        1,
+                    ),
+                )
+    elif isinstance(expr, cpt.TemporalOperator):
+        cg_temp = CGInstruction(
+            EngineTag.CG,
+            CGType.TEMP,
+            TLInstruction(
+                EngineTag.TL,
+                instructions[expr].id,
+                FTOperator.CONFIG,
+                TLOperandType.SUBFORMULA,
+                expr.interval.lb,
+                TLOperandType.SUBFORMULA,
+                expr.interval.ub,
+            ),
+        )
 
-    # Propositional operators only need simple queues
-    if not isinstance(expr, cpt.TemporalOperator):
+    if isinstance(expr, cpt.TemporalOperator):
+        if expr.is_probabilistic_operator():
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0])*2 + 4,
+                    TLOperandType.ATOMIC,
+                    3000000,
+                ),
+            )
+        else:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 4,
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+    elif isinstance(expr, cpt.Formula):
+        if expr.deadline is not None:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0]) + 2,
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+        else:
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    (expr.scq[1] - expr.scq[0]),
+                    TLOperandType.NONE,
+                    0,
+                ),
+            )
+    elif isinstance(expr, cpt.ProbabilityOperator):
+            cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    (expr.scq[1] - expr.scq[0]),
+                    TLOperandType.ATOMIC,
+                    int(expr.prob*1000000),
+                ),
+            )
+    elif expr.is_probabilistic_operator():
+        cg_duoq = CGInstruction(
+                EngineTag.CG,
+                CGType.DUOQ,
+                TLInstruction(
+                    EngineTag.TL,
+                    instructions[expr].id,
+                    FTOperator.CONFIG,
+                    TLOperandType.ATOMIC,
+                    # TODO: Move magic number (size of temporal block)
+                    (expr.scq[1] - expr.scq[0])*2,
+                    TLOperandType.ATOMIC,
+                    2000000,
+                ),
+            )
+    else:
         cg_duoq = CGInstruction(
             EngineTag.CG,
             CGType.DUOQ,
@@ -691,45 +839,20 @@ def gen_ft_duoq_instructions(
                 0,
             ),
         )
+
+    if isinstance(expr, cpt.Formula) and expr.deadline is not None:
+        log.debug(
+            MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_predict}"
+        )
+        return [cg_duoq, cg_predict]
+    elif isinstance(expr, cpt.TemporalOperator):
+        log.debug(
+            MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
+        )
+        return [cg_duoq, cg_temp]
+    else:
         log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
         return [cg_duoq]
-
-    # Temporal operators need to reserve queue length for temporal parameter
-    # blocks, and emit an additional configuration instruction
-    cg_duoq = CGInstruction(
-        EngineTag.CG,
-        CGType.DUOQ,
-        TLInstruction(
-            EngineTag.TL,
-            instructions[expr].id,
-            FTOperator.CONFIG,
-            TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
-            0,
-        ),
-    )
-
-    cg_temp = CGInstruction(
-        EngineTag.CG,
-        CGType.TEMP,
-        TLInstruction(
-            EngineTag.TL,
-            instructions[expr].id,
-            FTOperator.CONFIG,
-            TLOperandType.SUBFORMULA,
-            expr.interval.lb,
-            TLOperandType.SUBFORMULA,
-            expr.interval.ub,
-        ),
-    )
-
-    log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
-    )
-
-    return [cg_duoq, cg_temp]
 
 
 def gen_pt_duoq_instructions(
@@ -775,6 +898,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
+    S = {}
 
     # For tracking duoq usage across FT and PT
     duoqs: int = 0
@@ -802,6 +926,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
             cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
             duoqs += 1
+            
+            # Checks to see if there is a probabilistic and non-probabilistic version of the
+            # same atomic. Since probability is loaded with the LOAD instruction,
+            # don't store same atomic more than once (e.g., booleanizer store)
+            if str(expr) in S:
+                continue
+            else:
+                S[str(expr)] = expr
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.

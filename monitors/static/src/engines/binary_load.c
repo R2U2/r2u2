@@ -5,7 +5,10 @@
 #include "internals/debug.h"
 #include "internals/errors.h"
 #include "engines/mltl/mltl.h"
+#include "engines/booleanizer/booleanizer.h"
 #include <stdio.h>
+
+#define max(x,y) (((x)>(y))?(x):(y))
 
 r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
 
@@ -33,6 +36,15 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         return R2U2_ERR_OTHER;
       }
     } else {
+      if(data[offset+1] == R2U2_ENG_BZ){
+        r2u2_bz_instruction_t* bz_instr = ((r2u2_bz_instruction_t*)&(data[offset+2]));
+        if(bz_instr->opcode == R2U2_BZ_OP_ILOAD || bz_instr->opcode == R2U2_BZ_OP_FLOAD){
+          monitor->num_signals = max(monitor->num_signals, bz_instr->param1.bz_addr + 1);
+        }
+        if(bz_instr->store){
+          monitor->num_atomics = max(monitor->num_atomics, bz_instr->at_addr + 1);
+        }
+      }
       // Store instruction metadata in table
       pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
     }

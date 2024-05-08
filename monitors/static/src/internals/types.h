@@ -62,6 +62,11 @@ static const r2u2_tnt_t R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
 
 typedef struct {
+    r2u2_tnt_t time;
+    float prob;
+} r2u2_probability;
+
+typedef struct {
     // Time & Truth
     r2u2_time time;
     r2u2_bool truth;

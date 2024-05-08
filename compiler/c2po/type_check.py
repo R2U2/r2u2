@@ -466,6 +466,16 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = types.BoolType(is_const)
+        elif cpt.is_probability_operator(expr):
+            expr = cast(cpt.ProbabilityOperator, expr)
+            if expr.prob < 0.0 or expr.prob > 1.0:
+                log.error(
+                        f"Probability must be in the range [0.0,1.0], found ({expr.prob}).\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                return False
+            expr.type = types.BoolType()
         else:
             log.error(
                 MODULE_CODE,
@@ -473,7 +483,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.loc,
             )
             return False
-
     return True
 
 

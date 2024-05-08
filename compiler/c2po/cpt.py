@@ -76,6 +76,31 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
+    
+    def get_ancestors(self) -> list[Expression]:
+        prev_visited_parents: list[Expression] = [self]
+        visited_parents: list[Expression] = []
+        parents: list[Expression] = []
+        while(True):  
+            for node in prev_visited_parents:
+                for parent in node.parents:
+                    if not isinstance(parent, SpecificationSet):
+                        visited_parents.append(parent)
+                        parents.append(parent)
+            if(len(visited_parents) == 0):
+                return parents
+            prev_visited_parents = visited_parents
+            visited_parents = []
+    
+    def get_max_prediction_horizon(self) -> int:
+        max_prediction_horizon: int = 0
+        for expr in self.get_ancestors():
+            if isinstance(expr, Formula):
+                for child in expr.children:
+                    if expr.deadline is not None:
+                        if child.wpd - expr.deadline >= max_prediction_horizon:
+                            max_prediction_horizon = child.wpd - expr.deadline
+        return max_prediction_horizon
 
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
@@ -104,6 +129,14 @@ class Expression(Node):
                 for parent in self.parents
             ]
         )
+    
+    def is_probabilistic_operator(self) -> bool:
+        """Returns True if node is descendant of probability operator"""
+        # if is_future_time_operator(self) or is_logical_operator(self):  
+        for expr in self.get_ancestors():
+            if is_probability_operator(expr):
+                return True
+        return False
 
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
@@ -421,6 +454,8 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+    ARITHMETIC_POWER = "pow"
+    ARITHMETIC_SQRT = "sqrt"
 
     # Relational
     EQUAL = "=="
@@ -443,6 +478,7 @@ class OperatorKind(enum.Enum):
     FUTURE = "F"
     UNTIL = "U"
     RELEASE = "R"
+    PROBABILITY = "P"
 
     # Past-time
     HISTORICAL = "H"
@@ -451,7 +487,6 @@ class OperatorKind(enum.Enum):
 
     # Other
     COUNT = "count"
-
 
 class Operator(Expression):
     def __init__(
@@ -545,6 +580,19 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticPower(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
 
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
@@ -585,6 +633,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -592,6 +641,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -599,6 +649,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_XOR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -606,6 +657,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -615,6 +667,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_IMPLIES, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -622,6 +675,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_NEGATE, [operand])
         operator.bpd = operand.bpd
         operator.wpd = operand.wpd
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     def __deepcopy__(self, memo) -> Operator:
@@ -651,6 +705,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd 
         return operator
 
     @staticmethod
@@ -660,6 +715,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.FUTURE, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         operator.symbol = f"F[{lb},{ub}]"
         return operator
 
@@ -670,6 +726,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -679,6 +736,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        if operator.is_probabilistic_operator(): operator.bpd = operator.wpd
         return operator
 
     @staticmethod
@@ -704,6 +762,24 @@ class TemporalOperator(Operator):
         new = TemporalOperator(
             self.loc, self.operator, self.interval.lb, self.interval.ub, children
         )
+        self.copy_attrs(new)
+        return new
+    
+class ProbabilityOperator(Operator):
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        prob: float,
+        expr: Expression,
+    ) -> None:
+        super().__init__(loc, OperatorKind.PROBABILITY, [expr])
+        self.wpd = expr.wpd
+        self.prob = prob
+        self.symbol = f"{OperatorKind.PROBABILITY.value}_{prob}"
+
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = ProbabilityOperator(self.loc, self.operator, self.prob, children)
         self.copy_attrs(new)
         return new
 
@@ -756,6 +832,8 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
+        OperatorKind.ARITHMETIC_POWER,
+        OperatorKind.ARITHMETIC_SQRT,
     }
 
 
@@ -787,6 +865,7 @@ def is_future_time_operator(expr: Expression) -> bool:
         OperatorKind.FUTURE,
         OperatorKind.UNTIL,
         OperatorKind.RELEASE,
+        OperatorKind.PROBABILITY,
     }
 
 
@@ -797,6 +876,11 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.SINCE,
     }
 
+def is_probability_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.PROBABILITY,
+    }
+
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
@@ -804,19 +888,22 @@ def is_temporal_operator(expr: Expression) -> bool:
 
 class Formula(Expression):
     def __init__(
-        self, loc: log.FileLocation, label: str, fnum: int, expr: Expression
+        self, loc: log.FileLocation, label: str, fnum: int, expr: Expression,
+        deadline: int = None, k_modes: int = None
     ) -> None:
         super().__init__(loc, [expr])
         self.symbol: str = label
         self.formula_number: int = fnum
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
+        self.deadline = deadline
+        self.k_modes = k_modes
 
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
 
     def __deepcopy__(self, memo) -> Formula:
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Formula(self.loc, self.symbol, self.formula_number, children[0])
+        new = Formula(self.loc, self.symbol, self.formula_number, children[0], self.deadline, self.k_modes)
         self.copy_attrs(new)
         return new
     
@@ -1009,7 +1096,7 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
-        self.theoretical_scq_size = -1
+        self.total_scq_size = -1
 
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""

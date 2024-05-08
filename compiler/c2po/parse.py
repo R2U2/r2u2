@@ -18,9 +18,10 @@ class C2POLexer(sly.Lexer):
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, #ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
-               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
+               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN, 
+               PROBABILITY, DEADLINE, MULTI_MODAL }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -59,11 +60,14 @@ class C2POLexer(sly.Lexer):
     ARITH_MUL   = r"\*|•|⋅"
     ARITH_DIV   = r"/|÷"
     ARITH_MOD   = r"%"
-    # ARITH_POW   = r"\*\*"
-    # ARITH_SQRT  = r"√"
+    ARITH_POW   = r'pow'
+    ARITH_SQRT  = r'sqrt|√'
     # ARITH_PM    = r"\+/-|±"
 
-    # Others
+    # Others'
+    PROBABILITY = r"P_"
+    DEADLINE = r"with d =|with d="
+    MULTI_MODAL = r", k =|,k =|, k=|,k="
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
@@ -132,9 +136,9 @@ class C2POParser(sly.Parser):
         ("left", REL_GT, REL_LT, REL_GTE, REL_LTE),
         ("left", BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ("left", ARITH_ADD, ARITH_SUB),
-        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD),
+        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT)
+        ("right", LPAREN, DOT, PROBABILITY)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -144,6 +148,8 @@ class C2POParser(sly.Parser):
         self.spec_num: int = 0
         self.literals = {}
         self.status = True
+        self.deadline: int = None
+        self.k_modes: int = None
 
     def error(self, token):
         self.status = False
@@ -335,7 +341,48 @@ class C2POParser(sly.Parser):
     def spec(self, p):
         formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2])
         self.spec_num += 1
+        return formula   
+    
+    # MMPRV
+    @_("expr deadline SEMI")
+    def spec(self, p):
+        formula = cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num, p[0], self.deadline)
+        self.spec_num += 1
         return formula
+    
+    @_("expr multimodal SEMI")
+    def spec(self, p):
+        formula = cpt.Formula(log.FileLocation(self.filename, p.lineno), self.fresh_label(), self.spec_num, p[0], self.deadline, self.k_modes)
+        self.spec_num += 1
+        return formula
+    
+    @_("SYMBOL COLON expr deadline SEMI")
+    def spec(self, p):
+        formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2], self.deadline)
+        self.spec_num += 1
+        return formula
+
+    @_("SYMBOL COLON expr multimodal SEMI")
+    def spec(self, p):
+        formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2], self.deadline, self.k_modes)
+        self.spec_num += 1
+        return formula 
+    
+    @_('DEADLINE NUMERAL')
+    def deadline(self, p):
+        self.deadline = int(p.NUMERAL) 
+
+    @_('deadline MULTI_MODAL NUMERAL')
+    def multimodal(self, p):
+        self.k_modes = int(p.NUMERAL) 
+
+    @_("DECIMAL")
+    def probability(self, p):
+        return float(p[0])
+    
+    @_("PROBABILITY probability expr")
+    def expr(self, p):
+        return cpt.ProbabilityOperator(log.FileLocation(self.filename, p.lineno), p[1], p[2])
 
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
@@ -428,6 +475,10 @@ class C2POParser(sly.Parser):
     def expr(self, p):
         return cpt.Operator.ArithmeticNegate(log.FileLocation(self.filename, p.lineno), p[1])
 
+    @_("ARITH_SQRT expr")
+    def expr(self, p):
+        return cpt.Operator.ArithmeticSqrt(log.FileLocation(self.filename, p.lineno), p[1])
+
     # Binary expressions
     @_("expr LOG_XOR expr")
     def expr(self, p):
@@ -512,6 +563,10 @@ class C2POParser(sly.Parser):
     @_("expr ARITH_MOD expr")
     def expr(self, p):
         return cpt.Operator.ArithmeticModulo(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+
+    @_("expr ARITH_POW expr")
+    def expr(self, p):
+        return cpt.Operator.ArithmeticPower(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Unary temporal expressions
     @_("TL_GLOBAL interval expr")
@@ -598,7 +653,6 @@ class C2POParser(sly.Parser):
             log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
-
 
 def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
@@ -865,7 +919,6 @@ class MLTLParser(sly.Parser):
             log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
-
 
 def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
     """Parse contents of input and returns corresponding program on success, else returns None."""

@@ -1,0 +1,5 @@
+INPUT
+    x_ego, y_ego, x_opp, y_opp: float;
+
+FTSPEC
+    P_0.51(G[0,3](sqrt(((x_opp-x_ego) pow 2.0) + ((y_opp - y_ego) pow 2.0)) > 0.58)) with d = -5, k = 2;

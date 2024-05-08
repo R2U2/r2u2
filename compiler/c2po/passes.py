@@ -4,6 +4,8 @@ from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat
 
+from copy import copy
+
 MODULE_CODE = "PASS"
 
 
@@ -19,6 +21,15 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
         if not isinstance(expr, cpt.Variable):
             continue
 
+        # Makes sure probabilistic and non-probabilistic definitions are seperate
+        if expr.symbol in context.definitions and expr.is_probabilistic_operator() and "Pr(" + expr.symbol + ")" not in context.definitions:
+            new_expr = copy(context.definitions[expr.symbol])
+            new_expr.parents = []
+            expr.symbol = "Pr(" + expr.symbol + ")"
+            context.add_definition(expr.symbol, new_expr)
+        elif expr.is_probabilistic_operator():
+            expr.symbol = "Pr(" + expr.symbol + ")"
+        
         if expr.symbol in context.definitions:
             expr.replace(context.definitions[expr.symbol])
         elif expr.symbol in context.specifications:
@@ -965,12 +976,18 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     def _optimize_cse(expr: cpt.Expression) -> None:
         nonlocal expr_map
 
-        if repr(expr) in expr_map:
-            log.debug(MODULE_CODE, 2, f"Replacing ---- {repr(expr)[:25]}")
-            expr.replace(expr_map[repr(expr)])
+        # Makes sure probabilistic and non-probabilistic expressions
+        # are never combined.
+        key = repr(expr)
+        if expr.is_probabilistic_operator():
+            key = 'Pr(' + key + ')'
+
+        if key in expr_map:
+            log.debug(MODULE_CODE, 2, f"Replacing ---- {key[:25]}")
+            expr.replace(expr_map[key])
         else:
-            log.debug(MODULE_CODE, 2, f"Visiting ----- {repr(expr)[:25]}")
-            expr_map[repr(expr)] = expr
+            log.debug(MODULE_CODE, 2, f"Visiting ----- {key[:25]}")
+            expr_map[key] = expr
 
     expr_map = {}
     for expr in cpt.postorder(program.ft_spec_set, context):
@@ -1097,7 +1114,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
-    log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
+    log.stat(MODULE_CODE, f"old_scq_size={program.total_scq_size}")
 
     # log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
     log.debug(MODULE_CODE, 1, "Optimizing via E-Graph")
@@ -1136,7 +1153,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
         compute_scq_sizes(program, context)
 
         log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
-        log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
+        log.stat(MODULE_CODE, f"new_scq_size={program.total_scq_size}")
 
     log.debug(MODULE_CODE, 1, f"Post E-Graph:\n{repr(program)}")
 
@@ -1158,10 +1175,7 @@ def check_sat(program: cpt.Program, context: cpt.Context) -> None:
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
-    actual_program_scq_size = 0
-    theoretical_program_scq_size = 0
-
-    EXTRA_SCQ_SIZE = 3
+    total_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
@@ -1171,12 +1185,11 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
 
-            actual_program_scq_size += expr.scq_size
-            theoretical_program_scq_size += expr.scq_size
+            total_scq_size += expr.scq_size
 
             expr.scq = (
-                actual_program_scq_size - expr.scq_size,
-                actual_program_scq_size,
+                total_scq_size - expr.scq_size,
+                total_scq_size,
             )
 
             continue
@@ -1189,25 +1202,33 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
-        # minimum size of 3 so pointers don't crash while a value is "inflight"
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 3
+        if expr.is_probabilistic_operator():
+            max_buffer_length = max([(parent.interval.ub-parent.interval.lb) if isinstance(parent, cpt.TemporalOperator) else 0 for parent in expr.parents] + [0])
+            expr.scq_size = (max(max_wpd - expr.bpd, 0) + max_buffer_length
+                            + (min(max(max_wpd - expr.bpd, 0)+max_buffer_length,max(expr.get_max_prediction_horizon()-1,0))) 
+                            + 1
+            )
+        else:
+            expr.scq_size = (max(max_wpd - expr.bpd, 0)
+                            + (min(max(max_wpd - expr.bpd, 0),max(expr.get_max_prediction_horizon()-1,0))) 
+                            + 1
+            )
+            
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
         )
 
-        actual_program_scq_size += expr.scq_size
-        theoretical_program_scq_size += expr.scq_size - (EXTRA_SCQ_SIZE - 1)
+        total_scq_size += expr.scq_size
 
         expr.scq = (
-            actual_program_scq_size - expr.scq_size,
-            actual_program_scq_size,
+            total_scq_size - expr.scq_size,
+            total_scq_size,
         )
 
-    program.theoretical_scq_size = theoretical_program_scq_size
+    program.total_scq_size = total_scq_size
 
-    log.debug(MODULE_CODE, 1, f"Actual program SCQ size: {actual_program_scq_size}")
-    log.debug(MODULE_CODE, 1, f"Theoretical program SCQ size: {theoretical_program_scq_size}")
+    log.debug(MODULE_CODE, 1, f"Program SCQ size: {total_scq_size}")
 
 
 # A Pass is a function with the signature:

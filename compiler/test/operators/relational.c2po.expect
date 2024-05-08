@@ -26,21 +26,21 @@ TL n12 load   a6
 TL n13 return n12 6
 TL n14 load   a7
 TL n15 return n14 7
-CG TL DUOQ q0 |3|
+CG TL DUOQ q0 |1|
 CG TL DUOQ q1 |1|
-CG TL DUOQ q2 |3|
+CG TL DUOQ q2 |1|
 CG TL DUOQ q3 |1|
-CG TL DUOQ q4 |3|
+CG TL DUOQ q4 |1|
 CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |3|
+CG TL DUOQ q6 |1|
 CG TL DUOQ q7 |1|
-CG TL DUOQ q8 |3|
+CG TL DUOQ q8 |1|
 CG TL DUOQ q9 |1|
-CG TL DUOQ q10 |3|
+CG TL DUOQ q10 |1|
 CG TL DUOQ q11 |1|
-CG TL DUOQ q12 |3|
+CG TL DUOQ q12 |1|
 CG TL DUOQ q13 |1|
-CG TL DUOQ q14 |3|
+CG TL DUOQ q14 |1|
 CG TL DUOQ q15 |1|
 F __f0__ 0
 F __f1__ 1

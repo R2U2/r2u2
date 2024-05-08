@@ -27,6 +27,9 @@ typedef struct {
   r2u2_time time_stamp; //
   r2u2_monitor_progress_state_t progress; // TODO(bckempa): Track value in debug
   size_t    prog_count; // TODO(bckempa): type justification and bounds check
+  size_t num_signals;
+  size_t num_atomics;
+  r2u2_bool predictive_mode;
 
   // Specification Instructions
   r2u2_instruction_memory_t  *instruction_mem;
@@ -46,8 +49,10 @@ typedef struct {
   r2u2_signal_vector_t    *signal_vector;
   r2u2_value_buffer_t     *value_buffer;
   r2u2_atomic_buffer_t    atomic_buffer;
+  r2u2_atomic_prob_buffer_t *atomic_prob_buffer;
   r2u2_atomic_buffer_t    past_time_result_buffer;
   r2u2_duoq_arena_t       duo_queue_mem;
+  r2u2_k_offset_buffer_t k_offset_buffer;
 
   // TODO
   // #if R2U2_AT_EXTRA_FILTERS
@@ -65,15 +70,17 @@ typedef struct {
 // TODO(bckempa): Can we use the typedef for the initialization instead?
 #define R2U2_DEFAULT_MONITOR \
   { \
-    0, 0, 0, \
+    0, 0, 0, 0, 0, 0,\
     &(uint8_t [R2U2_MAX_INST_LEN]){0}, \
     &(r2u2_instruction_t [R2U2_MAX_INSTRUCTIONS]){0}, \
     NULL, NULL, \
     &(void*[R2U2_MAX_SIGNALS]){0}, \
     &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
+    &(r2u2_float [R2U2_MAX_ATOMICS]){0}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     {NULL, NULL}, \
+    {&(r2u2_time [R2U2_MAX_K_MODES]){0}, &(r2u2_time [R2U2_MAX_K_MODES]){0}}, \
     &(r2u2_at_filter_aux_data_t [R2U2_MAX_AT_INSTRUCTIONS]){0}, \
   }
 

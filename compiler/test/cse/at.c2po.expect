@@ -5,9 +5,9 @@ TL n1  load   a1
 TL n2  and    n0 n1
 TL n3  return n2 0
 TL n4  return n2 1
-CG TL DUOQ q0 |3|
-CG TL DUOQ q1 |3|
-CG TL DUOQ q2 |3|
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
 CG TL DUOQ q3 |1|
 CG TL DUOQ q4 |1|
 F __f0__ 0
