@@ -1108,13 +1108,13 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     if len(program.ft_spec_set.children) == 0:
         return
     
-    if len(program.ft_spec_set.children) > 1:
-        log.warning(MODULE_CODE, "E-Graph optimizations only support single formulas, using first only")
+    for formula in program.ft_spec_set.children:
+        formula =  cast(cpt.Formula, formula)
+        e_graph = eqsat.run_egglog(formula, context)
 
-    formula =  cast(cpt.Formula, program.ft_spec_set.children[0])
-    e_graph = eqsat.run_egglog(formula, context)
+        if not e_graph:
+            continue
 
-    if e_graph:
         old = formula.get_expr()
         new = e_graph.extract(context)
 
@@ -1122,18 +1122,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
         if sat_result is sat.SatResult.UNSAT:
             equiv_result = "equiv"
+            old.replace(new)
+
+            compute_scq_sizes(program, context)
         elif sat_result is sat.SatResult.SAT:
             # log.error(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
             equiv_result = "not-equiv"
         else:
             # log.error(MODULE_CODE, "E-Graph optimization could not be validated, still using optimized formula")
             equiv_result = "unknown"
-
-        # FIXME: only for benchmarking -- 
-        # change this to only replace if proved equiv after done with benchmarking
-        old.replace(new)
-
-        compute_scq_sizes(program, context)
 
         log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
         log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
