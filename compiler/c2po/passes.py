@@ -1099,7 +1099,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
     log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
 
-    # log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
+    log.warning(MODULE_CODE, "Equality saturation is an experimental feature")
     log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
 
     # flatten_multi_operators(program, context)
