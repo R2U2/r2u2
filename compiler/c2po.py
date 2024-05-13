@@ -51,8 +51,6 @@ parser.add_argument("-dc", "--disable-cse", action="store_false",
                     help="disable CSE optimization")
 parser.add_argument("-dr", "--disable-rewrite", action="store_false",
                     help="disable MLTL rewrite rule optimizations")
-parser.add_argument("-eq", "--eqsat", action="store_true",
-                    help="enable equality saturation")
 parser.add_argument("--extops", action="store_true",
                     help="enable extended operations")
 
@@ -61,11 +59,13 @@ parser.add_argument("-nnf", action="store_true",
 parser.add_argument("-bnf", action="store_true",
                     help="enable boolean normal form")
 
+parser.add_argument("-eq", "--eqsat", action="store_true",
+                    help="enable equality saturation")
 parser.add_argument("-sat", "--check-sat", action="store_true",
                     help="enable satisfiability checking of future-time formulas")
 
-parser.add_argument("--timeout-egglog", type=int, default=3600, 
-                    help="set the timeout of egglog calls in seconds (default: 3600)")
+parser.add_argument("--timeout-eqsat", type=int, default=3600, 
+                    help="set the timeout of equality saturation calls in seconds (default: 3600)")
 parser.add_argument("--timeout-sat", type=int, default=3600, 
                     help="set the timeout of sat calls in seconds (default: 3600)")
 
@@ -114,7 +114,7 @@ return_code = c2po.main.compile(
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
     write_smt_dir=args.write_smt,
-    timeout_egglog=args.timeout_egglog,
+    timeout_eqsat=args.timeout_eqsat,
     timeout_sat=args.timeout_sat,
     keep=args.keep,
     workdir=args.workdir,

@@ -329,7 +329,7 @@ def compile(
     write_mltl_filename: str = ".",
     write_pickle_filename: str = ".",
     write_smt_dir: str = ".",
-    timeout_egglog: int = 3600,
+    timeout_eqsat: int = 3600,
     timeout_sat: int = 3600,
     keep: bool = False,
     workdir: str = "",
@@ -381,7 +381,7 @@ def compile(
         enable_eqsat,
         enable_cse,
         enable_sat,
-        timeout_egglog,
+        timeout_eqsat,
         timeout_sat,
     )
 
