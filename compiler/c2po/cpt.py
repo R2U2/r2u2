@@ -8,7 +8,7 @@ import dataclasses
 import pathlib
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types, util
+from c2po import log, types
 
 MODULE_CODE = "CPT"
 
@@ -1053,7 +1053,6 @@ class Program(Node):
 class Config:
     input_path: pathlib.Path
     output_path: pathlib.Path
-    workdir: pathlib.Path
     implementation: types.R2U2Implementation
     mission_time: int
     endian_sigil: str
@@ -1062,13 +1061,14 @@ class Config:
     signal_mapping: types.SignalMapping
     timeout_egglog: int
     timeout_sat: int
+    workdir: pathlib.Path
+    copyback_path: Optional[pathlib.Path]
 
     @staticmethod
     def Empty() -> Config:
         return Config(
             pathlib.Path(),
             pathlib.Path(),
-            util.DEFAULT_WORKDIR, 
             types.R2U2Implementation.C, 
             0, 
             "",
@@ -1076,7 +1076,9 @@ class Config:
             False, 
             {},
             0,
-            0
+            0,
+            pathlib.Path(),
+            None
         )
 
 

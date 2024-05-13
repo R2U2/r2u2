@@ -133,7 +133,9 @@ def _is_match_top_level(enode: ENode, expr: cpt.Expression, context: cpt.Context
 def _find_match(expr: cpt.Expression, enodes: set[ENode], eclasses: dict[EClassID, list[ENode]], context: cpt.Context) -> Optional[ENode]:
     """Returns the ENode in `enodes` that matches `expr`, if one exists."""
     num_matches_needed = 0
-    for _ in cpt.postorder(expr, context):
+    for e in cpt.postorder(expr, context):
+        if e.engine != types.R2U2Engine.TEMPORAL_LOGIC:
+            continue
         num_matches_needed += 1
 
     for candidate in enodes:
