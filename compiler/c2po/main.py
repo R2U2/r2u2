@@ -279,7 +279,6 @@ def validate_input(
     elif enable_atomic_checkers:
         frontend = types.R2U2Engine.ATOMIC_CHECKER
     else:
-        log.warning(MODULE_CODE, "No frontend provided")
         frontend = types.R2U2Engine.NONE
 
     if not status:
