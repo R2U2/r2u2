@@ -1123,14 +1123,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
         if sat_result is sat.SatResult.UNSAT:
             equiv_result = "equiv"
             old.replace(new)
-
             compute_scq_sizes(program, context)
         elif sat_result is sat.SatResult.SAT:
-            # log.error(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
+            log.warning(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
             equiv_result = "not-equiv"
         else:
-            # log.error(MODULE_CODE, "E-Graph optimization could not be validated, still using optimized formula")
+            log.warning(MODULE_CODE, "E-Graph optimization could not be validated, still using optimized formula")
             equiv_result = "unknown"
+            old.replace(new)
+            compute_scq_sizes(program, context)
 
         log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
         log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
