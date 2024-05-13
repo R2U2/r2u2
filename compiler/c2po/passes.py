@@ -1100,7 +1100,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
 
     # log.warning(MODULE_CODE, "E-Graph optimizations are incompatible with R2U2")
-    log.debug(MODULE_CODE, 1, "Optimizing via E-Graph")
+    log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
 
     # flatten_multi_operators(program, context)
     sort_operands_by_pd(program, context)
@@ -1125,10 +1125,10 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
             old.replace(new)
             compute_scq_sizes(program, context)
         elif sat_result is sat.SatResult.SAT:
-            log.warning(MODULE_CODE, "E-Graph optimization produced non-equivalent formula, defaulting to non-optimized formula")
+            log.warning(MODULE_CODE, "Equality saturation produced non-equivalent formula, defaulting to non-optimized formula")
             equiv_result = "not-equiv"
         else:
-            log.warning(MODULE_CODE, "E-Graph optimization could not be validated, still using optimized formula")
+            log.warning(MODULE_CODE, "Equality saturation could not be validated, still using optimized formula")
             equiv_result = "unknown"
             old.replace(new)
             compute_scq_sizes(program, context)
@@ -1136,7 +1136,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
         log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
         log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
 
-    log.debug(MODULE_CODE, 1, f"Post E-Graph:\n{repr(program)}")
+    log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
