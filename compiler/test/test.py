@@ -160,7 +160,5 @@ if __name__ == "__main__":
         print_fail(f"Subset {args.subset} not in {CONFIG_PATH}")
         sys.exit(1)
 
-    if any([not run_test(test) for test in tests]):
-        sys.exit(1)
-        
-    sys.exit(0)
+    # Exit with number of failed tests
+    sys.exit(sum([not run_test(test) for test in tests]))
