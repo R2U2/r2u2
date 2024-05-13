@@ -6,11 +6,9 @@ C2PO (Configuration Compiler for Property Organization) is the formula compiler 
 
 C2PO requires Python 3.8 or newer.
 
-To enable equality saturation, first install `cargo` and `make`. To install `cargo`, follow the
-instructions here: https://www.rust-lang.org/tools/install. To install `make` on a debian-based
-system, run `sudo apt-get install build-essential`. Then run the `setup_egglog.sh` script.
+To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/install), then run the `setup_egglog.sh` script.
 
-To enable satisfiability checking, install Z3. On debian-based systems, this can be done via `sudo
+To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based systems, this can be done via `sudo
 apt-get install z3`.
 
 ## Usage
