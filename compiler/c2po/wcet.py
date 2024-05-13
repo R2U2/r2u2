@@ -67,7 +67,7 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
     """
     total_wcet = 0
 
-    scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.SCQ]
+    scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.DUOQ]
 
     for instr in assembly:
         if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):

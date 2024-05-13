@@ -4,9 +4,11 @@ import enum
 import pathlib
 import re
 import pickle
+import tempfile
+import shutil
 from typing import Optional
 
-from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize, util
+from c2po import assemble, cpt, log, parse, type_check, types, passes, serialize
 
 MODULE_CODE = "MAIN"
 
@@ -115,7 +117,8 @@ def validate_input(
     trace_filename: str,
     map_filename: str,
     output_filename: str,
-    workdir: str,
+    copyback_name: Optional[str],
+    workdir_path: pathlib.Path,
     impl_str: str,
     custom_mission_time: int,
     int_width: int,
@@ -151,25 +154,23 @@ def validate_input(
         trace_path = pathlib.Path(trace_filename)
         if not trace_path.is_file():
             log.error(MODULE_CODE, f"Trace file '{trace_filename}' is not a valid file")
+            status = False
 
     map_path = None
     if map_filename != "":
         map_path = pathlib.Path(map_filename)
         if not map_path.is_file():
             log.error(MODULE_CODE, f"Map file '{map_filename}' is not a valid file")
+            status = False
 
     output_path = pathlib.Path(output_filename)
 
-    if not workdir or workdir == "":
-        workdir_path = util.DEFAULT_WORKDIR
-    else:
-        workdir_parent = pathlib.Path(workdir) 
-
-        if not workdir_parent.exists():
-            log.warning(MODULE_CODE, f"workdir parent path {workdir_parent} does not exist, defaulting to {util.DEFAULT_WORKDIR}")
-            workdir_path = util.DEFAULT_WORKDIR
-        else:
-            workdir_path = pathlib.Path(workdir) / util.DEFAULT_WORKDIR_NAME
+    copyback_path = None
+    if copyback_name:
+        copyback_path = pathlib.Path(copyback_name)
+        if copyback_path.exists():
+            log.error(MODULE_CODE, f"Directory already exists '{copyback_path}'")
+            status = False
 
     signal_mapping: Optional[types.SignalMapping] = None
     mission_time, trace_length = -1, -1
@@ -287,7 +288,6 @@ def validate_input(
     config = cpt.Config(
         input_path,
         output_path,
-        workdir_path,
         impl,
         mission_time,
         endian_sigil,
@@ -296,12 +296,15 @@ def validate_input(
         signal_mapping,
         timeout_egglog,
         timeout_sat,
+        workdir_path,
+        copyback_path
     )
 
     return (config, enabled_passes)
 
 
 def compile(
+    workdir: pathlib.Path,
     input_filename: str,
     trace_filename: str = "",
     map_filename: str = "",
@@ -331,8 +334,7 @@ def compile(
     write_smt_dir: str = ".",
     timeout_eqsat: int = 3600,
     timeout_sat: int = 3600,
-    keep: bool = False,
-    workdir: str = "",
+    copyback_name: Optional[str] = None,
     stats: bool = False,
     debug: int = 0,
     quiet: bool = False,
@@ -357,11 +359,13 @@ def compile(
     # ----------------------------------
     # Input validation
     # ----------------------------------
+
     validated_input = validate_input(
         input_filename,
         trace_filename,
         map_filename,
         output_filename,
+        copyback_name,
         workdir,
         impl,
         custom_mission_time if custom_mission_time else -1,
@@ -463,8 +467,6 @@ def compile(
     # ----------------------------------
     # Transforms
     # ----------------------------------
-    util.setup_dir(config.workdir)
-
     log.debug(MODULE_CODE, 1, "Performing passes")
     for cpass in [t for t in passes.PASS_LIST if t in enabled_passes]:
         cpass(program, context)
@@ -480,8 +482,8 @@ def compile(
             write_pickle_filename,
             write_smt_dir,
         )
-        if not keep:
-            util.cleanup_dir(config.workdir)
+        if config.copyback_path:
+            shutil.copytree(config.workdir, config.copyback_path)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
@@ -489,8 +491,8 @@ def compile(
     # ----------------------------------
     if not config.output_path:
         log.error(MODULE_CODE, f"Output path invalid: {config.output_path}")
-        if not keep:
-            util.cleanup_dir(config.workdir)
+        if config.copyback_path:
+            shutil.copytree(config.workdir, config.copyback_path)
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
@@ -514,7 +516,85 @@ def compile(
         write_smt_dir,
     )
 
-    if not keep:
-        util.cleanup_dir(config.workdir)
+    if config.copyback_path:
+        shutil.copytree(config.workdir, config.copyback_path)
 
     return ReturnCode.SUCCESS
+
+
+
+def main(
+    input_filename: str,
+    trace_filename: str = "",
+    map_filename: str = "",
+    output_filename: str = "spec.bin",
+    impl: str = "c",
+    custom_mission_time: Optional[int] = None,
+    int_width: int = 8,
+    int_signed: bool = False,
+    float_width: int = 32,
+    endian: str = "@",
+    only_parse: bool = False,
+    only_type_check: bool = False,
+    only_compile: bool = False,
+    enable_atomic_checkers: bool = False,
+    enable_booleanizer: bool = False,
+    enable_extops: bool = False,
+    enable_nnf: bool = False,
+    enable_bnf: bool = False,
+    enable_rewrite: bool = False,
+    enable_eqsat: bool = False,
+    enable_cse: bool = False,
+    enable_sat: bool = False,
+    write_c2po_filename: str = ".",
+    write_prefix_filename: str = ".",
+    write_mltl_filename: str = ".",
+    write_pickle_filename: str = ".",
+    write_smt_dir: str = ".",
+    timeout_eqsat: int = 3600,
+    timeout_sat: int = 3600,
+    copyback_name: Optional[str] = None,
+    stats: bool = False,
+    debug: int = 0,
+    quiet: bool = False,
+) -> ReturnCode:
+    """Wrapper around `compile` for creating a global temporary directory as a working directory."""
+    with tempfile.TemporaryDirectory() as workdir:
+        workdir_path = pathlib.Path(workdir)
+        return compile(
+            workdir_path,
+            input_filename,
+            trace_filename,
+            map_filename,
+            output_filename,
+            impl,
+            custom_mission_time,
+            int_width,
+            int_signed,
+            float_width,
+            endian,
+            only_parse,
+            only_type_check,
+            only_compile,
+            enable_atomic_checkers,
+            enable_booleanizer,
+            enable_extops,
+            enable_nnf,
+            enable_bnf,
+            enable_rewrite,
+            enable_eqsat,
+            enable_cse,
+            enable_sat,
+            write_c2po_filename,
+            write_prefix_filename,
+            write_mltl_filename,
+            write_pickle_filename,
+            write_smt_dir,
+            timeout_eqsat,
+            timeout_sat,
+            copyback_name,
+            stats,
+            debug,
+            quiet,
+        )
+    

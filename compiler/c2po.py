@@ -80,13 +80,12 @@ parser.add_argument("--write-pickle", nargs="?", default=".", const="",
 parser.add_argument("--write-smt", nargs="?", default=".", const="",
                     help="write SMT SAT encoding of FT formulas")
 
-parser.add_argument("--keep-workdir", action="store_true",
-                    help="keep working directory")
-parser.add_argument("--workdir", help="location to place temporary files")
+parser.add_argument("--copyback",
+                    help="name of directory to copy workdir contents to upon termination")
 
 args = parser.parse_args()
 
-return_code = c2po.main.compile(
+return_code = c2po.main.main(
     args.mltl, 
     trace_filename=args.trace, 
     map_filename=args.map, 
@@ -116,8 +115,7 @@ return_code = c2po.main.compile(
     write_smt_dir=args.write_smt,
     timeout_eqsat=args.timeout_eqsat,
     timeout_sat=args.timeout_sat,
-    keep=args.keep_workdir,
-    workdir=args.workdir,
+    copyback_name=args.copyback,
     stats=args.stats,
     debug=args.debug,
     quiet=args.quiet, 
