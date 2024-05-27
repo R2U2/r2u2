@@ -220,12 +220,6 @@ class TestCase():
             str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
         ]
 
-        if (
-            ("booleanizer" not in self.c2po_options or not self.c2po_options["booleanizer"]) and 
-            ("atomic-checkers" not in self.c2po_options or not self.c2po_options["atomic-checkers"])  
-        ):
-            self.r2u2bin_command.append("-a")
-
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
 

@@ -21,10 +21,9 @@
 #define PRINT_VERSION() fprintf(stderr, "R2U2 Version %d.%d.%d\n", \
         R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR, R2U2_C_VERSION_PATCH)
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
-const char *help = "<configuration> [trace] [-a --as_atomics]\n"
+const char *help = "<configuration> [trace]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
-                   "\ttrace: optional path to input CSV\n"
-                   "\t-a --as_atomics: enable loading CSV values directly as atomics\n";
+                   "\ttrace: optional path to input CSV\n";
 
 // Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
@@ -54,8 +53,8 @@ int main(int argc, char const *argv[]) {
 
   // Arg Parsing - for now just check for the correct number and look for flags
   //               short-circuiting helps avoid unnecessary checks here
-  if ((argc < 2) || (argc > 4) ||
-      (argv[1][0] == '-') || ((argc > 2) && (argv[2][0] == '-'))) {
+  if ((argc < 2) || (argc > 3) ||
+      (argv[1][0] == '-') || ((argc == 3) && (argv[2][0] == '-'))) {
       PRINT_VERSION();
       PRINT_USAGE();
       return 1;
@@ -143,23 +142,25 @@ int main(int argc, char const *argv[]) {
   }
   // Debug assert - input_file != Null
 
-  // Directly load CSV values as atomics
-  if (argc > 3) {
-    // -a/--as_atomics was specified
-    if (strcmp(argv[2], "-a") || strcmp(argv[2], "--as_atomics")) {
-      r2u2_csv_reader.as_atomics = true;
-    } else {
-        PRINT_USAGE();
-        perror("Cannot access trace file");
-        return 1;
-    }
+  // CSV Load Destination
+  // To support operations without a front-end, check if the first instruction
+  // is to the TL engine and if so, load signals direct to the atomic buffer.
+  // This is a stronger assumption than the underlying engines make but is only
+  // present in this reference monitor implementation.
+  //
+  // NOTE: This check will not behave properly if configuration is prepended
+  // rather than appended to the instruction memory
+  r2u2_status_t (*csv_load_func)(r2u2_csv_reader_t*, r2u2_monitor_t*);
+  if ((*r2u2_monitor.instruction_tbl)[0].engine_tag == R2U2_ENG_TL) {
+    csv_load_func = &r2u2_csv_load_next_atomics;
   } else {
-    r2u2_csv_reader.as_atomics = false;
+    csv_load_func = &r2u2_csv_load_next_signals;
   }
 
   // Main processing loop
   do {
-    err_cond = r2u2_csv_load_next_signals(&r2u2_csv_reader, &r2u2_monitor);
+    err_cond = (*csv_load_func)(&r2u2_csv_reader, &r2u2_monitor);
+
     if ((err_cond != R2U2_OK)) break;
 
     err_cond = r2u2_tic(&r2u2_monitor);
