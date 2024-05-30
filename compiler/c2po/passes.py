@@ -1049,6 +1049,7 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
     atomic_map: dict[str, int] = {}
+    context.atomic_id = {}
     aid: int = 0
 
     for expr in program.postorder(context):
@@ -1223,6 +1224,7 @@ PASS_LIST: list[Pass] = [
     compute_atomics, 
     optimize_rewrite_rules,
     optimize_eqsat,
+    compute_atomics, 
     to_nnf,
     to_bnf,
     remove_extended_operators,

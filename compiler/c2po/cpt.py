@@ -1,4 +1,5 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
+
 from __future__ import annotations
 
 import copy
@@ -452,6 +453,27 @@ class OperatorKind(enum.Enum):
     # Other
     COUNT = "count"
 
+    def is_booleanizer_operator(self) -> bool:
+        return self in {
+            OperatorKind.BITWISE_AND,
+            OperatorKind.BITWISE_OR,
+            OperatorKind.BITWISE_XOR,
+            OperatorKind.BITWISE_NEGATE,
+            OperatorKind.SHIFT_LEFT,
+            OperatorKind.SHIFT_RIGHT,
+            OperatorKind.ARITHMETIC_ADD,
+            OperatorKind.ARITHMETIC_SUBTRACT,
+            OperatorKind.ARITHMETIC_MULTPLY,
+            OperatorKind.ARITHMETIC_DIVIDE,
+            OperatorKind.ARITHMETIC_MODULO,
+            OperatorKind.ARITHMETIC_NEGATE,
+            OperatorKind.GREATER_THAN,
+            OperatorKind.GREATER_THAN_OR_EQUAL,
+            OperatorKind.LESS_THAN,
+            OperatorKind.LESS_THAN_OR_EQUAL,
+            OperatorKind.COUNT,
+        }
+
 
 class Operator(Expression):
     def __init__(
@@ -726,7 +748,7 @@ def is_commutative_operator(expr) -> bool:
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.EQUAL,
-        OperatorKind.NOT_EQUAL
+        OperatorKind.NOT_EQUAL,
     }
 
 
@@ -735,7 +757,7 @@ def is_multi_arity_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY
+        OperatorKind.ARITHMETIC_MULTPLY,
     }
 
 
@@ -819,7 +841,7 @@ class Formula(Expression):
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
-    
+
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Formula) and self.symbol == __value.symbol
 
@@ -1069,16 +1091,16 @@ class Config:
         return Config(
             pathlib.Path(),
             pathlib.Path(),
-            types.R2U2Implementation.C, 
-            0, 
+            types.R2U2Implementation.C,
+            0,
             "",
-            types.R2U2Engine.NONE, 
-            False, 
+            types.R2U2Engine.NONE,
+            False,
             {},
             0,
             0,
             pathlib.Path(),
-            None
+            None,
         )
 
 
@@ -1468,14 +1490,10 @@ def to_mltl_std(program: Program, context: Context) -> str:
                     stack.append((0, expr.children[seen]))
             else:
                 log.error(
-                    MODULE_CODE,
-                    f"Expression incompatible with MLTL standard ({expr})"
+                    MODULE_CODE, f"Expression incompatible with MLTL standard ({expr})"
                 )
                 return ""
 
         mltl += "\n"
 
     return mltl
-
-
-

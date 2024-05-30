@@ -43,27 +43,36 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = types.ContractValueType()
         elif isinstance(expr, cpt.Constant):
-            if isinstance(expr.value, int) and expr.value.bit_length() > types.IntType.width:
+            if (
+                isinstance(expr.value, int)
+                and expr.value.bit_length() > types.IntType.width
+            ):
                 log.error(
                     MODULE_CODE,
                     f"Constant '{expr.value}' not representable in configured int width ('{types.IntType.width}')",
                     expr.loc,
                 )
                 return False
-            
+
             # TODO: Implement a check for valid float width, maybe with something like:
             # if len(value.hex()[2:]) > types.FloatType.width:
             #     ...
         elif isinstance(expr, cpt.Signal):
-            if context.config.assembly_enabled and expr.symbol not in context.config.signal_mapping:
+            if (
+                context.config.assembly_enabled
+                and expr.symbol not in context.config.signal_mapping
+            ):
                 log.error(
                     MODULE_CODE,
                     f"Mapping does not contain signal '{expr.symbol}'",
                     expr.loc,
                 )
                 return False
-            
-            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER and expr.type in {types.IntType, types.FloatType}:
+
+            if (
+                context.config.frontend is not types.R2U2Engine.BOOLEANIZER
+                and expr.type in {types.IntType, types.FloatType}
+            ):
                 log.error(
                     MODULE_CODE,
                     f"Non-bool type found '{expr.symbol}' ({expr.type})\n\t"
@@ -106,7 +115,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         MODULE_CODE,
                         f"Set aggregation set not assigned to type 'set', found '{set_expr.type}'\n\t"
                         f"{expr}",
-                            expr.loc,
+                        expr.loc,
                     )
                     return False
 
@@ -135,9 +144,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
             else:
-                log.error(
-                    MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc
-                )
+                log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
                 return False
         elif isinstance(expr, cpt.SetExpression):
             new_type: types.Type = types.NoType()
@@ -210,13 +217,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-            
+
             target_types = [m for m in context.structs[expr.symbol].values()]
             actual_types = [c.type for c in expr.children]
 
-            if any([target_type != actual_type 
-                    for target_type,actual_type 
-                    in zip(target_types, actual_types)]
+            if any(
+                [
+                    target_type != actual_type
+                    for target_type, actual_type in zip(target_types, actual_types)
+                ]
             ):
                 log.error(
                     MODULE_CODE,
@@ -423,6 +432,28 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
 
+            if context.config.implementation != types.R2U2Implementation.C:
+                log.error(
+                    MODULE_CODE,
+                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+
+            if context.config.frontend not in {
+                types.R2U2Engine.BOOLEANIZER,
+                types.R2U2Engine.ATOMIC_CHECKER,
+            } and expr.operator not in {
+                cpt.OperatorKind.EQUAL,
+                cpt.OperatorKind.NOT_EQUAL,
+            }:
+                log.error(
+                    MODULE_CODE,
+                    f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+
             if lhs.type != rhs.type:
                 log.error(
                     MODULE_CODE,
@@ -430,7 +461,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-            
+
             if expr.operator in {
                 cpt.OperatorKind.EQUAL,
                 cpt.OperatorKind.NOT_EQUAL,
@@ -603,9 +634,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
     return status
 
 
-def type_check(
-    program: cpt.Program, config: cpt.Config
-) -> tuple[bool, cpt.Context]:
+def type_check(program: cpt.Program, config: cpt.Config) -> tuple[bool, cpt.Context]:
     log.debug(MODULE_CODE, 1, "Type checking")
 
     status: bool = True
