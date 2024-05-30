@@ -270,6 +270,11 @@
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
             "options": ["-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_sat.c2po", 
+            "expected_output": "sat/bz_sat.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
         }
     ]
 }
