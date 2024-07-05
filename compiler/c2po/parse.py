@@ -260,15 +260,10 @@ class C2POParser(sly.Parser):
         else:
             return types.StructType(p[0])
     
-    # Parameterized type
-    @_("SYMBOL REL_LT type REL_GT")
+    # Array type
+    @_("type LBRACK RBRACK")
     def type(self, p):
-        if p[0] == "set":
-            return types.SetType(p[2])
-
-        log.error(MODULE_CODE, f"Type '{p[0]}' not recognized", log.FileLocation(self.filename, p.lineno))
-        self.status = False
-        return types.NoType()
+        return types.ArrayType(p[0])
 
     @_("KW_DEFINE definition definition_list")
     def define_section(self, p):
@@ -361,15 +356,15 @@ class C2POParser(sly.Parser):
     def expr_list(self, p):
         return []
 
-    # Set expression
+    # Array expression
     @_("LBRACE expr expr_list RBRACE")
     def expr(self, p):
-        return cpt.SetExpression(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
+        return cpt.ArrayExpression(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
-    # Empty set expression
+    # Empty array expression
     @_("LBRACE RBRACE")
     def expr(self, p):
-        return cpt.SetExpression(ln, [])
+        return cpt.ArrayExpression(ln, [])
 
     # Parameterized set aggregation expression
     @_("KW_FOREXACTLY LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
@@ -414,6 +409,11 @@ class C2POParser(sly.Parser):
     @_("expr DOT SYMBOL")
     def expr(self, p):
         return cpt.StructAccess(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+
+    # Array member access
+    @_("expr LBRACK NUMERAL RBRACK")
+    def expr(self, p):
+        return cpt.ArrayAccess(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
 
     # Unary expressions
     @_("LOG_NEG expr")

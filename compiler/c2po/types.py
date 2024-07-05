@@ -37,7 +37,7 @@ class BaseType(enum.Enum):
     BOOL = 1
     INT = 2
     FLOAT = 3
-    SET = 4
+    ARRAY = 4
     STRUCT = 5
     CONTRACT = 6
 
@@ -114,22 +114,22 @@ class ContractValueType(Type):
         super().__init__(BaseType.CONTRACT, is_const, "contract")
 
 
-class SetType(Type):
-    """Parameterized set C2PO type."""
+class ArrayType(Type):
+    """Array C2PO type."""
 
     def __init__(self, member_type: Type, is_const: bool = False):
-        super().__init__(BaseType.SET, is_const, "set<" + str(member_type) + ">")
+        super().__init__(BaseType.ARRAY, is_const, f"{member_type}[]")
         self.member_type: Type = member_type
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
-            if isinstance(arg, SetType):
+            if isinstance(arg, ArrayType):
                 return self.member_type.__eq__(arg.member_type)
         return False
 
     def __str__(self) -> str:
-        return f"set<{self.member_type}>"
-
+        return f"{self.member_type}[]"
+    
 
 def is_bool_type(t: Type) -> bool:
     return isinstance(t, BoolType)
@@ -150,11 +150,11 @@ def is_struct_type(t: Type, symbol: Optional[str] = None) -> bool:
     return isinstance(t, StructType)
 
 
-def is_set_type(t: Type) -> bool:
-    return isinstance(t, SetType)
+def is_array_type(t: Type) -> bool:
+    return isinstance(t, ArrayType)
 
 
-def set_types(
+def configure_types(
     impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int
 ):
     """Check for valid int and float widths and configure program types accordingly."""

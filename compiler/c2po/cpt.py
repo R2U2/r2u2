@@ -191,15 +191,33 @@ class AtomicChecker(Expression):
         return copy
 
 
-class SetExpression(Expression):
+class ArrayExpression(Expression):
     def __init__(self, loc: log.FileLocation, members: list[Expression]) -> None:
         super().__init__(loc, members)
-        members.sort(key=lambda x: str(x))
         self.max_size: int = len(members)
 
     def __deepcopy__(self, memo):
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = SetExpression(self.loc, children)
+        new = ArrayExpression(self.loc, children)
+        self.copy_attrs(new)
+        return new
+
+
+class ArrayAccess(Expression):
+    def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
+        super().__init__(loc, [array])
+        self.index = index
+        self.symbol = "[]"
+
+    def get_array(self) -> Struct:
+        return cast(Struct, self.children[0])
+
+    def get_index(self) -> int:
+        return self.index
+
+    def __deepcopy__(self, memo) -> ArrayAccess:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = type(self)(self.loc, children[0], self.index)
         self.copy_attrs(new)
         return new
 
@@ -278,7 +296,7 @@ class Bind(Expression):
     """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
 
     def __init__(
-        self, loc: log.FileLocation, var: Variable, set: SetExpression
+        self, loc: log.FileLocation, var: Variable, set: ArrayExpression
     ) -> None:
         super().__init__(loc, [])
         self.bound_var = var
@@ -287,7 +305,7 @@ class Bind(Expression):
     def get_bound_var(self) -> Variable:
         return self.bound_var
 
-    def get_set(self) -> SetExpression:
+    def get_set(self) -> ArrayExpression:
         return self.set_expr
 
     def __str__(self) -> str:
@@ -324,7 +342,7 @@ class SetAggregation(Expression):
         loc: log.FileLocation,
         operator: SetAggregationKind,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Optional[Expression],
         expr: Expression,
     ) -> None:
@@ -338,13 +356,13 @@ class SetAggregation(Expression):
 
     @staticmethod
     def ForEach(
-        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+        loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
     ) -> SetAggregation:
         return SetAggregation(loc, SetAggregationKind.FOR_EACH, var, set, None, expr)
 
     @staticmethod
     def ForSome(
-        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+        loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
     ) -> SetAggregation:
         return SetAggregation(loc, SetAggregationKind.FOR_SOME, var, set, None, expr)
 
@@ -352,7 +370,7 @@ class SetAggregation(Expression):
     def ForExactly(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -362,7 +380,7 @@ class SetAggregation(Expression):
     def ForAtMost(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -372,7 +390,7 @@ class SetAggregation(Expression):
     def ForAtLeast(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -385,8 +403,8 @@ class SetAggregation(Expression):
             )
         return self.children[1]
 
-    def get_set(self) -> SetExpression:
-        return cast(SetExpression, self.children[0])
+    def get_set(self) -> ArrayExpression:
+        return cast(ArrayExpression, self.children[0])
 
     def get_expr(self) -> Expression:
         """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
@@ -398,7 +416,7 @@ class SetAggregation(Expression):
             self.loc,
             self.operator,
             cast(Variable, copy.deepcopy(self.bound_var, memo)),
-            cast(SetExpression, children[0]),
+            cast(ArrayExpression, children[0]),
             children[1] if len(self.children) == 4 else None,
             cast(Expression, children[-1]),
         )
@@ -1116,7 +1134,7 @@ class Context:
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
-        self.bound_vars: dict[str, SetExpression] = {}
+        self.bound_vars: dict[str, ArrayExpression] = {}
 
         self.is_ft = False
         self.has_future_time = False
@@ -1267,13 +1285,23 @@ def to_infix_str(start: Expression) -> str:
 
         if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
             s += expr.symbol
+        elif isinstance(expr, ArrayAccess):
+            if seen == len(expr.children):
+                s += "]"
+            elif seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += "["
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[1]))
         elif isinstance(expr, StructAccess):
             if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 s += f".{expr.member}"
-        elif isinstance(expr, SetExpression):
+        elif isinstance(expr, ArrayExpression):
             if seen == len(expr.children):
                 s += "}"
             elif seen == 0:
@@ -1283,7 +1311,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):
@@ -1379,14 +1407,24 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s += f".{expr.member} "
-        elif isinstance(expr, SetExpression):
+                s = s[:-1] + f".{expr.member} "
+        elif isinstance(expr, ArrayExpression):
             if seen == 0:
                 s += "{"
                 stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in expr.children]
             else:
                 s = s[:-1] + "} "
+        elif isinstance(expr, ArrayAccess):
+            if seen == len(expr.children):
+                s = s[:-1] + "] "
+            elif seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s = s[:-1] + "["
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[1]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):

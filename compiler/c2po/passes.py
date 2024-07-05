@@ -231,6 +231,20 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
 
+def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
+    """Resolves array access operations to the underlying member expression."""
+    log.debug(MODULE_CODE, 1, "Resolving array accesses.")
+
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.ArrayAccess):
+            continue
+
+        array = expr.get_array()
+        expr.replace(array.children[expr.get_index()])
+
+    log.debug(MODULE_CODE, 1, f"Post array access resolution:\n{repr(program)}")
+
+
 def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
     """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
     log.debug(MODULE_CODE, 1, "Removing extended operators.")
@@ -1221,6 +1235,7 @@ PASS_LIST: list[Pass] = [
     resolve_contracts,
     unroll_set_aggregation,
     resolve_struct_accesses,
+    resolve_array_accesses,
     compute_atomics, 
     optimize_rewrite_rules,
     optimize_eqsat,

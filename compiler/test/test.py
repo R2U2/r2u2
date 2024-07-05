@@ -130,8 +130,7 @@ def run_test(test: dict) -> bool:
 
             prefix_output_path.unlink()
     except FileNotFoundError:
-        print_fail(f"{test['input']}: file does not exist")
-        return False
+        status = False
 
     if status:
         print_pass(f"{test['input']}")

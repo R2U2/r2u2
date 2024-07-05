@@ -110,7 +110,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if symbol in context.bound_vars:
                 set_expr = context.bound_vars[symbol]
-                if not types.is_set_type(set_expr.type):
+                if not types.is_array_type(set_expr.type):
                     log.internal(
                         MODULE_CODE,
                         f"Set aggregation set not assigned to type 'set', found '{set_expr.type}'\n\t"
@@ -119,7 +119,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
 
-                set_expr_type = cast(types.SetType, set_expr.type)
+                set_expr_type = cast(types.ArrayType, set_expr.type)
                 expr.type = set_expr_type.member_type
             elif symbol in context.variables:
                 expr.type = context.variables[symbol]
@@ -146,7 +146,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             else:
                 log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
                 return False
-        elif isinstance(expr, cpt.SetExpression):
+        elif isinstance(expr, cpt.ArrayExpression):
             new_type: types.Type = types.NoType()
             is_const: bool = True
 
@@ -163,7 +163,19 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
 
-            expr.type = types.SetType(new_type, is_const)
+            expr.type = types.ArrayType(new_type, is_const)
+        elif isinstance(expr, cpt.ArrayAccess):
+            array = expr.get_array()
+            if not types.is_array_type(array.type):
+                log.error(
+                    MODULE_CODE,
+                    f"Array access on a non-array expression '{array}' ({expr})",
+                    expr.loc
+                )
+                return False
+
+            array_type = cast(types.ArrayType, array.type)
+            expr.type = array_type.member_type
         elif isinstance(expr, cpt.Struct):
             is_const: bool = True
 
@@ -242,10 +254,10 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = types.StructType(expr.symbol, is_const)
         elif isinstance(expr, cpt.SetAggregation):
-            s: cpt.SetExpression = expr.get_set()
+            s: cpt.ArrayExpression = expr.get_set()
             boundvar: cpt.Variable = expr.bound_var
 
-            if isinstance(s.type, types.SetType):
+            if isinstance(s.type, types.ArrayType):
                 context.add_variable(boundvar.symbol, s.type.member_type)
             else:
                 log.error(

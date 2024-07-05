@@ -207,7 +207,7 @@ def validate_input(
         endian_sigil = "@"
 
     impl = R2U2_IMPL_MAP[impl_str]
-    types.set_types(impl, int_width, int_is_signed, float_width)
+    types.configure_types(impl, int_width, int_is_signed, float_width)
 
     if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
         if enable_extops:
