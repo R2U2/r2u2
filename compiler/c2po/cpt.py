@@ -1296,7 +1296,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1399,7 +1399,7 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"

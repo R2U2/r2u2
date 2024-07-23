@@ -401,8 +401,7 @@ class C2POParser(sly.Parser):
     # Function/struct constructor expression nonempty arguments
     @_("SYMBOL LPAREN expr expr_list RPAREN")
     def expr(self, p):
-        p[3].append(p[2])
-        p[3].reverse()
+        p[3].insert(0, p[2])
         return cpt.FunctionCall(log.FileLocation(self.filename, p.lineno), p[0], p[3])
 
     # Function/struct constructor expression empty arguments
