@@ -209,8 +209,8 @@ class ArrayAccess(Expression):
         self.index = index
         self.symbol = "[]"
 
-    def get_array(self) -> Struct:
-        return cast(Struct, self.children[0])
+    def get_array(self) -> Expression:
+        return self.children[0]
 
     def get_index(self) -> int:
         return self.index
@@ -1416,15 +1416,11 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + "} "
         elif isinstance(expr, ArrayAccess):
-            if seen == len(expr.children):
-                s = s[:-1] + "] "
-            elif seen == 0:
+            if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             elif seen == 1:
-                s = s[:-1] + "["
-                stack.append((seen + 1, expr))
-                stack.append((0, expr.children[1]))
+                s = s[:-1] + f"[{expr.index}] "
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):

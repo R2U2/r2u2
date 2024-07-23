@@ -163,18 +163,26 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
 
-            expr.type = types.ArrayType(new_type, is_const)
+            expr.type = types.ArrayType(
+                new_type, is_const=is_const, size=len(expr.children)
+            )
         elif isinstance(expr, cpt.ArrayAccess):
-            array = expr.get_array()
-            if not types.is_array_type(array.type):
+            array_type = expr.get_array().type
+            if not isinstance(array_type, types.ArrayType):
                 log.error(
                     MODULE_CODE,
-                    f"Array access on a non-array expression '{array}' ({expr})",
-                    expr.loc
+                    f"Array access on a non-array expression ({expr})",
+                    expr.loc,
                 )
                 return False
 
-            array_type = cast(types.ArrayType, array.type)
+            if abs(expr.index) > array_type.size:
+                log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+                return False
+
+            if expr.index < 0:
+                expr.index = -expr.index
+
             expr.type = array_type.member_type
         elif isinstance(expr, cpt.Struct):
             is_const: bool = True
@@ -582,6 +590,21 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     )
 
                 context.add_signal(signal, declaration.type)
+
+                if not isinstance(declaration.type, types.ArrayType):
+                    continue
+
+                signals = [
+                    cpt.Signal(
+                        declaration.loc, f"{signal}[{i}]", declaration.type.member_type
+                    )
+                    for i in range(0, declaration.type.size)
+                ]
+                signal_array = cpt.ArrayExpression(
+                    declaration.loc, cast("list[cpt.Expression]", signals)
+                )
+                signal_array.type = declaration.type
+                context.add_definition(signal, signal_array)
     elif isinstance(section, cpt.DefineSection):
         for definition in section.defines:
             if definition.symbol in context.get_symbols():

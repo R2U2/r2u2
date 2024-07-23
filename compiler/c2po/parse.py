@@ -223,6 +223,9 @@ class C2POParser(sly.Parser):
             signal_decl = cpt.VariableDeclaration(ln, variables, type)
             signal_declarations.append(signal_decl)
 
+            if isinstance(type, types.ArrayType):
+                continue
+
             for var in variables:
                 self.literals[var] = cpt.Signal
 
@@ -264,6 +267,19 @@ class C2POParser(sly.Parser):
     @_("type LBRACK RBRACK")
     def type(self, p):
         return types.ArrayType(p[0])
+    
+    # Array type
+    @_("type LBRACK NUMERAL RBRACK")
+    def type(self, p):
+        size = int(p[2])
+        if size < 0:
+            log.error(
+                MODULE_CODE, 
+                f"Array sizes must be greater than zero (found '{size}')", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
+        return types.ArrayType(p[0], size=size)
 
     @_("KW_DEFINE definition definition_list")
     def define_section(self, p):
@@ -590,7 +606,15 @@ class C2POParser(sly.Parser):
 
     @_("NUMERAL")
     def bound(self, p):
-        return int(p[0])
+        num = int(p[0])
+        if int(p[0]) < 0:
+            log.error(
+                MODULE_CODE, 
+                f"Interval bounds must be greater than zero (found '{num}')", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
+        return num
 
     @_("TL_MISSION_TIME")
     def bound(self, p):

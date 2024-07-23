@@ -117,9 +117,10 @@ class ContractValueType(Type):
 class ArrayType(Type):
     """Array C2PO type."""
 
-    def __init__(self, member_type: Type, is_const: bool = False):
+    def __init__(self, member_type: Type, is_const: bool = False, size: int = -1):
         super().__init__(BaseType.ARRAY, is_const, f"{member_type}[]")
         self.member_type: Type = member_type
+        self.size: int = size
 
     def __eq__(self, arg: object) -> bool:
         if super().__eq__(arg):
@@ -128,6 +129,8 @@ class ArrayType(Type):
         return False
 
     def __str__(self) -> str:
+        if self.size >= 0:
+            return f"{self.member_type}[{self.size}]"
         return f"{self.member_type}[]"
     
 
