@@ -1283,7 +1283,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):

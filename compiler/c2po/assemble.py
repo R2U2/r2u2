@@ -295,12 +295,12 @@ class FieldType(Enum):
 field_format_str_map = {
     FieldType.ENGINE_TAG: "B",
     FieldType.INSTR_SIZE: "B",
-    FieldType.BZ_ID: "B",
-    FieldType.BZ_OPERATOR: "i",
-    FieldType.BZ_STORE_ATOMIC: "B",
-    FieldType.BZ_ATOMIC_ID: "B",
-    FieldType.BZ_OPERAND_INT: "lxxxx",
+    FieldType.BZ_ID: "I",
+    FieldType.BZ_OPERAND_INT: "ixxxx",
     FieldType.BZ_OPERAND_FLOAT: "d",
+    FieldType.BZ_OPERATOR: "I",
+    FieldType.BZ_ATOMIC_ID: "I",
+    FieldType.BZ_STORE_ATOMIC: "?",
     FieldType.AT_VALUE: "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
     FieldType.AT_SIGNAL: "B",
@@ -977,8 +977,8 @@ def pack_bz_instruction(
     )
     format_str += format_strs[FieldType.BZ_OPERATOR]
     format_str += format_strs[FieldType.BZ_ID]
-    format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
     format_str += format_strs[FieldType.BZ_ATOMIC_ID]
+    format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
 
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
@@ -989,8 +989,8 @@ def pack_bz_instruction(
         instruction.operand2,
         instruction.operator.value,
         instruction.id,
-        instruction.store_atomic,
         instruction.atomic_id,
+        instruction.store_atomic,
     )
 
     return binary

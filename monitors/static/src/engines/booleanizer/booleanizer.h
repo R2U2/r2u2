@@ -59,9 +59,9 @@ typedef struct r2u2_bz_instruction {
     r2u2_bz_param_t param1;
     r2u2_bz_param_t param2;
     r2u2_bz_opcode_t opcode;
-    uint8_t addr;
-    uint8_t store;
-    uint8_t at_addr;
+    uint32_t addr;
+    uint32_t at_addr;
+    bool store;
 } r2u2_bz_instruction_t;
 
 
