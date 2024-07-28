@@ -67,6 +67,13 @@ class BZOperator(Enum):
     IDIV = 0b011101
     FDIV = 0b011110
     MOD = 0b011111
+    IPOW  = 0b100000
+    FPOW  = 0b100001
+    ISQRT = 0b100010
+    FSQRT = 0b100011
+    IABS = 0b100100
+    FABS = 0b100101
+
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
@@ -93,6 +100,12 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
     (cpt.OperatorKind.ARITHMETIC_MODULO, True): BZOperator.MOD,
+    (cpt.OperatorKind.ARITHMETIC_POWER, True): BZOperator.IPOW,
+    (cpt.OperatorKind.ARITHMETIC_POWER, False): BZOperator.FPOW,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, True): BZOperator.ISQRT,
+    (cpt.OperatorKind.ARITHMETIC_SQRT, False): BZOperator.FSQRT,
+    (cpt.OperatorKind.ARITHMETIC_ABS, True): BZOperator.IABS,
+    (cpt.OperatorKind.ARITHMETIC_ABS, False): BZOperator.FABS,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
     (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
     (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,

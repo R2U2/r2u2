@@ -422,6 +422,10 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+    ARITHMETIC_POWER = "pow"
+    ARITHMETIC_SQRT = "sqrt"
+    ARITHMETIC_ABS = "abs"
+
 
     # Relational
     EQUAL = "=="
@@ -567,6 +571,24 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticPower(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
+    
+    @staticmethod
+    def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
+
 
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
@@ -778,6 +800,9 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
+        OperatorKind.ARITHMETIC_POWER,
+        OperatorKind.ARITHMETIC_SQRT,
+        OperatorKind.ARITHMETIC_ABS,
     }
 
 

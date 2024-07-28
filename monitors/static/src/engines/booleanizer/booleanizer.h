@@ -45,6 +45,12 @@ typedef enum r2u2_bz_opcode {
     R2U2_BZ_OP_IDIV    = 0b011101,
     R2U2_BZ_OP_FDIV    = 0b011110,
     R2U2_BZ_OP_MOD     = 0b011111,
+    R2U2_BZ_OP_IPOW    = 0b100000,
+    R2U2_BZ_OP_FPOW    = 0b100001,
+    R2U2_BZ_OP_ISQRT   = 0b100010,
+    R2U2_BZ_OP_FSQRT   = 0b100011,
+    R2U2_BZ_OP_IABS    = 0b100100,
+    R2U2_BZ_OP_FABS    = 0b100101,
 } r2u2_bz_opcode_t;
 
 // Booleanizer parameters are one of:
