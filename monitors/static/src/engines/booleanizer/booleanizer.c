@@ -402,6 +402,20 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tb%d = %f = abs %f (abs b%d)\n", inst_buff.addr,
                 f2, f1, inst_buff.param1.bz_addr);
             break;
+        case R2U2_BZ_OP_IPREV:
+            i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
+            (*monitor->value_buffer)[inst_buff.addr].i = i1;
+
+            R2U2_DEBUG_PRINT("\tBZ IPREV\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", inst_buff.addr, i1, inst_buff.param1.bz_addr);
+            break;
+        case R2U2_BZ_OP_FPREV:
+            f1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].f;
+            (*monitor->value_buffer)[inst_buff.addr].f = f1;
+
+            R2U2_DEBUG_PRINT("\tBZ FPREV\n");
+            R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", inst_buff.addr, f1, inst_buff.param1.bz_addr);
+            break;
         default:
             R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
             break;

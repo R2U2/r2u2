@@ -73,6 +73,8 @@ class BZOperator(Enum):
     FSQRT = 0b100011
     IABS = 0b100100
     FABS = 0b100101
+    IPREV = 0b100110
+    FPREV = 0b100111
 
 
     def is_constant(self) -> bool:
@@ -106,6 +108,10 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_SQRT, False): BZOperator.FSQRT,
     (cpt.OperatorKind.ARITHMETIC_ABS, True): BZOperator.IABS,
     (cpt.OperatorKind.ARITHMETIC_ABS, False): BZOperator.FABS,
+    (cpt.OperatorKind.PREVIOUS, True): BZOperator.IPREV,
+    (cpt.OperatorKind.PREVIOUS, False): BZOperator.FPREV,
+    (cpt.OperatorKind.ARITHMETIC_RATE, True): BZOperator.ISUB,
+    (cpt.OperatorKind.ARITHMETIC_RATE, False): BZOperator.FSUB,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
     (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
     (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,
@@ -866,6 +872,13 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             if len(cg_instructions[expr]) > 0:
                 eid_map[expr] = duoqs
                 duoqs += 1
+
+    # Move all PREV booleanizer instructions to the end (i.e., always update the 'previous' 
+    # value after current iteration)
+    for key in list(bz_instructions):
+        if bz_instructions[key].operator is BZOperator.IPREV or \
+                bz_instructions[key].operator is BZOperator.FPREV:
+            bz_instructions[key] = bz_instructions.pop(key)
 
     # Replace effective ID with duoq id in pt temporal operators
     for expr, duoq_id in eid_map.items():

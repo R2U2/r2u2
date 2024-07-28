@@ -18,7 +18,7 @@ class C2POLexer(sly.Lexer):
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, #ARITH_PM,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
@@ -65,6 +65,7 @@ class C2POLexer(sly.Lexer):
     # ARITH_PM    = r"\+/-|±"
 
     # Others
+    RATE = r'rate'
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
@@ -133,9 +134,9 @@ class C2POParser(sly.Parser):
         ("left", REL_GT, REL_LT, REL_GTE, REL_LTE),
         ("left", BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ("left", ARITH_ADD, ARITH_SUB),
-        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS),
+        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT)
+        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -435,6 +436,15 @@ class C2POParser(sly.Parser):
     @_("ARITH_ABS expr")
     def expr(self, p):
         return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[1])
+    
+    @_("expr")
+    def rate(self, p):
+        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[0])
+
+    @_("RATE LPAREN rate RPAREN")
+    def expr(self, p):
+        return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
+
 
     # Binary expressions
     @_("expr LOG_XOR expr")
