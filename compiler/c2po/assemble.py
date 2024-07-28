@@ -51,20 +51,22 @@ class BZOperator(Enum):
     IGT = 0b001101
     FGT = 0b001110
     IGTE = 0b001111
-    ILT = 0b010000
-    FLT = 0b010001
-    ILTE = 0b010010
-    INEG = 0b010011
-    FNEG = 0b010100
-    IADD = 0b010101
-    FADD = 0b010110
-    ISUB = 0b010111
-    FSUB = 0b011000
-    IMUL = 0b011001
-    FMUL = 0b011010
-    IDIV = 0b011011
-    FDIV = 0b011100
-    MOD = 0b011101
+    FGTE = 0b010000
+    ILT = 0b010001
+    FLT = 0b010010
+    ILTE = 0b010011
+    FLTE = 0b010100
+    INEG = 0b010101
+    FNEG = 0b010110
+    IADD = 0b010111
+    FADD = 0b011000
+    ISUB = 0b011001
+    FSUB = 0b011010
+    IMUL = 0b011011
+    FMUL = 0b011100
+    IDIV = 0b011101
+    FDIV = 0b011110
+    MOD = 0b011111
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
@@ -98,11 +100,11 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.GREATER_THAN, True): BZOperator.IGT,
     (cpt.OperatorKind.GREATER_THAN, False): BZOperator.FGT,
     (cpt.OperatorKind.GREATER_THAN_OR_EQUAL, True): BZOperator.IGTE,
-    (cpt.OperatorKind.GREATER_THAN_OR_EQUAL, False): BZOperator.FGT,
+    (cpt.OperatorKind.GREATER_THAN_OR_EQUAL, False): BZOperator.FGTE,
     (cpt.OperatorKind.LESS_THAN, True): BZOperator.ILT,
     (cpt.OperatorKind.LESS_THAN, False): BZOperator.FLT,
     (cpt.OperatorKind.LESS_THAN_OR_EQUAL, True): BZOperator.ILTE,
-    (cpt.OperatorKind.LESS_THAN_OR_EQUAL, False): BZOperator.FLT,
+    (cpt.OperatorKind.LESS_THAN_OR_EQUAL, False): BZOperator.FLTE,
 }
 
 

@@ -106,7 +106,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
 
             (*monitor->value_buffer)[inst_buff.addr].b = b;
 
-            R2U2_DEBUG_PRINT("\tBZ FLT\n");
+            R2U2_DEBUG_PRINT("\tBZ FEQ\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f == %f +- %f (b%d == b%d +- %f)\n", inst_buff.addr,
                 b, f1, f2, R2U2_FLOAT_EPSILON, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr, R2U2_FLOAT_EPSILON);
             break;
@@ -164,6 +164,17 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d >= %d (b%d >= b%d)\n", inst_buff.addr,
                 b, i1, i2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
             break;
+        case R2U2_BZ_OP_FGTE:
+            f1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].f;
+            f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
+            b = (f1 > f2 - R2U2_FLOAT_EPSILON);
+
+            (*monitor->value_buffer)[inst_buff.addr].b = b;
+
+            R2U2_DEBUG_PRINT("\tBZ FGTE\n");
+            R2U2_DEBUG_PRINT("\tb%d = %hhu = %f >= %f - %f (b%d == b%d - %f)\n", inst_buff.addr,
+                b, f1, f2, R2U2_FLOAT_EPSILON, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr, R2U2_FLOAT_EPSILON);
+            break;
         case R2U2_BZ_OP_ILT:
             i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
@@ -196,6 +207,17 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ ILTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d <= %d (b%d <= b%d)\n", inst_buff.addr,
                 b, i1, i2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
+            break;
+        case R2U2_BZ_OP_FLTE:
+            f1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].f;
+            f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
+            b = (f1 < f2 + R2U2_FLOAT_EPSILON);
+
+            (*monitor->value_buffer)[inst_buff.addr].b = b;
+
+            R2U2_DEBUG_PRINT("\tBZ FGTE\n");
+            R2U2_DEBUG_PRINT("\tb%d = %hhu = %f <= %f + %f (b%d == b%d + %f)\n", inst_buff.addr,
+                b, f1, f2, R2U2_FLOAT_EPSILON, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr, R2U2_FLOAT_EPSILON);
             break;
         /* Arithmetic */
         case R2U2_BZ_OP_INEG:

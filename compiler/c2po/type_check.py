@@ -462,25 +462,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if expr.operator in {
-                cpt.OperatorKind.EQUAL,
-                cpt.OperatorKind.NOT_EQUAL,
-            }:
-                if lhs.type == types.FloatType():
-                    log.error(
-                        MODULE_CODE,
-                        f"Equality invalid for float expressions ({lhs}).\n\t{expr}",
-                        expr.loc,
-                    )
-                    return False
-                if rhs.type == types.FloatType():
-                    log.error(
-                        MODULE_CODE,
-                        f"Equality invalid for float expressions ({rhs}).\n\t{expr}",
-                        expr.loc,
-                    )
-                    return False
-
             expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
         elif cpt.is_logical_operator(expr):
             expr = cast(cpt.Operator, expr)
