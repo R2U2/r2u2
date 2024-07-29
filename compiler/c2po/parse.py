@@ -429,13 +429,13 @@ class C2POParser(sly.Parser):
     def expr(self, p):
         return cpt.Operator.ArithmeticNegate(log.FileLocation(self.filename, p.lineno), p[1])
     
-    @_("ARITH_SQRT expr")
+    @_("ARITH_SQRT LPAREN expr RPAREN")
     def expr(self, p):
-        return cpt.Operator.ArithmeticSqrt(log.FileLocation(self.filename, p.lineno), p[1])
+        return cpt.Operator.ArithmeticSqrt(log.FileLocation(self.filename, p.lineno), p[2])
     
-    @_("ARITH_ABS expr")
+    @_("ARITH_ABS LPAREN expr RPAREN")
     def expr(self, p):
-        return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[1])
+        return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[2])
     
     @_("expr")
     def rate(self, p):
