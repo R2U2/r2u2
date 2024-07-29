@@ -6,14 +6,14 @@ TL n4  global n0
 TL n5  return n4 2
 TL n6  eventually n0
 TL n7  return n6 3
-CG TL DUOQ q0 |3|
+CG TL DUOQ q0 |1|
 CG TL DUOQ q1 |1|
-CG TL DUOQ q2 |3|
+CG TL DUOQ q2 |1|
 CG TL DUOQ q3 |1|
-CG TL DUOQ q4 |7|
+CG TL DUOQ q4 |5|
 CG TL TEMP q4 [5, 10]
 CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |7|
+CG TL DUOQ q6 |5|
 CG TL TEMP q6 [5, 10]
 CG TL DUOQ q7 |1|
 F __f0__ 0

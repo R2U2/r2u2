@@ -1093,7 +1093,7 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
-        self.theoretical_scq_size = -1
+        self.total_scq_size = -1
 
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
