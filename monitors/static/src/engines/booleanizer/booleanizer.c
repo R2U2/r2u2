@@ -216,7 +216,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
 
             (*monitor->value_buffer)[inst_buff.addr].b = b;
 
-            R2U2_DEBUG_PRINT("\tBZ FGTE\n");
+            R2U2_DEBUG_PRINT("\tBZ FLTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f <= %f + %f (b%d == b%d + %f)\n", inst_buff.addr,
                 b, f1, f2, R2U2_FLOAT_EPSILON, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr, R2U2_FLOAT_EPSILON);
             break;
@@ -379,7 +379,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             (*monitor->value_buffer)[inst_buff.addr].f = f2;
 
             R2U2_DEBUG_PRINT("\tBZ FSQRT\n");
-            R2U2_DEBUG_PRINT("\tb%d = %f = sqrt%f (sqrt b%d)\n", inst_buff.addr,
+            R2U2_DEBUG_PRINT("\tb%d = %f = sqrt %f (sqrt b%d)\n", inst_buff.addr,
                 f2, f1, inst_buff.param1.bz_addr);
             break;
         case R2U2_BZ_OP_IABS:
