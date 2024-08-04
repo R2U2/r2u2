@@ -434,14 +434,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         if rhs.value < 0:
                             log.error(
                                 MODULE_CODE,
-                                f"Power function invalid for integer expressions with negative exponenents ({rhs}).\n\t{expr}",
+                                f"Power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
                                 expr.loc,
                             )
                             return False
                     else:
                         log.error(
                             MODULE_CODE,
-                            f"Power function invalid for integer expressions with possible negative integer exponenents ({rhs}).\n\t{expr}",
+                            f"Power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
                             expr.loc,
                         )
                         return False
