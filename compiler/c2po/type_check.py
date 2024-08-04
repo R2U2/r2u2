@@ -415,6 +415,36 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         expr.loc,
                     )
                     return False
+                
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_SQRT:
+                rhs: cpt.Expression = expr.children[0]
+                if rhs.type == types.IntType():
+                    log.error(
+                        MODULE_CODE,
+                        f"Square root invalid for integer expressions ({rhs}).\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+            
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_POWER:
+                lhs: cpt.Expression = expr.children[0]
+                rhs: cpt.Expression = expr.children[1]
+                if lhs.type == types.IntType():
+                    if isinstance(rhs, cpt.Constant):
+                        if rhs.value < 0:
+                            log.error(
+                                MODULE_CODE,
+                                f"Power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
+                                expr.loc,
+                            )
+                            return False
+                    else:
+                        log.error(
+                            MODULE_CODE,
+                            f"Power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
+                            expr.loc,
+                        )
+                        return False
 
             for child in expr.children:
                 if child.type != new_type:
