@@ -10,8 +10,7 @@ FTSPEC
     (i0 * i1) > 0;
     (i0 / i1) > 0;
     (i0 % i1) > 0;
-    (i0 pow i1) > 0;
-    sqrt(i0) > 0;
+    (i0 pow 2) > 0;
     abs(i0) > 0;
     rate(i0) > 0;
 

@@ -3,8 +3,7 @@ INPUT
     f0, f1: float;
 
 FTSPEC
-    (i0 pow i1) > 1;
-    sqrt(i0) > 1;
+    (i0 pow 2) > 1;
     abs(i0) > 1;
     rate(i0) > 1;
         

@@ -13,37 +13,36 @@ BZ b11 idiv   0 4
 BZ b12 igt    11 2
 BZ b13 mod    0 4
 BZ b14 igt    13 2
-BZ b15 ipow   0 4
-BZ b16 igt    15 2
-BZ b17 isqrt  0 0
-BZ b18 igt    17 2
-BZ b19 iabs   0 0
-BZ b20 igt    19 2
-BZ b22 isub   0 21
-BZ b23 igt    22 2
-BZ b24 fload  10 0
-BZ b25 fneg   24 0
-BZ b26 fconst 0.0 0
-BZ b27 fgt    25 26
-BZ b28 fload  11 0
-BZ b29 fadd   24 28
-BZ b30 fgt    29 26
-BZ b31 fsub   24 28
-BZ b32 fgt    31 26
-BZ b33 fmul   24 28
-BZ b34 fgt    33 26
-BZ b35 fdiv   24 28
-BZ b36 fgt    35 26
-BZ b37 fpow   24 28
-BZ b38 fgt    37 26
-BZ b39 fsqrt  24 0
-BZ b40 fgt    39 26
-BZ b41 fabs   24 0
-BZ b42 fgt    41 26
-BZ b44 fsub   24 43
-BZ b45 fgt    44 26
-BZ b21 iprev  0 0
-BZ b43 fprev  24 0
+BZ b15 iconst 2 0
+BZ b16 ipow   0 15
+BZ b17 igt    16 2
+BZ b18 iabs   0 0
+BZ b19 igt    18 2
+BZ b21 isub   0 20
+BZ b22 igt    21 2
+BZ b23 fload  10 0
+BZ b24 fneg   23 0
+BZ b25 fconst 0.0 0
+BZ b26 fgt    24 25
+BZ b27 fload  11 0
+BZ b28 fadd   23 27
+BZ b29 fgt    28 25
+BZ b30 fsub   23 27
+BZ b31 fgt    30 25
+BZ b32 fmul   23 27
+BZ b33 fgt    32 25
+BZ b34 fdiv   23 27
+BZ b35 fgt    34 25
+BZ b36 fpow   23 27
+BZ b37 fgt    36 25
+BZ b38 fsqrt  23 0
+BZ b39 fgt    38 25
+BZ b40 fabs   23 0
+BZ b41 fgt    40 25
+BZ b43 fsub   23 42
+BZ b44 fgt    43 25
+BZ b20 iprev  0 0
+BZ b42 fprev  23 0
 TL n0  load   a0
 TL n1  return n0 0
 TL n2  load   a1
@@ -80,8 +79,6 @@ TL n32 load   a16
 TL n33 return n32 16
 TL n34 load   a17
 TL n35 return n34 17
-TL n36 load   a18
-TL n37 return n36 18
 CG TL DUOQ q0 |3|
 CG TL DUOQ q1 |1|
 CG TL DUOQ q2 |3|
@@ -118,8 +115,6 @@ CG TL DUOQ q32 |3|
 CG TL DUOQ q33 |1|
 CG TL DUOQ q34 |3|
 CG TL DUOQ q35 |1|
-CG TL DUOQ q36 |3|
-CG TL DUOQ q37 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
@@ -138,4 +133,3 @@ F __f14__ 14
 F __f15__ 15
 F __f16__ 16
 F __f17__ 17
-F __f18__ 18

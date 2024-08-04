@@ -1,0 +1,9 @@
+[TYPC][[91mERR[0m] arithmetic_invalid.c2po:5: Power function invalid for integer expressions with negative exponenents (-1).
+	(i0)pow(-1)
+[TYPC][[91mERR[0m] arithmetic_invalid.c2po:6: Power function invalid for integer expressions with possible negative integer exponenents (i1).
+	(i0)pow(i1)
+[TYPC][[91mERR[0m] arithmetic_invalid.c2po:7: Square root invalid for integer expressions (1).
+	sqrt(1)
+[TYPC][[91mERR[0m] arithmetic_invalid.c2po:8: Square root invalid for integer expressions (i1).
+	sqrt(i1)
+[MAIN][[91mERR[0m] Failed type check
