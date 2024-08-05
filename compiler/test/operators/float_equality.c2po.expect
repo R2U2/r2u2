@@ -1,5 +1,0 @@
-[TYPC][[91mERR[0m] float_equality.c2po:6: Equality invalid for float expressions (f0).
-	(f0)==(f1)
-[TYPC][[91mERR[0m] float_equality.c2po:7: Equality invalid for float expressions (f0).
-	(f0)!=(f1)
-[MAIN][[91mERR[0m] Failed type check.

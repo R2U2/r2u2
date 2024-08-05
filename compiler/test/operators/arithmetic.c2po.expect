@@ -13,19 +13,36 @@ BZ b11 idiv   0 4
 BZ b12 igt    11 2
 BZ b13 mod    0 4
 BZ b14 igt    13 2
-BZ b15 fload  10 0
-BZ b16 fneg   15 0
-BZ b17 fconst 0.0 0
-BZ b18 fgt    16 17
-BZ b19 fload  11 0
-BZ b20 fadd   15 19
-BZ b21 fgt    20 17
-BZ b22 fsub   15 19
-BZ b23 fgt    22 17
-BZ b24 fmul   15 19
-BZ b25 fgt    24 17
-BZ b26 fdiv   15 19
-BZ b27 fgt    26 17
+BZ b15 iconst 2 0
+BZ b16 ipow   0 15
+BZ b17 igt    16 2
+BZ b18 iabs   0 0
+BZ b19 igt    18 2
+BZ b21 isub   0 20
+BZ b22 igt    21 2
+BZ b23 fload  10 0
+BZ b24 fneg   23 0
+BZ b25 fconst 0.0 0
+BZ b26 fgt    24 25
+BZ b27 fload  11 0
+BZ b28 fadd   23 27
+BZ b29 fgt    28 25
+BZ b30 fsub   23 27
+BZ b31 fgt    30 25
+BZ b32 fmul   23 27
+BZ b33 fgt    32 25
+BZ b34 fdiv   23 27
+BZ b35 fgt    34 25
+BZ b36 fpow   23 27
+BZ b37 fgt    36 25
+BZ b38 fsqrt  23 0
+BZ b39 fgt    38 25
+BZ b40 fabs   23 0
+BZ b41 fgt    40 25
+BZ b43 fsub   23 42
+BZ b44 fgt    43 25
+BZ b20 iprev  0 0
+BZ b42 fprev  23 0
 TL n0  load   a0
 TL n1  return n0 0
 TL n2  load   a1
@@ -48,6 +65,20 @@ TL n18 load   a9
 TL n19 return n18 9
 TL n20 load   a10
 TL n21 return n20 10
+TL n22 load   a11
+TL n23 return n22 11
+TL n24 load   a12
+TL n25 return n24 12
+TL n26 load   a13
+TL n27 return n26 13
+TL n28 load   a14
+TL n29 return n28 14
+TL n30 load   a15
+TL n31 return n30 15
+TL n32 load   a16
+TL n33 return n32 16
+TL n34 load   a17
+TL n35 return n34 17
 CG TL DUOQ q0 |3|
 CG TL DUOQ q1 |1|
 CG TL DUOQ q2 |3|
@@ -70,6 +101,20 @@ CG TL DUOQ q18 |3|
 CG TL DUOQ q19 |1|
 CG TL DUOQ q20 |3|
 CG TL DUOQ q21 |1|
+CG TL DUOQ q22 |3|
+CG TL DUOQ q23 |1|
+CG TL DUOQ q24 |3|
+CG TL DUOQ q25 |1|
+CG TL DUOQ q26 |3|
+CG TL DUOQ q27 |1|
+CG TL DUOQ q28 |3|
+CG TL DUOQ q29 |1|
+CG TL DUOQ q30 |3|
+CG TL DUOQ q31 |1|
+CG TL DUOQ q32 |3|
+CG TL DUOQ q33 |1|
+CG TL DUOQ q34 |3|
+CG TL DUOQ q35 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
@@ -81,3 +126,10 @@ F __f7__ 7
 F __f8__ 8
 F __f9__ 9
 F __f10__ 10
+F __f11__ 11
+F __f12__ 12
+F __f13__ 13
+F __f14__ 14
+F __f15__ 15
+F __f16__ 16
+F __f17__ 17

@@ -77,6 +77,23 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
+    
+    def get_descendants(self) -> list[Expression]:
+        prev_visited_children: list[Expression] = [self]
+        visited_children: list[Expression] = []
+        children: list[Expression] = []
+        while(True):  
+            for node in prev_visited_children:
+                for child in node.children:
+                    if not isinstance(child, SpecificationSet):
+                        visited_children.append(child)
+                        children.append(child)
+            if(len(visited_children) == 0):
+                return children
+            prev_visited_children = visited_children
+            visited_children = []
+   
+
 
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
@@ -440,6 +457,11 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+    ARITHMETIC_POWER = "pow"
+    ARITHMETIC_SQRT = "sqrt"
+    ARITHMETIC_ABS = "abs"
+    ARITHMETIC_RATE = "rate"
+
 
     # Relational
     EQUAL = "=="
@@ -470,6 +492,8 @@ class OperatorKind(enum.Enum):
 
     # Other
     COUNT = "count"
+    PREVIOUS = "prev"
+
 
     def is_booleanizer_operator(self) -> bool:
         return self in {
@@ -485,6 +509,10 @@ class OperatorKind(enum.Enum):
             OperatorKind.ARITHMETIC_DIVIDE,
             OperatorKind.ARITHMETIC_MODULO,
             OperatorKind.ARITHMETIC_NEGATE,
+            OperatorKind.ARITHMETIC_POWER,
+            OperatorKind.ARITHMETIC_SQRT,
+            OperatorKind.ARITHMETIC_ABS,
+            OperatorKind.ARITHMETIC_RATE,
             OperatorKind.GREATER_THAN,
             OperatorKind.GREATER_THAN_OR_EQUAL,
             OperatorKind.LESS_THAN,
@@ -585,10 +613,36 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticPower(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
+    
+    @staticmethod
+    def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
+
 
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
+        
+    @staticmethod
+    def RateFunction(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_RATE, [lhs, rhs])
+    
+    @staticmethod
+    def PreviousFunction(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.PREVIOUS, [operand])
 
     @staticmethod
     def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
@@ -796,6 +850,10 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
+        OperatorKind.ARITHMETIC_POWER,
+        OperatorKind.ARITHMETIC_SQRT,
+        OperatorKind.ARITHMETIC_ABS,
+        OperatorKind.ARITHMETIC_RATE,
     }
 
 
@@ -837,6 +895,10 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.SINCE,
     }
 
+def is_prev_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.PREVIOUS,
+    }
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
@@ -1324,7 +1386,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1433,7 +1495,7 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"

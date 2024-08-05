@@ -45,6 +45,11 @@
             "options": ["-bz", "--map", "default.map"]
         },
         {
+            "input": "operators/arithmetic_invalid.c2po", 
+            "expected_output": "operators/arithmetic_invalid.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
             "input": "operators/bitwise.c2po", 
             "expected_output": "operators/bitwise.c2po.expect", 
             "options": ["-bz", "--map", "default.map"]

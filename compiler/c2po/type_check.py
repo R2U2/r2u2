@@ -435,6 +435,36 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         expr.loc,
                     )
                     return False
+                
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_SQRT:
+                rhs: cpt.Expression = expr.children[0]
+                if rhs.type == types.IntType():
+                    log.error(
+                        MODULE_CODE,
+                        f"Square root invalid for integer expressions ({rhs}).\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+            
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_POWER:
+                lhs: cpt.Expression = expr.children[0]
+                rhs: cpt.Expression = expr.children[1]
+                if lhs.type == types.IntType():
+                    if isinstance(rhs, cpt.Constant):
+                        if rhs.value < 0:
+                            log.error(
+                                MODULE_CODE,
+                                f"Power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
+                                expr.loc,
+                            )
+                            return False
+                    else:
+                        log.error(
+                            MODULE_CODE,
+                            f"Power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
+                            expr.loc,
+                        )
+                        return False
 
             for child in expr.children:
                 if child.type != new_type:
@@ -482,25 +512,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if expr.operator in {
-                cpt.OperatorKind.EQUAL,
-                cpt.OperatorKind.NOT_EQUAL,
-            }:
-                if lhs.type == types.FloatType():
-                    log.error(
-                        MODULE_CODE,
-                        f"Equality invalid for float expressions ({lhs}).\n\t{expr}",
-                        expr.loc,
-                    )
-                    return False
-                if rhs.type == types.FloatType():
-                    log.error(
-                        MODULE_CODE,
-                        f"Equality invalid for float expressions ({rhs}).\n\t{expr}",
-                        expr.loc,
-                    )
-                    return False
-
             expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
         elif cpt.is_logical_operator(expr):
             expr = cast(cpt.Operator, expr)
@@ -517,6 +528,17 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = types.BoolType(is_const)
+        elif cpt.is_prev_operator(expr):
+            for child in expr.get_descendants():
+                if cpt.is_prev_operator(child):
+                    log.error(
+                        f"Invalid nested previous statements, ({child}).\n\t{expr}",
+                        MODULE_CODE,
+                        location=expr.loc,
+                    )
+                    return False
+            expr.type = expr.children[0].type
+
         else:
             log.error(
                 MODULE_CODE,

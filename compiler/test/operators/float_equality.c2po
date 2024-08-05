@@ -1,7 +1,0 @@
-INPUT
-    f0,f1: float;
-
-FTSPEC
-    f0 == f1;
-    f0 != f1;
-    
