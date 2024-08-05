@@ -286,6 +286,7 @@ test/results
 *.pickle
 pickle/
 venv/
+.venv/
 
 __*
 
