@@ -59,9 +59,6 @@ class C2POLexer(sly.Lexer):
     ARITH_MUL   = r"\*|•|⋅"
     ARITH_DIV   = r"/|÷"
     ARITH_MOD   = r"%"
-    ARITH_POW   = r'pow'
-    ARITH_SQRT  = r'sqrt|√'
-    ARITH_ABS   = r'abs'
     # ARITH_PM    = r"\+/-|±"
 
     # Others
@@ -93,6 +90,9 @@ class C2POLexer(sly.Lexer):
     SYMBOL["forexactly"] = KW_FOREXACTLY
     SYMBOL["foratleast"] = KW_FORATLEAST
     SYMBOL["foratmost"]  = KW_FORATMOST
+    SYMBOL["pow"] = ARITH_POW
+    SYMBOL["sqrt"] = ARITH_SQRT
+    SYMBOL["abs"] = ARITH_ABS
     SYMBOL["xor"] = LOG_XOR
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
