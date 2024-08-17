@@ -461,7 +461,6 @@ class C2POParser(sly.Parser):
     def expr(self, p):
         return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
 
-
     # Binary expressions
     @_("expr LOG_XOR expr")
     def expr(self, p):

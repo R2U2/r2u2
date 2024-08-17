@@ -68,10 +68,10 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-
+            
             if (
                 context.config.frontend is not types.R2U2Engine.BOOLEANIZER
-                and expr.type in {types.IntType, types.FloatType}
+                and expr.type in {types.IntType(), types.FloatType()}
             ):
                 log.error(
                     MODULE_CODE,
@@ -183,6 +183,16 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if expr.index < 0:
                 expr.index = -expr.index
 
+            # Hacky special case where the array is a signal array, we use a temporary signal to
+            # avoid repeating code
+            if isinstance(expr.get_array(), cpt.Variable):
+                tmp_signal = cpt.Signal(expr.loc, str(expr), array_type.member_type)
+                context.signals[str(expr)] = types.NoType()
+                status = type_check_expr(tmp_signal, context)
+                del context.signals[str(expr)]
+                if not status:
+                    return False
+
             expr.type = array_type.member_type
         elif isinstance(expr, cpt.Struct):
             is_const: bool = True
@@ -237,7 +247,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-
+            
             target_types = [m for m in context.structs[expr.symbol].values()]
             actual_types = [c.type for c in expr.children]
 

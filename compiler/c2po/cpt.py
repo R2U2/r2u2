@@ -1348,15 +1348,11 @@ def to_infix_str(start: Expression) -> str:
         if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
             s += expr.symbol
         elif isinstance(expr, ArrayAccess):
-            if seen == len(expr.children):
-                s += "]"
-            elif seen == 0:
+            if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             elif seen == 1:
-                s += "["
-                stack.append((seen + 1, expr))
-                stack.append((0, expr.children[1]))
+                s += f"[{expr.index}]"
         elif isinstance(expr, StructAccess):
             if seen == 0:
                 stack.append((seen + 1, expr))
