@@ -1,0 +1,18 @@
+STRUCT
+    Task: {
+        id: int;
+    };
+
+INPUT
+    sched: pred<int>;
+    exec: pred<int>;
+    in_Tasks: set<Task,10>;
+
+DEFINE
+    Tasks := {
+        Task(i) | i : 0..9
+    };
+
+FTSPEC
+    foreach(t : Tasks)(sched(t) -> F[0,3] exec(t));
+

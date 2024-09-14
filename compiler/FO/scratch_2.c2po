@@ -1,0 +1,16 @@
+STRUCT
+    Task: {
+        sched,exec: bool;
+    };
+
+INPUT
+    sched[10]: bool;
+    exec[10]: bool;
+
+DEFINE
+    Tasks := {
+        Task(sched[i],exec[i]) | i : 0..9
+    };
+
+FTSPEC
+    foreach(t : Tasks)(t.sched -> F[0,3] t.exec);

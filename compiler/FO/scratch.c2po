@@ -1,0 +1,45 @@
+STRUCT
+    Task: {
+        sched,exec: bool;
+    };
+
+    TaskArray: {
+        size: int;
+        tasks: Task[];
+    };
+
+    Sensor: {
+        value: float;
+        error_margin: float;
+    };
+
+    SensorArray {
+        max_error: float;
+        sensors: Sensor[];
+    };
+
+INPUT
+    sched: bool[4]; -- shorthand for "sched[0], sched[1], sched[2], sched[3]: bool"
+    exec: bool[4];
+
+    sensor_vals: float[6];
+
+DEFINE 
+    T0 := Task(sched[0], exec[0]);
+    T1 := Task(sched[1], exec[1]);
+    T2 := Task(sched[2], exec[2]);
+    T3 := Task(sched[3], exec[3]);
+
+    ScheduledTasks := {T0,T1,T2,T3};
+
+    ERR_1 := 0.5;
+    ERR_2 := 0.4;
+
+    
+
+FTSPEC
+    -- foreach(t : ScheduledTasks)(t.sched -> F[0,3] t.exec);
+
+    foreach(t : ScheduledTasks)(t.sched -> F[0,3] t.exec);
+
+    ScheduledTasks[3].sched; -- legal, ScheduledTasks is an array now
