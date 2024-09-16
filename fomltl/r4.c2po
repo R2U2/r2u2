@@ -1,0 +1,31 @@
+STRUCT
+    AirSensor: {
+        active, bad: bool;
+        value: float;
+    };
+
+INPUT
+    Active: bool[5];
+    Bad: bool[5];
+    Value: float[5];
+    S_avg: float;
+
+DEFINE
+    EPSILON := 0.2;
+
+    Sensors := {
+        AirSensor(Active[0], Bad[0], Value[0]),
+        AirSensor(Active[1], Bad[1], Value[1]),
+        AirSensor(Active[2], Bad[2], Value[2]),
+        AirSensor(Active[3], Bad[3], Value[3])
+    };
+
+FTSPEC
+    -- If the difference between an airspeed sensor value and the average value
+    -- of all airspeed sensors is more than "EPSILON", that sensor shall be 
+    -- marked "bad" within 20ms.
+    R4: foreach(air_sensor : Sensors)(
+            air_sensor.active ->
+                ((abs(air_sensor.value - S_avg) > EPSILON) 
+                -> F[0,20] (air_sensor.bad))
+        );

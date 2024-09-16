@@ -1,0 +1,26 @@
+STRUCT
+    Task: {
+        sched,exec: bool;
+    };
+
+INPUT
+    Scheduled: bool[10];
+    Exec: bool[10];
+
+DEFINE
+    Sched := {
+        Task(Scheduled[0], Exec[0]),
+        Task(Scheduled[1], Exec[1]),
+        Task(Scheduled[2], Exec[2]),
+        Task(Scheduled[3], Exec[3]),
+        Task(Scheduled[4], Exec[4]),
+        Task(Scheduled[5], Exec[5]),
+        Task(Scheduled[6], Exec[6]),
+        Task(Scheduled[7], Exec[7]),
+        Task(Scheduled[8], Exec[8]),
+        Task(Scheduled[9], Exec[9])
+    };
+
+FTSPEC
+    -- Each task in the scheduler shall execute within the next 5 seconds.
+    R1: foreach(t : Sched)(t.sched -> F[0,5] t.exec);
