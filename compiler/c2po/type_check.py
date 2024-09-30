@@ -637,6 +637,11 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 )
                 signal_array.type = declaration.type
                 context.add_definition(signal, signal_array)
+                [
+                    context.add_signal(f"{signal}[{i}]", declaration.type.member_type)
+                    for i in range(0, declaration.type.size)
+                ]
+                [type_check_expr(sig, context) for sig in signals]
     elif isinstance(section, cpt.DefineSection):
         for definition in section.defines:
             if definition.symbol in context.get_symbols():

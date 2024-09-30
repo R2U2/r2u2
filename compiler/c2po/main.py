@@ -87,7 +87,7 @@ def process_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
 
     lines = content.splitlines()
     for line in lines:
-        if re.match("[a-zA-Z_]\\w*:\\d+", line):
+        if re.match(r"[a-zA-Z_][a-zA-Z0-9_\[\]]*:\d+", line):
             strs = line.split(":")
             id = strs[0]
             sid = int(strs[1])

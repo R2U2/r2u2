@@ -1083,7 +1083,7 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             context.config.frontend is types.R2U2Engine.NONE 
             and isinstance(expr, cpt.Signal) 
         ):
-            if expr.signal_id < 0 and not context.config.assembly_enabled:
+            if expr.signal_id < 0 or not context.config.assembly_enabled:
                 context.atomic_id[expr] = aid
                 atomic_map[cpt.to_prefix_str(expr)] = aid
                 aid += 1
