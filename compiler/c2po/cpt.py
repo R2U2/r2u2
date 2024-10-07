@@ -1,9 +1,12 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
+
 from __future__ import annotations
 
 import copy
 import enum
 import pickle
+import dataclasses
+import pathlib
 from typing import Iterator, Optional, Union, cast, Any
 
 from c2po import log, types
@@ -45,7 +48,6 @@ class Expression(Node):
     ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
-        self.atomic_id: int = -1  # only set for atomic propositions
         self.total_scq_size: int = -1
         self.scq_size: int = -1
         self.bpd: int = 0
@@ -75,6 +77,23 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
+    
+    def get_descendants(self) -> list[Expression]:
+        prev_visited_children: list[Expression] = [self]
+        visited_children: list[Expression] = []
+        children: list[Expression] = []
+        while(True):  
+            for node in prev_visited_children:
+                for child in node.children:
+                    if not isinstance(child, SpecificationSet):
+                        visited_children.append(child)
+                        children.append(child)
+            if(len(visited_children) == 0):
+                return children
+            prev_visited_children = visited_children
+            visited_children = []
+   
+
 
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
@@ -107,7 +126,6 @@ class Expression(Node):
     def copy_attrs(self, new: Expression) -> None:
         new.symbol = self.symbol
         new.engine = self.engine
-        new.atomic_id = self.atomic_id
         new.scq_size = self.scq_size
         new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
@@ -170,13 +188,6 @@ class Signal(Expression):
         self.symbol: str = s
         self.type: types.Type = t
         self.signal_id: int = -1
-        self.engine = types.R2U2Engine.BOOLEANIZER
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, Signal) and __o.symbol == self.symbol
-
-    def __hash__(self) -> int:
-        return id(self)
 
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)
@@ -197,15 +208,33 @@ class AtomicChecker(Expression):
         return copy
 
 
-class SetExpression(Expression):
+class ArrayExpression(Expression):
     def __init__(self, loc: log.FileLocation, members: list[Expression]) -> None:
         super().__init__(loc, members)
-        members.sort(key=lambda x: str(x))
         self.max_size: int = len(members)
 
     def __deepcopy__(self, memo):
         children = [copy.deepcopy(c, memo) for c in self.children]
-        new = SetExpression(self.loc, children)
+        new = ArrayExpression(self.loc, children)
+        self.copy_attrs(new)
+        return new
+
+
+class ArrayAccess(Expression):
+    def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
+        super().__init__(loc, [array])
+        self.index = index
+        self.symbol = "[]"
+
+    def get_array(self) -> Expression:
+        return self.children[0]
+
+    def get_index(self) -> int:
+        return self.index
+
+    def __deepcopy__(self, memo) -> ArrayAccess:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = type(self)(self.loc, children[0], self.index)
         self.copy_attrs(new)
         return new
 
@@ -224,9 +253,9 @@ class Struct(Expression):
     def get_member(self, name: str) -> Optional[Expression]:
         if name not in self.members:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -234,9 +263,9 @@ class Struct(Expression):
 
         if member is None:
             log.internal(
+                MODULE_CODE,
                 f"Member '{name}' not in members of '{self.symbol}'",
-                module=MODULE_CODE,
-                location=self.loc,
+                self.loc,
             )
             return None
 
@@ -284,7 +313,7 @@ class Bind(Expression):
     """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
 
     def __init__(
-        self, loc: log.FileLocation, var: Variable, set: SetExpression
+        self, loc: log.FileLocation, var: Variable, set: ArrayExpression
     ) -> None:
         super().__init__(loc, [])
         self.bound_var = var
@@ -293,7 +322,7 @@ class Bind(Expression):
     def get_bound_var(self) -> Variable:
         return self.bound_var
 
-    def get_set(self) -> SetExpression:
+    def get_set(self) -> ArrayExpression:
         return self.set_expr
 
     def __str__(self) -> str:
@@ -330,7 +359,7 @@ class SetAggregation(Expression):
         loc: log.FileLocation,
         operator: SetAggregationKind,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Optional[Expression],
         expr: Expression,
     ) -> None:
@@ -344,13 +373,13 @@ class SetAggregation(Expression):
 
     @staticmethod
     def ForEach(
-        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+        loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
     ) -> SetAggregation:
         return SetAggregation(loc, SetAggregationKind.FOR_EACH, var, set, None, expr)
 
     @staticmethod
     def ForSome(
-        loc: log.FileLocation, var: Variable, set: SetExpression, expr: Expression
+        loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
     ) -> SetAggregation:
         return SetAggregation(loc, SetAggregationKind.FOR_SOME, var, set, None, expr)
 
@@ -358,7 +387,7 @@ class SetAggregation(Expression):
     def ForExactly(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -368,7 +397,7 @@ class SetAggregation(Expression):
     def ForAtMost(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -378,7 +407,7 @@ class SetAggregation(Expression):
     def ForAtLeast(
         loc: log.FileLocation,
         var: Variable,
-        set: SetExpression,
+        set: ArrayExpression,
         num: Expression,
         expr: Expression,
     ) -> SetAggregation:
@@ -391,8 +420,8 @@ class SetAggregation(Expression):
             )
         return self.children[1]
 
-    def get_set(self) -> SetExpression:
-        return cast(SetExpression, self.children[0])
+    def get_set(self) -> ArrayExpression:
+        return cast(ArrayExpression, self.children[0])
 
     def get_expr(self) -> Expression:
         """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
@@ -404,7 +433,7 @@ class SetAggregation(Expression):
             self.loc,
             self.operator,
             cast(Variable, copy.deepcopy(self.bound_var, memo)),
-            cast(SetExpression, children[0]),
+            cast(ArrayExpression, children[0]),
             children[1] if len(self.children) == 4 else None,
             cast(Expression, children[-1]),
         )
@@ -428,6 +457,11 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
+    ARITHMETIC_POWER = "pow"
+    ARITHMETIC_SQRT = "sqrt"
+    ARITHMETIC_ABS = "abs"
+    ARITHMETIC_RATE = "rate"
+
 
     # Relational
     EQUAL = "=="
@@ -458,6 +492,33 @@ class OperatorKind(enum.Enum):
 
     # Other
     COUNT = "count"
+    PREVIOUS = "prev"
+
+
+    def is_booleanizer_operator(self) -> bool:
+        return self in {
+            OperatorKind.BITWISE_AND,
+            OperatorKind.BITWISE_OR,
+            OperatorKind.BITWISE_XOR,
+            OperatorKind.BITWISE_NEGATE,
+            OperatorKind.SHIFT_LEFT,
+            OperatorKind.SHIFT_RIGHT,
+            OperatorKind.ARITHMETIC_ADD,
+            OperatorKind.ARITHMETIC_SUBTRACT,
+            OperatorKind.ARITHMETIC_MULTPLY,
+            OperatorKind.ARITHMETIC_DIVIDE,
+            OperatorKind.ARITHMETIC_MODULO,
+            OperatorKind.ARITHMETIC_NEGATE,
+            OperatorKind.ARITHMETIC_POWER,
+            OperatorKind.ARITHMETIC_SQRT,
+            OperatorKind.ARITHMETIC_ABS,
+            OperatorKind.ARITHMETIC_RATE,
+            OperatorKind.GREATER_THAN,
+            OperatorKind.GREATER_THAN_OR_EQUAL,
+            OperatorKind.LESS_THAN,
+            OperatorKind.LESS_THAN_OR_EQUAL,
+            OperatorKind.COUNT,
+        }
 
 
 class Operator(Expression):
@@ -552,10 +613,36 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticPower(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        type: types.Type = types.NoType(),
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
+    
+    @staticmethod
+    def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
+    
+    @staticmethod
+    def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
+
 
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
+        
+    @staticmethod
+    def RateFunction(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+        return Operator(loc, OperatorKind.ARITHMETIC_RATE, [lhs, rhs])
+    
+    @staticmethod
+    def PreviousFunction(loc: log.FileLocation, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.PREVIOUS, [operand])
 
     @staticmethod
     def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
@@ -721,6 +808,31 @@ def is_operator(expr: Expression, operator: OperatorKind) -> bool:
     return isinstance(expr, Operator) and expr.operator is operator
 
 
+def is_commutative_operator(expr) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.LOGICAL_XOR,
+        OperatorKind.LOGICAL_EQUIV,
+        OperatorKind.BITWISE_AND,
+        OperatorKind.BITWISE_OR,
+        OperatorKind.BITWISE_XOR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.EQUAL,
+        OperatorKind.NOT_EQUAL,
+    }
+
+
+def is_multi_arity_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.LOGICAL_AND,
+        OperatorKind.LOGICAL_OR,
+        OperatorKind.ARITHMETIC_ADD,
+        OperatorKind.ARITHMETIC_MULTPLY,
+    }
+
+
 def is_bitwise_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.BITWISE_AND,
@@ -738,6 +850,10 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
+        OperatorKind.ARITHMETIC_POWER,
+        OperatorKind.ARITHMETIC_SQRT,
+        OperatorKind.ARITHMETIC_ABS,
+        OperatorKind.ARITHMETIC_RATE,
     }
 
 
@@ -779,6 +895,10 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.SINCE,
     }
 
+def is_prev_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.PREVIOUS,
+    }
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
@@ -991,6 +1111,8 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
+        self.theoretical_scq_size = -1
+
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:
@@ -1029,16 +1151,43 @@ class Program(Node):
         return "\n".join([repr(s) for s in self.get_specs()])
 
 
+@dataclasses.dataclass
+class Config:
+    input_path: pathlib.Path
+    output_path: pathlib.Path
+    implementation: types.R2U2Implementation
+    mission_time: int
+    endian_sigil: str
+    frontend: types.R2U2Engine
+    assembly_enabled: bool
+    signal_mapping: types.SignalMapping
+    timeout_egglog: int
+    timeout_sat: int
+    workdir: pathlib.Path
+    copyback_path: Optional[pathlib.Path]
+
+    @staticmethod
+    def Empty() -> Config:
+        return Config(
+            pathlib.Path(),
+            pathlib.Path(),
+            types.R2U2Implementation.C,
+            0,
+            "",
+            types.R2U2Engine.NONE,
+            False,
+            {},
+            0,
+            0,
+            pathlib.Path(),
+            None,
+        )
+
+
 class Context:
-    def __init__(
-        self,
-        impl: types.R2U2Implementation,
-        mission_time: int,
-        atomic_checkers: bool,
-        booleanizer: bool,
-        assembly_enabled: bool,
-        signal_mapping: types.SignalMapping,
-    ):
+    def __init__(self, config: Config):
+        self.config = config
+
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1046,18 +1195,16 @@ class Context:
         self.atomic_checkers: dict[str, Expression] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
-        self.atomics: set[Expression] = set()
-        self.implementation = impl
-        self.booleanizer_enabled = booleanizer
-        self.atomic_checker_enabled = atomic_checkers
-        self.mission_time = mission_time
-        self.signal_mapping = signal_mapping
-        self.assembly_enabled = assembly_enabled
-        self.bound_vars: dict[str, SetExpression] = {}
+        self.atomic_id: dict[Expression, int] = {}
+        self.bound_vars: dict[str, ArrayExpression] = {}
 
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+
+    @staticmethod
+    def Empty() -> Context:
+        return Context(Config.Empty())
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1200,13 +1347,19 @@ def to_infix_str(start: Expression) -> str:
 
         if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
             s += expr.symbol
+        elif isinstance(expr, ArrayAccess):
+            if seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += f"[{expr.index}]"
         elif isinstance(expr, StructAccess):
             if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
                 s += f".{expr.member}"
-        elif isinstance(expr, SetExpression):
+        elif isinstance(expr, ArrayExpression):
             if seen == len(expr.children):
                 s += "}"
             elif seen == 0:
@@ -1216,7 +1369,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):
@@ -1229,7 +1382,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1290,7 +1443,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(f"Bad str ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad str ({expr})")
             return ""
 
     return s
@@ -1312,14 +1465,20 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s += f".{expr.member} "
-        elif isinstance(expr, SetExpression):
+                s = s[:-1] + f".{expr.member} "
+        elif isinstance(expr, ArrayExpression):
             if seen == 0:
                 s += "{"
                 stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in expr.children]
             else:
                 s = s[:-1] + "} "
+        elif isinstance(expr, ArrayAccess):
+            if seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s = s[:-1] + f"[{expr.index}] "
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):
@@ -1332,7 +1491,7 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s += ","
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
+                stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1352,35 +1511,37 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Formula):
-            s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-            s += ":"
+            s += expr.symbol
+            s += ": "
             stack.append((0, expr.get_expr()))
         elif isinstance(expr, Contract):
             if seen == 0:
-                s += f"{expr.symbol}:("
+                s += f"{expr.symbol}: ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
-                s += ")=>("
+                s += ") => ("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
                 s = s[:-1] + ")"
+        elif isinstance(expr, SpecificationSet):
+            [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
-            log.error(f"Bad repr ({expr})", MODULE_CODE)
+            log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
-    return s
+    return s[:-1]
 
 
-def to_mltl_std(program: Program) -> str:
+def to_mltl_std(program: Program, context: Context) -> str:
     mltl = ""
 
     stack: list[tuple[int, Expression]] = []
 
     for spec in program.get_specs():
         if isinstance(spec, Contract):
-            log.warning("Cannot express AGCs in MLTL standard, skipping", MODULE_CODE)
+            log.warning(MODULE_CODE, "Cannot express AGCs in MLTL standard, skipping")
             continue
 
         stack.append((0, spec.get_expr()))
@@ -1390,44 +1551,38 @@ def to_mltl_std(program: Program) -> str:
 
             if isinstance(expr, Constant):
                 mltl += expr.symbol + " "
-            elif expr.atomic_id > -1:
-                mltl += f"a{expr.atomic_id}"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
+            elif expr in context.atomic_id:
+                mltl += f"a{context.atomic_id[expr]}"
+            elif len(expr.children) == 1 and (
+                is_temporal_operator(expr) or is_logical_operator(expr)
+            ):
                 if seen == 0:
                     mltl += f"{expr.symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
                     mltl += ")"
-            elif (is_temporal_operator(expr) or is_logical_operator(expr)) and len(
-                expr.children
-            ) == 1:
-                if seen == 0:
-                    mltl += "("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[0]))
-                elif seen == 1:
-                    mltl += f"){expr.symbol}("
-                    stack.append((seen + 1, expr))
-                    stack.append((0, expr.children[1]))
-                else:
-                    mltl += ")"
             elif is_temporal_operator(expr) or is_logical_operator(expr):
                 if seen == len(expr.children):
                     mltl += ")"
-                elif seen % 2 == 0:
+                elif seen == 0:
                     mltl += "("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
-                elif seen % 2 == 1:
-                    mltl += f"){expr.symbol}("
+                else:
+                    if is_operator(expr, OperatorKind.LOGICAL_AND):
+                        symbol = "&"
+                    elif is_operator(expr, OperatorKind.LOGICAL_OR):
+                        symbol = "|"
+                    else:
+                        symbol = expr.symbol
+
+                    mltl += f"){symbol}("
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
             else:
                 log.error(
-                    f"Expression incompatible with MLTL standard ({expr})", MODULE_CODE
+                    MODULE_CODE, f"Expression incompatible with MLTL standard ({expr})"
                 )
                 return ""
 

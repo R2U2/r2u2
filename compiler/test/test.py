@@ -3,6 +3,7 @@ import json
 import difflib
 import subprocess
 import sys
+import argparse
 
 TEST_DIR = pathlib.Path(__file__).parent
 
@@ -61,8 +62,10 @@ def run_test(test: dict) -> bool:
         "options": ["opt", ...]
     }`
 
-    `"expected_stderr"` can also be present if an error is expected to occur. See `config.json`.
+    See `config.json`.
     """
+    status, diff = True, ""
+
     command = ["python3", str(C2PO_PATH.absolute())] + test["options"] + [test["input"]]
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -127,8 +130,7 @@ def run_test(test: dict) -> bool:
 
             prefix_output_path.unlink()
     except FileNotFoundError:
-        print_fail(f"{test['input']}: file does not exist")
-        return False
+        status = False
 
     if status:
         print_pass(f"{test['input']}")
@@ -139,10 +141,23 @@ def run_test(test: dict) -> bool:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("subset", nargs="?", default="",
+                        help="name of subset to run")
+    args = parser.parse_args()
+
     # tests is an array of JSON objects
     with open(str(CONFIG_PATH), "r") as f:
-        tests = json.load(f)
+        config = json.load(f)
 
-    if any([not run_test(test) for test in tests]):
+    if args.subset == "":
+        # no subset given, so concatenate all the tests together
+        tests = [s for _,arr in config.items() for s in arr]
+    elif args.subset in config:
+        tests = config[args.subset]
+    else:
+        print_fail(f"Subset {args.subset} not in {CONFIG_PATH}")
         sys.exit(1)
-    sys.exit(0)
+
+    # Exit with number of failed tests
+    sys.exit(sum([not run_test(test) for test in tests]))

@@ -1,5 +1,5 @@
 STRUCT
-    Test: { I: set<int>; };
+    Test: { I: int[]; };
 
 INPUT
     i0,i1,i2: int;
@@ -10,3 +10,4 @@ DEFINE
 
 FTSPEC
     foreach(i:t.I)(i > 5);
+    F[0,1] (t.I[2] < 3);

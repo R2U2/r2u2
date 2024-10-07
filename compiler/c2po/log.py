@@ -11,7 +11,8 @@ MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 OUT = sys.stdout
 ERR = sys.stderr
 
-enable_debug = False
+debug_level = 0
+enable_stat = False
 enable_quiet = False
 
 
@@ -19,6 +20,7 @@ class FileLocation(NamedTuple):
     filename: str
     lineno: int
 
+EMPTY_FILE_LOC = FileLocation("",0)
 
 class Color(enum.Enum):
     HEADER = "\033[95m"
@@ -32,9 +34,14 @@ class Color(enum.Enum):
     UNDERLINE = "\033[4m"
 
 
-def set_debug() -> None:
-    global enable_debug
-    enable_debug = True
+def set_debug(level: int) -> None:
+    global debug_level
+    debug_level = level
+
+
+def set_stat() -> None:
+    global enable_stat
+    enable_stat = True
 
 
 def set_quiet() -> None:
@@ -67,12 +74,28 @@ def format(
     return formatted_message
 
 
-def debug(
-    message: str,
+def stat(
     module: str,
+    message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    if not enable_debug or enable_quiet:
+    global enable_stat
+    if not enable_stat or enable_quiet:
+        return
+    formatted_message = format(
+        message, "STAT", None, module, location
+    )
+    OUT.write(formatted_message)
+
+
+def debug(
+    module: str,
+    level: int,
+    message: str,
+    location: Optional[FileLocation] = None,
+) -> None:
+    global debug_level
+    if level > debug_level or enable_quiet:
         return
     formatted_message = format(
         message, "DBG", Color.OKBLUE, module, location
@@ -81,8 +104,8 @@ def debug(
 
 
 def warning(
-    message: str,
     module: str,
+    message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
@@ -92,8 +115,8 @@ def warning(
 
 
 def error(
-    message: str,
     module: str,
+    message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
@@ -103,8 +126,8 @@ def error(
 
 
 def internal(
-    message: str,
     module: str,
+    message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:

@@ -14,7 +14,7 @@
 #endif
 
 
-// R2U2 Reference Implmentation
+// R2U2 Reference Implementation
 // Provides example of library usage and "offline" monitoring
 //
 //
@@ -108,9 +108,6 @@ int main(int argc, char const *argv[]) {
   r2u2_init(&r2u2_monitor);
 
   // Open output File
-  // TODO(cgjohann): Set to stdout for now, can always redirect as needed
-  // optimal solution is probably taking an optional path to outfile,
-  // but the arg parsing we have currently is pretty difficult to change
   r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
@@ -125,7 +122,7 @@ int main(int argc, char const *argv[]) {
   #endif
 
   // Select CSV reader input file
-  if(argc > 2) {
+  if (argc > 2) {
     // The trace file was specified
     if (access(argv[2], F_OK) == 0) {
       r2u2_csv_reader.input_file = fopen(argv[2], "r");
@@ -145,9 +142,25 @@ int main(int argc, char const *argv[]) {
   }
   // Debug assert - input_file != Null
 
+  // CSV Load Destination
+  // To support operations without a front-end, check if the first instruction
+  // is to the TL engine and if so, load signals direct to the atomic buffer.
+  // This is a stronger assumption than the underlying engines make but is only
+  // present in this reference monitor implementation.
+  //
+  // NOTE: This check will not behave properly if configuration is prepended
+  // rather than appended to the instruction memory
+  r2u2_status_t (*csv_load_func)(r2u2_csv_reader_t*, r2u2_monitor_t*);
+  if ((*r2u2_monitor.instruction_tbl)[0].engine_tag == R2U2_ENG_TL) {
+    csv_load_func = &r2u2_csv_load_next_atomics;
+  } else {
+    csv_load_func = &r2u2_csv_load_next_signals;
+  }
+
   // Main processing loop
   do {
-    err_cond = r2u2_csv_load_next_signals(&r2u2_csv_reader, &r2u2_monitor);
+    err_cond = (*csv_load_func)(&r2u2_csv_reader, &r2u2_monitor);
+
     if ((err_cond != R2U2_OK)) break;
 
     err_cond = r2u2_tic(&r2u2_monitor);

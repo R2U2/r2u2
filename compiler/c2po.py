@@ -14,8 +14,10 @@ parser.add_argument("--map", default="",
 
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
-parser.add_argument("--debug", action="store_true",
-                    help="enable debug output")
+parser.add_argument("--debug", nargs="?", default=0, const=1, type=int,
+                    help="set debug level (0=none, 1=basic, 2=extra)")
+parser.add_argument("--stats", action="store_true",
+                    help="enable stat output")
 
 parser.add_argument("--impl", default="c", choices=["c","cpp","vhdl"],
                     help="specifies target R2U2 implementation version (default: c)")
@@ -56,7 +58,17 @@ parser.add_argument("-nnf", action="store_true",
                     help="enable negation normal form")
 parser.add_argument("-bnf", action="store_true",
                     help="enable boolean normal form")
-                                  
+
+parser.add_argument("-eq", "--eqsat", action="store_true",
+                    help="enable equality saturation")
+parser.add_argument("-sat", "--check-sat", action="store_true",
+                    help="enable satisfiability checking of future-time formulas")
+
+parser.add_argument("--timeout-eqsat", type=int, default=3600, 
+                    help="set the timeout of equality saturation calls in seconds (default: 3600)")
+parser.add_argument("--timeout-sat", type=int, default=3600, 
+                    help="set the timeout of sat calls in seconds (default: 3600)")
+
 parser.add_argument("--write-c2po", nargs="?", default=".", const="",
                     help="write final program in C2PO input format")
 parser.add_argument("--write-mltl", nargs="?", default=".", const="",
@@ -65,10 +77,15 @@ parser.add_argument("--write-prefix", nargs="?", default=".", const="",
                     help="write final program in prefix notation")
 parser.add_argument("--write-pickle", nargs="?", default=".", const="",
                     help="pickle the final program")
+parser.add_argument("--write-smt", nargs="?", default=".", const="",
+                    help="write SMT SAT encoding of FT formulas")
+
+parser.add_argument("--copyback",
+                    help="name of directory to copy workdir contents to upon termination")
 
 args = parser.parse_args()
 
-return_code = c2po.main.compile(
+return_code = c2po.main.main(
     args.mltl, 
     trace_filename=args.trace, 
     map_filename=args.map, 
@@ -87,12 +104,19 @@ return_code = c2po.main.compile(
     enable_cse=args.disable_cse, 
     enable_extops=args.extops, 
     enable_rewrite=args.disable_rewrite, 
+    enable_eqsat=args.eqsat,
     enable_nnf=args.nnf,
     enable_bnf=args.bnf,
+    enable_sat=args.check_sat,
     write_c2po_filename=args.write_c2po,
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
+    write_smt_dir=args.write_smt,
+    timeout_eqsat=args.timeout_eqsat,
+    timeout_sat=args.timeout_sat,
+    copyback_name=args.copyback,
+    stats=args.stats,
     debug=args.debug,
     quiet=args.quiet, 
 )

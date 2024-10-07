@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, sat, eqsat
 
 MODULE_CODE = "PASS"
 
 
 def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
     """Expands each definition symbol in the definitions and specifications of `program` to its expanded definition. This is essentially macro expansion."""
-    log.debug("Expanding definitions", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Expanding definitions")
 
     for expr in [
         expr
@@ -24,7 +24,7 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
         elif expr.symbol in context.specifications:
             expr.replace(context.specifications[expr.symbol].get_expr())
 
-    log.debug(f"Post definition expansion:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post definition expansion:\n{repr(program)}")
 
 
 def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
@@ -56,7 +56,7 @@ def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context
 
 def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
     """Removes each contract from each specification in Program and adds the corresponding conditions to track."""
-    log.debug("Replacing contracts", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Replacing contracts")
 
     for contract in [
         spec for spec in program.get_specs() if isinstance(spec, cpt.Contract)
@@ -90,14 +90,14 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
 
         program.replace_spec(contract, new_formulas)
 
-        log.debug(f"Replaced contract '{contract.symbol}'", MODULE_CODE)
+        log.debug(MODULE_CODE, 1, f"Replaced contract '{contract.symbol}'")
 
-    log.debug(f"Post contract replacement:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post contract replacement:\n{repr(program)}")
 
 
 def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
     """Unrolls set aggregation operators into equivalent engine-supported operations e.g., `foreach` is rewritten into a conjunction."""
-    log.debug("Unrolling set aggregation expressions.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Unrolling set aggregation expressions.")
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
         for subexpr in cpt.postorder(expr, context):
@@ -212,12 +212,12 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
             for subexpr in cpt.postorder(new, context):
                 resolve_struct_accesses(subexpr, context)
 
-    log.debug(f"Post set aggregation unrolling:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post set aggregation unrolling:\n{repr(program)}")
 
 
 def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
     """Resolves struct access operations to the underlying member expression."""
-    log.debug("Resolving struct accesses.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Resolving struct accesses.")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.StructAccess):
@@ -228,12 +228,26 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         if member:
             expr.replace(member)
 
-    log.debug(f"Post struct access resolution:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
+
+
+def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
+    """Resolves array access operations to the underlying member expression."""
+    log.debug(MODULE_CODE, 1, "Resolving array accesses.")
+
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.ArrayAccess):
+            continue
+
+        array = expr.get_array()
+        expr.replace(array.children[expr.get_index()])
+
+    log.debug(MODULE_CODE, 1, f"Post array access resolution:\n{repr(program)}")
 
 
 def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
     """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
-    log.debug("Removing extended operators.", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Removing extended operators.")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -349,11 +363,12 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                 )
             )
 
-    log.debug(f"Post extended operator removal:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post extended operator removal:\n{repr(program)}")
 
 
 def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
+    log.debug(MODULE_CODE, 1, "Converting to BNF")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -456,9 +471,13 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
 
+    log.debug(MODULE_CODE, 1, f"Post BNF conversion:\n{repr(program)}")
+
 
 def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
+    log.debug(MODULE_CODE, 1, "Converting to NNF")
+
     for expr in program.preorder(context):
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             operand = expr.children[0]
@@ -625,9 +644,13 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
 
+    log.debug(MODULE_CODE, 1, f"Post NNF conversion:\n{repr(program)}")
+
 
 def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
     """Applies MLTL rewrite rules to reduce required SCQ memory."""
+    log.debug(MODULE_CODE, 1, "Performing rewrites")
+
     for expr in program.postorder(context):
         new: Optional[cpt.Expression] = None
 
@@ -691,7 +714,9 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     new = cpt.Constant(expr.loc, True)
                 else:
                     # G[l,u]False = False
-                    new = cpt.Constant(expr.loc, False)
+                    # erroneous: the empty trace satisfies "G[l,u] False", but not "False"
+                    # new = cpt.Constant(expr.loc, False)
+                    pass
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
@@ -707,6 +732,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
+                elif opnd1.interval.lb == opnd1.interval.ub:
+                    # G[l,u](F[a,a]p) = G[l+a,u+a]p
+                    lb: int = expr.interval.lb + opnd1.interval.lb
+                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
 
@@ -717,7 +747,9 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
             if isinstance(opnd1, cpt.Constant):
                 if opnd1.value is True:
                     # F[l,u]True = True
-                    new = cpt.Constant(expr.loc, True)
+                    # erroneous: the empty trace satisfies "True", but not "F[l,u] True"
+                    # new = cpt.Constant(expr.loc, True)
+                    pass
                 else:
                     # F[l,u]False = False
                     new = cpt.Constant(expr.loc, False)
@@ -736,6 +768,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     lb: int = expr.interval.lb + opnd1.interval.lb
                     ub: int = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
+                elif opnd1.interval.lb == opnd1.interval.ub:
+                    # F[l,u](G[a,a]p) = F[l+a,u+a]p
+                    lb: int = expr.interval.lb + opnd1.interval.lb
+                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             # Assume binary for now
             lhs = expr.children[0]
@@ -799,8 +836,6 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                     ub1 = lhs.interval.ub
                     lb2 = rhs.interval.lb
                     ub2 = rhs.interval.ub
-
-                    print(f'{lb1} {ub1} {lb2} {ub2} {lb1 <= lb2 and ub1 >= ub2}')
 
                     if lb1 <= lb2 and ub1 >= ub2:
                         # lb1 <= lb2 <= ub2 <= ub1
@@ -928,113 +963,240 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
         if new:
             log.debug(
-                f"\n\t{expr}\n\t==>\n\t{new}", module=MODULE_CODE
+                MODULE_CODE, 2, f"\n\t{expr}\n\t==>\n\t{new}"
             )
             expr.replace(new)
+
+    log.debug(MODULE_CODE, 1, f"Post rewrite:\n{repr(program)}")
 
 
 def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
     """Performs syntactic common sub-expression elimination on program. Uses string representation of each sub-expression to determine syntactic equivalence. Applies CSE to FT/PT formulas separately."""
-    S: dict[str, cpt.Expression]
+    log.debug(MODULE_CODE, 1, "Performing CSE")
 
-    log.debug("Performing CSE", module=MODULE_CODE)
+    expr_map: dict[str, cpt.Expression]
 
     def _optimize_cse(expr: cpt.Expression) -> None:
-        nonlocal S
+        nonlocal expr_map
 
-        if str(expr) in S:
-            log.debug(f"Replacing --- {expr}", module=MODULE_CODE)
-            expr.replace(S[str(expr)])
+        if repr(expr) in expr_map:
+            log.debug(MODULE_CODE, 2, f"Replacing ---- {repr(expr)[:25]}")
+            expr.replace(expr_map[repr(expr)])
         else:
-            log.debug(f"Visiting ---- {expr}", module=MODULE_CODE)
-            S[str(expr)] = expr
+            log.debug(MODULE_CODE, 2, f"Visiting ----- {repr(expr)[:25]}")
+            expr_map[repr(expr)] = expr
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.ft_spec_set, context):
         _optimize_cse(expr)
 
-    S = {}
+    expr_map = {}
     for expr in cpt.postorder(program.pt_spec_set, context):
         _optimize_cse(expr)
 
-    log.debug(f"Post CSE:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post CSE:\n{repr(program)}")
 
 
 def multi_operators_to_binary(program: cpt.Program, context: cpt.Context) -> None:
     """Converts all multi-arity operators (e.g., &&, ||, +) to binary."""
-    log.debug("Converting multi-arity operators", module=MODULE_CODE)
+    log.debug(MODULE_CODE, 1, "Converting multi-arity operators")
 
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.Operator) or len(expr.children) < 3:
+        if not cpt.is_multi_arity_operator(expr) or len(expr.children) < 3:
             continue
 
-        if expr.operator in {
-            cpt.OperatorKind.LOGICAL_AND,
-            cpt.OperatorKind.LOGICAL_OR,
-            cpt.OperatorKind.ARITHMETIC_ADD,
-            cpt.OperatorKind.ARITHMETIC_MULTPLY,
-        }:
-            new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
-            for i in range(2, len(expr.children) - 1):
-                new = type(expr)(
-                    expr.loc, expr.operator, [new, expr.children[i]], expr.type
-                )
+        expr = cast(cpt.Operator, expr)
+
+        new = type(expr)(expr.loc, expr.operator, expr.children[0:2], expr.type)
+        for i in range(2, len(expr.children) - 1):
             new = type(expr)(
-                expr.loc, expr.operator, [new, expr.children[-1]], expr.type
+                expr.loc, expr.operator, [new, expr.children[i]], expr.type
             )
+        new = type(expr)(
+            expr.loc, expr.operator, [new, expr.children[-1]], expr.type
+        )
 
-            expr.replace(new)
+        expr.replace(new)
 
-    log.debug(f"Post multi-arity operator conversion:\n{repr(program)}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Post multi-arity operator conversion:\n{repr(program)}")
+
+
+def flatten_multi_operators(program: cpt.Program, context: cpt.Context) -> None:
+    """Flattens all multi-arity operators (i.e., &&, ||, +, *)."""
+    log.debug(MODULE_CODE, 1, "Flattening multi-arity operators")
+
+    MAX_ARITY = 4
+
+    for expr in program.postorder(context):
+        if not cpt.is_multi_arity_operator(expr):
+            continue
+
+        expr = cast(cpt.Operator, expr)
+
+        new_children = []
+        for child in expr.children:
+            if cpt.is_operator(child, expr.operator) and len(new_children) < MAX_ARITY:
+                new_children += child.children
+            else:
+                new_children.append(child)
+        
+        new = type(expr)(expr.loc, expr.operator, new_children, expr.type)
+        expr.replace(new)
+
+
+    log.debug(MODULE_CODE, 1, f"Post operator flattening:\n{repr(program)}")
+
+
+def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
+    """Sorts all operands of commutative operators by increasing worst-case propagation delay."""
+    log.debug(MODULE_CODE, 1, "Sorting operands by WPD")
+
+    for expr in program.postorder(context):
+        if not cpt.is_commutative_operator(expr):
+            continue
+
+        expr.children.sort(key=lambda child: child.wpd)
+
+    log.debug(MODULE_CODE, 1, f"Post operand sorting:\n{repr(program)}")
 
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
-    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine."""
-    id: int = 0
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
+    atomic_map: dict[str, int] = {}
+    context.atomic_id = {}
+    aid: int = 0
 
     for expr in program.postorder(context):
-        if expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
+        if (
+            expr.engine == types.R2U2Engine.TEMPORAL_LOGIC 
+            or isinstance(expr, cpt.Constant) 
+            or expr in context.atomic_id
+        ):
             continue
 
-        if isinstance(expr, cpt.Constant):
+        if cpt.to_prefix_str(expr) in atomic_map:
+            context.atomic_id[expr] = atomic_map[cpt.to_prefix_str(expr)]
+            continue
+
+        # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
+        if (
+            context.config.frontend is types.R2U2Engine.NONE 
+            and isinstance(expr, cpt.Signal) 
+        ):
+            if expr.signal_id < 0 and not context.config.assembly_enabled:
+                context.atomic_id[expr] = aid
+                atomic_map[cpt.to_prefix_str(expr)] = aid
+                aid += 1
+                continue
+
+            context.atomic_id[expr] = expr.signal_id
+            atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
             continue
 
         for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            if parent.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-                context.atomics.add(expr)
-                if expr.atomic_id < 0:
-                    expr.atomic_id = id
-                    id += 1
+            if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
+                continue
+
+            context.atomic_id[expr] = aid
+            atomic_map[cpt.to_prefix_str(expr)] = aid
+            aid += 1
+            break
 
     log.debug(
-        f"Computed atomics:\n\t[{', '.join(f'({a},{a.atomic_id})' for a in context.atomics)}]",
-        module=MODULE_CODE,
+        MODULE_CODE, 1,
+        f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
     )
+
+
+def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
+    """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
+    compute_scq_sizes(program, context)
+
+    log.stat(MODULE_CODE, f"old_scq_size={program.theoretical_scq_size}")
+
+    log.warning(MODULE_CODE, "Equality saturation is an experimental feature")
+    log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
+
+    # flatten_multi_operators(program, context)
+    sort_operands_by_pd(program, context)
+
+    if len(program.ft_spec_set.children) == 0:
+        return
+    
+    for formula in program.ft_spec_set.children:
+        formula =  cast(cpt.Formula, formula)
+        e_graph = eqsat.run_egglog(formula, context)
+
+        if not e_graph:
+            continue
+
+        old = formula.get_expr()
+        new = e_graph.extract(context)
+
+        sat_result = sat.check_equiv(old, new, context)
+
+        if sat_result is sat.SatResult.UNSAT:
+            equiv_result = "equiv"
+            old.replace(new)
+            compute_scq_sizes(program, context)
+        elif sat_result is sat.SatResult.SAT:
+            log.warning(MODULE_CODE, "Equality saturation produced non-equivalent formula, defaulting to non-optimized formula")
+            equiv_result = "not-equiv"
+        else:
+            log.warning(MODULE_CODE, "Equality saturation could not be validated, still using optimized formula")
+            equiv_result = "unknown"
+            old.replace(new)
+            compute_scq_sizes(program, context)
+
+        log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
+        log.stat(MODULE_CODE, f"new_scq_size={program.theoretical_scq_size}")
+
+    log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
+
+
+def check_sat(program: cpt.Program, context: cpt.Context) -> None:
+    """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
+    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
+    
+    results = sat.check_sat(program, context)
+
+    for spec,result in results.items():
+        if result is sat.SatResult.SAT:
+            log.debug(MODULE_CODE, 1, f"{spec.symbol} is sat")
+        elif result is sat.SatResult.UNSAT:
+            log.warning(MODULE_CODE, f"{spec.symbol} is unsat")
+        elif result is sat.SatResult.UNKNOWN:
+            log.warning(MODULE_CODE, f"{spec.symbol} is unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
-    spec_section_total_scq_size = 0
+    actual_program_scq_size = 0
+    theoretical_program_scq_size = 0
+
+    EXTRA_SCQ_SIZE = 3
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
-            expr.total_scq_size = spec_section_total_scq_size
-            spec_section_total_scq_size = 0
             continue
 
         if isinstance(expr, cpt.Formula):
             expr.scq_size = 1
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
-            spec_section_total_scq_size += expr.scq_size
+
+            actual_program_scq_size += expr.scq_size
+            theoretical_program_scq_size += expr.scq_size
+
             expr.scq = (
-                spec_section_total_scq_size - expr.scq_size,
-                spec_section_total_scq_size,
+                actual_program_scq_size - expr.scq_size,
+                actual_program_scq_size,
             )
+
             continue
 
         if (
             expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
-            and expr not in context.atomics
+            and expr not in context.atomic_id
         ):
             continue
 
@@ -1046,12 +1208,19 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
         )
-        spec_section_total_scq_size += expr.scq_size
+
+        actual_program_scq_size += expr.scq_size
+        theoretical_program_scq_size += expr.scq_size - (EXTRA_SCQ_SIZE - 1)
 
         expr.scq = (
-            spec_section_total_scq_size - expr.scq_size,
-            spec_section_total_scq_size,
+            actual_program_scq_size - expr.scq_size,
+            actual_program_scq_size,
         )
+
+    program.theoretical_scq_size = theoretical_program_scq_size
+
+    log.debug(MODULE_CODE, 1, f"Actual program SCQ size: {actual_program_scq_size}")
+    log.debug(MODULE_CODE, 1, f"Theoretical program SCQ size: {theoretical_program_scq_size}")
 
 
 # A Pass is a function with the signature:
@@ -1065,13 +1234,17 @@ PASS_LIST: list[Pass] = [
     convert_function_calls_to_structs,
     resolve_contracts,
     unroll_set_aggregation,
+    resolve_array_accesses,
     resolve_struct_accesses,
+    compute_atomics, 
     optimize_rewrite_rules,
-    remove_extended_operators,
+    optimize_eqsat,
+    compute_atomics, 
     to_nnf,
     to_bnf,
-    optimize_cse,
+    remove_extended_operators,
     multi_operators_to_binary,
-    compute_atomics, 
+    optimize_cse,
+    check_sat,
     compute_scq_sizes, 
 ]
