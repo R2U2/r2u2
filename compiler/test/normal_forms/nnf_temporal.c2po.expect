@@ -10,20 +10,20 @@ TL n8  release n1 n7
 TL n9  return n8 2
 TL n10 until  n1 n7
 TL n11 return n10 3
-CG TL DUOQ q0 |3|
-CG TL DUOQ q1 |3|
-CG TL DUOQ q2 |7|
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |5|
 CG TL TEMP q2 [0, 5]
 CG TL DUOQ q3 |1|
-CG TL DUOQ q4 |7|
+CG TL DUOQ q4 |5|
 CG TL TEMP q4 [0, 5]
 CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |3|
-CG TL DUOQ q7 |3|
-CG TL DUOQ q8 |7|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |5|
 CG TL TEMP q8 [0, 5]
 CG TL DUOQ q9 |1|
-CG TL DUOQ q10 |7|
+CG TL DUOQ q10 |5|
 CG TL TEMP q10 [0, 5]
 CG TL DUOQ q11 |1|
 F __f0__ 0
