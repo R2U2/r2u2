@@ -192,6 +192,7 @@ class Signal(Expression):
     def __deepcopy__(self, memo) -> Signal:
         new = Signal(self.loc, self.symbol, self.type)
         self.copy_attrs(new)
+        new.signal_id = self.signal_id
         return new
 
 
@@ -1470,7 +1471,7 @@ def to_prefix_str(start: Expression) -> str:
             if seen == 0:
                 s += "{"
                 stack.append((seen + 1, expr))
-                [stack.append((0, child)) for child in expr.children]
+                [stack.append((0, child)) for child in reversed(expr.children)]
             else:
                 s = s[:-1] + "} "
         elif isinstance(expr, ArrayAccess):
