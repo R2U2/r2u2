@@ -78,12 +78,13 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
 
   r2u2_tnt_t prev = ((ctrl->write) == 0) ? ctrl->length-1 : ctrl->write-1;
 
-  // Two checks:
+  // Three checks:
   //    1: Is the new verdict the same as the previous? i.e. truth bit is clear
   //       in an xor and therefore the value is less than max time
   //    2: Coherence, if the previous timestamp matches the one under the write
   //       pointer, either this is the first write or we're in an incoherent
   //       state, write to the next cell instead.
+  //.   3: Cell is not empty, i.e., not `r2u2_infinity`
   if ((((ctrl->queue)[prev] ^ value) <= R2U2_TNT_TIME) && \
       ((ctrl->queue)[prev] != (ctrl->queue)[ctrl->write]) && \
       ((ctrl->queue)[ctrl->write] != r2u2_infinity)) {
