@@ -13,15 +13,15 @@ TL n6  load   a3
 TL n7  return n6 3
 TL n8  load   a4
 TL n9  return n8 4
-CG TL DUOQ q0 |3|
+CG TL DUOQ q0 |1|
 CG TL DUOQ q1 |1|
-CG TL DUOQ q2 |3|
+CG TL DUOQ q2 |1|
 CG TL DUOQ q3 |1|
-CG TL DUOQ q4 |3|
+CG TL DUOQ q4 |1|
 CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |3|
+CG TL DUOQ q6 |1|
 CG TL DUOQ q7 |1|
-CG TL DUOQ q8 |3|
+CG TL DUOQ q8 |1|
 CG TL DUOQ q9 |1|
 F __f0__ 0
 F __f1__ 1
