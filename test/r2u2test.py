@@ -279,12 +279,6 @@ class TestCase():
             str(self.test_results_dir / self.trace_path.name)
         ]
 
-        if (
-            ("booleanizer" not in self.c2po_options or not self.c2po_options["booleanizer"]) and 
-            ("atomic-checkers" not in self.c2po_options or not self.c2po_options["atomic-checkers"])  
-        ):
-            r2u2bin_command_new.append("-a")
-
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2bin_command_new))
 
