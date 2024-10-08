@@ -236,7 +236,16 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, "Resolving array accesses.")
 
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.ArrayAccess):
+        if not isinstance(expr, cpt.ArrayIndex):
+            continue
+
+        # Not all out-of-bounds errors are checked during type checking
+        # Ex: a struct has an array member type of uninterpreted size,
+        # must check this case here
+        array_type = cast(types.ArrayType, expr.get_array().type)
+        if expr.get_index() >= array_type.size:
+            log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+            context.status = False
             continue
 
         array = expr.get_array()
@@ -1221,12 +1230,15 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 Pass = Callable[[cpt.Program, cpt.Context], None]
 
 
-# This is ORDER-SENSITIVE
+# This list is ORDER-SENSITIVE 
+# We resolve struct accesses twice in the case that a struct is an element of an array and an array
+# is a member of a struct
 PASS_LIST: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
     unroll_set_aggregation,
+    resolve_struct_accesses,
     resolve_array_accesses,
     resolve_struct_accesses,
     compute_atomics, 

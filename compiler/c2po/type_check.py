@@ -166,7 +166,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = types.ArrayType(
                 new_type, is_const=is_const, size=len(expr.children)
             )
-        elif isinstance(expr, cpt.ArrayAccess):
+        elif isinstance(expr, cpt.ArrayIndex):
             array_type = expr.get_array().type
             if not isinstance(array_type, types.ArrayType):
                 log.error(
@@ -176,7 +176,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if abs(expr.index) > array_type.size:
+            if abs(expr.index) > array_type.size and array_type.size > -1:
                 log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
                 return False
 
@@ -194,27 +194,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
 
             expr.type = array_type.member_type
-        elif isinstance(expr, cpt.Struct):
-            is_const: bool = True
-
-            for member in expr.children:
-                is_const = is_const and member.type.is_const
-
-            for member, new_type in context.structs[expr.symbol].items():
-                member = expr.get_member(member)
-                if not member:
-                    raise RuntimeError(
-                        f"Member '{member}' not in struct '{expr.symbol}'"
-                    )
-
-                if member.type != new_type:
-                    log.error(
-                        MODULE_CODE,
-                        f"Member '{member}' invalid type for struct '{expr.symbol}' (expected '{new_type}' but got '{member.type}')",
-                        expr.loc,
-                    )
-
-            expr.type = types.StructType(expr.symbol, is_const)
         elif isinstance(expr, cpt.StructAccess):
             struct_symbol = expr.get_struct().type.symbol
             if struct_symbol not in context.structs:

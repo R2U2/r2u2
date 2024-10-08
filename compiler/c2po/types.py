@@ -123,9 +123,12 @@ class ArrayType(Type):
         self.size: int = size
 
     def __eq__(self, arg: object) -> bool:
-        if super().__eq__(arg):
-            if isinstance(arg, ArrayType):
-                return self.member_type.__eq__(arg.member_type)
+        if isinstance(arg, ArrayType):
+            if not self.member_type.__eq__(arg.member_type):
+                return False
+            if self.size > -1 and arg.size > -1 and self.size != arg.size:
+                return False
+            return True
         return False
 
     def __str__(self) -> str:

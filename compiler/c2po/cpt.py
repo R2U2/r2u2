@@ -221,7 +221,7 @@ class ArrayExpression(Expression):
         return new
 
 
-class ArrayAccess(Expression):
+class ArrayIndex(Expression):
     def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
         super().__init__(loc, [array])
         self.index = index
@@ -233,7 +233,7 @@ class ArrayAccess(Expression):
     def get_index(self) -> int:
         return self.index
 
-    def __deepcopy__(self, memo) -> ArrayAccess:
+    def __deepcopy__(self, memo) -> ArrayIndex:
         children = [copy.deepcopy(c, memo) for c in self.children]
         new = type(self)(self.loc, children[0], self.index)
         self.copy_attrs(new)
@@ -1202,6 +1202,7 @@ class Context:
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
+        self.status = True
 
     @staticmethod
     def Empty() -> Context:
@@ -1348,7 +1349,7 @@ def to_infix_str(start: Expression) -> str:
 
         if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
             s += expr.symbol
-        elif isinstance(expr, ArrayAccess):
+        elif isinstance(expr, ArrayIndex):
             if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
@@ -1474,7 +1475,7 @@ def to_prefix_str(start: Expression) -> str:
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:
                 s = s[:-1] + "} "
-        elif isinstance(expr, ArrayAccess):
+        elif isinstance(expr, ArrayIndex):
             if seen == 0:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))

@@ -430,7 +430,7 @@ class C2POParser(sly.Parser):
     # Array member access
     @_("expr LBRACK NUMERAL RBRACK")
     def expr(self, p):
-        return cpt.ArrayAccess(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
+        return cpt.ArrayIndex(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
 
     # Unary expressions
     @_("LOG_NEG expr")

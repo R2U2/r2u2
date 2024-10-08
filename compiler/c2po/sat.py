@@ -169,7 +169,7 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
-    smt_commands.append(f"(assert ({expr_map[expr]} 0 {mission_time}))")
+    smt_commands.append(f"(assert ({expr_map[start]} 0 {mission_time}))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -278,7 +278,7 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
-    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[expr]} 0 len)))")
+    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)

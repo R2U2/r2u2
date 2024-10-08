@@ -26,6 +26,18 @@
             "options": ["-at", "--map", "default.map"]
         }
     ],
+    "cav": [
+        {
+            "input": "cav/array.c2po", 
+            "expected_prefix": "cav/array.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "-c"]
+        },
+        {
+            "input": "cav/struct.c2po", 
+            "expected_prefix": "cav/struct.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "-c"]
+        }
+    ],
     "cse": [
         {
             "input": "cse/at.c2po", 
@@ -94,6 +106,16 @@
         {
             "input": "type_check/bad_struct.c2po", 
             "expected_output": "type_check/bad_struct.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_array.c2po", 
+            "expected_output": "type_check/bad_array.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_array_index.c2po", 
+            "expected_output": "type_check/bad_array_index.c2po.expect", 
             "options": ["-bz", "--map", "default.map"]
         }
     ],

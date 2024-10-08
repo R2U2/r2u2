@@ -470,6 +470,8 @@ def compile(
     log.debug(MODULE_CODE, 1, "Performing passes")
     for cpass in [t for t in passes.PASS_LIST if t in enabled_passes]:
         cpass(program, context)
+        if not context.status:
+            return ReturnCode.ERROR
 
     if only_compile:
         serialize.write_outputs(
