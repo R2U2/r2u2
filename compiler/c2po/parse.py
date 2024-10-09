@@ -136,7 +136,7 @@ class C2POParser(sly.Parser):
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE)
+        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
     )
 
     def __init__(self, filename: str, mission_time: int) :

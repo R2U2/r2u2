@@ -117,6 +117,11 @@
             "input": "type_check/bad_array_index.c2po", 
             "expected_output": "type_check/bad_array_index.c2po.expect", 
             "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/array_index_prec.c2po", 
+            "expected_prefix": "type_check/array_index_prec.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "-c"]
         }
     ],
     "serialize": [
