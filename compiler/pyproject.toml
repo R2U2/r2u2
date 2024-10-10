@@ -1,0 +1,7 @@
+[tool.ruff]
+logger-objects = ["c2po.log.logger"]
+exclude = ["parse.py"]
+
+# Same as Black.
+line-length = 88
+indent-width = 4

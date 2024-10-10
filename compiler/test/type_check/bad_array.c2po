@@ -1,0 +1,13 @@
+STRUCT
+    Test: { I: int[2]; };
+
+INPUT
+    i0,i1,i2: int;
+
+DEFINE
+    s := {i0,i1,i2};
+    t := Test(s);
+
+FTSPEC
+    foreach(i:t.I)(i > 5);
+    F[0,1] (t.I[2] < 3);

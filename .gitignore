@@ -283,6 +283,17 @@ codechecker/
 tmp/
 .pytest_cache
 test/results
+*.pickle
+pickle/
+venv/
+.venv/
+
+__*
+
+# dependencies
+egg/
+egglog/
+
 
 # Generated documentation files
 docs/_*

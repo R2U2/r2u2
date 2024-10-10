@@ -5,10 +5,10 @@ set -o nounset
 infile="${1:-}"
 outdir="${2:-}"
 
-if [[ ! -f "${infile}" ]]; then
+if [ ! -f "${infile}" ]; then
   echo "File '${infile}' not found"
 else
-  if [[ ! -d "${outdir}" ]]; then
+  if [ ! -d "${outdir}" ]; then
     outdir="."
   fi
   filename=$(basename -- "${infile}")

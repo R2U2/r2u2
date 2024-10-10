@@ -1,0 +1,6 @@
+INPUT
+	LiVar819,validity1,validity2,cmdin1,cmdout,cmdin2: bool;
+
+FTSPEC
+	(true -> (( G[1336,3602] (validity1 -> (cmdout <-> cmdin1)) &&  G[5923,10000] ((!validity1 && validity2) -> (cmdout <-> cmdin2))) &&  G[5094,10000] ((!validity1 && !validity2) -> LiVar819))) && true
+;

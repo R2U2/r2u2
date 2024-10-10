@@ -1,6 +1,1 @@
-INPUT
-	power,LiVar808,ascmd,wheelrolling: bool;
-
-FTSPEC
-	(true ->  G[929,950] (((power && LiVar808) && !wheelrolling) <-> ascmd)) && true
-;
+(!((true)&(!(G[929,950]((!((((a0)&(a1))&(!(a2)))&(!(a3))))&(!((!(((a0)&(a1))&(!(a2))))&(a3))))))))&(true)

@@ -1,0 +1,50 @@
+TL n0  load   a0
+TL n1  eventually n0
+TL n2  return n1 0
+TL n3  return n1 1
+TL n4  eventually n0
+TL n5  return n4 2
+TL n6  return n4 3
+TL n7  eventually n0
+TL n8  load   a1
+TL n9  eventually n8
+TL n10 or     n7 n9
+TL n11 eventually n10
+TL n12 return n11 4
+TL n13 eventually n0
+TL n14 eventually n8
+TL n15 or     n13 n14
+TL n16 eventually n15
+TL n17 return n16 5
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |5|
+CG TL TEMP q1 [0, 5]
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |5|
+CG TL TEMP q4 [0, 8]
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |10|
+CG TL TEMP q7 [0, 0]
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |5|
+CG TL TEMP q9 [2, 5]
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |5|
+CG TL TEMP q11 [0, 5]
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |5|
+CG TL TEMP q13 [1, 1]
+CG TL DUOQ q14 |6|
+CG TL TEMP q14 [0, 1]
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |5|
+CG TL TEMP q16 [1, 3]
+CG TL DUOQ q17 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

@@ -29,7 +29,7 @@ typedef enum {
     R2U2_MLTL_OP_FT_EQUIVALENT   = 0b10000,
 
 
-    // Future Tense: 1xxxx
+    // Past Tense: 0xxxx
 
     R2U2_MLTL_OP_PT_NOP          = 0b01111,
     R2U2_MLTL_OP_PT_CONFIGURE    = 0b01110,
@@ -60,53 +60,18 @@ typedef enum {
 } r2u2_mltl_operand_type_t;
 
 //
-// data structure for operand
-// not packed
-//
-typedef struct {
-    r2u2_mltl_operand_type_t  opnd_type;
-    uint8_t value;
-} r2u2_mltl_operand_t;
-
-//
 // data structure for instruction
 // not packed
 // instruction format for packed representation:
-//  OPC:5 op1:10 op2:10 intvl:8 scratch:7
 //
 typedef struct {
-    r2u2_mltl_operand_t   op1;
-    r2u2_mltl_operand_t   op2;
-    uint32_t              memory_reference;
-    r2u2_mltl_opcode_t    opcode;
+  uint32_t                   op1_value;
+  uint32_t                   op2_value;
+  uint32_t                   memory_reference;
+  r2u2_mltl_operand_type_t   op1_type;
+  r2u2_mltl_operand_type_t   op2_type;
+  r2u2_mltl_opcode_t         opcode;
 } r2u2_mltl_instruction_t;
-
-// data structure for address info of SCQ
-typedef struct {
-    uint16_t start_addr;
-    uint16_t end_addr;
-}   r2u2_mltl_addr_SCQ_t;
-
-//
-// data type for
-// buffer head or tail distinction
-//
-typedef enum {
-    dontcare = 0,
-    tail = 1,
-    head = 2
-} r2u2_mltl_head_or_tail_t;
-
-//
-// interval memory for intervals (not packed)
-// LB:16 UB:16
-//
-typedef uint16_t interval_bound_t;
-typedef struct {
-    interval_bound_t    lb;
-    interval_bound_t    ub;
-} r2u2_mltl_interval_t;
-
 
 r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *, r2u2_mltl_instruction_t *);
 

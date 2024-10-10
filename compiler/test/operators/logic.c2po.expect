@@ -1,0 +1,44 @@
+TL n0  load   a0
+TL n1  not    n0
+TL n2  return n1 0
+TL n3  load   a1
+TL n4  and    n0 n3
+TL n5  return n4 1
+TL n6  not    n3
+TL n7  and    n1 n6
+TL n8  not    n7
+TL n9  return n8 2
+TL n10 and    n0 n6
+TL n11 not    n10
+TL n12 return n11 3
+TL n13 and    n1 n3
+TL n14 not    n13
+TL n15 and    n11 n14
+TL n16 not    n15
+TL n17 return n16 4
+TL n18 return n15 5
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |1|
+CG TL DUOQ q14 |1|
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |1|
+CG TL DUOQ q17 |1|
+CG TL DUOQ q18 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

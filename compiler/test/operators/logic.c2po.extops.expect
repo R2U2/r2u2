@@ -1,0 +1,34 @@
+TL n0  load   a0
+TL n1  not    n0
+TL n2  return n1 0
+TL n3  load   a1
+TL n4  and    n0 n3
+TL n5  return n4 1
+TL n6  or     n0 n3
+TL n7  return n6 2
+TL n8  implies n0 n3
+TL n9  return n8 3
+TL n10 xor    n0 n3
+TL n11 return n10 4
+TL n12 equiv  n0 n3
+TL n13 return n12 5
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

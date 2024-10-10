@@ -3,6 +3,28 @@
 
 #include "csv_trace.h"
 
+r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t *csv_reader, r2u2_monitor_t *monitor) {
+
+  char *signal;
+  // Since this can store a pointer, it must be able to store an index
+  uintptr_t i;
+
+  // Read in next line of trace to internal buffer for processing
+  if(fgets(csv_reader->in_buf, sizeof(csv_reader->in_buf), csv_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
+
+  // Skip header row, if it exists - note we only check for this on the first line
+  if (monitor->time_stamp == 0 && csv_reader->in_buf[0] == '#') {
+    if(fgets(csv_reader->in_buf, sizeof(csv_reader->in_buf), csv_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
+  }
+
+  for(i = 0, signal = strtok(csv_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
+    // TODO(bckempa): What should the behavior be if the value isn't 1 or 0?
+    if(sscanf(signal, "%d", &((*(monitor->atomic_buffer)[0])[i])) != 1) return R2U2_END_OF_TRACE;
+  }
+
+  return R2U2_OK;
+}
+
 r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *csv_reader, r2u2_monitor_t *monitor) {
 
   char *signal;
@@ -12,10 +34,10 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *csv_reader, r2u2_mon
   // Read in next line of trace to internal buffer for processing
   if(fgets(csv_reader->in_buf, sizeof(csv_reader->in_buf), csv_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
 
-    // Skip header row, if it exists - note we only check for this on the first line
-    if (monitor->time_stamp == 0 && csv_reader->in_buf[0] == '#') {
-      if(fgets(csv_reader->in_buf, sizeof(csv_reader->in_buf), csv_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
-    }
+  // Skip header row, if it exists - note we only check for this on the first line
+  if (monitor->time_stamp == 0 && csv_reader->in_buf[0] == '#') {
+    if(fgets(csv_reader->in_buf, sizeof(csv_reader->in_buf), csv_reader->input_file) == NULL) return R2U2_END_OF_TRACE;
+  }
 
     #if R2U2_CSV_Header_Mapping
 

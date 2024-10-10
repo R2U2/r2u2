@@ -1,0 +1,5 @@
+INPUT
+    array: int[2];
+
+FTSPEC
+    (array[0] + array[1]) * 2 > 0;

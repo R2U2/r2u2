@@ -1,0 +1,18 @@
+INPUT
+    i0, i1: int;
+    f0, f1: float;
+
+FTSPEC
+    (i0 pow 2) > 1;
+    abs(i0) > 1;
+    rate(i0) > 1;
+        
+    (f0 pow f1) > 1.0;
+    sqrt(f0) > 1.0;
+    abs(f0) > 1.0;
+    rate(f0) > 1.0;
+
+    f0 == f1;
+    f0 != f1;
+    f0 >= f1;
+    f0 <= f1;

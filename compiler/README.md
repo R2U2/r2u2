@@ -2,42 +2,55 @@
 
 C2PO (Configuration Compiler for Property Organization) is the formula compiler for R2U2.
 
+## Requirements
+
+C2PO requires Python 3.8 or newer.
+
+To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/install), then run the
+`setup_egglog.sh` script.
+
+To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based
+systems, this can be done via `sudo apt-get install z3`.
+
 ## Usage
 
-C2PO requires an input MLTL file and a file for generating a signal mapping (i.e., to tell which variable each input corresponds to during runtime).
+To compile a C2PO file, run the `c2po.py` script. For instance, to run an example with the
+Booleanizer frontend and using a simulated trace file to map input signals:
 
-To compile an MLTL file, run the `r2u2prep.py` script with a `.csv` or `.map` file as argument. One of the `--booleanizer` or `--atomic-checker` flags must be set. For instance, to run an example:
+    python3 c2po.py -bz --trace ../examples/cav.csv ../examples/cav.c2po 
 
-    python r2u2prep.py --booleanizer examples/cav.mltl examples/cav.csv 
+The assembled binary is generated at `spec.bin` by default and is ready to be run by a properly
+configured R2U2 over input data. For full compiler options:
 
-The assembled binary should be at `r2u2_spec.bin` by default and is ready to be run by a properly configured R2U2 over input data. For full compiler options:
+    python3 c2po.py -h
 
-    python r2u2prep.py -h
+## Input Files
 
-## MLTL File Format
+C2PO supports input files written in its custom input language and and in the MLTL standard format.
+C2PO input files must have the `.c2po` file extension and MLTL files must have the `.mltl`
+extension. See the `../examples/` and `test/` directories for sample files in both formats.
 
-MLTL files are used as input to C2PO and use C2PO's specification language. They include various sections: 
+## Signal Mapping
 
-- **INPUT**: Where input signals and their types are declared
-- **FTSPEC**: Where future-time MLTL specifications are defined. These specifications will use SCQs for their memory.
-- **PTSPEC**: Where past-time MLTL specifications are defined. The specifications will use box queues for their memory.
-- **STRUCT**: Where C-like structs are defined.
-- **DEFINE**: Where macros can be defined.
-- **ATOMIC**: Where atomics used by the atomic checker are defined. *Must compile with `--atomic-checker` flag.*
+To generate an R2U2-readable binary, C2PO must be given a mapping for variable names to indices in
+the signal vector given to R2U2 during runtime. If given an MLTL file as input, the signals will be
+mapped to whatever number is in the variable symbol. If given a C2PO file as input, then you must
+also provide one of two files to define a mapping:
 
-See `syntax.md` for a formal description of the input file format and `examples/` directory for sample files.
+### Map File
 
-## CSV File Format
+A signal map file has a `.map` file extension and directly associates an index with a variable
+symbol. Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL`
+corresponds to a signal identifier in the C2PO file, its signal index is set to the integer value of
+`NUMERAL`. Note that if `SYMBOL` is not present in the C2PO file, the line is ignored. 
 
-A CSV file given to C2PO as input has a `.csv` file extension and requires a header denoted with a '#' character as the first character of the line. For instance:
+See `test/default.map` for an example.
 
-    # sig0,sig1
-    0,1
+### CSV File
 
-is a valid csv file.
+A CSV trace file given to C2PO as input has a `.csv` file extension and may represent simulated data
+to run R2U2 offline. The file requires a header denoted with a '#' character as the first character
+of the line. 
 
-## Signal Map File Format
+See `../examples/cav.csv` for an example.
 
-A signal map file has a `.map` file extension. Each line of the input file should be of the form `SYMBOL ':' NUMERAL` such that if `SYMBOL` corresponds to a signal identifier in the MLTL file, its signal ID is set to the integer value of `NUMERAL`.
-
-Note that if `SYMBOL` is not present in the MLTL file, the line is ignored.
