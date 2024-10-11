@@ -2,7 +2,7 @@
 ```{toctree}
 internals
 parser
-ast
+cpt
 assembly
 testing
 ```

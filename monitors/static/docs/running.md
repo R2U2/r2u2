@@ -5,7 +5,7 @@ These instructions are for using the provided R2U2 CLI example; to use R2U2 as a
 ## Prerequisites
 
 1. [Build](./building.md) the regular (`bin`) or debug (`debug`) Makefile targets
-2. Construct a specification binary using C2P0
+2. Construct a specification binary using C2PO
 
 ## With a Signal File
 

@@ -1,4 +1,4 @@
-# Testing
+# C2PO Test Suite
 
 ## Usage
 

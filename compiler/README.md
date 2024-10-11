@@ -54,3 +54,6 @@ of the line.
 
 See `../examples/cav.csv` for an example.
 
+## Testing
+
+To run C2PO's test suite, see `test/README.md`.

@@ -51,6 +51,7 @@ To add a new suite, it is easiest to build off of an existing JSON configuration
     "suites": [ "SUITE_1", "SUITE_2", ... ]
 }
 ```
+
 where `"SUITE_NAME"` should be the same as the name of the JSON file (minus the .json extension), `"options"` is an object corresponding to the CLI options given to the compiler (these options can be overridden for individual tests), `"tests"` is an array of objects that describe test cases. 
 
 The test cases require a `"name"`, an `"mltl"` filename that exists in in `test/mltl`, a `"trace"` filename that exists in `test/trace`, and an `"oracle"` filename that exists in `test/oracle`.

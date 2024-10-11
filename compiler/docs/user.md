@@ -1,10 +1,9 @@
 # C2PO Users's Guide
 ```{toctree}
-usage
 language
-options
-front_end
+signal_mapping
 mltl_std
+options
 optimizations
 outputs
 ```
