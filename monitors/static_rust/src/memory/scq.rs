@@ -96,7 +96,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
     //    3: Queue is not empty, i.e., not `r2u2_infinity`
     if monitor.queue_arena.queue_mem[queue_ctrl.queue_ref+prev].truth == verdict.truth &&
             // queue_ctrl.write != prev as usize &&
-            (monitor.queue_arena.queue_mem[queue_ctrl.queue_ref+queue_ctrl.write].time != r2u2_infinity  && queue_ctrl.write == 0){
+            !(monitor.queue_arena.queue_mem[queue_ctrl.queue_ref+queue_ctrl.write].time == r2u2_infinity && queue_ctrl.write == 0){
         debug_print!("Compacting write");
         queue_ctrl.write = prev as usize;
     } 

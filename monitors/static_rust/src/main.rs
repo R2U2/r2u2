@@ -61,30 +61,32 @@ fn main() {
 
     // Print output of table
     let mut i = 0;
-    while i <= monitor.bz_program_count.max_program_count{
+    while i < monitor.bz_program_count.max_program_count{
         internals::debug::print_bz_instruction(monitor.bz_instruction_table[i]);
         i = i + 1;
     }
 
     // Print output of table
     let mut i = 0;
-    while i <= monitor.mltl_program_count.max_program_count{
+    while i < monitor.mltl_program_count.max_program_count{
         internals::debug::print_mltl_instruction(monitor.mltl_instruction_table[i]);
         i = i + 1;
     }
 
     let signal_file_path = &args[2];
     let signal_file: fs::File = fs::File::open(signal_file_path).expect("Error opening signal CSV file");
-    let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(signal_file);
+    let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
 
     for result in reader.records() {
         if monitor.bz_program_count.max_program_count == 0 {
+            internals::debug::debug_print!("Loading in atomics directly!");
             // If no booleanizer instructions present, load CSV file directly as atomics
             let record = &result.expect("Error reading signal values");
             for n in 0..record.len(){
                 monitor.atomic_buffer[n] = if record.get(n).expect("Error reading signal values") == "0" {false} else {true};
             }
         } else{
+            internals::debug::debug_print!("Loading in signals!");
             // Load values as r2u2_floats (i.e., largest possible option for input signals) into the signal-buffer
             let record = &result.expect("Error reading signal values");
             for n in 0..record.len(){

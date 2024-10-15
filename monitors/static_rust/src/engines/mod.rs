@@ -1,6 +1,7 @@
 use super::{memory::monitor::*, internals::types::*};
 use future_time::*;
 use booleanizer::*;
+use super::internals::debug::*;
 
 pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ
 pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control
@@ -14,8 +15,9 @@ mod booleanizer;
 
 // Runs R2U2 for a single time step
 pub fn r2u2_step(monitor: &mut Monitor){
+    debug_print!("-------Step {}-------", monitor.time_stamp);
     // Run booleanizer instructions (once)
-    while monitor.bz_program_count.curr_program_count <= monitor.bz_program_count.max_program_count {
+    while monitor.bz_program_count.curr_program_count < monitor.bz_program_count.max_program_count {
         bz_update(monitor);
         monitor.bz_program_count.curr_program_count = monitor.bz_program_count.curr_program_count + 1;
     }
@@ -23,7 +25,7 @@ pub fn r2u2_step(monitor: &mut Monitor){
     // Run mltl instructions (currently just supporting future time)
     let start_time = monitor.time_stamp;
     while start_time == monitor.time_stamp{
-        while monitor.mltl_program_count.curr_program_count <= monitor.mltl_program_count.max_program_count {
+        while monitor.mltl_program_count.curr_program_count < monitor.mltl_program_count.max_program_count {
             mltl_ft_update(monitor);
             monitor.mltl_program_count.curr_program_count = monitor.mltl_program_count.curr_program_count + 1;
         }

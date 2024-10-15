@@ -130,7 +130,6 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
                 }
                 debug_print!("Time since right operand high: {}", tau - queue_ctrl.temporal_block.edge);
 
-                debug_print!("{} >= {} - {} + {}", tau, queue_ctrl.temporal_block.upper_bound, queue_ctrl.temporal_block.lower_bound,queue_ctrl.temporal_block.edge);
                 if op1.truth && tau >= queue_ctrl.temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound{
                     debug_print!("Right Op True");
                     result.time = tau - queue_ctrl.temporal_block.lower_bound;
@@ -142,7 +141,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
                 } else if tau >= queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound + queue_ctrl.temporal_block.edge &&
                 tau >= queue_ctrl.temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound {
                     debug_print!("Time elapsed");
-                    result.time = tau - queue_ctrl.temporal_block.lower_bound;
+                    result.time = tau - queue_ctrl.temporal_block.upper_bound;
                     result.truth = false;
                 } else {
                     debug_print!("Waiting");

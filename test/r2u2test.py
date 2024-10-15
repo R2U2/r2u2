@@ -227,7 +227,6 @@ class TestCase():
                 "cargo", "run", "--manifest-path", str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
             ]
 
-
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
 

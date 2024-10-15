@@ -85,7 +85,7 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ FEQ");
             let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             let op1 = monitor.value_buffer[instr.param2 as usize];
-            monitor.value_buffer[instr.memory_reference as usize] = (if op0 > op1 {op0-op1 < R2U2_FLOAT_EPSILON} else {op1-op0 > R2U2_FLOAT_EPSILON}) as i32 as r2u2_float;
+            monitor.value_buffer[instr.memory_reference as usize] = (if op0 > op1 {op0-op1 < R2U2_FLOAT_EPSILON} else {op1-op0 < R2U2_FLOAT_EPSILON}) as i32 as r2u2_float;
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
         BZ_OP_INEQ=> {
@@ -99,7 +99,7 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ FNEQ");
             let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             let op1 = monitor.value_buffer[instr.param2 as usize];
-            monitor.value_buffer[instr.memory_reference as usize] = !(if op0 > op1 {op0-op1 < R2U2_FLOAT_EPSILON} else {op1-op0 > R2U2_FLOAT_EPSILON}) as i32 as r2u2_float;
+            monitor.value_buffer[instr.memory_reference as usize] = !(if op0 > op1 {op0-op1 < R2U2_FLOAT_EPSILON} else {op1-op0 < R2U2_FLOAT_EPSILON}) as i32 as r2u2_float;
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
         BZ_OP_IGT=> {

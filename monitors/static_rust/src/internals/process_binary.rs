@@ -7,8 +7,6 @@ use cortex_m_semihosting::hprintln;
 
 pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Monitor){
     let mut offset = spec_file[0] as usize;
-    let mut mltl_instruction_count = 0;
-    let mut bz_instruction_count = 0;
 
     while spec_file[offset] != 0 {
         // Configure Instructions
@@ -22,20 +20,18 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         else if spec_file[offset+1] == engines::R2U2_ENG_BZ as u8{
             let instr = instructions::booleanizer::BooleanizerInstruction::set_from_binary(&spec_file[offset+2..]);
             // Store instruction in table
-            monitor.bz_instruction_table[bz_instruction_count] = instr;
-            bz_instruction_count = bz_instruction_count + 1;
+            monitor.bz_instruction_table[monitor.bz_program_count.max_program_count] = instr;
+            monitor.bz_program_count.max_program_count = monitor.bz_program_count.max_program_count + 1;
         }
         // Temporal Logic Instructions
         else if spec_file[offset+1] == engines::R2U2_ENG_TL as u8{
             let instr = instructions::mltl::MLTLInstruction::set_from_binary(&spec_file[offset+2..]);
             // Store instruction in table
-            monitor.mltl_instruction_table[mltl_instruction_count] = instr;
-            mltl_instruction_count = mltl_instruction_count + 1;
+            monitor.mltl_instruction_table[monitor.mltl_program_count.max_program_count] = instr;
+            monitor.mltl_program_count.max_program_count = monitor.mltl_program_count.max_program_count + 1;
         }
         offset = offset + (spec_file[offset] as usize);
     }
-    monitor.bz_program_count.max_program_count = bz_instruction_count - 1;
-    monitor.mltl_program_count.max_program_count = mltl_instruction_count - 1;
 }
 
 // BZ b0  iload  0 0
