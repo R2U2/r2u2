@@ -3,6 +3,7 @@ image: "python:3"
 before_script:
   - "gcc --version"
   - "python3 --version"
+  - "cargo --version"
   - "apt update && apt -y install z3"
 
 stages:
@@ -25,6 +26,7 @@ cav-test-c:
 cav-test-rust:
   stage: test
   script:
+    - "cd test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust cav"
 
 long-trace-c:
@@ -46,6 +48,7 @@ ft-subset-c:
 ft-subset-rust:
   stage: test
   script:
+    - "cd test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust ft_subset"
 
 ft-pt-test-c:
