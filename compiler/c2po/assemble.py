@@ -185,7 +185,7 @@ TL_OPERAND_TYPE_MAP = {
 
 
 class FTOperator(Enum):
-    # See monitors/static/src/engines/mltl/mltl.h
+    # See monitors/static_c/src/engines/mltl/mltl.h
     NOP = 0b11111
     CONFIG = 0b11110
     LOAD = 0b11101

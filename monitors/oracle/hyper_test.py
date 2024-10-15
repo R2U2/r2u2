@@ -9,7 +9,7 @@ from math import log, log10, comb
 from functools import lru_cache
 
 C2PO_PATH = "../compiler"
-R2U2_PATH = "../monitors/static/build"
+R2U2_PATH = "../monitors/static_c/build"
 
 TestConfig = namedtuple('TestConfig', ['max_depth', 'max_interval', 'max_atoms', 'max_time', 'cumulative'])
 

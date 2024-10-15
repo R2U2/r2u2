@@ -497,7 +497,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
                         help="c2po.py file to use for tests")
-    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static/build/r2u2_debug",
+    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static_c/build/r2u2_debug",
                         help="r2u2 binary to use for tests")
     parser.add_argument("suites", nargs="+",
                         help="names of test suites to run, should be .toml files in suites/")

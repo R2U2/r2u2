@@ -171,7 +171,7 @@ report-converter -t fbinfer -o ./reports ./reports/infer
 cpplint --verbose=0 --counting=detailed \
 --filter=-whitespace,-legal,-build/header_guard,build/include_subdir \
 --includeorder=standardcfirst \
---root=monitors/static/src --recursive src > ./cpplint_report.log 2>&1
+--root=monitors/static_c/src --recursive src > ./cpplint_report.log 2>&1
 report-converter -t cpplint -o ./reports ./cpplint_report.log
 rm ./cpplint_report.log
 

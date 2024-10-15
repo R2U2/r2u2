@@ -17,31 +17,31 @@ c2po-test:
 cav-test:
   stage: test
   script:
-    - "cd monitors/static"
+    - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 cav"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 cav"
 
 long-trace:
   stage: test
   script:
-    - "cd monitors/static"
+    - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 long_trace"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 long_trace"
 
 ft-subset:
   stage: test
   script:
-    - "cd monitors/static"
+    - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 ft_subset"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 ft_subset"
 
 ft-pt-test:
   stage: test
   script:
-    - "cd monitors/static"
+    - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static/build/r2u2 regression"
+    - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 regression"
