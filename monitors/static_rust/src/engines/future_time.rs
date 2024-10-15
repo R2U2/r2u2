@@ -69,7 +69,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             let (ready, verdict) = check_operand_data(instr, monitor, 0);
             if ready {
                 push_result(instr, monitor, verdict);
-                log!("{}:{},{}", instr.op2_value, verdict.time, verdict.truth);
+                log!("{}:{},{}", instr.op2_value, verdict.time, if verdict.truth {"T"} else {"F"});
                 // To-Do: Output to a file or function?
             }
         }

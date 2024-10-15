@@ -50,11 +50,11 @@ fn main() {
 
     let spec_file: Vec<u8> = fs::read(spec_file_path).expect("Error opening specification file");
 
-    if cfg!(target_endian = "big") {
-        println!("Big endian");
-    } else {
-        println!("Little endian");
-    }
+    // if cfg!(target_endian = "big") {
+    //     println!("Big endian");
+    // } else {
+    //     println!("Little endian");
+    // }
 
     let mut monitor = memory::monitor::Monitor::initialize();
     internals::process_binary::process_binary_file(&spec_file, &mut monitor);

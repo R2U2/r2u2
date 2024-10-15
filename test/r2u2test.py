@@ -155,7 +155,8 @@ class TestCase():
         c2po_options: dict[str,str|bool],
         c2po: Path,
         r2u2bin: Path,
-        copyback: bool
+        copyback: bool,
+        monitor: str,
     ) -> None:
         self.status = True
         self._copyback = copyback
@@ -172,6 +173,7 @@ class TestCase():
         self.test_results_dir: Path = self.suite_results_dir / self.test_name
         self.c2po = c2po
         self.r2u2bin = r2u2bin
+        self.monitor = monitor
 
         self.clean()
         self.configure_logger()
@@ -216,9 +218,15 @@ class TestCase():
             str(self.mltl_path)
         ])
 
-        self.r2u2bin_command = [
-            str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
-        ]
+        if self.monitor == "static_c":
+            self.r2u2_command = [
+                str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
+            ]
+        elif self.monitor == "static_rust":
+            self.r2u2_command = [
+                "cargo", "run", "--manifest-path", str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
+            ]
+
 
     def clean(self) -> None:
         cleandir(self.test_results_dir, False)
@@ -273,14 +281,21 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
-        r2u2bin_command_new = [
-            str(self.r2u2bin), 
-            str(self.test_results_dir / self.spec_bin_workdir_path.name), 
-            str(self.test_results_dir / self.trace_path.name)
-        ]
+        if self.monitor == "static_c":
+            r2u2_command_new = [
+                str(self.r2u2bin), 
+                str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+                str(self.test_results_dir / self.trace_path.name)
+            ]
+        elif self.monitor == "static_rust":
+            r2u2_command_new = ["cargo", "run", "--manifest_path",
+                    str(self.r2u2bin), 
+                    str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+                    str(self.test_results_dir / self.trace_path.name)
+                ]
 
         with open(self.r2u2bin_command_path, "w") as f:
-            f.write(' '.join(r2u2bin_command_new))
+            f.write(' '.join(r2u2_command_new))
 
     def run(self) -> None:
         if not self.status:
@@ -298,7 +313,7 @@ class TestCase():
             self.test_fail(f"c2po.py returned with code {proc.returncode}")
             return
 
-        proc = subprocess.run(self.r2u2bin_command, capture_output=True)
+        proc = subprocess.run(self.r2u2_command, capture_output=True)
 
         with open(self.r2u2bin_log_path, "wb") as f:
             f.write(proc.stdout)
@@ -360,7 +375,8 @@ class TestSuite():
         top_results_dir: Path,
         c2po: Path,
         r2u2bin: Path,
-        copyback: bool
+        copyback: bool,
+        monitor: str
     ) -> None:
         """Initialize TestSuite by cleaning directories and loading JSON data."""
         self.status: bool = True
@@ -372,6 +388,7 @@ class TestSuite():
         self.suite_results_dir: Path = self.top_results_dir / self.suite_name
         self.c2po = c2po
         self.r2u2bin = r2u2bin
+        self.monitor = monitor
 
         self.clean()
         self.configure_logger()
@@ -379,7 +396,7 @@ class TestSuite():
         if not c2po.is_file():
             self.suite_fail_msg(f"'c2po' not a file ({c2po}).")
 
-        if not r2u2bin.is_file():
+        if monitor == "static_c" and not r2u2bin.is_file():
             self.suite_fail_msg(f"'r2u2bin' not a file ({r2u2bin}).")
 
         self.configure_tests()
@@ -452,11 +469,11 @@ class TestSuite():
                 if "options" in testcase:
                     options.update(testcase["options"])
 
-                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.c2po, self.r2u2bin, self._copyback))
+                self.tests.append(TestCase(self.suite_name, name, mltl, trace, oracle, self.top_results_dir, options, self.c2po, self.r2u2bin, self._copyback, self.monitor))
 
         if "suites" in config:
             for suite in config["suites"]:
-                self.suites.append(TestSuite(suite, self.top_results_dir, self.c2po, self.r2u2bin, self._copyback))
+                self.suites.append(TestSuite(suite, self.top_results_dir, self.c2po, self.r2u2bin, self._copyback, self.monitor))
 
     def run(self) -> int:
         if not self.status:
@@ -481,11 +498,12 @@ def main(c2po: Path,
          r2u2bin: Path, 
          resultsdir: Path, 
          suite_names: list[str],
-         copyback: bool
+         copyback: bool,
+         monitor: str
 ) -> int:
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, resultsdir, c2po, r2u2bin, copyback))
+        suites.append(TestSuite(suite_name, resultsdir, c2po, r2u2bin, copyback, monitor))
 
     status = 0
     for suite in suites:
@@ -497,8 +515,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
                         help="c2po.py file to use for tests")
+    parser.add_argument("--monitor", default="static_c", help="options are 'static_c' or 'static_rust'")
     parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static_c/build/r2u2_debug",
                         help="r2u2 binary to use for tests")
+    parser.add_argument("--r2u2manifestpath", default=TEST_DIR / "../monitors/static_rust/Cargo.toml",
+                        help="r2u2 Cargo.toml to use for tests")
     parser.add_argument("suites", nargs="+",
                         help="names of test suites to run, should be .toml files in suites/")
     parser.add_argument("--resultsdir", default=DEFAULT_RESULTS_DIR,
@@ -508,8 +529,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     c2po = Path(args.c2po)
-    r2u2bin = Path(args.r2u2bin)
+    if args.monitor == "static_c":
+        r2u2bin = Path(args.r2u2bin)
+    elif args.monitor == "static_rust":
+        r2u2bin = Path(args.r2u2manifestpath)
     resultsdir = Path(args.resultsdir)
 
-    retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback)
+    retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback, args.monitor)
     sys.exit(retcode)
