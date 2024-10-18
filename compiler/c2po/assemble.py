@@ -40,41 +40,42 @@ class BZOperator(Enum):
     FLOAD = 0b000010
     ICONST = 0b000011
     FCONST = 0b000100
-    BWNEG = 0b000101
-    BWAND = 0b000110
-    BWOR = 0b000111
-    BWXOR = 0b001000
-    IEQ = 0b001001
-    FEQ = 0b001010
-    INEQ = 0b001011
-    FNEQ = 0b001100
-    IGT = 0b001101
-    FGT = 0b001110
-    IGTE = 0b001111
-    FGTE = 0b010000
-    ILT = 0b010001
-    FLT = 0b010010
-    ILTE = 0b010011
-    FLTE = 0b010100
-    INEG = 0b010101
-    FNEG = 0b010110
-    IADD = 0b010111
-    FADD = 0b011000
-    ISUB = 0b011001
-    FSUB = 0b011010
-    IMUL = 0b011011
-    FMUL = 0b011100
-    IDIV = 0b011101
-    FDIV = 0b011110
-    MOD = 0b011111
-    IPOW  = 0b100000
-    FPOW  = 0b100001
-    ISQRT = 0b100010
-    FSQRT = 0b100011
-    IABS = 0b100100
-    FABS = 0b100101
-    IPREV = 0b100110
-    FPREV = 0b100111
+    STORE = 0b000101
+    BWNEG = 0b000110
+    BWAND = 0b000111
+    BWOR = 0b001000
+    BWXOR = 0b001001
+    IEQ = 0b001010
+    FEQ = 0b001011
+    INEQ = 0b001100
+    FNEQ = 0b001101
+    IGT = 0b001110
+    FGT = 0b001111
+    IGTE = 0b010000
+    FGTE = 0b010001
+    ILT = 0b010010
+    FLT = 0b010011
+    ILTE = 0b010100
+    FLTE = 0b010101
+    INEG = 0b010110
+    FNEG = 0b010111
+    IADD = 0b011000
+    FADD = 0b011001
+    ISUB = 0b011010
+    FSUB = 0b011011
+    IMUL = 0b011100
+    FMUL = 0b011101
+    IDIV = 0b011110
+    FDIV = 0b011111
+    MOD = 0b100000
+    IPOW  = 0b100001
+    FPOW  = 0b100010
+    ISQRT = 0b100011
+    FSQRT = 0b100100
+    IABS = 0b100101
+    FABS = 0b100110
+    IPREV = 0b100111
+    FPREV = 0b101000
 
 
     def is_constant(self) -> bool:
@@ -522,6 +523,10 @@ def gen_bz_instruction(
         operand1 = expr.value
         operand2 = 0
         operator = BZOperator.FCONST
+    elif isinstance(expr, cpt.Atomic):
+        operand1 = instructions[expr.children[0]].id
+        operand2 = expr.atomic_id
+        operator = BZOperator.STORE
     elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id
         operand2 = 0
@@ -558,8 +563,8 @@ def gen_bz_instruction(
         EngineTag.BZ,
         bzid,
         operator,
-        expr in context.atomic_id,
-        0 if expr not in context.atomic_id else context.atomic_id[expr],
+        False,
+        0,
         operand1,
         operand2,
     )

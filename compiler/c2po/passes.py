@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat
+from copy import deepcopy
 
 MODULE_CODE = "PASS"
 
@@ -1072,8 +1073,15 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
     atomic_map: dict[str, int] = {}
-    context.atomic_id = {}
     aid: int = 0
+
+    # Initialize atomic_map if context.atomic_id is non-empty
+    for atomic_expr, atomic_id in context.atomic_id.items():
+        if cpt.to_prefix_str(atomic_expr) not in atomic_map:
+            atomic_map[cpt.to_prefix_str(atomic_expr)] = atomic_id
+    log.debug(MODULE_CODE, 1, f"atomic map initialization: {atomic_map}")
+    # Reset context.atomic_id
+    context.atomic_id = {}
 
     for expr in program.postorder(context):
         if (
@@ -1106,9 +1114,22 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
                 continue
 
-            context.atomic_id[expr] = aid
-            atomic_map[cpt.to_prefix_str(expr)] = aid
-            aid += 1
+            if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
+                new = cpt.Atomic(
+                    expr.loc,
+                    deepcopy(expr),
+                    aid)
+                expr.replace(new)
+
+
+            if cpt.to_prefix_str(expr) not in atomic_map:
+                if isinstance(expr, cpt.Atomic) and expr.children[0] in context.atomic_id:
+                    context.atomic_id[expr] = context.atomic_id[expr.children[0]]
+                    atomic_map[cpt.to_prefix_str(expr)] = context.atomic_id[expr.children[0]]
+                else:
+                    context.atomic_id[expr] = aid
+                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                    aid += 1
             break
 
     log.debug(

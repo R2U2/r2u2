@@ -29,7 +29,7 @@ pub fn bz_update(monitor: &mut Monitor){
             monitor.value_buffer[instr.memory_reference as usize] = monitor.signal_buffer[signal_reference as usize];
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as i32, signal_reference);
         }
-        BZ_OP_FLOAD=> {
+        BZ_OP_FLOAD => {
             debug_print!("BZ FLOAD");
             let signal_reference = LittleEndian::read_u32(&instr.param1);
             monitor.value_buffer[instr.memory_reference as usize] = monitor.signal_buffer[signal_reference as usize];
@@ -46,6 +46,11 @@ pub fn bz_update(monitor: &mut Monitor){
             let op_const = LittleEndian::read_f64(&instr.param1);
             monitor.value_buffer[instr.memory_reference as usize] = op_const as r2u2_float;
             debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_float);
+        BZ_OP_STORE => {
+            debug_print!("BZ STORE");
+            let op = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
+            monitor.atomic_buffer[instr.param2 as usize] = op;
+            debug_print!("a{} = {} (b{})", instr.param2, monitor.atomic_buffer[instr.param2 as usize], LittleEndian::read_u32(&instr.param1) as usize);
         }
         BZ_OP_BWNEG=> {
             debug_print!("BZ BWNEG");
@@ -245,11 +250,8 @@ pub fn bz_update(monitor: &mut Monitor){
             monitor.value_buffer[instr.memory_reference as usize] = op;
             debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize]);
         }
-        _ => {return;}
-    }
-    if instr.store {
-        debug_print!("AT STORE");
-        monitor.atomic_buffer[instr.at_addr as usize] = float_to_bool(monitor.value_buffer[instr.memory_reference as usize]);
-        debug_print!("a{} = {} (b{})", instr.at_addr, monitor.atomic_buffer[instr.at_addr as usize], instr.memory_reference);
+        _ => {
+            return;
+        }
     }
 }

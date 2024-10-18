@@ -724,6 +724,20 @@ class Operator(Expression):
         new = Operator(self.loc, self.operator, children)
         self.copy_attrs(new)
         return new
+    
+class Atomic(Expression):
+    def __init__(
+        self, loc: log.FileLocation, child: Expression, id: int
+    ) -> None:
+        super().__init__(loc, [child])
+        self.atomic_id: int = id
+        self.symbol = f"a{id}"
+        self.engine = types.R2U2Engine.BOOLEANIZER
+
+    def __deepcopy__(self, memo):
+        new = Atomic(self.loc, self.children[0], self.atomic_id)
+        self.copy_attrs(new)
+        return new
 
 
 class TemporalOperator(Operator):
@@ -1425,6 +1439,13 @@ def to_infix_str(start: Expression) -> str:
                 s += f"){expr.symbol}("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
+        elif isinstance(expr, Atomic):
+            if seen == 0:
+                s += f"({expr.symbol}"
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s += ")"
         elif isinstance(expr, Formula):
             if seen == 0:
                 s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
@@ -1506,6 +1527,13 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ")"
         elif isinstance(expr, Operator):
+            if seen == 0:
+                s += f"({expr.symbol} "
+                stack.append((seen + 1, expr))
+                [stack.append((0, child)) for child in reversed(expr.children)]
+            else:
+                s = s[:-1] + ") "
+        elif isinstance(expr, Atomic):
             if seen == 0:
                 s += f"({expr.symbol} "
                 stack.append((seen + 1, expr))

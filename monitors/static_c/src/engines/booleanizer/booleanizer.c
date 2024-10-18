@@ -44,6 +44,12 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ FCONST\n");
             R2U2_DEBUG_PRINT("\tb%d = %lf\n", inst_buff.addr, inst_buff.param1.bz_float);
             break;
+        /* Store */
+        case R2U2_BZ_OP_STORE:
+            (*(monitor->atomic_buffer)[0])[inst_buff.param2.bz_addr] = (*monitor->value_buffer)[inst_buff.param1.bz_addr].b;
+
+            R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", inst_buff.param2.bz_addr, (*(monitor->atomic_buffer)[0])[inst_buff.param2.bz_addr], param1.bz_addr);
+            break;
         /* Bitwise */
         case R2U2_BZ_OP_BWNEG:
             i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
@@ -419,13 +425,6 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
         default:
             R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
             break;
-    }
-
-    if(inst_buff.store) {
-        (*(monitor->atomic_buffer)[0])[inst_buff.at_addr] = (*monitor->value_buffer)[inst_buff.addr].b;
-
-        R2U2_DEBUG_PRINT("\tAT STORE\n");
-        R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", inst_buff.at_addr, (*(monitor->atomic_buffer)[0])[inst_buff.at_addr], inst_buff.addr);
     }
 
     return R2U2_OK;
