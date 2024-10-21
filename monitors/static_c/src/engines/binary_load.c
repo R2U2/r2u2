@@ -4,6 +4,7 @@
 #include "internals/bounds.h"
 #include "internals/debug.h"
 #include "internals/errors.h"
+#include "engines/booleanizer/booleanizer.h"
 #include "engines/mltl/mltl.h"
 #include <stdio.h>
 
@@ -33,8 +34,31 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         return R2U2_ERR_OTHER;
       }
     } else {
-      // Store instruction metadata in table
-      pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
+      if(data[offset+1] == R2U2_ENG_BZ){
+        r2u2_bz_instruction_t* instr = (r2u2_bz_instruction_t *) &(data[offset+2]);
+        // Special case: ICONST and FCONST only need to be run once since they load constants
+        if (instr->opcode == R2U2_BZ_OP_ICONST){
+          (*monitor->value_buffer)[instr->addr].i = instr->param1.bz_int;
+          R2U2_DEBUG_PRINT("\tBZ ICONST\n");
+          R2U2_DEBUG_PRINT("\tb%d = %d\n", instr->addr, instr->param1.bz_int);
+        }
+        else if (instr->opcode == R2U2_BZ_OP_FCONST) {
+          (*monitor->value_buffer)[instr->addr].f = instr->param1.bz_float;
+          R2U2_DEBUG_PRINT("\tBZ FCONST\n");
+          R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr->addr, instr->param1.bz_float);
+        }
+        else {
+          // Store booleanizer instruction in table
+          pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
+        }
+      }
+      else if (data[offset+1] == R2U2_ENG_TL){
+        // Store temporal logic instruction in table
+        pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
+      } else {
+        // Store instruction metadata in table
+        pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
+      }
     }
   }
 

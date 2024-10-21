@@ -3,7 +3,7 @@ image: "python:3"
 before_script:
   - "gcc --version"
   - "python3 --version"
-  - "cargo --version"
+  # - "cargo --version"
   - "apt update && apt -y install z3"
 
 stages:

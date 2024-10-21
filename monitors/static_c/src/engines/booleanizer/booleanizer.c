@@ -32,18 +32,6 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ FLOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", inst_buff.addr, f1, inst_buff.param1.bz_addr);
             break;
-        case R2U2_BZ_OP_ICONST:
-            (*monitor->value_buffer)[inst_buff.addr].i = inst_buff.param1.bz_int;
-
-            R2U2_DEBUG_PRINT("\tBZ ICONST\n");
-            R2U2_DEBUG_PRINT("\tb%d = %d\n", inst_buff.addr, inst_buff.param1.bz_int);
-            break;
-        case R2U2_BZ_OP_FCONST:
-            (*monitor->value_buffer)[inst_buff.addr].f = inst_buff.param1.bz_float;
-
-            R2U2_DEBUG_PRINT("\tBZ FCONST\n");
-            R2U2_DEBUG_PRINT("\tb%d = %lf\n", inst_buff.addr, inst_buff.param1.bz_float);
-            break;
         /* Store */
         case R2U2_BZ_OP_STORE:
             (*(monitor->atomic_buffer)[0])[inst_buff.param2.bz_addr] = (*monitor->value_buffer)[inst_buff.param1.bz_addr].b;

@@ -35,17 +35,6 @@ pub fn bz_update(monitor: &mut Monitor){
             monitor.value_buffer[instr.memory_reference as usize] = monitor.signal_buffer[signal_reference as usize];
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_float, signal_reference);  
         }
-        BZ_OP_ICONST=> {
-            debug_print!("BZ ICONST");
-            let op_const = LittleEndian::read_i32(&instr.param1);
-            monitor.value_buffer[instr.memory_reference as usize] = op_const as r2u2_float;
-            debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as i32);
-        }
-        BZ_OP_FCONST=> {
-            debug_print!("BZ FCONST");
-            let op_const = LittleEndian::read_f64(&instr.param1);
-            monitor.value_buffer[instr.memory_reference as usize] = op_const as r2u2_float;
-            debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_float);
         BZ_OP_STORE => {
             debug_print!("BZ STORE");
             let op = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
