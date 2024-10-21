@@ -74,8 +74,8 @@ impl MLTLInstruction {
             op2_value: LittleEndian::read_u32(&instr[4..]),
             memory_reference: LittleEndian::read_u32(&instr[8..]),
             op1_type: instr[12],
-            op2_type: instr[16],
-            opcode: instr[20],
+            op2_type: instr[13],
+            opcode: instr[14],
         };
     }
     pub fn empty_instr() -> MLTLInstruction{

@@ -5,7 +5,7 @@
 
 #define R2U2_MLTL_TENSE_FUTURE 0b10000
 
-typedef enum {
+enum r2u2_mltl_opcode{
     // Future Tense: 1xxxx
 
     R2U2_MLTL_OP_FT_NOP          = 0b11111,
@@ -50,14 +50,18 @@ typedef enum {
     R2U2_MLTL_OP_PT_NOR          = 0b00010,
     R2U2_MLTL_OP_PT_XOR          = 0b00001,
     R2U2_MLTL_OP_PT_EQUIVALENT   = 0b00000,
-} r2u2_mltl_opcode_t;
+};
 
-typedef enum {
+typedef uint8_t r2u2_mltl_opcode_t;
+
+enum r2u2_mltl_operand_type{
     R2U2_FT_OP_DIRECT      = 0b01,
     R2U2_FT_OP_ATOMIC      = 0b00,
     R2U2_FT_OP_SUBFORMULA  = 0b10,
     R2U2_FT_OP_NOT_SET     = 0b11
-} r2u2_mltl_operand_type_t;
+};
+
+typedef uint8_t r2u2_mltl_operand_type_t;
 
 //
 // data structure for instruction

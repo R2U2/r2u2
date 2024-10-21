@@ -331,8 +331,8 @@ field_format_str_map = {
     FieldType.AT_ID: "B",
     FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
     FieldType.TL_ID: "I",
-    FieldType.TL_OPERATOR: "i",
-    FieldType.TL_OPERAND_TYPE: "i",
+    FieldType.TL_OPERATOR: "b",
+    FieldType.TL_OPERAND_TYPE: "b",
     FieldType.TL_OPERAND_VALUE: "I",
 }
 
@@ -1026,7 +1026,7 @@ def pack_tl_instruction(
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
         f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
-        f"{format_strs[FieldType.TL_ID]:2} "
+        f"{format_strs[FieldType.TL_ID]:4} "
         f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
         f"{format_strs[FieldType.TL_OPERAND_TYPE]:2} "
         f"{format_strs[FieldType.TL_OPERATOR]:2}"
@@ -1034,7 +1034,7 @@ def pack_tl_instruction(
         f"{instruction.engine_tag.value:<2} "
         f"{instruction.operand1_value:<4} "
         f"{instruction.operand2_value:<4} "
-        f"{instruction.id:<2} "
+        f"{instruction.id:<4} "
         f"{instruction.operand1_type.value:<2} "
         f"{instruction.operand2_type.value:<2} "
         f"{instruction.operator.value:<2}",
