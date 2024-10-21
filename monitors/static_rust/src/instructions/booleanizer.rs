@@ -53,8 +53,6 @@ pub struct BooleanizerInstruction {
     pub param1: [u8; 8],
     pub param2: u32,
     pub memory_reference: u32,
-    pub at_addr: u32,
-    pub store: bool,
     pub opcode: u8,
 
 }
@@ -72,9 +70,7 @@ impl BooleanizerInstruction {
         return BooleanizerInstruction{ 
             param1: [instr[0], instr[1], instr[2], instr[3], instr[4], instr[5], instr[6], instr[7]],
             param2: LittleEndian::read_u32(&instr[8..]),
-            memory_reference: LittleEndian::read_u32(&instr[20..]),
-            at_addr: LittleEndian::read_u32(&instr[24..]),
-            store: if instr[28] == 0 {false} else {true},
+            memory_reference: LittleEndian::read_u32(&instr[12..]),
             opcode: instr[16],
         };
     }
@@ -83,8 +79,6 @@ impl BooleanizerInstruction {
             param1: [0; 8],
             param2: 0,
             memory_reference: 0,
-            at_addr: 0,
-            store: false,
             opcode: BZ_OP_NONE,
         };
     }

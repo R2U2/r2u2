@@ -294,8 +294,7 @@ class FieldType(Enum):
     INSTR_SIZE = 1
     BZ_ID = 2
     BZ_OPERATOR = 3
-    BZ_STORE_ATOMIC = 4
-    BZ_ATOMIC_ID = 5
+    BZ_OPERAND_ID = 5
     BZ_OPERAND_INT = 6
     BZ_OPERAND_FLOAT = 7
     AT_VALUE = 8
@@ -318,11 +317,10 @@ field_format_str_map = {
     FieldType.ENGINE_TAG: "B",
     FieldType.INSTR_SIZE: "B",
     FieldType.BZ_ID: "I",
+    FieldType.BZ_OPERAND_ID: "Ixxxx",
     FieldType.BZ_OPERAND_INT: "ixxxx",
     FieldType.BZ_OPERAND_FLOAT: "d",
-    FieldType.BZ_OPERATOR: "I",
-    FieldType.BZ_ATOMIC_ID: "I",
-    FieldType.BZ_STORE_ATOMIC: "?",
+    FieldType.BZ_OPERATOR: "b",
     FieldType.AT_VALUE: "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
     FieldType.AT_SIGNAL: "B",
@@ -369,10 +367,8 @@ class BZInstruction:
     engine_tag: EngineTag
     id: int
     operator: BZOperator
-    store_atomic: bool
-    atomic_id: int
     operand1: Union[None, int, float]
-    operand2: Union[None, int, float]
+    operand2: int
 
     def __str__(self) -> str:
         field_strs: list[str] = []
@@ -563,8 +559,6 @@ def gen_bz_instruction(
         EngineTag.BZ,
         bzid,
         operator,
-        False,
-        0,
         operand1,
         operand2,
     )
@@ -979,20 +973,16 @@ def pack_bz_instruction(
         MODULE_CODE, 1,
         f"Packing: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else format_strs[FieldType.BZ_OPERAND_INT]:5} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand2, float) else format_strs[FieldType.BZ_OPERAND_INT]:5} "
-        f"{format_strs[FieldType.BZ_OPERATOR]:2} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_ID] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_INT])} "
         f"{format_strs[FieldType.BZ_ID]:2} "
-        f"{format_strs[FieldType.BZ_STORE_ATOMIC]:2} "
-        f"{format_strs[FieldType.BZ_ATOMIC_ID]:2} "
+        f"{format_strs[FieldType.BZ_ID]:2} "
+        f"{format_strs[FieldType.BZ_OPERATOR]:2} "
         f"\n\t"
         f"{instruction.engine_tag.value:<2} "
         f"{instruction.operand1:<5} "
-        f"{instruction.operand2:<5} "
-        f"{instruction.operator.value:<2} "
+        f"{instruction.operand2:<2} "
         f"{instruction.id:<2} "
-        f"{instruction.store_atomic:<2} "
-        f"{instruction.atomic_id:<2} ",
+        f"{instruction.operator.value:<2} ",
     )
 
     binary = bytes()
@@ -1001,17 +991,15 @@ def pack_bz_instruction(
     format_str += (
         format_strs[FieldType.BZ_OPERAND_FLOAT]
         if isinstance(instruction.operand1, float)
+        else format_strs[FieldType.BZ_OPERAND_ID]
+        if instruction.operator is BZOperator.ICONST
         else format_strs[FieldType.BZ_OPERAND_INT]
     )
     format_str += (
-        format_strs[FieldType.BZ_OPERAND_FLOAT]
-        if isinstance(instruction.operand2, float)
-        else format_strs[FieldType.BZ_OPERAND_INT]
+        format_strs[FieldType.BZ_ID]
     )
-    format_str += format_strs[FieldType.BZ_OPERATOR]
     format_str += format_strs[FieldType.BZ_ID]
-    format_str += format_strs[FieldType.BZ_ATOMIC_ID]
-    format_str += format_strs[FieldType.BZ_STORE_ATOMIC]
+    format_str += format_strs[FieldType.BZ_OPERATOR]
 
     engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
@@ -1020,10 +1008,8 @@ def pack_bz_instruction(
     binary = engine_tag_binary + CStruct(format_str).pack(
         instruction.operand1,
         instruction.operand2,
-        instruction.operator.value,
         instruction.id,
-        instruction.atomic_id,
-        instruction.store_atomic,
+        instruction.operator.value,
     )
 
     return binary
