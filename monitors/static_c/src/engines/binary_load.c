@@ -81,12 +81,12 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         }
         // Special case: ICONST and FCONST only need to be run once since they load constants
         if (instr->opcode == R2U2_BZ_OP_ICONST){
-          (*monitor->value_buffer)[instr->memory_reference] = instr->param1.bz_int;
+          (*monitor->value_buffer)[instr->memory_reference].i = instr->param1.bz_int;
           R2U2_DEBUG_PRINT("\tBZ ICONST\n");
           R2U2_DEBUG_PRINT("\tb%d = %d\n", instr->memory_reference, instr->param1.bz_int);
         }
         else if (instr->opcode == R2U2_BZ_OP_FCONST) {
-          (*monitor->value_buffer)[instr->memory_reference] = instr->param1.bz_float;
+          (*monitor->value_buffer)[instr->memory_reference].f = instr->param1.bz_float;
           R2U2_DEBUG_PRINT("\tBZ FCONST\n");
           R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr->memory_reference, instr->param1.bz_float);
         }

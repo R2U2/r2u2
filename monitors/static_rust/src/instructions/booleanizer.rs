@@ -3,48 +3,50 @@ use byteorder::{LittleEndian, ByteOrder};
 // Booleanizer Instruction Opcodes
 pub const BZ_OP_NONE: u8 = 0b000000;
 /* Loads */
-pub const BZ_OP_LOAD: u8 = 0b000001;
-pub const BZ_OP_STORE: u8 = 0b000010;
+pub const BZ_OP_ILOAD: u8 = 0b000001;
+pub const BZ_OP_FLOAD: u8 = 0b000010;
 pub const BZ_OP_ICONST: u8 = 0b000011;
 pub const BZ_OP_FCONST: u8 = 0b000100;
+/* Store */
+pub const BZ_OP_STORE: u8 = 0b0000101;
 /* Bitwise */
-pub const BZ_OP_BWNEG: u8 = 0b000101;
-pub const BZ_OP_BWAND: u8 = 0b000110;
-pub const BZ_OP_BWOR: u8 = 0b000111;
-pub const BZ_OP_BWXOR: u8 = 0b001000;
+pub const BZ_OP_BWNEG: u8 = 0b000110;
+pub const BZ_OP_BWAND: u8 = 0b000111;
+pub const BZ_OP_BWOR: u8 = 0b001000;
+pub const BZ_OP_BWXOR: u8 = 0b001001;
 /* Equality */
-pub const BZ_OP_IEQ: u8 = 0b001001;
-pub const BZ_OP_FEQ: u8 = 0b001010;
-pub const BZ_OP_INEQ: u8 = 0b001011;
-pub const BZ_OP_FNEQ: u8 = 0b001100;
+pub const BZ_OP_IEQ: u8 = 0b001010;
+pub const BZ_OP_FEQ: u8 = 0b001011;
+pub const BZ_OP_INEQ: u8 = 0b001100;
+pub const BZ_OP_FNEQ: u8 = 0b001101;
 /* Inequality */
-pub const BZ_OP_IGT: u8 = 0b001101;
-pub const BZ_OP_FGT: u8 = 0b001110;
-pub const BZ_OP_IGTE: u8 = 0b001111;
-pub const BZ_OP_FGTE: u8 = 0b010000;
-pub const BZ_OP_ILT: u8 = 0b010001;
-pub const BZ_OP_FLT: u8 = 0b010010;
-pub const BZ_OP_ILTE: u8 = 0b010011;
-pub const BZ_OP_FLTE: u8 = 0b010100;
+pub const BZ_OP_IGT: u8 = 0b001110;
+pub const BZ_OP_FGT: u8 = 0b001111;
+pub const BZ_OP_IGTE: u8 = 0b010000;
+pub const BZ_OP_FGTE: u8 = 0b010001;
+pub const BZ_OP_ILT: u8 = 0b010010;
+pub const BZ_OP_FLT: u8 = 0b010011;
+pub const BZ_OP_ILTE: u8 = 0b010100;
+pub const BZ_OP_FLTE: u8 = 0b010101;
 /* Arithmetic */
-pub const BZ_OP_INEG: u8 = 0b010101;
-pub const BZ_OP_FNEG: u8 = 0b010110;
-pub const BZ_OP_IADD: u8 = 0b010111;
-pub const BZ_OP_FADD: u8 = 0b011000;
-pub const BZ_OP_ISUB: u8 = 0b011001;
-pub const BZ_OP_FSUB: u8 = 0b011010;
-pub const BZ_OP_IMUL: u8 = 0b011011;
-pub const BZ_OP_FMUL: u8 = 0b011100;
-pub const BZ_OP_IDIV: u8 = 0b011101;
-pub const BZ_OP_FDIV: u8 = 0b011110;
-pub const BZ_OP_MOD: u8 = 0b011111;
-pub const BZ_OP_IPOW: u8 = 0b100000;
-pub const BZ_OP_FPOW: u8 = 0b100001;
-pub const BZ_OP_ISQRT: u8 = 0b100010;
-pub const BZ_OP_FSQRT: u8 = 0b100011;
-pub const BZ_OP_IABS: u8 = 0b100100;
-pub const BZ_OP_FABS: u8 = 0b100101;
-pub const BZ_OP_PREV: u8 = 0b100110;
+pub const BZ_OP_INEG: u8 = 0b010110;
+pub const BZ_OP_FNEG: u8 = 0b010111;
+pub const BZ_OP_IADD: u8 = 0b011000;
+pub const BZ_OP_FADD: u8 = 0b011001;
+pub const BZ_OP_ISUB: u8 = 0b011010;
+pub const BZ_OP_FSUB: u8 = 0b011011;
+pub const BZ_OP_IMUL: u8 = 0b011100;
+pub const BZ_OP_FMUL: u8 = 0b011101;
+pub const BZ_OP_IDIV: u8 = 0b011110;
+pub const BZ_OP_FDIV: u8 = 0b011111;
+pub const BZ_OP_MOD: u8 = 0b100000;
+pub const BZ_OP_IPOW: u8 = 0b100001;
+pub const BZ_OP_FPOW: u8 = 0b100010;
+pub const BZ_OP_ISQRT: u8 = 0b100011;
+pub const BZ_OP_FSQRT: u8 = 0b100100;
+pub const BZ_OP_IABS: u8 = 0b100101;
+pub const BZ_OP_FABS: u8 = 0b100110;
+pub const BZ_OP_PREV: u8 = 0b100111;
 
 pub struct BooleanizerInstruction {
     pub param1: [u8; 8],

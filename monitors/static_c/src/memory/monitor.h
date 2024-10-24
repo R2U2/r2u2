@@ -70,7 +70,7 @@ typedef struct {
     &(r2u2_instruction_t [R2U2_MAX_INSTRUCTIONS]){0}, \
     NULL, NULL, \
     &(void*[R2U2_MAX_SIGNALS]){0}, \
-    &(r2u2_float [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
+    &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
     {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
     {NULL, NULL}, \

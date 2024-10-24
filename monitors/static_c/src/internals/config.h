@@ -77,7 +77,7 @@
 
 #ifndef R2U2_DEBUG
     /* Enables debug printing to stderr */
-    #define R2U2_DEBUG INHIBIT
+    #define R2U2_DEBUG EXHIBIT
 #endif
 
 #ifndef R2U2_TRACE

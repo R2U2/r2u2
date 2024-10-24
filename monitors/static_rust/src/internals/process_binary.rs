@@ -27,13 +27,13 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                 BZ_OP_ICONST=> {
                     debug_print!("BZ ICONST");
                     let op_const = LittleEndian::read_i32(&instr.param1);
-                    monitor.value_buffer[instr.memory_reference as usize] = op_const as r2u2_float;
-                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as i32);
+                    monitor.value_buffer[instr.memory_reference as usize].i = op_const;
+                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_int);
                 }
                 BZ_OP_FCONST=> {
                     debug_print!("BZ FCONST");
                     let op_const = LittleEndian::read_f64(&instr.param1);
-                    monitor.value_buffer[instr.memory_reference as usize] = op_const as r2u2_float;
+                    monitor.value_buffer[instr.memory_reference as usize].f = op_const;
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_float);
                 }
                 _ => {
@@ -53,35 +53,3 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         offset = offset + (spec_file[offset] as usize);
     }
 }
-
-// BZ b0  iload  0 0
-// BZ b1  iload  1 0
-// BZ b2  iload  2 0
-// TL n0  load   a0
-// TL n1  not    n0
-// TL n2  load   a1
-// TL n3  not    n2
-// TL n4  and    n1 n3
-// TL n5  not    n4
-// TL n6  global n5
-// TL n7  return n6 0
-// TL n8  load   a2
-// TL n9  and    n2 n8
-// TL n10 until  n0 n9
-// TL n11 return n10 1
-// CG TL DUOQ q0 |1|
-// CG TL DUOQ q1 |1|
-// CG TL DUOQ q2 |1|
-// CG TL DUOQ q3 |1|
-// CG TL DUOQ q4 |1|
-// CG TL DUOQ q5 |1|
-// CG TL DUOQ q6 |5|
-// CG TL TEMP q6 [1, 2]
-// CG TL DUOQ q7 |1|
-// CG TL DUOQ q8 |1|
-// CG TL DUOQ q9 |1|
-// CG TL DUOQ q10 |5|
-// CG TL TEMP q10 [0, 2]
-// CG TL DUOQ q11 |1|
-// F __f0__ 0
-// F __f1__ 1

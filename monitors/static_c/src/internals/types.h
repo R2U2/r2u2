@@ -67,5 +67,12 @@ typedef struct {
     r2u2_bool truth;
 } r2u2_verdict;
 
+typedef union r2u2_value {
+    // Notice that we store booleans as integers so we do not require 
+    // boolean specific instructions (e.g., BLOAD or BADD)
+    r2u2_int i;
+    r2u2_float f;
+} r2u2_value_t;
+
 
 #endif /* R2U2_TYPES_H */
