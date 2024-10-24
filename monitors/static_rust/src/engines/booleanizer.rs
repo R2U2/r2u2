@@ -37,29 +37,29 @@ pub fn bz_update(monitor: &mut Monitor){
         }
         BZ_OP_BWNEG=> {
             debug_print!("BZ BWNEG");
-            let op = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
-            monitor.value_buffer[instr.memory_reference as usize] = !op as i32 as r2u2_float;
+            let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = !op as r2u2_float;
             debug_print!("b{} = {} = (~{})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op);
         }
         BZ_OP_BWAND=> {
             debug_print!("BZ BWAND");
-            let op0 = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
-            let op1 = float_to_bool(monitor.value_buffer[instr.param2 as usize]);
-            monitor.value_buffer[instr.memory_reference as usize] = (op0 & op1) as i32 as r2u2_float;
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 & op1) as r2u2_float;
             debug_print!("b{} = {} = ({} & {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
         BZ_OP_BWOR=> {
             debug_print!("BZ BWOR");
-            let op0 = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
-            let op1 = float_to_bool(monitor.value_buffer[instr.param2 as usize]);
-            monitor.value_buffer[instr.memory_reference as usize] = (op0 | op1) as i32 as r2u2_float;
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 | op1) as r2u2_float;
             debug_print!("b{} = {} = ({} | {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
         BZ_OP_BWXOR=> {
             debug_print!("BZ BWXOR");
-            let op0 = float_to_bool(monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize]);
-            let op1 = float_to_bool(monitor.value_buffer[instr.param2 as usize]);
-            monitor.value_buffer[instr.memory_reference as usize] = (op0 ^ op1) as i32 as r2u2_float;
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 ^ op1) as r2u2_float;
             debug_print!("b{} = {} = ({} ^ {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
         BZ_OP_IEQ=> {
@@ -146,28 +146,55 @@ pub fn bz_update(monitor: &mut Monitor){
             monitor.value_buffer[instr.memory_reference as usize] = (op0 < (op1 + R2U2_FLOAT_EPSILON)) as i32 as r2u2_float;
             debug_print!("b{} = {} = ({} <= {})", instr.memory_reference, float_to_bool(monitor.value_buffer[instr.memory_reference as usize]), op0, op1);
         }
-        BZ_OP_INEG | BZ_OP_FNEG => {
-            debug_print!("BZ NEG");
+        BZ_OP_INEG =>{
+            debug_print!("BZ INEG");
+            let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (-1 * op) as r2u2_float;
+            debug_print!("b{} = {} = (-1 * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op);
+        }
+        BZ_OP_FNEG => {
+            debug_print!("BZ FNEG");
             let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             monitor.value_buffer[instr.memory_reference as usize] = -1.0 * op;
             debug_print!("b{} = {} = (-1 * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op);
         }
-        BZ_OP_IADD | BZ_OP_FADD => {
-            debug_print!("BZ ADD");
+        BZ_OP_IADD => {
+            debug_print!("BZ IADD");
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 + op1) as r2u2_float;
+            debug_print!("b{} = {} = ({} + {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op0, op1);
+        }
+        BZ_OP_FADD => {
+            debug_print!("BZ FADD");
             let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             let op1 = monitor.value_buffer[instr.param2 as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op0 + op1;
             debug_print!("b{} = {} = ({} + {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op0, op1);
         }
-        BZ_OP_ISUB | BZ_OP_FSUB=> {
-            debug_print!("BZ SUB");
+        BZ_OP_ISUB => {
+            debug_print!("BZ ISUB");
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 - op1) as r2u2_float;
+            debug_print!("b{} = {} = ({} - {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op0, op1);
+        }
+        BZ_OP_FSUB => {
+            debug_print!("BZ FSUB");
             let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             let op1 = monitor.value_buffer[instr.param2 as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op0 - op1;
             debug_print!("b{} = {} = ({} - {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op0, op1);
         }
-        BZ_OP_IMUL | BZ_OP_FMUL => {
-            debug_print!("BZ MUL");
+        BZ_OP_IMUL => {
+            debug_print!("BZ IMUL");
+            let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            let op1 = monitor.value_buffer[instr.param2 as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = (op0 * op1) as r2u2_float;
+            debug_print!("b{} = {} = ({} * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op0, op1);
+        }
+        BZ_OP_FMUL => {
+            debug_print!("BZ FMUL");
             let op0 = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             let op1 = monitor.value_buffer[instr.param2 as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op0 * op1;
@@ -221,8 +248,14 @@ pub fn bz_update(monitor: &mut Monitor){
             monitor.value_buffer[instr.memory_reference as usize] = sqrt(op);
             debug_print!("b{} = {} = (sqrt {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op);
         }
-        BZ_OP_IABS | BZ_OP_FABS=> {
-            debug_print!("BZ ABS");
+        BZ_OP_IABS => {
+            debug_print!("BZ IABS");
+            let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize] = op.abs() as r2u2_float;
+            debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op);
+        }
+        BZ_OP_FABS => {
+            debug_print!("BZ FABS");
             let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op.abs();
             debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize], op);
