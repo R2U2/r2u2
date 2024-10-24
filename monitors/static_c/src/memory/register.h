@@ -22,7 +22,7 @@
 
 typedef void* (r2u2_signal_vector_t)[];
 
-typedef r2u2_value_t (r2u2_value_buffer_t)[];
+typedef r2u2_float (r2u2_value_buffer_t)[];
 
 // An atomic vector is an array of booleans representing atomic props,
 // the atomic buffer contains the pointers to two atomic vectors with the

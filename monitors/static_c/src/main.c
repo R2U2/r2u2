@@ -83,7 +83,7 @@ int main(int argc, char const *argv[]) {
         return 1;
       }
       // map read-only mirror of the file to memory - great for execution perf
-      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ, MAP_PRIVATE, spec_file, 0);
+      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, spec_file, 0);
       if (r2u2_monitor.instruction_mem == MAP_FAILED) {
         PRINT_USAGE();
         perror("Error memory mapping specification file");

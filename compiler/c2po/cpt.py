@@ -1172,7 +1172,6 @@ class Config:
     output_path: pathlib.Path
     implementation: types.R2U2Implementation
     mission_time: int
-    endian_sigil: str
     frontend: types.R2U2Engine
     assembly_enabled: bool
     signal_mapping: types.SignalMapping

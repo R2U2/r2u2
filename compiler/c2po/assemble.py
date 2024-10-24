@@ -11,6 +11,7 @@ from c2po import cpt, log, types
 # https://docs.python.org/3/library/struct.html
 
 MODULE_CODE = "ASM"
+ENDIAN = "<" # Little Endian
 
 
 def check_sizes():
@@ -36,53 +37,51 @@ class EngineTag(Enum):
 
 class BZOperator(Enum):
     NONE = 0b000000
-    ILOAD = 0b000001
-    FLOAD = 0b000010
+    LOAD = 0b000001
+    STORE = 0b000010
     ICONST = 0b000011
     FCONST = 0b000100
-    STORE = 0b000101
-    BWNEG = 0b000110
-    BWAND = 0b000111
-    BWOR = 0b001000
-    BWXOR = 0b001001
-    IEQ = 0b001010
-    FEQ = 0b001011
-    INEQ = 0b001100
-    FNEQ = 0b001101
-    IGT = 0b001110
-    FGT = 0b001111
-    IGTE = 0b010000
-    FGTE = 0b010001
-    ILT = 0b010010
-    FLT = 0b010011
-    ILTE = 0b010100
-    FLTE = 0b010101
-    INEG = 0b010110
-    FNEG = 0b010111
-    IADD = 0b011000
-    FADD = 0b011001
-    ISUB = 0b011010
-    FSUB = 0b011011
-    IMUL = 0b011100
-    FMUL = 0b011101
-    IDIV = 0b011110
-    FDIV = 0b011111
-    MOD = 0b100000
-    IPOW  = 0b100001
-    FPOW  = 0b100010
-    ISQRT = 0b100011
-    FSQRT = 0b100100
-    IABS = 0b100101
-    FABS = 0b100110
-    IPREV = 0b100111
-    FPREV = 0b101000
+    BWNEG = 0b000101
+    BWAND = 0b000110
+    BWOR = 0b000111
+    BWXOR = 0b001000
+    IEQ = 0b001001
+    FEQ = 0b001010
+    INEQ = 0b001011
+    FNEQ = 0b001100
+    IGT = 0b001101
+    FGT = 0b001110
+    IGTE = 0b001111
+    FGTE = 0b010000
+    ILT = 0b010001
+    FLT = 0b010010
+    ILTE = 0b010011
+    FLTE = 0b010100
+    INEG = 0b010101
+    FNEG = 0b010110
+    IADD = 0b010111
+    FADD = 0b011000
+    ISUB = 0b011001
+    FSUB = 0b011010
+    IMUL = 0b011011
+    FMUL = 0b011100
+    IDIV = 0b011101
+    FDIV = 0b011110
+    MOD = 0b011111
+    IPOW  = 0b100000
+    FPOW  = 0b100001
+    ISQRT = 0b100010
+    FSQRT = 0b100011
+    IABS = 0b100100
+    FABS = 0b100101
+    PREV = 0b100110
 
 
     def is_constant(self) -> bool:
         return self is BZOperator.ICONST or self is BZOperator.FCONST
 
     def is_load(self) -> bool:
-        return self is BZOperator.ILOAD or self is BZOperator.FLOAD
+        return self is BZOperator.LOAD
 
     def __str__(self) -> str:
         return self.name.lower()
@@ -109,8 +108,8 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_SQRT, False): BZOperator.FSQRT,
     (cpt.OperatorKind.ARITHMETIC_ABS, True): BZOperator.IABS,
     (cpt.OperatorKind.ARITHMETIC_ABS, False): BZOperator.FABS,
-    (cpt.OperatorKind.PREVIOUS, True): BZOperator.IPREV,
-    (cpt.OperatorKind.PREVIOUS, False): BZOperator.FPREV,
+    (cpt.OperatorKind.PREVIOUS, True): BZOperator.PREV,
+    (cpt.OperatorKind.PREVIOUS, False): BZOperator.PREV,
     (cpt.OperatorKind.ARITHMETIC_RATE, True): BZOperator.ISUB,
     (cpt.OperatorKind.ARITHMETIC_RATE, False): BZOperator.FSUB,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
@@ -507,10 +506,7 @@ def gen_bz_instruction(
     if isinstance(expr, cpt.Signal):
         operand1 = expr.signal_id
         operand2 = 0
-        if types.is_integer_type(expr.type):
-            operator = BZOperator.ILOAD
-        else:
-            operator = BZOperator.FLOAD
+        operator = BZOperator.LOAD
     elif isinstance(expr, cpt.Constant) and types.is_integer_type(expr.type):
         operand1 = expr.value
         operand2 = 0
@@ -875,8 +871,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     # Move all PREV booleanizer instructions to the end (i.e., always update the 'previous' 
     # value after current iteration)
     for key in list(bz_instructions):
-        if bz_instructions[key].operator is BZOperator.IPREV or \
-                bz_instructions[key].operator is BZOperator.FPREV:
+        if bz_instructions[key].operator is BZOperator.PREV:
             bz_instructions[key] = bz_instructions.pop(key)
 
     # Replace effective ID with duoq id in pt temporal operators
@@ -895,7 +890,6 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
 def pack_at_instruction(
     instruction: ATInstruction,
     format_strs: dict[FieldType, str],
-    endian: str,
 ) -> bytes:
     binary = bytes()
 
@@ -908,11 +902,11 @@ def pack_at_instruction(
     else:  # isinstance(instruction.compare_value, float):
         compare_format_str = "d"
 
-    compare_bytes = CStruct(f"{endian}{compare_format_str}").pack(
+    compare_bytes = CStruct(f"{ENDIAN}{compare_format_str}").pack(
         instruction.compare_value
     )
 
-    format_str = endian
+    format_str = ENDIAN
     format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_VALUE]
     format_str += format_strs[FieldType.AT_REL_OP]
@@ -946,13 +940,13 @@ def pack_at_instruction(
         f"{instruction.atomic_id:<2} ",
     )
 
-    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+    engine_tag_binary = CStruct(f"{ENDIAN}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
     )
 
     binary = engine_tag_binary + CStruct(format_str).pack(
         compare_bytes,
-        CStruct(f"{endian}xxxxxxxx").pack(),
+        CStruct(f"{ENDIAN}xxxxxxxx").pack(),
         instruction.relational_operator.value,
         instruction.signal_type.value,
         instruction.signal_id,
@@ -967,7 +961,6 @@ def pack_at_instruction(
 def pack_bz_instruction(
     instruction: BZInstruction,
     format_strs: dict[FieldType, str],
-    endian: str,
 ) -> bytes:
     log.debug(
         MODULE_CODE, 1,
@@ -987,7 +980,7 @@ def pack_bz_instruction(
 
     binary = bytes()
 
-    format_str = endian
+    format_str = ENDIAN
     format_str += (
         format_strs[FieldType.BZ_OPERAND_FLOAT]
         if isinstance(instruction.operand1, float)
@@ -1001,7 +994,7 @@ def pack_bz_instruction(
     format_str += format_strs[FieldType.BZ_ID]
     format_str += format_strs[FieldType.BZ_OPERATOR]
 
-    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+    engine_tag_binary = CStruct(f"{ENDIAN}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
     )
 
@@ -1018,7 +1011,6 @@ def pack_bz_instruction(
 def pack_tl_instruction(
     instruction: TLInstruction,
     format_strs: dict[FieldType, str],
-    endian: str,
 ) -> bytes:
     log.debug(
         MODULE_CODE, 1,
@@ -1042,7 +1034,7 @@ def pack_tl_instruction(
 
     binary = bytes()
 
-    format_str = endian
+    format_str = ENDIAN
     format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     format_str += format_strs[FieldType.TL_OPERAND_VALUE]
     format_str += format_strs[FieldType.TL_ID]
@@ -1050,7 +1042,7 @@ def pack_tl_instruction(
     format_str += format_strs[FieldType.TL_OPERAND_TYPE]
     format_str += format_strs[FieldType.TL_OPERATOR]
 
-    engine_tag_binary = CStruct(f"{endian}{format_strs[FieldType.ENGINE_TAG]}").pack(
+    engine_tag_binary = CStruct(f"{ENDIAN}{format_strs[FieldType.ENGINE_TAG]}").pack(
         instruction.engine_tag.value
     )
 
@@ -1067,7 +1059,8 @@ def pack_tl_instruction(
 
 
 def pack_cg_instruction(
-    instruction: CGInstruction, format_strs: dict[FieldType, str], endian: str
+    instruction: CGInstruction, 
+    format_strs: dict[FieldType, str]
 ) -> bytes:
     log.debug(
         MODULE_CODE, 1,
@@ -1079,12 +1072,12 @@ def pack_cg_instruction(
 
     binary = bytes()
 
-    format_str = endian
+    format_str = ENDIAN
     format_str += format_strs[FieldType.ENGINE_TAG]
 
     binary += CStruct(format_str).pack(instruction.engine_tag.value)
 
-    binary += pack_tl_instruction(instruction.instruction, format_strs, endian)
+    binary += pack_tl_instruction(instruction.instruction, format_strs)
 
     return binary
 
@@ -1092,21 +1085,20 @@ def pack_cg_instruction(
 def pack_instruction(
     instruction: Instruction,
     format_strs: dict[FieldType, str],
-    endian: str,
 ) -> bytes:
     if isinstance(instruction, ATInstruction):
-        binary = pack_at_instruction(instruction, format_strs, endian)
+        binary = pack_at_instruction(instruction, format_strs)
     elif isinstance(instruction, BZInstruction):
-        binary = pack_bz_instruction(instruction, format_strs, endian)
+        binary = pack_bz_instruction(instruction, format_strs)
     elif isinstance(instruction, TLInstruction):
-        binary = pack_tl_instruction(instruction, format_strs, endian)
+        binary = pack_tl_instruction(instruction, format_strs)
     elif isinstance(instruction, CGInstruction):
-        binary = pack_cg_instruction(instruction, format_strs, endian)
+        binary = pack_cg_instruction(instruction, format_strs)
     else:
         log.error(MODULE_CODE, f"Invalid instruction type ({type(instruction)}).")
         binary = bytes()
 
-    binary_len = CStruct(f"{endian}B").pack(len(binary) + 1)
+    binary_len = CStruct(f"{ENDIAN}B").pack(len(binary) + 1)
     return binary_len + binary
 
 
@@ -1139,7 +1131,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 
 def assemble(
-    program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
+    program: cpt.Program, context: cpt.Context, quiet: bool
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
     log.debug(MODULE_CODE, 1, "Assembling")
 
@@ -1151,12 +1143,12 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {endian}".encode("ascii") + b"\x00"
+        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
     for instr in assembly:
-        binary += pack_instruction(instr, field_format_str_map, endian)
+        binary += pack_instruction(instr, field_format_str_map)
 
     binary += b"\x00"
 

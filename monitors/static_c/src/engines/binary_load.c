@@ -8,6 +8,31 @@
 #include "engines/mltl/mltl.h"
 #include <stdio.h>
 
+r2u2_bool big_endian_check() {
+  short x = 0x3210;
+  char *c = (char*) &x;
+  return *c == 0x32;
+}
+
+void SwapBytes(uint8_t* data, int length){
+  R2U2_DEBUG_PRINT("Before swapping endianness: ");
+  for(int x = 0; x < length; x++){
+    R2U2_DEBUG_PRINT("%d ", data[x]);
+  }
+  R2U2_DEBUG_PRINT("\n");
+  uint8_t temp;
+  for(int i = 0; i < length/2; i++){
+    temp = data[i];
+    data[i] = data[length - 1 - i];
+    data[length - 1 - i] = temp;
+  }
+  R2U2_DEBUG_PRINT("After swapping endianness: ");
+  for(int x = 0; x < length; x++){
+    R2U2_DEBUG_PRINT("%d ", data[x]);
+  }
+  R2U2_DEBUG_PRINT("\n");
+}
+
 r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
 
   // Alias for readability:
@@ -28,6 +53,14 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
     // from monitor state transform, we'll look for config commands here.
     // Currently, only MLTL needs config commands, so we'll just check
     if ((data[offset+1] == R2U2_ENG_CG) && (data[offset+2] == R2U2_ENG_TL)) {
+        if (big_endian_check()) {
+          // Big Endian target; therefore, swap bytes
+          SwapBytes(&data[offset+3], 4); // op1_value
+          SwapBytes(&data[offset+7], 4); // op2_value
+          SwapBytes(&data[offset+11], 4); // memory_reference
+          // No need to swap bytes for op1_type, op2_type, and opcode since it is only one byte
+        }
+      
       // Process configuration command
       if (r2u2_mltl_instruction_dispatch(monitor,  (r2u2_mltl_instruction_t *) &(data[offset+3])) != R2U2_OK) {
         // TODO(bckempa): Better error handling with logging here
@@ -36,14 +69,24 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
     } else {
       if(data[offset+1] == R2U2_ENG_BZ){
         r2u2_bz_instruction_t* instr = (r2u2_bz_instruction_t *) &(data[offset+2]);
+        if (big_endian_check()) {
+          // Big Endian target; therefore, swap bytes
+          if (instr->opcode == R2U2_BZ_OP_FCONST)
+            SwapBytes(&data[offset+2], 8); // param1 - bz_float
+          else
+            SwapBytes(&data[offset+2], 4); // param1 - bz_addr or bz_int
+          SwapBytes(&data[offset+10], 4); // param2
+          SwapBytes(&data[offset+14], 4); // memory_reference
+          // No need to swap bytes for opcode since it is only one byte
+        }
         // Special case: ICONST and FCONST only need to be run once since they load constants
         if (instr->opcode == R2U2_BZ_OP_ICONST){
-          (*monitor->value_buffer)[instr->memory_reference].i = instr->param1.bz_int;
+          (*monitor->value_buffer)[instr->memory_reference] = instr->param1.bz_int;
           R2U2_DEBUG_PRINT("\tBZ ICONST\n");
           R2U2_DEBUG_PRINT("\tb%d = %d\n", instr->memory_reference, instr->param1.bz_int);
         }
         else if (instr->opcode == R2U2_BZ_OP_FCONST) {
-          (*monitor->value_buffer)[instr->memory_reference].f = instr->param1.bz_float;
+          (*monitor->value_buffer)[instr->memory_reference] = instr->param1.bz_float;
           R2U2_DEBUG_PRINT("\tBZ FCONST\n");
           R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr->memory_reference, instr->param1.bz_float);
         }
@@ -53,6 +96,13 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         }
       }
       else if (data[offset+1] == R2U2_ENG_TL){
+        if (big_endian_check()) {
+          // Big Endian target; therefore, swap bytes
+          SwapBytes(&data[offset+2], 4); // op1_value
+          SwapBytes(&data[offset+6], 4); // op2_value
+          SwapBytes(&data[offset+10], 4); // memory_reference
+          // No need to swap bytes for op1_type, op2_type, and opcode since they are only one byte
+        }
         // Store temporal logic instruction in table
         pc[i++] = (r2u2_instruction_t){data[offset+1], &(data[offset+2])};
       } else {

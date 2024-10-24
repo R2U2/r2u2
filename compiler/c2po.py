@@ -32,8 +32,6 @@ parser.add_argument("--float-width", default=32,
                     help="specifies bit width for floating point types (default: 32)")
 parser.add_argument("--mission-time", type=int,
                     help="specifies mission time, overriding inference from a trace file, if present")
-parser.add_argument("--endian", choices=c2po.main.BYTE_ORDER_SIGILS.keys(),
-                    default=sys.byteorder, help=f"Specifies byte-order of spec file (default: {sys.byteorder})")
 
 parser.add_argument("-at", "--atomic-checkers", action="store_true",
                     help="enable atomic checkers")
@@ -95,7 +93,6 @@ return_code = c2po.main.main(
     int_width=args.int_width, 
     int_signed=args.int_signed, 
     float_width=args.float_width, 
-    endian=args.endian,
     only_parse=args.parse,
     only_type_check=args.type_check,
     only_compile=args.compile,

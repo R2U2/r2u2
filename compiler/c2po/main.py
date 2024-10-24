@@ -22,12 +22,6 @@ class ReturnCode(enum.Enum):
     INVALID_INPUT = 5
     FILE_IO_ERR = 6
 
-
-# Converts human names to struct format sigil for byte order, used by assembler
-# human named args are called 'endian' while the sigils are 'endianness'
-# See: https://docs.python.org/3.8/library/struct.html#byte-order-size-and-alignment
-BYTE_ORDER_SIGILS = {"native": "@", "network": "!", "big": ">", "little": "<"}
-
 R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
     "cpp": types.R2U2Implementation.CPP,
@@ -124,7 +118,6 @@ def validate_input(
     int_width: int,
     int_is_signed: bool,
     float_width: int,
-    endian: str,
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
@@ -196,15 +189,6 @@ def validate_input(
             )
     else:
         mission_time = trace_length
-
-    if endian in BYTE_ORDER_SIGILS:
-        endian_sigil = BYTE_ORDER_SIGILS[endian]
-    else:
-        log.internal(
-            MODULE_CODE,
-            f"Endianness option argument {endian} invalid. Check CLI options?",
-        )
-        endian_sigil = "@"
 
     impl = R2U2_IMPL_MAP[impl_str]
     types.configure_types(impl, int_width, int_is_signed, float_width)
@@ -290,7 +274,6 @@ def validate_input(
         output_path,
         impl,
         mission_time,
-        endian_sigil,
         frontend,
         final_stage is cpt.CompilationStage.ASSEMBLE,
         signal_mapping,
@@ -314,7 +297,6 @@ def compile(
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    endian: str = "@",
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
@@ -372,7 +354,6 @@ def compile(
         int_width,
         int_signed,
         float_width,
-        endian,
         only_parse,
         only_type_check,
         only_compile,
@@ -498,7 +479,7 @@ def compile(
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
-        program, context, quiet, config.endian_sigil
+        program, context, quiet
     )
 
     if not quiet:
@@ -535,7 +516,6 @@ def main(
     int_width: int = 8,
     int_signed: bool = False,
     float_width: int = 32,
-    endian: str = "@",
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
@@ -574,7 +554,6 @@ def main(
             int_width,
             int_signed,
             float_width,
-            endian,
             only_parse,
             only_type_check,
             only_compile,
