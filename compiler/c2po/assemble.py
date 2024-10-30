@@ -522,7 +522,7 @@ def gen_bz_instruction(
         operator = BZOperator.FCONST
     elif isinstance(expr, cpt.Atomic):
         operand1 = instructions[expr.children[0]].id
-        operand2 = expr.atomic_id
+        operand2 = 0 if expr not in context.atomic_id else context.atomic_id[expr]
         operator = BZOperator.STORE
     elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id

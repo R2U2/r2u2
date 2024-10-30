@@ -1073,15 +1073,8 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
     atomic_map: dict[str, int] = {}
-    aid: int = 0
-
-    # Initialize atomic_map if context.atomic_id is non-empty
-    for atomic_expr, atomic_id in context.atomic_id.items():
-        if cpt.to_prefix_str(atomic_expr) not in atomic_map:
-            atomic_map[cpt.to_prefix_str(atomic_expr)] = atomic_id
-    log.debug(MODULE_CODE, 1, f"atomic map initialization: {atomic_map}")
-    # Reset context.atomic_id
     context.atomic_id = {}
+    aid: int = 0
 
     for expr in program.postorder(context):
         if (
@@ -1096,41 +1089,42 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
-        if (
-            context.config.frontend is types.R2U2Engine.NONE 
-            and isinstance(expr, cpt.Signal) 
-        ):
-            if expr.signal_id < 0 or not context.config.assembly_enabled:
-                context.atomic_id[expr] = aid
-                atomic_map[cpt.to_prefix_str(expr)] = aid
-                aid += 1
-                continue
-
-            context.atomic_id[expr] = expr.signal_id
-            atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
-            continue
-
-        for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
-                continue
-
-            if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
-                new = cpt.Atomic(
-                    expr.loc,
-                    deepcopy(expr),
-                    aid)
-                expr.replace(new)
-
-
-            if cpt.to_prefix_str(expr) not in atomic_map:
-                if isinstance(expr, cpt.Atomic) and expr.children[0] in context.atomic_id:
-                    context.atomic_id[expr] = context.atomic_id[expr.children[0]]
-                    atomic_map[cpt.to_prefix_str(expr)] = context.atomic_id[expr.children[0]]
-                else:
+        if context.config.frontend is types.R2U2Engine.NONE:
+            if isinstance(expr, cpt.Signal):
+                if expr.signal_id < 0 or not context.config.assembly_enabled:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
-            break
+                    continue
+
+                context.atomic_id[expr] = expr.signal_id
+                atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
+                continue
+        else:
+            for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
+                if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
+                    continue
+
+                if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
+                    # No cpt.Atomic expression between booleanizer and TL engine; therefore make one
+                    new = cpt.Atomic(
+                        expr.loc,
+                        deepcopy(expr))
+                    expr.replace(new)
+                    if cpt.to_prefix_str(new) in atomic_map:
+                        context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
+                    else:
+                        context.atomic_id[new] = aid
+                        atomic_map[cpt.to_prefix_str(new)] = aid
+                        aid += 1
+                elif isinstance(expr, cpt.Atomic) and expr not in context.atomic_id:
+                    context.atomic_id[expr] = aid
+                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                    aid += 1
+                elif expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
+                    context.atomic_id[expr] = aid
+                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                    aid += 1
 
     log.debug(
         MODULE_CODE, 1,

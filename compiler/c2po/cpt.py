@@ -727,15 +727,13 @@ class Operator(Expression):
     
 class Atomic(Expression):
     def __init__(
-        self, loc: log.FileLocation, child: Expression, id: int
+        self, loc: log.FileLocation, child: Expression
     ) -> None:
         super().__init__(loc, [child])
-        self.atomic_id: int = id
-        self.symbol = f"a{id}"
         self.engine = types.R2U2Engine.BOOLEANIZER
 
     def __deepcopy__(self, memo):
-        new = Atomic(self.loc, self.children[0], self.atomic_id)
+        new = Atomic(self.loc, self.children[0])
         self.copy_attrs(new)
         return new
 
@@ -1440,7 +1438,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, Atomic):
             if seen == 0:
-                s += f"({expr.symbol}"
+                s += f"("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
@@ -1534,7 +1532,7 @@ def to_prefix_str(start: Expression) -> str:
                 s = s[:-1] + ") "
         elif isinstance(expr, Atomic):
             if seen == 0:
-                s += f"({expr.symbol} "
+                s += f"("
                 stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:
