@@ -1,33 +1,17 @@
-#![cfg_attr(embedded, no_std)]
-#![cfg_attr(embedded, no_main)]
+// use panic_halt as _;
 
+// use cortex_m_rt::entry;
+// use cortex_m_semihosting::hprintln;
 
-
-#[cfg(embedded)]
-use panic_halt as _;
-
-#[cfg(embedded)]
-use cortex_m_rt::entry;
-#[cfg(embedded)]
-use cortex_m_semihosting::hprintln;
-
-#[cfg(not(embedded))]
 use std::env;
-#[cfg(not(embedded))]
 use std::fs;
-#[cfg(not(embedded))]
 use csv::{Reader, StringRecord};
-
-mod instructions;
-mod internals;
-mod engines;
-mod memory;
 
 #[cfg(embedded)]
 #[entry]
 fn main() -> ! {
     hprintln!("Hello, world");
-    internals::stm32_f3_discovery_usb_interface::read_binary_file();
+    // internals::stm32_f3_discovery_usb_interface::read_binary_file();
     loop {}
 }
 
