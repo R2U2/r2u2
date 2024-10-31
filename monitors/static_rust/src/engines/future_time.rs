@@ -4,8 +4,6 @@ use super::super::{memory::monitor::*, instructions::mltl::*, internals::types::
 use super::super::internals::debug::*;
 use super::super::memory::scq::*;
 use super::r2u2_infinity;
-#[cfg(embedded)]
-use cortex_m_semihosting::hprintln;
 
 fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> (bool, r2u2_verdict) {
     let operand_type = if op_num == 0 {instr.op1_type} else {instr.op2_type};
@@ -69,7 +67,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             let (ready, verdict) = check_operand_data(instr, monitor, 0);
             if ready {
                 push_result(instr, monitor, verdict);
-                log!("{}:{},{}", instr.op2_value, verdict.time, if verdict.truth {"T"} else {"F"});
+                debug_print!("{}:{},{}", instr.op2_value, verdict.time, if verdict.truth {"T"} else {"F"});
                 // To-Do: Output to a file or function?
             }
         }

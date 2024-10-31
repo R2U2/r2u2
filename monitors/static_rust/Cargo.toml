@@ -23,7 +23,8 @@ easy-min-max = "1.0.0"
 libm = "0.2.8"
 
 [features]
-debug_print = []
+debug_print_semihosting = []
+debug_print_std = []
 
 # Uncomment for the panic example.
 # panic-itm = "0.4.1"

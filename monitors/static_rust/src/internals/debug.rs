@@ -3,44 +3,29 @@ use byteorder::{LittleEndian, ByteOrder};
 use super::super::instructions::{mltl::*, booleanizer::*};
 use super::super::memory::scq::*;
 
-#[cfg(embedded)]
+#[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
 
-#[cfg(not(embedded))]
-macro_rules! log {
+#[cfg(feature = "debug_print_semihosting")]
+macro_rules! debug_print {
     ($($args: tt)*) => {
-        println!($($args)*);
+        hprintln!($($args)*);
     }
 }
 
-#[cfg(all(not(embedded),feature = "debug_print"))]
+#[cfg(feature = "debug_print_std")]
 macro_rules! debug_print {
     ($($args: tt)*) => {
             println!($($args)*);
     }
 }
 
-#[cfg(embedded)]
-macro_rules! log {
-    ($($args: tt)*) => {
-        hprintln!($($args)*);
-    }
-}
-
-#[cfg(all(embedded,feature = "debug_print"))]
-macro_rules! debug_print {
-    ($($args: tt)*) => {
-        hprintln!($($args)*);
-    }
-}
-
-#[cfg(not(feature = "debug_print"))]
+#[cfg(all(not(feature = "debug_print_semihosting"), not(feature = "debug_print_std")))]
 macro_rules! debug_print {
     ($($args: tt)*) => {
     }
 }
 
-pub(crate) use log;
 pub(crate) use debug_print;
 
 pub fn print_mltl_instruction(instr: MLTLInstruction){
