@@ -320,7 +320,7 @@ field_format_str_map = {
     FieldType.BZ_OPERAND_ID: "Ixxxx",
     FieldType.BZ_OPERAND_INT: "ixxxx",
     FieldType.BZ_OPERAND_FLOAT: "d",
-    FieldType.BZ_OPERATOR: "b",
+    FieldType.BZ_OPERATOR: "B",
     FieldType.AT_VALUE: "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
     FieldType.AT_SIGNAL: "B",
@@ -331,8 +331,8 @@ field_format_str_map = {
     FieldType.AT_ID: "B",
     FieldType.AT_COMPARE_VALUE_IS_SIGNAL: "B",
     FieldType.TL_ID: "I",
-    FieldType.TL_OPERATOR: "b",
-    FieldType.TL_OPERAND_TYPE: "b",
+    FieldType.TL_OPERATOR: "B",
+    FieldType.TL_OPERAND_TYPE: "B",
     FieldType.TL_OPERAND_VALUE: "I",
 }
 
