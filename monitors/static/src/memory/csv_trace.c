@@ -19,7 +19,9 @@ r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t *csv_reader, r2u2_mon
 
   for(i = 0, signal = strtok(csv_reader->in_buf, ",\n"); signal; i++, signal = strtok(NULL, ",\n")) {
     // TODO(bckempa): What should the behavior be if the value isn't 1 or 0?
-    if(sscanf(signal, "%d", &((*(monitor->atomic_buffer)[0])[i])) != 1) return R2U2_END_OF_TRACE;
+    r2u2_int i1;
+    if(sscanf(signal, "%d", &i1) != 1) return R2U2_END_OF_TRACE;
+    else ((*(monitor->atomic_buffer)[0])[i]) = (r2u2_bool)i1;
   }
 
   return R2U2_OK;
