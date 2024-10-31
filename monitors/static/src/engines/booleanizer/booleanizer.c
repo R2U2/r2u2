@@ -94,7 +94,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 == i2;
             
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ IEQ\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d == %d (b%d == b%d)\n", inst_buff.addr,
@@ -105,7 +105,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = (f1 > f2) ? (f1 - f2 < R2U2_FLOAT_EPSILON) : (f2 - f1 < R2U2_FLOAT_EPSILON);
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FEQ\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f == %f +- %f (b%d == b%d +- %f)\n", inst_buff.addr,
@@ -116,7 +116,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 != i2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ INEQ\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d != %d (b%d != b%d)\n", inst_buff.addr,
@@ -127,7 +127,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = !((f1 > f2) ? (f1 - f2 < R2U2_FLOAT_EPSILON) : (f2 - f1 < R2U2_FLOAT_EPSILON));
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FLT\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f != %f +- %f (b%d != b%d +- %f)\n", inst_buff.addr,
@@ -138,7 +138,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i1 = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 > i2;
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
             R2U2_DEBUG_PRINT("\tBZ IGT\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d > %d (b%d > b%d)\n", inst_buff.addr,
                 b, i1, i2, inst_buff.param1.bz_addr, inst_buff.param2.bz_addr);
@@ -148,7 +148,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = f1 > f2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FGT\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f > %f (b%d > b%d)\n", inst_buff.addr,
@@ -159,7 +159,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 >= i2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ IGTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d >= %d (b%d >= b%d)\n", inst_buff.addr,
@@ -170,7 +170,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = (f1 > f2 - R2U2_FLOAT_EPSILON);
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FGTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f >= %f - %f (b%d == b%d - %f)\n", inst_buff.addr,
@@ -181,7 +181,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 < i2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ ILT\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d < %d (b%d < b%d)\n", inst_buff.addr,
@@ -192,7 +192,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = f1 < f2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FLT\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f < %f (b%d < b%d)\n", inst_buff.addr,
@@ -203,7 +203,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             i2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].i;
             b = i1 <= i2;
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ ILTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %d <= %d (b%d <= b%d)\n", inst_buff.addr,
@@ -214,7 +214,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             f2 = (*monitor->value_buffer)[inst_buff.param2.bz_addr].f;
             b = (f1 < f2 + R2U2_FLOAT_EPSILON);
 
-            (*monitor->value_buffer)[inst_buff.addr].b = b;
+            (*monitor->value_buffer)[inst_buff.addr].i = b;
 
             R2U2_DEBUG_PRINT("\tBZ FLTE\n");
             R2U2_DEBUG_PRINT("\tb%d = %hhu = %f <= %f + %f (b%d == b%d + %f)\n", inst_buff.addr,
@@ -422,7 +422,7 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
     }
 
     if(inst_buff.store) {
-        (*(monitor->atomic_buffer)[0])[inst_buff.at_addr] = (*monitor->value_buffer)[inst_buff.addr].b;
+        (*(monitor->atomic_buffer)[0])[inst_buff.at_addr] = (*monitor->value_buffer)[inst_buff.addr].i;
 
         R2U2_DEBUG_PRINT("\tAT STORE\n");
         R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", inst_buff.at_addr, (*(monitor->atomic_buffer)[0])[inst_buff.at_addr], inst_buff.addr);
