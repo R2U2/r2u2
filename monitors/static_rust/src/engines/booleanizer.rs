@@ -253,7 +253,7 @@ pub fn bz_update(monitor: &mut Monitor){
         BZ_OP_FABS => {
             debug_print!("BZ FABS");
             let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize].f;
-            monitor.value_buffer[instr.memory_reference as usize].f = op.abs();
+            monitor.value_buffer[instr.memory_reference as usize].f = if op < 0.0 {-op} else {op};
             debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op);
         }
         BZ_OP_PREV => {
