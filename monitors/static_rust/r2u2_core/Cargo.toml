@@ -11,6 +11,7 @@ easy-min-max = "1.0.0"
 libm = "0.2.8"
 cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
+const_env = "0.1.2"
 
 [features]
 debug_print_semihosting = ["dep:cortex-m-semihosting"]
