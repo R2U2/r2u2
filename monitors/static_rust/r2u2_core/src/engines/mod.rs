@@ -22,6 +22,8 @@ use libc_print::std_name::println;
 // Runs R2U2 for a single time step
 pub fn r2u2_step(monitor: &mut Monitor){
     debug_print!("-------Step {}-------", monitor.time_stamp);
+    //Reset output buffer
+    monitor.output_buffer_idx = 0;
     // Run booleanizer instructions (once)
     while monitor.bz_program_count.curr_program_count < monitor.bz_program_count.max_program_count {
         bz_update(monitor);

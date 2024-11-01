@@ -10,6 +10,9 @@ pub type r2u2_bool = bool;
 #[allow(non_camel_case_types)]
 pub type r2u2_int = i32;
 
+#[allow(non_camel_case_types)]
+pub type r2u2_addr = u32;
+
 #[allow(non_upper_case_globals)]
 pub const r2u2_infinity: r2u2_time = r2u2_time::MAX;
 
@@ -57,6 +60,30 @@ impl Default for r2u2_value{
         return r2u2_value {
             i: 0,
             f: 0.0,
+        }
+    }
+}
+
+#[allow(non_camel_case_types)]
+pub struct r2u2_output{
+    // Spec Number & Verdict
+    pub spec_num: r2u2_addr,
+    pub verdict: r2u2_verdict, 
+}
+
+impl Copy for r2u2_output{ }
+
+impl Clone for r2u2_output{
+    fn clone(&self) -> r2u2_output {
+        return *self
+    }
+}
+
+impl Default for r2u2_output{
+    fn default() -> Self {
+        return r2u2_output {
+            spec_num: r2u2_infinity,
+            verdict: r2u2_verdict::default(),
         }
     }
 }

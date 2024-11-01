@@ -1,6 +1,7 @@
 [env]
-R2U2_MAX_SIGNALS = { value = 64, force = true }
-R2U2_MAX_ATOMICS = { value = 128, force = true }
-R2U2_MAX_BZ_INSTRUCTIONS = { value = 64, force = true }
-R2U2_MAX_TL_INSTRUCTIONS = { value = 64, force = true }
-R2U2_TOTAL_QUEUE_MEM = { value = 1024, force = true }
+R2U2_MAX_SPECS = { value = "32", force = true }
+R2U2_MAX_SIGNALS = { value = "64", force = true }
+R2U2_MAX_ATOMICS = { value = "128", force = true }
+R2U2_MAX_BZ_INSTRUCTIONS = { value = "64", force = true }
+R2U2_MAX_TL_INSTRUCTIONS = { value = "64", force = true }
+R2U2_TOTAL_QUEUE_MEM = { value = "1024", force = true }

@@ -1,10 +1,8 @@
 use std::env;
 use std::fs;
-use csv::{Reader, StringRecord};
 use r2u2_core;
 
 fn main() {
-    println!("HERE!");
     const HELP: &str = "Usage: \t<configuration> [trace]
         configuration: path to monitor configuration binary
         trace: optional path to input CSV;\n";
@@ -33,6 +31,9 @@ fn main() {
             r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
         }
         r2u2_core::r2u2_step(&mut monitor);
+        for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+            println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+        }
     }
 
 }

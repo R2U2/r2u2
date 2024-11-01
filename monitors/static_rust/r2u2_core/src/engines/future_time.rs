@@ -1,6 +1,6 @@
 use easy_min_max::{min, max};
 
-use super::super::{memory::monitor::*, instructions::mltl::*, internals::types::r2u2_verdict};
+use super::super::{memory::monitor::*, instructions::mltl::*, internals::types::*};
 use super::super::internals::debug::*;
 use super::super::memory::scq::*;
 use super::r2u2_infinity;
@@ -74,7 +74,8 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             if ready {
                 push_result(instr, monitor, verdict);
                 debug_print!("{}:{},{}", instr.op2_value, verdict.time, if verdict.truth {"T"} else {"F"});
-                // To-Do: Output to a file or function?
+                monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, verdict: verdict};
+                monitor.output_buffer_idx += 1;
             }
         }
         MLTL_OP_FT_EVENTUALLY => {

@@ -76,3 +76,7 @@ pub fn load_string_signal(monitor: &mut memory::monitor::Monitor, index: usize, 
         }
     }
 }
+
+pub fn get_output_buffer(monitor: &mut memory::monitor::Monitor) -> &[r2u2_output]{
+    return &monitor.output_buffer[0..monitor.output_buffer_idx];
+}
