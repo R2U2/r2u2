@@ -22,13 +22,13 @@ pub struct Monitor{
     pub mltl_program_count: ProgramCount,
     pub mltl_instruction_table: [mltl::MLTLInstruction; R2U2_MAX_TL_INSTRUCTIONS],
     pub queue_arena: SCQMemoryArena,
-    pub signal_buffer: [r2u2_float; R2U2_MAX_SIGNALS],
+    pub signal_buffer: [r2u2_value; R2U2_MAX_SIGNALS],
     pub value_buffer: [r2u2_value; R2U2_MAX_BZ_INSTRUCTIONS],
     pub atomic_buffer: [r2u2_bool; R2U2_MAX_ATOMICS],
 }
 
-impl Monitor{
-    pub fn initialize() -> Monitor {
+impl Default for Monitor{
+    fn default() -> Self {
         return Monitor {
             time_stamp: 0,
             progress: MonitorProgressState::FirstLoop,
@@ -37,11 +37,14 @@ impl Monitor{
             mltl_program_count: ProgramCount{curr_program_count: 0, max_program_count: 0},
             mltl_instruction_table: [mltl::MLTLInstruction::empty_instr(); R2U2_MAX_TL_INSTRUCTIONS],
             queue_arena: SCQMemoryArena::initialize(),
-            signal_buffer: [0.0; R2U2_MAX_SIGNALS],
+            signal_buffer: [r2u2_value::default(); R2U2_MAX_SIGNALS],
             value_buffer: [r2u2_value::default(); R2U2_MAX_BZ_INSTRUCTIONS],
             atomic_buffer: [false; R2U2_MAX_ATOMICS],
         }
     }
+}
+
+impl Monitor{
     pub fn reset_clock(&mut self) {
         self.time_stamp = 0;
         self.progress = MonitorProgressState::FirstLoop;
