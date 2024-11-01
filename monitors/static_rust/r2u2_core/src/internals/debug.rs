@@ -6,6 +6,9 @@ use super::super::memory::scq::*;
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
 
+#[cfg(feature = "debug_print_std")]
+use libc_print::std_name::println;
+
 #[cfg(feature = "debug_print_semihosting")]
 macro_rules! debug_print {
     ($($args: tt)*) => {
@@ -33,7 +36,7 @@ pub fn print_mltl_instruction(instr: MLTLInstruction){
 }
 
 pub fn print_bz_instruction(instr: BooleanizerInstruction){
-    debug_print!("{:#016x} {:#08x} {:#08x} {:#08x} {:#02x} {:#02x}", LittleEndian::read_u64(&instr.param1), instr.param2, instr.memory_reference, instr.at_addr, instr.store as u8, instr.opcode);
+    debug_print!("{:#016x} {:#08x} {:#08x} {:#02x}", LittleEndian::read_u64(&instr.param1), instr.param2, instr.memory_reference, instr.opcode);
 }
 
 pub fn print_mltl_config_instruction(instr: MLTLInstruction, ctrl: SCQCtrlBlock){

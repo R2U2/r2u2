@@ -7,6 +7,12 @@ use super::super::instructions::booleanizer::*;
 use super::super::memory::monitor::*;
 use super::super::internals::{debug::*, types::*};
 
+#[cfg(feature = "debug_print_semihosting")]
+use cortex_m_semihosting::hprintln;
+
+#[cfg(feature = "debug_print_std")]
+use libc_print::std_name::println;
+
 pub fn bz_update(monitor: &mut Monitor){
     let instr = monitor.bz_instruction_table[monitor.bz_program_count.curr_program_count];
     match instr.opcode{
@@ -16,13 +22,13 @@ pub fn bz_update(monitor: &mut Monitor){
         BZ_OP_ILOAD => {
             debug_print!("BZ ILOAD");
             let signal_reference = LittleEndian::read_u32(&instr.param1);
-            monitor.value_buffer[instr.memory_reference as usize].i = monitor.signal_buffer[signal_reference as usize] as i32;
+            monitor.value_buffer[instr.memory_reference as usize].i = monitor.signal_buffer[signal_reference as usize].i;
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, signal_reference);  
         }
         BZ_OP_FLOAD => {
             debug_print!("BZ FLOAD");
             let signal_reference = LittleEndian::read_u32(&instr.param1);
-            monitor.value_buffer[instr.memory_reference as usize].f = monitor.signal_buffer[signal_reference as usize];
+            monitor.value_buffer[instr.memory_reference as usize].f = monitor.signal_buffer[signal_reference as usize].f;
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, signal_reference);  
         }
         BZ_OP_STORE => {
@@ -260,7 +266,7 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ PREV");
             let op = monitor.value_buffer[LittleEndian::read_u32(&instr.param1) as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op;
-            debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize]);
+            debug_print!("b{} = {}/{}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, monitor.value_buffer[instr.memory_reference as usize].f);
         }
         _ => {
             return;

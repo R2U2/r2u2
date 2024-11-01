@@ -2,11 +2,12 @@ use super::super::{engines, instructions, memory};
 use super::super::internals::debug::*;
 use super::super::instructions::booleanizer::*;
 use byteorder::{LittleEndian, ByteOrder};
-use super::types::r2u2_float;
 
-#[cfg(embedded)]
+#[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
 
+#[cfg(feature = "debug_print_std")]
+use libc_print::std_name::println;
 
 pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Monitor){
     let mut offset = spec_file[0] as usize;
@@ -28,13 +29,13 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                     debug_print!("BZ ICONST");
                     let op_const = LittleEndian::read_i32(&instr.param1);
                     monitor.value_buffer[instr.memory_reference as usize].i = op_const;
-                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_int);
+                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i);
                 }
                 BZ_OP_FCONST=> {
                     debug_print!("BZ FCONST");
                     let op_const = LittleEndian::read_f64(&instr.param1);
                     monitor.value_buffer[instr.memory_reference as usize].f = op_const;
-                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize] as r2u2_float);
+                    debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f);
                 }
                 _ => {
                     // Store instruction in table
@@ -51,5 +52,19 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             monitor.mltl_program_count.max_program_count = monitor.mltl_program_count.max_program_count + 1;
         }
         offset = offset + (spec_file[offset] as usize);
+    }
+
+    // Print output of table
+    let mut i = 0;
+    while i < monitor.bz_program_count.max_program_count{
+        print_bz_instruction(monitor.bz_instruction_table[i]);
+        i = i + 1;
+    }
+
+    // Print output of table
+    let mut i = 0;
+    while i < monitor.mltl_program_count.max_program_count{
+        print_mltl_instruction(monitor.mltl_instruction_table[i]);
+        i = i + 1;
     }
 }

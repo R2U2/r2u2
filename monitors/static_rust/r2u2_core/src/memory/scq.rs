@@ -3,8 +3,11 @@ use super::monitor::*;
 use super::super::instructions::mltl::*;
 use super::super::internals::debug::*;
 
-#[cfg(embedded)]
+#[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
+
+#[cfg(feature = "debug_print_std")]
+use libc_print::std_name::println;
 
 
 pub struct SCQCtrlBlock{

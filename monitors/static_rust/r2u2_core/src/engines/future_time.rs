@@ -5,6 +5,12 @@ use super::super::internals::debug::*;
 use super::super::memory::scq::*;
 use super::r2u2_infinity;
 
+#[cfg(feature = "debug_print_semihosting")]
+use cortex_m_semihosting::hprintln;
+
+#[cfg(feature = "debug_print_std")]
+use libc_print::std_name::println;
+
 fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> (bool, r2u2_verdict) {
     let operand_type = if op_num == 0 {instr.op1_type} else {instr.op2_type};
     let value = if op_num == 0 {instr.op1_value} else {instr.op2_value};
