@@ -2,7 +2,7 @@
 authors = ["aurandt <aurandt@iastate.edu>"]
 edition = "2018"
 readme = "README.md"
-name = "r2u2-rust"
+name = "r2u2_core"
 version = "0.1.0"
 
 [target.'cfg(embedded)'.dependencies]
@@ -29,21 +29,9 @@ debug_print_std = []
 # Uncomment for the panic example.
 # panic-itm = "0.4.1"
 
-# Uncomment for the allocator example.
-# alloc-cortex-m = "0.4.0"
-
-# Uncomment for the device example.
-# Update `memory.x`, set target to `thumbv7em-none-eabihf` in `.cargo/config`,
-# and then use `cargo build --example device` to build it.
-# [dependencies.stm32f3]
-# features = ["stm32f303", "rt"]
-# version = "0.7.1"
-
-# this lets you use `cargo fix`!
-[[bin]]
-name = "r2u2-rust"
-test = false
-bench = false
+[lib]
+name = "r2u2_core"
+path = "src/lib.rs"
 
 [profile.release]
 codegen-units = 1 # better optimizations
