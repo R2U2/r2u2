@@ -905,7 +905,7 @@ def pack_at_instruction(
     elif isinstance(instruction.compare_value, bool):
         compare_format_str = "?xxxxxxx"
     elif isinstance(instruction.compare_value, int):
-        compare_format_str = "q"
+        compare_format_str = "i"
     else:  # isinstance(instruction.compare_value, float):
         compare_format_str = "d"
 
