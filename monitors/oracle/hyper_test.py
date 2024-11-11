@@ -8,8 +8,8 @@ import re
 from math import log, log10, comb
 from functools import lru_cache
 
-C2PO_PATH = "../compiler"
-R2U2_PATH = "../monitors/static/build"
+C2PO_PATH = "../../compiler"
+R2U2_PATH = "../static/build"
 
 TestConfig = namedtuple('TestConfig', ['max_depth', 'max_interval', 'max_atoms', 'max_time', 'cumulative'])
 
@@ -334,7 +334,7 @@ def r2u2_monitor(signal, tmpdir):
             csvwriter.writerow(row)
 
     try:
-        subprocess.run(f"{R2U2_PATH}/r2u2 {tmpdir}/spec.bin {tmpdir}/signal.csv > {tmpdir}/R2U2.log", cwd=tmpdir, shell=True, capture_output=True, check=True)
+        subprocess.run(f"{R2U2_PATH}/r2u2 {tmpdir}/spec.bin {tmpdir}/signal.csv > {tmpdir}/R2U2.log", shell=True, capture_output=True, check=True)
     except subprocess.CalledProcessError as e:
         print(e.stderr)
         raise e
