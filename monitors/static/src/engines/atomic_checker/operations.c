@@ -3,17 +3,11 @@
 #include "operations.h"
 #include "compare.h"
 
-
-// #include <stdio.h>
-// #include <stdint.h>
-// #include <stdbool.h>
-// #include <float.h>
+#include <math.h>
 
 #include "engines/mltl/mltl.h"
 
 #if R2U2_AT_EXTRA_FILTERS
-#include "extra_filters/filter_abs_diff_angle.h"
-#include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
 #endif
 
@@ -21,7 +15,7 @@
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    r2u2_float diff_angle = (r2u2_float) abs_diff_angle(signal, instr->filter_arg.d);
+    r2u2_float diff_angle = fabs((180.0 - fmod((fabs((signal - instr->filter_arg.d)) + 180.0), 360.0)));
 
     R2U2_DEBUG_PRINT("\tabs_diff_angle(s%d, %lf) = %lf\n", instr->sig_addr, instr->filter_arg.d, diff_angle);
 
@@ -66,7 +60,7 @@ r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
 r2u2_status_t op_rate(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     r2u2_float signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    r2u2_float rate = filter_rate_update_data(signal, &((*(monitor->at_aux_buffer))[instr->aux_addr].prev));
+    r2u2_float rate = signal - (*(monitor->at_aux_buffer))[instr->aux_addr].prev;
 
     R2U2_DEBUG_PRINT("\trate(s%d) = %lf\n", instr->sig_addr, rate);
 
