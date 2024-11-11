@@ -77,6 +77,13 @@ exclude_patterns = ['_build', 'notes',
                     'Thumbs.db', '.DS_Store'
 ]
 
+# `myst.footnote` warnings are an expected interaction of the `myst` markdown
+# package with `sphinxcontrib-bibtex` which provides LaTeX-style citations.
+# However, ignoring this error causes transition errors, which disabeling
+# `myst_footnote_transition` prevents.
+# See this [GitHub issue](https://github.com/jupyter-book/jupyter-book/issues/1335#issuecomment-1117257789).
+suppress_warnings = ["myst.footnote"]
+myst_footnote_transition = False
 
 # Use [Sphinx-Collections](https://sphinx-collections.readthedocs.io) to bring
 # docs content from subprojects into repo-wide meta-build.

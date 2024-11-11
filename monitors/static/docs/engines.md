@@ -38,7 +38,7 @@ Its capabilities and operation are detailed in the C2PO documentation.
 
 Provides future-time and past-time temporal logic reasoning.
 
-Past-time logic utilizes [box queues](./memory.md#box-queue) while future-time logic uses [shared connection queues](./memory.md#shared-connection-queues) for working memory.
+Past-time logic utilizes [box queues](./memory.md#box-queue) while future-time logic uses [shared connection queues](./memory.md#shared-connection-queue) for working memory.
 
 The queue sizing is the primary reason the monitor might need to walk the program instructions multiple times per time-step and is the source of the progress checks.
 

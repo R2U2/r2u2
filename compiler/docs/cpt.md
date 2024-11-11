@@ -30,6 +30,6 @@ and Atomic Checkers (AT).
 In R2U2, BZ engine nodes can only read from other BZ nodes or the *signals vector* and can write to
 the *atomics vector*. TL engine nodes can only read from other TL nodes or the *atomics vector*. As
 a result, we mark any BZ nodes that are read from TL nodes as *atomics*. These nodes are computed
-during the `compute_atomics` pass in [passes.py](../c2po/passes.py). During assembly, these nodes
+during the `compute_atomics` pass in `passes.py`. During assembly, these nodes
 emit both a BZ engine instruction to compute their value, a BZ instruction to store its value in the
 atomics vector, nd a TL instruction to read it from the atomics vector.

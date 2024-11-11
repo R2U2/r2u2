@@ -1,4 +1,4 @@
-# Implmentation
+# Implementation
 
 ## Dynamic Programming for MLTL Verification
 
@@ -14,7 +14,7 @@ We use the dynamic programming proposed in [7] to compute the satisfaction of th
 
 Where each subformula is an observer node (e.g., s0, s1, s2). The output from each node is a tuple containing a verdict and its corresponding timestamp (RTC) $\tau$. The last line $s2$ is the final result.
 
-### Abstrct Syntax Tree (AST) Optimization
+### Abstract Syntax Tree (AST) Optimization
 For some \mltl formulas, certain sub-expressions occur more than once. An example formula is $G[2,4]a0\&!a0$. The compiler will generate an extra line of assembly code to load atomic $a0$ twice. Thus, it takes two separate queues for loading $a0$. There are two drawbacks of this: 1) memory resource wasting: extra queue is taken; 2) computation speed decrease: more assembly instructions to execute. Here we can do the following operations, as mentioned in~\cite{jakvsic2015signal}, to remove duplicate branches when synthesizing an \mltl formula into an AST. However, to support such optimization, the traditional hardware memory queue should be redesigned to support multiple readers. That is why we propose using an SCQ. The detailed optimization steps are described below.
 
 \begin{figure}
@@ -171,5 +171,3 @@ $Assign\_Queue\_Size($root node$)$\;
 }
  \caption{\label{ag:sq_d}Determine the size of SCQ}
 \end{algorithm}
-
-

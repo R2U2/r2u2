@@ -9,8 +9,8 @@ input.
 
 ## Passes
 
-The pass pipeline is defined in [passes.py](../c2po/passes.py) in the variable `PASS_LIST`. We
-remove passes as necessary in the function `validate_input` in [main.py](../c2po/main.py).
+The pass pipeline is defined in `passes.py` in the variable `PASS_LIST`. We
+remove passes as necessary in the function `validate_input` in `main.py`.
 
 1. Expand out all definitions from the `DEFINE` block
 2. Change all valid "function calls" to struct instantiations
@@ -36,5 +36,5 @@ remove passes as necessary in the function `validate_input` in [main.py](../c2po
 After any stage of the compilation (i.e., parsing, type checking, any pass), the current state of
 the CPT can be serialized into C2PO format, MLTL-STD, C2PO with prefix notation, or pickled. These
 formats can be produced with the functions `to_infix_str`, `to_prefix_str`, or `to_mltl_std` over
-any CPT node (defined in [cpt.py](../c2po/cpt.py)). Any CPT node can be pickled using the
+any CPT node (defined in `cpt.py`). Any CPT node can be pickled using the
 `pickle.dump` function from the `pickle` module.

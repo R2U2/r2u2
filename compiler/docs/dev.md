@@ -3,6 +3,7 @@
 internals
 parser
 cpt
+front_end
 assembly
 testing
 ```

@@ -13,4 +13,4 @@ R2U2 takes as input a vector of signals at each execution step. The number in ea
 proposition symbol defines which index to read from that input vector to R2U2, e.g., the symbol `a3`
 represents the value at index 3 of the input. 
 
-See the `mltl/` directories of the [benchmarks](../../benchmarks/) for examples.
+See the `mltl/` directories of the `benchmarks/` for examples.

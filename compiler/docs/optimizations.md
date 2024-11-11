@@ -4,7 +4,7 @@ C2PO supports a number of optimizations for MLTL specifications that can reduce 
 observers. Importantly, these optimizations will either reduce or maintain the encoding size of a
 specification. Both CSE and rewriting are enabled by default, all others must be enabled manually.
 
-## Common Sub-expression Elimination 
+## Common Sub-expression Elimination
 *(To disable, use the `--disable-cse` flag)*
 
 This optimization enables sharing of common sub-expression across specifications. As an example,
@@ -45,7 +45,7 @@ a0)` is `(G[0,8] a1)`, which has a wpd of 8. In its rewritten form, the sibling 
 ## Equality Saturation
 *(To enable, use the `--enable-eqsat` flag)*
 
-**This optimization requires [egglog](https://github.com/egraphs-good/egglog) to be installed. See the requirements section of the [usage page](usage.md).**
+**This optimization requires [egglog](https://github.com/egraphs-good/egglog) to be installed. See the requirements section of the README.**
 
 Equality saturation applies the formula rewrites above in a systematic way, resulting in a maximally
 reduced monitor encoding. The technique is described fully in [Chapter 4 of this

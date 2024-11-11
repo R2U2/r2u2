@@ -34,7 +34,7 @@ Sections can be declared multiple times and are order-sensitive; in order to ref
 for example, you must declare it in an `INPUT` section earlier in the file.
 
 See the example files for samples of complete, valid input. The best source for the formal syntax is
-found in the [parser](../c2po/parser.py). The allowable symbols can be derived from the `C2POLexer`,
+found in the parser. The allowable symbols can be derived from the `C2POLexer`,
 and parsing rules are found in the `C2POParser`.
 
 ## Identifiers
@@ -114,7 +114,7 @@ C2PO supports the following operators in the table below
 
 Equality/inequality checks between floats are performed in R2U2 with respect to a value $\epsilon$,
 i.e., `x == y` will be true if $\vert x - y \vert > \epsilon$. This value is set in R2U2 in
-[bounds.h](../montors/static/src/internals/bounds.h) via `R2U2_FLOAT_EPSILON`.
+`bounds.h` via `R2U2_FLOAT_EPSILON`.
 
 Some operators require their arguments to be constants. Division (`/`) requires the right-hand side
 to be constant to avoid division-by-zero errors at runtime and the power operator (`pow`) requires

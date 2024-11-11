@@ -15,7 +15,7 @@ From the `monitors/static` directory execute:
 ```
 That is, run either `./build/r2u2` for release or `./build/r2u2_debug` for development versions of R2U2, and provide relative or absolute paths to the specification binary and signal files.
 
-The format for the signal files can be found in the [file formats reference](#signal_trace_files).
+The format for the signal files can be found in the file formats reference.
 
 The output will be streamed to the screen by default by can be saved to files with standard shell redirection, see [output](./output.md) for more details.
 

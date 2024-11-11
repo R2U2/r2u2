@@ -22,7 +22,7 @@ This can be used to provide custom output handling link message publishing or da
 
 ## Logging
 
-Additional information on the internal monitor state is enabled by the [logging feature flags](./configuration.md#Logging-Output).
+Additional information on the internal monitor state is enabled by the [logging feature flags](./configuration.md#logging-output).
 
 ### Debug
 The debug logging level provides information about the internal control flow and some memory integrity checks.

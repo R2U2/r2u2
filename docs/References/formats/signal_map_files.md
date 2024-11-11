@@ -4,5 +4,5 @@ A signal map file is a UTF-8 text file with a .map file extension. Each line of 
 should be of the form `SYMBOL : NUMERAL` such that if SYMBOL corresponds to a signal identifier in
 the MLTL file, its signal ID is set to the integer value of NUMERAL.
 
-Note that if SYMBOL is not present in the MLTL file, the line is ignored. See the page on [signal
-mapping](../../../compiler/docs/signal_mapping.md) in the C2PO User Guide for more details.
+Note that if SYMBOL is not present in the MLTL file, the line is ignored. See the page on signal
+mapping in the C2PO User Guide for more details.

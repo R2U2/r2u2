@@ -6,7 +6,7 @@ If your specification only has inputs of type `bool`, then neither engine is nec
 
 ## Booleanizer
 
-The Cooleanizer is a general purpose engine that can perform arithmetic, bitwise operations, parameterized set aggregation (`foratleast`, etc.), and other such capabilities. 
+The Booleanizer is a general purpose engine that can perform arithmetic, bitwise operations, parameterized set aggregation (`foratleast`, etc.), and other such capabilities. 
 
 ## Atomic Checkers
 

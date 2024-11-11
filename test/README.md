@@ -48,7 +48,7 @@ To add a new suite, it is easiest to build off of an existing JSON configuration
             }
         }
     ],
-    "suites": [ "SUITE_1", "SUITE_2", ... ]
+    "suites": [ "SUITE_1", "SUITE_2", "..." ]
 }
 ```
 
