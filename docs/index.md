@@ -45,7 +45,6 @@ _collections/r2u2_docs/dev
 ```{toctree}
 :hidden:
 :caption: 📖 References
-api
 References/file_formats
 References/mltl_grammar
 References/publications
