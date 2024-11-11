@@ -16,16 +16,20 @@ python test/r2u2test.py compiler/c2po.py monitors/static/build/r2u2 regression
 ```
 assuming that the C version of the `r2u2` binary has been built. The test results can be seen in the `test/results` directory by default.
 
+Use the `--copyback` option to copy all the files used in the test case to the results directory. This is useful for re-running and debugging specific test cases.
+
 ## Suites
 
 The JSON files in the `test/suites` directory correspond to the available suites. Some available suites are:
 - `ft_subset`
 - `pt_subset`
 - `regression`
+- `cav`
+- `all` (runs every suite in `test/suites`)
 
 ## Adding New Suites
 
-To add a new suite, it is likely easiest to build off of an existing JSON configuration file. The structure of the JSON files is as follows:
+To add a new suite, it is easiest to build off of an existing JSON configuration file. The structure of the JSON files is as follows:
 
 ```json
 {
@@ -44,9 +48,10 @@ To add a new suite, it is likely easiest to build off of an existing JSON config
             }
         }
     ],
-    "suites": [ "SUITE_1", "SUITE_2", ... ]
+    "suites": [ "SUITE_1", "SUITE_2", "..." ]
 }
 ```
+
 where `"SUITE_NAME"` should be the same as the name of the JSON file (minus the .json extension), `"options"` is an object corresponding to the CLI options given to the compiler (these options can be overridden for individual tests), `"tests"` is an array of objects that describe test cases. 
 
 The test cases require a `"name"`, an `"mltl"` filename that exists in in `test/mltl`, a `"trace"` filename that exists in `test/trace`, and an `"oracle"` filename that exists in `test/oracle`.
