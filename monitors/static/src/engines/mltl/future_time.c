@@ -195,7 +195,11 @@ r2u2_status_t r2u2_mltl_ft_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction
     case R2U2_MLTL_OP_FT_UNTIL: {
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
 
-      if (check_operand_data(monitor, instr, 0, &op0) && check_operand_data(monitor, instr, 1, &op1)) {
+      op0_rdy = check_operand_data(monitor, instr, 0, &op0);
+      op1_rdy = check_operand_data(monitor, instr, 1, &op1);
+
+      if (op0_rdy && op1_rdy) {
+
         temp = r2u2_duoq_ft_temporal_get(arena, instr->memory_reference);
 
         // We need to see every timesetp as an (op0, op1) pair
