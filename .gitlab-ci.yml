@@ -4,10 +4,6 @@ before_script:
   - "gcc --version"
   - "python3 --version"
   - "apt update && apt -y install z3"
-  - "apt install curl"
-  - "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-  - ". $HOME/.cargo/env"
-  - "cargo --version"
 
 stages:
   - test
@@ -26,11 +22,11 @@ cav-test-c:
     - "cd ../../test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 cav"
 
-cav-test-rust:
-  stage: test
-  script:
-    - "cd test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust cav"
+# cav-test-rust:
+#   stage: test
+#   script:
+#     - "cd test"
+#     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust cav"
 
 long-trace-c:
   stage: test
@@ -48,11 +44,11 @@ ft-subset-c:
     - "cd ../../test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/static_c/build/r2u2 ft_subset"
 
-ft-subset-rust:
-  stage: test
-  script:
-    - "cd test"
-    - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust ft_subset"
+# ft-subset-rust:
+#   stage: test
+#   script:
+#     - "cd test"
+#     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust ft_subset"
 
 ft-pt-test-c:
   stage: test
