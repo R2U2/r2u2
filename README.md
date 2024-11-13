@@ -42,7 +42,7 @@ The following dependencies are required to run R2U2 and C2PO:
 - C99 compiler 
 - Python 3.6 or greater
 
-The requirements for the GUI can be installed via `pip` using `GUI/requirements.txt`.
+The requirements for the GUI can be installed via `pip install -r GUI/requirements.txt`.
 
 # Example Cases
 
