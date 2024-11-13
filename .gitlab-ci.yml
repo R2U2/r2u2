@@ -24,7 +24,7 @@ cav-test-c:
 
 cav-test-rust:
   stage: test
-  image: "rust"
+  image: rust:latest
   script:
     - "python3 --version"
     - "cargo --version"
@@ -58,7 +58,7 @@ ft-subset-c:
 
 ft-subset-rust:
   stage: test
-  image: "rust"
+  image: rust:latest
   script:
     - "python3 --version"
     - "cargo --version"
