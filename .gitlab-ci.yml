@@ -1,23 +1,22 @@
-image: "python:3"
-
-before_script:
-  - "gcc --version"
-  - "python3 --version"
-  # - "cargo --version"
-  - "apt update && apt -y install z3"
-
 stages:
   - test
 
 c2po-test:
   stage: test
+  image: "python:3"
   script:
+    - "python3 --version"
+    - "apt update && apt -y install z3"
     - "cd compiler/test"
     - "python3 test.py"
 
 cav-test-c:
   stage: test
+  image: "python:3"
   script:
+    - "gcc --version"
+    - "python3 --version"
+    - "apt update && apt -y install z3"
     - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
@@ -25,13 +24,21 @@ cav-test-c:
 
 cav-test-rust:
   stage: test
+  image: "rust"
   script:
+    - "python3 --version"
+    - "cargo --version"
+    - "apt update && apt -y install z3"
     - "cd test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust cav"
 
 long-trace-c:
   stage: test
+  image: "python:3"
   script:
+    - "gcc --version"
+    - "python3 --version"
+    - "apt update && apt -y install z3"
     - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
@@ -39,7 +46,11 @@ long-trace-c:
 
 ft-subset-c:
   stage: test
+  image: "python:3"
   script:
+    - "gcc --version"
+    - "python3 --version"
+    - "apt update && apt -y install z3"
     - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
@@ -47,13 +58,21 @@ ft-subset-c:
 
 ft-subset-rust:
   stage: test
+  image: "rust"
   script:
+    - "python3 --version"
+    - "cargo --version"
+    - "apt update && apt -y install z3"
     - "cd test"
     - "python3 r2u2test.py --c2po ../compiler/c2po.py --monitor static_rust ft_subset"
 
 ft-pt-test-c:
   stage: test
+  image: "python:3"
   script:
+    - "gcc --version"
+    - "python3 --version"
+    - "apt update && apt -y install z3"
     - "cd monitors/static_c"
     - "make"
     - "cd ../../test"
