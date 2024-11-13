@@ -20,7 +20,7 @@ pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
 pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
 // Runs R2U2 for a single time step
-pub fn r2u2_step(monitor: &mut Monitor){
+pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     debug_print!("-------Step {}-------", monitor.time_stamp);
     //Reset output buffer
     monitor.output_buffer_idx = 0;
@@ -56,5 +56,5 @@ pub fn r2u2_step(monitor: &mut Monitor){
             }
         }
     }
-
+    return !monitor.overflow_error;
 }

@@ -1,3 +1,7 @@
+use vstd::prelude::*;
+
+verus! {
+
 #[allow(non_camel_case_types)]
 pub type r2u2_time = u32;
 
@@ -40,6 +44,8 @@ impl Default for r2u2_verdict{
     }
 }
 
+#[verifier::external] // Verus doesn't support floats
+#[allow(non_camel_case_types)]
 pub struct r2u2_value{
     // Notice that we store booleans as integers so we do not require 
     // boolean specific instructions (e.g., BLOAD or BADD)
@@ -47,14 +53,17 @@ pub struct r2u2_value{
     pub f: r2u2_float,
 }
 
+#[verifier::external] // Verus doesn't support floats
 impl Copy for r2u2_value{ }
 
+#[verifier::external] // Verus doesn't support floats
 impl Clone for r2u2_value{
     fn clone(&self) -> r2u2_value {
         return *self
     }
 }
 
+#[verifier::external] // Verus doesn't support floats
 impl Default for r2u2_value{
     fn default() -> Self {
         return r2u2_value {
@@ -86,4 +95,6 @@ impl Default for r2u2_output{
             verdict: r2u2_verdict::default(),
         }
     }
+}
+
 }

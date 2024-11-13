@@ -30,9 +30,12 @@ fn main() {
         for n in 0..record.len(){
             r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
         }
-        r2u2_core::r2u2_step(&mut monitor);
-        for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
-            println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+        if r2u2_core::r2u2_step(&mut monitor) {
+            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+            }
+        } else {
+            println!("Overflow occurred!!!!")
         }
     }
 
