@@ -1,13 +1,19 @@
 use crate::internals::{debug::*, types::*};
 use crate::memory::monitor::*;
 
+#[cfg(feature = "configurable")]
+use crate::internals::bounds::*;
+
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
 
 #[cfg(feature = "debug_print_std")]
 use libc_print::std_name::println;
 
+use vstd::prelude::*;
 
+verus! {
+    
 pub struct SCQCtrlBlock{
     pub length: u32,
     pub write: usize,
@@ -66,11 +72,13 @@ impl Default for SCQTemporalBlock {
     }
 }
 
+#[cfg(feature = "configurable")]
 pub struct SCQMemoryArena {
     pub control_blocks: [SCQCtrlBlock; R2U2_MAX_TL_INSTRUCTIONS],
     pub queue_mem: [r2u2_verdict; R2U2_TOTAL_QUEUE_MEM],
 }
 
+#[cfg(feature = "configurable")]
 impl SCQMemoryArena{
     pub fn initialize() -> SCQMemoryArena{
         return SCQMemoryArena {
@@ -80,6 +88,23 @@ impl SCQMemoryArena{
     }
 }
 
+#[cfg(not(feature = "configurable"))]
+pub struct SCQMemoryArena {
+    pub control_blocks: [SCQCtrlBlock; 256],
+    pub queue_mem: [r2u2_verdict; 1024],
+}
+
+#[cfg(not(feature = "configurable"))]
+impl SCQMemoryArena{
+    pub fn initialize() -> SCQMemoryArena{
+        return SCQMemoryArena {
+            control_blocks: [SCQCtrlBlock::default(); 256],
+            queue_mem: [r2u2_verdict::default(); 1024]
+        }
+    }
+}
+
+#[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
 pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
     debug_print!("Before write:");
     print_scq(&monitor.queue_arena, queue_id);
@@ -113,6 +138,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
 
 }
 
+#[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
 // To-Do: Double check implementation... (Maybe should pass by reference for all...? So as to not create copies of values)
 pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32, read_num: u8) -> (bool, r2u2_verdict){
     debug_print!("Reading:");
@@ -148,4 +174,6 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
     // No new data in queue
     debug_print!("No new data!");
     return (false, r2u2_verdict::default());
+}
+
 }
