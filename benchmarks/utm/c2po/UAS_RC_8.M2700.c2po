@@ -1,0 +1,5 @@
+INPUT
+	Pres_lt_Prev_plus_Delta,Pres_gt_Prev_minus_Delta: bool;
+
+FTSPEC
+	!G[0,3] !(Pres_lt_Prev_plus_Delta && Pres_gt_Prev_minus_Delta);

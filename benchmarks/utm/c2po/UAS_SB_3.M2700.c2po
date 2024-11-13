@@ -1,0 +1,5 @@
+INPUT
+	Pitch_leq_180,Pitch_gr_180: bool;
+
+FTSPEC
+	G[0,M] (Pitch_gr_180 && Pitch_leq_180);

@@ -1,0 +1,20 @@
+STRUCT
+	Request: {state: int; time_active: float;};
+	Arbiter: {ReqSet: Request[];};
+INPUT
+	st0,st1,st2,st3: int;
+	ta0,ta1,ta2,ta3: float;
+DEFINE
+	WAIT := 0;
+	GRANT := 1;
+	REJECT := 2;
+	rq0 := Request(st0,ta0);
+	rq1 := Request(st1,ta1);
+	rq2 := Request(st2,ta2);
+	rq3 := Request(st3,ta3);
+	Arb0 := Arbiter({Request(st0,ta0),Request(st1,ta1)});
+	Arb1 := Arbiter({Request(st2,ta2),Request(st3,ta3)});
+	ArbSet := {Arbiter({Request(st0,ta0),Request(st1,ta1)}),Arbiter({Request(st2,ta2),Request(st3,ta3)})};
+FTSPEC
+	__f0__:(((ta0)-(ta1))<(10.0))&&(((ta1)-(ta0))<(10.0));
+	__f1__:((((st0)==(0))U[0,5](!((!((st0)==(1)))&&(!((st0)==(2))))))&&(((st1)==(0))U[0,5](!((!((st1)==(1)))&&(!((st1)==(2)))))))&&((((st2)==(0))U[0,5](!((!((st2)==(1)))&&(!((st2)==(2))))))&&(((st3)==(0))U[0,5](!((!((st3)==(1)))&&(!((st3)==(2)))))));

@@ -1,5 +1,0 @@
-# ignore vivado project file
-*
-!*.tcl
-!*.wcfg
-!.gitignore

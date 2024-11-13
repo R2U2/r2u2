@@ -1,0 +1,7 @@
+INPUT
+    b0,b1,b2: bool;
+
+FTSPEC
+    (b1 U[2,10] b0) && (b2 U[2,8] b0);
+
+    

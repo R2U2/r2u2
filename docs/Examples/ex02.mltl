@@ -1,0 +1,16 @@
+# Example 2
+# -----------------------------------------------------------------------------
+# A slightly more complicated setup, this time we have multiple MLTL formulas
+# with some temporal and propositional operators in use.
+#
+# We use the Global temporal operator, which means that the value of a0 should
+# be 1 from 0 to 5 time steps w.r.t. the current time step.
+#
+# Note the different use of bounds: we can explicitly define both the lower and
+# upper bounds of each temporal operator or define only the upper bound.
+# Defining only one bound implicitly sets the lower bound to 0, which means
+# we could have written our second Global operator as G[0,3] as well.
+# -----------------------------------------------------------------------------
+
+G[0,5] a0;
+G[3] (a0 & a1);

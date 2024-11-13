@@ -1,0 +1,5 @@
+INPUT
+	conEnd_leq_End,conStart_geq_Start: bool;
+
+FTSPEC
+	G[0,M] (conStart_geq_Start && conEnd_leq_End);

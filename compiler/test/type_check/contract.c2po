@@ -1,0 +1,5 @@
+INPUT
+    b0,b1: bool;
+
+FTSPEC
+    c: b0 => b1;

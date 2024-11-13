@@ -1,0 +1,6 @@
+INPUT
+	electricalpedalpos,power,brakecmd: bool;
+
+FTSPEC
+	(true ->  G[0,197] ((power && electricalpedalpos) <-> brakecmd)) && true
+;

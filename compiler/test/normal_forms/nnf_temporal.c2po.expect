@@ -1,0 +1,32 @@
+TL n0  load   a0
+TL n1  not    n0
+TL n2  eventually n1
+TL n3  return n2 0
+TL n4  global n1
+TL n5  return n4 1
+TL n6  load   a1
+TL n7  not    n6
+TL n8  release n1 n7
+TL n9  return n8 2
+TL n10 until  n1 n7
+TL n11 return n10 3
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |5|
+CG TL TEMP q2 [0, 5]
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |5|
+CG TL TEMP q4 [0, 5]
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |5|
+CG TL TEMP q8 [0, 5]
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |5|
+CG TL TEMP q10 [0, 5]
+CG TL DUOQ q11 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3

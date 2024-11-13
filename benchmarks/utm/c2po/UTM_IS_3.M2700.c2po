@@ -1,0 +1,5 @@
+INPUT
+	conEng_leq_120Time,conStart_geq_Time: bool;
+
+FTSPEC
+	G[0,M] (conStart_geq_Time && conEng_leq_120Time);

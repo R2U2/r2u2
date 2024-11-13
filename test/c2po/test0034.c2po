@@ -1,0 +1,4 @@
+INPUT
+a0,a1:bool;
+FTSPEC
+a1 && F[5,10] a0;

@@ -1,0 +1,11 @@
+# Example 9
+# -----------------------------------------------------------------------------
+# Here we see the use of formula labels. This is identical to example 2 but
+# includes labels for each of the formulas.
+#
+# For the output reporting to work properly, this requires R2U2 to be compiled
+# with the formula names option enabled.
+# -----------------------------------------------------------------------------
+
+Formula1: G[0,5] a0;
+Formula2: G[3] (a0 & a1);

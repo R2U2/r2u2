@@ -1,0 +1,16 @@
+{
+    "suite": "ft_subset",
+    "options": {
+        "booleanizer": true,
+        "disable-cse": true,
+        "disable-rewrite": true
+    },
+    "tests": [
+        {
+            "name": "ft_subset",
+            "mltl": "ft_subset.c2po",
+            "trace": "input0052.csv",
+            "oracle": "ft_subset.log"
+        }
+    ]
+}

@@ -1,0 +1,48 @@
+{
+    "suite": "cav",
+    "options": {
+        "booleanizer": true
+    },
+    "tests": [
+        {
+            "name": "agc",
+            "mltl": "agc.c2po",
+            "trace": "agc.csv",
+            "oracle": "agc.log"
+        },
+        {
+            "name": "cav",
+            "mltl": "cav.c2po",
+            "trace": "cav.csv",
+            "oracle": "cav.log"
+        },
+        {
+            "name": "set_agg",
+            "mltl": "set_agg.c2po",
+            "trace": "set_agg.csv",
+            "oracle": "set_agg.log"
+        },
+        {
+            "name": "sets",
+            "mltl": "sets.c2po",
+            "trace": "sets.csv",
+            "oracle": "sets.log"
+        },
+        {
+            "name": "simple",
+            "mltl": "simple.c2po",
+            "trace": "simple.csv",
+            "oracle": "simple.log",
+            "options": {
+                "booleanizer": false,
+                "atomic-checkers": false
+            }
+        },
+        {
+            "name": "struct",
+            "mltl": "struct.c2po",
+            "trace": "struct.csv",
+            "oracle": "struct.log"
+        }
+    ]
+}

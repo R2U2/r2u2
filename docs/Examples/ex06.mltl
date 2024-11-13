@@ -1,0 +1,28 @@
+# Example 6
+# -----------------------------------------------------------------------------
+# In this example we see the use of atomic bindings.
+#
+# Atomic bindings allow us to input different types of values into R2U2;
+# namely booleans, integers, and floating points. We use these values by
+# comparing them to a constant defined by the user. Here we have 3 MLTL formulas
+# each of a single atomic which are bounded to different values.
+#
+# bool(s0) denotes that we read in the data at column 0 of the input file
+# as a boolean. a0 then takes on the value of the predicate corresponding to
+# whether the value of this boolean is equal to 0.
+#
+# int(s1) denotes that we read in the data at column 1 of the input file
+# as an integer. a1 then takes on the value of the predicate corresponding to
+# whether the value of this integer is less than or equal to 5.
+#
+# The third atomic is similar to the second, only interpreting the input data
+# as a floating point. Note the constant must be an integer.
+# -----------------------------------------------------------------------------
+
+a0;
+a1;
+a2;
+
+a0 := bool(s0) == 0;
+a1 := int(s1) <= 5;
+a2 := float(s2) > 5;

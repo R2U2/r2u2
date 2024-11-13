@@ -1,0 +1,37 @@
+-- Assume there are two possible tasks, each with a maximum of 3 commands
+
+STRUCT
+    Command: { Sent: bool; ResponseCode: int; };
+    Task: { Running: bool; Cmds: set<Command>; };
+
+INPUT
+    c11sent, c12sent, c13sent, 
+    c21sent, c22sent, c23sent: bool; 
+    
+    c11rc, c12rc, c13rc, 
+    c21rc, c22rc, c23rc: int; 
+
+    x1running, x2running: bool;
+
+DEFINE
+    CMDAccepted := 1;
+
+    c11 := Command(c11sent, c11rc);
+    c12 := Command(c12sent, c12rc);
+    c13 := Command(c13sent, c13rc);
+    c21 := Command(c21sent, c21rc);
+    c22 := Command(c22sent, c22rc);
+    c23 := Command(c23sent, c23rc);
+
+    x1 := Task(x1running,{c11,c12,c13});
+    x2 := Task(x2running,{c21,c22,c23});
+
+    X := {x1,x2}; -- set of tasks
+
+FTSPEC
+    -- For all tasks x in X, if x is running then for all commands cmd in x's set of commands,
+    -- if cmd has been sent and not accepted within 3 time steps, then within 5 time steps, 
+    -- cmd will be sent and accepted within 3 time steps of being sent.
+    foreach(x:X)(x.Running ->
+        (foreach(cmd:x.Cmds)((cmd.Sent && !F[0,2](cmd.ResponseCode == CMDAccepted)) -> 
+                                F[0,4](cmd.Sent && F[0,2](cmd.ResponseCode == CMDAccepted)))));

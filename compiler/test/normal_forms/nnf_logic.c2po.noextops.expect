@@ -1,0 +1,61 @@
+[MAIN][[93mWRN[0m] NNF and BNF incompatible without extended operators, output will not be in either normal form
+TL n0  load   a0
+TL n1  not    n0
+TL n2  not    n1
+TL n3  load   a1
+TL n4  not    n3
+TL n5  not    n4
+TL n6  and    n2 n5
+TL n7  not    n6
+TL n8  return n7 0
+TL n9  and    n1 n4
+TL n10 return n9 1
+TL n11 load   a2
+TL n12 not    n11
+TL n13 and    n7 n12
+TL n14 return n13 2
+TL n15 and    n0 n4
+TL n16 return n15 3
+TL n17 and    n1 n3
+TL n18 and    n17 n15
+TL n19 return n18 4
+TL n20 and    n0 n12
+TL n21 not    n20
+TL n22 and    n1 n11
+TL n23 not    n22
+TL n24 and    n21 n23
+TL n25 not    n24
+TL n26 return n25 5
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |1|
+CG TL DUOQ q14 |1|
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |1|
+CG TL DUOQ q17 |1|
+CG TL DUOQ q18 |1|
+CG TL DUOQ q19 |1|
+CG TL DUOQ q20 |1|
+CG TL DUOQ q21 |1|
+CG TL DUOQ q22 |1|
+CG TL DUOQ q23 |1|
+CG TL DUOQ q24 |1|
+CG TL DUOQ q25 |1|
+CG TL DUOQ q26 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5

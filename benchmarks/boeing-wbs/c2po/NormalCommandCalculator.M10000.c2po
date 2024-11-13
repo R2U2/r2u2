@@ -1,0 +1,6 @@
+INPUT
+	ascmd,power,brakecmd,brakeascmd: bool;
+
+FTSPEC
+	(true ->  G[8293,10000] (((power && brakecmd) && !ascmd) <-> brakeascmd)) && true
+;

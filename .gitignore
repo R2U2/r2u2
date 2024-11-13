@@ -1,7 +1,7 @@
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
-*.log
+#*.log
 *.lot
 *.fls
 *.out
@@ -264,18 +264,39 @@ TSWLatexianTemp*
 # VSCode config
 .vscode/
 
-# Input test files
-*.csv
-*.mltl
+# pyright config
+pyrightconfig.json
 
-R2U2_C/bin/
-R2U2_C/doc/
-R2U2_C/report/
+# Input test files
+*.bin
+
+# test suite workdir
+__workdir/
+
 test/Inputs/inputFiles/
 test/Inputs/inputImages/
 test/Oracle/oracleFiles/
 test/TL_formula/formulaFiles/
 test/*Results.txt
-gen_files/
 __pycache__/
 codechecker/
+tmp/
+.pytest_cache
+test/results
+*.pickle
+pickle/
+venv/
+.venv/
+
+__*
+
+# dependencies
+egg/
+egglog/
+
+
+# Generated documentation files
+docs/_*
+
+# python virtual environment
+r2u2env/

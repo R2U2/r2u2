@@ -1,0 +1,22 @@
+TL n0  load   a0
+TL n1  return n0 0
+TL n2  and    n0 True
+TL n3  return n2 1
+TL n4  global n0
+TL n5  return n4 2
+TL n6  eventually n0
+TL n7  return n6 3
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |5|
+CG TL TEMP q4 [5, 10]
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |5|
+CG TL TEMP q6 [5, 10]
+CG TL DUOQ q7 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3

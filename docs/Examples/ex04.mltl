@@ -1,0 +1,13 @@
+# Example 4
+# -----------------------------------------------------------------------------
+# This example shows off each of the future time temporal logic operators
+# -----------------------------------------------------------------------------
+
+G[3] a0;        # Globally
+G[0,5] a1;      # Globally
+F[3] a2;        # Finally
+F[0,5] a3;      # Finally
+a4 U[3] a5;     # Until
+a6 U[0,5] a7;   # Until
+a8 R[3] a9;     # Release
+a10 R[0,5] a11; # Release 

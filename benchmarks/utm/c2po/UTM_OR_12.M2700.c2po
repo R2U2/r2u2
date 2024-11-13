@@ -1,0 +1,5 @@
+INPUT
+	Lon_geq_LonLB,Lon_leq_LonUB: bool;
+
+FTSPEC
+	G[0,3] (Lon_leq_LonUB && Lon_geq_LonLB);

@@ -1,0 +1,5 @@
+INPUT
+	FlightTime_leq_MAX: bool;
+
+FTSPEC
+	G[0,M] (FlightTime_leq_MAX);

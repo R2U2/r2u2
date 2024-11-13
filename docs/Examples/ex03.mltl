@@ -1,0 +1,10 @@
+# Example 3
+# -----------------------------------------------------------------------------
+# This example shows off each of the propositional logic operators
+# -----------------------------------------------------------------------------
+
+!a0;       # Negation
+a1 & a2;   # Conjunction
+a3 | a4;   # Disjunction
+a5 -> a6;  # Conditional
+a7 <-> a8; # Biconditional

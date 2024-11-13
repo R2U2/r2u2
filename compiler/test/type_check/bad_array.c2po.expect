@@ -1,0 +1,6 @@
+[TYPC][[91mERR[0m] bad_array.c2po:9: Struct instantiation/function call does not match signature.
+	Found:    Test(int[3])
+	Expected: Test(int[2])
+[TYPC][[91mERR[0m] bad_array.c2po:12: Symbol 't' not recognized
+[TYPC][[91mERR[0m] bad_array.c2po:13: Symbol 't' not recognized
+[MAIN][[91mERR[0m] Failed type check

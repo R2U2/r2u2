@@ -1,0 +1,5 @@
+INPUT
+    f0: float;
+
+FTSPEC
+    f0;

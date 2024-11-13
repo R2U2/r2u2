@@ -1,0 +1,5 @@
+INPUT
+	StartB_leq_EndA,StartA_leq_StartB,StartA_leq_EndB: bool;
+
+FTSPEC
+	(StartA_leq_StartB && StartB_leq_EndA) || (!StartA_leq_StartB && StartA_leq_EndB);

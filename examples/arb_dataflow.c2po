@@ -1,0 +1,10 @@
+INPUT
+    b0,b1: bool;
+
+ATOMIC
+    a0 := b0 == true;
+    a2 := f0 == b1;
+
+FTSPEC
+    f0: a0;
+    f1: a2;
