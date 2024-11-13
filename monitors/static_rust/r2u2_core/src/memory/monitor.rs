@@ -1,6 +1,7 @@
 use crate::instructions::booleanizer;
-
-use super::{super::{instructions::mltl, internals::{bounds::*, types::*}}, scq::SCQMemoryArena};
+use crate::internals::types::*;
+use crate::instructions::mltl;
+use crate::memory::scq::SCQMemoryArena;
 
 #[derive(PartialEq)]
 pub enum MonitorProgressState {

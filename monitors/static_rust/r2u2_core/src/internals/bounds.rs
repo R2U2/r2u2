@@ -1,4 +1,4 @@
-use super::types::r2u2_float;
+use crate::internals::types::r2u2_float;
 use const_env::from_env;
 
 #[from_env]

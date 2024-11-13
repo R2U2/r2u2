@@ -1,14 +1,7 @@
-use super::{memory::monitor::*, internals::types::*};
+use crate::internals::{debug::*, types::*};
+use crate::memory::monitor::*;
 use future_time::*;
 use booleanizer::*;
-use super::internals::debug::*;
-
-pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ
-pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control
-pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
-pub const R2U2_ENG_AT: u8 = 3; // Original Atomic Checker
-pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
-pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
 mod future_time;
 mod booleanizer;
@@ -18,6 +11,13 @@ use cortex_m_semihosting::hprintln;
 
 #[cfg(feature = "debug_print_std")]
 use libc_print::std_name::println;
+
+// pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ
+// pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control
+pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
+// pub const R2U2_ENG_AT: u8 = 3; // Original Atomic Checker
+pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
+pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
 // Runs R2U2 for a single time step
 pub fn r2u2_step(monitor: &mut Monitor){

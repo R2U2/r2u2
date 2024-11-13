@@ -1,9 +1,8 @@
 use easy_min_max::{min, max};
 
-use super::super::{memory::monitor::*, instructions::mltl::*, internals::types::*};
-use super::super::internals::debug::*;
-use super::super::memory::scq::*;
-use super::r2u2_infinity;
+use crate::instructions::mltl::*;
+use crate::internals::{debug::*, types::*};
+use crate::memory::{monitor::*,scq::*};
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;

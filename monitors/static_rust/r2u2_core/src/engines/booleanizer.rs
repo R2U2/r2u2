@@ -2,9 +2,9 @@ use libm::{pow, sqrt};
 
 use crate::internals::bounds::R2U2_FLOAT_EPSILON;
 
-use super::super::instructions::booleanizer::*;
-use super::super::memory::monitor::*;
-use super::super::internals::{debug::*, types::*};
+use crate::instructions::booleanizer::*;
+use crate::memory::monitor::*;
+use crate::internals::{debug::*, types::*};
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;

@@ -1,7 +1,5 @@
-use byteorder::{LittleEndian, ByteOrder};
-
-use super::super::instructions::{mltl::*, booleanizer::*};
-use super::super::memory::scq::*;
+use crate::instructions::{mltl::*, booleanizer::*};
+use crate::memory::scq::*;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -31,15 +29,15 @@ macro_rules! debug_print {
 
 pub(crate) use debug_print;
 
-pub fn print_mltl_instruction(instr: MLTLInstruction){
-    debug_print!("{:#08x} {:#08x} {:#08x} {:#02x} {:#02x} {:#02x}", instr.op1_value, instr.op2_value, instr.memory_reference, instr.op1_type, instr.op2_type, instr.opcode);
+pub fn print_mltl_instruction(_instr: MLTLInstruction){
+    debug_print!("{:#08x} {:#08x} {:#08x} {:#02x} {:#02x} {:#02x}", _instr.op1_value, _instr.op2_value, _instr.memory_reference, _instr.op1_type, _instr.op2_type, _instr.opcode);
 }
 
-pub fn print_bz_instruction(instr: BooleanizerInstruction){
-    debug_print!("{:#016x} {:#08x} {:#08x} {:#02x}", LittleEndian::read_u64(&instr.param1), instr.param2, instr.memory_reference, instr.opcode);
+pub fn print_bz_instruction(_instr: BooleanizerInstruction){
+    debug_print!("{:#016x} {:#08x} {:#08x} {:#02x}", LittleEndian::read_u64(&_instr.param1), _instr.param2, _instr.memory_reference, _instr.opcode);
 }
 
-pub fn print_mltl_config_instruction(instr: MLTLInstruction, ctrl: SCQCtrlBlock){
+pub fn print_mltl_config_instruction(instr: MLTLInstruction, _ctrl: SCQCtrlBlock){
     debug_print!("{:#08x} {:#08x} {:#08x} {:#02x} {:#02x} {:#02x}", instr.op1_value, instr.op2_value, instr.memory_reference, instr.op1_type, instr.op2_type, instr.opcode);
     match instr.op1_type{
         MLTL_OP_TYPE_ATOMIC => {
@@ -57,7 +55,7 @@ pub fn print_mltl_config_instruction(instr: MLTLInstruction, ctrl: SCQCtrlBlock)
 pub fn print_scq(arena: &SCQMemoryArena, queue_id: u32){
     let queue_ctrl = arena.control_blocks[queue_id as usize];
     debug_print!("-------- Queue {} --------", queue_id);
-    for n in queue_ctrl.queue_ref..(queue_ctrl.queue_ref+queue_ctrl.length as usize){
+    for _n in queue_ctrl.queue_ref..(queue_ctrl.queue_ref+queue_ctrl.length as usize){
         debug_print!("|\t{} -> {}\t|", arena.queue_mem[n].time, arena.queue_mem[n].truth);
     }
     debug_print!("-------------------------");

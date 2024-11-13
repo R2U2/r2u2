@@ -4,6 +4,7 @@ edition = "2018"
 readme = "README.md"
 name = "r2u2_core"
 version = "0.1.0"
+categories = ["no-std", "embedded"]
 
 [dependencies]
 byteorder = { version = "1", default-features = false }
@@ -20,8 +21,3 @@ debug_print_std = ["dep:libc-print"]
 [lib]
 name = "r2u2_core"
 path = "src/lib.rs"
-
-[profile.release]
-codegen-units = 1 # better optimizations
-debug = true # symbols are nice and they don't increase the size on Flash
-lto = true # better optimizations

@@ -62,16 +62,16 @@ pub fn load_string_signal(monitor: &mut memory::monitor::Monitor, index: usize, 
                         monitor.signal_buffer[index].f = n;
                         internals::debug::debug_print!("Loading in signal {}: {}", index, monitor.signal_buffer[index].f);
                     },
-                    Err(e) => ()
+                    Err(_e) => ()
                 }
             }
-            Err(e) => 
+            Err(_e) => 
                 match value.parse::<r2u2_float>() {
                     Ok(n) => {
                         monitor.signal_buffer[index].f = n;
                         internals::debug::debug_print!("Loading in signal {}: {}", index, monitor.signal_buffer[index].f);
                     },
-                    Err(e) => panic!("Please provide a valid number!")
+                    Err(_e) => panic!("Please provide a valid number!")
                 }
         }
     }

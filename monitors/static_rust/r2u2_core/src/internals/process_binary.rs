@@ -1,7 +1,6 @@
-use super::super::{engines, instructions, memory};
-use super::super::internals::debug::*;
-use super::super::instructions::booleanizer::*;
-use byteorder::{LittleEndian, ByteOrder};
+use crate::{engines, memory};
+use crate::internals::debug::*;
+use crate::instructions::{booleanizer::*, mltl::*};
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -15,14 +14,12 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
     while spec_file[offset] != 0 {
         // Configure Instructions
         if (spec_file[offset + 1] == engines::R2U2_ENG_CG as u8) && (spec_file[offset + 2] == engines::R2U2_ENG_TL as u8){
-            // To-Do: Check if this requires any extra memory
-            let instr = instructions::mltl::MLTLInstruction::set_from_binary(&spec_file[offset+3..]);
-            instructions::mltl::mltl_configure_instruction_dispatch(instr, monitor);
-            // need to dispatch configure instruction
+            let instr = MLTLInstruction::set_from_binary(&spec_file[offset+3..]);
+            mltl_configure_instruction_dispatch(instr, monitor);
         }
         // Booleanizer Instructions
         else if spec_file[offset+1] == engines::R2U2_ENG_BZ as u8{
-            let instr = instructions::booleanizer::BooleanizerInstruction::set_from_binary(&spec_file[offset+2..]);
+            let instr = BooleanizerInstruction::set_from_binary(&spec_file[offset+2..]);
             match instr.opcode{
                 // Special case: ICONST and FCONST only need to be run once since they load constants
                 BZ_OP_ICONST=> {
@@ -46,7 +43,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         }
         // Temporal Logic Instructions
         else if spec_file[offset+1] == engines::R2U2_ENG_TL as u8{
-            let instr = instructions::mltl::MLTLInstruction::set_from_binary(&spec_file[offset+2..]);
+            let instr = MLTLInstruction::set_from_binary(&spec_file[offset+2..]);
             // Store instruction in table
             monitor.mltl_instruction_table[monitor.mltl_program_count.max_program_count] = instr;
             monitor.mltl_program_count.max_program_count = monitor.mltl_program_count.max_program_count + 1;

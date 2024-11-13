@@ -1,7 +1,5 @@
-use crate::internals::{bounds::*, types::{r2u2_infinity, r2u2_time, r2u2_verdict}};
-use super::monitor::*;
-use super::super::instructions::mltl::*;
-use super::super::internals::debug::*;
+use crate::internals::{debug::*, types::*};
+use crate::memory::monitor::*;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
