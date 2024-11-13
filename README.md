@@ -37,20 +37,12 @@ timestamps will appear to be "skipped" - this is normal.
 
 # Requirements 
 
-The following dependencies have already been installed on this
-container for use by the artifact: 
+The following dependencies are required to run R2U2 and C2PO: 
 - Make 
 - C99 compiler 
-- python 3.6 or greater
+- Python 3.6 or greater
 
-The following python packages have also been installed via `pip` for testing and
-the GUI: 
-- dash 
-- dash-cytoscape 
-- dash-bootstrap-components 
-- pytest 
-- numpy 
-- matplotlib
+The requirements for the GUI can be installed via `pip` using `GUI/requirements.txt`.
 
 # Example Cases
 
