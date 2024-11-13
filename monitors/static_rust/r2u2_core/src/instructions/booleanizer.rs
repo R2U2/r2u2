@@ -49,7 +49,7 @@ pub const BZ_OP_FABS: u8 = 0b100110;
 pub const BZ_OP_PREV: u8 = 0b100111;
 
 pub struct BooleanizerInstruction {
-    pub param1: [u8; 8],
+    pub param1: u32,
     pub param2: u32,
     pub memory_reference: u32,
     pub opcode: u8,
@@ -65,9 +65,15 @@ impl Clone for BooleanizerInstruction{
 }
 
 impl BooleanizerInstruction {
+    pub fn get_param1_int_from_binary(instr: &[u8]) -> i32 {
+        return LittleEndian::read_i32(&instr[0..]);
+    }
+    pub fn get_param1_float_from_binary(instr: &[u8]) -> f64 {
+        return LittleEndian::read_f64(&instr[0..]);
+    }
     pub fn set_from_binary(instr: &[u8]) -> BooleanizerInstruction{
         return BooleanizerInstruction{ 
-            param1: [instr[0], instr[1], instr[2], instr[3], instr[4], instr[5], instr[6], instr[7]],
+            param1: LittleEndian::read_u32(&instr[0..]),
             param2: LittleEndian::read_u32(&instr[8..]),
             memory_reference: LittleEndian::read_u32(&instr[12..]),
             opcode: instr[16],
@@ -75,7 +81,7 @@ impl BooleanizerInstruction {
     }
     pub fn empty_instr() -> BooleanizerInstruction{
         return BooleanizerInstruction{ 
-            param1: [0; 8],
+            param1: 0,
             param2: 0,
             memory_reference: 0,
             opcode: BZ_OP_NONE,

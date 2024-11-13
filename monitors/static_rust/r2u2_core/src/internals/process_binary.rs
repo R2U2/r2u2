@@ -27,13 +27,13 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                 // Special case: ICONST and FCONST only need to be run once since they load constants
                 BZ_OP_ICONST=> {
                     debug_print!("BZ ICONST");
-                    let op_const = LittleEndian::read_i32(&instr.param1);
+                    let op_const = BooleanizerInstruction::get_param1_int_from_binary(&spec_file[offset+2..]);
                     monitor.value_buffer[instr.memory_reference as usize].i = op_const;
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i);
                 }
                 BZ_OP_FCONST=> {
                     debug_print!("BZ FCONST");
-                    let op_const = LittleEndian::read_f64(&instr.param1);
+                    let op_const = BooleanizerInstruction::get_param1_float_from_binary(&spec_file[offset+2..]);
                     monitor.value_buffer[instr.memory_reference as usize].f = op_const;
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f);
                 }
