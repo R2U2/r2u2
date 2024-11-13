@@ -14,14 +14,19 @@ class R2U2Implementation(enum.Enum):
 
 class R2U2Engine(enum.Enum):
     NONE = 0
-    TEMPORAL_LOGIC = 0
-    BOOLEANIZER = 1
-    ATOMIC_CHECKER = 2
+    SYSTEM = 1
+    CONFIG = 2
+    ATOMIC_CHECKER = 3
+    TEMPORAL_LOGIC = 4
+    BOOLEANIZER = 5
 
 
 class Interval(NamedTuple):
     lb: int
     ub: int
+
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, Interval) and self.lb == __value.lb and self.ub == __value.ub
 
 
 SignalMapping = Dict[str, int]
@@ -32,7 +37,7 @@ class BaseType(enum.Enum):
     BOOL = 1
     INT = 2
     FLOAT = 3
-    SET = 4
+    ARRAY = 4
     STRUCT = 5
     CONTRACT = 6
 
@@ -109,22 +114,28 @@ class ContractValueType(Type):
         super().__init__(BaseType.CONTRACT, is_const, "contract")
 
 
-class SetType(Type):
-    """Parameterized set C2PO type."""
+class ArrayType(Type):
+    """Array C2PO type."""
 
-    def __init__(self, member_type: Type, is_const: bool = False):
-        super().__init__(BaseType.SET, is_const, "set<" + str(member_type) + ">")
+    def __init__(self, member_type: Type, is_const: bool = False, size: int = -1):
+        super().__init__(BaseType.ARRAY, is_const, f"{member_type}[]")
         self.member_type: Type = member_type
+        self.size: int = size
 
     def __eq__(self, arg: object) -> bool:
-        if super().__eq__(arg):
-            if isinstance(arg, SetType):
-                return self.member_type.__eq__(arg.member_type)
+        if isinstance(arg, ArrayType):
+            if not self.member_type.__eq__(arg.member_type):
+                return False
+            if self.size > -1 and arg.size > -1 and self.size != arg.size:
+                return False
+            return True
         return False
 
     def __str__(self) -> str:
-        return f"set<{self.member_type}>"
-
+        if self.size >= 0:
+            return f"{self.member_type}[{self.size}]"
+        return f"{self.member_type}[]"
+    
 
 def is_bool_type(t: Type) -> bool:
     return isinstance(t, BoolType)
@@ -145,32 +156,32 @@ def is_struct_type(t: Type, symbol: Optional[str] = None) -> bool:
     return isinstance(t, StructType)
 
 
-def is_set_type(t: Type) -> bool:
-    return isinstance(t, SetType)
+def is_array_type(t: Type) -> bool:
+    return isinstance(t, ArrayType)
 
 
-def set_types(
+def configure_types(
     impl: R2U2Implementation, int_width: int, int_signed: bool, float_width: int
 ):
     """Check for valid int and float widths and configure program types accordingly."""
     IntType.is_signed = int_signed
 
     if int_width < 1:
-        log.error("Invalid int width, must be greater than 0", MODULE_CODE)
+        log.error(MODULE_CODE, "Invalid int width, must be greater than 0")
 
     if float_width < 1:
-        log.error("Invalid float_width width, must be greater than 0", MODULE_CODE)
+        log.error(MODULE_CODE, "Invalid float_width width, must be greater than 0")
 
     if int_width % 8 != 0:
         log.error(
-            " Invalid int width, must be a multiple of 8 for byte-alignment.",
             MODULE_CODE,
+            " Invalid int width, must be a multiple of 8 for byte-alignment.",
         )
 
     if float_width % 8 != 0:
         log.error(
-            " Invalid float width, must be a multiple of 8 for byte-alignment.",
             MODULE_CODE,
+            " Invalid float width, must be a multiple of 8 for byte-alignment.",
         )
 
     if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
@@ -178,16 +189,16 @@ def set_types(
             IntType.width = int_width
         else:
             log.error(
-                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
                 MODULE_CODE,
+                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
             )
 
         if float_width == 32 or float_width == 64:
             FloatType.width = float_width
         else:
             log.error(
-                " Invalid float width, must correspond to a C standard float width (32 or 64).",
                 MODULE_CODE,
+                " Invalid float width, must correspond to a C standard float width (32 or 64).",
             )
     else:
         IntType.width = int_width

@@ -1,1 +1,0 @@
-SCQ Memory

@@ -1,7 +1,3 @@
-BZ b0  iload  0 0
-BZ b1  iload  1 0
-BZ b2  iload  0 0
-BZ b3  iload  1 0
 TL n0  load   a0
 TL n1  global n0
 TL n2  return n1 0
@@ -15,44 +11,37 @@ TL n9  not    n5
 TL n10 until  n8 n9
 TL n11 not    n10
 TL n12 return n11 3
-TL n0  load   a2
-TL n1  hist   n0
+TL n0  load   a0
+TL q13 hist   n0
 TL n2  return n1 4
-TL n3  once   n0
+TL q14 once   n0
 TL n4  return n3 5
-TL n5  load   a3
-TL n6  since  n0 n5
+TL n5  load   a1
+TL q15 since  n0 n5
 TL n7  return n6 6
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL LB  n1  0
-CG TL UB  n1  5
-CG TL SCQ n2  (6, 7)
-CG TL SCQ n3  (7, 10)
-CG TL LB  n3  0
-CG TL UB  n3  5
-CG TL SCQ n4  (10, 11)
-CG TL SCQ n5  (11, 14)
-CG TL SCQ n6  (14, 17)
-CG TL LB  n6  0
-CG TL UB  n6  5
-CG TL SCQ n7  (17, 18)
-CG TL SCQ n8  (18, 21)
-CG TL SCQ n9  (21, 24)
-CG TL SCQ n10 (24, 27)
-CG TL LB  n10 0
-CG TL UB  n10 5
-CG TL SCQ n11 (27, 30)
-CG TL SCQ n12 (30, 31)
-CG TL BOXQ n1  64
-CG TL BOXQ n1  0
-CG TL BOXQ n1  5
-CG TL BOXQ n3  192
-CG TL BOXQ n3  0
-CG TL BOXQ n3  5
-CG TL BOXQ n6  320
-CG TL BOXQ n6  0
-CG TL BOXQ n6  5
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |5|
+CG TL TEMP q1 [0, 5]
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |5|
+CG TL TEMP q3 [0, 5]
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |5|
+CG TL TEMP q6 [0, 5]
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |5|
+CG TL TEMP q10 [0, 5]
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |11| <1>
+CG TL TEMP q13 [0, 5]
+CG TL DUOQ q14 |11| <3>
+CG TL TEMP q14 [0, 5]
+CG TL DUOQ q15 |11| <6>
+CG TL TEMP q15 [0, 5]
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

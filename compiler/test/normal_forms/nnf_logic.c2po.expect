@@ -1,6 +1,3 @@
-BZ b0  iload  0 0
-BZ b1  iload  1 0
-BZ b2  iload  2 0
 TL n0  load   a0
 TL n1  not    n0
 TL n2  load   a1
@@ -22,27 +19,27 @@ TL n17 and    n0 n9
 TL n18 and    n1 n8
 TL n19 or     n17 n18
 TL n20 return n19 5
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL SCQ n2  (6, 9)
-CG TL SCQ n3  (9, 12)
-CG TL SCQ n4  (12, 15)
-CG TL SCQ n5  (15, 16)
-CG TL SCQ n6  (16, 19)
-CG TL SCQ n7  (19, 20)
-CG TL SCQ n8  (20, 23)
-CG TL SCQ n9  (23, 26)
-CG TL SCQ n10 (26, 29)
-CG TL SCQ n11 (29, 30)
-CG TL SCQ n12 (30, 33)
-CG TL SCQ n13 (33, 34)
-CG TL SCQ n14 (34, 37)
-CG TL SCQ n15 (37, 40)
-CG TL SCQ n16 (40, 41)
-CG TL SCQ n17 (41, 44)
-CG TL SCQ n18 (44, 47)
-CG TL SCQ n19 (47, 50)
-CG TL SCQ n20 (50, 51)
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |1|
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |1|
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |1|
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |1|
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |1|
+CG TL DUOQ q14 |1|
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |1|
+CG TL DUOQ q17 |1|
+CG TL DUOQ q18 |1|
+CG TL DUOQ q19 |1|
+CG TL DUOQ q20 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

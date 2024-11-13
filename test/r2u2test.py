@@ -278,6 +278,7 @@ class TestCase():
             str(self.test_results_dir / self.spec_bin_workdir_path.name), 
             str(self.test_results_dir / self.trace_path.name)
         ]
+
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2bin_command_new))
 

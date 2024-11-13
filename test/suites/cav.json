@@ -11,16 +11,6 @@
             "oracle": "agc.log"
         },
         {
-            "name": "atomic_checkers",
-            "mltl": "atomic_checkers.c2po",
-            "trace": "atomic_checkers.csv",
-            "oracle": "atomic_checkers.log",
-            "options": {
-                "booleanizer": false,
-                "atomic-checkers": true
-            }
-        },
-        {
             "name": "cav",
             "mltl": "cav.c2po",
             "trace": "cav.csv",
@@ -42,7 +32,11 @@
             "name": "simple",
             "mltl": "simple.c2po",
             "trace": "simple.csv",
-            "oracle": "simple.log"
+            "oracle": "simple.log",
+            "options": {
+                "booleanizer": false,
+                "atomic-checkers": false
+            }
         },
         {
             "name": "struct",

@@ -1,5 +1,3 @@
-BZ b0  iload  0 0
-BZ b1  iload  1 0
 TL n0  load   a0
 TL n1  global n0
 TL n2  return n1 0
@@ -18,40 +16,32 @@ TL n14 global n8
 TL n15 and    n13 n14
 TL n16 global n15
 TL n17 return n16 5
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL LB  n1  0
-CG TL UB  n1  5
-CG TL SCQ n2  (6, 7)
-CG TL SCQ n3  (7, 8)
-CG TL SCQ n4  (8, 11)
-CG TL LB  n4  0
-CG TL UB  n4  8
-CG TL SCQ n5  (11, 12)
-CG TL SCQ n6  (12, 13)
-CG TL SCQ n7  (13, 21)
-CG TL LB  n7  0
-CG TL UB  n7  0
-CG TL SCQ n8  (21, 24)
-CG TL SCQ n9  (24, 27)
-CG TL LB  n9  2
-CG TL UB  n9  5
-CG TL SCQ n10 (27, 30)
-CG TL SCQ n11 (30, 33)
-CG TL LB  n11 0
-CG TL UB  n11 5
-CG TL SCQ n12 (33, 34)
-CG TL SCQ n13 (34, 37)
-CG TL LB  n13 1
-CG TL UB  n13 1
-CG TL SCQ n14 (37, 41)
-CG TL LB  n14 0
-CG TL UB  n14 1
-CG TL SCQ n15 (41, 44)
-CG TL SCQ n16 (44, 47)
-CG TL LB  n16 1
-CG TL UB  n16 3
-CG TL SCQ n17 (47, 48)
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |5|
+CG TL TEMP q1 [0, 5]
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |5|
+CG TL TEMP q4 [0, 8]
+CG TL DUOQ q5 |1|
+CG TL DUOQ q6 |1|
+CG TL DUOQ q7 |10|
+CG TL TEMP q7 [0, 0]
+CG TL DUOQ q8 |1|
+CG TL DUOQ q9 |5|
+CG TL TEMP q9 [2, 5]
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |5|
+CG TL TEMP q11 [0, 5]
+CG TL DUOQ q12 |1|
+CG TL DUOQ q13 |5|
+CG TL TEMP q13 [1, 1]
+CG TL DUOQ q14 |6|
+CG TL TEMP q14 [0, 1]
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |5|
+CG TL TEMP q16 [1, 3]
+CG TL DUOQ q17 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

@@ -34,17 +34,19 @@ def compute_cpu_wcet(
 
         operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            log.error(f"While computing CPU WCET, found invalid instruction '{instr}'", MODULE_CODE)
+            log.error(MODULE_CODE, f"While computing CPU WCET, found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            log.error(f"Operator '{operator.name}' not found in CPU latency table.", MODULE_CODE)
+            log.error(MODULE_CODE, f"Operator '{operator.name}' not found in CPU latency table.")
             return 0
         
         wcet = int((latency_table[operator]) / clk)
 
-        log.debug(f"CPU_WCET({instr}) = {wcet}", MODULE_CODE)
+        log.debug(MODULE_CODE, 2, f"CPU_WCET({instr}) = {wcet}")
 
         total_wcet += wcet
+
+    log.stat(MODULE_CODE, f"cpu_wcet={total_wcet}")
 
     return total_wcet
 
@@ -65,7 +67,7 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
     """
     total_wcet = 0
 
-    scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.SCQ]
+    scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.DUOQ]
 
     for instr in assembly:
         if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):
@@ -73,10 +75,10 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
 
         operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            log.error(f"While computing FPGA WCET, found invalid instruction '{instr}'", MODULE_CODE)
+            log.error(MODULE_CODE, f"While computing FPGA WCET, found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            log.error(f"Operator '{operator.name}' not found in FPGA latency table.", MODULE_CODE)
+            log.error(MODULE_CODE, f"Operator '{operator.name}' not found in FPGA latency table.")
             return 0
         
         init_time, exec_time = latency_table[operator]
@@ -99,8 +101,10 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
         else:
             wcet = init_time + exec_time
 
-        log.debug(f"FPGA_WCET({instr}) = {wcet}", MODULE_CODE)
+        log.debug(MODULE_CODE, 2, f"FPGA({instr}) = {wcet}")
 
         total_wcet += wcet
+
+    log.stat(MODULE_CODE, f"fpga_wcet={total_wcet}")
 
     return total_wcet

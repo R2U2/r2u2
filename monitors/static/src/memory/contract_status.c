@@ -25,30 +25,30 @@ r2u2_status_t r2u2_contract_status_load_mapping(r2u2_contract_status_reporter_t 
     offset += length + 1;
     if (sscanf((char*)&(data[offset]), "%c", &type) == 1) {
       switch(type){
-      case 'C': {
-        sscanf((char*)&(data[offset]), "%*c %s %zu %zu %zu", (status_reporter->aux_con_map)[c_num], &((status_reporter->aux_con_forms)[3*c_num]), &((status_reporter->aux_con_forms)[3*c_num+1]), &((status_reporter->aux_con_forms)[3*c_num+2]));
-        (status_reporter->aux_con_map)[c_num+1] = (status_reporter->aux_con_map)[c_num] + strlen((status_reporter->aux_con_map)[c_num]) + 1; // Leave a Null
-        R2U2_DEBUG_PRINT("Mapping contract: %s\n", (status_reporter->aux_con_map)[c_num]);
-        c_num++;
-        // TODO(bckempa): Get clever with this, use %n from the sscanf to set
-        length = strlen((char*)&(data[offset]));
-        break;
-      }
-      case 'F': {
-        R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
-        length = strlen((char*)&(data[offset]));
-        break;
-      }
-      case 'R': {
-        R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
-        length = strlen((char*)&(data[offset]));
-        break;
-      }
-      default: {
-        R2U2_DEBUG_PRINT("Aux: Invalid type '%c' - end of search\n", type);
-        length = 0;
-        break;
-      }
+        case 'C': {
+          sscanf((char*)&(data[offset]), "%*c %s %zu %zu %zu", (status_reporter->aux_con_map)[c_num], &((status_reporter->aux_con_forms)[3*c_num]), &((status_reporter->aux_con_forms)[3*c_num+1]), &((status_reporter->aux_con_forms)[3*c_num+2]));
+          (status_reporter->aux_con_map)[c_num+1] = (status_reporter->aux_con_map)[c_num] + strlen((status_reporter->aux_con_map)[c_num]) + 1; // Leave a Null
+          R2U2_DEBUG_PRINT("Mapping contract: %s\n", (status_reporter->aux_con_map)[c_num]);
+          c_num++;
+          // TODO(bckempa): Get clever with this, use %n from the sscanf to set
+          length = strlen((char*)&(data[offset]));
+          break;
+        }
+        case 'F': {
+          R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
+          length = strlen((char*)&(data[offset]));
+          break;
+        }
+        case 'R': {
+          R2U2_DEBUG_PRINT("Aux: No handler enabled for type %c\n", type);
+          length = strlen((char*)&(data[offset]));
+          break;
+        }
+        default: {
+          R2U2_DEBUG_PRINT("Aux: Invalid type '%c' - end of search\n", type);
+          length = 0;
+          break;
+        }
       }
     } else {
         // Error scanning type char, end search
@@ -68,7 +68,7 @@ r2u2_status_t r2u2_contract_status_report(r2u2_contract_status_reporter_t *statu
   // Right now contracts are only supported by the TL engine so we can cast to mltl inst
   // There is a good argument that this belongs in an engine since it needs other engine details
   for (size_t i = 0; i < 3*(status_reporter->aux_con_max); ++i) {
-    if (((r2u2_mltl_instruction_t*)(inst->instruction_data))->op2.value == (status_reporter->aux_con_forms)[i]) {
+    if (((r2u2_mltl_instruction_t*)(inst->instruction_data))->op2_value == (status_reporter->aux_con_forms)[i]) {
       switch(i%3){
         case 0: {
           if(!(res->truth)){
@@ -87,6 +87,10 @@ r2u2_status_t r2u2_contract_status_report(r2u2_contract_status_reporter_t *statu
             fprintf(status_reporter->out_file, "Contract %s verified at %d\n", (status_reporter->aux_con_map)[i/3], res->time);
           }
           break;
+        }
+        default: {
+          /* Unreachable */
+          R2U2_DEBUG_PRINT("Warning: hit unreachable case (i%%3 not in {0,1,2})\n");
         }
       }
       /* We'd like to stop searching after a contract has been found

@@ -1,31 +1,37 @@
-USER_DIR := UsersGuide
-USER_NAME := R2U2_Users_Guide
+# Minimal makefile for Sphinx documentation
+#
 
-DEV_DIR := DevelopersGuide
-DEV_NAME := R2U2_Developers_Guide
+# You can set these variables from the command line, and also
+# from the environment for the first two.
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+SOURCEDIR     = .
+COLLECTIONDIR = _collections
+DOXYGENDIR	  = _doxygen
+APIDIR	      = _api
+BUILDDIR      = _build
 
-API_DIR := APIGuide
-API_NAME := R2U2_API_Guide
+# Put it first so that "make" without argument is like "make help".
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-all: user dev api
+.PHONY: help clean Makefile
 
-user:
-	cd $(USER_DIR) && latexmk -jobname=$(USER_NAME) -pdf main.tex
-	cd $(USER_DIR) && latexmk -jobname=$(USER_NAME) -c
+clean: ## Remove all build artifacts
+	@echo CLEAN $(BUILDDIR) $(COLLECTIONDIR) $(DOXYGENDIR) $(APIDIR)
+	@rm -rf $(BUILDDIR) $(COLLECTIONDIR) $(DOXYGENDIR) $(APIDIR)
 
-dev:
-	cd $(DEV_DIR) && latexmk -jobname=$(DEV_NAME) -pdf main.tex
-	cd $(DEV_DIR) && latexmk -jobname=$(DEV_NAME) -c
+# Path rules
+$(COLLECTIONDIR):
+	mkdir -p $(COLLECTIONDIR)
 
-api:
-	$(MAKE) -C ../R2U2_C doc
-	$(MAKE) -C ../R2U2_C/doc/latex
-	cp ../R2U2_C/doc/latex/refman.pdf $(API_DIR)/$(API_NAME).pdf
+$(DOXYGENDIR):
+	mkdir -p $(DOXYGENDIR)
 
-clean:
-	cd $(USER_DIR) && latexmk -jobname=$(USER_NAME) -c
-	rm $(USER_DIR)/$(USER_NAME).pdf
-	cd $(DEV_DIR) && latexmk -jobname=$(DEV_NAME) -c
-	rm $(DEV_DIR)/$(DEV_NAME).pdf
-	$(MAKE) -C ../R2U2_C/doc/latex clean
-	rm $(API_DIR)/$(API_NAME).pdf
+$(APIDIR):
+	mkdir -p $(APIDIR)
+
+# Catch-all target: route all unknown targets to Sphinx using the new
+# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
+%: Makefile | $(COLLECTIONDIR) $(DOXYGENDIR) $(APIDIR)
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

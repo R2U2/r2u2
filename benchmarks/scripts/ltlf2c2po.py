@@ -1,5 +1,5 @@
 """
-Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifact.tar.xz) to C2PO input. Recurses thru argument directory, turns files with '.smv.ltlf' extensions to ones with '.mltl' extensions suitable as input to C2PO and generates CSV headers.
+Used to adapt MLTL-sat artifact (https://temporallogic.org/research/CAV19/artifact.tar.xz) to C2PO input. Recurses thru argument directory, turns files with '.smv.ltlf' extensions to ones with '.mltl' extensions suitable as input to C2PO.
 
 usage:python ltlf2mltl.py path/to/dir mission-time
 """
@@ -13,7 +13,6 @@ from pathlib import Path
 
 CURDIR = Path(os.getcwd())
 MLTLDIR = CURDIR / "mltl"
-CSVDIR = CURDIR / "trace"
 
 files: List[Path] = []
 for f in glob(sys.argv[1]+"/**", recursive=True):
@@ -51,12 +50,4 @@ for file in files:
 
         f.write("FTSPEC\n\t")
         f.write(mltl + ";")
-        
-    with open(CSVDIR / new_file.with_suffix(".csv").name, "w") as f:
-        f.write("# ")
-        f.write(",".join(props))
-        f.write("\n")
-        # for i in range(0,int(sys.argv[2])):
-        #     row = ",".join([str(random.randint(0,1)) for r in props])
-        #     f.write(row + "\n")
 

@@ -3,31 +3,19 @@
 #include "operations.h"
 #include "compare.h"
 
-
-// #include <stdio.h>
-// #include <stdint.h>
-// #include <stdbool.h>
-// #include <float.h>
+#include <math.h>
 
 #include "engines/mltl/mltl.h"
 
 #if R2U2_AT_EXTRA_FILTERS
-#include "extra_filters/filter_abs_diff_angle.h"
-#include "extra_filters/filter_rate.h"
 #include "extra_filters/filter_movavg.h"
-#endif
-
-#if R2U2_AT_Signal_Sets
-#include "signal_set_filters/filter_exactly_one_of.h"
-#include "signal_set_filters/filter_none_of.h"
-#include "signal_set_filters/filter_all_of.h"
 #endif
 
 // #if R2U2_AT_EXTRA_FILTERS
 r2u2_status_t op_abs_diff_angle(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     double signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    r2u2_float diff_angle = (r2u2_float) abs_diff_angle(signal, instr->filter_arg.d);
+    r2u2_float diff_angle = fabs((180.0 - fmod((fabs((signal - instr->filter_arg.d)) + 180.0), 360.0)));
 
     R2U2_DEBUG_PRINT("\tabs_diff_angle(s%d, %lf) = %lf\n", instr->sig_addr, instr->filter_arg.d, diff_angle);
 
@@ -72,7 +60,7 @@ r2u2_status_t op_movavg(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
 r2u2_status_t op_rate(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) {
     r2u2_float signal;
     sscanf((*(monitor->signal_vector))[instr->sig_addr], "%lf", &signal);
-    r2u2_float rate = filter_rate_update_data(signal, &((*(monitor->at_aux_buffer))[instr->aux_addr].prev));
+    r2u2_float rate = signal - (*(monitor->at_aux_buffer))[instr->aux_addr].prev;
 
     R2U2_DEBUG_PRINT("\trate(s%d) = %lf\n", instr->sig_addr, rate);
 
@@ -244,13 +232,18 @@ r2u2_status_t op_formula(r2u2_monitor_t *monitor, r2u2_at_instruction_t *instr) 
 
   if (mltl_inst->opcode & 0b10000) {
     // FT: Read SCQ
-    r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
-    R2U2_DEBUG_PRINT("\t\tReading from FT SCQ <%p> ", (void*)scq->queue);
-    r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
-    R2U2_DEBUG_PRINT("slot %d ", rd_ptr);
-    r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
-    R2U2_DEBUG_PRINT("= (%d, %d)\n", res.time, res.truth);
-    formula_val = (res.time != r2u2_infinity) ? res.truth : false;
+    // TODO(bckempa): Was this even correct? It doesn't maintain a read pointer....
+    // r2u2_scq_t *scq = &(((r2u2_scq_t*)(*(monitor->future_time_queue_mem)))[mltl_inst->memory_reference]);
+    // R2U2_DEBUG_PRINT("\t\tReading from FT SCQ <%p> ", (void*)scq->queue);
+    // r2u2_time rd_ptr = (scq->wr_ptr == 0) ? scq->length-1 : scq->wr_ptr-1;
+    // R2U2_DEBUG_PRINT("slot %d ", rd_ptr);
+    // r2u2_verdict res = (scq->queue)[-((ptrdiff_t)rd_ptr)];
+    // R2U2_DEBUG_PRINT("= (%d, %d)\n", res.time, res.truth);
+    // formula_val = (res.time != r2u2_infinity) ? res.truth : false;
+
+    // TODO(bckempa): Add DUO Queue read for arbitrary data flow
+    return R2U2_INVALID_INST;
+
   } else {
     // FT: Read from vector
     formula_val = (*(monitor->past_time_result_buffer[0]))[mltl_inst->memory_reference];

@@ -76,6 +76,10 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
             monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
             break;
           }
+          default:{
+            R2U2_DEBUG_PRINT("Warning: Bad Progress State\n");
+            break;
+          }
         }
 
         return R2U2_OK; // Early return to keep program counter at 0
@@ -106,10 +110,16 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
         break;
       }
       case R2U2_ENG_BZ: {
-        error_cond = r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
+        // Only process BZ once per timestep
+        if (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP) {
+          error_cond = r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
+        } else {
+          error_cond = R2U2_OK;
+        }
         break;
       }
       default: {
+          R2U2_DEBUG_PRINT("Warning: Bad Engine Type\n");
           return R2U2_ERR_OTHER;
       }
     }

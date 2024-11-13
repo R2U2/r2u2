@@ -286,6 +286,17 @@ test/results
 *.pickle
 pickle/
 venv/
+.venv/
+
+__*
+
+# dependencies
+egg/
+egglog/
+
+
+# Generated documentation files
+docs/_*
 
 # python virtual environment
 r2u2env/

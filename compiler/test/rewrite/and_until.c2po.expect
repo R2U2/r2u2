@@ -1,18 +1,14 @@
-BZ b0  iload  1 0
-BZ b1  iload  2 0
-BZ b2  iload  0 0
-TL n0  load   a0
-TL n1  load   a1
+TL n0  load   a1
+TL n1  load   a2
 TL n2  and    n0 n1
-TL n3  load   a2
+TL n3  load   a0
 TL n4  until  n2 n3
 TL n5  return n4 0
-CG TL SCQ n0  (0, 3)
-CG TL SCQ n1  (3, 6)
-CG TL SCQ n2  (6, 9)
-CG TL SCQ n3  (9, 12)
-CG TL SCQ n4  (12, 15)
-CG TL LB  n4  2
-CG TL UB  n4  8
-CG TL SCQ n5  (15, 16)
+CG TL DUOQ q0 |1|
+CG TL DUOQ q1 |1|
+CG TL DUOQ q2 |1|
+CG TL DUOQ q3 |1|
+CG TL DUOQ q4 |5|
+CG TL TEMP q4 [2, 8]
+CG TL DUOQ q5 |1|
 F __f0__ 0

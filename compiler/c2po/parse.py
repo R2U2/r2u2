@@ -18,7 +18,7 @@ class C2POLexer(sly.Lexer):
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, #ARITH_POW, ARITH_SQRT, ARITH_PM,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
                ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
@@ -59,11 +59,10 @@ class C2POLexer(sly.Lexer):
     ARITH_MUL   = r"\*|•|⋅"
     ARITH_DIV   = r"/|÷"
     ARITH_MOD   = r"%"
-    # ARITH_POW   = r"\*\*"
-    # ARITH_SQRT  = r"√"
     # ARITH_PM    = r"\+/-|±"
 
     # Others
+    RATE = r'rate'
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
@@ -91,6 +90,9 @@ class C2POLexer(sly.Lexer):
     SYMBOL["forexactly"] = KW_FOREXACTLY
     SYMBOL["foratleast"] = KW_FORATLEAST
     SYMBOL["foratmost"]  = KW_FORATMOST
+    SYMBOL["pow"] = ARITH_POW
+    SYMBOL["sqrt"] = ARITH_SQRT
+    SYMBOL["abs"] = ARITH_ABS
     SYMBOL["xor"] = LOG_XOR
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
@@ -112,7 +114,7 @@ class C2POLexer(sly.Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, self.lineno))
+        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, self.lineno))
         self.index += 1
 
 
@@ -132,9 +134,9 @@ class C2POParser(sly.Parser):
         ("left", REL_GT, REL_LT, REL_GTE, REL_LTE),
         ("left", BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ("left", ARITH_ADD, ARITH_SUB),
-        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD),
+        ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT)
+        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -149,13 +151,11 @@ class C2POParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(f"Syntax error, unexpected token='{token.value}'", 
-                      MODULE_CODE, 
+            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(f"Syntax error, token is 'None' (EOF)",
-                      MODULE_CODE, 
+            log.error(MODULE_CODE, f"Syntax error, token is 'None' (EOF)",
                       log.FileLocation(self.filename, lineno)
             )
 
@@ -225,6 +225,9 @@ class C2POParser(sly.Parser):
             signal_decl = cpt.VariableDeclaration(ln, variables, type)
             signal_declarations.append(signal_decl)
 
+            if isinstance(type, types.ArrayType):
+                continue
+
             for var in variables:
                 self.literals[var] = cpt.Signal
 
@@ -262,15 +265,23 @@ class C2POParser(sly.Parser):
         else:
             return types.StructType(p[0])
     
-    # Parameterized type
-    @_("SYMBOL REL_LT type REL_GT")
+    # Array type
+    @_("type LBRACK RBRACK")
     def type(self, p):
-        if p[0] == "set":
-            return types.SetType(p[2])
-
-        log.error(f"Type '{p[0]}' not recognized", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
-        self.status = False
-        return types.NoType()
+        return types.ArrayType(p[0])
+    
+    # Array type
+    @_("type LBRACK NUMERAL RBRACK")
+    def type(self, p):
+        size = int(p[2])
+        if size < 0:
+            log.error(
+                MODULE_CODE, 
+                f"Array sizes must be greater than zero (found '{size}')", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
+        return types.ArrayType(p[0], size=size)
 
     @_("KW_DEFINE definition definition_list")
     def define_section(self, p):
@@ -363,15 +374,15 @@ class C2POParser(sly.Parser):
     def expr_list(self, p):
         return []
 
-    # Set expression
+    # Array expression
     @_("LBRACE expr expr_list RBRACE")
     def expr(self, p):
-        return cpt.SetExpression(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
+        return cpt.ArrayExpression(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
 
-    # Empty set expression
+    # Empty array expression
     @_("LBRACE RBRACE")
     def expr(self, p):
-        return cpt.SetExpression(ln, [])
+        return cpt.ArrayExpression(ln, [])
 
     # Parameterized set aggregation expression
     @_("KW_FOREXACTLY LPAREN SYMBOL COLON expr COMMA expr RPAREN LPAREN expr RPAREN")
@@ -403,8 +414,7 @@ class C2POParser(sly.Parser):
     # Function/struct constructor expression nonempty arguments
     @_("SYMBOL LPAREN expr expr_list RPAREN")
     def expr(self, p):
-        p[3].append(p[2])
-        p[3].reverse()
+        p[3].insert(0, p[2])
         return cpt.FunctionCall(log.FileLocation(self.filename, p.lineno), p[0], p[3])
 
     # Function/struct constructor expression empty arguments
@@ -416,6 +426,11 @@ class C2POParser(sly.Parser):
     @_("expr DOT SYMBOL")
     def expr(self, p):
         return cpt.StructAccess(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+
+    # Array member access
+    @_("expr LBRACK NUMERAL RBRACK")
+    def expr(self, p):
+        return cpt.ArrayIndex(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
 
     # Unary expressions
     @_("LOG_NEG expr")
@@ -429,6 +444,22 @@ class C2POParser(sly.Parser):
     @_("ARITH_SUB expr %prec UNARY_ARITH_SUB")
     def expr(self, p):
         return cpt.Operator.ArithmeticNegate(log.FileLocation(self.filename, p.lineno), p[1])
+    
+    @_("ARITH_SQRT LPAREN expr RPAREN")
+    def expr(self, p):
+        return cpt.Operator.ArithmeticSqrt(log.FileLocation(self.filename, p.lineno), p[2])
+    
+    @_("ARITH_ABS LPAREN expr RPAREN")
+    def expr(self, p):
+        return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[2])
+    
+    @_("expr")
+    def rate(self, p):
+        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[0])
+
+    @_("RATE LPAREN rate RPAREN")
+    def expr(self, p):
+        return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
 
     # Binary expressions
     @_("expr LOG_XOR expr")
@@ -514,6 +545,10 @@ class C2POParser(sly.Parser):
     @_("expr ARITH_MOD expr")
     def expr(self, p):
         return cpt.Operator.ArithmeticModulo(log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("expr ARITH_POW expr")
+    def expr(self, p):
+        return cpt.Operator.ArithmeticPower(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Unary temporal expressions
     @_("TL_GLOBAL interval expr")
@@ -592,19 +627,27 @@ class C2POParser(sly.Parser):
 
     @_("NUMERAL")
     def bound(self, p):
-        return int(p[0])
+        num = int(p[0])
+        if int(p[0]) < 0:
+            log.error(
+                MODULE_CODE, 
+                f"Interval bounds must be greater than zero (found '{num}')", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
+        return num
 
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
 
 
 def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(f"Parsing {input_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
 
     with open(input_path, "r") as f:
         contents = f.read()
@@ -669,7 +712,7 @@ class MLTLLexer(sly.Lexer):
         self.filename = filename
 
     def error(self, t):
-        log.error(f"Illegal character '%s' {t.value[0]}", MODULE_CODE, log.FileLocation(self.filename, t.lineno))
+        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, t.lineno))
         self.index += 1
 
 
@@ -700,14 +743,12 @@ class MLTLParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(f"Syntax error, unexpected token='{token.value}'", 
-                      MODULE_CODE, 
+            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(f"Syntax error, token is 'None'"
+            log.error(MODULE_CODE, f"Syntax error, token is 'None'"
                       f"\n\tDid you forget to end the last formula with a newline?", 
-                      MODULE_CODE, 
                       log.FileLocation(self.filename, lineno)
             )
 
@@ -771,7 +812,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Global(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -780,7 +821,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Future(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -789,7 +830,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Historical(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -798,7 +839,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Once(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -808,7 +849,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Until(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -817,7 +858,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Release(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -826,7 +867,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(f"Mixing past and future time formula not allowed.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -866,14 +907,14 @@ class MLTLParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", MODULE_CODE, log.FileLocation(self.filename, p.lineno))
+            log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
 
 
 def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(f"Parsing {input_path}", MODULE_CODE)
+    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
     
     with open(input_path, "r") as f:
         contents = f.read()
