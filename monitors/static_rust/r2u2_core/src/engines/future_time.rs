@@ -10,6 +10,11 @@ use cortex_m_semihosting::hprintln;
 #[cfg(feature = "debug_print_std")]
 use libc_print::std_name::println;
 
+use vstd::prelude::*;
+
+verus! {
+ 
+#[verifier::external]
 fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> (bool, r2u2_verdict) {
     let operand_type = if op_num == 0 {instr.op1_type} else {instr.op2_type};
     let value = if op_num == 0 {instr.op1_value} else {instr.op2_value};
@@ -41,12 +46,18 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
     }
 }
 
+#[verifier::external]
 fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verdict){
     let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
     
     queue_ctrl.next_time = verdict.time + 1;
     debug_print!("Desired time {}", queue_ctrl.next_time);
 
+    simple_push_result(instr, monitor, verdict);
+}
+
+#[verifier::external]
+fn simple_push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verdict){
     if monitor.progress == MonitorProgressState::ReloopNoProgress {
         monitor.progress = MonitorProgressState::ReloopWithProgress;
     }
@@ -54,6 +65,7 @@ fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verd
     scq_write(monitor, instr.memory_reference, verdict);
 }
 
+#[verifier::external]
 pub fn mltl_ft_update(monitor: &mut Monitor){
     let instr = monitor.mltl_instruction_table[monitor.mltl_program_count.curr_program_count];
     match instr.opcode {
@@ -122,42 +134,9 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             debug_print!("FT UNTIL");
             let (ready0, op0) = check_operand_data(instr, monitor, 0);
             let (ready1, op1) = check_operand_data(instr, monitor, 1);
-            let mut result = r2u2_verdict::default();
-            if ready0 && ready1 {
-                let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
-                // We need to see every timesetp as an (op0, op1) pair
-                let tau = min!(op0.time, op1.time);
-                queue_ctrl.next_time = tau + 1;
-                
-                if op1.truth {
-                    queue_ctrl.temporal_block.edge = op1.time;
-                }
-                debug_print!("Time since right operand high: {}", tau - queue_ctrl.temporal_block.edge);
-
-                if op1.truth && tau >= queue_ctrl.temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound{
-                    debug_print!("Right Op True");
-                    result.time = tau - queue_ctrl.temporal_block.lower_bound;
-                    result.truth = true;
-                } else if !op0.truth && tau >= queue_ctrl.temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound{
-                    debug_print!("Left Op False");
-                    result.time = tau - queue_ctrl.temporal_block.lower_bound;
-                    result.truth = false;
-                } else if tau >= queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound + queue_ctrl.temporal_block.edge &&
-                tau >= queue_ctrl.temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound {
-                    debug_print!("Time elapsed");
-                    result.time = tau - queue_ctrl.temporal_block.upper_bound;
-                    result.truth = false;
-                } else {
-                    debug_print!("Waiting");
-                    return;
-                }
-
-                if result.time > queue_ctrl.temporal_block.previous.time ||
-                (result.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
-                    queue_ctrl.next_time = tau + 1;
-                    queue_ctrl.temporal_block.previous = r2u2_verdict{time: result.time, truth: true};
-                    push_result(instr, monitor, result);
-                }
+            match until_operator(ready0, op0, ready1, op1, &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
+                Some(result) => simple_push_result(instr, monitor, result),
+                None => (),
             }
         }
         MLTL_OP_FT_RELEASE => {
@@ -228,4 +207,112 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
     }
+}
+
+#[verifier(external_fn_specification)] // Verus doesn't support saturating_sub; therefore, have to provide specification for it
+pub fn ex_saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> (result: r2u2_time)
+    ensures
+        result == lhs - rhs || result == r2u2_time::MAX || result == r2u2_time::MIN,
+        (lhs - rhs > r2u2_time::MAX) ==> result == r2u2_time::MAX,
+        (lhs - rhs < r2u2_time::MIN) ==> result == r2u2_time::MIN,
+{
+    lhs.saturating_sub(rhs)
+}
+
+pub fn min(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
+    ensures
+        result == op0 || result == op1,
+        op0 <= op1 ==> result == op0,
+        op0 >= op1 ==> result == op1,
+{
+    if op0 < op1{
+        return op0;
+    } else {
+        return op1;
+    }
+}
+
+fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
+    requires 
+        old(queue_ctrl).temporal_block.lower_bound <= old(queue_ctrl).temporal_block.upper_bound,
+        old(queue_ctrl).temporal_block.edge <= value_op1.time,
+        old(queue_ctrl).temporal_block.previous.time <= value_op0.time,
+        old(queue_ctrl).temporal_block.previous.time <= value_op1.time,
+        value_op0.time >= old(queue_ctrl).next_time,
+        value_op1.time >= old(queue_ctrl).next_time,
+    ensures
+        (!ready_op1) ==> !result.is_some(),
+        (result.is_some() && value_op1.truth) ==> (queue_ctrl.temporal_block.edge == value_op1.time),
+        result.is_some() ==> (result.unwrap().time >= queue_ctrl.temporal_block.previous.time),
+        (ready_op1 && value_op1.truth && result.is_some()) ==> result.unwrap().truth,
+        (ready_op0 && !value_op0.truth && !value_op1.truth && result.is_some()) ==> !result.unwrap().truth,
+        result.is_some() ==> (result.unwrap().time == value_op0.time - queue_ctrl.temporal_block.lower_bound || 
+            result.unwrap().time == value_op1.time - queue_ctrl.temporal_block.lower_bound || 
+            result.unwrap().time == value_op0.time - queue_ctrl.temporal_block.upper_bound ||
+            result.unwrap().time == value_op1.time - queue_ctrl.temporal_block.upper_bound ||
+            result.unwrap().time == r2u2_time::MIN || result.unwrap().time == r2u2_time::MAX),
+        //To-Do: Add more post conditions
+{
+    let mut verdict = r2u2_verdict::default();
+    if ready_op1 { 
+        // If op1 is true at lb
+        if value_op1.truth && value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.lower_bound) {
+            debug_print!("Right Op True");
+            queue_ctrl.temporal_block.edge = value_op1.time;
+            verdict.time = value_op1.time - queue_ctrl.temporal_block.lower_bound;
+            verdict.truth = true;
+            
+            if verdict.time > queue_ctrl.temporal_block.previous.time ||
+            (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                queue_ctrl.temporal_block.previous = verdict;
+                queue_ctrl.next_time = value_op1.time.saturating_add(1);
+                return Some(verdict);
+            }
+        }
+    }
+    if ready_op0 && ready_op1 {
+        // We need to see every timestep as an (op0, op1) pair
+        let tau = min(value_op0.time, value_op1.time);
+        queue_ctrl.next_time = tau.saturating_add(1);
+        
+        if value_op1.truth {
+            queue_ctrl.temporal_block.edge = value_op1.time;
+        }
+        debug_print!("Time since right operand high: {}", tau - queue_ctrl.temporal_block.edge);
+
+        if !value_op0.truth && tau >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.lower_bound){
+            debug_print!("Left Op False");
+            verdict.time = tau - queue_ctrl.temporal_block.lower_bound;
+            verdict.truth = false;
+
+            if verdict.time > queue_ctrl.temporal_block.previous.time ||
+            (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                queue_ctrl.next_time = tau.saturating_add(1);
+                queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
+                return Some(verdict);
+            }
+        }
+
+    } 
+    if ready_op1 { 
+        // if op1 is false the entire interval [lb, ub]
+        if !value_op1.truth && 
+        value_op1.time >= (queue_ctrl.temporal_block.upper_bound - 
+                queue_ctrl.temporal_block.lower_bound).saturating_add(queue_ctrl.temporal_block.edge) &&
+        value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.upper_bound){
+            debug_print!("Time elapsed");
+            verdict.time = value_op1.time - queue_ctrl.temporal_block.upper_bound;
+            verdict.truth = false;
+
+            if verdict.time > queue_ctrl.temporal_block.previous.time ||
+            (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                queue_ctrl.next_time = value_op1.time.saturating_add(1);
+                queue_ctrl.temporal_block.previous = verdict;
+                return Some(verdict);
+            }
+        }
+    }
+    debug_print!("Waiting");
+    return None;
+}
 }
