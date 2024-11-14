@@ -610,7 +610,7 @@ fn integer_mod(op0: r2u2_int, op1: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
     }
 }
 
-#[verifier::external] // Verus doesn't support mod functionality 
+#[verifier::external] // Verus doesn't support mod functionality (i.e., op0 % 2)
 #[inline(always)]
 fn integer_power(op0: r2u2_int, op1: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
 {
@@ -659,8 +659,8 @@ fn integer_absolute_value(op: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
     ensures
         result.0 >= 0,
         result.0 == op || result.0 == r2u2_int::MAX || result.0 == -1 * op,
-        (-1 * op > r2u2_int::MAX || -1 * op < r2u2_int::MIN) ==> result.1 == true,
-        (-1 * op <= r2u2_int::MAX && -1 * op >= r2u2_int::MIN) ==> result.1 == false,
+        (-1 * op > r2u2_int::MAX) ==> result.1 == true,
+        (-1 * op <= r2u2_int::MAX) ==> result.1 == false,
 {
     if op < 0 {
         return integer_negative(op);

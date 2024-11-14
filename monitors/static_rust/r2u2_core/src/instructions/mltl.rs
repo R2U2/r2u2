@@ -1,9 +1,11 @@
 use byteorder::{LittleEndian, ByteOrder};
 
 use crate::memory::{scq::SCQCtrlBlock, monitor::Monitor};
+use crate::internals::debug;
+    
 // MLTL Instruction Opcodes
 pub const MLTL_OP_FT_NOP: u8 = 0b11111;
-pub const MLTL_OP_FT_CONFIGURE: u8 = 0b11110;
+// pub const MLTL_OP_FT_CONFIGURE: u8 = 0b11110;
 pub const MLTL_OP_FT_LOAD: u8 = 0b11101;
 pub const MLTL_OP_FT_RETURN: u8 = 0b11100;
 
@@ -22,11 +24,8 @@ pub const MLTL_OP_FT_NOR: u8 = 0b10010;
 pub const MLTL_OP_FT_XOR: u8 = 0b10001;
 pub const MLTL_OP_FT_EQUIVALENT: u8 = 0b10000;
 
-pub const MLTL_OP_PT_NOP: u8 = 0b01111;
-pub const MLTL_OP_PT_CONFIGURE: u8 = 0b01110;
-pub const MLTL_OP_PT_LOAD: u8 = 0b01101;
-pub const MLTL_OP_PT_AND: u8 = 0b00110;
 // pub const MLTL_OP_PT_NOP: u8 = 0b01111;
+// pub const MLTL_OP_PT_CONFIGURE: u8 = 0b01110;
 // pub const MLTL_OP_PT_LOAD: u8 = 0b01101;
 // pub const MLTL_OP_PT_RETURN: u8 = 0b01100;
 
@@ -35,6 +34,7 @@ pub const MLTL_OP_PT_AND: u8 = 0b00110;
 // pub const MLTL_OP_PT_SINCE: u8 = 0b01001;
 // pub const MLTL_OP_PT_LOCK: u8 = 0b01000;
 
+// pub const MLTL_OP_PT_NOT: u8 = 0b00111;
 // pub const MLTL_OP_PT_AND: u8 = 0b00110;
 // pub const MLTL_OP_PT_OR: u8 = 0b00101;
 // pub const MLTL_OP_PT_IMPLIES: u8 = 0b00100;

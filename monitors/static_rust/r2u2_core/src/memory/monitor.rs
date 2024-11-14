@@ -58,10 +58,11 @@ impl Default for Monitor{
 
 impl Monitor{
     pub fn reset(&mut self) { // To-Do
-        self.time_stamp = 0;
-        self.progress = MonitorProgressState::FirstLoop;
-        self.mltl_program_count.curr_program_count = 0;
-        self.overflow_error = false;
+        // self.time_stamp = 0;
+        // self.progress = MonitorProgressState::FirstLoop;
+        // self.mltl_program_count.curr_program_count = 0;
+        // self.overflow_error = false;
+        *self = Monitor::default();
     }
 }
 
