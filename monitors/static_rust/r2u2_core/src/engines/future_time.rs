@@ -236,10 +236,6 @@ pub fn min(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
 fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
     requires 
         old(queue_ctrl).temporal_block.lower_bound <= old(queue_ctrl).temporal_block.upper_bound,
-        ready_op0 ==> value_op0.time >= old(queue_ctrl).next_time,
-        ready_op1 ==> value_op1.time >= old(queue_ctrl).next_time,
-        value_op0.time <= r2u2_time::MAX,
-        value_op1.time <= r2u2_time::MIN,
     ensures
         // can't produce a result without knowing op1
         (!ready_op1) ==> !result.is_some(),
@@ -256,9 +252,6 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
         result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
         (result.unwrap().time == 0 && !old(queue_ctrl).temporal_block.previous.truth)),
         result.is_some() ==> queue_ctrl.temporal_block.previous.truth,
-        
-        // queue ctrl next time (i.e., the next desired time stamp for Until) never decreases
-        queue_ctrl.next_time >= old(queue_ctrl).next_time,
         
         // if op1 is true, then the result is true
         (ready_op1 && value_op1.truth && result.is_some()) ==> result.unwrap().truth,
@@ -321,11 +314,14 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
 
         // not enough information to produce result
         (value_op0.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound &&
-            value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound) ==> 
+            value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound &&
+            old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.lower_bound <= r2u2_time::MAX) ==> 
             !result.is_some(),
         (!value_op1.truth && 
-            (value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound ||
-            value_op1.time < old(queue_ctrl).temporal_block.edge + queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound ) &&
+            ((value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ||
+            (value_op1.time < old(queue_ctrl).temporal_block.edge + queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound &&
+                old(queue_ctrl).temporal_block.edge + queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound <= r2u2_int::MAX)) &&
             value_op0.truth) ==> !result.is_some(),
         
 {
