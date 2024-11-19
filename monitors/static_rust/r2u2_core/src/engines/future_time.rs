@@ -15,20 +15,22 @@ use vstd::prelude::*;
 verus! {
  
 #[verifier::external]
-fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> (bool, r2u2_verdict) {
+fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> Option<r2u2_verdict> {
     let operand_type = if op_num == 0 {instr.op1_type} else {instr.op2_type};
     let value = if op_num == 0 {instr.op1_value} else {instr.op2_value};
 
     match operand_type{
         MLTL_OP_TYPE_ATOMIC => {
             // Only load in atomics on first loop of time step
-            return(monitor.progress == MonitorProgressState::FirstLoop, 
-                r2u2_verdict{time: monitor.time_stamp, truth: monitor.atomic_buffer[value as usize]});
+            if monitor.progress == MonitorProgressState::FirstLoop {
+                return Some(r2u2_verdict{time: monitor.time_stamp, truth: monitor.atomic_buffer[value as usize]});
+            }
         }
         MLTL_OP_TYPE_DIRECT => {
             // Only directly load in T or F on first loop of time step
-            return(monitor.progress == MonitorProgressState::FirstLoop, 
-                r2u2_verdict{time: monitor.time_stamp, truth: value != 0});
+            if monitor.progress == MonitorProgressState::FirstLoop {
+                return Some(r2u2_verdict{time: monitor.time_stamp, truth: value != 0});
+            }
         }
         MLTL_OP_TYPE_SUBFORMULA => {
             // Handled by the SCQ check function, just need to pass it the appropriate arguments
@@ -37,13 +39,14 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
         }
         MLTL_OP_TYPE_NOT_SET => {
             // Error
-            return (false, r2u2_verdict::default());
+            return None;
         }
         _ => {
             // Error
-            return (false, r2u2_verdict::default());
+            return None;
         }
     }
+    return None;
 }
 
 #[verifier::external]
@@ -75,18 +78,18 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
         }
         MLTL_OP_FT_LOAD => {
             debug_print!("FT LOAD");
-            let (ready, verdict) = check_operand_data(instr, monitor, 0);
-            if ready {
-                push_result(instr, monitor, verdict);
+            let verdict = check_operand_data(instr, monitor, 0);
+            if verdict.is_some() {
+                push_result(instr, monitor, verdict.unwrap());
             }
         }
         MLTL_OP_FT_RETURN => {
             debug_print!("FT RETURN");
-            let (ready, verdict) = check_operand_data(instr, monitor, 0);
-            if ready {
-                push_result(instr, monitor, verdict);
-                debug_print!("{}:{},{}", instr.op2_value, verdict.time, if verdict.truth {"T"} else {"F"});
-                monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, verdict: verdict};
+            let verdict = check_operand_data(instr, monitor, 0);
+            if verdict.is_some() {
+                push_result(instr, monitor, verdict.unwrap());
+                debug_print!("{}:{},{}", instr.op2_value, verdict.unwrap().time, if verdict.unwrap().truth {"T"} else {"F"});
+                monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, verdict: verdict.unwrap()};
                 monitor.output_buffer_idx += 1;
             }
         }
@@ -95,8 +98,9 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
         }
         MLTL_OP_FT_GLOBALLY => {
             debug_print!("FT GLOBAL");
-            let (ready, op) = check_operand_data(instr, monitor, 0);
-            if ready {
+            let op = check_operand_data(instr, monitor, 0);
+            if op.is_some() {
+                let op = op.unwrap();
                 let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
                 // op compaction aware rising edge detection
                 // To avoid reserving a null, sentinal, or "infinity" timestamp, we
@@ -133,9 +137,9 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
         }
         MLTL_OP_FT_UNTIL => {
             debug_print!("FT UNTIL");
-            let (ready0, op0) = check_operand_data(instr, monitor, 0);
-            let (ready1, op1) = check_operand_data(instr, monitor, 1);
-            match until_operator(ready0, op0, ready1, op1, &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
+            let op0 = check_operand_data(instr, monitor, 0);
+            let op1 = check_operand_data(instr, monitor, 1);
+            match until_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
                 Some(result) => simple_push_result(instr, monitor, result),
                 None => (),
             }
@@ -145,16 +149,18 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
         }
         MLTL_OP_FT_NOT => {
             debug_print!("FT NOT");
-            let (ready, op) = check_operand_data(instr, monitor, 0);
-            if ready {
-                push_result(instr, monitor, r2u2_verdict{time: op.time, truth: !op.truth});
+            let op = check_operand_data(instr, monitor, 0);
+            if op.is_some() {
+                push_result(instr, monitor, r2u2_verdict{time: op.unwrap().time, truth: !op.unwrap().truth});
             }
         }
         MLTL_OP_FT_AND => {
             debug_print!("FT AND");
-            let (ready0, op0) = check_operand_data(instr, monitor, 0);
-            let (ready1, op1) = check_operand_data(instr, monitor, 1);
-            if ready0 && ready1 {
+            let op0 = check_operand_data(instr, monitor, 0);
+            let op1 = check_operand_data(instr, monitor, 1);
+            if op0.is_some() && op1.is_some() {
+                let op0 = op0.unwrap();
+                let op1 = op1.unwrap();
                 debug_print!("Left and Right Ready!");
                 if op0.truth && op1.truth{
                     debug_print!("Both True");
@@ -173,13 +179,15 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
                     push_result(instr, monitor, r2u2_verdict{time: op0.time, truth: false});
                 }
             }
-            else if ready0 {
+            else if op0.is_some() {
+                let op0 = op0.unwrap();
                 debug_print!("Only Left Ready: ({},{})", op0.truth, op0.time);
                 if !op0.truth{
                     push_result(instr, monitor, r2u2_verdict{time: op0.time, truth: false});
                 }
             }
-            else if ready1{
+            else if op1.is_some(){
+                let op1 = op1.unwrap();
                 debug_print!("Only Right Ready: ({},{})", op1.truth, op1.time);
                 if !op1.truth{
                     push_result(instr, monitor, r2u2_verdict{time: op1.time, truth: false});
@@ -309,7 +317,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             (!result.unwrap().truth && result.unwrap().time == value_op1.time - queue_ctrl.temporal_block.upper_bound &&
             (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
         ((ready_op0 ==> value_op0.truth) && ready_op1 && !value_op1.truth &&
-            value_op1.time >= (queue_ctrl.temporal_block.upper_bound-queue_ctrl.temporal_block.lower_bound+queue_ctrl.temporal_block.edge) &&
+            value_op1.time > (queue_ctrl.temporal_block.upper_bound-queue_ctrl.temporal_block.lower_bound+queue_ctrl.temporal_block.edge) &&
             value_op1.time == old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound &&
             value_op1.time - queue_ctrl.temporal_block.upper_bound == 0 && !old(queue_ctrl).temporal_block.previous.truth) ==>
             (!result.unwrap().truth && result.unwrap().time == 0 && // Initial case where previous = 0 but no output was produced at timestamp 0 yet                  
@@ -374,7 +382,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     if ready_op1 { 
         // if op1 is false the entire interval [lb, ub], then false
         if !value_op1.truth && 
-        value_op1.time >= (queue_ctrl.temporal_block.upper_bound - 
+        value_op1.time > (queue_ctrl.temporal_block.upper_bound - 
                 queue_ctrl.temporal_block.lower_bound).saturating_add(queue_ctrl.temporal_block.edge) &&
         value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.upper_bound){
             debug_print!("Time elapsed");

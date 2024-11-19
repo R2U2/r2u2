@@ -140,7 +140,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
 
 #[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
 // To-Do: Double check implementation... (Maybe should pass by reference for all...? So as to not create copies of values)
-pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32, read_num: u8) -> (bool, r2u2_verdict){
+pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32, read_num: u8) -> Option<r2u2_verdict>{
     debug_print!("Reading:");
     print_scq(&monitor.queue_arena, child_queue_id);
     let child_queue_ctrl = monitor.queue_arena.control_blocks[child_queue_id as usize];
@@ -150,14 +150,14 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
     if monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].time == r2u2_infinity && *read == 0 {
         // Empty Queue
         debug_print!("Empty queue");
-        return (false, r2u2_verdict::default());
+        return None;
     }
 
     while {
         // Check if time pointed to is >= desired time
         if monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].time >= parent_queue_ctrl.next_time {
             debug_print!("New data found after scanning: ({}, {})", monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].truth, monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].time);
-            return (true, monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read]);
+            return Some(monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read]);
         }
 
         // Current slot is too old, step forward to check for new data
@@ -173,7 +173,7 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
 
     // No new data in queue
     debug_print!("No new data!");
-    return (false, r2u2_verdict::default());
+    return None;
 }
 
 }
