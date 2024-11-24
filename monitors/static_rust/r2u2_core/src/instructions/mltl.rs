@@ -106,6 +106,7 @@ pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut
         },
         MLTL_OP_TYPE_SUBFORMULA => {
             let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+            queue.next_time = instr.op1_value;
             queue.temporal_block.lower_bound = instr.op1_value;
             queue.temporal_block.upper_bound = instr.op2_value;
             queue.length = queue.length - 4; // Required to substract 4 to use same spec file as C version with DUOQs
