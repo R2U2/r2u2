@@ -12,8 +12,7 @@ If you would like to cite R2U2, please use our 2023 CAV paper:
 
 # Running R2U2
 
-To run your own specifications and inputs with R2U2, consult the README files
-included in r2u2/ and its sub-directories. As a brief overview:
+To run R2U2 over a simulated trace:
 
 1) Write a MLTL specification file as described by `compiler/README.md`
 
@@ -21,19 +20,16 @@ included in r2u2/ and its sub-directories. As a brief overview:
 
 3) Feed those files to the C2PO formula compiler:
         
-        python3 compiler/c2po.py --booleanizer --trace "path/to signals.csv" "path/to/spec.c2po" 
+        python3 compiler/c2po.py --trace path/to/trace.csv path/to/spec.c2po 
 
 4) Build R2U2 monitor (this only has to be done once, not every time you 
    change the spec):
     
-        pushd monitor/ && make clean all && popd
+        cd monitors/static && make clean all && cd ../../
 
 5) Run R2U2:
     
-        ./monitor/build/r2u2 "path/to/r2u2_spec.bin" "path/to/input.csv"
-
-5) Examine the output `R2U2.log` file, note that aggregated writes means some
-timestamps will appear to be "skipped" - this is normal.
+        ./monitors/static/build/r2u2 path/to/spec.bin path/to/trace.csv
 
 # Requirements 
 
@@ -75,12 +71,8 @@ http://127.0.0.1:8050/.
 
 # Support 
 
-If you believe you have found a case of unsound output from R2U2,
-please run the case in debug mode and provide the output to the authors for
-analysis: 
-    `pushd r2u2/monitor && make clean debug && popd`
-    `./r2u2/monitor/build/r2u2_debug "path/to/r2u2_spec.bin" \
-        "path/to/input.csv" 2>debug.log` 
+If you believe you have found a case of unsound output from R2U2, please run the case in debug mode
+and open an issue with the output for analysis: 
 
-The logs contain no identifying information, please ask the chairs to assist in
-passing along you anonymized feedback. Thank you.
+    cd monitors/static && make clean debug && cd ../../
+    ./monitors/static/build/r2u2_debug path/to/spec.bin path/to/trace.csv 2> debug.log
