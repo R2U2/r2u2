@@ -1,8 +1,8 @@
 
 # About
-The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a runtime verification
-framework designed to monitor safety- or mission-critical systems with
-constrained computational resources. 
+
+The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a runtime verification framework designed
+to monitor safety- or mission-critical systems with constrained computational resources. 
 
 ## Citing R2U2
 
@@ -14,9 +14,10 @@ If you would like to cite R2U2, please use our 2023 CAV paper:
 
 To run R2U2 over a simulated trace:
 
-1) Write a MLTL specification file as described by `compiler/README.md`
+1) Write a specification file as described by `compiler/README.md` (or using an example from
+   `examples/`).
 
-2) Write a CSV file with your signal inputs and a header naming them
+2) Write a CSV file with your signal inputs and a header naming them.
 
 3) Feed those files to the C2PO formula compiler:
         
@@ -25,11 +26,13 @@ To run R2U2 over a simulated trace:
 4) Build R2U2 monitor (this only has to be done once, not every time you 
    change the spec):
     
-        cd monitors/static && make clean all && cd ../../
+        cd monitors/c && make clean all && cd ../../
 
 5) Run R2U2:
     
-        ./monitors/static/build/r2u2 path/to/spec.bin path/to/trace.csv
+        ./monitors/c/build/r2u2 path/to/spec.bin path/to/trace.csv
+
+See `examples/run_examples.sh` for example uses.
 
 # Requirements 
 
@@ -38,41 +41,28 @@ The following dependencies are required to run R2U2 and C2PO:
 - C99 compiler 
 - Python 3.6 or greater
 
-The requirements for the GUI can be installed via `pip install -r GUI/requirements.txt`.
-
 # Example Cases
 
-Each of the following cases shows a minimal example of a feature discussed in
-the paper in the indicated section:
-- `agc`         Assume-Guarantee Contract: tri-state status 
-                              output (inactive, invalid, or verified)
-- `arb_dataflow`    Arbitrary Data-Flow: Feeding a temporal engine 
-                            results back to the atomic checker
-- `atomic_checker`  Atomic Checker: various signal processing examples
-- `cav`             CAV: The example from the paper showcasing a 
-                              realistic composition of the other features
-- `cse`             Common Subexpression Elimination: Removal of 
-                              redundant work from specification
-- `set_agg`          Set Aggregation: Specifications beyond binary 
-                              inputs
-- `sets`            Set Types: Use of parametrized typing on a 
-                              structure member
-- `simple`          Simple: A basic R2U2 V2 style specification in the 
-                            V3 input language
-- `struct`          Structure: Use of a structure to group variables
-
-Beyond these examples tailored to this paper, further examples can be found in
-the test subdirectories: `r2u2/test` and `r2u2/compiler/test`
-
-# Running the GUI
-
-Run the `GUI/run.py` script to start the web server then open a web browser and navigate to
-http://127.0.0.1:8050/.
+Examples can be found in the examples and test subdirectories: `examples/`, `test/`, and
+`compiler/test`.
 
 # Support 
 
 If you believe you have found a case of unsound output from R2U2, please run the case in debug mode
 and open an issue with the output for analysis: 
 
-    cd monitors/static && make clean debug && cd ../../
-    ./monitors/static/build/r2u2_debug path/to/spec.bin path/to/trace.csv 2> debug.log
+    cd monitors/c && make clean debug && cd ../../
+    ./monitors/c/build/r2u2_debug path/to/spec.bin path/to/trace.csv 2> debug.log
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
