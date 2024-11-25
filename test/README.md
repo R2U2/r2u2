@@ -12,7 +12,7 @@ where `path/to/c2po.py` is the relative or absolute path to the c2po.py script t
 
 An example command to run the regression test suite from the top-level `r2u2/` directory is as follows:
 ```bash
-python test/r2u2test.py compiler/c2po.py monitors/static/build/r2u2 regression
+python test/r2u2test.py compiler/c2po.py monitors/c/build/r2u2 regression
 ```
 assuming that the C version of the `r2u2` binary has been built. The test results can be seen in the `test/results` directory by default.
 

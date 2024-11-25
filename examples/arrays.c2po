@@ -1,5 +1,5 @@
 STRUCT
-    Test: { I: set<int>; };
+    Test: { I: int[]; };
 
 INPUT
     i0,i1,i2: int;

@@ -7,6 +7,3 @@ DEFINE
 FTSPEC
     foreach(b:{b0,b1,b2})(b);
     forsome(b:{b0,b1,b2})(b);
-    forexactlyn(b:{b0,b1,b2},n)(b);
-    foratleastn(b:{b0,b1,b2},n)(b);
-    foratmostn(b:{b0,b1,b2},n)(b);
