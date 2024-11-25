@@ -109,33 +109,21 @@ collections = {
 
     "r2u2_readme": {
         "driver": "copy_file",
-        "source": "../monitors/static/README.md",
+        "source": "../monitors/c/README.md",
         "target": "r2u2_readme.md"
     },
     'r2u2_docs': {
         'driver': 'copy_folder',
-        'source': '../monitors/static/docs/',
+        'source': '../monitors/c/docs/',
         # 'target': 'r2u2_docs/',
         'ignore': ['*.dat', '.exe'],
-    },
-
-    "gui_readme": {
-        "driver": "copy_file",
-        "source": "../GUI/README.md",
-        "target": "gui_readme.md"
     },
 
     "test_readme": {
         "driver": "copy_file",
         "source": "../test/README.md",
         "target": "test_readme.md"
-    },
-
-    "tools_readme": {
-        "driver": "copy_file",
-        "source": "../tools/README.md",
-        "target": "tools_readme.md"
-    },
+    }
 }
 
 # C/C++ API Documentation via doxygen/breath/exhale
