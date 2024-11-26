@@ -6,9 +6,9 @@ to monitor safety- or mission-critical systems with constrained computational re
 
 ## Citing R2U2
 
-If you would like to cite R2U2, please use our 2023 CAV paper: 
+If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23):
 
-*Johannsen, Chris, Jones, Phillip, Kempa, Brian, Rozier, Kristin Yvonne, & Zhang, Pei. (2023). R2U2 V3 Demonstration Artifact for the 35th International Conference on Computer Aided Verification (CAV'23). International Conference on Computer Aided Verification (CAV), Paris, France. Zenodo. https://doi.org/10.5281/zenodo.7889284*
+Johannsen, C., Jones, P., Kempa, B., Rozier, K.Y., Zhang, P. (2023). R2U2 Version 3.0: Re-Imagining a Toolchain for Specification, Resource Estimation, and Optimized Observer Generation for Runtime Verification in Hardware and Software. In: Enea, C., Lal, A. (eds) Computer Aided Verification. CAV 2023. Lecture Notes in Computer Science, vol 13966. Springer, Cham. https://doi.org/10.1007/978-3-031-37709-9_23
 
 # Running R2U2
 
