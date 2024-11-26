@@ -7,7 +7,7 @@ See below sections for the guide for each version of R2U2.
 ### Dependencies
 
 - Posix environment (Linux, MacOS, Etc.)
-- Python3 (version 3.8 or greater)
+- Python3 (version 3.6 or greater)
 - C99 std compiler (gcc or clang)
 - Make
 
@@ -15,9 +15,9 @@ See below sections for the guide for each version of R2U2.
 
 The C version of R2U2 is also called the "static" version, since it uses entirely static memory. To monitor a specification over a simulated trace:
 
-1. Compile R2U2 by running the `make` command in the `r2u2/monitors/static` directory:
+1. Compile R2U2 by running the `make` command in the `r2u2/monitors/c` directory:
 
-        cd monitors/static
+        cd monitors/c
         make
         cd ../../
 
@@ -60,14 +60,14 @@ The C version of R2U2 is also called the "static" version, since it uses entirel
 
 6. To run R2U2 over this simulated trace, run the command:
 
-        ./monitors/static/build/r2u2 spec.bin spec.csv
+        ./monitors/c/build/r2u2 spec.bin spec.csv
 
     - **Note**: If `spec.csv` is excluded from this command, then R2U2 looks to the command line for inputs, separated by commas. Time steps are separated by pressing `Enter`. To exit this input mode, send end-of-file (EOF), which can be done with `ctrl-d`.
 
     - **Memory bounds:** R2U2 is designed for use in embedded control environments (like flight software) without memory allocation; therefore, memory bounds are set at compile time based on the settings in *src/R2U2Config.h*. Some values that may require adjustment depending on the size of the formulas; please contact us if you have any issues with the default configuration.
 
-7. The output to R2U2 is printed to stdout and can be redirected into a file for analysis. For runs of R2U2 with more than one formula, it may be useful to split this output into multiple result files with one formula in each file. In the **tools/** directory, there is a bash script *split_verdicts.sh* which does this. To execute, run
+7. The output to R2U2 is printed to stdout and can be redirected into a file for analysis. For runs of R2U2 with more than one formula, it may be useful to split this output into multiple result files with one formula in each file. In the **test/** directory, there is a bash script *split_verdicts.sh* which does this. To execute, run
 
-    `./tools/split_verdicts [R2U2 log file]`.
+    `./test/split_verdicts [R2U2 log file]`.
 
     - **Note:** This script names formula files with the notation `[original file name]_formula\#.txt`, where \# is the corresponding formula number, indexed from 0.

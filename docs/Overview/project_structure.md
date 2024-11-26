@@ -22,25 +22,9 @@ examples
 : Examples of MLTL formulas highlighting various C2PO and R2U features
 
 
-GUI
-: A web interfaces for visualizing MLTL formula sets
-
-
-logs
-: Verified output of the provided examples
-
-
 monitors
-: Implementations of the R2U2 monitor, currently only static is supported
-
-
-run_examples.sh
-: Runs all examples and compares to the gold-standard logs
+: Implementations of the R2U2 monitor, currently only C is supported
 
 
 test
 : Integration regression testing of C2PO and R2U2 end-to-end
-
-
-tools
-: Small scripts for working with MLTL inputs and outputs
