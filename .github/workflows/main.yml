@@ -1,0 +1,45 @@
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+
+    - name: Install Z3
+      run: |
+        sudo apt update
+        sudo apt -y install z3
+      
+    - name: Build R2U2
+      run: |
+        cd monitors/c
+        make
+
+    - name: Test c2po
+      run: |
+        cd compiler/test
+        python3 test.py
+
+    - name: Test cav
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 cav
+
+    - name: Test long-trace
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 long_trace
+
+    - name: Test ft-subset
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 ft_subset
+
+    - name: Test ft-pt-test
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 regression
