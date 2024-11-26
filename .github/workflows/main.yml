@@ -22,7 +22,7 @@ jobs:
     - name: Test c2po
       run: |
         cd compiler/test
-        python3 test.py"
+        python3 test.py
 
     - name: Test cav
       run: |
