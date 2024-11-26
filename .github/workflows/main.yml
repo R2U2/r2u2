@@ -9,13 +9,10 @@ jobs:
       with:
         python-version: "3.11"
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip jsonschema
-
     - name: Install Z3
       run: |
-        apt update && apt -y install z3
+        sudo apt update
+        sudo apt -y install z3
       
     - name: Build R2U2
       run: |
