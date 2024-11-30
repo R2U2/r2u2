@@ -20,7 +20,6 @@ pub const MLTL_OP_FT_OR: u8 = 0b10101;
 pub const MLTL_OP_FT_IMPLIES: u8 = 0b10100;
 
 pub const MLTL_OP_FT_PROB: u8 = 0b10011;
-pub const MLTL_OP_FT_NOR: u8 = 0b10010;
 pub const MLTL_OP_FT_XOR: u8 = 0b10001;
 pub const MLTL_OP_FT_EQUIVALENT: u8 = 0b10000;
 
