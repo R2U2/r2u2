@@ -263,18 +263,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         if not isinstance(expr, cpt.Operator):
             continue
 
-        if expr.operator is cpt.OperatorKind.LOGICAL_OR:
-            # p || q = !(!p && !q)
-            expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.Operator.LogicalAnd(
-                        expr.loc,
-                        [cpt.Operator.LogicalNegate(c.loc, c) for c in expr.children],
-                    ),
-                )
-            )
-        elif expr.operator is cpt.OperatorKind.LOGICAL_XOR:
+        if expr.operator is cpt.OperatorKind.LOGICAL_XOR:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
             # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
@@ -305,14 +294,11 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         elif expr.operator is cpt.OperatorKind.LOGICAL_IMPLIES:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
-            # p -> q = !(p && !q)
+            # p -> q = !p || q)
             expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.Operator.LogicalAnd(
-                        lhs.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
-                    ),
-                )
+                cpt.Operator.LogicalOr(
+                    expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
+                ),
             )
         elif expr.operator is cpt.OperatorKind.LOGICAL_EQUIV:
             lhs: cpt.Expression = expr.children[0]
