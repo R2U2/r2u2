@@ -1,5 +1,3 @@
-use easy_min_max::{min, max};
-
 use crate::instructions::mltl::*;
 use crate::internals::{debug::*, types::*};
 use crate::memory::{monitor::*,scq::*};
@@ -150,48 +148,18 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
         MLTL_OP_FT_NOT => {
             debug_print!("FT NOT");
             let op = check_operand_data(instr, monitor, 0);
-            if op.is_some() {
-                push_result(instr, monitor, r2u2_verdict{time: op.unwrap().time, truth: !op.unwrap().truth});
+            match not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
+                Some(result) => simple_push_result(instr, monitor, result),
+                None => (),
             }
         }
         MLTL_OP_FT_AND => {
             debug_print!("FT AND");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            if op0.is_some() && op1.is_some() {
-                let op0 = op0.unwrap();
-                let op1 = op1.unwrap();
-                debug_print!("Left and Right Ready!");
-                if op0.truth && op1.truth{
-                    debug_print!("Both True");
-                    push_result(instr, monitor, r2u2_verdict{time: min!(op0.time, op1.time), truth: true});
-                }
-                else if !op0.truth && !op1.truth {
-                    debug_print!("Both False");
-                    push_result(instr, monitor, r2u2_verdict{time: max!(op0.time, op1.time), truth: false});
-                }
-                else if op0.truth {
-                    debug_print!("Only Left True");
-                    push_result(instr, monitor, r2u2_verdict{time: op1.time, truth: false});
-                }
-                else if op1.truth{
-                    debug_print!("Only Right True");
-                    push_result(instr, monitor, r2u2_verdict{time: op0.time, truth: false});
-                }
-            }
-            else if op0.is_some() {
-                let op0 = op0.unwrap();
-                debug_print!("Only Left Ready: ({},{})", op0.truth, op0.time);
-                if !op0.truth{
-                    push_result(instr, monitor, r2u2_verdict{time: op0.time, truth: false});
-                }
-            }
-            else if op1.is_some(){
-                let op1 = op1.unwrap();
-                debug_print!("Only Right Ready: ({},{})", op1.truth, op1.time);
-                if !op1.truth{
-                    push_result(instr, monitor, r2u2_verdict{time: op1.time, truth: false});
-                }
+            match and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
+                Some(result) => simple_push_result(instr, monitor, result),
+                None => (),
             }
         }
         MLTL_OP_FT_OR => {
@@ -229,6 +197,7 @@ pub fn ex_saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> (result: r2u2_time)
     lhs.saturating_sub(rhs)
 }
 
+#[inline(always)]
 pub fn min(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
     ensures
         result == op0 || result == op1,
@@ -242,6 +211,7 @@ pub fn min(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
     }
 }
 
+#[inline(always)]
 pub fn max(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
     ensures
         result == op0 || result == op1,
@@ -255,6 +225,7 @@ pub fn max(op0: r2u2_time, op1: r2u2_time) -> (result: r2u2_time)
     }
 }
 
+#[inline(always)]
 fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
     requires 
         old(queue_ctrl).temporal_block.lower_bound <= old(queue_ctrl).temporal_block.upper_bound,
@@ -382,7 +353,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             queue_ctrl.next_time = tau.saturating_add(1); // Only need to see each timestep pair once
 
                 if !value_op0.truth { // if op0 and op1 false, then false
-                    debug_print!("Left Op False");
+                    debug_print!("Left and Right Op False");
                     verdict.time = tau - queue_ctrl.temporal_block.lower_bound;
                     verdict.truth = false;
 
@@ -392,7 +363,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
         }
         // if op1 is false the entire interval [lb, ub], then false
         if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.upper_bound){
-            debug_print!("Time elapsed");
+            debug_print!("Right Op False and Time elapsed");
             verdict.time = value_op1.time - queue_ctrl.temporal_block.upper_bound;
             verdict.truth = false;
 
@@ -409,6 +380,84 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
                 return Some(verdict);
             }
         }
+    }
+    debug_print!("Waiting");
+    return None;
+}
+
+#[inline(always)]
+fn not_operator(ready_op: r2u2_bool, value_op: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
+    ensures
+        result.is_some() ==> (result.unwrap().truth == !value_op.truth && (queue_ctrl.next_time == value_op.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        !ready_op ==> !result.is_some(),
+{
+    if ready_op {
+        queue_ctrl.next_time = value_op.time.saturating_add(1);
+        return Some(r2u2_verdict{time: value_op.time, truth: !value_op.truth});
+    } else {
+        debug_print!("Waiting");   
+        return None;
+    }
+}
+
+#[inline(always)]
+fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
+    ensures
+        // queue_ctrl.next time doesn't change when neither side is ready or when we cannot evaluate early based on the one side alone
+        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && !result.is_some() || (ready_op0 && !ready_op1 && !result.is_some())) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
+
+        // lhs and rhs false
+        (ready_op0 && !value_op0.truth && ready_op1 && !value_op1.truth &&
+            value_op0.time < value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        (ready_op0 && !value_op0.truth && ready_op1 && !value_op1.truth &&
+            value_op0.time >= value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op0.time && (queue_ctrl.next_time == value_op0.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+
+        // lhs false, rhs unknown
+        (ready_op0 && !value_op0.truth && !ready_op1) ==> (!result.unwrap().truth && result.unwrap().time == value_op0.time && (queue_ctrl.next_time == value_op0.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        // rhs false, lhs unknown
+        (!ready_op0 && ready_op1 && !value_op1.truth) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        
+        // lhs and rhs true
+        (ready_op0 && value_op0.truth && ready_op1 && value_op1.truth &&
+            value_op0.time < value_op1.time) ==> (result.unwrap().truth && result.unwrap().time == value_op0.time && (queue_ctrl.next_time == value_op0.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        (ready_op0 && value_op0.truth && ready_op1 && value_op1.truth &&
+            value_op0.time >= value_op1.time) ==> (result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+    
+        // not enough information to produce result
+        (!ready_op0 && !ready_op1) ==> !result.is_some(),
+        (ready_op0 && value_op0.truth && !ready_op1) ==> !result.is_some(),
+        (!ready_op0 && ready_op1 && value_op1.truth) ==> !result.is_some(),
+{
+    let mut verdict = r2u2_verdict::default();
+    if ready_op0 && ready_op1 {
+        debug_print!("Left and Right Ready!");
+        if value_op0.truth && value_op1.truth {
+            debug_print!("Both True");
+            verdict.time = min(value_op0.time, value_op1.time);
+            verdict.truth = true;
+            queue_ctrl.next_time = verdict.time.saturating_add(1);
+            return Some(verdict);
+        } else if !value_op0.truth && !value_op1.truth {
+            debug_print!("Both False");
+            verdict.time = max(value_op0.time, value_op1.time);
+            verdict.truth = false;
+            queue_ctrl.next_time = verdict.time.saturating_add(1);
+            return Some(verdict);
+        }
+    }
+    if ready_op0 && !value_op0.truth {
+        debug_print!("Only Left False");
+        verdict.time = value_op0.time;
+        verdict.truth = false;
+        queue_ctrl.next_time = verdict.time.saturating_add(1);
+        return Some(verdict);
+    }
+    else if ready_op1 && !value_op1.truth {
+        debug_print!("Only Right False");
+        verdict.time = value_op1.time;
+        verdict.truth = false;
+        queue_ctrl.next_time = verdict.time.saturating_add(1);
+        return Some(verdict);
     }
     debug_print!("Waiting");
     return None;

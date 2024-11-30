@@ -8,7 +8,6 @@ categories = ["no-std", "embedded"]
 
 [dependencies]
 byteorder = { version = "1", default-features = false }
-easy-min-max = "1.0.0"
 libm = "0.2.8"
 cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
