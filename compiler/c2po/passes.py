@@ -286,25 +286,6 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                     expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
                 ),
             )
-        elif expr.operator is cpt.OperatorKind.RELEASE:
-            expr = cast(cpt.TemporalOperator, expr)
-
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-            interval = expr.interval
-            # p R q = !(!p U !q)
-            expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.TemporalOperator.Until(
-                        expr.loc,
-                        interval.lb,
-                        interval.ub,
-                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
-                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
-                    ),
-                )
-            )
         elif expr.operator is cpt.OperatorKind.FUTURE:
             expr = cast(cpt.TemporalOperator, expr)
 
@@ -318,6 +299,22 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                     interval.lb,
                     interval.ub,
                     cpt.Constant(expr.loc, True),
+                    operand,
+                )
+            )
+        elif expr.operator is cpt.OperatorKind.GLOBAL:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # G p = False R p
+            expr.replace(
+                cpt.TemporalOperator.Release(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, False),
                     operand,
                 )
             )
