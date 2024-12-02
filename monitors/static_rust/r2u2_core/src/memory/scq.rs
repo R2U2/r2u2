@@ -49,7 +49,6 @@ impl Default for SCQCtrlBlock{
 pub struct SCQTemporalBlock {
     pub lower_bound: r2u2_time,
     pub upper_bound: r2u2_time,
-    pub edge: r2u2_time,
     pub previous: r2u2_verdict,
 }
 
@@ -66,7 +65,6 @@ impl Default for SCQTemporalBlock {
         return SCQTemporalBlock {
             lower_bound: r2u2_infinity,
             upper_bound: r2u2_infinity,
-            edge: 0,
             previous: r2u2_verdict{time: 0, truth: false}
         };
     }
