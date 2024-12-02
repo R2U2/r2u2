@@ -1,4 +1,4 @@
-# C2PO Output Formats
+# Output Formats
 
 C2PO supports a number of formats to output (write) a specification. By default, C2PO will output
 the R2U2-readable binary format, but can be configured to output other formats as well.

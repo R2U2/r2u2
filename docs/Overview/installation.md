@@ -11,7 +11,7 @@ Most dependencies, especially development tooling, are installed via Pythons pac
 ## C2PO
 
 Usage:
-- Python >= 3.6
+- Python >= 3.8
 - `pip install typing-extensions`
 
 ## R2U2

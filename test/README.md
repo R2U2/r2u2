@@ -1,4 +1,4 @@
-# R2U2 Test Suite
+# Test Suite
 
 The R2U2 test suite is intended to test `c2po.py` and `r2u2`. Each test case in a suite has an MLTL
 specification, a trace, and an oracle. The test script compiles the MLTL specification using the

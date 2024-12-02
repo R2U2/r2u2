@@ -1,4 +1,4 @@
-# C2PO CLI Options
+# CLI Options
 The following is the usage of C2PO:
 
     usage: c2po.py [-h] [--trace TRACE] [--map MAP] [-q] [--debug [DEBUG]] [--stats] [--impl {c,cpp,vhdl}] [-o OUTPUT] [--int-width INT_WIDTH]

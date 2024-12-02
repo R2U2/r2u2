@@ -1,4 +1,4 @@
-# C2PO Input Language
+# Input Language
 
 C2PO offers a structured specification language intended to make writing formal specifications easy
 and transparent. The language is structured into a number of sections for defining inputs, C-style

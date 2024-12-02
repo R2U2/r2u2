@@ -9,7 +9,7 @@ real-time, embedded, safety-critical systems.
 
 ## Compiling
 
-Run `make` to generate the binary and static library in `build/`. See `make help` for all available
+Run `make` to generate the binary and static library in [`build/`](). See `make help` for all available
 build targets.
 
 ## Running

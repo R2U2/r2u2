@@ -49,7 +49,12 @@ a0)` is `(G[0,8] a1)`, which has a wpd of 8. In its rewritten form, the sibling 
 
 Equality saturation applies the formula rewrites above in a systematic way, resulting in a maximally
 reduced monitor encoding. The technique is described fully in [Chapter 4 of this
-thesis](https://cgjohannsen.com/docs/ms-thesis.pdf). It uses [egglog](https://github.com/egraphs-good/egglog) to 
+thesis](https://cgjohannsen.com/docs/ms-thesis.pdf). It uses
+[egglog](https://github.com/egraphs-good/egglog) to compute the minimally-sized encoding of each
+formula with respect to a set of pre-defined rewrites.
+
+This feature currently only runs on each formula individually. There are plans to extend this
+feature to this feature to the [entire formula set](https://github.com/R2U2/r2u2/issues/8).
 
 ## Extended Operators
 

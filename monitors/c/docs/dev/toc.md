@@ -1,4 +1,4 @@
-# R2U2 Static Monitor Developer Guide
+# R2U2 C Monitor Developer Guide
 
 ```{toctree}
 architecture

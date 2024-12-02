@@ -26,6 +26,7 @@ To build R2U2, run `make` from `monitors/c/`:
 cd monitors/c/
 make
 ```
+This only needs to be *once*, regardless of the specifications you wish to monitor.
 
 # Running
 

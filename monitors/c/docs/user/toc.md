@@ -1,4 +1,4 @@
-# R2U2 Static Monitor User's Guide
+# R2U2 C Monitor User Guide
 ```{toctree}
 building
 running

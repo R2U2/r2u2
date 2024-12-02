@@ -1,4 +1,4 @@
-# MLTL Monitoring
+# Mission-time Linear Temporal Logic
 
 Mission-time Linear Temporal Logic (MLTL) enables unambiguous descriptions of behaviors, including complex, temporal behaviors, that comprise requirements, fault signatures, sanity checks, or other properties of a system we might want to observe using R2U2. While there are many temporal logics, MLTL strikes a nice balance of being expressive enough to capture many common properties from aerospace operational concepts while still being easy to validate and efficiently monitorable. 
 

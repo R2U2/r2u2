@@ -23,7 +23,7 @@ copyright = '2023, Laboratory for Temporal Logic'
 author = 'Laboratory for Temporal Logic'
 
 # The full version, including alpha/beta/rc tags
-release = '3.0'
+release = '3.1'
 
 # -- General configuration ---------------------------------------------------
 
@@ -89,16 +89,10 @@ myst_footnote_transition = False
 # docs content from subprojects into repo-wide meta-build.
 collections_target = "_collections"
 collections = {
-    "top_readme": {
+    "contributing": {
         "driver": "copy_file",
-        "source": "../README.md",
-        "target": "top_readme.md"
-    },
-
-    "c2po_readme": {
-        "driver": "copy_file",
-        "source": "../compiler/README.md",
-        "target": "c2po_readme.md"
+        "source": "../CONTRIBUTING.md",
+        "target": "CONTRIBUTING.md"
     },
     'c2po_docs': {
         'driver': 'copy_folder',
@@ -106,19 +100,12 @@ collections = {
         # 'target': 'c2po_docs/',
         'ignore': ['*.dat', '.exe'],
     },
-
-    "r2u2_readme": {
-        "driver": "copy_file",
-        "source": "../monitors/c/README.md",
-        "target": "r2u2_readme.md"
-    },
     'r2u2_docs': {
         'driver': 'copy_folder',
         'source': '../monitors/c/docs/',
         # 'target': 'r2u2_docs/',
         'ignore': ['*.dat', '.exe'],
     },
-
     "test_readme": {
         "driver": "copy_file",
         "source": "../test/README.md",
@@ -166,7 +153,7 @@ html_theme = "sphinx_book_theme"
 html_title = "R2U2 Documentation"
 html_logo = "_static/r2u2-graphic-solo.png"
 html_theme_options = {
-    "repository_url": "https://gitlab.com/bckempa/r2u2",
+    "repository_url": "https://github.com/R2U2/r2u2",
     "use_repository_button": True,
     "show_navbar_depth": 1,
 }
