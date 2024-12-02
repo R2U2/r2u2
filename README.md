@@ -68,6 +68,10 @@ and  [`compiler/test/`](compiler/test/) directories.
 The [`benchmarks/`](benchmarks/) directory includes sets of larger specifications taken from various
 sources. See each sub-directory's README for its description and source.
 
+# Documentation
+
+The documentation for R2U2 can be found [here](https://r2u2.github.io/r2u2/). The documentation includes user and developer guides for both R2U2 and C2PO.
+
 # Support 
 
 If you believe you have found a case of unsound output from R2U2, please refer to
