@@ -1,0 +1,39 @@
+STRUCT
+    Sensor: {
+        active: bool;
+        id: int;
+    };
+
+    Monitor: {
+        active: bool;
+        sensor: Sensor;
+    };
+
+INPUT
+    SensorActive: bool[4];
+    SensorID: int[4];
+    MonitorActive: bool[4];
+
+DEFINE
+    Sensor_1 := Sensor(SensorActive[0], SensorID[0]);
+    Sensor_2 := Sensor(SensorActive[1], SensorID[1]);
+    Sensor_3 := Sensor(SensorActive[2], SensorID[2]);
+    Sensor_4 := Sensor(SensorActive[3], SensorID[3]);
+
+    Sensors := {
+        Sensor_1, Sensor_2, Sensor_3, Sensor_4
+    };
+
+    Monitors := {
+        Monitor(MonitorActive[0], Sensor_1),
+        Monitor(MonitorActive[1], Sensor_2),
+        Monitor(MonitorActive[2], Sensor_3),
+        Monitor(MonitorActive[3], Sensor_4)
+    };
+
+FTSPEC
+    -- Every active sensor is monitored by at least one active monitor.
+    R5: foreach(sensor : Sensors)(
+            sensor.active -> 
+            forsome(m : Monitors)(m.active && (m.sensor.id == sensor.id))
+        );
