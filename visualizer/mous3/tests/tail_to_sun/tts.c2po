@@ -1,4 +1,5 @@
 INPUT
     survival,altitude_not_tts,cam_off,maneuverer,free_drift,tts: bool;
 FTSPEC 
-    contract: altitude_not_tts => !tts
+    contract: altitude_not_tts => !tts;
+    contract: tts => !free_drift;
