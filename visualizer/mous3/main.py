@@ -2,27 +2,70 @@ import pathlib
 import subprocess
 # TODO: Call Script with map, c2p0, and csv files
 
+key_word = "invalid"
+runs = 0
+var_names=[]
+timestep_failures = []
+focus_var = []
+
 
 '''
 Import an input file and display a simple graph.
 This is for one .out file
 '''
 # TODO: loop through out files in the desired folder
-print("run")
-OUT_DIR = pathlib.Path(".") / "tests" / "2var_4stp/"
+OUT_DIR = pathlib.Path(".") / "tests" / "tail_to_sun/" 
+
+# pull out variable names from map file
+# TODO: Make this file option changable for the user
+with open("./tests/tail_to_sun/tts.map", "r") as file:
+        for line in file:
+            var_names.append(line.split(":")[0])
+
+
+# Get number of timesetps from one .csv file
+with open("./tests/tail_to_sun/traces/tts-0.csv", "r") as file:
+    for line in file:
+        timestep_failures.append(0)
+
+print(timestep_failures)
+
+# Get variables that are focused on
+# TODO: make changable option for users
+with open("./tests/tail_to_sun/tts.c2po", "r") as file:
+
+    for line in file:
+        if "contract:" in line:
+            for word in var_names:
+                if word in line:
+                    focus_var.append(word)
+
+print(focus_var)
+
+
+
 
 for output in OUT_DIR.glob("*.out"):
     
-    key_word = "invalid"
     #Open File
-    with open(output) as file:
-        print(output)
-        #Setup Dataframe
-        meta_data = file.readline().strip().split(',')
-        
-        
-        print(meta_data[0])
+    with open(output, "r") as file:
+        for line in file:
+            if key_word in line:
+                timestep_failures[int(line[-2])]+= 1
+                
+            
+        runs += 1
 
+print("Runs: ", runs)
+print(timestep_failures)
+        
+
+
+
+        # print(content)
+        #Setup Dataframe
+        # meta_data = file.readline().strip().split(',')
+        
 #BUG: There is no meta data from how script is run right now
 
         # no_var = int(meta_data[0])
