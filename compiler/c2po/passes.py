@@ -334,6 +334,22 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                     operand,
                 )
             )
+        elif expr.operator is cpt.OperatorKind.HISTORICAL:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # H p = False T p
+            expr.replace(
+                cpt.TemporalOperator.Trigger(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, False),
+                    operand,
+                )
+            )
 
     log.debug(MODULE_CODE, 1, f"Post extended operator removal:\n{repr(program)}")
 

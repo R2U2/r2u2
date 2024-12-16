@@ -234,7 +234,7 @@ class PTOperator(Enum):
     ONCE = 0b01011
     HIST = 0b01010
     SINCE = 0b01001
-    LOCK = 0b01000
+    TRIGGER = 0b01000
     NOT = 0b10111
     AND = 0b10110
     OR = 0b10101
@@ -247,6 +247,7 @@ class PTOperator(Enum):
             self == PTOperator.ONCE
             or self == PTOperator.HIST
             or self == PTOperator.SINCE
+            or self == PTOperator.TRIGGER
         )
 
     def is_load(self) -> bool:
@@ -260,6 +261,7 @@ PT_OPERATOR_MAP = {
     cpt.OperatorKind.ONCE: PTOperator.ONCE,
     cpt.OperatorKind.HISTORICAL: PTOperator.HIST,
     cpt.OperatorKind.SINCE: PTOperator.SINCE,
+    cpt.OperatorKind.TRIGGER: PTOperator.TRIGGER,
     cpt.OperatorKind.LOGICAL_NEGATE: PTOperator.NOT,
     cpt.OperatorKind.LOGICAL_AND: PTOperator.AND,
     cpt.OperatorKind.LOGICAL_OR: PTOperator.OR,

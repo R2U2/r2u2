@@ -14,7 +14,7 @@ class C2POLexer(sly.Lexer):
 
     tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST,
-               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
+               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
@@ -101,6 +101,7 @@ class C2POLexer(sly.Lexer):
     SYMBOL['U'] = TL_UNTIL
     SYMBOL['R'] = TL_RELEASE
     SYMBOL['S'] = TL_SINCE
+    SYMBOL['T'] = TL_TRIGGER
     SYMBOL['M'] = TL_MISSION_TIME
     SYMBOL["true"] = TL_TRUE
     SYMBOL["false"] = TL_FALSE
@@ -126,7 +127,7 @@ class C2POParser(sly.Parser):
         ("left", LOG_IMPL, LOG_XOR, LOG_IFF),
         ("left", LOG_OR),
         ("left", LOG_AND),
-        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
+        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
         ("left", BW_OR),
         ("left", BW_XOR),
         ("left", BW_AND),
@@ -579,6 +580,10 @@ class C2POParser(sly.Parser):
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+    
+    @_("expr TL_TRIGGER interval expr")
+    def expr(self, p):
+        return cpt.TemporalOperator.Trigger(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -664,7 +669,7 @@ def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
 
 class MLTLLexer(sly.Lexer):
 
-    tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, 
+    tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER,
                TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, 
                NEWLINE, NUMERAL, COMMA, LBRACK, RBRACK, LPAREN, RPAREN }
@@ -698,6 +703,7 @@ class MLTLLexer(sly.Lexer):
     TL_UNTIL   = r"U"
     TL_RELEASE = r"R"
     TL_SINCE   = r"S"
+    TL_TRIGGER = r"T"
     TL_TRUE    = r"true"
     TL_FALSE   = r"false"
     TL_ATOMIC  = r"a([1-9][0-9]*|0)"
@@ -724,7 +730,7 @@ class MLTLParser(sly.Parser):
         ("left", LOG_IMPL, LOG_IFF),
         ("left", LOG_OR),
         ("left", LOG_AND),
-        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
+        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
         ("right", LOG_NEG, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
         ("right", LPAREN)
     )
@@ -871,6 +877,15 @@ class MLTLParser(sly.Parser):
             self.status = False
 
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+    
+    @_("expr TL_TRIGGER interval expr")
+    def expr(self, p):
+        self.is_pt = True
+        if self.is_ft:
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            self.status = False
+
+        return cpt.TemporalOperator.Trigger(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")

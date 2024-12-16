@@ -490,6 +490,7 @@ class OperatorKind(enum.Enum):
     HISTORICAL = "H"
     ONCE = "O"
     SINCE = "S"
+    TRIGGER = "T"
 
     # Other
     COUNT = "count"
@@ -814,6 +815,15 @@ class TemporalOperator(Operator):
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
         return operator
+    
+    @staticmethod
+    def Trigger(
+        loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
+    ) -> TemporalOperator:
+        operator = TemporalOperator(loc, OperatorKind.TRIGGER, lb, ub, [lhs, rhs])
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
+        return operator
 
     def __deepcopy__(self, memo) -> Operator:
         children = [copy.deepcopy(c, memo) for c in self.children]
@@ -915,6 +925,7 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.HISTORICAL,
         OperatorKind.ONCE,
         OperatorKind.SINCE,
+        OperatorKind.TRIGGER,
     }
 
 def is_prev_operator(expr: Expression) -> bool:
