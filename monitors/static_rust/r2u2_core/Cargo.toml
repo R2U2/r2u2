@@ -12,7 +12,6 @@ libm = "0.2.8"
 cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
 const_env = "0.1.2"
-# prusti-contracts = "0.2.0"
 vstd = { path = "../../../../verus/source/vstd"} 
 
 [features]

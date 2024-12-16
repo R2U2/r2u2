@@ -227,20 +227,20 @@ FT_OPERATOR_MAP = {
 
 
 class PTOperator(Enum):
-    NOP = 0b01111
-    CONFIG = 0b01110
-    LOAD = 0b01101
-    RETURN = 0b01100
+    NOP = 0b11111
+    CONFIG = 0b11110
+    LOAD = 0b11101
+    RETURN = 0b11100
     ONCE = 0b01011
     HIST = 0b01010
     SINCE = 0b01001
     LOCK = 0b01000
-    NOT = 0b00111
-    AND = 0b00110
-    OR = 0b00101
-    IMPLIES = 0b00100
-    EQUIV = 0b00000
-    XOR = 0b00001
+    NOT = 0b10111
+    AND = 0b10110
+    OR = 0b10101
+    IMPLIES = 0b10100
+    EQUIV = 0b10000
+    XOR = 0b10001
 
     def is_temporal(self) -> bool:
         return (
@@ -640,7 +640,7 @@ def gen_ft_instruction(
 
 
 def gen_pt_instruction(
-    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], offset: int
 ) -> Optional[TLInstruction]:
     ptid = len(instructions)
 
@@ -680,7 +680,7 @@ def gen_pt_instruction(
 
     pt_instr = TLInstruction(
         EngineTag.TL,
-        ptid,
+        ptid + offset,
         operator,
         operand1_type,
         operand1_value,
@@ -754,22 +754,40 @@ def gen_ft_duoq_instructions(
 
 
 def gen_pt_duoq_instructions(
-    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], duoqs: int
+    expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
+    # Propositional operators only need simple queues
     if not isinstance(expr, cpt.TemporalOperator):
-        return []
+        cg_duoq = CGInstruction(
+            EngineTag.CG,
+            CGType.DUOQ,
+            TLInstruction(
+                EngineTag.TL,
+                instructions[expr].id,
+                PTOperator.CONFIG,
+                TLOperandType.ATOMIC,
+                (expr.scq[1] - expr.scq[0]),
+                TLOperandType.NONE,
+                0,
+            ),
+        )
+        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
+        return [cg_duoq]
 
+    # Temporal operators need to reserve queue length for temporal parameter
+    # blocks, and emit an additional configuration instruction
     cg_duoq = CGInstruction(
         EngineTag.CG,
         CGType.DUOQ,
         TLInstruction(
             EngineTag.TL,
-            duoqs,
+            instructions[expr].id,
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            (2*expr.interval.ub)+1, # +1 to hold the effective ID
-            TLOperandType.ATOMIC,
-            instructions[expr].id,
+            # TODO: Move magic number (size of temporal block)
+            (expr.scq[1] - expr.scq[0]) + 4,
+            TLOperandType.NONE,
+            0,
         ),
     )
 
@@ -778,13 +796,17 @@ def gen_pt_duoq_instructions(
         CGType.TEMP,
         TLInstruction(
             EngineTag.TL,
-            duoqs,
+            instructions[expr].id,
             PTOperator.CONFIG,
             TLOperandType.SUBFORMULA,
             expr.interval.lb,
             TLOperandType.SUBFORMULA,
             expr.interval.ub,
         ),
+    )
+
+    log.debug(
+        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
     )
 
     return [cg_duoq, cg_temp]
@@ -798,9 +820,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
 
     # For tracking duoq usage across FT and PT
-    duoqs: int = 0
-    # For tracking effective and duoq ids of PT nodes
-    eid_map: dict[cpt.Expression, int] = {}
+    ft_duoqs: int = 0
 
     log.debug(MODULE_CODE, 1, f"Generating assembly for program:\n{program}")
 
@@ -822,7 +842,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
 
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
             cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
-            duoqs += 1
+            ft_duoqs += 1
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
@@ -840,7 +860,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 return None
             ft_instructions[expr] = new_ft_instruction
             cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
-            duoqs += 1
+            ft_duoqs += 1
 
     for expr in cpt.postorder(program.pt_spec_set, context):
         if expr == program.pt_spec_set:
@@ -850,38 +870,32 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             ptid = len(pt_instructions)
             pt_instructions[expr] = TLInstruction(
                 EngineTag.TL,
-                ptid,
+                ptid + ft_duoqs,
                 PTOperator.LOAD,
                 TLOperandType.ATOMIC,
                 context.atomic_id[expr],
                 TLOperandType.NONE,
                 0,
             )
+            log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
+            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
 
         if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
             at_instructions[expr] = gen_at_instruction(expr, context)
         elif expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-            new_pt_instruction = gen_pt_instruction(expr, pt_instructions)
+            new_pt_instruction = gen_pt_instruction(expr, pt_instructions, ft_duoqs)
             if not new_pt_instruction:
                 return None
             pt_instructions[expr] = new_pt_instruction
-            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions, duoqs)
-            # Duoq used, save queue id to replace effective ID later
-            if len(cg_instructions[expr]) > 0:
-                eid_map[expr] = duoqs
-                duoqs += 1
+            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
 
     # Move all PREV booleanizer instructions to the end (i.e., always update the 'previous' 
     # value after current iteration)
     for key in list(bz_instructions):
         if bz_instructions[key].operator is BZOperator.PREV:
             bz_instructions[key] = bz_instructions.pop(key)
-
-    # Replace effective ID with duoq id in pt temporal operators
-    for expr, duoq_id in eid_map.items():
-        pt_instructions[expr].id = duoq_id
 
     return (
         list(at_instructions.values())

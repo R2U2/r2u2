@@ -30,7 +30,7 @@ pub const MLTL_OP_FT_EQUIVALENT: u8 = 0b10000;
 
 // pub const MLTL_OP_PT_ONCE: u8 = 0b01011;
 // pub const MLTL_OP_PT_HISTORICALLY: u8 = 0b01010;
-// pub const MLTL_OP_PT_SINCE: u8 = 0b01001;
+pub const MLTL_OP_PT_SINCE: u8 = 0b01001;
 // pub const MLTL_OP_PT_LOCK: u8 = 0b01000;
 
 // pub const MLTL_OP_PT_NOT: u8 = 0b00111;
@@ -105,7 +105,6 @@ pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut
         },
         MLTL_OP_TYPE_SUBFORMULA => {
             let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
-            queue.next_time = instr.op1_value;
             queue.temporal_block.lower_bound = instr.op1_value;
             queue.temporal_block.upper_bound = instr.op2_value;
             queue.length = queue.length - 4; // Required to substract 4 to use same spec file as C version with DUOQs

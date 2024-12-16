@@ -11,7 +11,8 @@ use libc_print::std_name::println;
 use vstd::prelude::*;
 
 verus! {
- 
+
+
 #[verifier::external]
 fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> Option<r2u2_verdict> {
     let operand_type = if op_num == 0 {instr.op1_type} else {instr.op2_type};
@@ -25,6 +26,12 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             }
         }
         MLTL_OP_TYPE_DIRECT => {
+            if instr.opcode == MLTL_OP_PT_SINCE {
+                let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+                if queue_ctrl.temporal_block.edge.truth {
+                    return Some(r2u2_verdict{time: queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound, truth: value != 0});
+                }
+            }
             // Only directly load in T or F on first loop of time step
             if monitor.progress == MonitorProgressState::FirstLoop {
                 return Some(r2u2_verdict{time: monitor.time_stamp, truth: value != 0});
@@ -51,7 +58,7 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
 fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verdict){
     let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
     
-    queue_ctrl.next_time = verdict.time + 1;
+    queue_ctrl.next_time = verdict.time.saturating_add(1);
     debug_print!("Desired time {}", queue_ctrl.next_time);
 
     simple_push_result(instr, monitor, verdict);
@@ -75,14 +82,14 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_FT_LOAD => {
-            debug_print!("FT LOAD");
+            debug_print!("LOAD");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
                 push_result(instr, monitor, verdict.unwrap());
             }
         }
         MLTL_OP_FT_RETURN => {
-            debug_print!("FT RETURN");
+            debug_print!("RETURN");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
                 push_result(instr, monitor, verdict.unwrap());
@@ -115,8 +122,17 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
                 None => (),
             }
         }
+        MLTL_OP_PT_SINCE => {
+            debug_print!("PT SINCE");
+            let op0 = check_operand_data(instr, monitor, 0);
+            let op1 = check_operand_data(instr, monitor, 1);
+            match since_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
+                Some(result) => simple_push_result(instr, monitor, result),
+                None => (),
+            }
+        }
         MLTL_OP_FT_NOT => {
-            debug_print!("FT NOT");
+            debug_print!("NOT");
             let op = check_operand_data(instr, monitor, 0);
             match not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
                 Some(result) => simple_push_result(instr, monitor, result),
@@ -124,7 +140,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_AND => {
-            debug_print!("FT AND");
+            debug_print!("AND");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
             match and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
@@ -133,7 +149,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_OR => {
-            debug_print!("FT OR");
+            debug_print!("OR");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
             match or_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
@@ -151,7 +167,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_FT_EQUIVALENT => {
-            debug_print!("FT EQUIVALENT");
+            debug_print!("EQUIVALENT");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
             match equivalent_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
@@ -165,13 +181,19 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
     }
 }
 
+pub open spec fn saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> r2u2_time {
+    if lhs - rhs < 0 {
+        0
+    } else {
+        (lhs - rhs) as r2u2_time
+    }
+}
 #[allow(dead_code)]
-#[verifier(external_fn_specification)] // Verus doesn't support saturating_sub; therefore, have to provide specification for it
+#[verifier::external_fn_specification] // Verus doesn't support saturating_sub; therefore, have to provide specification for it
+#[verifier::when_used_as_spec(saturating_sub)]
 pub fn ex_saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> (result: r2u2_time)
     ensures
-        result == lhs - rhs || result == r2u2_time::MAX || result == r2u2_time::MIN,
-        (lhs - rhs > r2u2_time::MAX) ==> result == r2u2_time::MAX,
-        (lhs - rhs < r2u2_time::MIN) ==> result == r2u2_time::MIN,
+        result == saturating_sub(lhs, rhs)
 {
     lhs.saturating_sub(rhs)
 }
@@ -304,15 +326,16 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
                 queue_ctrl.next_time == r2u2_time::MAX)),
 
         // not enough information to produce result
-        (ready_op0 && !ready_op1) ==> !result.is_some(),
-        (!ready_op0 && !ready_op1) ==> !result.is_some(),
-        (value_op0.truth && !value_op1.truth &&
+        (ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (!ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (ready_op0 && ready_op1 && value_op0.truth && !value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some(),
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> 
+                !result.is_some() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
+                (value_op0.time >= value_op1.time && queue_ctrl.next_time == value_op1.time + 1) || queue_ctrl.next_time == r2u2_time::MAX),
         (!ready_op0 && !value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some(),
-        
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
@@ -465,15 +488,16 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                 queue_ctrl.next_time == r2u2_time::MAX)),
 
         // not enough information to produce result
-        (ready_op0 && !ready_op1) ==> !result.is_some(),
-        (!ready_op0 && !ready_op1) ==> !result.is_some(),
-        (!value_op0.truth && value_op1.truth &&
+        (ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (!ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (ready_op0 && ready_op1 && !value_op0.truth && value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some(),
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> 
+                !result.is_some() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
+                (value_op0.time >= value_op1.time && queue_ctrl.next_time == value_op1.time + 1) || queue_ctrl.next_time == r2u2_time::MAX),
         (!ready_op0 && value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some(),
-        
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
@@ -519,6 +543,202 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                 queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                 return Some(verdict);
             }
+        }
+    }
+    debug_print!("Waiting");
+    return None;
+}
+
+#[inline(always)]
+fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
+    requires 
+        old(queue_ctrl).temporal_block.lower_bound <= old(queue_ctrl).temporal_block.upper_bound,
+        value_op0.time > old(queue_ctrl).temporal_block.previous.time - old(queue_ctrl).temporal_block.upper_bound && value_op0.time >= 0,
+        value_op1.time > old(queue_ctrl).temporal_block.previous.time - old(queue_ctrl).temporal_block.upper_bound && value_op1.time >= 0,
+    ensures        
+        // previous always gets updated when a result is returned
+        result.is_some() ==> queue_ctrl.temporal_block.previous.time == result.unwrap().time,
+        !result.is_some() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
+
+        // results are strictly increasing
+        result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
+        (!old(queue_ctrl).temporal_block.previous.truth)),
+        result.is_some() ==> queue_ctrl.temporal_block.previous.truth,
+
+        // if op1 is true, then the result is true
+        (ready_op1 && value_op1.truth && (queue_ctrl.temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) && result.is_some()) ==> result.unwrap().truth,
+
+        // if op0 and op1 are false, then the result is false
+        (ready_op0 && !value_op0.truth && !value_op1.truth && result.is_some()) ==> !result.unwrap().truth,
+
+        // if op1 is true, update edge and next time
+        (ready_op1 && value_op1.truth && (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0)) ==> 
+            ((queue_ctrl.temporal_block.edge.time == value_op1.time && queue_ctrl.temporal_block.edge.truth) &&
+            (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+
+        // result timestamp is restricted by the timestamp of op0, op1, edge, lb, and ub
+        result.is_some() ==> (result.unwrap().time == queue_ctrl.temporal_block.lower_bound - 1 ||
+            result.unwrap().time == value_op0.time + queue_ctrl.temporal_block.lower_bound || 
+            result.unwrap().time == queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound || 
+            result.unwrap().time == value_op1.time + queue_ctrl.temporal_block.lower_bound ||
+            result.unwrap().time == r2u2_time::MAX),
+
+        // False for [0,lb-1] when 0-lb < 0
+        (queue_ctrl.temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound < 0) && result.is_some() ==> 
+            !result.unwrap().truth && result.unwrap().time == queue_ctrl.temporal_block.lower_bound - 1,
+
+        // rhs true at i - lb
+        ((ready_op1 && value_op1.truth && 
+            (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) &&
+            value_op1.time > old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound) &&
+            value_op1.time + queue_ctrl.temporal_block.lower_bound <= r2u2_time::MAX)
+            ==> result.unwrap().truth && (result.unwrap().time == value_op1.time + queue_ctrl.temporal_block.lower_bound || result.unwrap().time == r2u2_time::MAX),
+        ((ready_op1 && value_op1.truth && 
+            (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) &&
+            value_op1.time == old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound) &&
+            value_op1.time + queue_ctrl.temporal_block.lower_bound == 0 && !old(queue_ctrl).temporal_block.previous.truth) 
+            ==> result.unwrap().truth && result.unwrap().time == 0, // Initial case where previous = 0 but no output was produced at timestamp 0 yet
+    
+        // rhs false from [i-ub,i-lb]
+        (ready_op1 && !value_op1.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op1.time > old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (!queue_ctrl.temporal_block.edge.truth || queue_ctrl.temporal_block.edge.time <= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op1.time + queue_ctrl.temporal_block.lower_bound <= r2u2_time::MAX)
+            ==> !result.unwrap().truth && (result.unwrap().time == value_op1.time + queue_ctrl.temporal_block.lower_bound || result.unwrap().time == r2u2_time::MAX),
+        (ready_op1 && !value_op1.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op1.time == old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (!queue_ctrl.temporal_block.edge.truth || queue_ctrl.temporal_block.edge.time <= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op1.time + queue_ctrl.temporal_block.lower_bound == 0 && !old(queue_ctrl).temporal_block.previous.truth)
+            ==> !result.unwrap().truth && result.unwrap().time == 0, // Initial case where previous = 0 but no output was produced at timestamp 0 yet
+        
+        // rhs false after i-ub and lhs was never true from previous rhs to i - ub
+        (ready_op1 && !value_op1.truth && ready_op0 && !value_op0.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op1.time > old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (queue_ctrl.temporal_block.edge.truth && queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op1.time + queue_ctrl.temporal_block.lower_bound <= r2u2_time::MAX)
+            ==> !result.unwrap().truth && (result.unwrap().time == value_op1.time + queue_ctrl.temporal_block.lower_bound || result.unwrap().time == r2u2_time::MAX),
+        (ready_op1 && !value_op1.truth && ready_op0 && !value_op0.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op1.time == old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (queue_ctrl.temporal_block.edge.truth && queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op1.time + queue_ctrl.temporal_block.lower_bound == 0 && !old(queue_ctrl).temporal_block.previous.truth)
+            ==> !result.unwrap().truth && (result.unwrap().time == 0), // Initial case where previous = 0 but no output was produced at timestamp 0 yet
+            
+        // lhs true from rhs to i-ub
+        ((!ready_op1 || (ready_op1 && !value_op1.truth) || (ready_op1 && value_op1.time < old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound)) &&
+            ready_op0 && value_op0.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op0.time > old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (queue_ctrl.temporal_block.edge.truth && queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op0.time + queue_ctrl.temporal_block.lower_bound <= r2u2_time::MAX)
+            ==> result.unwrap().truth && 
+                ((value_op0.time + queue_ctrl.temporal_block.lower_bound >= queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound && result.unwrap().time == queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound) ||
+                (value_op0.time + queue_ctrl.temporal_block.lower_bound < queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound && result.unwrap().time == value_op0.time + queue_ctrl.temporal_block.lower_bound) || result.unwrap().time == r2u2_time::MAX),
+        ((!ready_op1 || (ready_op1 && !value_op1.truth) || (ready_op1 && value_op1.time < old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound)) &&
+            ready_op0 && value_op0.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op0.time == old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (queue_ctrl.temporal_block.edge.truth && queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound) && 
+            value_op0.time + queue_ctrl.temporal_block.lower_bound == 0 && !old(queue_ctrl).temporal_block.previous.truth)
+            ==> result.unwrap().truth && (result.unwrap().time == 0), // Initial case where previous = 0 but no output was produced at timestamp 0 yet
+            
+        // not enough information to produce result
+        (!ready_op0 || value_op0.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
+        (!ready_op1 || value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
+        (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) ==> !result.is_some(),
+
+        // lhs true from rhs but not to i-ub
+        (ready_op1 && !value_op1.truth && value_op1.time >= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound &&
+            ready_op0 && value_op0.truth &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            value_op0.time < old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
+            (queue_ctrl.temporal_block.edge.truth && (queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound)))
+            ==> !result.is_some(),
+    
+        // rhs less than i-ub and currently no edge
+        ((!ready_op1 || (ready_op1 && value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound)) &&
+            old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
+            queue_ctrl.temporal_block.edge.time > 0 &&
+            (!queue_ctrl.temporal_block.edge.truth || queue_ctrl.temporal_block.edge.time <= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound))
+            ==> !result.is_some()
+        
+{
+    if !queue_ctrl.temporal_block.previous.truth && queue_ctrl.temporal_block.previous.time < queue_ctrl.temporal_block.lower_bound{
+        debug_print!("Not enough data to evaluate at beginning of trace");
+        queue_ctrl.temporal_block.previous = r2u2_verdict{time: queue_ctrl.temporal_block.lower_bound - 1, truth: true};
+        return Some(r2u2_verdict{time: queue_ctrl.temporal_block.previous.time, truth: false});
+    }
+    let mut verdict = r2u2_verdict::default();
+    if ready_op1 {
+        if value_op1.truth {
+            debug_print!("New edge: {}", value_op1.time);
+            queue_ctrl.temporal_block.edge = r2u2_verdict{time: value_op1.time, truth: true};
+            queue_ctrl.next_time = value_op1.time.saturating_add(1);
+            debug_print!("Right Op True");
+            if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound){
+                verdict.time = value_op1.time.saturating_add(queue_ctrl.temporal_block.lower_bound);
+                verdict.truth = true;
+    
+                // To handle startup behavior, the truth bit of the previous result
+                // storage is used to flag that an ouput has been produced, which can
+                // differentiate between a value of 0 for no output vs output produced.
+                // Note: Since only the timestamp of the previous result is ever checked,
+                // this overloading of the truth bit doesn't cause confict with other logic 
+                // and preserves startup behavior.
+                if verdict.time > queue_ctrl.temporal_block.previous.time ||
+                (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                    debug_print!("Right Op True at i-lb");
+                    queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
+                    return Some(verdict);
+                }
+            }
+        } else {
+            let start_interval = queue_ctrl.temporal_block.previous.time.checked_sub(queue_ctrl.temporal_block.upper_bound);
+            if !queue_ctrl.temporal_block.edge.truth || (start_interval.is_some() && queue_ctrl.temporal_block.edge.time <= start_interval.unwrap_or(0)){
+                queue_ctrl.next_time = value_op1.time.saturating_add(1);
+                if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound) {
+                    verdict.time = value_op1.time.saturating_add(queue_ctrl.temporal_block.lower_bound);
+                    verdict.truth = false;
+                    if verdict.time > queue_ctrl.temporal_block.previous.time ||
+                    (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        debug_print!("Right Op never true from [i-ub, i-lb]");
+                        queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
+                        return Some(verdict);
+                    }
+                }
+            }
+            if ready_op0 && !value_op0.truth {
+                queue_ctrl.next_time = value_op1.time.saturating_add(1);
+                if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound){
+                    verdict.time = value_op1.time.saturating_add(queue_ctrl.temporal_block.lower_bound);
+                    verdict.truth = false;
+
+                    if verdict.time > queue_ctrl.temporal_block.previous.time ||
+                    (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        debug_print!("Both False");
+                        queue_ctrl.next_time = max(queue_ctrl.next_time, verdict.time.saturating_sub(queue_ctrl.temporal_block.upper_bound).saturating_add(1));
+                        queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
+                        return Some(verdict);
+                    }
+                }
+            }
+        }
+    }
+    let start_interval = queue_ctrl.temporal_block.previous.time.checked_sub(queue_ctrl.temporal_block.upper_bound);
+    if ready_op0 && value_op0.truth && value_op0.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound) &&
+        ((queue_ctrl.temporal_block.edge.truth) && (!start_interval.is_some() || queue_ctrl.temporal_block.edge.time > start_interval.unwrap_or(0))){
+        verdict.time = min(value_op0.time.saturating_add(queue_ctrl.temporal_block.lower_bound), queue_ctrl.temporal_block.edge.time.saturating_add(queue_ctrl.temporal_block.upper_bound));
+        verdict.truth = true;
+
+        if verdict.time > queue_ctrl.temporal_block.previous.time ||
+        (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+            debug_print!("Left Op True Since Right Op");
+            queue_ctrl.next_time = max(queue_ctrl.next_time, verdict.time.saturating_sub(queue_ctrl.temporal_block.upper_bound).saturating_add(1));
+            queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
+            return Some(verdict);
         }
     }
     debug_print!("Waiting");
@@ -684,6 +904,18 @@ fn equivalent_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1:
         (ready_op0 && !value_op0.truth && ready_op1 && !value_op1.truth &&
             value_op0.time >= value_op1.time) ==> (result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
 
+        // lhs true and rhs false
+        (ready_op0 && value_op0.truth && ready_op1 && !value_op1.truth &&
+            value_op0.time < value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op0.time && (queue_ctrl.next_time == value_op0.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        (ready_op0 && value_op0.truth && ready_op1 && !value_op1.truth &&
+            value_op0.time >= value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+
+        // lhs false and rhs true
+        (ready_op0 && !value_op0.truth && ready_op1 && value_op1.truth &&
+            value_op0.time < value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op0.time && (queue_ctrl.next_time == value_op0.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        (ready_op0 && !value_op0.truth && ready_op1 && value_op1.truth &&
+            value_op0.time >= value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
+        
         // not enough information to produce result
         (!ready_op0 && !ready_op1) ==> !result.is_some(),
         (ready_op0 && !value_op0.truth && !ready_op1) ==> !result.is_some(),
@@ -692,10 +924,16 @@ fn equivalent_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1:
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
         debug_print!("Left and Right Ready!");
-        if (value_op0.truth && value_op1.truth) || !value_op0.truth && !value_op1.truth{
+        verdict.time = min(value_op0.time, value_op1.time);
+        if (value_op0.truth && value_op1.truth) || (!value_op0.truth && !value_op1.truth){
             debug_print!("Both {}", if value_op1.truth {"True"} else {"False"});
-            verdict.time = min(value_op0.time, value_op1.time);
             verdict.truth = true;
+            queue_ctrl.next_time = verdict.time.saturating_add(1);
+            return Some(verdict);
+        }
+        else {
+            debug_print!("{} not equivalant to {}", if value_op0.truth {"True"} else {"False"}, if value_op1.truth {"True"} else {"False"});
+            verdict.truth = false;
             queue_ctrl.next_time = verdict.time.saturating_add(1);
             return Some(verdict);
         }

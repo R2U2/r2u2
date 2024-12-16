@@ -1,3 +1,4 @@
+use crate::memory::scq::SCQCtrlBlock;
 use crate::{engines, memory};
 use crate::internals::debug::*;
 use crate::instructions::{booleanizer::*, mltl::*};
@@ -61,6 +62,12 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
     // Print output of table
     let mut i = 0;
     while i < monitor.mltl_program_count.max_program_count{
+        // For future time, we never need information from [0, lb]
+        if monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_UNTIL || 
+            monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_RELEASE {
+                let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[monitor.mltl_instruction_table[i].memory_reference as usize];
+                queue.next_time = queue.temporal_block.lower_bound;
+            }
         print_mltl_instruction(monitor.mltl_instruction_table[i]);
         i = i + 1;
     }

@@ -318,6 +318,22 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                     operand,
                 )
             )
+        elif expr.operator is cpt.OperatorKind.ONCE:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # O p = True S p
+            expr.replace(
+                cpt.TemporalOperator.Since(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, True),
+                    operand,
+                )
+            )
 
     log.debug(MODULE_CODE, 1, f"Post extended operator removal:\n{repr(program)}")
 
@@ -1144,6 +1160,44 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     total_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
+        if isinstance(expr, cpt.SpecSection):
+            continue
+
+        if isinstance(expr, cpt.Formula):
+            expr.scq_size = 1
+            expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
+
+            total_scq_size += expr.scq_size
+
+            expr.scq = (
+                total_scq_size - expr.scq_size,
+                total_scq_size,
+            )
+
+            continue
+
+        if (
+            expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
+            and expr not in context.atomic_id
+        ):
+            continue
+
+        max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
+
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
+        expr.total_scq_size = (
+            sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
+            + expr.scq_size
+        )
+
+        total_scq_size += expr.scq_size
+
+        expr.scq = (
+            total_scq_size - expr.scq_size,
+            total_scq_size,
+        )
+
+    for expr in cpt.postorder(program.pt_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
             continue
 
