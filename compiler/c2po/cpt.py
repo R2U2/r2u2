@@ -792,19 +792,28 @@ class TemporalOperator(Operator):
     def Historical(
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
-        return TemporalOperator(loc, OperatorKind.HISTORICAL, lb, ub, [operand])
+        operator = TemporalOperator(loc, OperatorKind.HISTORICAL, lb, ub, [operand])
+        operator.bpd = operand.bpd - ub
+        operator.wpd = operand.bpd - lb
+        return operator
 
     @staticmethod
     def Once(
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
-        return TemporalOperator(loc, OperatorKind.ONCE, lb, ub, [operand])
+        operator = TemporalOperator(loc, OperatorKind.ONCE, lb, ub, [operand])
+        operator.bpd = operand.bpd - ub
+        operator.wpd = operand.bpd - lb
+        return operator
 
     @staticmethod
     def Since(
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
     ) -> TemporalOperator:
-        return TemporalOperator(loc, OperatorKind.SINCE, lb, ub, [lhs, rhs])
+        operator = TemporalOperator(loc, OperatorKind.SINCE, lb, ub, [lhs, rhs])
+        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
+        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
+        return operator
 
     def __deepcopy__(self, memo) -> Operator:
         children = [copy.deepcopy(c, memo) for c in self.children]
