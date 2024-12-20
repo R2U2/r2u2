@@ -53,7 +53,6 @@ impl Clone for MLTLInstruction{
 }
 
 impl MLTLInstruction {
-    #[verifier::external]
     pub fn set_from_binary(instr: &[u8]) -> MLTLInstruction{
         return MLTLInstruction{ 
             op1_value: LittleEndian::read_u32(&instr[0..]),
@@ -76,7 +75,6 @@ impl MLTLInstruction {
     }
 }
 
-#[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
 pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut Monitor){
     match instr.op1_type{
         MLTL_OP_TYPE_ATOMIC => {

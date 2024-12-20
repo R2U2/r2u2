@@ -54,9 +54,17 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
             }
             MonitorProgressState::ReloopNoProgress => {
                 // End of timestamp, setup for next step
-                monitor.time_stamp = monitor.time_stamp + 1;
-                monitor.mltl_program_count.curr_program_count = 0;
-                monitor.progress = MonitorProgressState::FirstLoop;
+                match monitor.time_stamp.checked_add(1) {
+                    Some(n) => { 
+                        monitor.time_stamp = n;
+                        monitor.mltl_program_count.curr_program_count = 0;
+                        monitor.progress = MonitorProgressState::FirstLoop; 
+                    },
+                    None => {
+                        // timestamp overflowed; therefore reset entire monitor (simple safety measure, but could be improved)
+                        monitor.reset();
+                    },
+                }
             }
         }
     }

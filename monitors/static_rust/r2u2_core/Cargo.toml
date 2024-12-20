@@ -12,13 +12,14 @@ libm = "0.2.8"
 cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
 const_env = "0.1.2"
-vstd = { path = "../../../../verus/source/vstd"} 
+vstd = { git = "https://github.com/verus-lang/verus.git", rev="97112354a9453bfb983ad7431a0776990ba1df85" }
 
 [features]
 default = ["configurable"]
 debug_print_semihosting = ["dep:cortex-m-semihosting"]
 debug_print_std = ["dep:libc-print"]
 configurable = []
+verify = []
 
 [lib]
 name = "r2u2_core"

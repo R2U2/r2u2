@@ -148,7 +148,6 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
 }
 
 #[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
-// To-Do: Double check implementation... (Maybe should pass by reference for all...? So as to not create copies of values)
 pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32, read_num: u8) -> Option<r2u2_verdict>{
     #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]{
     debug_print!("Reading:");

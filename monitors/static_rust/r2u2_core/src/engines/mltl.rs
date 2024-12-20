@@ -217,6 +217,7 @@ pub open spec fn saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> r2u2_time {
         (lhs - rhs) as r2u2_time
     }
 }
+
 #[allow(dead_code)]
 #[verifier::external_fn_specification] // Verus doesn't support saturating_sub; therefore, have to provide specification for it
 #[verifier::when_used_as_spec(saturating_sub)]
