@@ -1,4 +1,6 @@
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::instructions::{mltl::*, booleanizer::*};
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::memory::scq::*;
 
 #[cfg(feature = "debug_print_semihosting")]
@@ -21,22 +23,20 @@ macro_rules! debug_print {
     }
 }
 
-#[cfg(all(not(feature = "debug_print_semihosting"), not(feature = "debug_print_std")))]
-macro_rules! debug_print {
-    ($($args: tt)*) => {
-    }
-}
-
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 pub(crate) use debug_print;
 
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 pub fn print_mltl_instruction(_instr: MLTLInstruction){
     debug_print!("{:#08x} {:#08x} {:#08x} {:#02x} {:#02x} {:#02x}", _instr.op1_value, _instr.op2_value, _instr.memory_reference, _instr.op1_type, _instr.op2_type, _instr.opcode);
 }
 
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 pub fn print_bz_instruction(_instr: BooleanizerInstruction){
     debug_print!("{:#08x} {:#08x} {:#08x} {:#02x}", _instr.param1, _instr.param2, _instr.memory_reference, _instr.opcode);
 }
 
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 pub fn print_mltl_config_instruction(instr: MLTLInstruction, _ctrl: SCQCtrlBlock){
     debug_print!("{:#08x} {:#08x} {:#08x} {:#02x} {:#02x} {:#02x}", instr.op1_value, instr.op2_value, instr.memory_reference, instr.op1_type, instr.op2_type, instr.opcode);
     match instr.op1_type{
@@ -52,11 +52,12 @@ pub fn print_mltl_config_instruction(instr: MLTLInstruction, _ctrl: SCQCtrlBlock
     }
 }
 
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 pub fn print_scq(arena: &SCQMemoryArena, queue_id: u32){
     let queue_ctrl = arena.control_blocks[queue_id as usize];
     debug_print!("-------- Queue {} --------", queue_id);
-    for _n in queue_ctrl.queue_ref..(queue_ctrl.queue_ref+queue_ctrl.length as usize){
-        debug_print!("|\t{} -> {}\t|", arena.queue_mem[_n].time, arena.queue_mem[_n].truth);
+    for n in queue_ctrl.queue_ref..(queue_ctrl.queue_ref+queue_ctrl.length){
+        debug_print!("|\t{} -> {}\t|", arena.queue_mem[n as usize].time, arena.queue_mem[n as usize].truth);
     }
     debug_print!("-------------------------");
 }

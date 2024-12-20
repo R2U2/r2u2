@@ -4,7 +4,10 @@ use crate::internals::bounds::R2U2_FLOAT_EPSILON;
 
 use crate::instructions::booleanizer::*;
 use crate::memory::monitor::*;
-use crate::internals::{debug::*, types::*};
+use crate::internals::types::*;
+
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+use crate::internals::debug::*;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -24,249 +27,323 @@ pub fn bz_update(monitor: &mut Monitor){
             return;
         }
         BZ_OP_ILOAD => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ILOAD");
             monitor.value_buffer[instr.memory_reference as usize].i = monitor.signal_buffer[instr.param1 as usize].i;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, instr.param1);  
         }
         BZ_OP_FLOAD => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FLOAD");
             monitor.value_buffer[instr.memory_reference as usize].f = monitor.signal_buffer[instr.param1 as usize].f;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} (s{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, instr.param1);  
         }
         BZ_OP_STORE => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ STORE");
             let op = monitor.value_buffer[instr.param1 as usize].i;
             monitor.atomic_buffer[instr.param2 as usize] = if op == 0 {false} else {true};
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("a{} = {} (b{})", instr.param2, monitor.atomic_buffer[instr.param2 as usize], instr.param1 as usize);
         }
         BZ_OP_BWNEG=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ BWNEG");
             let op = monitor.value_buffer[instr.param1 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = bitwise_negation(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (~{})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
         BZ_OP_BWAND=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ BWAND");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = bitwise_and(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} & {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_BWOR=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ BWOR");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = bitwise_or(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} | {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_BWXOR=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ BWXOR");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = bitwise_xor(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} ^ {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_IEQ=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IEQ");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FEQ=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FEQ");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_INEQ=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ INEQ");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_not_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FNEQ=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FNEQ");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_not_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} == {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_IGT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IGT");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_greater_than(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} > {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FGT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FGT");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_greater_than(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} > {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_IGTE=> {            
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IGTE");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_greater_than_or_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} >= {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FGTE=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FGTE");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_greater_than_or_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} >= {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_ILT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ILT");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_less_than(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} < {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FLT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FLT");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_less_than(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} < {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_ILTE=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ILTE");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_less_than_or_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} <= {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FLTE=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FLTE");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].i = float_less_than_or_equal(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} <= {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_INEG =>{
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ INEG");
             let op = monitor.value_buffer[instr.param1 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_negative(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (-1 * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
         BZ_OP_FNEG => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FNEG");
             let op = monitor.value_buffer[instr.param1 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_negative(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (-1 * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op);
         }
         BZ_OP_IADD => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IADD");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_add(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} + {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FADD => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FADD");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_add(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} + {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
         BZ_OP_ISUB => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ISUB");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_subtract(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} - {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FSUB => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FSUB");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_subtract(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} - {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
         BZ_OP_IMUL => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IMUL");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_multiply(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FMUL => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FMUL");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_multiply(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
         BZ_OP_IDIV=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IDIV");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_divide(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} / {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FDIV=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FDIV");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_divide(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} / {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
         BZ_OP_MOD=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ MOD");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_mod(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} % {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_IPOW=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IPOW");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_power(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} pow {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
         BZ_OP_FPOW=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FPOW");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_power(op0, op1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} pow {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
         BZ_OP_ISQRT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ISQRT");
             let op = monitor.value_buffer[instr.param1 as usize].i;
             monitor.value_buffer[instr.memory_reference as usize].i = integer_square_root(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (sqrt {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
         BZ_OP_FSQRT=> {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FSQRT");
             let op = monitor.value_buffer[instr.param1 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_square_root(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (sqrt {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op);
         }
         BZ_OP_IABS => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IABS");
             let op = monitor.value_buffer[instr.param1 as usize].i;
             (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_absolute_value(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
         BZ_OP_FABS => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ FABS");
             let op = monitor.value_buffer[instr.param1 as usize].f;
             monitor.value_buffer[instr.memory_reference as usize].f = float_absolute_value(op);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op);
         }
         BZ_OP_PREV => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ PREV");
             let op = monitor.value_buffer[instr.param1 as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {}/{}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, monitor.value_buffer[instr.memory_reference as usize].f);
         }
         _ => {

@@ -1,10 +1,13 @@
-use crate::internals::{debug::*, types::*};
+use crate::internals::types::*;
 use crate::memory::monitor::*;
 use mltl::*;
 use booleanizer::*;
 
 mod mltl;
 mod booleanizer;
+
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+use crate::internals::debug::*;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -21,6 +24,7 @@ pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
 // Runs R2U2 for a single time step
 pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("-------Step {}-------", monitor.time_stamp);
     //Reset output buffer
     monitor.output_buffer_idx = 0;

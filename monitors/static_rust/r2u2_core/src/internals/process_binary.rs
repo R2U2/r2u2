@@ -1,8 +1,9 @@
 use crate::memory::scq::SCQCtrlBlock;
 use crate::{engines, memory};
-use crate::internals::debug::*;
 use crate::instructions::{booleanizer::*, mltl::*};
 
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+use crate::internals::debug::*;
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
 
@@ -24,15 +25,19 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             match instr.opcode{
                 // Special case: ICONST and FCONST only need to be run once since they load constants
                 BZ_OP_ICONST=> {
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("BZ ICONST");
                     let op_const = BooleanizerInstruction::get_param1_int_from_binary(&spec_file[offset+2..]);
                     monitor.value_buffer[instr.memory_reference as usize].i = op_const;
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i);
                 }
                 BZ_OP_FCONST=> {
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("BZ FCONST");
                     let op_const = BooleanizerInstruction::get_param1_float_from_binary(&spec_file[offset+2..]);
                     monitor.value_buffer[instr.memory_reference as usize].f = op_const;
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f);
                 }
                 _ => {
@@ -52,11 +57,13 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         offset = offset + (spec_file[offset] as usize);
     }
 
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]{
     // Print output of table
     let mut i = 0;
     while i < monitor.bz_program_count.max_program_count{
         print_bz_instruction(monitor.bz_instruction_table[i]);
         i = i + 1;
+    }
     }
 
     // Print output of table
@@ -68,6 +75,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                 let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[monitor.mltl_instruction_table[i].memory_reference as usize];
                 queue.next_time = queue.temporal_block.lower_bound;
             }
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         print_mltl_instruction(monitor.mltl_instruction_table[i]);
         i = i + 1;
     }

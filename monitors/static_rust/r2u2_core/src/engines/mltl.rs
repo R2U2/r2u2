@@ -1,6 +1,9 @@
 use crate::instructions::mltl::*;
-use crate::internals::{debug::*, types::*};
+use crate::internals::types::*;
 use crate::memory::{monitor::*,scq::*};
+
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+use crate::internals::debug::*;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -11,7 +14,6 @@ use libc_print::std_name::println;
 use vstd::prelude::*;
 
 verus! {
-
 
 #[verifier::external]
 fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8) -> Option<r2u2_verdict> {
@@ -59,6 +61,7 @@ fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verd
     let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
     
     queue_ctrl.next_time = verdict.time.saturating_add(1);
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Desired time {}", queue_ctrl.next_time);
 
     simple_push_result(instr, monitor, verdict);
@@ -82,6 +85,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_FT_LOAD => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("LOAD");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
@@ -89,10 +93,12 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_RETURN => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("RETURN");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
                 push_result(instr, monitor, verdict.unwrap());
+                #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                 debug_print!("{}:{},{}", instr.op2_value, verdict.unwrap().time, if verdict.unwrap().truth {"T"} else {"F"});
                 monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, verdict: verdict.unwrap()};
                 monitor.output_buffer_idx += 1;
@@ -105,6 +111,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_FT_UNTIL => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("FT UNTIL");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -114,6 +121,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_RELEASE => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("FT RELEASE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -129,6 +137,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_PT_SINCE => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("PT SINCE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -138,6 +147,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_PT_TRIGGER => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("PT TRIGGER");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -147,6 +157,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_NOT => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("NOT");
             let op = check_operand_data(instr, monitor, 0);
             match not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
@@ -155,6 +166,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_AND => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("AND");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -164,6 +176,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             }
         }
         MLTL_OP_FT_OR => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("OR");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -182,6 +195,7 @@ pub fn mltl_ft_update(monitor: &mut Monitor){
             return;
         }
         MLTL_OP_FT_EQUIVALENT => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("EQUIVALENT");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
@@ -356,6 +370,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     if ready_op1 {
         // If op1 is true at lb, then true
         if value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op True");
             verdict.time = value_op1.time - queue_ctrl.temporal_block.lower_bound;
             verdict.truth = true;
@@ -370,6 +385,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             queue_ctrl.next_time = tau.saturating_add(1); // Only need to see each timestep pair once
 
                 if !value_op0.truth { // if op0 and op1 false, then false
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("Left and Right Op False");
                     verdict.time = tau - queue_ctrl.temporal_block.lower_bound;
                     verdict.truth = false;
@@ -380,6 +396,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
         }
         // if op1 is false the entire interval [lb, ub], then false
         if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.upper_bound){
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op False and Time elapsed");
             verdict.time = value_op1.time - queue_ctrl.temporal_block.upper_bound;
             verdict.truth = false;
@@ -398,6 +415,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             }
         }
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -518,6 +536,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
     if ready_op1 {
         // If op1 is false at lb, then false
         if !value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op False");
             verdict.time = value_op1.time - queue_ctrl.temporal_block.lower_bound;
             verdict.truth = false;
@@ -532,7 +551,8 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
             queue_ctrl.next_time = tau.saturating_add(1); // Only need to see each timestep pair once
 
                 if value_op0.truth { // if op0 and op1 true, then true
-                    debug_print!("Left and Right Op False");
+                #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+                debug_print!("Left and Right Op False");
                     verdict.time = tau - queue_ctrl.temporal_block.lower_bound;
                     verdict.truth = true;
 
@@ -542,6 +562,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
         }
         // if op1 is false the entire interval [lb, ub], then false
         if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_add(queue_ctrl.temporal_block.upper_bound){
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op True and Time elapsed");
             verdict.time = value_op1.time - queue_ctrl.temporal_block.upper_bound;
             verdict.truth = true;
@@ -560,6 +581,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
             }
         }
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -693,6 +715,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
         
 {
     if !queue_ctrl.temporal_block.previous.truth && queue_ctrl.temporal_block.previous.time < queue_ctrl.temporal_block.lower_bound{
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Not enough data to evaluate at beginning of trace");
         queue_ctrl.temporal_block.previous = r2u2_verdict{time: queue_ctrl.temporal_block.lower_bound - 1, truth: true};
         return Some(r2u2_verdict{time: queue_ctrl.temporal_block.previous.time, truth: false});
@@ -700,9 +723,11 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
         if value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("New edge: {}", value_op1.time);
             queue_ctrl.temporal_block.edge = r2u2_verdict{time: value_op1.time, truth: true};
             queue_ctrl.next_time = value_op1.time.saturating_add(1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op True");
             if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound){
                 verdict.time = value_op1.time.saturating_add(queue_ctrl.temporal_block.lower_bound);
@@ -716,6 +741,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
                 // and preserves startup behavior.
                 if verdict.time > queue_ctrl.temporal_block.previous.time ||
                 (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("Right Op True at i-lb");
                     queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                     return Some(verdict);
@@ -730,6 +756,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
                     verdict.truth = false;
                     if verdict.time > queue_ctrl.temporal_block.previous.time ||
                     (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                         debug_print!("Right Op never true from [i-ub, i-lb]");
                         queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                         return Some(verdict);
@@ -744,6 +771,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
 
                     if verdict.time > queue_ctrl.temporal_block.previous.time ||
                     (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                         debug_print!("Both False");
                         queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                         return Some(verdict);
@@ -760,12 +788,14 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
 
         if verdict.time > queue_ctrl.temporal_block.previous.time ||
         (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Left Op True Since Right Op True");
             queue_ctrl.next_time = max(queue_ctrl.next_time, verdict.time.saturating_sub(queue_ctrl.temporal_block.upper_bound).saturating_add(1));
             queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
             return Some(verdict);
         }
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -899,6 +929,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
         
 {
     if !queue_ctrl.temporal_block.previous.truth && queue_ctrl.temporal_block.previous.time < queue_ctrl.temporal_block.lower_bound{
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Not enough data to evaluate at beginning of trace");
         queue_ctrl.temporal_block.previous = r2u2_verdict{time: queue_ctrl.temporal_block.lower_bound - 1, truth: true};
         return Some(r2u2_verdict{time: queue_ctrl.temporal_block.previous.time, truth: true});
@@ -906,9 +937,11 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
         if !value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("New edge: {}", value_op1.time);
             queue_ctrl.temporal_block.edge = r2u2_verdict{time: value_op1.time, truth: true};
             queue_ctrl.next_time = value_op1.time.saturating_add(1);
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Right Op False");
             if value_op1.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound){
                 verdict.time = value_op1.time.saturating_add(queue_ctrl.temporal_block.lower_bound);
@@ -922,6 +955,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                 // and preserves startup behavior.
                 if verdict.time > queue_ctrl.temporal_block.previous.time ||
                 (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("Right Op False at i-lb");
                     queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                     return Some(verdict);
@@ -936,6 +970,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                     verdict.truth = true;
                     if verdict.time > queue_ctrl.temporal_block.previous.time ||
                     (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                         debug_print!("Right Op never true from [i-ub, i-lb]");
                         queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                         return Some(verdict);
@@ -950,6 +985,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
 
                     if verdict.time > queue_ctrl.temporal_block.previous.time ||
                     (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                         debug_print!("Both True");
                         queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                         return Some(verdict);
@@ -966,12 +1002,14 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
 
         if verdict.time > queue_ctrl.temporal_block.previous.time ||
         (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Left Op False Since Right Op False");
             queue_ctrl.next_time = max(queue_ctrl.next_time, verdict.time.saturating_sub(queue_ctrl.temporal_block.upper_bound).saturating_add(1));
             queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
             return Some(verdict);
         }
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -986,6 +1024,7 @@ fn not_operator(ready_op: r2u2_bool, value_op: r2u2_verdict, queue_ctrl: &mut SC
         queue_ctrl.next_time = value_op.time.saturating_add(1);
         return Some(r2u2_verdict{time: value_op.time, truth: !value_op.truth});
     } else {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Waiting");   
         return None;
     }
@@ -1021,14 +1060,17 @@ fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_b
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
-        debug_print!("Left and Right Ready!");
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            debug_print!("Left and Right Ready!");
         if value_op0.truth && value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both True");
             verdict.time = min(value_op0.time, value_op1.time);
             verdict.truth = true;
             queue_ctrl.next_time = verdict.time.saturating_add(1);
             return Some(verdict);
         } else if !value_op0.truth && !value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both False");
             verdict.time = max(value_op0.time, value_op1.time);
             verdict.truth = false;
@@ -1037,6 +1079,7 @@ fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_b
         }
     }
     if ready_op0 && !value_op0.truth {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Left False");
         verdict.time = value_op0.time;
         verdict.truth = false;
@@ -1044,12 +1087,14 @@ fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_b
         return Some(verdict);
     }
     else if ready_op1 && !value_op1.truth {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Right False");
         verdict.time = value_op1.time;
         verdict.truth = false;
         queue_ctrl.next_time = verdict.time.saturating_add(1);
         return Some(verdict);
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -1084,14 +1129,17 @@ fn or_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bo
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Left and Right Ready!");
         if value_op0.truth && value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both True");
             verdict.time = max(value_op0.time, value_op1.time);
             verdict.truth = true;
             queue_ctrl.next_time = verdict.time.saturating_add(1);
             return Some(verdict);
         } else if !value_op0.truth && !value_op1.truth {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both False");
             verdict.time = min(value_op0.time, value_op1.time);
             verdict.truth = false;
@@ -1100,6 +1148,7 @@ fn or_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bo
         }
     }
     if ready_op0 && value_op0.truth {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Left True");
         verdict.time = value_op0.time;
         verdict.truth = true;
@@ -1107,12 +1156,14 @@ fn or_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bo
         return Some(verdict);
     }
     else if ready_op1 && value_op1.truth {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Right True");
         verdict.time = value_op1.time;
         verdict.truth = true;
         queue_ctrl.next_time = verdict.time.saturating_add(1);
         return Some(verdict);
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }
@@ -1154,21 +1205,25 @@ fn equivalent_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1:
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
+        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Left and Right Ready!");
         verdict.time = min(value_op0.time, value_op1.time);
         if (value_op0.truth && value_op1.truth) || (!value_op0.truth && !value_op1.truth){
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both {}", if value_op1.truth {"True"} else {"False"});
             verdict.truth = true;
             queue_ctrl.next_time = verdict.time.saturating_add(1);
             return Some(verdict);
         }
         else {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("{} not equivalant to {}", if value_op0.truth {"True"} else {"False"}, if value_op1.truth {"True"} else {"False"});
             verdict.truth = false;
             queue_ctrl.next_time = verdict.time.saturating_add(1);
             return Some(verdict);
         }
     }
+    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");
     return None;
 }

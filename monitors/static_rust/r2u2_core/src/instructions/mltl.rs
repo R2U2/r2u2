@@ -1,6 +1,7 @@
 use byteorder::{LittleEndian, ByteOrder};
 
 use crate::memory::{scq::SCQCtrlBlock, monitor::Monitor};
+#[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::internals::debug;
     
 // MLTL Instruction Opcodes
@@ -52,6 +53,7 @@ impl Clone for MLTLInstruction{
 }
 
 impl MLTLInstruction {
+    #[verifier::external]
     pub fn set_from_binary(instr: &[u8]) -> MLTLInstruction{
         return MLTLInstruction{ 
             op1_value: LittleEndian::read_u32(&instr[0..]),
@@ -74,17 +76,19 @@ impl MLTLInstruction {
     }
 }
 
+#[verifier::external] // Verus doesn't support the &mut dereference of monitor.queue_arena.control_blocks
 pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut Monitor){
     match instr.op1_type{
         MLTL_OP_TYPE_ATOMIC => {
-            let mut queue_ref: usize = 0;
+            let mut queue_ref: u32 = 0;
             if instr.memory_reference > 0 {
                 let prev_queue = monitor.queue_arena.control_blocks[(instr.memory_reference as usize) - 1];
-                queue_ref = prev_queue.queue_ref + (prev_queue.length as usize);
+                queue_ref = prev_queue.queue_ref + prev_queue.length;
             }
             let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
             queue.length = instr.op1_value;
             queue.queue_ref = queue_ref;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug::print_mltl_config_instruction(instr, *queue);
         },
         MLTL_OP_TYPE_SUBFORMULA => {
@@ -92,6 +96,7 @@ pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut
             queue.temporal_block.lower_bound = instr.op1_value;
             queue.temporal_block.upper_bound = instr.op2_value;
             queue.length = queue.length - 4; // Required to substract 4 to use same spec file as C version with DUOQs
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug::print_mltl_config_instruction(instr, *queue);
         },
         _ => {
