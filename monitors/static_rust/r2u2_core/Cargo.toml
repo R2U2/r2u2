@@ -1,10 +1,15 @@
 [package]
-authors = ["aurandt <aurandt@iastate.edu>"]
+authors = ["Alexis Aurandt <aurandt@iastate.edu>"]
 edition = "2021"
 readme = "README.md"
 name = "r2u2_core"
+rust-version = "1.79.0"
 version = "0.1.0"
+keywords = ["monitoring", "verification"]
 categories = ["no-std", "embedded"]
+repository = "https://github.com/R2U2/r2u2/tree/rust-develop"
+homepage = "https://r2u2.temporallogic.org"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 byteorder = { version = "1", default-features = false }
