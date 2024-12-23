@@ -256,7 +256,7 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
-    """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
+    """Removes extended operators (Global, Future, Historically, Once, xor, implies) from each specification in `program`."""
     log.debug(MODULE_CODE, 1, "Removing extended operators.")
 
     for expr in program.postorder(context):

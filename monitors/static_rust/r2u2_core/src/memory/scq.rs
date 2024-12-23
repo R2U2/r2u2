@@ -168,7 +168,7 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
         // Check if time pointed to is >= desired time
         if monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize].time >= parent_queue_ctrl.next_time {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
-            debug_print!("New data found after scanning: ({}, {})", monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].truth, monitor.queue_arena.queue_mem[child_queue_ctrl.queue_ref + *read].time);
+            debug_print!("New data found after scanning: ({}, {})", monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize].truth, monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize].time);
             return Some(monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize]);
         }
 
