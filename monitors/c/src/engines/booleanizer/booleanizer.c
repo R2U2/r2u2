@@ -422,8 +422,8 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
         // BZ0: iload b0
         // BZ1: iload i0
         // BZ2: iload i1
-        // BZ3: iite-0 BZ0 BZ1 [if BZ0 is true, then store BZ1, else store 0]
-        // BZ4: iite-1 BZ3 BZ2 [if BZ3 is true, then store BZ2, else store 0]
+        // BZ3: iite-0 BZ0 BZ1 [if BZ0 is true, then set MSB to 1 and store BZ1 else set MSB to 0]
+        // BZ4: iite-1 BZ3 BZ2 [if MSB of BZ3 is 1, then store BZ3, else store BZ2]
 
         default:
             R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
