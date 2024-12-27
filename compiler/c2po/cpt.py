@@ -463,7 +463,6 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_ABS = "abs"
     ARITHMETIC_RATE = "rate"
 
-
     # Relational
     EQUAL = "=="
     NOT_EQUAL = "!="
@@ -494,7 +493,7 @@ class OperatorKind(enum.Enum):
     # Other
     COUNT = "count"
     PREVIOUS = "prev"
-
+    ITE = "ite"
 
     def is_booleanizer_operator(self) -> bool:
         return self in {
@@ -519,6 +518,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.LESS_THAN,
             OperatorKind.LESS_THAN_OR_EQUAL,
             OperatorKind.COUNT,
+            OperatorKind.ITE
         }
 
 
@@ -547,6 +547,15 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.COUNT, [num] + children, type)
+    
+    @staticmethod
+    def IfThenElse(
+        loc: log.FileLocation,
+        cond: Expression,
+        then: Expression,
+        else_: Expression,
+    ) -> Operator:
+        return Operator(loc, OperatorKind.ITE, [cond, then, else_])
 
     @staticmethod
     def BitwiseAnd(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
@@ -897,9 +906,10 @@ def is_past_time_operator(expr: Expression) -> bool:
     }
 
 def is_prev_operator(expr: Expression) -> bool:
-    return isinstance(expr, Operator) and expr.operator in {
-        OperatorKind.PREVIOUS,
-    }
+    return isinstance(expr, Operator) and expr.operator == OperatorKind.PREVIOUS
+
+def is_ite_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator == OperatorKind.ITE
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)

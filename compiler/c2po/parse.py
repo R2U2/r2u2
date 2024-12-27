@@ -19,7 +19,7 @@ class C2POLexer(sly.Lexer):
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -66,7 +66,7 @@ class C2POLexer(sly.Lexer):
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
-    # QUEST   = r"\?"
+    QUEST   = r"\?"
     SEMI    = r";"
     COLON   = r":"
     DOT     = r"\."
@@ -136,6 +136,7 @@ class C2POParser(sly.Parser):
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
+        ("right", QUEST, COLON),
         ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
     )
 
@@ -460,6 +461,10 @@ class C2POParser(sly.Parser):
     @_("RATE LPAREN rate RPAREN")
     def expr(self, p):
         return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
+
+    @_("expr QUEST expr COLON expr")
+    def expr(self, p):
+        return cpt.Operator.IfThenElse(log.FileLocation(self.filename, p.lineno), p[0], p[2], p[4])
 
     # Binary expressions
     @_("expr LOG_XOR expr")

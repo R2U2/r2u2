@@ -527,7 +527,29 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
             expr.type = expr.children[0].type
+        elif cpt.is_ite_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            is_const: bool = True
 
+            if expr.children[0].type != types.BoolType():
+                log.error(
+                    MODULE_CODE,
+                    f"Invalid condition for ITE, found '{expr.children[0].type}' ('{expr.children[0]}') but expected 'bool'\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            
+            if expr.children[1].type != expr.children[2].type:
+                log.error(
+                    MODULE_CODE,
+                    f"Invalid operands for '{expr.symbol}', found '{expr.children[1].type}' and '{expr.children[2].type}' ('{expr}') but expected same type\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            
+            for child in expr.children:
+                is_const = is_const and child.type.is_const
+            expr.type = expr.children[1].type
         else:
             log.error(
                 MODULE_CODE,
