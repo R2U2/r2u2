@@ -416,6 +416,15 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ FPREV\n");
             R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", inst_buff.addr, f1, inst_buff.param1.bz_addr);
             break;
+
+        // Computing (b0 ? i0 : i1)
+        // ------------------------
+        // BZ0: iload b0
+        // BZ1: iload i0
+        // BZ2: iload i1
+        // BZ3: iite-0 BZ0 BZ1 [if BZ0 is true, then store BZ1, else store 0]
+        // BZ4: iite-1 BZ3 BZ2 [if BZ3 is true, then store BZ2, else store 0]
+
         default:
             R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
             break;

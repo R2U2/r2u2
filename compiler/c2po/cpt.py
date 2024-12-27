@@ -1424,6 +1424,21 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((0, expr.children[1]))
             else:
                 s += ")"
+        elif is_operator(expr, OperatorKind.ITE):
+            if seen == 0:
+                s += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += ")?("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[1]))
+            elif seen == 2:
+                s += "):("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[2]))
+            else:
+                s += ")"
         elif isinstance(expr, Operator):
             if seen == len(expr.children):
                 s += ")"
