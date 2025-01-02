@@ -28,10 +28,11 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             }
         }
         MLTL_OP_TYPE_DIRECT => {
-            if instr.opcode == MLTL_OP_PT_SINCE {
-                let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
-                if queue_ctrl.temporal_block.edge.truth {
-                    return Some(r2u2_verdict{time: queue_ctrl.temporal_block.edge.time + queue_ctrl.temporal_block.upper_bound - queue_ctrl.temporal_block.lower_bound, truth: value != 0});
+            // Only directly load in T or F on first loop of time step
+            if monitor.progress == MonitorProgressState::FirstLoop {
+                if instr.opcode == MLTL_OP_PT_SINCE || instr.opcode == MLTL_OP_PT_TRIGGER {
+                    let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+                    return Some(r2u2_verdict{time: monitor.time_stamp.saturating_add(queue_ctrl.temporal_block.upper_bound), truth: value != 0});
                 }
             }
             // Only directly load in T or F on first loop of time step
@@ -78,7 +79,7 @@ fn simple_push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2
 }
 
 #[verifier::external]
-pub fn mltl_ft_update(monitor: &mut Monitor){
+pub fn mltl_update(monitor: &mut Monitor){
     let instr = monitor.mltl_instruction_table[monitor.mltl_program_count.curr_program_count];
     match instr.opcode {
         MLTL_OP_FT_NOP => {
@@ -553,7 +554,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
 
                 if value_op0.truth { // if op0 and op1 true, then true
                 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
-                debug_print!("Left and Right Op False");
+                debug_print!("Left and Right Op True");
                     verdict.time = tau - queue_ctrl.temporal_block.lower_bound;
                     verdict.truth = true;
 
@@ -972,7 +973,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                     if verdict.time > queue_ctrl.temporal_block.previous.time ||
                     (verdict.time == 0 && !queue_ctrl.temporal_block.previous.truth) {
                         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
-                        debug_print!("Right Op never true from [i-ub, i-lb]");
+                        debug_print!("Right Op true from [i-ub, i-lb]");
                         queue_ctrl.temporal_block.previous = r2u2_verdict{time: verdict.time, truth: true};
                         return Some(verdict);
                     }

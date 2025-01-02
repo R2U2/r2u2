@@ -38,7 +38,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     let start_time = monitor.time_stamp;
     while start_time == monitor.time_stamp{
         while monitor.mltl_program_count.curr_program_count < monitor.mltl_program_count.max_program_count {
-            mltl_ft_update(monitor);
+            mltl_update(monitor);
             monitor.mltl_program_count.curr_program_count = monitor.mltl_program_count.curr_program_count + 1;
         }
         match monitor.progress {
