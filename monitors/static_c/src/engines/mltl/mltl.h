@@ -8,48 +8,31 @@
 enum r2u2_mltl_opcode{
     // Future Tense: 1xxxx
 
-    R2U2_MLTL_OP_FT_NOP          = 0b11111,
-    R2U2_MLTL_OP_FT_CONFIGURE    = 0b11110,
-    R2U2_MLTL_OP_FT_LOAD         = 0b11101,
-    R2U2_MLTL_OP_FT_RETURN       = 0b11100,
+    R2U2_MLTL_OP_NOP          = 0b11111,
+    R2U2_MLTL_OP_CONFIGURE    = 0b11110,
+    R2U2_MLTL_OP_LOAD         = 0b11101,
+    R2U2_MLTL_OP_RETURN       = 0b11100,
 
-    R2U2_MLTL_OP_FT_EVENTUALLY   = 0b11011,
-    R2U2_MLTL_OP_FT_GLOBALLY     = 0b11010,
-    R2U2_MLTL_OP_FT_UNTIL        = 0b11001,
-    R2U2_MLTL_OP_FT_RELEASE      = 0b11000,
+    R2U2_MLTL_OP_EVENTUALLY   = 0b11011,
+    R2U2_MLTL_OP_GLOBALLY     = 0b11010,
+    R2U2_MLTL_OP_UNTIL        = 0b11001,
+    R2U2_MLTL_OP_RELEASE      = 0b11000,
 
-    R2U2_MLTL_OP_FT_NOT          = 0b10111,
-    R2U2_MLTL_OP_FT_AND          = 0b10110,
-    R2U2_MLTL_OP_FT_OR           = 0b10101,
-    R2U2_MLTL_OP_FT_IMPLIES      = 0b10100,
+    R2U2_MLTL_OP_NOT          = 0b10111,
+    R2U2_MLTL_OP_AND          = 0b10110,
+    R2U2_MLTL_OP_OR           = 0b10101,
+    R2U2_MLTL_OP_IMPLIES      = 0b10100,
 
-    R2U2_MLTL_OP_FT_NAND         = 0b10011,
-    R2U2_MLTL_OP_FT_NOR          = 0b10010,
-    R2U2_MLTL_OP_FT_XOR          = 0b10001,
-    R2U2_MLTL_OP_FT_EQUIVALENT   = 0b10000,
+    R2U2_MLTL_OP_XOR          = 0b10001,
+    R2U2_MLTL_OP_EQUIVALENT   = 0b10000,
 
 
     // Past Tense: 0xxxx
 
-    R2U2_MLTL_OP_PT_NOP          = 0b01111,
-    R2U2_MLTL_OP_PT_CONFIGURE    = 0b01110,
-    R2U2_MLTL_OP_PT_LOAD         = 0b01101,
-    R2U2_MLTL_OP_PT_RETURN       = 0b01100,
-
-    R2U2_MLTL_OP_PT_ONCE         = 0b01011,
-    R2U2_MLTL_OP_PT_HISTORICALLY = 0b01010,
-    R2U2_MLTL_OP_PT_SINCE        = 0b01001,
-    R2U2_MLTL_OP_PT_LOCK         = 0b01000,
-
-    R2U2_MLTL_OP_PT_NOT          = 0b00111,
-    R2U2_MLTL_OP_PT_AND          = 0b00110,
-    R2U2_MLTL_OP_PT_OR           = 0b00101,
-    R2U2_MLTL_OP_PT_IMPLIES      = 0b00100,
-
-    R2U2_MLTL_OP_PT_NAND         = 0b00011,
-    R2U2_MLTL_OP_PT_NOR          = 0b00010,
-    R2U2_MLTL_OP_PT_XOR          = 0b00001,
-    R2U2_MLTL_OP_PT_EQUIVALENT   = 0b00000,
+    R2U2_MLTL_OP_ONCE         = 0b01011,
+    R2U2_MLTL_OP_HISTORICALLY = 0b01010,
+    R2U2_MLTL_OP_SINCE        = 0b01001,
+    R2U2_MLTL_OP_TRIGGER      = 0b01000,
 };
 
 typedef uint8_t r2u2_mltl_opcode_t;

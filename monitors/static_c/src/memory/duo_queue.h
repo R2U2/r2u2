@@ -75,7 +75,7 @@ typedef struct {
   r2u2_tnt_t *queues;
 } r2u2_duoq_arena_t;
 
-static inline r2u2_duoq_temporal_block_t* r2u2_duoq_ft_temporal_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
+static inline r2u2_duoq_temporal_block_t* r2u2_duoq_temporal_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
   return (r2u2_duoq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
 }
@@ -95,11 +95,11 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
  * Checking for a temporal block by comparing the queue pointer against the
  * previous queue's pointer + length isn't guarenteed but should be sufficent.
  */
-r2u2_status_t r2u2_duoq_ft_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
+r2u2_status_t r2u2_duoq_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
 
 /* FT (SCQ replacement) */
-r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
+r2u2_status_t r2u2_duoq_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
+r2u2_bool r2u2_duoq_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
 
 /* PT (Box Queue replacement)
  * Control Block Values:

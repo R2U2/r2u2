@@ -51,7 +51,7 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_duoq_ft_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
+r2u2_status_t r2u2_duoq_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
 
   #if R2U2_DEBUG
     assert((arena->blocks)[queue_id].length > sizeof(r2u2_duoq_temporal_block_t) / sizeof(r2u2_tnt_t));
@@ -69,7 +69,7 @@ r2u2_status_t r2u2_duoq_ft_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time q
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value) {
+r2u2_status_t r2u2_duoq_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   #if R2U2_DEBUG
@@ -102,7 +102,7 @@ r2u2_status_t r2u2_duoq_ft_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r
   return R2U2_OK;
 }
 
-r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value) {
+r2u2_bool r2u2_duoq_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value) {
   r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   #if R2U2_DEBUG
@@ -136,80 +136,4 @@ r2u2_bool r2u2_duoq_ft_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_
   // No new data in queue
   R2U2_DEBUG_PRINT("\t\tNo new data Read Ptr %u and Write Ptr %u and t=%d\n", *read, ctrl->write, next_time);
   return false;
-}
-
-r2u2_status_t r2u2_duoq_pt_effective_id_set(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_time effective_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-
-  #if R2U2_DEBUG
-    assert(ctrl->length > sizeof(r2u2_time) / sizeof(r2u2_tnt_t));
-  #endif
-
-  // Reserve temporal block by shortening length of circular buffer
-  ctrl->length -= sizeof(r2u2_time) / sizeof(r2u2_tnt_t);
-
-  ((ctrl->queue)[ctrl->length]) = effective_id;
-
-  R2U2_DEBUG_PRINT("\t\tCfg DUOQ %u: EID Set %u, len = %u\n", queue_id, ((ctrl->queue)[ctrl->length]), (arena->blocks)[queue_id].length);
-
-  #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
-  #endif
-
-  return R2U2_OK;
-}
-
-r2u2_status_t r2u2_duoq_pt_push(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_duoq_pt_interval_t value) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-
-  #if R2U2_DEBUG
-    R2U2_DEBUG_PRINT("PT Queue %d len %d\n", queue_id, ctrl->length);
-    if (r2u2_duoq_pt_is_full(arena, queue_id)) {
-      R2U2_DEBUG_PRINT("WARNING: PT Queue Overflow\n");
-    }
-  #endif
-
-  (ctrl->queue)[ctrl->write] = value.start;
-  (ctrl->queue)[ctrl->write + 1] = value.end;
-
-  ctrl->write = (ctrl->write == ctrl->length-2) ? 0 : ctrl->write + 2;
-
-  return R2U2_OK;
-}
-
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_peek(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-
-  if (r2u2_duoq_pt_is_empty(arena, queue_id)) {
-    return (r2u2_duoq_pt_interval_t){R2U2_TNT_TRUE, R2U2_TNT_TRUE};
-  } else {
-    return (r2u2_duoq_pt_interval_t){(ctrl->queue)[ctrl->read1], (ctrl->queue)[ctrl->read1 + 1]};
-  }
-}
-
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_head_pop(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-
-    if (r2u2_duoq_pt_is_empty(arena, queue_id)) {
-      R2U2_DEBUG_PRINT("WARNING: PT Head Underflow\n");
-      return (r2u2_duoq_pt_interval_t){R2U2_TNT_TRUE, R2U2_TNT_TRUE};
-    } else {
-      // Write head always points at invalid data, so we decrement before read
-      ctrl->write = (ctrl->write == 0) ? ctrl->length-2 : ctrl->write - 2;
-      return (r2u2_duoq_pt_interval_t){(ctrl->queue)[ctrl->write], (ctrl->queue)[ctrl->write + 1]};
-    }
-}
-
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_tail_pop(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  r2u2_tnt_t result_index;
-
-    if (r2u2_duoq_pt_is_empty(arena, queue_id)) {
-      R2U2_DEBUG_PRINT("WARNING: PT Tail Underflow\n");
-      return (r2u2_duoq_pt_interval_t){R2U2_TNT_TRUE, R2U2_TNT_TRUE};
-    } else {
-      result_index = ctrl->read1;
-      ctrl->read1 = (ctrl->read1 == ctrl->length-2) ? 0 : ctrl->read1 + 2;
-      return (r2u2_duoq_pt_interval_t){(ctrl->queue)[result_index], (ctrl->queue)[result_index + 1]};
-    }
 }
