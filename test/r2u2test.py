@@ -515,7 +515,7 @@ if __name__ == "__main__":
     parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
                         help="c2po.py file to use for tests")
     parser.add_argument("--monitor", default="static_c", help="options are 'static_c' or 'static_rust'")
-    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static_c/build/r2u2_debug",
+    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static_c/build/r2u2",
                         help="r2u2 binary to use for tests")
     parser.add_argument("--r2u2manifestpath", default=TEST_DIR / "../monitors/static_rust/r2u2_cli/Cargo.toml",
                         help="r2u2 Cargo.toml to use for tests")
