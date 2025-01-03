@@ -30,7 +30,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
         } else {
           *result = monitor->time_stamp | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         }
-        return (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
+        return true;
 
       case R2U2_FT_OP_ATOMIC:
         // Only load in atomics on first loop of time step
@@ -354,21 +354,21 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
             }
           }
         }
-        if (op0_rdy && (op0 & R2U2_TNT_TRUE) && \
-          (op0 & R2U2_TNT_TIME) >= sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->lower_bound) && (temp->edge & R2U2_TNT_TRUE) && \
-          ((temp->edge & R2U2_TNT_TIME) > sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->upper_bound) || (temp->previous & R2U2_TNT_TIME) < temp->upper_bound)) {
-          result = min((op0 & R2U2_TNT_TIME) + temp->lower_bound, (temp->edge & R2U2_TNT_TIME) + temp->upper_bound) | R2U2_TNT_TRUE;
-            if (((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)) || \
-              (((result & R2U2_TNT_TIME) == 0) && !(temp->previous & R2U2_TNT_TRUE))) {
-                R2U2_DEBUG_PRINT("\tLeft Op True Since Right Op True\n");
-                r2u2_time next = max(ctrl->next_time, sub_min_zero((result & R2U2_TNT_TIME), temp->upper_bound) + 1);
-                push_result(monitor, instr, result);
-                ctrl->next_time = next;
-                temp->previous = R2U2_TNT_TRUE | result;
-                error_cond = R2U2_OK;
-                break;
-            }
-        }
+      }
+      if (op0_rdy && (op0 & R2U2_TNT_TRUE) && \
+        (op0 & R2U2_TNT_TIME) >= sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->lower_bound) && (temp->edge & R2U2_TNT_TRUE) && \
+        ((temp->edge & R2U2_TNT_TIME) > sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->upper_bound) || (temp->previous & R2U2_TNT_TIME) < temp->upper_bound)) {
+        result = min((op0 & R2U2_TNT_TIME) + temp->lower_bound, (temp->edge & R2U2_TNT_TIME) + temp->upper_bound) | R2U2_TNT_TRUE;
+          if (((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)) || \
+            (((result & R2U2_TNT_TIME) == 0) && !(temp->previous & R2U2_TNT_TRUE))) {
+              R2U2_DEBUG_PRINT("\tLeft Op True Since Right Op True\n");
+              r2u2_time next = max(ctrl->next_time, sub_min_zero((result & R2U2_TNT_TIME), temp->upper_bound) + 1);
+              push_result(monitor, instr, result);
+              ctrl->next_time = next;
+              temp->previous = R2U2_TNT_TRUE | result;
+              error_cond = R2U2_OK;
+              break;
+          }
       }
 
       error_cond = R2U2_OK;
@@ -444,21 +444,22 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
             }
           }
         }
-        if (op0_rdy && !(op0 & R2U2_TNT_TRUE) && \
-          (op0 & R2U2_TNT_TIME) >= sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->lower_bound) && (temp->edge & R2U2_TNT_TRUE) && \
-          ((temp->edge & R2U2_TNT_TIME) > sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->upper_bound) || (temp->previous & R2U2_TNT_TIME) < temp->upper_bound)) {
-          result = min((op0 & R2U2_TNT_TIME) + temp->lower_bound, (temp->edge & R2U2_TNT_TIME) + temp->upper_bound) | R2U2_TNT_FALSE;
-          if (((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)) || \
-              (((result & R2U2_TNT_TIME) == 0) && !(temp->previous & R2U2_TNT_TRUE))) {
-                R2U2_DEBUG_PRINT("\tLeft Op False Since Right Op False\n");
-                r2u2_time next = max(ctrl->next_time, sub_min_zero((result & R2U2_TNT_TIME), temp->upper_bound) + 1);
-                push_result(monitor, instr, result);
-                ctrl->next_time = next;
-                temp->previous = R2U2_TNT_TRUE | result;
-                error_cond = R2U2_OK;
-                break;
-              }
-        }
+      }
+      if (op0_rdy && !(op0 & R2U2_TNT_TRUE) && \
+        (op0 & R2U2_TNT_TIME) >= sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->lower_bound) && (temp->edge & R2U2_TNT_TRUE) && \
+        ((temp->edge & R2U2_TNT_TIME) > sub_min_zero((temp->previous & R2U2_TNT_TIME), temp->upper_bound) || (temp->previous & R2U2_TNT_TIME) < temp->upper_bound)) {
+        R2U2_DEBUG_PRINT("We are here!\n");
+        result = min((op0 & R2U2_TNT_TIME) + temp->lower_bound, (temp->edge & R2U2_TNT_TIME) + temp->upper_bound) | R2U2_TNT_FALSE;
+        if (((result & R2U2_TNT_TIME) > (temp->previous & R2U2_TNT_TIME)) || \
+            (((result & R2U2_TNT_TIME) == 0) && !(temp->previous & R2U2_TNT_TRUE))) {
+              R2U2_DEBUG_PRINT("\tLeft Op False Since Right Op False\n");
+              r2u2_time next = max(ctrl->next_time, sub_min_zero((result & R2U2_TNT_TIME), temp->upper_bound) + 1);
+              push_result(monitor, instr, result);
+              ctrl->next_time = next;
+              temp->previous = R2U2_TNT_TRUE | result;
+              error_cond = R2U2_OK;
+              break;
+            }
       }
 
       error_cond = R2U2_OK;

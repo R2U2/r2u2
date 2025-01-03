@@ -28,15 +28,10 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             }
         }
         MLTL_OP_TYPE_DIRECT => {
-            // Only directly load in T or F on first loop of time step
-            if monitor.progress == MonitorProgressState::FirstLoop {
-                if instr.opcode == MLTL_OP_PT_SINCE || instr.opcode == MLTL_OP_PT_TRIGGER {
-                    let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
-                    return Some(r2u2_verdict{time: monitor.time_stamp.saturating_add(queue_ctrl.temporal_block.upper_bound), truth: value != 0});
-                }
-            }
-            // Only directly load in T or F on first loop of time step
-            if monitor.progress == MonitorProgressState::FirstLoop {
+            if instr.opcode == MLTL_OP_PT_SINCE || instr.opcode == MLTL_OP_PT_TRIGGER {
+                let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+                return Some(r2u2_verdict{time: monitor.time_stamp.saturating_add(queue_ctrl.temporal_block.upper_bound), truth: value != 0});
+            } else {
                 return Some(r2u2_verdict{time: monitor.time_stamp, truth: value != 0});
             }
         }
