@@ -1099,10 +1099,6 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
-                elif expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
-                    context.atomic_id[expr] = aid
-                    atomic_map[cpt.to_prefix_str(expr)] = aid
-                    aid += 1
 
     log.debug(
         MODULE_CODE, 1,

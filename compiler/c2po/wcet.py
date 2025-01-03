@@ -29,7 +29,7 @@ def compute_cpu_wcet(
     total_wcet = 0
 
     for instr in assembly:
-        if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):
+        if isinstance(instr, (assemble.CGInstruction)):
             continue
 
         operator: Optional[assemble.Operator] = instr.operator
@@ -70,7 +70,7 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
     scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.DUOQ]
 
     for instr in assembly:
-        if isinstance(instr, (assemble.ATInstruction, assemble.CGInstruction)):
+        if isinstance(instr, (assemble.CGInstruction)):
             continue
 
         operator: Optional[assemble.Operator] = instr.operator

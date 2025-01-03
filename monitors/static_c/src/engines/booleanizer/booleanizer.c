@@ -34,9 +34,9 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             break;
         /* Store */
         case R2U2_BZ_OP_STORE:
-            (*(monitor->atomic_buffer)[0])[inst_buff.param2] = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
+            (*(monitor->atomic_buffer))[inst_buff.param2] = (*monitor->value_buffer)[inst_buff.param1.bz_addr].i;
 
-            R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", inst_buff.param2, (*(monitor->atomic_buffer)[0])[inst_buff.param2], inst_buff.param1.bz_addr);
+            R2U2_DEBUG_PRINT("\ta%d = %hhu (b%d)\n", inst_buff.param2, (*(monitor->atomic_buffer))[inst_buff.param2], inst_buff.param1.bz_addr);
             break;
         /* Bitwise */
         case R2U2_BZ_OP_BWNEG:

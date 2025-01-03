@@ -33,8 +33,6 @@ parser.add_argument("--float-width", default=32,
 parser.add_argument("--mission-time", type=int,
                     help="specifies mission time, overriding inference from a trace file, if present")
 
-parser.add_argument("-at", "--atomic-checkers", action="store_true",
-                    help="enable atomic checkers")
 parser.add_argument("-bz", "--booleanizer", action="store_true",
                     help="enable booleanizer")
 
@@ -96,7 +94,6 @@ return_code = c2po.main.main(
     only_parse=args.parse,
     only_type_check=args.type_check,
     only_compile=args.compile,
-    enable_atomic_checkers=args.atomic_checkers, 
     enable_booleanizer=args.booleanizer, 
     enable_cse=args.disable_cse, 
     enable_extops=args.extops, 

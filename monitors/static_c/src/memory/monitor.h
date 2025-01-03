@@ -10,9 +10,6 @@
 #include "memory/register.h"
 #include "memory/duo_queue.h"
 
-// TODO(bckempa): This is a smell, there sholnd't be any engine stuff in here, only memory...
-#include "engines/atomic_checker/aux_data.h"
-
 typedef enum {
   R2U2_MONITOR_PROGRESS_FIRST_LOOP,
   R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS,
@@ -45,14 +42,8 @@ typedef struct {
   // TODO(bckempa): Can that be more transparent/ergonomic?
   r2u2_signal_vector_t    *signal_vector;
   r2u2_value_buffer_t     *value_buffer;
-  r2u2_atomic_buffer_t    atomic_buffer;
-  r2u2_atomic_buffer_t    past_time_result_buffer;
+  r2u2_atomic_buffer_t    *atomic_buffer;
   r2u2_duoq_arena_t       duo_queue_mem;
-
-  // TODO
-  // #if R2U2_AT_EXTRA_FILTERS
-  r2u2_at_filter_aux_data_buffer_t *at_aux_buffer;
-  // #endif
 
 } r2u2_monitor_t;
 
@@ -71,10 +62,8 @@ typedef struct {
     NULL, NULL, \
     &(void*[R2U2_MAX_SIGNALS]){0}, \
     &(r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
-    {&(r2u2_bool [R2U2_MAX_ATOMICS]){0}, &(r2u2_bool [R2U2_MAX_ATOMICS]){0}}, \
-    {&(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}, &(r2u2_bool [R2U2_MAX_INSTRUCTIONS]){0}}, \
+    &(r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
     {NULL, NULL}, \
-    &(r2u2_at_filter_aux_data_t [R2U2_MAX_AT_INSTRUCTIONS]){0}, \
   }
 
 

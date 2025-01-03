@@ -58,9 +58,6 @@ Each of the following cases shows a minimal example of a feature discussed in
 the paper in the indicated section:
 - `agc`         Assume-Guarantee Contract: tri-state status 
                               output (inactive, invalid, or verified)
-- `arb_dataflow`    Arbitrary Data-Flow: Feeding a temporal engine 
-                            results back to the atomic checker
-- `atomic_checker`  Atomic Checker: various signal processing examples
 - `cav`             CAV: The example from the paper showcasing a 
                               realistic composition of the other features
 - `cse`             Common Subexpression Elimination: Removal of 

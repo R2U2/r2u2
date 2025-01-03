@@ -18,9 +18,8 @@ class C2POSection(enum.Enum):
     STRUCT = 0
     INPUT = 1
     DEFINE = 2
-    ATOMIC = 3
-    FTSPEC = 4
-    PTSPEC = 5
+    FTSPEC = 3
+    PTSPEC = 4
 
 
 class CompilationStage(enum.Enum):
@@ -194,19 +193,6 @@ class Signal(Expression):
         self.copy_attrs(new)
         new.signal_id = self.signal_id
         return new
-
-
-class AtomicChecker(Expression):
-    def __init__(self, loc: log.FileLocation, s: str) -> None:
-        super().__init__(loc, [])
-        self.symbol: str = s
-        self.type: types.Type = types.BoolType(False)
-        self.engine = types.R2U2Engine.ATOMIC_CHECKER
-
-    def __deepcopy__(self, memo) -> AtomicChecker:
-        copy = AtomicChecker(self.loc, self.symbol)
-        self.copy_attrs(copy)
-        return copy
 
 
 class ArrayExpression(Expression):
@@ -1044,19 +1030,6 @@ class Definition(Node):
         return f"{self.symbol} := {self.expr}"
 
 
-class AtomicCheckerDefinition(Node):
-    def __init__(self, loc: log.FileLocation, symbol: str, expr: Expression) -> None:
-        super().__init__(loc)
-        self.symbol = symbol
-        self.expr = expr
-
-    def get_expr(self) -> Expression:
-        return cast(Expression, self.expr)
-
-    def __str__(self) -> str:
-        return f"{self.symbol} := {self.get_expr()}"
-
-
 class StructSection(Node):
     def __init__(
         self, loc: log.FileLocation, struct_defs: list[StructDefinition]
@@ -1091,16 +1064,6 @@ class DefineSection(Node):
         return "DEFINE\n\t" + "\n\t".join(defines_str_list)
 
 
-class AtomicSection(Node):
-    def __init__(self, loc: log.FileLocation, atomics: list[AtomicCheckerDefinition]):
-        super().__init__(loc)
-        self.atomics = atomics
-
-    def __str__(self) -> str:
-        atomics_str_list = [str(s) + ";" for s in self.atomics]
-        return "ATOMIC\n\t" + "\n\t".join(atomics_str_list)
-
-
 class SpecSection(Node):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc)
@@ -1124,7 +1087,7 @@ class PastTimeSpecSection(SpecSection):
 
 
 ProgramSection = Union[
-    StructSection, InputSection, DefineSection, AtomicSection, SpecSection
+    StructSection, InputSection, DefineSection, SpecSection
 ]
 
 
@@ -1224,7 +1187,6 @@ class Context:
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
         self.variables: dict[str, types.Type] = {}
-        self.atomic_checkers: dict[str, Expression] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
@@ -1244,7 +1206,6 @@ class Context:
         symbols += [s for s in self.structs.keys()]
         symbols += [s for s in self.signals.keys()]
         symbols += [s for s in self.variables.keys()]
-        symbols += [s for s in self.atomic_checkers.keys()]
         symbols += [s for s in self.specifications.keys()]
         symbols += [s for s in self.contracts.keys()]
         symbols += [s for s in self.bound_vars.keys()]
@@ -1274,9 +1235,6 @@ class Context:
 
     def add_struct(self, symbol: str, m: dict[str, types.Type]) -> None:
         self.structs[symbol] = m
-
-    def add_atomic(self, symbol: str, e: Expression) -> None:
-        self.atomic_checkers[symbol] = e
 
     def add_formula(self, symbol, s: Formula) -> None:
         self.specifications[symbol] = s
@@ -1378,7 +1336,7 @@ def to_infix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
+        if isinstance(expr, (Constant, Variable, Signal)):
             s += expr.symbol
         elif isinstance(expr, ArrayIndex):
             if seen == 0:
@@ -1498,7 +1456,7 @@ def to_prefix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
+        if isinstance(expr, (Constant, Variable, Signal)):
             s += expr.symbol + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:

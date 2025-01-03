@@ -39,7 +39,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
           // TODO(bckempa) Add check for discarded top bit in timestamp
         #endif
         // Assuming the cost of the bitops is cheaper than an if branch
-        *result = monitor->time_stamp | (((*(monitor->atomic_buffer[0]))[value]) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
+        *result = monitor->time_stamp | (((*(monitor->atomic_buffer))[value]) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         return (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
 
       case R2U2_FT_OP_SUBFORMULA:

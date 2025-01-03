@@ -12,7 +12,7 @@ MODULE_CODE = "PARS"
 
 class C2POLexer(sly.Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
+    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
@@ -82,7 +82,6 @@ class C2POLexer(sly.Lexer):
     SYMBOL["STRUCT"]     = KW_STRUCT
     SYMBOL["INPUT"]      = KW_INPUT
     SYMBOL["DEFINE"]     = KW_DEFINE
-    SYMBOL["ATOMIC"]     = KW_ATOMIC
     SYMBOL["FTSPEC"]     = KW_FTSPEC
     SYMBOL["PTSPEC"]     = KW_PTSPEC
     SYMBOL["foreach"]    = KW_FOREACH
@@ -180,10 +179,6 @@ class C2POParser(sly.Parser):
         return p[0] + [p[1]]
 
     @_("section define_section")
-    def section(self, p):
-        return p[0] + [p[1]]
-
-    @_("section atomic_section")
     def section(self, p):
         return p[0] + [p[1]]
 
@@ -299,25 +294,6 @@ class C2POParser(sly.Parser):
     @_("SYMBOL ASSIGN expr SEMI")
     def definition(self, p):
         return cpt.Definition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
-
-    @_("KW_ATOMIC atomic atomic_list")
-    def atomic_section(self, p):
-        p[2].append(p[1])
-        self.literals[p[1].symbol] = cpt.AtomicChecker
-        return cpt.AtomicSection(log.FileLocation(self.filename, p.lineno), p[2])
-
-    @_("atomic_list atomic")
-    def atomic_list(self, p):
-        self.literals[p[1].symbol] = cpt.AtomicChecker
-        return p[0] + [p[1]]
-
-    @_("")
-    def atomic_list(self, p):
-        return []
-
-    @_("SYMBOL ASSIGN expr SEMI")
-    def atomic(self, p):
-        return cpt.AtomicCheckerDefinition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
     # Future-time specification section
     @_("KW_FTSPEC spec spec_list")
@@ -606,8 +582,6 @@ class C2POParser(sly.Parser):
         if p[0] in self.literals:
             if self.literals[p[0]] is cpt.Signal:
                 return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
-            elif self.literals[p[0]] is cpt.AtomicChecker:
-                return cpt.AtomicChecker(log.FileLocation(self.filename, p.lineno), p[0])
         return cpt.Variable(log.FileLocation(self.filename, p.lineno), p[0])
 
     # Integer

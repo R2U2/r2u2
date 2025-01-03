@@ -6,7 +6,6 @@
 #define R2U2_MAX_ATOMICS 256
 #define R2U2_MAX_INST_LEN 8192
 
-#define R2U2_MAX_AT_INSTRUCTIONS 256
 #define R2U2_MAX_BZ_INSTRUCTIONS 256
 
 // Size of string arena, in bytes, for auxillary output

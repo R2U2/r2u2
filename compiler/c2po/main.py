@@ -121,7 +121,6 @@ def validate_input(
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
-    enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
     enable_nnf: bool = False,
@@ -252,17 +251,8 @@ def validate_input(
     else:
         final_stage = cpt.CompilationStage.ASSEMBLE
 
-    if enable_booleanizer and enable_atomic_checkers:
-        log.error(MODULE_CODE, "Only one of atomic checkers and booleanizer can be enabled")
-        status = False
-    elif enable_booleanizer and impl != types.R2U2Implementation.C:
-        log.error(MODULE_CODE, "Booleanizer only available for C implementation")
-        status = False
-
     if enable_booleanizer:
         frontend = types.R2U2Engine.BOOLEANIZER
-    elif enable_atomic_checkers:
-        frontend = types.R2U2Engine.ATOMIC_CHECKER
     else:
         frontend = types.R2U2Engine.NONE
 
@@ -300,7 +290,6 @@ def compile(
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
-    enable_atomic_checkers: bool = False,
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
     enable_nnf: bool = False,
@@ -357,7 +346,6 @@ def compile(
         only_parse,
         only_type_check,
         only_compile,
-        enable_atomic_checkers,
         enable_booleanizer,
         enable_extops,
         enable_nnf,
@@ -519,7 +507,7 @@ def main(
     only_parse: bool = False,
     only_type_check: bool = False,
     only_compile: bool = False,
-    enable_atomic_checkers: bool = False,
+
     enable_booleanizer: bool = False,
     enable_extops: bool = False,
     enable_nnf: bool = False,
@@ -557,7 +545,6 @@ def main(
             only_parse,
             only_type_check,
             only_compile,
-            enable_atomic_checkers,
             enable_booleanizer,
             enable_extops,
             enable_nnf,

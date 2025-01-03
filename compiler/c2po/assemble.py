@@ -27,7 +27,6 @@ class EngineTag(Enum):
     NA = 0  # Null instruction tag - acts as ENDSEQ
     SY = 1  # System commands - reserved for monitor control
     CG = 2  # Immediate Configuration Directive
-    AT = 3  # Original Atomic Checker
     TL = 4  # MLTL Temporal logic engine
     BZ = 5  # Booleanizer
 
@@ -177,12 +176,6 @@ class TLOperandType(Enum):
     ATOMIC = 0b00
     SUBFORMULA = 0b10
     NONE = 0b11
-
-
-TL_OPERAND_TYPE_MAP = {
-    cpt.Constant: TLOperandType.DIRECT,
-    cpt.AtomicChecker: TLOperandType.ATOMIC,
-}
 
 
 class FTOperator(Enum):
@@ -340,31 +333,6 @@ field_format_str_map = {
 
 
 @dataclass
-class ATInstruction:
-    engine_tag: EngineTag
-    id: int
-    relational_operator: ATRelOp
-    signal_id: int
-    signal_type: ATFilter
-    compare_value: Union[bool, int, float]
-    compare_is_signal: bool
-    atomic_id: int
-
-    def __str__(self) -> str:
-        field_strs: list[str] = []
-
-        field_strs.append(f"{self.engine_tag.name}")
-        field_strs.append(f"a{self.id:<2}")
-        field_strs.append(f"{self.relational_operator:3}")
-        field_strs.append(f"s{self.signal_id}")
-        field_strs.append(
-            f"{str(self.signal_type) + '(' + ('s' if self.compare_is_signal else '') + str(self.compare_value) + ')':10}"
-        )
-
-        return " ".join(field_strs)
-
-
-@dataclass
 class BZInstruction:
     engine_tag: EngineTag
     id: int
@@ -447,7 +415,6 @@ class CGInstruction:
             field_strs.append(f"{self.instruction.id}")
         return " ".join(field_strs)
 
-
 @dataclass
 class AliasInstruction:
     type: AliasType
@@ -456,48 +423,9 @@ class AliasInstruction:
 
     def __str__(self) -> str:
         return f"{self.type.value} {self.symbol} {' '.join(self.args)}"
+    
 
-
-Instruction = Union[ATInstruction, BZInstruction, TLInstruction, CGInstruction]
-
-
-def gen_at_instruction(node: cpt.Expression, context: cpt.Context) -> ATInstruction:
-    expr = context.atomic_checkers[node.symbol]
-
-    # we can do the following since it is type-correct
-    expr = cast(cpt.Operator, expr)
-    signal = cast(cpt.Signal, expr.children[0])
-
-    rhs = expr.children[1]
-    if isinstance(rhs, cpt.Constant):
-        compare_value = rhs.value  # type: ignore
-    elif isinstance(rhs, cpt.Signal):
-        compare_value = rhs.signal_id
-    else:
-        log.internal(
-            MODULE_CODE,
-            f"Compare value for AT checker must be a constant or signal, got '{type(rhs)}' ({rhs})."
-            "\n\tWhy did this get past the type checker?",
-        )
-        compare_value = 0
-
-    if node in context.atomic_id:
-        aid = context.atomic_id[node]
-    else:
-        log.internal(MODULE_CODE, f"No atomic ID assigned for '{node}'")
-        aid = -1
-
-    return ATInstruction(
-        EngineTag.AT,
-        aid,
-        AT_REL_OP_MAP[expr.operator],
-        signal.signal_id,
-        AT_FILTER_MAP[type(signal.type)],  # type: ignore
-        compare_value,
-        isinstance(expr.children[1], cpt.Signal),
-        aid,
-    )
-
+Instruction = Union[BZInstruction, TLInstruction, CGInstruction]
 
 def gen_bz_instruction(
     expr: cpt.Expression,
@@ -815,7 +743,6 @@ def gen_pt_duoq_instructions(
 
 
 def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
-    at_instructions: dict[cpt.Expression, ATInstruction] = {}
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
     ft_instructions: dict[cpt.Expression, TLInstruction] = {}
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
@@ -852,9 +779,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if isinstance(expr, cpt.Constant) and expr.has_only_tl_parents():
             continue
 
-        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
-            at_instructions[expr] = gen_at_instruction(expr, context)
-        elif expr.engine == types.R2U2Engine.BOOLEANIZER:
+        if expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
             new_ft_instruction = gen_ft_instruction(expr, ft_instructions)
@@ -882,9 +807,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
             cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
 
-        if expr.engine == types.R2U2Engine.ATOMIC_CHECKER:
-            at_instructions[expr] = gen_at_instruction(expr, context)
-        elif expr.engine == types.R2U2Engine.BOOLEANIZER:
+        if expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
             new_pt_instruction = gen_pt_instruction(expr, pt_instructions, ft_duoqs)
@@ -900,83 +823,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             bz_instructions[key] = bz_instructions.pop(key)
 
     return (
-        list(at_instructions.values())
-        + list(bz_instructions.values())
+        list(bz_instructions.values())
         + list(ft_instructions.values())
         + list(pt_instructions.values())
         + [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
     )
-
-
-def pack_at_instruction(
-    instruction: ATInstruction,
-    format_strs: dict[FieldType, str],
-) -> bytes:
-    binary = bytes()
-
-    if instruction.compare_is_signal:
-        compare_format_str = "Bxxxxxxx"
-    elif isinstance(instruction.compare_value, bool):
-        compare_format_str = "?xxxxxxx"
-    elif isinstance(instruction.compare_value, int):
-        compare_format_str = "q"
-    else:  # isinstance(instruction.compare_value, float):
-        compare_format_str = "d"
-
-    compare_bytes = CStruct(f"{ENDIAN}{compare_format_str}").pack(
-        instruction.compare_value
-    )
-
-    format_str = ENDIAN
-    format_str += format_strs[FieldType.AT_VALUE]
-    format_str += format_strs[FieldType.AT_VALUE]
-    format_str += format_strs[FieldType.AT_REL_OP]
-    format_str += format_strs[FieldType.AT_FILTER]
-    format_str += format_strs[FieldType.AT_SIGNAL]
-    format_str += format_strs[FieldType.AT_ID]
-    format_str += format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]
-    format_str += format_strs[FieldType.AT_ID]
-
-    log.debug(
-        MODULE_CODE, 1,
-        f"Packing: {instruction}\n\t"
-        f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"[{compare_format_str:<8}] "
-        f"[xxxxxxxx] "
-        f"{format_strs[FieldType.AT_REL_OP]:2} "
-        f"{format_strs[FieldType.AT_FILTER]:2} "
-        f"{format_strs[FieldType.AT_SIGNAL]:2} "
-        f"{format_strs[FieldType.AT_ID]:2} "
-        f"{format_strs[FieldType.AT_COMPARE_VALUE_IS_SIGNAL]:2} "
-        f"{format_strs[FieldType.AT_ID]:2} "
-        f"\n\t"
-        f"{instruction.engine_tag.value:<2} "
-        f"[{instruction.compare_value:<8}] "
-        f"[        ] "
-        f"{instruction.relational_operator.value:<2} "
-        f"{instruction.signal_type.value:<2} "
-        f"{instruction.signal_id:<2} "
-        f"{instruction.atomic_id:<2} "
-        f"{instruction.compare_is_signal:<2} "
-        f"{instruction.atomic_id:<2} ",
-    )
-
-    engine_tag_binary = CStruct(f"{ENDIAN}{format_strs[FieldType.ENGINE_TAG]}").pack(
-        instruction.engine_tag.value
-    )
-
-    binary = engine_tag_binary + CStruct(format_str).pack(
-        compare_bytes,
-        CStruct(f"{ENDIAN}xxxxxxxx").pack(),
-        instruction.relational_operator.value,
-        instruction.signal_type.value,
-        instruction.signal_id,
-        instruction.atomic_id,
-        instruction.compare_is_signal,
-        instruction.atomic_id,
-    )
-
-    return binary
 
 
 def pack_bz_instruction(
@@ -1107,9 +958,7 @@ def pack_instruction(
     instruction: Instruction,
     format_strs: dict[FieldType, str],
 ) -> bytes:
-    if isinstance(instruction, ATInstruction):
-        binary = pack_at_instruction(instruction, format_strs)
-    elif isinstance(instruction, BZInstruction):
+    if isinstance(instruction, BZInstruction):
         binary = pack_bz_instruction(instruction, format_strs)
     elif isinstance(instruction, TLInstruction):
         binary = pack_tl_instruction(instruction, format_strs)

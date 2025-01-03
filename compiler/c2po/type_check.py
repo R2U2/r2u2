@@ -88,23 +88,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.signal_id = context.config.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
-        elif isinstance(expr, cpt.AtomicChecker):
-            if context.config.frontend is not types.R2U2Engine.ATOMIC_CHECKER:
-                log.error(
-                    MODULE_CODE,
-                    "Atomic checkers not enabled, but found in expression\n\t"
-                    f"{expr}",
-                    expr.loc,
-                )
-                return False
-
-            if expr.symbol not in context.atomic_checkers:
-                log.error(
-                    MODULE_CODE,
-                    f"Atomic checker '{expr.symbol}' not defined",
-                    expr.loc,
-                )
-                return False
         elif isinstance(expr, cpt.Variable):
             symbol = expr.symbol
 
@@ -132,8 +115,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-            elif symbol in context.atomic_checkers:
-                expr.type = types.BoolType()
             elif symbol in context.specifications:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
@@ -481,7 +462,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if context.config.frontend not in {
                 types.R2U2Engine.BOOLEANIZER,
-                types.R2U2Engine.ATOMIC_CHECKER,
             } and expr.operator not in {
                 cpt.OperatorKind.EQUAL,
                 cpt.OperatorKind.NOT_EQUAL,
@@ -535,53 +515,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.loc,
             )
             return False
-
-    return True
-
-
-def type_check_atomic(
-    atomic: cpt.AtomicCheckerDefinition, context: cpt.Context
-) -> bool:
-    relational_expr = atomic.get_expr()
-
-    if not cpt.is_relational_operator(relational_expr):
-        log.error(
-            MODULE_CODE,
-            f"Atomic checker definition not a relation\n\t" f"{atomic}",
-            relational_expr.loc,
-        )
-        return False
-
-    if not type_check_expr(relational_expr, context):
-        return False
-
-    lhs = relational_expr.children[0]
-    rhs = relational_expr.children[1]
-
-    if isinstance(lhs, cpt.FunctionCall):
-        log.error(
-            MODULE_CODE,
-            "Atomic checker filters unsupported",
-            lhs.loc,
-        )
-        return False
-    elif not isinstance(lhs, cpt.Signal):
-        log.error(
-            MODULE_CODE,
-            "Left-hand side of atomic checker definition not a filter nor signal\n\t"
-            f"{atomic}",
-            lhs.loc,
-        )
-        return False
-
-    if not isinstance(rhs, (cpt.Constant, cpt.Signal)):
-        log.error(
-            MODULE_CODE,
-            "Right-hand side of atomic checker definition not a constant nor signal\n\t"
-            f"{rhs}",
-            rhs.loc,
-        )
-        return False
 
     return True
 
@@ -648,22 +581,6 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 )
 
             context.add_struct(struct.symbol, struct.members)
-    elif isinstance(section, cpt.AtomicSection):
-        for atomic in section.atomics:
-            if atomic.symbol in context.get_symbols():
-                status = False
-                log.error(
-                    MODULE_CODE,
-                    f"Symbol '{atomic.symbol}' already in use",
-                    atomic.loc,
-                )
-
-            is_good_atomic = type_check_atomic(atomic, context)
-
-            if is_good_atomic:
-                context.add_atomic(atomic.symbol, atomic.get_expr())
-
-            status = status and is_good_atomic
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
             context.set_future_time()
