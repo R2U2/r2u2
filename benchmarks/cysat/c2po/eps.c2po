@@ -1,15 +1,15 @@
 -- EPS Specifications of the CySat-I
 ----------------------------------------------------------------------------
 INPUT
-    5V_Power_Good, 5V_Bus_Enabled, LUP_5V_Bus_Enabled, 3_3V_Bus_Enabled, 3_3V_Power_Good, LUP_3_3V_Bus_Enabled, BCR_Bus_Enabled, Battery_Bus_Enabled, Heater_1_Enabled, Heater_2_Enabled, Heater_3_Enabled, ADCS_Active, Payload_Enabled, UHF_Enabled, Boost_Board_Enabled, Low_Power_Mode,I2C_Errors: bool;
+    FiveV_Power_Good, FiveV_Bus_Enabled, LUP_FiveV_Bus_Enabled, ThreePointThreeV_Bus_Enabled, ThreePointThreeV_Power_Good, LUP_ThreePointThreeV_Bus_Enabled, BCR_Bus_Enabled, Battery_Bus_Enabled, Heater_1_Enabled, Heater_2_Enabled, Heater_3_Enabled, ADCS_Active, Payload_Enabled, UHF_Enabled, Boost_Board_Enabled, Low_Power_Mode: bool;
 
-    Num_Under_Voltage, Num_Short_Circuit, Num_Over_Temp: int;
+    Num_Under_Voltage, Num_Short_Circuit, Num_Over_Temp, I2C_Errors: float;
 
-    5V_Bus_Current, 3_3V_Bus_Current, Battery_Cell_Temp_1, Battery_Cell_Temp_2, Battery_Cell_Temp_3, Battery_Cell_Temp_4, Battery_Capacity: float;, 
+    FiveV_Bus_Current, ThreePointThreeV_Bus_Current, Battery_Cell_Temp_1, Battery_Cell_Temp_2, Battery_Cell_Temp_3, Battery_Cell_Temp_4, Battery_Capacity: float; 
 
-ATOMIC
-    5V_Bus_Current_LEQ_4 := 5V_Bus_Current <= 4.0;
-    3_3V_Bus_Current_LEQ_4 := 3_3V_Bus_Current <= 4.0;
+DEFINE
+    FiveV_Bus_Current_LEQ_4 := FiveV_Bus_Current <= 4.0;
+    ThreePointThreeV_Bus_Current_LEQ_4 := ThreePointThreeV_Bus_Current <= 4.0;
     Battery_Cell_Temp_1_LEQ_5 := Battery_Cell_Temp_1 <= 5.0;
     Battery_Cell_Temp_2_LEQ_5 := Battery_Cell_Temp_2 <= 5.0;
     Battery_Cell_Temp_3_LEQ_5 := Battery_Cell_Temp_3 <= 5.0;
@@ -27,48 +27,44 @@ ATOMIC
     Battery_Cell_Temp_3_GT_8 := Battery_Cell_Temp_3 > 8.0;
     Battery_Cell_Temp_4_GT_8 := Battery_Cell_Temp_4 > 8.0;
     Battery_Cell_Temp_1_GT_4 := Battery_Cell_Temp_1 > 4.0;
-    Battery_Cell_Temp_1_GT_4 := Battery_Cell_Temp_2 > 4.0;
-    Battery_Cell_Temp_1_GT_4 := Battery_Cell_Temp_3 > 4.0;
-    Battery_Cell_Temp_1_GT_4 := Battery_Cell_Temp_4 > 4.0;
+    Battery_Cell_Temp_2_GT_4 := Battery_Cell_Temp_2 > 4.0;
+    Battery_Cell_Temp_3_GT_4 := Battery_Cell_Temp_3 > 4.0;
+    Battery_Cell_Temp_4_GT_4 := Battery_Cell_Temp_4 > 4.0;
     Battery_Cell_Temp_1_GT_1 := Battery_Cell_Temp_1 > 1.0;
     Battery_Cell_Temp_2_GT_1 := Battery_Cell_Temp_2 > 1.0;
     Battery_Cell_Temp_3_GT_1 := Battery_Cell_Temp_3 > 1.0;
     Battery_Cell_Temp_4_GT_1 := Battery_Cell_Temp_4 > 1.0;
-    Battery_Cell_Temp_1_RC_LT_1 := rate(Battery_Cell_Temp_1) < 1.0;
-    Battery_Cell_Temp_2_RC_LT_1 := rate(Battery_Cell_Temp_2) < 1.0;
-    Battery_Cell_Temp_3_RC_LT_1 := rate(Battery_Cell_Temp_3) < 1.0;
-    Battery_Cell_Temp_4_RC_LT_1 := rate(Battery_Cell_Temp_4) < 1.0;
-    Battery_Cell_Temp_1_RC_GT_M1 := rate(Battery_Cell_Temp_1) > -1.0;
-    Battery_Cell_Temp_2_RC_GT_M1 := rate(Battery_Cell_Temp_2) > -1.0;
-    Battery_Cell_Temp_3_RC_GT_M1 := rate(Battery_Cell_Temp_3) > -1.0;
-    Battery_Cell_Temp_4_RC_GT_M1 := rate(Battery_Cell_Temp_4) > -1.0;
+    Battery_Cell_Temp_1_RC_LT_1 := abs(rate(Battery_Cell_Temp_1)) < 1.0;
+    Battery_Cell_Temp_2_RC_LT_1 := abs(rate(Battery_Cell_Temp_2)) < 1.0;
+    Battery_Cell_Temp_3_RC_LT_1 := abs(rate(Battery_Cell_Temp_3)) < 1.0;
+    Battery_Cell_Temp_4_RC_LT_1 := abs(rate(Battery_Cell_Temp_4)) < 1.0;
     Num_Under_Voltage_RC := rate(Num_Under_Voltage) == 0.0;
     Num_Short_Circuit_RC := rate(Num_Short_Circuit) == 0.0;
     Num_Over_Temp_RC := rate(Num_Over_Temp) == 0.0;
-    atom18 := s24 <= 3.0;
-    atom19 := s24 >= 8.0;
-    atom21 := rate(s26) == 0.0;
+    Battery_Capacity_LEQ_3 := Battery_Capacity <= 3.0;
+    Battery_Capacity_GEQ_8 := Battery_Capacity >= 8.0;
+    I2C_Error_RC := rate(I2C_Errors) == 0.0;
 
 FTSPEC
-    SPEC1: 5V_Bus_Enabled -> (5V_Bus_Current_LEQ_4 && 5V_Power_Good);
-    SPEC2: atom2 && a5 && a6;
-    SPEC3: !a2 && !a3 && !a7 && !a20 && !a21 && !a22 && !a23;
-    SPEC4: !a8 && !a9;
+    SPEC1: FiveV_Bus_Enabled -> (FiveV_Bus_Current_LEQ_4 && FiveV_Power_Good);
+    SPEC2: ThreePointThreeV_Bus_Current_LEQ_4 && ThreePointThreeV_Power_Good && ThreePointThreeV_Bus_Enabled;
+    SPEC3: !FiveV_Bus_Enabled && !LUP_FiveV_Bus_Enabled && !LUP_FiveV_Bus_Enabled && !ADCS_Active && !Payload_Enabled && !UHF_Enabled && !Boost_Board_Enabled;
+    SPEC4: !BCR_Bus_Enabled && !Battery_Bus_Enabled;
     SPEC5: (Battery_Cell_Temp_1_LEQ_5 || Battery_Cell_Temp_2_LEQ_5 || Battery_Cell_Temp_3_LEQ_5 || Battery_Cell_Temp_4_LEQ_5) -> Heater_1_Enabled;
     SPEC6: (Battery_Cell_Temp_1_LEQ_1 || Battery_Cell_Temp_2_LEQ_1 || Battery_Cell_Temp_3_LEQ_1 || Battery_Cell_Temp_4_LEQ_1) -> Heater_2_Enabled;
     SPEC7: (Battery_Cell_Temp_1_LEQ_M2 || Battery_Cell_Temp_2_LEQ_M2 || Battery_Cell_Temp_3_LEQ_M2 || Battery_Cell_Temp_4_LEQ_M2) -> Heater_3_Enabled;
     SPEC8: (Battery_Cell_Temp_1_GT_8 || Battery_Cell_Temp_2_GT_8 || Battery_Cell_Temp_3_GT_8 || Battery_Cell_Temp_4_GT_8) -> (!Heater_1_Enabled);
     SPEC9: (Battery_Cell_Temp_1_GT_4 || Battery_Cell_Temp_2_GT_4 || Battery_Cell_Temp_3_GT_4 || Battery_Cell_Temp_4_GT_4) -> (!Heater_2_Enabled);
     SPEC10: (Battery_Cell_Temp_1_GT_1 || Battery_Cell_Temp_2_GT_1 || Battery_Cell_Temp_3_GT_1 || Battery_Cell_Temp_4_GT_1) -> (!Heater_3_Enabled);
-    SPEC11: Battery_Cell_Temp_1_RC_LT_1 && Battery_Cell_Temp_2_RC_LT_1 && Battery_Cell_Temp_3_RC_LT_1 && Battery_Cell_Temp_4_RC_LT_1 && Battery_Cell_Temp_1_RC_GT_M1 && Battery_Cell_Temp_2_RC_GT_M1 && Battery_Cell_Temp_3_RC_GT_M1 && Battery_Cell_Temp_4_RC_GT_M1;
+    SPEC11: Battery_Cell_Temp_1_RC_LT_1 && Battery_Cell_Temp_2_RC_LT_1 && Battery_Cell_Temp_3_RC_LT_1 && Battery_Cell_Temp_4_RC_LT_1;
     SPEC12: Num_Under_Voltage_RC;
     SPEC13: Num_Short_Circuit_RC;
     SPEC14: Num_Over_Temp_RC;
-    SPEC15: a20 -> (a23 && a7 && a3);
-    SPEC16: a22 -> a7;
-    SPEC17: a23 -> a2;
-    SPEC18: a21 -> a2;
-    SPEC19: atom18 -> a25;
-    SPEC20: atom19 -> !a25;
-    SPEC21: a25 -> (!a21 && !a20 && !a23);
-    SPEC22: atom21.0;
+    SPEC15: ADCS_Active -> (Boost_Board_Enabled && LUP_ThreePointThreeV_Bus_Enabled && LUP_FiveV_Bus_Enabled);
+    SPEC16: UHF_Enabled -> LUP_ThreePointThreeV_Bus_Enabled;
+    SPEC17: Boost_Board_Enabled -> FiveV_Bus_Enabled;
+    SPEC18: Payload_Enabled -> FiveV_Bus_Enabled;
+    SPEC19: Battery_Capacity_LEQ_3 -> Low_Power_Mode;
+    SPEC20: Battery_Capacity_GEQ_8 -> !Low_Power_Mode;
+    SPEC21: Low_Power_Mode -> (!Payload_Enabled && !ADCS_Active && !Boost_Board_Enabled);
+    SPEC22: I2C_Error_RC;

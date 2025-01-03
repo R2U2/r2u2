@@ -1,0 +1,51 @@
+INPUT
+    x_acc, y_acc, z_acc, vert_acc, vert_velocity, alt, pressure, temperature, time, state_1_time: float;
+    actuation_status: bool;
+    rocket_state: int;
+    
+DEFINE
+    inLaunchPadState := rocket_state == 0;
+    inBoostState := rocket_state == 1;
+    inCoastState := rocket_state == 2;
+    inDescentState := rocket_state == 3;
+    altBelowMax := alt < 10780.0;
+    altAboveMin := alt > 2150.0;
+    timeBelowMax := time < 45500.0;
+    timeAboveMin := time > 6330.0;
+    ninetyPercentBurnTime := state_1_time > 5700.0;
+    vertVelocityBelowMax := vert_velocity < 536.0;
+    vertVelocityAboveZero := vert_velocity > 0.0;
+    vertVelocityAboveThreshold := vert_velocity > 100.0;
+    vertAccBelowBoostMax := vert_acc < 129.0;
+    vertAccBelowCoastMax := vert_acc <= 0.0;
+    vertAccBelowZero := vert_acc < 0.0;
+    vertAccAboveZero := vert_acc > 0.0;
+    absTempBelowThresholdRC := abs(rate(temperature)) < 0.05;
+    absPresBelowThresholdRC := abs(rate(pressure)) < 250.0;
+    absPresBelowMaxRC := abs(rate(pressure)) < 500.0;
+    absTimeBelowThresholdRC := abs(rate(pressure)) < 55.0;
+    noChangeVertAcc := rate(vert_acc) == 0.0;
+    noChangeVertVelocity := rate(vert_velocity) == 0.0;
+    -- accAngleAboveThreshold := 
+    -- accMagnitudeAboveThreshold :=
+
+FTSPEC
+    SPEC_OR_1: altBelowMax && (actuation_status -> altAboveMin);
+    SPEC_OR_2: actuation_status -> (timeBelowMax && timeAboveMin);
+    SPEC_OR_3: vertVelocityBelowMax;
+    SPEC_OR_4: (inLaunchPadState || inBoostState || inCoastState) -> vertVelocityAboveZero;
+    SPEC_OR_5: inBoostState -> vertAccBelowBoostMax;
+    SPEC_OR_6: inCoastState -> vertAccBelowCoastMax;
+    SPEC_RC_1: !G[0,2]!(absTempBelowThresholdRC);
+    SPEC_RC_2: !G[0,2]!(absPresBelowThresholdRC);
+    SPEC_RC_3: absPresBelowMaxRC;
+    SPEC_RC_4: !G[0,2]!(absTimeBelowThresholdRC);
+    SPEC_RC_5: !G[0,2]!(noChangeVertAcc);
+    SPEC_RC_6: !G[0,2]!(noChangeVertVelocity);
+    SPEC_CS_1: inBoostState -> F[0,140] inCoastState;
+    -- SPEC_CS_2: inCoastState -> F[0,800] inDescentState;
+    -- SPEC_CS_3: (accAngleAboveThreshold && inBoostState) -> F[0,10] inCoastState;
+    SPEC_CS_4: inBoostState -> (inBoostState U[0,130] vertAccBelowZero);
+    -- SPEC_CS_5: actuation_status -> F[0,5] accMagnitudeAboveThreshold;
+    SPEC_CS_6: (inBoostState && vertVelocityAboveThreshold) -> F[0,126] vertAccAboveZero;
+    SPEC_CS_7: inBoostState -> (inBoostState U[0,114] ninetyPercentBurnTime);
