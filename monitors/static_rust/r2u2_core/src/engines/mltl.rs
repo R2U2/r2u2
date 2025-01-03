@@ -53,17 +53,6 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
 }
 
 #[verifier::external]
-fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verdict){
-    let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
-    
-    queue_ctrl.next_time = verdict.time.saturating_add(1);
-    #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
-    debug_print!("Desired time {}", queue_ctrl.next_time);
-
-    simple_push_result(instr, monitor, verdict);
-}
-
-#[verifier::external]
 fn simple_push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verdict){
     
     if monitor.progress == MonitorProgressState::ReloopNoProgress {
@@ -85,7 +74,9 @@ pub fn mltl_update(monitor: &mut Monitor){
             debug_print!("LOAD");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
-                push_result(instr, monitor, verdict.unwrap());
+                let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+                queue_ctrl.next_time = verdict.unwrap().time.saturating_add(1);
+                simple_push_result(instr, monitor, verdict.unwrap());
             }
         }
         MLTL_OP_FT_RETURN => {
@@ -93,7 +84,9 @@ pub fn mltl_update(monitor: &mut Monitor){
             debug_print!("RETURN");
             let verdict = check_operand_data(instr, monitor, 0);
             if verdict.is_some() {
-                push_result(instr, monitor, verdict.unwrap());
+                let queue_ctrl = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
+                queue_ctrl.next_time = verdict.unwrap().time.saturating_add(1);
+                // simple_push_result(instr, monitor, verdict.unwrap());
                 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                 debug_print!("{}:{},{}", instr.op2_value, verdict.unwrap().time, if verdict.unwrap().truth {"T"} else {"F"});
                 monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, verdict: verdict.unwrap()};
