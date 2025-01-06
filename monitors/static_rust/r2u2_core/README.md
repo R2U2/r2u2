@@ -8,21 +8,25 @@ Given a specification and input stream, R2U2 will output a stream of verdicts co
 specification with respect to the input stream. Specifications can be written and compiled using the
 Configuration Compiler for Property Organization (C2PO).
 
-![R2U2 workflow](r2u2-flow.png)
-
 # Installation
 
 Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-r2u2_core = "0.1.0"
+r2u2_core = "0.1.2"
 ```
 
 # Example Usage
 
-1. git clone -b rust-develop https://github.com/R2U2/r2u2.git
-2. cd r2u2
+1. 
+    ```bash
+    git clone -b rust-develop https://github.com/R2U2/r2u2.git
+    ```
+2. 
+    ```bash
+    cd r2u2
+    ```
 3. Running R2U2 requires a **specification** and an **input stream**. To monitor the specification
 defined in [`examples/simple.c2po`](https://github.com/R2U2/r2u2/blob/rust-develop/examples/simple.c2po) using
 [`examples/simple.csv`](https://github.com/R2U2/r2u2/blob/rust-develop/examples/simple.csv) as an input stream, compile the specification using C2PO:
@@ -32,28 +36,28 @@ defined in [`examples/simple.c2po`](https://github.com/R2U2/r2u2/blob/rust-devel
     ```
 4. Create a Cargo package with R2U2 as a dependency and run as follows in main.rs
 
-        ```
-        let spec_file: Vec<u8> = fs::read(spec.bin).expect("Error opening specification file");
+    ```
+    let spec_file: Vec<u8> = fs::read(spec.bin).expect("Error opening specification file");
 
-        let mut monitor = r2u2_core::get_monitor(&spec_file);
+    let mut monitor = r2u2_core::get_monitor(&spec_file);
 
-        let mut signal_file: fs::File = fs::File::open("examples/simple.csv").expect("Error opening signal CSV file");
-        let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
+    let mut signal_file: fs::File = fs::File::open("examples/simple.csv").expect("Error opening signal CSV file");
+    let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
 
-        for result in reader.records() {
-            let record = &result.expect("Error reading signal values");
-            for n in 0..record.len(){
-                r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
-            }
-            if r2u2_core::monitor_step(&mut monitor) {
-                for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
-                    println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
-                }
-            } else {
-                println!("Overflow occurred!!!!")
-            }
+    for result in reader.records() {
+        let record = &result.expect("Error reading signal values");
+        for n in 0..record.len(){
+            r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
         }
-        ```
+        if r2u2_core::monitor_step(&mut monitor) {
+            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+            }
+        } else {
+            println!("Overflow occurred!!!!")
+        }
+    }
+    ```
 
 ## Output
 
