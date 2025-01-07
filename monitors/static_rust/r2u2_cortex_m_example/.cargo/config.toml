@@ -5,9 +5,10 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 # uncomment ONE of these three option to make `cargo run` start a GDB session
 # which option to pick depends on your system
-# runner = "arm-none-eabi-gdb -q -x openocd.gdb"
+runner = "arm-none-eabi-gdb -q -x openocd.gdb"
 # runner = "gdb-multiarch -q -x openocd.gdb"
 # runner = "gdb -q -x openocd.gdb"
+linker = "flip-link" #https://github.com/knurling-rs/flip-link
 
 rustflags = [
   # Previously, the linker arguments --nmagic and -Tlink.x were set here.
@@ -35,3 +36,12 @@ target = "thumbv7em-none-eabihf"     # Cortex-M4F and Cortex-M7F (with FPU) -> S
 # target = "thumbv8m.base-none-eabi"   # Cortex-M23
 # target = "thumbv8m.main-none-eabi"   # Cortex-M33 (no FPU)
 # target = "thumbv8m.main-none-eabihf" # Cortex-M33 (with FPU)
+
+# Set the static memory allocated for R2U2 (run `$ cargo clean` if these values are changed)
+[env]
+R2U2_MAX_SPECS = { value = "2", force = true }
+R2U2_MAX_SIGNALS = { value = "1", force = true }
+R2U2_MAX_ATOMICS = { value = "1", force = true }
+R2U2_MAX_BZ_INSTRUCTIONS = { value = "1", force = true }
+R2U2_MAX_TL_INSTRUCTIONS = { value = "8", force = true }
+R2U2_TOTAL_QUEUE_MEM = { value = "8", force = true }

@@ -9,8 +9,12 @@
 //! new memory settings.
 //!
 //! The build script also sets the linker flags to tell it which link script to use.
+//! 
+use std::env;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 
-#[cfg(embedded)]
 fn main() {
     // Put `memory.x` in our output directory and ensure it's
     // on the linker search path.
@@ -36,8 +40,4 @@ fn main() {
 
     // Set the linker script to the one provided by cortex-m-rt.
     println!("cargo:rustc-link-arg=-Tlink.x");
-}
-
-#[cfg(not(embedded))]
-fn main(){
 }

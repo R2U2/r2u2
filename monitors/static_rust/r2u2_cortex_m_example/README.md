@@ -1,18 +1,24 @@
-# `cortex-m-quickstart`
+# `r2u2_cortex_m_example`
 
-> A template for building applications for ARM Cortex-M microcontrollers
+> A simple example for running R2U2 on ARM Cortex-M microcontrollers (specifically targets the STM32F3DISCOVERY board)
 
-This project is developed and maintained by the [Cortex-M team][team].
+> The green west LED (LD6) lights up when Once[0,500] USER button evaluates to TRUE, or Once[0,5s] USER button since R2U2 is run every 50 milliseconds.
+> The red north LED (LD3) lights up when Global[0,500] USER button evaluates to TRUE, or Global[0,5s] USER button since R2U2 is run every 50 milliseconds.
+
+<div align="center">
+  <img src="demo_led_button.gif" alt="LEDs triggered by R2U2 based on button on STM32F3 Discovery board"/>
+</div>
 
 ## Dependencies
 
-To build embedded programs using this template you'll need:
+To build embedded programs using this example you'll need:
 
-- Rust 1.31, 1.30-beta, nightly-2018-09-13 or a newer toolchain. e.g. `rustup
-  default beta`
+- Rust 1.79 or newer. ([Installation
+  instructions](https://rustup.rs/)).
 
-- The `cargo generate` subcommand. [Installation
-  instructions](https://github.com/ashleygwilliams/cargo-generate#installation).
+- GDB arm debugger 
+
+- `openocd`
 
 - `rust-std` components (pre-compiled `core` crate) for the ARM Cortex-M
   targets. Run:
@@ -21,13 +27,12 @@ To build embedded programs using this template you'll need:
 $ rustup target add thumbv6m-none-eabi thumbv7m-none-eabi thumbv7em-none-eabi thumbv7em-none-eabihf
 ```
 
-## Using this template
+## Using this example
 
-**NOTE**: This is the very short version that only covers building programs. For
-the long version, which additionally covers flashing, running and debugging
-programs, check [the embedded Rust book][book].
+**NOTE**: For more information on how to run embedded Rust programs on a Cortex-M microcontroller, refer to [The Embedded Rust Book](https://rust-embedded.github.io/book).
 
-[book]: https://rust-embedded.github.io/book
+**NOTE**: This example was built off the [cortex-m-quickstart](https://github.com/rust-embedded/cortex-m-quickstart/tree/master) example.
+
 
 0. Before we begin you need to identify some characteristics of the target
   device as these will be used to configure the project:
@@ -55,24 +60,9 @@ STM32F303VCT6 microcontroller. This microcontroller has:
 - 40 KiB of RAM located at address 0x2000_0000. (There's another RAM region but
   for simplicity we'll ignore it).
 
-1. Instantiate the template.
-
-``` console
-$ cargo generate --git https://github.com/rust-embedded/cortex-m-quickstart
- Project Name: app
- Creating project called `app`...
- Done! New project created /tmp/app
-
-$ cd app
-```
-
-2. Set a default compilation target. There are four options as mentioned at the
+1. Set a default compilation target. There are four options as mentioned at the
    bottom of `.cargo/config`. For the STM32F303VCT6, which has a Cortex-M4F
    core, we'll pick the `thumbv7em-none-eabihf` target.
-
-``` console
-$ tail -n9 .cargo/config.toml
-```
 
 ``` toml
 [build]
@@ -86,53 +76,61 @@ target = "thumbv7em-none-eabihf" # Cortex-M4F and Cortex-M7F (with FPU)
 # target = "thumbv8m.main-none-eabihf" # Cortex-M33 (with FPU)
 ```
 
-3. Enter the memory region information into the `memory.x` file.
+2. Enter the memory region information into the `memory.x` file.
 
-``` console
-$ cat memory.x
-/* Linker script for the STM32F303VCT6 */
+``` file
 MEMORY
 {
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
+  /* TODO Adjust these memory regions to match your device memory layout */
+  /* These values correspond to the LM3S6965, one of the few devices QEMU can emulate */
+  /* FLASH : ORIGIN = 0x00000000, LENGTH = 256K */
+  /* RAM : ORIGIN = 0x20000000, LENGTH = 64K */
+  /* These values correspond to the STM32F303VCT6, the micrcontroller on the STM32DISCOVERY board */
   FLASH : ORIGIN = 0x08000000, LENGTH = 256K
   RAM : ORIGIN = 0x20000000, LENGTH = 40K
 }
 ```
 
-4. Build the template application or one of the examples.
+4. Run the openocd debugger
 
 ``` console
-$ cargo build
+$ openocd
 ```
 
-## VS Code
+5. Set a default gdb runner based on the gdb installed on your computer. There are three options as mentioned at the
+   top of `.cargo/config`. We'll pick the `arm-none-eabi-gdb` runner.
 
-This template includes launch configurations for debugging CortexM programs with Visual Studio Code located in the `.vscode/` directory.  
-See [.vscode/README.md](./.vscode/README.md) for more information.  
-If you're not using VS Code, you can safely delete the directory from the generated project.
+``` toml
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# uncomment ONE of these three option to make `cargo run` start a GDB session
+# which option to pick depends on your system
+runner = "arm-none-eabi-gdb -q -x openocd.gdb"
+# runner = "gdb-multiarch -q -x openocd.gdb"
+# runner = "gdb -q -x openocd.gdb"
+```
 
-# License
+6. Run the program with gdb
 
-This template is licensed under either of
+``` console
+$ cargo run
+```
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-  http://www.apache.org/licenses/LICENSE-2.0)
+7. Continue the gdb debugger (will start with breakpoint on main())
 
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+``` console
+$ continue
+```
+
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 
-## Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
-
-## Code of Conduct
-
-Contribution to this crate is organized under the terms of the [Rust Code of
-Conduct][CoC], the maintainer of this crate, the [Cortex-M team][team], promises
-to intervene to uphold that code of conduct.
-
-[CoC]: https://www.rust-lang.org/policies/code-of-conduct
-[team]: https://github.com/rust-embedded/wg#the-cortex-m-team
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
