@@ -1,6 +1,6 @@
 [package]
 name = "r2u2_cli"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Alexis Aurandt <lexaurandt@gmail.com>"]
 description = "R2U2 CLI: A stream-based runtime monitor command-line interface"
 edition = "2021"
@@ -8,7 +8,7 @@ readme = "README.md"
 rust-version = "1.79.0"
 keywords = ["monitoring", "verification", "compiler"]
 categories = ["compilers", "command-line-utilities"]
-repository = "https://github.com/R2U2/r2u2/tree/rust-develop"
+repository = "https://github.com/R2U2/r2u2/tree/rust-develop/monitors/static_rust/r2u2_cli"
 homepage = "https://r2u2.temporallogic.org"
 license = "MIT OR Apache-2.0"
 

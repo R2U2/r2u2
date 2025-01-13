@@ -8,8 +8,6 @@ Given a specification and input stream, R2U2 will output a stream of verdicts co
 specification with respect to the input stream. Specifications can be written and compiled using the
 Configuration Compiler for Property Organization (C2PO).
 
-<img src="r2u2-flow.png" width="600" />
-
 This crate allows specifications to be compiled with C2PO and monitored with R2U2. For detailed usage try:
 
     r2u2_cli --help
