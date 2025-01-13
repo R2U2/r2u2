@@ -3,6 +3,7 @@
 .gdb_history
 Cargo.lock
 target/
+r2u2_out.log
 
 # editor files
 .vscode/*

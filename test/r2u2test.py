@@ -224,7 +224,7 @@ class TestCase():
             ]
         elif self.monitor == "static_rust":
             self.r2u2_command = [
-                "cargo", "run", "--manifest-path", str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
+                "cargo", "run", "--manifest-path", str(self.r2u2bin), "run", str(self.spec_bin_workdir_path), str(self.trace_path)
             ]
 
     def clean(self) -> None:
