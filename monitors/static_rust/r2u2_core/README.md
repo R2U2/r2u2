@@ -14,50 +14,73 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-r2u2_core = "0.1.2"
+r2u2_core = "0.1.3"
 ```
 
 # Example Usage
 
-1. 
-    ```bash
-    git clone -b rust-develop https://github.com/R2U2/r2u2.git
-    ```
-2. 
-    ```bash
-    cd r2u2
-    ```
-3. Running R2U2 requires a **specification** and an **input stream**. To monitor the specification
-defined in [`examples/simple.c2po`](https://github.com/R2U2/r2u2/blob/rust-develop/examples/simple.c2po) using
-[`examples/simple.csv`](https://github.com/R2U2/r2u2/blob/rust-develop/examples/simple.csv) as an input stream, compile the specification using C2PO:
+1. Install [r2u2_cli](https://crates.io/crates/r2u2_cli).
 
     ```bash
-    python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
+    cargo install r2u2_cli
     ```
+2. Given the following example.c2po file:
+   
+        INPUT
+            a,b: bool;
+
+        FTSPEC
+            F[1,2] (a && b);
+
+    and the following example.csv file:
+
+        # a,b
+        0,0
+        1,0
+        0,1
+        1,1
+        0,0
+        1,0
+        0,1
+        1,1
+
+    the following command will create a spec.bin file in the current directory:
+
+        r2u2_cli compile example.c2po example.csv
+
 4. Create a Cargo package with R2U2 as a dependency and run as follows in main.rs
 
     ```
-    let spec_file: Vec<u8> = fs::read(spec.bin).expect("Error opening specification file");
+    use r2u2_core;
 
-    let mut monitor = r2u2_core::get_monitor(&spec_file);
+    use std::fs;
 
-    let mut signal_file: fs::File = fs::File::open("examples/simple.csv").expect("Error opening signal CSV file");
-    let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
+    fn main() {
+        let spec_file: Vec<u8> = fs::read("./spec.bin").expect("Error opening specification file");
 
-    for result in reader.records() {
-        let record = &result.expect("Error reading signal values");
-        for n in 0..record.len(){
-            r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
-        }
-        if r2u2_core::monitor_step(&mut monitor) {
-            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
-                println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+        let mut monitor = r2u2_core::get_monitor(&spec_file);
+
+        let signal_file: fs::File = fs::File::open("example.csv").expect("Error opening signal CSV file");
+        let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
+
+        for result in reader.records() {
+            let record = &result.expect("Error reading signal values");
+            for n in 0..record.len(){
+                r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
             }
-        } else {
-            println!("Overflow occurred!!!!")
+            if r2u2_core::monitor_step(&mut monitor) {
+                for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                    println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+                }
+            } else {
+                println!("Overflow occurred!!!!")
+            }
         }
+
     }
     ```
+
+Microcontroller example also available [here](https://github.com/R2U2/r2u2/tree/rust-develop/monitors/static_rust/r2u2_cortex_m_example).
 
 ## Output
 

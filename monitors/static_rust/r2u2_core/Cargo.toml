@@ -1,6 +1,6 @@
 [package]
 name = "r2u2_core"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Alexis Aurandt <lexaurandt@gmail.com>"]
 description = "R2U2: A stream-based runtime monitor"
 edition = "2021"
@@ -29,3 +29,4 @@ configurable = []
 [lib]
 name = "r2u2_core"
 path = "src/lib.rs"
+doctest = false
