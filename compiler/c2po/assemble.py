@@ -807,6 +807,12 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
             cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
 
+        # Special case for bool -- TL ops directly embed bool literals in their operands,
+        # so if this is a bool literal with only TL parents we should skip.
+        # TODO: Is there a case where a bool is used by the BZ engine? As in when this is ever not true for a bool?
+        if isinstance(expr, cpt.Constant) and expr.has_only_tl_parents():
+            continue
+
         if expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:

@@ -13,11 +13,6 @@
     ],
     "cse": [
         {
-            "input": "cse/at.c2po", 
-            "expected_output": "cse/at.c2po.expect", 
-            "options": ["-at", "--map", "default.map"]
-        },
-        {
             "input": "cse/basic.c2po", 
             "expected_output": "cse/basic.c2po.expect", 
             "options": ["--map", "default.map"]

@@ -1,5 +1,5 @@
 TL n0  load   a0
-TL n1  global n0
+TL n1  release False n0
 TL n2  return n1 0
 TL n3  until  True n0
 TL n4  return n3 1

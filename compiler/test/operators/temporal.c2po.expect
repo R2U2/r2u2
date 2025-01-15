@@ -1,24 +1,21 @@
 TL n0  load   a0
-TL n1  global n0
+TL n1  release False n0
 TL n2  return n1 0
 TL n3  until  True n0
 TL n4  return n3 1
 TL n5  load   a1
 TL n6  until  n0 n5
 TL n7  return n6 2
-TL n8  not    n0
-TL n9  not    n5
-TL n10 until  n8 n9
-TL n11 not    n10
-TL n12 return n11 3
-TL n0  load   a0
-TL q13 hist   n0
-TL n2  return n1 4
-TL q14 once   n0
-TL n4  return n3 5
-TL n5  load   a1
-TL q15 since  n0 n5
-TL n7  return n6 6
+TL n8  release n0 n5
+TL n9  return n8 3
+TL n10 load   a0
+TL q11 trigger False n10
+TL n12 return n11 4
+TL q13 since  True n10
+TL n14 return n13 5
+TL n15 load   a1
+TL q16 since  n10 n15
+TL n17 return n16 6
 CG TL DUOQ q0 |1|
 CG TL DUOQ q1 |5|
 CG TL TEMP q1 [0, 5]
@@ -30,18 +27,20 @@ CG TL DUOQ q5 |1|
 CG TL DUOQ q6 |5|
 CG TL TEMP q6 [0, 5]
 CG TL DUOQ q7 |1|
-CG TL DUOQ q8 |1|
+CG TL DUOQ q8 |5|
+CG TL TEMP q8 [0, 5]
 CG TL DUOQ q9 |1|
-CG TL DUOQ q10 |5|
-CG TL TEMP q10 [0, 5]
-CG TL DUOQ q11 |1|
+CG TL DUOQ q10 |1|
+CG TL DUOQ q11 |5|
+CG TL TEMP q11 [0, 5]
 CG TL DUOQ q12 |1|
-CG TL DUOQ q13 |11| <1>
+CG TL DUOQ q13 |5|
 CG TL TEMP q13 [0, 5]
-CG TL DUOQ q14 |11| <3>
-CG TL TEMP q14 [0, 5]
-CG TL DUOQ q15 |11| <6>
-CG TL TEMP q15 [0, 5]
+CG TL DUOQ q14 |1|
+CG TL DUOQ q15 |1|
+CG TL DUOQ q16 |5|
+CG TL TEMP q16 [0, 5]
+CG TL DUOQ q17 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
