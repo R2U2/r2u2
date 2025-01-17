@@ -170,25 +170,25 @@ all: static bin ## Build r2u2 binary and static library for release [Default]
 .PHONY: bin
 bin: $(BIN_RELS) ## Build r2u2 binary for release
 
-.PHONY: static ## Build statically linked r2u2 library for release
-static: $(LIB_RELS).a
+.PHONY: static
+static: $(LIB_RELS).a ## Build statically linked r2u2 library for release
 
-.PHONY: shared ## Build dynamically linked r2u2 library for release
-shared: $(LIB_RELS).so
+.PHONY: shared
+shared: $(LIB_RELS).so ## Build dynamically linked r2u2 library for release
 
 .PHONY: debug
-debug: $(BIN_DBUG)
+debug: $(BIN_DBUG) ## Build r2u2 binary with debug logging and runtime checks enabled
 
-.PHONY: test ## Build r2u2 unit tests
-test: $(TST_BIN_TRGT)
+.PHONY: test
+test: $(TST_BIN_TRGT) ## Build r2u2 unit tests
 
-.PHONY: coverage ## Process all in-tree coverage output into report
-coverage: $(TST_BIN_TRGT) | $(TST_RPT_PATH)
+.PHONY: coverage
+coverage: $(TST_BIN_TRGT) | $(TST_RPT_PATH) ## Process all in-tree coverage output into report
 	$(call coverage_proc)
 	$(call coverage_html)
 
-.PHONY: check ## Run all tests and process coverage report
-check: $(TST_BIN_TRGT) | $(TST_RPT_PATH)
+.PHONY: check
+check: $(TST_BIN_TRGT) | $(TST_RPT_PATH) ## Run all tests and process coverage report
 	$(call run_all_tests)
 	$(call coverage_proc)
 	$(call coverage_html)
@@ -223,5 +223,5 @@ help: ## List common targets with descriptions
 
 # Doxygen API Documentation
 # TODO - make this rebuild on source changes, not just Doxyfile changes
-doc: $(DOC_PATH)/Doxyfile ## Build API Documentation with Doxygen
-	doxygen $(DOC_PATH)/Doxyfile
+#doc: $(DOC_PATH)/Doxyfile ## Build API Documentation with Doxygen
+#	doxygen $(DOC_PATH)/Doxyfile

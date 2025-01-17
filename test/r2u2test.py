@@ -218,11 +218,11 @@ class TestCase():
             str(self.mltl_path)
         ])
 
-        if self.monitor == "static_c":
+        if self.monitor == "c":
             self.r2u2_command = [
                 str(self.r2u2bin), str(self.spec_bin_workdir_path), str(self.trace_path)
             ]
-        elif self.monitor == "static_rust":
+        elif self.monitor == "rust":
             self.r2u2_command = [
                 "cargo", "run", "--manifest-path", str(self.r2u2bin), "run", str(self.spec_bin_workdir_path), str(self.trace_path)
             ]
@@ -280,13 +280,13 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
-        if self.monitor == "static_c":
+        if self.monitor == "c":
             r2u2_command_new = [
                 str(self.r2u2bin), 
                 str(self.test_results_dir / self.spec_bin_workdir_path.name), 
                 str(self.test_results_dir / self.trace_path.name)
             ]
-        elif self.monitor == "static_rust":
+        elif self.monitor == "rust":
             r2u2_command_new = ["cargo", "run", "--manifest_path",
                     str(self.r2u2bin), 
                     str(self.test_results_dir / self.spec_bin_workdir_path.name), 
@@ -395,7 +395,7 @@ class TestSuite():
         if not c2po.is_file():
             self.suite_fail_msg(f"'c2po' not a file ({c2po}).")
 
-        if monitor == "static_c" and not r2u2bin.is_file():
+        if monitor == "c" and not r2u2bin.is_file():
             self.suite_fail_msg(f"'r2u2bin' not a file ({r2u2bin}).")
 
         self.configure_tests()
@@ -514,10 +514,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
                         help="c2po.py file to use for tests")
-    parser.add_argument("--monitor", default="static_c", help="options are 'static_c' or 'static_rust'")
-    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/static_c/build/r2u2",
+    parser.add_argument("--monitor", default="c", help="options are 'c' or 'rust'")
+    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/c/build/r2u2_debug",
                         help="r2u2 binary to use for tests")
-    parser.add_argument("--r2u2manifestpath", default=TEST_DIR / "../monitors/static_rust/r2u2_cli/Cargo.toml",
+    parser.add_argument("--r2u2manifestpath", default=TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml",
                         help="r2u2 Cargo.toml to use for tests")
     parser.add_argument("suites", nargs="+",
                         help="names of test suites to run, should be .toml files in suites/")
@@ -528,9 +528,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     c2po = Path(args.c2po)
-    if args.monitor == "static_c":
+    if args.monitor == "c":
         r2u2bin = Path(args.r2u2bin)
-    elif args.monitor == "static_rust":
+    elif args.monitor == "rust":
         r2u2bin = Path(args.r2u2manifestpath)
     resultsdir = Path(args.resultsdir)
 

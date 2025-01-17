@@ -1,91 +1,91 @@
-
 # About
-The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a runtime verification
-framework designed to monitor safety- or mission-critical systems with
-constrained computational resources. 
 
-## Citing R2U2
+The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a stream-based runtime verification
+framework based on Mission-time Linear Temporal Logic (MLTL) designed to monitor safety- or
+mission-critical systems with constrained computational resources.
 
-If you would like to cite R2U2, please use our 2023 CAV paper: 
+Given a specification and input stream, R2U2 will output a stream of verdicts computing whether the
+specification with respect to the input stream. Specifications can be written and compiled using the
+Configuration Compiler for Property Organization (C2PO).
 
-*Johannsen, Chris, Jones, Phillip, Kempa, Brian, Rozier, Kristin Yvonne, & Zhang, Pei. (2023). R2U2 V3 Demonstration Artifact for the 35th International Conference on Computer Aided Verification (CAV'23). International Conference on Computer Aided Verification (CAV), Paris, France. Zenodo. https://doi.org/10.5281/zenodo.7889284*
+![R2U2 workflow](docs/_static/r2u2-flow.png)
 
-# Running R2U2
-
-To run your own specifications and inputs with R2U2, consult the README files
-included in r2u2/ and its sub-directories. As a brief overview:
-
-1) Write a MLTL specification file as described by `compiler/README.md`
-
-2) Write a CSV file with your signal inputs and a header naming them
-
-3) Feed those files to the C2PO formula compiler:
-        
-        python3 compiler/c2po.py --booleanizer --trace "path/to signals.csv" "path/to/spec.c2po" 
-
-4) Build R2U2 monitor (this only has to be done once, not every time you 
-   change the spec):
-    
-        pushd monitor/ && make clean all && popd
-
-5) Run R2U2:
-    
-        ./monitor/build/r2u2 "path/to/r2u2_spec.bin" "path/to/input.csv"
-
-5) Examine the output `R2U2.log` file, note that aggregated writes means some
-timestamps will appear to be "skipped" - this is normal.
+If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)). 
 
 # Requirements 
 
-The following dependencies have already been installed on this
-container for use by the artifact: 
+The following dependencies are required to run R2U2 and C2PO: 
 - Make 
 - C99 compiler 
-- python 3.6 or greater
+- Python 3.8 or greater
 
-The following python packages have also been installed via `pip` for testing and
-the GUI: 
-- dash 
-- dash-cytoscape 
-- dash-bootstrap-components 
-- pytest 
-- numpy 
-- matplotlib
+# Building
 
-# Example Cases
+To build R2U2, run `make` from `monitors/c/`:
+```bash
+cd monitors/c/
+make
+```
+This only needs to be *once*, regardless of the specifications you wish to monitor.
 
-Each of the following cases shows a minimal example of a feature discussed in
-the paper in the indicated section:
-- `agc`         Assume-Guarantee Contract: tri-state status 
-                              output (inactive, invalid, or verified)
-- `cav`             CAV: The example from the paper showcasing a 
-                              realistic composition of the other features
-- `cse`             Common Subexpression Elimination: Removal of 
-                              redundant work from specification
-- `set_agg`          Set Aggregation: Specifications beyond binary 
-                              inputs
-- `sets`            Set Types: Use of parametrized typing on a 
-                              structure member
-- `simple`          Simple: A basic R2U2 V2 style specification in the 
-                            V3 input language
-- `struct`          Structure: Use of a structure to group variables
+# Running
 
-Beyond these examples tailored to this paper, further examples can be found in
-the test subdirectories: `r2u2/test` and `r2u2/compiler/test`
+Running R2U2 requires a **specification** and an **input stream**. To monitor the specification
+defined in [`examples/simple.c2po`](examples/simple.c2po) using
+[`examples/simple.csv`](examples/simple.csv) as an input stream:
 
-# Running the GUI
+1. Compile the specification using C2PO
+```bash
+python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
+```
 
-Run the `GUI/run.py` script to start the web server then open a web browser and navigate to
-http://127.0.0.1:8050/.
+2. Run R2U2 using the compiled specification and the input stream
+```bash
+./monitors/c/build/r2u2 spec.bin < examples/simple.csv
+```
+
+## Output
+
+The output of R2U2 is a *verdict stream* with one verdict per line. A verdict includes a **formula
+ID**, **timestamp**, and **truth value**. Formula IDs are determined by the order in which they are
+defined in the specification file.  Verdicts are *aggregated* so that if R2U2 can determine a range
+of values with the same truth at once, only the last time is output.
+
+The following is a stream where formula 0 is true from 0-7 and false from 8-11 and formula 1 is
+false from times 0-4:
+
+```
+0:7,T
+1:4,F
+0:11,F
+```
+
+# Examples
+
+Example specifications and traces can be found in the [`examples/`](examples/), [`test/`](test/),
+and  [`compiler/test/`](compiler/test/) directories.
+
+The [`benchmarks/`](benchmarks/) directory includes sets of larger specifications taken from various
+sources. See each sub-directory's README for its description and source.
+
+# Documentation
+
+The documentation for R2U2 can be found [here](https://r2u2.github.io/r2u2/). The documentation includes user and developer guides for both R2U2 and C2PO.
 
 # Support 
 
-If you believe you have found a case of unsound output from R2U2,
-please run the case in debug mode and provide the output to the authors for
-analysis: 
-    `pushd r2u2/monitor && make clean debug && popd`
-    `./r2u2/monitor/build/r2u2_debug "path/to/r2u2_spec.bin" \
-        "path/to/input.csv" 2>debug.log` 
+If you believe you have found a case of unsound output from R2U2, please refer to
+[CONTRIBUTING.md](CONTRIBUTING.md) and open a bug report issue.
 
-The logs contain no identifying information, please ask the chairs to assist in
-passing along you anonymized feedback. Thank you.
+## License
+
+Licensed under either of
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
