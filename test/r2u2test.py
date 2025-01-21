@@ -515,10 +515,8 @@ if __name__ == "__main__":
     parser.add_argument("--c2po", default=TEST_DIR / "../compiler/c2po.py",
                         help="c2po.py file to use for tests")
     parser.add_argument("--monitor", default="c", help="options are 'c' or 'rust'")
-    parser.add_argument("--r2u2bin", default=TEST_DIR / "../monitors/c/build/r2u2_debug",
+    parser.add_argument("--r2u2",
                         help="r2u2 binary to use for tests")
-    parser.add_argument("--r2u2manifestpath", default=TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml",
-                        help="r2u2 Cargo.toml to use for tests")
     parser.add_argument("suites", nargs="+",
                         help="names of test suites to run, should be .toml files in suites/")
     parser.add_argument("--resultsdir", default=DEFAULT_RESULTS_DIR,
@@ -529,9 +527,16 @@ if __name__ == "__main__":
 
     c2po = Path(args.c2po)
     if args.monitor == "c":
-        r2u2bin = Path(args.r2u2bin)
+        if args.r2u2 is None:
+            r2u2bin = TEST_DIR / "../monitors/c/build/r2u2"
+        else:
+            r2u2bin = Path(args.r2u2)
     elif args.monitor == "rust":
-        r2u2bin = Path(args.r2u2manifestpath)
+        if args.r2u2 is None:
+            print("HERE")
+            r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml"
+        else:
+            r2u2bin = Path(args.r2u2)
     resultsdir = Path(args.resultsdir)
 
     retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback, args.monitor)
