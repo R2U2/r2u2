@@ -14,12 +14,20 @@ If you would like to cite R2U2, please use our [2023 CAV paper](https://link.spr
 
 # Requirements 
 
-The following dependencies are required to run R2U2 and C2PO: 
+The following dependencies are required to run R2U2 C version:
 - Make 
 - C99 compiler 
+
+The following dependencies are required to run R2U2 Rust version:
+- [Rust](https://www.rust-lang.org/tools/install) 1.79.0 or greater 
+
+The following dependencies are required to run C2PO: 
 - Python 3.8 or greater
+- (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
 
 # Building
+
+## R2U2 C Version
 
 To build R2U2, run `make` from `monitors/c/`:
 ```bash
@@ -27,6 +35,18 @@ cd monitors/c/
 make
 ```
 This only needs to be *once*, regardless of the specifications you wish to monitor.
+
+## R2U2 Rust Version
+
+To build R2U2 from source, run `cargo build --release` from `monitors/r2u2_cli`:
+```bash
+cd monitors/rust/rust_cli/
+cargo build --release
+```
+
+This only needs to be *once*, regardless of the specifications you wish to monitor.
+
+***There is also a [r2u2_cli](https://crates.io/crates/r2u2_cli) Rust crate available to run C2PO and R2U2.
 
 # Running
 
@@ -36,13 +56,20 @@ defined in [`examples/simple.c2po`](examples/simple.c2po) using
 
 1. Compile the specification using C2PO
 ```bash
+cd compiler
 python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
 ```
 
 2. Run R2U2 using the compiled specification and the input stream
-```bash
-./monitors/c/build/r2u2 spec.bin < examples/simple.csv
-```
+
+    a. Run R2U2 C version:
+    ```bash
+    ./monitors/c/build/r2u2 spec.bin < examples/simple.csv
+    ```
+    b. Run R2U2 Rust version:
+    ```bash
+    ./monitors/rust/r2u2_cli/target/release/r2u2_cli run spec.bin examples/simple.csv
+    ```
 
 ## Output
 
