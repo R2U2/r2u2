@@ -1,7 +1,7 @@
 use crate::internals::types::*;
 use crate::memory::monitor::*;
 
-#[cfg(feature = "configurable")]
+
 use crate::internals::bounds::*;
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -75,34 +75,18 @@ impl Default for SCQTemporalBlock {
     }
 }
 
-#[cfg(feature = "configurable")]
+
 pub struct SCQMemoryArena {
     pub control_blocks: [SCQCtrlBlock; R2U2_MAX_TL_INSTRUCTIONS],
     pub queue_mem: [r2u2_verdict; R2U2_TOTAL_QUEUE_MEM],
 }
 
-#[cfg(feature = "configurable")]
+
 impl SCQMemoryArena{
     pub fn initialize() -> SCQMemoryArena{
         return SCQMemoryArena {
             control_blocks: [SCQCtrlBlock::default(); R2U2_MAX_TL_INSTRUCTIONS],
             queue_mem: [r2u2_verdict::default(); R2U2_TOTAL_QUEUE_MEM]
-        }
-    }
-}
-
-#[cfg(not(feature = "configurable"))]
-pub struct SCQMemoryArena {
-    pub control_blocks: [SCQCtrlBlock; 256],
-    pub queue_mem: [r2u2_verdict; 1024],
-}
-
-#[cfg(not(feature = "configurable"))]
-impl SCQMemoryArena{
-    pub fn initialize() -> SCQMemoryArena{
-        return SCQMemoryArena {
-            control_blocks: [SCQCtrlBlock::default(); 256],
-            queue_mem: [r2u2_verdict::default(); 1024]
         }
     }
 }
