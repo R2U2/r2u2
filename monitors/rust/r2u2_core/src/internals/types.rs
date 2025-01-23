@@ -89,7 +89,7 @@ impl Default for r2u2_value{
 }
 
 #[allow(non_camel_case_types)]
-/// Struct to contain output verdicts (i.e., spec identification and verdict)
+/// Struct to contain output verdicts (i.e., specification identification and verdict)
 pub struct r2u2_output{
     // Spec Number/Name & Verdict
     pub spec_num: r2u2_addr,

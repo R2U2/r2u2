@@ -1007,7 +1007,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 
 def assemble(
-    program: cpt.Program, context: cpt.Context, quiet: bool
+    program: cpt.Program, context: cpt.Context, enable_aux: bool
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
     log.debug(MODULE_CODE, 1, "Assembling")
 
@@ -1028,9 +1028,12 @@ def assemble(
 
     binary += b"\x00"
 
-    (aliases, binary_aliases) = pack_aliases(program, context)
-    assembly += aliases
-    binary += binary_aliases
+    if enable_aux:
+        (aliases, binary_aliases) = pack_aliases(program, context)
+        assembly += aliases
+        binary += binary_aliases
+    else:
+        binary += b"\x00"
 
     binary += b"\x00"
 

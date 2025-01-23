@@ -42,6 +42,8 @@ parser.add_argument("-tc", "--type-check", action="store_true",
                     help="only run the parser and type checker")
 parser.add_argument("-c", "--compile", action="store_true",
                     help="only run the parser, type checker, and passes")
+parser.add_argument("-da", "--disable-aux", action="store_false",
+                    help = "disable aux data (e.g., contract status and specification naming)")
 
 parser.add_argument("-dc", "--disable-cse", action="store_false",
                     help="disable CSE optimization")
@@ -95,6 +97,7 @@ return_code = c2po.main.main(
     only_type_check=args.type_check,
     only_compile=args.compile,
     enable_booleanizer=args.booleanizer, 
+    enable_aux=args.disable_aux,
     enable_cse=args.disable_cse, 
     enable_extops=args.extops, 
     enable_rewrite=args.disable_rewrite, 

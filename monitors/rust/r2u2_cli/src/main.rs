@@ -34,15 +34,19 @@ enum Commands {
         #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
         output: Option<PathBuf>,
 
-        /// Enables booleanizer (default = booleanizer enabled)
+        /// Disables booleanizer (default = booleanizer enabled)
         #[arg(long,default_value_t=false)]
         disable_booleanizer: bool,
 
-        /// Enables rewrite rules (default = rewrite rules enabled)
+        /// Disable Assume-Guarantee Contract (AGC) and auxiliary specification logging
+        #[arg(long,default_value_t=false)]
+        disable_aux: bool,
+
+        /// Disables rewrite rules (default = rewrite rules enabled)
         #[arg(long,default_value_t=false)]
         disable_rewrite: bool,
 
-        /// Enables common subexpression elimination (CSE) (default = CSE enabled)
+        /// Disables common subexpression elimination (CSE) (default = CSE enabled)
         #[arg(long,default_value_t=false)]
         disable_cse: bool,
 
@@ -69,9 +73,13 @@ enum Commands {
         #[arg(short, long, value_name = "PATH", value_parser=valid_location)]
         output: Option<PathBuf>,
 
-        /// Disable auxiliary data output (e.g., assume-guarantee contract status)
+        /// Disable assume-guarantee contract status logging
         #[arg(long,default_value_t=false)]
-        disable_aux: bool,
+        disable_contracts: bool,
+
+        /// Enable auxiliary specification logging
+        #[arg(long,default_value_t=false)]
+        enable_aux: bool,
     },
 }
 
@@ -168,7 +176,7 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Run { spec, trace, output , disable_aux}) => {
+        Some(Commands::Run { spec, trace, output, disable_contracts, enable_aux}) => {
             let spec_file: Vec<u8>;
             if spec.extension().and_then(OsStr::to_str) == Some("c2po") || 
                 spec.extension().and_then(OsStr::to_str) == Some("mltl") {
@@ -178,6 +186,7 @@ fn main() {
                     "",
                     &random_file,
                     true,
+                    *enable_aux || !disable_contracts,
                     true,
                     true,
                     false,
@@ -205,16 +214,18 @@ fn main() {
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
-                        if !disable_aux {
+                        if *enable_aux {
                             for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
                                 let _ = output_file.write_fmt(format_args!("{} ({}):{},{}\n", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
-                            }
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
-                                let _ = output_file.write_fmt(format_args!("Contract {} {} at {}\n", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time));
                             }
                         } else {
                             for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
                                 let _ = output_file.write_fmt(format_args!("{}:{},{}\n", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
+                            }
+                        }
+                        if !disable_contracts {
+                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                                let _ = output_file.write_fmt(format_args!("Contract {} {} at {}\n", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time));
                             }
                         }
                     } else {
@@ -229,16 +240,18 @@ fn main() {
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
-                        if !disable_aux {
+                        if *enable_aux {
                             for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
                                 println!("{} ({}):{},{}", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
-                            }
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
-                                println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
                             }
                         } else {
                             for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
                                 println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+                            }
+                        }
+                        if !disable_contracts {
+                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                                println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
                             }
                         }
                     } else {
@@ -248,7 +261,7 @@ fn main() {
             }
         },
         Some(Commands::Compile { spec, map, output,  disable_booleanizer, 
-            disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
+            disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
             if output.is_some(){
                 out_location = output.clone().unwrap_or(PathBuf::new()).to_str().unwrap_or(".").to_owned();
@@ -262,6 +275,7 @@ fn main() {
                         "",
                         &out_location,
                         !disable_booleanizer,
+                        !disable_aux,
                         !disable_rewrite,
                         !disable_cse,
                         enable_sat.to_owned(),
@@ -273,6 +287,7 @@ fn main() {
                 map.to_str().unwrap(),
                 &out_location,
                 !disable_booleanizer,
+                !disable_aux,
                 !disable_rewrite,
                 !disable_cse,
                 enable_sat.to_owned(),
@@ -290,6 +305,7 @@ fn c2po_compile(input_filename: &str,
     map_filename: &str,
     output_filename: &str,
     enable_booleanizer: bool,
+    enable_aux: bool,
     enable_rewrite: bool,
     enable_cse: bool,
     enable_sat: bool,
@@ -334,6 +350,7 @@ fn c2po_compile(input_filename: &str,
             map_filename,
             output_filename,
             enable_booleanizer,
+            enable_aux,
             enable_rewrite,
             enable_cse,
             enable_sat,

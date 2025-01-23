@@ -14,6 +14,8 @@ This crate allows specifications to be compiled with C2PO and monitored with R2U
 
 # Requirements
 
+Requires a Python 3.x interpreter as required by [PyO3](https://github.com/PyO3/pyo3).
+
 To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based
 systems, this can be done via `sudo apt-get install z3`.
 
@@ -77,7 +79,7 @@ false from times 0-4:
 0:11,F
 ```
 
-# Examples Specifications and Traces
+# Examples, Specifications, and Traces
 
 Example specifications and traces can be found on our [github page](https://github.com/R2U2/r2u2/tree/rust-develop).
 

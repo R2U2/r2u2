@@ -5,7 +5,7 @@
 //!
 //! ## Optional Features:
 //! 
-//! - `aux_string_specs`: Enable Assume-Guarantee Contract status output and string specification naming. This feature
+//! - `aux_string_specs`: Enable Assume-Guarantee Contract status output and string auxiliary specification naming. This feature
 //! enables the following:
 //!     - **[r2u2_contract]** type
 //!     - **[r2u2_output::spec_str]** member of the **[r2u2_output]** type

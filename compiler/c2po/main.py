@@ -291,6 +291,7 @@ def compile(
     only_type_check: bool = False,
     only_compile: bool = False,
     enable_booleanizer: bool = False,
+    enable_aux: bool = False,
     enable_extops: bool = False,
     enable_nnf: bool = False,
     enable_bnf: bool = False,
@@ -467,7 +468,7 @@ def compile(
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(
-        program, context, quiet
+        program, context, enable_aux,
     )
 
     if not quiet:
@@ -500,6 +501,7 @@ def main(
     map_filename: str = "",
     output_filename: str = "spec.bin",
     enable_booleanizer: bool = False,
+    enable_aux: bool = False,
     enable_rewrite: bool = False,
     enable_cse: bool = False,
     enable_sat: bool = False,
@@ -545,6 +547,7 @@ def main(
             only_type_check,
             only_compile,
             enable_booleanizer,
+            enable_aux,
             enable_extops,
             enable_nnf,
             enable_bnf,
