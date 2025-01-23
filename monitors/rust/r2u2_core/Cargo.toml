@@ -19,9 +19,11 @@ cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
 const_env = "0.1.2"
 vstd = { git = "https://github.com/aaurandt/verus.git", rev = "3e21ec911f72170fcfff876e9bf39b9f478192da", default-features = false }
+fixedstr = {version = "0.5.8", features=["no-alloc"], optional = true}
 
 [features]
 default = ["configurable"]
+aux_string_specs = ["dep:fixedstr"]
 debug_print_semihosting = ["dep:cortex-m-semihosting"]
 debug_print_std = ["dep:libc-print"]
 configurable = []

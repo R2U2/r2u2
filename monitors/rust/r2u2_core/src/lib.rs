@@ -16,8 +16,9 @@ mod internals;
 mod engines;
 mod memory;
 
-pub use internals::types::r2u2_output;
-pub use internals::types::r2u2_verdict;
+pub use internals::types::{r2u2_output,r2u2_verdict};
+#[cfg(feature = "aux_string_specs")]
+pub use internals::types::{r2u2_contract, AGC_INACTIVE, AGC_INVALID, AGC_VERIFIED};
 pub use internals::bounds::{R2U2_MAX_SPECS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_MEM};
 
 /// Get runtime monitor
@@ -191,6 +192,30 @@ pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
 /// 
 pub fn get_output_buffer(monitor: &Monitor) -> &[r2u2_output]{
     return &monitor.output_buffer[0..monitor.output_buffer_idx];
+}
+
+#[cfg(feature = "aux_string_specs")]
+/// Get assume-guarantee contract buffer
+/// 
+/// # Arguments
+/// 
+/// * `monitor` - A reference to a monitor
+/// 
+/// # Returns
+/// 
+/// A reference to an array of r2u2_contracts from the last call of monitor_step()
+/// 
+/// # Examples
+/// 
+/// ```
+/// let mut monitor = r2u2_core::get_monitor(&spec_file);
+/// for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+/// println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
+/// }
+/// ```
+/// 
+pub fn get_contract_buffer(monitor: &Monitor) -> &[r2u2_contract]{
+    return &monitor.contract_buffer[0..monitor.contract_buffer_idx];
 }
 
 /// Get overflow error flag

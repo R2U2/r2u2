@@ -32,7 +32,7 @@ enum Commands {
 
         /// Sets location to save spec.bin file (default = current directory)
         #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
-        location: Option<PathBuf>,
+        output: Option<PathBuf>,
 
         /// Enables booleanizer (default = booleanizer enabled)
         #[arg(long,default_value_t=false)]
@@ -67,7 +67,11 @@ enum Commands {
 
         /// Sets location to save output in a file (default = print to terminal)
         #[arg(short, long, value_name = "PATH", value_parser=valid_location)]
-        location: Option<PathBuf>,
+        output: Option<PathBuf>,
+
+        /// Disable auxiliary data output (e.g., assume-guarantee contract status)
+        #[arg(long,default_value_t=false)]
+        disable_aux: bool,
     },
 }
 
@@ -164,7 +168,7 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Run { spec, trace, location }) => {
+        Some(Commands::Run { spec, trace, output , disable_aux}) => {
             let spec_file: Vec<u8>;
             if spec.extension().and_then(OsStr::to_str) == Some("c2po") || 
                 spec.extension().and_then(OsStr::to_str) == Some("mltl") {
@@ -191,8 +195,8 @@ fn main() {
             let signal_file: fs::File = fs::File::open(trace).expect("Error opening signal CSV file");
             let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
             
-            if location.is_some(){
-                let mut out_location = location.clone().unwrap();
+            if output.is_some(){
+                let mut out_location = output.clone().unwrap();
                 out_location.push("r2u2_out.log");
                 let mut output_file: fs::File = fs::File::create(out_location).expect("Error creating output file");
                 for result in reader.records() {
@@ -201,14 +205,23 @@ fn main() {
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
-                        for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
-                            let _ = output_file.write_fmt(format_args!("{}:{},{}\n", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
+                        if !disable_aux {
+                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                                let _ = output_file.write_fmt(format_args!("{} ({}):{},{}\n", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
+                            }
+                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                                let _ = output_file.write_fmt(format_args!("Contract {} {} at {}\n", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time));
+                            }
+                        } else {
+                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                                let _ = output_file.write_fmt(format_args!("{}:{},{}\n", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
+                            }
                         }
                     } else {
                         let _ = output_file.write_fmt(format_args!("Overflow occurred!!!!\n"));
                     }
                 }
-                println!("Output written to {}/r2u2_out.log", location.clone().unwrap().to_string_lossy());
+                println!("Output written to {}/r2u2_out.log", output.clone().unwrap().to_string_lossy());
             } else{
                 for result in reader.records() {
                     let record = &result.expect("Error reading signal values");
@@ -216,8 +229,17 @@ fn main() {
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
-                        for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
-                            println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+                        if !disable_aux {
+                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                                println!("{} ({}):{},{}", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+                            }
+                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                                println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
+                            }
+                        } else {
+                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                                println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
+                            }
                         }
                     } else {
                         println!("Overflow occurred!!!!")
@@ -225,11 +247,11 @@ fn main() {
                 }
             }
         },
-        Some(Commands::Compile { spec, map, location,  disable_booleanizer, 
+        Some(Commands::Compile { spec, map, output,  disable_booleanizer, 
             disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
-            if location.is_some(){
-                out_location = location.clone().unwrap_or(PathBuf::new()).to_str().unwrap_or(".").to_owned();
+            if output.is_some(){
+                out_location = output.clone().unwrap_or(PathBuf::new()).to_str().unwrap_or(".").to_owned();
                 out_location.push_str("/spec.bin");
             } else{
                 out_location = "spec.bin".to_owned();

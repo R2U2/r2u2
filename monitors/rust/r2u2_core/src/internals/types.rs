@@ -1,6 +1,17 @@
+#[cfg(feature = "aux_string_specs")]
+use fixedstr::ztr64;
+
 use vstd::prelude::*;
 
 verus! {
+
+// Assume-guarantee contract status
+#[cfg(feature = "aux_string_specs")]
+pub const AGC_INACTIVE: u8 = 0;
+#[cfg(feature = "aux_string_specs")]
+pub const AGC_INVALID: u8 = 1;
+#[cfg(feature = "aux_string_specs")]
+pub const AGC_VERIFIED: u8 = 2;
 
 #[allow(non_camel_case_types)]
 pub type r2u2_time = u32;
@@ -75,8 +86,10 @@ impl Default for r2u2_value{
 
 #[allow(non_camel_case_types)]
 pub struct r2u2_output{
-    // Spec Number & Verdict
+    // Spec Number/Name & Verdict
     pub spec_num: r2u2_addr,
+    #[cfg(feature = "aux_string_specs")]
+    pub spec_str: ztr64,
     pub verdict: r2u2_verdict, 
 }
 
@@ -92,7 +105,39 @@ impl Default for r2u2_output{
     fn default() -> Self {
         return r2u2_output {
             spec_num: r2u2_infinity,
+            #[cfg(feature = "aux_string_specs")]
+            spec_str: ztr64::from(""),
             verdict: r2u2_verdict::default(),
+        }
+    }
+}
+
+#[cfg(feature = "aux_string_specs")]
+#[allow(non_camel_case_types)]
+pub struct r2u2_contract{
+    // Spec Number & Verdict
+    pub spec_str: ztr64,
+    pub time: r2u2_time,
+    pub status: u8, // 0 = active, 1 = valid, 2 = verified 
+}
+
+#[cfg(feature = "aux_string_specs")]
+impl Copy for r2u2_contract{ }
+
+#[cfg(feature = "aux_string_specs")]
+impl Clone for r2u2_contract {
+    fn clone(&self) -> r2u2_contract {
+        return *self
+    }
+}
+
+#[cfg(feature = "aux_string_specs")]
+impl Default for r2u2_contract {
+    fn default() -> Self {
+        return r2u2_contract {
+            spec_str: ztr64::from(""),
+            time: r2u2_infinity,
+            status: AGC_INACTIVE,
         }
     }
 }

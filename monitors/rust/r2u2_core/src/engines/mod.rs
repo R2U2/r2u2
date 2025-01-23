@@ -25,8 +25,12 @@ pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("-------Step {}-------", monitor.time_stamp);
-    //Reset output buffer
+    // Reset output buffer
     monitor.output_buffer_idx = 0;
+    // Reset contract buffer
+    #[cfg(feature = "aux_string_specs")]
+    (monitor.contract_buffer_idx = 0);
+    
     // Run booleanizer instructions (once)
     while monitor.bz_program_count.curr_program_count < monitor.bz_program_count.max_program_count {
         bz_update(monitor);
