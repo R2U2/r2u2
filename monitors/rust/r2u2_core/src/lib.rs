@@ -1,3 +1,30 @@
+//! # Library for r2u2_core
+//!
+//!  R2U2: A stream-based runtime monitor written in `#![no_std]` that reasons over Mission-Time Linear
+//! Temporal Logic (MLTL) specifications compiled with the Configuration Compiler for Property Organization (C2PO).
+//!
+//! ## Optional Features:
+//! 
+//! - `aux_string_specs`: Enable Assume-Guarantee Contract status output and string specification naming. This feature
+//! enables the following:
+//!     - **[r2u2_contract]** type
+//!     - **[r2u2_output::spec_str]** member of the **[r2u2_output]** type
+//!     - **[get_contract_buffer]** function
+//!     - **[AGC_INACTIVE]**, **[AGC_INVALID]**, and **[AGC_VERIFIED]** constants
+//! - `debug_print_std`: Debug printing to terminal (i.e., `println!`)
+//! - `debug_print_semihosting`: Debug printing utilizing GDB debugger of microcontroller (i.e., `hprintln!`)
+//! 
+//! ## Usage:
+//! 1. A monitor must be created utilizing **[get_monitor]**. The specification file from C2PO must be passed by reference as
+//! `&[u8]`. The specifications can later be updated with **[update_binary_file]**; this will also reset the monitor to its intial state.
+//! 2. Signals must be loaded in according to the mapping specified when compiling the specification file through **[load_bool_signal]**,
+//! **[load_float_signal]**, **[load_int_signal]**, and **[load_string_signal]**.
+//! 3. Run the monitor for a single timestep with **[monitor_step]**.
+//! 4. Get output data through **[get_output_buffer]** and **[get_contract_buffer]**.
+//! 5. Repeat steps 2-4. (Optionally check for overflow with the output of **[monitor_step]** or **[get_overflow_error]**.)
+//! 
+//! For details on compiling specifications with C2PO, refer to [README](https://crates.io/crates/r2u2_core).
+
 #![no_std]
 
 use internals::types::*;
@@ -44,7 +71,7 @@ pub fn get_monitor(spec_file: &[u8]) -> Monitor{
     return monitor;
 }
 
-/// Update specification binary file
+/// Update specification binary file (and reset monitor)
 /// 
 /// # Arguments
 /// 
@@ -53,6 +80,7 @@ pub fn get_monitor(spec_file: &[u8]) -> Monitor{
 /// 
 pub fn update_binary_file(spec_file: &[u8], monitor: &mut Monitor){
     process_binary_file(spec_file, monitor);
+    monitor.reset();
 }
 
 /// Take a step with runtime monitor
@@ -171,7 +199,7 @@ pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
     }
 }
 
-/// Get output buffer
+/// Get output verdict buffer
 /// 
 /// # Arguments
 /// 
@@ -195,7 +223,7 @@ pub fn get_output_buffer(monitor: &Monitor) -> &[r2u2_output]{
 }
 
 #[cfg(feature = "aux_string_specs")]
-/// Get assume-guarantee contract buffer
+/// Get Assume-Guarantee Contract (AGC) buffer
 /// 
 /// # Arguments
 /// 
@@ -210,7 +238,7 @@ pub fn get_output_buffer(monitor: &Monitor) -> &[r2u2_output]{
 /// ```
 /// let mut monitor = r2u2_core::get_monitor(&spec_file);
 /// for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
-/// println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
+///     println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
 /// }
 /// ```
 /// 

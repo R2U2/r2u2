@@ -7,10 +7,13 @@ verus! {
 
 // Assume-guarantee contract status
 #[cfg(feature = "aux_string_specs")]
+/// Assume-Guarantee Contract (AGC) inactive status
 pub const AGC_INACTIVE: u8 = 0;
 #[cfg(feature = "aux_string_specs")]
+/// Assume-Guarantee Contract (AGC) invalid status
 pub const AGC_INVALID: u8 = 1;
 #[cfg(feature = "aux_string_specs")]
+/// Assume-Guarantee Contract (AGC) verified status
 pub const AGC_VERIFIED: u8 = 2;
 
 #[allow(non_camel_case_types)]
@@ -32,6 +35,7 @@ pub type r2u2_addr = u32;
 pub const r2u2_infinity: r2u2_time = r2u2_time::MAX;
 
 #[allow(non_camel_case_types)]
+/// Struct to contain verdict-timestamp tuples
 pub struct r2u2_verdict{
     // Time & Truth
     pub time: r2u2_time,
@@ -85,6 +89,7 @@ impl Default for r2u2_value{
 }
 
 #[allow(non_camel_case_types)]
+/// Struct to contain output verdicts (i.e., spec identification and verdict)
 pub struct r2u2_output{
     // Spec Number/Name & Verdict
     pub spec_num: r2u2_addr,
@@ -114,6 +119,7 @@ impl Default for r2u2_output{
 
 #[cfg(feature = "aux_string_specs")]
 #[allow(non_camel_case_types)]
+/// Struct to contain Assume-Guarantee Contract (AGC) verdicts (i.e., contract identification and status)
 pub struct r2u2_contract{
     // Spec Number & Verdict
     pub spec_str: ztr64,

@@ -1,4 +1,4 @@
-# About
+# R2U2 Core
 
 The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a stream-based runtime verification
 framework based on Mission-time Linear Temporal Logic (MLTL) designed to monitor safety- or
@@ -14,7 +14,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-r2u2_core = "0.1.3"
+r2u2_core = "0.2.0"
 ```
 
 # Example Usage
@@ -80,7 +80,7 @@ r2u2_core = "0.1.3"
     }
     ```
 
-Microcontroller example also available [here](https://github.com/R2U2/r2u2/tree/rust-develop/monitors/static_rust/r2u2_cortex_m_example).
+Microcontroller example also available [here](https://github.com/R2U2/r2u2/tree/rust-develop/monitors/rust/r2u2_cortex_m_example).
 
 ## Output
 
@@ -98,7 +98,7 @@ false from times 0-4:
 0:11,F
 ```
 
-# Examples Specifications and Traces
+# Examples, Specifications, and Traces
 
 Example specifications and traces can be found on our [github page](https://github.com/R2U2/r2u2/tree/rust-develop).
 
