@@ -416,6 +416,12 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             R2U2_DEBUG_PRINT("\tBZ FPREV\n");
             R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", inst_buff.addr, f1, inst_buff.param1.bz_addr);
             break;
+        case R2U2_BZ_TS:
+            (*monitor->value_buffer)[inst_buff.addr].i = monitor->time_stamp;
+
+            R2U2_DEBUG_PRINT("\tBZ TS\n");
+            R2U2_DEBUG_PRINT("\tb%d = %d\n", inst_buff.addr, monitor->time_stamp);
+            break;
         default:
             R2U2_DEBUG_PRINT("Warning: Bad OpCode\n");
             break;

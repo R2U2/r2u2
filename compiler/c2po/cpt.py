@@ -162,6 +162,28 @@ class Constant(Expression):
         return new
 
 
+class CurrentTimestamp(Expression):
+    first_time_seen = True
+
+    def __init__(self, loc: log.FileLocation) -> None:
+        super().__init__(loc, [])
+        self.engine = types.R2U2Engine.BOOLEANIZER
+        self.symbol = "TAU"
+        
+        if CurrentTimestamp.first_time_seen:
+            log.warning(
+                MODULE_CODE,
+                "If using TAU, `r2u2_int` and `r2u2_time` types must be the same when building r2u2",
+                loc,
+            )
+        CurrentTimestamp.first_time_seen = False
+
+    def __deepcopy__(self, memo):
+        new = CurrentTimestamp(self.loc)
+        self.copy_attrs(new)
+        return new
+
+
 class Variable(Expression):
     def __init__(self, loc: log.FileLocation, s: str) -> None:
         super().__init__(loc, [])
@@ -1347,7 +1369,7 @@ def to_infix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, AtomicChecker)):
             s += expr.symbol
         elif isinstance(expr, ArrayIndex):
             if seen == 0:
@@ -1460,7 +1482,7 @@ def to_prefix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, Variable, Signal, AtomicChecker)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, AtomicChecker)):
             s += expr.symbol + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:

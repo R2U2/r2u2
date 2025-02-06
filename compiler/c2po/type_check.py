@@ -57,6 +57,16 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             # TODO: Implement a check for valid float width, maybe with something like:
             # if len(value.hex()[2:]) > types.FloatType.width:
             #     ...
+        elif isinstance(expr, cpt.CurrentTimestamp):
+            if types.IntType.is_signed:
+                log.error(
+                    MODULE_CODE,
+                    "To use the current timestamp, the integer type must be unsigned",
+                    expr.loc,
+                )
+                return False
+
+            expr.type = types.IntType()
         elif isinstance(expr, cpt.Signal):
             if (
                 context.config.assembly_enabled
@@ -447,7 +457,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                                 expr.loc,
                             )
                             return False
-                    else:
+                    elif types.IntType.is_signed:
                         log.error(
                             MODULE_CODE,
                             f"Power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",

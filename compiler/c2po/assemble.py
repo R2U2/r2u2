@@ -75,6 +75,7 @@ class BZOperator(Enum):
     FABS = 0b100101
     IPREV = 0b100110
     FPREV = 0b100111
+    TS = 0b101000
 
 
     def is_constant(self) -> bool:
@@ -522,6 +523,10 @@ def gen_bz_instruction(
         operand1 = expr.value
         operand2 = 0
         operator = BZOperator.FCONST
+    elif isinstance(expr, cpt.CurrentTimestamp):
+        operand1 = 0
+        operand2 = 0
+        operator = BZOperator.TS
     elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id
         operand2 = 0
