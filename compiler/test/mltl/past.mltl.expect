@@ -6,17 +6,17 @@ TL n4  return n3 1
 TL n5  load   a1
 TL q6  since  n0 n5
 TL n7  return n6 2
-CG TL DUOQ q0 |1|
-CG TL DUOQ q1 |5|
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |5|
 CG TL TEMP q1 [0, 5]
-CG TL DUOQ q2 |1|
-CG TL DUOQ q3 |5|
+CG TL SCQ q2 |1|
+CG TL SCQ q3 |5|
 CG TL TEMP q3 [0, 5]
-CG TL DUOQ q4 |1|
-CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |5|
+CG TL SCQ q4 |1|
+CG TL SCQ q5 |1|
+CG TL SCQ q6 |5|
 CG TL TEMP q6 [0, 5]
-CG TL DUOQ q7 |1|
+CG TL SCQ q7 |1|
 F __f1__ 0
 F __f2__ 1
 F __f3__ 2

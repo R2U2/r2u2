@@ -3,12 +3,12 @@
 #include "duo_queue.h"
 
 #if R2U2_DEBUG
-static void r2u2_duoq_arena_print(r2u2_duoq_arena_t *arena) {
+static void r2u2_scq_arena_print(r2u2_scq_arena_t *arena) {
   R2U2_DEBUG_PRINT("\t\t\tDUO Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena->blocks, arena->queues, ((void*)arena->queues) - ((void*)arena->blocks));
 }
 
-static void r2u2_duoq_queue_print(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static void r2u2_scq_queue_print(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   R2U2_DEBUG_PRINT("\t\t\tID: |");
   for (r2u2_time i = 0; i < ctrl->length; ++i) {
@@ -22,13 +22,13 @@ static void r2u2_duoq_queue_print(r2u2_duoq_arena_t *arena, r2u2_time queue_id) 
 }
 #endif
 
-r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length) {
+r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length) {
 
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   ctrl->length = queue_length;
 
-  R2U2_DEBUG_PRINT("\t\tCfg DUOQ %u: len = %u\n", queue_id, queue_length);
+  R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: len = %u\n", queue_id, queue_length);
 
   /* The first queue doesn't have a previous queue to offset from and can use
    * the slot pointed to by the control block queue pointer, so if the queue id
@@ -45,35 +45,35 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
   ctrl->queue[0] = r2u2_infinity;
 
   #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
+  r2u2_scq_queue_print(arena, queue_id);
   #endif
 
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_duoq_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
+r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
 
   #if R2U2_DEBUG
-    assert((arena->blocks)[queue_id].length > sizeof(r2u2_duoq_temporal_block_t) / sizeof(r2u2_tnt_t));
+    assert((arena->blocks)[queue_id].length > sizeof(r2u2_scq_temporal_block_t) / sizeof(r2u2_tnt_t));
   #endif
 
   // Reserve temporal block by shortening length of circular buffer
-  (arena->blocks)[queue_id].length -= sizeof(r2u2_duoq_temporal_block_t) / sizeof(r2u2_tnt_t);
+  (arena->blocks)[queue_id].length -= sizeof(r2u2_scq_temporal_block_t) / sizeof(r2u2_tnt_t);
 
-  R2U2_DEBUG_PRINT("\t\tCfg DUOQ %u: Temp Rsvd, len = %u\n", queue_id, (arena->blocks)[queue_id].length);
+  R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: Temp Rsvd, len = %u\n", queue_id, (arena->blocks)[queue_id].length);
 
   #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
+  r2u2_scq_queue_print(arena, queue_id);
   #endif
 
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_duoq_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
+  r2u2_scq_queue_print(arena, queue_id);
   #endif
 
   r2u2_tnt_t prev = ((ctrl->write) == 0) ? ctrl->length-1 : ctrl->write-1;
@@ -102,11 +102,11 @@ r2u2_status_t r2u2_duoq_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2
   return R2U2_OK;
 }
 
-r2u2_bool r2u2_duoq_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
 
   #if R2U2_DEBUG
-  r2u2_duoq_queue_print(arena, queue_id);
+  r2u2_scq_queue_print(arena, queue_id);
   #endif
 
   R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tWrite: %u\n", *read, next_time, ctrl->write);

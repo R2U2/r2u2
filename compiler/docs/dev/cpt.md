@@ -11,7 +11,7 @@ generator function, which yields each node of the CPT expression in postorder fa
 also usually carry a `cpt.Context` object throughout, that stores information about defined structs,
 declared variables, etc.
 
-## DUOQ Sizing
+## SCQ Sizing
 
 Each node in the final CPT representation requires some memory to store its result during the
 execution of R2U2. The exact amount of memory each node requires is determined by the *propagation

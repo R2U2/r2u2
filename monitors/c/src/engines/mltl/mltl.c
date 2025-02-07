@@ -13,8 +13,8 @@
 /// @param[out] result The operand TnT - only vaid if return value is true
 /// @return     Boolean indicating if data is ready and `result` is valid
 static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_bool op_num, r2u2_tnt_t *result) {
-    r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
-    r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+    r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+    r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
     r2u2_tnt_t *rd_ptr; // Hold off on this in case it doesn't exist...
 
     // Get operand info based on `n` which indicates left/first v.s. right/second
@@ -25,7 +25,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_DIRECT:
         if (instr->opcode == R2U2_MLTL_OP_SINCE || instr->opcode == R2U2_MLTL_OP_TRIGGER){
-          r2u2_duoq_temporal_block_t *temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+          r2u2_scq_temporal_block_t *temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
           *result = (monitor->time_stamp + temp->upper_bound) | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         } else {
           *result = monitor->time_stamp | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
@@ -46,7 +46,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
         // Handled by the duo queue check function, just need the arguments
         rd_ptr = (op_num == 0) ? &(ctrl->read1) : &(ctrl->read2);
 
-        return r2u2_duoq_check(arena, value, rd_ptr, ctrl->next_time, result);
+        return r2u2_scq_check(arena, value, rd_ptr, ctrl->next_time, result);
 
       case R2U2_FT_OP_NOT_SET:
         *result = 0;
@@ -61,10 +61,10 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
 static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_tnt_t result) {
   // Pushes result to queue, sets tau, and flags progress if nedded
-  r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
-  r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+  r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+  r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
 
-  r2u2_duoq_write(arena, instr->memory_reference, result);
+  r2u2_scq_write(arena, instr->memory_reference, result);
   R2U2_DEBUG_PRINT("\t(%d,%s)\n", result & R2U2_TNT_TIME, (result & R2U2_TNT_TRUE) ? "T" : "F" );
 
   ctrl->next_time = (result & R2U2_TNT_TIME)+1;
@@ -81,9 +81,9 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
   r2u2_tnt_t op0, op1, result;
   r2u2_status_t error_cond;
 
-  r2u2_duoq_arena_t *arena = &(monitor->duo_queue_mem);
-  r2u2_duoq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
-  r2u2_duoq_temporal_block_t *temp; // Only set this if using a temporal op
+  r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+  r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+  r2u2_scq_temporal_block_t *temp; // Only set this if using a temporal op
 
   switch (instr->opcode) {
 
@@ -98,12 +98,12 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
 
       switch (instr->op1_type) {
         case R2U2_FT_OP_ATOMIC: {
-          r2u2_duoq_config(arena, instr->memory_reference, instr->op1_value);
+          r2u2_scq_config(arena, instr->memory_reference, instr->op1_value);
           break;
         }
         case R2U2_FT_OP_SUBFORMULA: {
-          r2u2_duoq_temporal_config(arena, instr->memory_reference);
-          temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+          r2u2_scq_temporal_config(arena, instr->memory_reference);
+          temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
           temp->lower_bound = instr->op1_value;
           temp->upper_bound = instr->op2_value;
           break;
@@ -165,7 +165,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
     }
     case R2U2_MLTL_OP_UNTIL: {
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
-      temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
       if (ctrl->next_time < temp->lower_bound){
         ctrl->next_time = temp->lower_bound;
       }
@@ -220,7 +220,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
     }
     case R2U2_MLTL_OP_RELEASE: {
       R2U2_DEBUG_PRINT("\tFT RELEASE\n");
-      temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
       if (ctrl->next_time < temp->lower_bound){
         ctrl->next_time = temp->lower_bound;
       }
@@ -286,7 +286,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
     }
     case R2U2_MLTL_OP_SINCE: {
       R2U2_DEBUG_PRINT("\tPT SINCE\n");
-      temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
       if (!(temp->previous & R2U2_TNT_TRUE) && (temp->previous & R2U2_TNT_TIME) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
         result = (temp->lower_bound - 1) | R2U2_TNT_FALSE;
@@ -376,7 +376,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
     }
     case R2U2_MLTL_OP_TRIGGER: {
       R2U2_DEBUG_PRINT("\tPT TRIGGER\n");
-      temp = r2u2_duoq_temporal_get(arena, instr->memory_reference);
+      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
       if (!(temp->previous & R2U2_TNT_TRUE) && (temp->previous & R2U2_TNT_TIME) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
         result = (temp->lower_bound - 1) | R2U2_TNT_TRUE;

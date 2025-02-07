@@ -1,5 +1,5 @@
-#ifndef R2U2_MEMORY_DUOQ_H
-#define R2U2_MEMORY_DUOQ_H
+#ifndef R2U2_MEMORY_SCQ_H
+#define R2U2_MEMORY_SCQ_H
 
 #include "internals/types.h"
 #include "internals/errors.h"
@@ -44,7 +44,7 @@ typedef struct {
      #error DUO Queues are only aligned for 32 or 64 bit pointer sizes
   #endif
   r2u2_tnt_t *queue;
-} r2u2_duoq_control_block_t;
+} r2u2_scq_control_block_t;
 
 // Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
 typedef struct {
@@ -57,12 +57,12 @@ typedef struct {
   r2u2_tnt_t upper_bound;
   r2u2_tnt_t edge;
   r2u2_tnt_t previous;
-} r2u2_duoq_temporal_block_t;
+} r2u2_scq_temporal_block_t;
 
 typedef struct {
   r2u2_tnt_t start;
   r2u2_tnt_t end;
-} r2u2_duoq_pt_interval_t;
+} r2u2_scq_pt_interval_t;
 
 /* DUO Queue Arena
  * Used by the monitor to track arena extents.
@@ -71,13 +71,13 @@ typedef struct {
  * of the two pointers makes it easier to avoid alignment change warnings.
  */
 typedef struct {
-  r2u2_duoq_control_block_t *blocks;
+  r2u2_scq_control_block_t *blocks;
   r2u2_tnt_t *queues;
-} r2u2_duoq_arena_t;
+} r2u2_scq_arena_t;
 
-static inline r2u2_duoq_temporal_block_t* r2u2_duoq_temporal_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return (r2u2_duoq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
+static inline r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+  return (r2u2_scq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
 }
 
 /*
@@ -85,7 +85,7 @@ static inline r2u2_duoq_temporal_block_t* r2u2_duoq_temporal_get(r2u2_duoq_arena
  * Assumption: Queues are loaded in sequential order, i.e. when configuring
  * queue `n`, taking the queue pointer + lenght of queue `n-1` yields the ...
  */
-r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length);
+r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length);
 
 /*
  *
@@ -95,11 +95,11 @@ r2u2_status_t r2u2_duoq_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u
  * Checking for a temporal block by comparing the queue pointer against the
  * previous queue's pointer + length isn't guarenteed but should be sufficent.
  */
-r2u2_status_t r2u2_duoq_temporal_config(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
+r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id);
 
 /* FT (SCQ replacement) */
-r2u2_status_t r2u2_duoq_write(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_duoq_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
+r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
 
 /* PT (Box Queue replacement)
  * Control Block Values:
@@ -112,34 +112,34 @@ r2u2_bool r2u2_duoq_check(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_tnt
  * R2U2_TNT_TRUE Used as empty value (previously R2U2_infin)
  */
 
-static inline r2u2_time r2u2_duoq_pt_effective_id_get(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static inline r2u2_time r2u2_scq_pt_effective_id_get(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
   return (r2u2_time)((ctrl->queue)[ctrl->length]);
 }
 
-r2u2_status_t r2u2_duoq_pt_effective_id_set(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_time effective_id);
+r2u2_status_t r2u2_scq_pt_effective_id_set(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time effective_id);
 
-static inline r2u2_status_t r2u2_duoq_pt_reset(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static inline r2u2_status_t r2u2_scq_pt_reset(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
   ctrl->write = 0;
   ctrl->read1 = 0;
   return R2U2_OK;
 }
 
-static inline r2u2_bool r2u2_duoq_pt_is_empty(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static inline r2u2_bool r2u2_scq_pt_is_empty(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
   return ctrl->write == ctrl->read1;
 }
-static inline r2u2_bool r2u2_duoq_pt_is_full(r2u2_duoq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_duoq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static inline r2u2_bool r2u2_scq_pt_is_full(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
   return ((ctrl->write + 2) % ctrl->length) == ctrl->read1;
 }
 
-r2u2_status_t r2u2_duoq_pt_push(r2u2_duoq_arena_t *arena, r2u2_time queue_id, r2u2_duoq_pt_interval_t value);
+r2u2_status_t r2u2_scq_pt_push(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_scq_pt_interval_t value);
 
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_peek(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_head_pop(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
-r2u2_duoq_pt_interval_t r2u2_duoq_pt_tail_pop(r2u2_duoq_arena_t *arena, r2u2_time queue_id);
+r2u2_scq_pt_interval_t r2u2_scq_pt_peek(r2u2_scq_arena_t *arena, r2u2_time queue_id);
+r2u2_scq_pt_interval_t r2u2_scq_pt_head_pop(r2u2_scq_arena_t *arena, r2u2_time queue_id);
+r2u2_scq_pt_interval_t r2u2_scq_pt_tail_pop(r2u2_scq_arena_t *arena, r2u2_time queue_id);
 
 
-#endif /* R2U2_MEMORY_DUOQ_H */
+#endif /* R2U2_MEMORY_SCQ_H */

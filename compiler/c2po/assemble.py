@@ -269,7 +269,7 @@ TLOperator = Union[FTOperator, PTOperator]
 
 
 class CGType(Enum):
-    DUOQ = 0
+    SCQ = 0
     TEMP = 1
 
     def __str__(self) -> str:
@@ -401,7 +401,7 @@ class CGInstruction:
         field_strs: list[str] = [f"{self.engine_tag.name}"]
         field_strs.append(f"{self.instruction.engine_tag}")
         field_strs.append(f"{self.type:3}")
-        if self.type == CGType.DUOQ:
+        if self.type == CGType.SCQ:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"|{self.instruction.operand1_value}|")
             if self.instruction.operand2_type == TLOperandType.ATOMIC:
@@ -623,15 +623,15 @@ def gen_pt_instruction(
     return pt_instr
 
 
-def gen_ft_duoq_instructions(
+def gen_ft_scq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
 
     # Propositional operators only need simple queues
     if not isinstance(expr, cpt.TemporalOperator):
-        cg_duoq = CGInstruction(
+        cg_scq = CGInstruction(
             EngineTag.CG,
-            CGType.DUOQ,
+            CGType.SCQ,
             TLInstruction(
                 EngineTag.TL,
                 instructions[expr].id,
@@ -642,14 +642,14 @@ def gen_ft_duoq_instructions(
                 0,
             ),
         )
-        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
-        return [cg_duoq]
+        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
+        return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
     # blocks, and emit an additional configuration instruction
-    cg_duoq = CGInstruction(
+    cg_scq = CGInstruction(
         EngineTag.CG,
-        CGType.DUOQ,
+        CGType.SCQ,
         TLInstruction(
             EngineTag.TL,
             instructions[expr].id,
@@ -677,20 +677,20 @@ def gen_ft_duoq_instructions(
     )
 
     log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
+        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
-    return [cg_duoq, cg_temp]
+    return [cg_scq, cg_temp]
 
 
-def gen_pt_duoq_instructions(
+def gen_pt_scq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
     # Propositional operators only need simple queues
     if not isinstance(expr, cpt.TemporalOperator):
-        cg_duoq = CGInstruction(
+        cg_scq = CGInstruction(
             EngineTag.CG,
-            CGType.DUOQ,
+            CGType.SCQ,
             TLInstruction(
                 EngineTag.TL,
                 instructions[expr].id,
@@ -701,14 +701,14 @@ def gen_pt_duoq_instructions(
                 0,
             ),
         )
-        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}")
-        return [cg_duoq]
+        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
+        return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
     # blocks, and emit an additional configuration instruction
-    cg_duoq = CGInstruction(
+    cg_scq = CGInstruction(
         EngineTag.CG,
-        CGType.DUOQ,
+        CGType.SCQ,
         TLInstruction(
             EngineTag.TL,
             instructions[expr].id,
@@ -736,10 +736,10 @@ def gen_pt_duoq_instructions(
     )
 
     log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_duoq}\n\t" f"{cg_temp}"
+        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
-    return [cg_duoq, cg_temp]
+    return [cg_scq, cg_temp]
 
 
 def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
@@ -748,8 +748,8 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     pt_instructions: dict[cpt.Expression, TLInstruction] = {}
     cg_instructions: dict[cpt.Expression, list[CGInstruction]] = {}
 
-    # For tracking duoq usage across FT and PT
-    ft_duoqs: int = 0
+    # For tracking scq usage across FT and PT
+    ft_scqs: int = 0
 
     log.debug(MODULE_CODE, 1, f"Generating assembly for program:\n{program}")
 
@@ -770,8 +770,8 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             )
 
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
-            cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
-            ft_duoqs += 1
+            cg_instructions[expr] = gen_ft_scq_instructions(expr, ft_instructions)
+            ft_scqs += 1
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
@@ -786,8 +786,8 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             if not new_ft_instruction:
                 return None
             ft_instructions[expr] = new_ft_instruction
-            cg_instructions[expr] = gen_ft_duoq_instructions(expr, ft_instructions)
-            ft_duoqs += 1
+            cg_instructions[expr] = gen_ft_scq_instructions(expr, ft_instructions)
+            ft_scqs += 1
 
     for expr in cpt.postorder(program.pt_spec_set, context):
         if expr == program.pt_spec_set:
@@ -797,7 +797,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
             ptid = len(pt_instructions)
             pt_instructions[expr] = TLInstruction(
                 EngineTag.TL,
-                ptid + ft_duoqs,
+                ptid + ft_scqs,
                 PTOperator.LOAD,
                 TLOperandType.ATOMIC,
                 context.atomic_id[expr],
@@ -805,7 +805,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 0,
             )
             log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
-            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
+            cg_instructions[expr] = gen_pt_scq_instructions(expr, pt_instructions)
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
         # so if this is a bool literal with only TL parents we should skip.
@@ -816,11 +816,11 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr.engine == types.R2U2Engine.BOOLEANIZER:
             bz_instructions[expr] = gen_bz_instruction(expr, context, bz_instructions)
         elif expr.engine == types.R2U2Engine.TEMPORAL_LOGIC:
-            new_pt_instruction = gen_pt_instruction(expr, pt_instructions, ft_duoqs)
+            new_pt_instruction = gen_pt_instruction(expr, pt_instructions, ft_scqs)
             if not new_pt_instruction:
                 return None
             pt_instructions[expr] = new_pt_instruction
-            cg_instructions[expr] = gen_pt_duoq_instructions(expr, pt_instructions)
+            cg_instructions[expr] = gen_pt_scq_instructions(expr, pt_instructions)
 
     # Move all PREV booleanizer instructions to the end (i.e., always update the 'previous' 
     # value after current iteration)

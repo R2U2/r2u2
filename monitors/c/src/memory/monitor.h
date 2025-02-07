@@ -43,7 +43,7 @@ typedef struct {
   r2u2_signal_vector_t    *signal_vector;
   r2u2_value_buffer_t     *value_buffer;
   r2u2_atomic_buffer_t    *atomic_buffer;
-  r2u2_duoq_arena_t       duo_queue_mem;
+  r2u2_scq_arena_t       duo_queue_mem;
 
 } r2u2_monitor_t;
 
