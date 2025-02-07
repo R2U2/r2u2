@@ -209,7 +209,18 @@ fn main() {
                 let mut output_file: fs::File = fs::File::create(out_location).expect("Error creating output file");
                 for result in reader.records() {
                     let record = &result.expect("Error reading signal values");
-                    for n in 0..record.len(){
+                    let first_element = record.get(0).expect("Error reading signal values");
+                    if first_element.starts_with('@') {
+                        let end_idx = first_element.find(" ").unwrap_or(1);
+                        match first_element[1..end_idx].parse::<u32>() {
+                            Ok(n) => { monitor.time_stamp = n; }
+                            Err(_e) => {}
+                        }
+                        r2u2_core::load_string_signal(&mut monitor, 0, &first_element[end_idx+1..first_element.len()]);
+                    } else {
+                        r2u2_core::load_string_signal(&mut monitor, 0, record.get(0).expect("Error reading signal values"));
+                    }
+                    for n in 1..record.len(){
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
@@ -235,7 +246,18 @@ fn main() {
             } else{
                 for result in reader.records() {
                     let record = &result.expect("Error reading signal values");
-                    for n in 0..record.len(){
+                    let first_element = record.get(0).expect("Error reading signal values");
+                    if first_element.starts_with('@') {
+                        let end_idx = first_element.find(" ").unwrap_or(1);
+                        match first_element[1..end_idx].parse::<u32>() {
+                            Ok(n) => { monitor.time_stamp = n; }
+                            Err(_e) => {}
+                        }
+                        r2u2_core::load_string_signal(&mut monitor, 0, &first_element[end_idx+1..first_element.len()]);
+                    } else {
+                        r2u2_core::load_string_signal(&mut monitor, 0, record.get(0).expect("Error reading signal values"));
+                    }
+                    for n in 1..record.len(){
                         r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
