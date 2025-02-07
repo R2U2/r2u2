@@ -66,7 +66,7 @@ def format(
     if location:
         formatted_message += f" {location.filename}:{location.lineno}:"
 
-    formatted_message += f" {message}\r\n"
+    formatted_message += f" {message}\n"
 
     return formatted_message
 
