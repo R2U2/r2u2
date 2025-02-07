@@ -10,18 +10,12 @@ to utilze R2U2 through a commandline interface, and `r2u2_cortex_m_example` demo
 
 ## Reserving Memory
 
-The "static" in the name "R2U2 static monitor" refers to the monitor not perform any memory allocation calls, it is the user's responsibility to preallocate the required memory in arenas and array used by the monitor.
-
-A `Monitor` struct is used to represent the state and memory of an instance of R2U2.
-The `get_monitor` function will setup a monitor with default extents, see [configuration](./configuration.md) to adjust those sizes.
+The "static" in the name "R2U2 static monitor" refers to the monitor not perform any memory allocation calls, it is the user's responsibility to provide proper sizing parameters. A `Monitor` struct is used to represent the state and memory of an instance of R2U2. The `get_monitor` function will setup a monitor with default extents, see [configuration](./configuration.md) to adjust those sizes.
 
 ## Signal Input
 
 System state values, called signals, are read from the signal vector by the monitor on each tic.
-It is the user's responsibility to set these values correctly.
-
-The signal vector itself is an array of pointers to (null-terminated) strings representing the signal values.
-Values are provided as strings to allow for type-casting of values by the front-end, for example changing the floating point type or reading a 1 or 0 as a boolean.
+It is the user's responsibility to set these values correctly using the `load_bool_signal`, `load_float_signal`, `load_int_signal`, and `load_string_signal` functions. The signal vector itself is an array on integers/floats/booleans. 
 
 In the R2U2 CLI, the CSV helper is used to read signal values and load them into the monitor's signal vector.
 Consult `r2u2_cli/src/main.rs` for an example of loading the signal vector.
@@ -35,8 +29,8 @@ See [](./output.md) for more details.
 
 As demonstrated in `r2u2_cli/src/main.rs`, a standard life-cycle for an R2U2 monitor is:
 
-A monitor must be created utilizing get_monitor. The specification file from C2PO must be passed by reference as &[u8]. The specifications can later be updated with update_binary_file; this will also reset the monitor to its intial state.
-Signals must be loaded in according to the mapping specified when compiling the specification file through load_bool_signal, load_float_signal, load_int_signal, and load_string_signal.
-Run the monitor for a single timestep with monitor_step.
-Get output data through get_output_buffer and get_contract_buffer.
-Repeat steps 2-4. (Optionally check for overflow with the output of monitor_step or get_overflow_error.)
+1. A monitor must be created utilizing `get_monitor`. The specification file from C2PO must be passed by reference as `&[u8]`. The specifications can later be updated with `update_binary_file`; this will also reset the monitor to its intial state.
+2. Signals must be loaded in according to the mapping specified when compiling the specification file through `load_bool_signal`, `load_float_signal`, `load_int_signal`, and `load_string_signal`.
+3. Run the monitor for a single timestep with `monitor_step`.
+4. Get output data through `get_output_buffer` and `get_contract_buffer`.
+5. Repeat steps 2-4. (Optionally check for overflow with the output of `monitor_step` or `get_overflow_error`.)

@@ -12,7 +12,7 @@ All components are divided into four categories:
 
 
 [Instructions](./instructions.md)
-: Triggered by instructions, these manipulate monitor state to evaluate the specification
+: Define instructions and how to parse them from inputted C2PO binary
 
 [Internals](./internals.md)
 : Common utilities and support functionality like error handling and debug logging

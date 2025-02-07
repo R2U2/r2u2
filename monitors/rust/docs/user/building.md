@@ -1,6 +1,6 @@
 # Building
 
-The R2U2 static monitor as a static or shared library for use by user-developed programs, and includes an example CLI that can be used to run R2U2 specifications on the command line.
+The R2U2 static monitor is available as a Rust library for use by user-developed programs, and there is also an example CLI that can be used to run C2PO specifications on the command line.
 
 ## Dependencies
 
