@@ -13,8 +13,9 @@ Most dependencies, especially development tooling, are installed via Pythons pac
 Usage:
 - Python >= 3.8
 - `pip install typing-extensions`
+- (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
 
-## R2U2
+## R2U2 (C Version)
 
 Usage:
 - A C99 compatible compiler (`gcc` or `clang`)
@@ -29,3 +30,9 @@ Development:
 - infer
 - cpplint
 - CodeChecker
+
+## R2U2 (Rust Version)
+
+Usage:
+- Python >= 3.8
+- [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater 

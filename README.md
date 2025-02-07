@@ -19,7 +19,7 @@ The following dependencies are required to run R2U2 C version:
 - C99 compiler 
 
 The following dependencies are required to run R2U2 Rust version:
-- [Rust](https://www.rust-lang.org/tools/install) 1.79.0 or greater 
+- [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater 
 
 The following dependencies are required to run C2PO: 
 - Python 3.8 or greater
