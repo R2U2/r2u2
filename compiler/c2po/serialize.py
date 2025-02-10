@@ -117,7 +117,7 @@ def write_smt(
     
     output_path.mkdir()
 
-    for spec in program.ft_spec_set.get_specs():
+    for spec in program.get_specs():
         if isinstance(spec, cpt.Contract):
             continue
 

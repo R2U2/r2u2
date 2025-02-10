@@ -274,11 +274,36 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT\n\t{expr}")
             return ""
+        elif cpt.is_operator(expr, cpt.OperatorKind.ONCE):
+            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and pi,i |= p
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (and (< {lb} k) (< k len)) (exists ((i Int)) (and (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.HISTORICAL):
+            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it holds that pi,i |= p
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.SINCE):
+            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and 
+            #                               pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
+            )
         else:
             log.error(MODULE_CODE, f"Bad repr ({expr})")
             return ""
 
-    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
+    smt_commands.append(f"(assert (exists ((len Int) (k Int)) ({expr_map[start]} k len)))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -341,7 +366,7 @@ def check_sat(
 
     results: dict[cpt.Specification, SatResult] = {}
 
-    for spec in program.ft_spec_set.get_specs():
+    for spec in program.get_specs():
         if isinstance(spec, cpt.Contract):
             log.warning(MODULE_CODE, "Found contract, skipping")
             continue
