@@ -1,10 +1,10 @@
 #include "r2u2.h"
 
-#include "duo_queue.h"
+#include "shared_connection_queue.h"
 
 #if R2U2_DEBUG
 static void r2u2_scq_arena_print(r2u2_scq_arena_t *arena) {
-  R2U2_DEBUG_PRINT("\t\t\tDUO Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena->blocks, arena->queues, ((void*)arena->queues) - ((void*)arena->blocks));
+  R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena->blocks, arena->queues, ((void*)arena->queues) - ((void*)arena->blocks));
 }
 
 static void r2u2_scq_queue_print(r2u2_scq_arena_t *arena, r2u2_time queue_id) {

@@ -101,8 +101,8 @@ int main(int argc, char const *argv[]) {
   }
 
   // Connect monitor to queue memory arena
-  r2u2_monitor.duo_queue_mem.blocks = (r2u2_scq_control_block_t*) arena;
-  r2u2_monitor.duo_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_SCQ_BYTES - 4);
+  r2u2_monitor.shared_connection_queue_mem.blocks = (r2u2_scq_control_block_t*) arena;
+  r2u2_monitor.shared_connection_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_SCQ_BYTES - 4);
 
   // Reset monitor and build instuction table from spec binary
   r2u2_init(&r2u2_monitor);

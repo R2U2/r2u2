@@ -41,7 +41,7 @@ typedef struct {
      *   Alignment: 4 bytes
      */
   #else
-     #error DUO Queues are only aligned for 32 or 64 bit pointer sizes
+     #error Shared Connection Queues are only aligned for 32 or 64 bit pointer sizes
   #endif
   r2u2_tnt_t *queue;
 } r2u2_scq_control_block_t;
@@ -64,7 +64,7 @@ typedef struct {
   r2u2_tnt_t end;
 } r2u2_scq_pt_interval_t;
 
-/* DUO Queue Arena
+/* Shared Connection Queue Arena
  * Used by the monitor to track arena extents.
  * Since we access offsets from both ends of the arena, storing two pointers
  * instead of a pointer and a length is more useful. Also the different typing

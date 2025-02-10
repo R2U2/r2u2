@@ -13,7 +13,7 @@
 /// @param[out] result The operand TnT - only vaid if return value is true
 /// @return     Boolean indicating if data is ready and `result` is valid
 static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_bool op_num, r2u2_tnt_t *result) {
-    r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+    r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
     r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
     r2u2_tnt_t *rd_ptr; // Hold off on this in case it doesn't exist...
 
@@ -43,7 +43,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
         return (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
 
       case R2U2_FT_OP_SUBFORMULA:
-        // Handled by the duo queue check function, just need the arguments
+        // Handled by the shared_connection queue check function, just need the arguments
         rd_ptr = (op_num == 0) ? &(ctrl->read1) : &(ctrl->read2);
 
         return r2u2_scq_check(arena, value, rd_ptr, ctrl->next_time, result);
@@ -61,7 +61,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
 static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_tnt_t result) {
   // Pushes result to queue, sets tau, and flags progress if nedded
-  r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+  r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
   r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
 
   r2u2_scq_write(arena, instr->memory_reference, result);
@@ -81,7 +81,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
   r2u2_tnt_t op0, op1, result;
   r2u2_status_t error_cond;
 
-  r2u2_scq_arena_t *arena = &(monitor->duo_queue_mem);
+  r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
   r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
   r2u2_scq_temporal_block_t *temp; // Only set this if using a temporal op
 
