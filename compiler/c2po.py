@@ -8,9 +8,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("spec",
                     help="specification file (either .c2po or .mltl)")
 
-parser.add_argument("--trace", default="",
+parser.add_argument("--trace",
                     help="CSV file where variable names are mapped to signal order using file header")
-parser.add_argument("--map", default="",
+parser.add_argument("--map",
                     help="map file where variable names are mapped to signal order")
 
 parser.add_argument("-q","--quiet", action="store_true",
@@ -30,10 +30,10 @@ parser.add_argument("-o", "--output", default="spec.bin",
 parser.add_argument("--int-width", default=32, type=int,
                     help="specifies bit width for integer types (default: 32)")
 parser.add_argument("--int-signed", action="store_true",
-                    help="specifies signedness of int types (default: true)")
+                    help="specifies signedness of int types (default: unsigned)")
 parser.add_argument("--float-width", default=32,
                     help="specifies bit width for floating point types (default: 32)")
-parser.add_argument("--mission-time", type=int,
+parser.add_argument("--mission-time", type=int, default=-1,
                     help="specifies mission time, overriding inference from a trace file, if present")
 parser.add_argument("--endian", choices=c2po.options.BYTE_ORDER_SIGILS.keys(),
                     default=sys.byteorder, help=f"Specifies byte-order of spec file (default: {sys.byteorder})")
@@ -44,11 +44,11 @@ parser.add_argument("-bz", "--booleanizer", action="store_true",
                     help="enable booleanizer")
 
 parser.add_argument("-p", "--parse", action="store_true",
-                    help="only run the parser")
+                    help="run only the parser")
 parser.add_argument("-tc", "--type-check", action="store_true",
-                    help="only run the parser and type checker")
+                    help="run only the parser and type checker")
 parser.add_argument("-c", "--compile", action="store_true",
-                    help="only run the parser, type checker, and passes")
+                    help="run only the parser, type checker, and passes")
 
 parser.add_argument("-dc", "--disable-cse", action="store_false",
                     help="disable CSE optimization")
@@ -72,16 +72,16 @@ parser.add_argument("--timeout-eqsat", type=int, default=3600,
 parser.add_argument("--timeout-sat", type=int, default=3600, 
                     help="set the timeout of sat calls in seconds (default: 3600)")
 
-parser.add_argument("--write-c2po", nargs="?", default=".", const="",
+parser.add_argument("--write-c2po", nargs="?", const=c2po.options.EMPTY_FILENAME,
                     help="write final program in C2PO input format")
-parser.add_argument("--write-mltl", nargs="?", default=".", const="",
-                    help="write final program in MLTL standard format") 
-parser.add_argument("--write-prefix", nargs="?", default=".", const="",
+parser.add_argument("--write-mltl", nargs="?", const=c2po.options.EMPTY_FILENAME,
+                    help="write final program in MLTL standard format")
+parser.add_argument("--write-prefix", nargs="?", const=c2po.options.EMPTY_FILENAME,
                     help="write final program in prefix notation")
-parser.add_argument("--write-pickle", nargs="?", default=".", const="",
+parser.add_argument("--write-pickle", nargs="?", const=c2po.options.EMPTY_FILENAME,
                     help="pickle the final program")
-parser.add_argument("--write-smt", nargs="?", default=".", const="",
-                    help="write SMT SAT encoding of FT formulas")
+parser.add_argument("--write-smt", nargs="?", const=c2po.options.EMPTY_FILENAME,
+                    help="write SMT encoding of FT formulas")
 
 parser.add_argument("--copyback",
                     help="name of directory to copy workdir contents to upon termination")
@@ -89,7 +89,7 @@ parser.add_argument("--copyback",
 args = parser.parse_args()
 
 return_code = c2po.main.main(
-    args.spec_filename, 
+    args.spec, 
     trace_filename=args.trace, 
     map_filename=args.map, 
     impl=args.impl, 
@@ -115,10 +115,10 @@ return_code = c2po.main.main(
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
-    write_smt_dir=args.write_smt,
+    write_smt_dirname=args.write_smt,
     timeout_eqsat=args.timeout_eqsat,
     timeout_sat=args.timeout_sat,
-    copyback_name=args.copyback,
+    copyback_dirname=args.copyback,
     stats=args.stats,
     debug=args.debug,
     log_level=args.log_level,

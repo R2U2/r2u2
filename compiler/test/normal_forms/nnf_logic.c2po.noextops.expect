@@ -1,4 +1,4 @@
-[MAIN][[93mWRN[0m] NNF and BNF incompatible without extended operators, output will not be in either normal form
+[OPTS][[93mWRN[0m] NNF and BNF incompatible without extended operators, output will not be in either normal form
 TL n0  load   a0
 TL n1  not    n0
 TL n2  not    n1

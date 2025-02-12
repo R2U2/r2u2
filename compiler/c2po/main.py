@@ -22,7 +22,7 @@ class ReturnCode(enum.Enum):
     FILE_IO_ERR = 6
 
 
-def compile(opts: options.Options) -> ReturnCode:
+def compile() -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
 
     Compilation stages:
@@ -35,37 +35,28 @@ def compile(opts: options.Options) -> ReturnCode:
     7. Assembly
     """
     # ----------------------------------
-    # Input validation
-    # ----------------------------------
-    status = opts.validate()
-
-    if not status:
-        log.error(MODULE_CODE, "Input invalid")
-        return ReturnCode.INVALID_INPUT
-
-    # ----------------------------------
     # Parse
     # ----------------------------------
-    if opts.input_path.suffix == ".c2po":
+    if options.spec_path.suffix == ".c2po":
         program: Optional[cpt.Program] = parse.parse_c2po(
-            opts.input_path, opts.mission_time
+            options.spec_path, options.mission_time
         )
 
         if not program:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
-    elif opts.input_path.suffix == ".mltl":
-        parse_output = parse.parse_mltl(opts.input_path, opts.mission_time)
+    elif options.spec_path.suffix == ".mltl":
+        parse_output = parse.parse_mltl(options.spec_path, options.mission_time)
 
         if not parse_output:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
         (program, signal_mapping) = parse_output
-        opts.signal_mapping = signal_mapping
-    elif opts.input_path.suffix == ".pickle":
-        with open(str(opts.input_path), "rb") as f:
+        options.signal_mapping = signal_mapping
+    elif options.spec_path.suffix == ".pickle":
+        with open(str(options.spec_path), "rb") as f:
             program = pickle.load(f)
 
         if not isinstance(program, cpt.Program):
@@ -73,101 +64,62 @@ def compile(opts: options.Options) -> ReturnCode:
             return ReturnCode.PARSE_ERR
     else:
         log.error(
-            MODULE_CODE, f"Unsupported input format ({opts.input_path.suffix})"
+            MODULE_CODE, f"Unsupported input format ({options.spec_path.suffix})"
         )
         return ReturnCode.INVALID_INPUT
 
-    if opts.only_parse:
-        serialize.write_outputs(
-            program,
-            cpt.Context(),
-            opts.input_path,
-            opts.write_c2po_filename,
-            opts.write_prefix_filename,
-            opts.write_mltl_filename,
-            opts.write_pickle_filename,
-            opts.write_smt_dir,
-        )
+    if options.only_parse:
         return ReturnCode.SUCCESS
     
     # ----------------------------------
     # Type check
     # ----------------------------------
-    (well_typed, context) = type_check.type_check(program, opts)
+    (well_typed, context) = type_check.type_check(program)
 
     if not well_typed:
         log.error(MODULE_CODE, "Failed type check")
         return ReturnCode.TYPE_CHECK_ERR
 
-    if opts.only_type_check:
-        serialize.write_outputs(
-            program,
-            context,
-            opts.input_path,
-            opts.write_c2po_filename,
-            opts.write_prefix_filename,
-            opts.write_mltl_filename,
-            opts.write_pickle_filename,
-            opts.write_smt_dir,
-        )
+    if options.only_type_check:
+        serialize.write_outputs(program, context)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
     # Transforms
     # ----------------------------------
     log.debug(MODULE_CODE, 1, "Performing passes")
-    for cpass in [t for t in passes.PASS_LIST if t in opts.enabled_passes]:
+    for cpass in passes.pass_list:
         cpass(program, context)
         if not context.status:
             return ReturnCode.ERROR
 
-    if opts.only_compile:
-        serialize.write_outputs(
-            program,
-            context,
-            opts.input_path,
-            opts.write_c2po_filename,
-            opts.write_prefix_filename,
-            opts.write_mltl_filename,
-            opts.write_pickle_filename,
-            opts.write_smt_dir,
-        )
-        if opts.copyback_path:
-            shutil.copytree(opts.workdir, opts.copyback_path)
+    if options.only_compile:
+        serialize.write_outputs(program, context)
+        if options.copyback_enabled:
+            shutil.copytree(options.workdir, options.copyback_path)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
     # Assembly
     # ----------------------------------
-    if not opts.output_path:
-        log.error(MODULE_CODE, f"Output path invalid: {opts.output_path}")
-        if opts.copyback_path:
-            shutil.copytree(opts.workdir, opts.copyback_path)
+    if not options.output_path:
+        log.error(MODULE_CODE, f"Output path invalid: {options.output_path}")
+        if options.copyback_enabled:
+            shutil.copytree(options.workdir, options.copyback_path)
         return ReturnCode.INVALID_INPUT
 
-    (assembly, binary) = assemble.assemble(
-        program, context, opts.quiet, opts.endian_sigil
-    )
+    (assembly, binary) = assemble.assemble(program, context)
 
-    if not opts.quiet:
+    if not options.quiet:
         [print(instr) for instr in assembly]
 
-    with open(opts.output_path, "wb") as f:
+    with open(options.output_path, "wb") as f:
         f.write(binary)
 
-    serialize.write_outputs(
-        program,
-        context,
-        opts.input_path,
-        opts.write_c2po_filename,
-        opts.write_prefix_filename,
-        opts.write_mltl_filename,
-        opts.write_pickle_filename,
-        opts.write_smt_dir,
-    )
+    serialize.write_outputs(program, context)
 
-    if opts.copyback_path:
-        shutil.copytree(opts.workdir, opts.copyback_path)
+    if options.copyback_enabled:
+        shutil.copytree(options.workdir, options.copyback_path)
 
     return ReturnCode.SUCCESS
 
@@ -175,79 +127,95 @@ def compile(opts: options.Options) -> ReturnCode:
 
 def main(
     spec_filename: str,
-    trace_filename: str = "",
-    map_filename: str = "",
-    output_filename: str = "spec.bin",
-    impl: str = "c",
-    mission_time: int = -1,
-    int_width: int = 8,
-    int_signed: bool = False,
-    float_width: int = 32,
-    endian: str = "@",
-    only_parse: bool = False,
-    only_type_check: bool = False,
-    only_compile: bool = False,
-    enable_atomic_checkers: bool = False,
-    enable_booleanizer: bool = False,
-    enable_extops: bool = False,
-    enable_nnf: bool = False,
-    enable_bnf: bool = False,
-    enable_rewrite: bool = False,
-    enable_eqsat: bool = False,
-    enable_cse: bool = False,
-    enable_sat: bool = False,
-    write_c2po_filename: str = ".",
-    write_prefix_filename: str = ".",
-    write_mltl_filename: str = ".",
-    write_pickle_filename: str = ".",
-    write_smt_dir: str = ".",
-    timeout_eqsat: int = 3600,
-    timeout_sat: int = 3600,
-    copyback_name: Optional[str] = None,
-    stats: bool = False,
-    debug: bool = False,
-    log_level: int = 0,
-    quiet: bool = False,
+    trace_filename: Optional[str],
+    map_filename: Optional[str],
+    output_filename: str,
+    impl: str,
+    mission_time: int,
+    int_width: int,
+    int_signed: bool,
+    float_width: int,
+    endian: str,
+    only_parse: bool,
+    only_type_check: bool,
+    only_compile: bool,
+    enable_atomic_checkers: bool,
+    enable_booleanizer: bool,
+    enable_extops: bool,
+    enable_nnf: bool,
+    enable_bnf: bool,
+    enable_rewrite: bool,
+    enable_eqsat: bool,
+    enable_cse: bool,
+    enable_sat: bool,
+    write_c2po_filename: Optional[str],
+    write_prefix_filename: Optional[str],
+    write_mltl_filename: Optional[str],
+    write_pickle_filename: Optional[str],
+    write_smt_dirname: Optional[str],
+    timeout_eqsat: int,
+    timeout_sat: int,
+    copyback_dirname: Optional[str],
+    stats: bool,
+    debug: bool,
+    log_level: int,
+    quiet: bool,
 ) -> ReturnCode:
-    """Wrapper around `compile` for creating a global temporary directory as a working directory and setting Options."""
-    opts = options.Options()
-    opts.spec_filename = spec_filename
-    opts.trace_filename = trace_filename
-    opts.map_filename = map_filename
-    opts.output_filename = output_filename
-    opts.impl = impl
-    opts.mission_time = mission_time
-    opts.int_width = int_width
-    opts.int_is_signed = int_signed
-    opts.float_width = float_width
-    opts.endian = endian
-    opts.only_parse = only_parse
-    opts.only_type_check = only_type_check
-    opts.only_compile = only_compile
-    opts.enable_atomic_checkers = enable_atomic_checkers
-    opts.enable_booleanizer = enable_booleanizer
-    opts.enable_extops = enable_extops
-    opts.enable_nnf = enable_nnf
-    opts.enable_bnf = enable_bnf
-    opts.enable_rewrite = enable_rewrite
-    opts.enable_eqsat = enable_eqsat
-    opts.enable_cse = enable_cse
-    opts.enable_sat = enable_sat
-    opts.write_c2po_filename = write_c2po_filename
-    opts.write_prefix_filename = write_prefix_filename
-    opts.write_mltl_filename = write_mltl_filename
-    opts.write_pickle_filename = write_pickle_filename
-    opts.write_smt_dir = write_smt_dir
-    opts.timeout_eqsat = timeout_eqsat
-    opts.timeout_sat = timeout_sat
-    opts.copyback_name = copyback_name
-    opts.stats = stats
-    opts.debug = debug
-    opts.log_level = log_level
-    opts.quiet = quiet
+    options.spec_filename = spec_filename
+    options.trace_filename = trace_filename if trace_filename else options.EMPTY_FILENAME
+    options.map_filename = map_filename if map_filename else options.EMPTY_FILENAME
+    options.output_filename = output_filename
+
+    options.impl_str = impl
+    options.mission_time = mission_time
+    options.int_width = int_width
+    options.int_is_signed = int_signed
+    options.float_width = float_width
+    options.endian = endian
+
+    options.only_parse = only_parse
+    options.only_type_check = only_type_check
+    options.only_compile = only_compile
+
+    options.enable_atomic_checkers = enable_atomic_checkers
+    options.enable_booleanizer = enable_booleanizer
+    options.enable_extops = enable_extops
+    options.enable_nnf = enable_nnf
+    options.enable_bnf = enable_bnf
+    options.enable_rewrite = enable_rewrite
+    options.enable_eqsat = enable_eqsat
+    options.enable_cse = enable_cse
+    options.enable_sat = enable_sat
+
+    options.write_c2po = write_c2po_filename is not None
+    options.write_prefix = write_prefix_filename is not None
+    options.write_mltl = write_mltl_filename is not None
+    options.write_pickle = write_pickle_filename is not None
+    options.write_smt_dirname = write_smt_dirname is not None
+    options.write_c2po_filename = write_c2po_filename
+    options.write_prefix_filename = write_prefix_filename
+    options.write_mltl_filename = write_mltl_filename
+    options.write_pickle_filename = write_pickle_filename
+    options.write_smt_dirname = write_smt_dirname
+
+    options.timeout_eqsat = timeout_eqsat
+    options.timeout_sat = timeout_sat
+
+    options.copyback_enabled = copyback_dirname is not None
+    options.copyback_dirname = copyback_dirname
+
+    options.stats = stats
+    options.debug = debug
+    options.log_level = log_level
+    options.quiet = quiet
+
+    status = options.setup()
+    passes.setup()
+    if not status:
+        return ReturnCode.ERROR
 
     with tempfile.TemporaryDirectory() as workdir:
         workdir_path = pathlib.Path(workdir)
-        opts.workdir = workdir_path
-        return compile(opts)
+        options.workdir = workdir_path
+        return compile()
 

@@ -1,14 +1,11 @@
 import subprocess
 import enum
-import pathlib
 
 from typing import cast
 
-from c2po import cpt, log, util, types
+from c2po import cpt, log, util, types, options
 
 MODULE_CODE = "SAT"
-
-Z3 = "z3"
 
 
 class SatResult(enum.Enum):
@@ -25,15 +22,15 @@ def check_solver_installed(solver: str) -> bool:
         return False
 
 
-def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context, mission_time: int) -> str:
+def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
     """FIXME: Until not implemented correctly
 
     Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic.
 
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
-    if mission_time > 0:
-        mission_time = mission_time
+    if options.mission_time > 0:
+        mission_time = options.mission_time
     else:
         mission_time = start.wpd
 
@@ -287,31 +284,31 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     return smt
 
 
-def check_sat_expr(expr: cpt.Expression, context: cpt.Context, workdir: pathlib.Path, timeout: int) -> SatResult:
+def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if not check_solver_installed(Z3):
-        log.error(MODULE_CODE, "z3 not found")
+    if not check_solver_installed(options.smt_solver):
+        log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return SatResult.UNKNOWN
 
     smt = to_uflia_sat_query(expr, context)
 
-    smt_file_path = workdir / "__tmp__.smt"
+    smt_file_path = options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 
-    command = [Z3, str(smt_file_path)]
+    command = [options.smt_solver, str(smt_file_path)]
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
 
     try:
         proc = subprocess.run(
-            command, capture_output=True, timeout=timeout
+            command, capture_output=True, timeout=options.timeout_sat
         )
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"z3 timeout after {timeout}s")
+        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
         log.stat(MODULE_CODE, "sat_check_time=timeout")
         return SatResult.UNKNOWN
 
@@ -333,11 +330,11 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context, workdir: pathlib.
 
 
 def check_sat(
-    program: cpt.Program, context: cpt.Context, workdir: pathlib.Path, timeout: int
+    program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
-    """Runs an SMT solver (Z3 by default) on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver_installed(Z3):
-        log.error(MODULE_CODE, "z3 not found")
+    """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
+    if not check_solver_installed(options.smt_solver):
+        log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}
@@ -348,17 +345,17 @@ def check_sat(
             continue
 
         expr = spec.get_expr()
-        results[spec] = check_sat_expr(expr, context, workdir, timeout)
+        results[spec] = check_sat_expr(expr, context)
 
     return results
 
 
 def check_equiv(
-    expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Context, workdir: pathlib.Path, timeout: int
+    expr1: cpt.Expression, expr2: cpt.Expression, context: cpt.Context
 ) -> SatResult:
     """Returns true if `expr1` is equivalent to `expr2`, false if they are not, and None if the check timed our or failed in some other way.
 
-    To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |= expr` and `pi |/= expr` or vice versa.
+    To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |== expr` and `pi |=/= expr` or vice versa.
     """
     log.debug(
         MODULE_CODE,
@@ -372,11 +369,11 @@ def check_equiv(
 
     start = util.get_rusage_time()
 
-    result = check_sat_expr(neg_equiv_expr, context, workdir, timeout)
+    result = check_sat_expr(neg_equiv_expr, context)
 
     end = util.get_rusage_time()
     equiv_time = end - start
-    if equiv_time > float(timeout):
+    if equiv_time > float(options.timeout_sat):
         log.stat(MODULE_CODE, "equiv_check_time=timeout")
     else:
         log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")

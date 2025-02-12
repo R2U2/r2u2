@@ -5,7 +5,7 @@ from enum import Enum
 from struct import Struct as CStruct
 from typing import Any, Optional, Union, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, options
 
 # See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
@@ -1148,7 +1148,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 
 def assemble(
-    program: cpt.Program, context: cpt.Context, quiet: bool, endian: str
+    program: cpt.Program, context: cpt.Context
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
     log.debug(MODULE_CODE, 1, "Assembling")
 
@@ -1160,12 +1160,12 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {endian}".encode("ascii") + b"\x00"
+        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {options.endian_sigil}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
     for instr in assembly:
-        binary += pack_instruction(instr, field_format_str_map, endian)
+        binary += pack_instruction(instr, field_format_str_map, options.endian_sigil)
 
     binary += b"\x00"
 
