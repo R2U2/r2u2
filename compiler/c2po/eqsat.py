@@ -546,9 +546,9 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
     return egglog + "\n"
 
 
-def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
+def run_egglog(spec: cpt.Formula, context: cpt.Context, workdir: pathlib.Path, timeout: int) -> Optional[EGraph]:
     """Encodes `spec` into an egglog query, runs egglog, then returns an EGraph if no error occurred during construction. Returns None otherwise."""
-    TMP_EGG_PATH = context.config.workdir / "__tmp__.egg"
+    TMP_EGG_PATH = workdir / "__tmp__.egg"
     EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
     with open(PRELUDE_PATH, "r") as f:
@@ -565,9 +565,9 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     start = util.get_rusage_time()
 
     try:
-        proc = subprocess.run(command, capture_output=True, timeout=context.config.timeout_egglog)
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"egglog timeout after {context.config.timeout_egglog}s")
+        log.warning(MODULE_CODE, f"egglog timeout after {timeout}s")
         log.stat(MODULE_CODE, "egraph_time=timeout")
         return None
 

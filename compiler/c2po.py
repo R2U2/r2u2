@@ -2,10 +2,11 @@ import argparse
 import sys
 
 import c2po.main
+import c2po.options
 
 parser = argparse.ArgumentParser()
-parser.add_argument("mltl",
-                    help="file where mltl formula are stored")
+parser.add_argument("spec",
+                    help="specification file (either .c2po or .mltl)")
 
 parser.add_argument("--trace", default="",
                     help="CSV file where variable names are mapped to signal order using file header")
@@ -14,8 +15,10 @@ parser.add_argument("--map", default="",
 
 parser.add_argument("-q","--quiet", action="store_true",
                     help="disable output")
-parser.add_argument("--debug", nargs="?", default=0, const=1, type=int,
-                    help="set debug level (0=none, 1=basic, 2=extra)")
+parser.add_argument("-v", "--verbose", dest="log_level", action="count", default=0,
+                    help="Logging verbosity, pass twice for trace logging")
+parser.add_argument("--debug", action="store_true",
+                    help="set debug mode, implies trace logging")
 parser.add_argument("--stats", action="store_true",
                     help="enable stat output")
 
@@ -32,7 +35,7 @@ parser.add_argument("--float-width", default=32,
                     help="specifies bit width for floating point types (default: 32)")
 parser.add_argument("--mission-time", type=int,
                     help="specifies mission time, overriding inference from a trace file, if present")
-parser.add_argument("--endian", choices=c2po.main.BYTE_ORDER_SIGILS.keys(),
+parser.add_argument("--endian", choices=c2po.options.BYTE_ORDER_SIGILS.keys(),
                     default=sys.byteorder, help=f"Specifies byte-order of spec file (default: {sys.byteorder})")
 
 parser.add_argument("-at", "--atomic-checkers", action="store_true",
@@ -86,11 +89,11 @@ parser.add_argument("--copyback",
 args = parser.parse_args()
 
 return_code = c2po.main.main(
-    args.mltl, 
+    args.spec_filename, 
     trace_filename=args.trace, 
     map_filename=args.map, 
     impl=args.impl, 
-    custom_mission_time=args.mission_time,
+    mission_time=args.mission_time,
     output_filename=args.output, 
     int_width=args.int_width, 
     int_signed=args.int_signed, 
@@ -118,7 +121,8 @@ return_code = c2po.main.main(
     copyback_name=args.copyback,
     stats=args.stats,
     debug=args.debug,
-    quiet=args.quiet, 
+    log_level=args.log_level,
+    quiet=args.quiet
 )
 
 sys.exit(return_code.value)
