@@ -7,9 +7,6 @@ $R2U2 spec.bin agc.csv
 python3 $C2PO --booleanizer --trace arrays.csv arrays.c2po
 $R2U2 spec.bin arrays.csv
 
-python3 $C2PO --atomic-checkers --trace atomic_checker.csv atomic_checker.c2po
-$R2U2 spec.bin atomic_checker.csv
-
 python3 $C2PO --booleanizer --map cav.map cav.c2po
 $R2U2 spec.bin cav.csv
 

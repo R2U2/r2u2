@@ -1,13 +1,17 @@
+name: Regression Tests
 on: push
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python 3.11
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.11"
+
+    - name: Set up Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
 
     - name: Install Z3
       run: |
@@ -24,22 +28,43 @@ jobs:
         cd compiler/test
         python3 test.py
 
-    - name: Test cav
+    - name: Test cav (c implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 cav
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor c --r2u2 ../monitors/c/build/r2u2 cav
 
-    - name: Test long-trace
+    - name: Test long-trace (c implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 long_trace
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor c --r2u2 ../monitors/c/build/r2u2 long_trace
 
-    - name: Test ft-subset
+    - name: Test ft-subset (c implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 ft_subset
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor c --r2u2 ../monitors/c/build/r2u2 ft_subset
 
-    - name: Test ft-pt-test
+    - name: Test ft-pt-test (c implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --r2u2bin ../monitors/c/build/r2u2 regression
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor c --r2u2 ../monitors/c/build/r2u2 regression
+
+
+    - name: Test cav (rust implementation)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml cav
+
+    - name: Test long-trace (rust implementation)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml long_trace
+
+    - name: Test ft-subset (rust implementation)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml ft_subset
+
+    - name: Test ft-pt-test (rust implementation)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml regression

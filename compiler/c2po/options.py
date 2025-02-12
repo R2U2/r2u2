@@ -7,11 +7,6 @@ MODULE_CODE = "OPTS"
 
 EMPTY_FILENAME = ""
 
-# Converts human names to struct format sigil for byte order, used by assembler
-# human named args are called 'endian' while the sigils are 'endianness'
-# See: https://docs.python.org/3.8/library/struct.html#byte-order-size-and-alignment
-BYTE_ORDER_SIGILS = {"native": "@", "network": "!", "big": ">", "little": "<"}
-
 R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
     "cpp": types.R2U2Implementation.CPP,
@@ -41,8 +36,6 @@ mission_time: int = -1
 int_width: int = 8
 int_is_signed: bool = False
 float_width: int = 32
-endian: str = "native"
-endian_sigil: str = "@"
 
 frontend: types.R2U2Engine = types.R2U2Engine.NONE
 
@@ -54,7 +47,7 @@ final_stage: CompilationStage = CompilationStage.ASSEMBLE
 assembly_enabled: bool = True
 
 enabled_passes: set = set()
-enable_atomic_checkers: bool = False
+enable_aux: bool = False
 enable_booleanizer: bool = False
 enable_extops: bool = False
 enable_nnf: bool = False
@@ -166,15 +159,6 @@ def setup() -> bool:
     else:
         mission_time = trace_length
 
-    if endian in BYTE_ORDER_SIGILS:
-        endian_sigil = BYTE_ORDER_SIGILS[endian]
-    else:
-        log.internal(
-            MODULE_CODE,
-            f"Endianness option argument {endian} invalid. Check CLI options?",
-        )
-        endian_sigil = "@"
-
     impl = R2U2_IMPL_MAP[impl_str]
     types.configure_types(impl, int_width, int_is_signed, float_width)
 
@@ -207,17 +191,12 @@ def setup() -> bool:
 
     assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
 
-    if enable_booleanizer and enable_atomic_checkers:
-        log.error(MODULE_CODE, "Only one of atomic checkers and booleanizer can be enabled")
-        status = False
-    elif enable_booleanizer and impl != types.R2U2Implementation.C:
+    if enable_booleanizer and impl != types.R2U2Implementation.C:
         log.error(MODULE_CODE, "Booleanizer only available for C implementation")
         status = False
 
     if enable_booleanizer:
         frontend = types.R2U2Engine.BOOLEANIZER
-    elif enable_atomic_checkers:
-        frontend = types.R2U2Engine.ATOMIC_CHECKER
     else:
         frontend = types.R2U2Engine.NONE
 

@@ -8,9 +8,6 @@ from typing import NamedTuple, Optional
 
 MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 
-OUT = sys.stdout
-ERR = sys.stderr
-
 log_level = 0
 enable_stat = False
 enable_quiet = False
@@ -85,7 +82,7 @@ def stat(
     formatted_message = format(
         message, "STAT", None, module, location
     )
-    OUT.write(formatted_message)
+    sys.stdout.write(formatted_message)
 
 
 def debug(
@@ -100,7 +97,7 @@ def debug(
     formatted_message = format(
         message, "DBG", Color.OKBLUE, module, location
     )
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def warning(
@@ -111,7 +108,7 @@ def warning(
     if enable_quiet:
         return
     formatted_message = format(message, "WRN", Color.WARN, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def error(
@@ -122,7 +119,7 @@ def error(
     if enable_quiet:
         return
     formatted_message = format(message, "ERR", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def internal(
@@ -133,4 +130,4 @@ def internal(
     if enable_quiet:
         return
     formatted_message = format(message, "BUG", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)

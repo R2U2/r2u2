@@ -35,11 +35,7 @@ parser.add_argument("--float-width", default=32,
                     help="specifies bit width for floating point types (default: 32)")
 parser.add_argument("--mission-time", type=int, default=-1,
                     help="specifies mission time, overriding inference from a trace file, if present")
-parser.add_argument("--endian", choices=c2po.options.BYTE_ORDER_SIGILS.keys(),
-                    default=sys.byteorder, help=f"Specifies byte-order of spec file (default: {sys.byteorder})")
 
-parser.add_argument("-at", "--atomic-checkers", action="store_true",
-                    help="enable atomic checkers")
 parser.add_argument("-bz", "--booleanizer", action="store_true",
                     help="enable booleanizer")
 
@@ -49,6 +45,8 @@ parser.add_argument("-tc", "--type-check", action="store_true",
                     help="run only the parser and type checker")
 parser.add_argument("-c", "--compile", action="store_true",
                     help="run only the parser, type checker, and passes")
+parser.add_argument("-da", "--disable-aux", action="store_false",
+                    help = "disable aux data (e.g., contract status and specification naming)")
 
 parser.add_argument("-dc", "--disable-cse", action="store_false",
                     help="disable CSE optimization")
@@ -98,12 +96,11 @@ return_code = c2po.main.main(
     int_width=args.int_width, 
     int_signed=args.int_signed, 
     float_width=args.float_width, 
-    endian=args.endian,
     only_parse=args.parse,
     only_type_check=args.type_check,
     only_compile=args.compile,
-    enable_atomic_checkers=args.atomic_checkers, 
     enable_booleanizer=args.booleanizer, 
+    enable_aux=args.disable_aux,
     enable_cse=args.disable_cse, 
     enable_extops=args.extops, 
     enable_rewrite=args.disable_rewrite, 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat, options
+from copy import deepcopy
 
 MODULE_CODE = "PASS"
 
@@ -255,105 +256,35 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> None:
-    """Removes extended operators (or, xor, implies, iff, release, future) from each specification in `program`."""
+    """Removes extended operators (Global, Future, Historically, Once, xor, implies) from each specification in `program`."""
     log.debug(MODULE_CODE, 1, "Removing extended operators.")
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
             continue
 
-        if expr.operator is cpt.OperatorKind.LOGICAL_OR:
-            # p || q = !(!p && !q)
-            expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.Operator.LogicalAnd(
-                        expr.loc,
-                        [cpt.Operator.LogicalNegate(c.loc, c) for c in expr.children],
-                    ),
-                )
-            )
-        elif expr.operator is cpt.OperatorKind.LOGICAL_XOR:
+        if expr.operator is cpt.OperatorKind.LOGICAL_XOR:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
-            # p xor q = (p && !q) || (!p && q) = !(!(p && !q) && !(!p && q))
+            # p xor q = !(p <-> q)
             expr.replace(
                 cpt.Operator.LogicalNegate(
                     expr.loc,
-                    cpt.Operator.LogicalAnd(
+                    cpt.Operator.LogicalIff(
                         expr.loc,
-                        [
-                            cpt.Operator.LogicalNegate(
-                                expr.loc,
-                                cpt.Operator.LogicalAnd(
-                                    expr.loc,
-                                    [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)],
-                                ),
-                            ),
-                            cpt.Operator.LogicalNegate(
-                                expr.loc,
-                                cpt.Operator.LogicalAnd(
-                                    expr.loc,
-                                    [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs],
-                                ),
-                            ),
-                        ],
+                        lhs, 
+                        rhs,
                     ),
                 )
             )
         elif expr.operator is cpt.OperatorKind.LOGICAL_IMPLIES:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
-            # p -> q = !(p && !q)
+            # p -> q = !p || q)
             expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.Operator.LogicalAnd(
-                        lhs.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
-                    ),
-                )
-            )
-        elif expr.operator is cpt.OperatorKind.LOGICAL_EQUIV:
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-            # p <-> q = !(p && !q) && !(p && !q)
-            expr.replace(
-                cpt.Operator.LogicalAnd(
-                    expr.loc,
-                    [
-                        cpt.Operator.LogicalNegate(
-                            expr.loc,
-                            cpt.Operator.LogicalAnd(
-                                lhs.loc, [lhs, cpt.Operator.LogicalNegate(rhs.loc, rhs)]
-                            ),
-                        ),
-                        cpt.Operator.LogicalNegate(
-                            expr.loc,
-                            cpt.Operator.LogicalAnd(
-                                lhs.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
-                            ),
-                        ),
-                    ],
-                )
-            )
-        elif expr.operator is cpt.OperatorKind.RELEASE:
-            expr = cast(cpt.TemporalOperator, expr)
-
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-            interval = expr.interval
-            # p R q = !(!p U !q)
-            expr.replace(
-                cpt.Operator.LogicalNegate(
-                    expr.loc,
-                    cpt.TemporalOperator.Until(
-                        expr.loc,
-                        interval.lb,
-                        interval.ub,
-                        cpt.Operator.LogicalNegate(lhs.loc, lhs),
-                        cpt.Operator.LogicalNegate(rhs.loc, rhs),
-                    ),
-                )
+                cpt.Operator.LogicalOr(
+                    expr.loc, [cpt.Operator.LogicalNegate(lhs.loc, lhs), rhs]
+                ),
             )
         elif expr.operator is cpt.OperatorKind.FUTURE:
             expr = cast(cpt.TemporalOperator, expr)
@@ -368,6 +299,54 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                     interval.lb,
                     interval.ub,
                     cpt.Constant(expr.loc, True),
+                    operand,
+                )
+            )
+        elif expr.operator is cpt.OperatorKind.GLOBAL:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # G p = False R p
+            expr.replace(
+                cpt.TemporalOperator.Release(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, False),
+                    operand,
+                )
+            )
+        elif expr.operator is cpt.OperatorKind.ONCE:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # O p = True S p
+            expr.replace(
+                cpt.TemporalOperator.Since(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, True),
+                    operand,
+                )
+            )
+        elif expr.operator is cpt.OperatorKind.HISTORICAL:
+            expr = cast(cpt.TemporalOperator, expr)
+
+            operand: cpt.Expression = expr.children[0]
+
+            interval = expr.interval
+            # H p = False T p
+            expr.replace(
+                cpt.TemporalOperator.Trigger(
+                    expr.loc,
+                    interval.lb,
+                    interval.ub,
+                    cpt.Constant(expr.loc, False),
                     operand,
                 )
             )
@@ -1088,28 +1067,38 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
-        if (
-            options.frontend is types.R2U2Engine.NONE 
-            and isinstance(expr, cpt.Signal) 
-        ):
-            if expr.signal_id < 0 or not options.assembly_enabled:
-                context.atomic_id[expr] = aid
-                atomic_map[cpt.to_prefix_str(expr)] = aid
-                aid += 1
+        if options.frontend is types.R2U2Engine.NONE:
+            if isinstance(expr, cpt.Signal):
+                if expr.signal_id < 0 or not options.assembly_enabled:
+                    context.atomic_id[expr] = aid
+                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                    aid += 1
+                    continue
+
+                context.atomic_id[expr] = expr.signal_id
+                atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
                 continue
+        else:
+            for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
+                if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
+                    continue
 
-            context.atomic_id[expr] = expr.signal_id
-            atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
-            continue
-
-        for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
-                continue
-
-            context.atomic_id[expr] = aid
-            atomic_map[cpt.to_prefix_str(expr)] = aid
-            aid += 1
-            break
+                if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
+                    # No cpt.Atomic expression between booleanizer and TL engine; therefore make one
+                    new = cpt.Atomic(
+                        expr.loc,
+                        deepcopy(expr))
+                    expr.replace(new)
+                    if cpt.to_prefix_str(new) in atomic_map:
+                        context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
+                    else:
+                        context.atomic_id[new] = aid
+                        atomic_map[cpt.to_prefix_str(new)] = aid
+                        aid += 1
+                elif isinstance(expr, cpt.Atomic) and expr not in context.atomic_id:
+                    context.atomic_id[expr] = aid
+                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                    aid += 1
 
     log.debug(
         MODULE_CODE, 1,
@@ -1183,6 +1172,44 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     total_scq_size = 0
 
     for expr in cpt.postorder(program.ft_spec_set, context):
+        if isinstance(expr, cpt.SpecSection):
+            continue
+
+        if isinstance(expr, cpt.Formula):
+            expr.scq_size = 1
+            expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
+
+            total_scq_size += expr.scq_size
+
+            expr.scq = (
+                total_scq_size - expr.scq_size,
+                total_scq_size,
+            )
+
+            continue
+
+        if (
+            expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
+            and expr not in context.atomic_id
+        ):
+            continue
+
+        max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
+
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
+        expr.total_scq_size = (
+            sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
+            + expr.scq_size
+        )
+
+        total_scq_size += expr.scq_size
+
+        expr.scq = (
+            total_scq_size - expr.scq_size,
+            total_scq_size,
+        )
+
+    for expr in cpt.postorder(program.pt_spec_set, context):
         if isinstance(expr, cpt.SpecSection):
             continue
 

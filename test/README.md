@@ -12,25 +12,31 @@ given formula. This test will likely take a long time on a personal machine (>1 
 
 To run the test suite, run the `r2u2test.py` script as follows:
 ```bash
-python r2u2test.py path/to/c2po.py path/to/r2u2bin SUITE1 SUITE2 ...
+python3 r2u2test.py --c2po path/to/c2po.py --monitor implementation --r2u2 path/to/r2u2bin SUITE1 SUITE2 ...
 ```
 where `path/to/c2po.py` is the relative or absolute path to the c2po.py script to use for compiling
-specifications, `path/to/r2u2bin` is the relative or absolute path to the r2u2 binary to run, and
+specifications, `implementation` indicates the `c` or `rust` implementation of R2U2, and `path/to/r2u2bin` is the relative or absolute path to the r2u2 binary or Cargo.toml file to run, and
 `SUITE1 SUITE2 ...` is a non-empty list of suite names to run.
 
-An example command to run the regression test suite from the top-level `r2u2/` directory is as
+An example command to run the regression test suite on the C implementation from the top-level `r2u2/` directory is as
 follows:
 ```bash
-python test/r2u2test.py compiler/c2po.py monitors/c/build/r2u2 regression
+python3 test/r2u2test.py --c2po compiler/c2po.py --monitor c --r2u2 monitors/c/build/r2u2 regression
 ```
-assuming that the C version of the `r2u2` binary has been built. The test results can be seen in the
-`test/results` directory by default.
+assuming that the C version of the `r2u2` binary has been built.
+
+An example command to run the regression test suite on the Rust implementation from the top-level `r2u2/` directory is as
+follows:
+```bash
+python3 test/r2u2test.py --c2po compiler/c2po.py --monitor rust --r2u2 monitors/rust/r2u2_cli/Cargo.toml regression
+```
+The test results can be seen in the `test/results` directory by default.
 
 Use the `--copyback` option to copy all the files used in the test case to the results directory.
 This is useful for re-running and debugging specific test cases.
 
 To run the hyper tester, install all the python requirements via `pip install -r requirements.txt`
-then run via `python3 hyper_test.py`
+then run via `python3 hyper_test.py --monitor c` or `python3 hyper_test.py --monitor rust` to test the C version and Rust version of R2U2, respectively.
 
 ## Suites
 

@@ -135,11 +135,10 @@ def main(
     int_width: int,
     int_signed: bool,
     float_width: int,
-    endian: str,
     only_parse: bool,
     only_type_check: bool,
     only_compile: bool,
-    enable_atomic_checkers: bool,
+    enable_aux: bool,
     enable_booleanizer: bool,
     enable_extops: bool,
     enable_nnf: bool,
@@ -171,13 +170,12 @@ def main(
     options.int_width = int_width
     options.int_is_signed = int_signed
     options.float_width = float_width
-    options.endian = endian
 
     options.only_parse = only_parse
     options.only_type_check = only_type_check
     options.only_compile = only_compile
 
-    options.enable_atomic_checkers = enable_atomic_checkers
+    options.enable_aux = enable_aux
     options.enable_booleanizer = enable_booleanizer
     options.enable_extops = enable_extops
     options.enable_nnf = enable_nnf
