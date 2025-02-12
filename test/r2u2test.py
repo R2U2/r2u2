@@ -533,7 +533,6 @@ if __name__ == "__main__":
             r2u2bin = Path(args.r2u2)
     elif args.monitor == "rust":
         if args.r2u2 is None:
-            print("HERE")
             r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml"
         else:
             r2u2bin = Path(args.r2u2)

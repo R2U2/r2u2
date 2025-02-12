@@ -36,7 +36,7 @@ Use the `--copyback` option to copy all the files used in the test case to the r
 This is useful for re-running and debugging specific test cases.
 
 To run the hyper tester, install all the python requirements via `pip install -r requirements.txt`
-then run via `python3 hyper_test.py`
+then run via `python3 hyper_test.py --monitor c` or `python3 hyper_test.py --monitor rust` to test the C version and Rust version of R2U2, respectively.
 
 ## Suites
 

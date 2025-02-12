@@ -201,8 +201,8 @@ fn main() {
             let mut monitor = r2u2_core::get_monitor(&spec_file);
 
             let signal_file: fs::File = fs::File::open(trace).expect("Error opening signal CSV file");
-            let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(true).from_reader(signal_file);
-            
+            let mut reader = csv::ReaderBuilder::new().trim(csv::Trim::All).has_headers(false).comment(Some(b'#')).from_reader(signal_file);
+
             if output.is_some(){
                 let mut out_location = output.clone().unwrap();
                 out_location.push("r2u2_out.log");
