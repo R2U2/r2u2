@@ -100,9 +100,15 @@ collections = {
         # 'target': 'c2po_docs/',
         'ignore': ['*.dat', '.exe'],
     },
-    'r2u2_docs': {
+    'r2u2_c_docs': {
         'driver': 'copy_folder',
         'source': '../monitors/c/docs/',
+        # 'target': 'r2u2_docs/',
+        'ignore': ['*.dat', '.exe'],
+    },
+    'r2u2_rust_docs': {
+        'driver': 'copy_folder',
+        'source': '../monitors/rust/docs/',
         # 'target': 'r2u2_docs/',
         'ignore': ['*.dat', '.exe'],
     },

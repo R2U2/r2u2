@@ -29,7 +29,7 @@ remove passes as necessary in the function `validate_input` in `main.py`.
 14. Convert all multi-arity operators to binary (ex: `&&`)
 15. Perform common sub-expression elimination
 16. Check satisfiability of each specification
-17. Compute the sizes of each node's DUOQ
+17. Compute the sizes of each node's SCQ
 
 ## Serialization
 
