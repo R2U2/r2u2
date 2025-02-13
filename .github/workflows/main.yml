@@ -23,6 +23,11 @@ jobs:
         cd monitors/c
         make
 
+    - name: Build R2U2_CLI
+      run: |
+        cd monitors/rust/r2u2_cli
+        cargo build --release
+
     - name: Test c2po
       run: |
         cd compiler/test
@@ -52,19 +57,39 @@ jobs:
     - name: Test cav (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml cav
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli cav
 
     - name: Test long-trace (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml long_trace
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli long_trace
 
     - name: Test ft-subset (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml ft_subset
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli ft_subset
 
     - name: Test ft-pt-test (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml regression
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli regression
+
+    - name: Test cav (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli cav
+
+    - name: Test long-trace (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli long_trace
+
+    - name: Test ft-subset (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli ft_subset
+
+    - name: Test ft-pt-test (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli regression
