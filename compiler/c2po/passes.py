@@ -86,6 +86,9 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
             ),
         ]
 
+        for formula in new_formulas:
+            formula.get_expr().type = types.BoolType()
+
         new_formulas = cast("list[cpt.Specification]", new_formulas)
 
         program.replace_spec(contract, new_formulas)

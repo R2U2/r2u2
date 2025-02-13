@@ -111,7 +111,7 @@ class Expression(Node):
                 child.parents.remove(self)
 
         self.replacement = new
-        # new.type = self.type
+        new.type = self.type
 
     def has_only_tl_parents(self) -> bool:
         """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""

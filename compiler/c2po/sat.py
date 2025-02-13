@@ -209,12 +209,12 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     cnt = 0
 
     for expr in cpt.postorder(start, context):
-        # if expr in expr_map or (
-        #     expr.engine is not types.R2U2Engine.TEMPORAL_LOGIC
-        #     and expr not in context.atomic_id
-        #     and not isinstance(expr, cpt.Constant)
-        # ):
-            # continue
+        if expr.type != types.BoolType() and expr.type != types.IntType():
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+        
+        if expr in expr_map:
+            continue
 
         expr_id = f"f_e{cnt}"
         cnt += 1
@@ -325,7 +325,7 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT\n\t{expr}")
             return ""
         else:
-            log.error(MODULE_CODE, f"Bad repr ({expr})")
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
             return ""
 
     smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
