@@ -292,9 +292,95 @@ class FunctionCall(Expression):
             self.symbol,
             copy.deepcopy(cast("list[Expression]", self.children), memo),
         )
+    
+
+class Predicate(Expression):
+    def __init__(self, loc: log.FileLocation, s: str, operands: list[Expression]) -> None:
+        super().__init__(loc, operands)
+        self.symbol: str = s
+
+    def __deepcopy__(self, memo) -> Predicate:
+        return Predicate(
+            self.loc,
+            self.symbol,
+            copy.deepcopy(cast("list[Expression]", self.children), memo),
+        )
 
 
-class Bind(Expression):
+class QuantifierBind(Expression):
+    def __init__(
+        self, loc: log.FileLocation, var: Variable, set_pred: str 
+    ) -> None:
+        super().__init__(loc, [])
+        self.bound_var = var
+        self.set_pred = set_pred
+
+    def get_bound_var(self) -> Variable:
+        return self.bound_var
+
+    def get_set_pred(self) -> str:
+        return self.set_pred
+
+    def __str__(self) -> str:
+        return ""
+
+    def __deepcopy__(self, memo):
+        new = QuantifierBind(self.loc, self.bound_var, self.set_pred)
+        self.copy_attrs(new)
+        return new
+    
+
+class QuantifierKind(enum.Enum):
+    FORALL = "forall"
+    EXISTS = "exists"
+
+class Quantifier(Expression):
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        operator: QuantifierKind,
+        var: Variable,
+        set_pred: str,
+        expr: Expression,
+    ) -> None:
+        super().__init__(loc, [var, QuantifierBind(loc, var, set_pred), expr])
+        self.operator = operator
+        self.bound_var = var
+        self.set_pred = set_pred
+
+    @staticmethod
+    def ForAll(
+        loc: log.FileLocation, var: Variable, set_pred: str, expr: Expression
+    ) -> Quantifier:
+        return Quantifier(loc, QuantifierKind.FORALL, var, set_pred, expr)
+
+    @staticmethod
+    def Exists(
+        loc: log.FileLocation, var: Variable, set_pred: str, expr: Expression
+    ) -> Quantifier:
+        return Quantifier(loc, QuantifierKind.EXISTS, var, set_pred, expr)
+
+    def get_set_pred(self) -> str:
+        return self.set_pred
+
+    def get_expr(self) -> Expression:
+        """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
+        return cast(Expression, self.children[-1])
+
+    def __deepcopy__(self, memo):
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = Quantifier(
+            self.loc,
+            self.operator,
+            cast(Variable, copy.deepcopy(self.bound_var, memo)),
+            self.set_pred,
+            cast(Expression, children[-1]),
+        )
+        self.copy_attrs(new)
+        return new
+
+
+class SetAggBind(Expression):
     """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
 
     def __init__(
@@ -314,7 +400,7 @@ class Bind(Expression):
         return ""
 
     def __deepcopy__(self, memo):
-        new = Bind(self.loc, self.bound_var, self.set_expr)
+        new = SetAggBind(self.loc, self.bound_var, self.set_expr)
         self.copy_attrs(new)
         return new
 
@@ -349,9 +435,9 @@ class SetAggregation(Expression):
         expr: Expression,
     ) -> None:
         if num:
-            super().__init__(loc, [set, num, Bind(loc, var, set), expr])
+            super().__init__(loc, [set, num, SetAggBind(loc, var, set), expr])
         else:
-            super().__init__(loc, [set, Bind(loc, var, set), expr])
+            super().__init__(loc, [set, SetAggBind(loc, var, set), expr])
 
         self.operator = operator
         self.bound_var = var
@@ -1225,7 +1311,7 @@ def postorder(
             del context.bound_vars[expr.bound_var.symbol]
             yield expr
             continue
-        elif seen and isinstance(expr, Bind):
+        elif seen and isinstance(expr, SetAggBind):
             context.bound_vars[expr.bound_var.symbol] = expr.get_set()
             continue
         elif seen:

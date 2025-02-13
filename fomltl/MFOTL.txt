@@ -1,0 +1,9 @@
+MFOTL formulas can be extracted from the following places:
+
+- Monitoring the GDPR 
+    - These are non-metric formulas, can add bounds to them
+    - Figure 6, page 13
+    - https://pure.itu.dk/ws/files/84814983/esorics19.pdf#page=13
+- Monitoring the Internet Computer (Artifact)
+    - https://zenodo.org/records/7340850
+

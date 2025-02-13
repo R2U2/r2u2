@@ -1,0 +1,87 @@
+STRUCT
+    Task: {
+        s, e: bool;
+        id: int;
+    };
+
+INPUT
+    scheduled: int[2];
+    exec: int[6];
+    id: int[2];
+
+DEFINE
+    EXEC_TIME := 2;
+
+FTSPEC
+    -- Let S be an array type with element type the same as i and i is a base type
+    -- Then we introduce an operator 'contains' defined as follows:
+    -- contains(S,i) === forsome(j:S)(i == j) 
+    --               === \/_{0 <= j < |S|} (S[j] == i)
+
+    -- Every task in the scheduler shall execute within EXEC_TIME time steps.
+    forall(tid : int)(
+        contains(scheduled, tid) -> F[0,EXEC_TIME] contains(exec, tid)
+    );
+
+    -- At most 2 tasks in the scheduler at one time.
+    -- So at most 2 * (EXEC_TIME + 1) = 6 tasks can execute at one time.
+    -- So exec must be array of size 6.
+
+        (tid^0_0 != 0) -> F[0,2] exec[0] &&
+    -- where v[0..2](tid^0_0) = v[0](scheduled[0]), v[0..2](tid^0_1) = v[0](scheduled[1]),
+    --       v[1..3](tid^1_0) = v[1](scheduled[0]), v[1..3](tid^1_1) = v[1](scheduled[1]),
+    --       v[2..4](tid^2_0) = v[2](scheduled[0]), v[2..4](tid^2_1) = v[2](scheduled[1])
+
+    -- An example input trace might be:
+    scheduled[0], scheduled[1], exec[0], exec[1], exec[2], exec[3], exec[4], exec[5]
+    1,            2,            0,       0,       0,       0,       0,       0
+    3,            5,            0,       0,       0,       0,       0,       0
+    4,            6,            1,       2,       3,       4,       5,       6
+
+    -- Which is transformed to an R2U2-compatible trace:
+    tid^0_0, tid^0_1, tid^1_0, tid^1_1, s[1][0], e[1][0], s[1][1], e[1][1], s[2][0], e[2][0], s[2][1], e[2][1] 
+    1,       2,       0,       0,       0,       0,       0,       0,       0,       0,       0,       0
+    1,       2,       3,       4,       3,       3,       4,       4,       0,       0,       0,       0
+    1,       2,       3,       4,       3,       3,       4,       4,       5,       5,       6,       6
+
+
+    -- Assume a theory with equality and a special "empty" element 'e'
+    -- Then define a logic with the following syntax:
+    -- Phi   := p(t0,...,tn) | t0 = t1 | ! Phi | Phi /\ Psi | Phi U[l,u] Psi | forall x : (contains(S,x) -> Phi)
+    -- guard := (x != e) && \/_{t in S} (x = t)
+    -- S     := {t0,...,tn} 
+    -- for n < inf
+
+    -- Then, each *quantified* set symbol S has a global cardinality constraint. 
+    -- In our example, 'scheduled' is a set and has a global constraint of 2, i.e., |scheduled| <= 2.
+    -- Notice ere that the size of 'exec' is unbounded, but given this global constraint we can compute that 
+    -- at most 6 *relevant* tasks can execute at once time.
+
+    -- At least one request in the queue shall be granted or rejected within 10 seconds.
+    exists(req : int) (
+        contains(Queue, req) && F[0,10] (contains(Granted, req) || contains(Rejected, req))
+    );
+
+    -- If any element in a data structure has status "corrupt" for at least 3 cycles in
+    -- a row, then the data structure shall be purged within the following 5 cycles.
+
+    -- Consider a FOMLTL formula:
+    forall(x : int)( guard(x,a,b,c,...) -> Psi )
+    -- The general requirement is that 'guard' is a term that is true for some bounded number of values of x. 
+    -- We must provide that bound, it must be provable apriori, and we must be able to enumerate all possible values.
+    -- Example: guard(x,a,b,c) := x in {a,b,c}
+    -- We can prove that only three values of x satisfy this term, matter the valuation of a, b, and c
+    -- For our purposes, we quantify over sets so we assume some term like 
+    -- contains(S,x) && x != 0 
+    -- which denotes if x is in S where S is a set of free variables. 
+    -- In order to encode that a set might have less than its max number of elements, we use the value 0, hence the check for x != 0. 
+
+    -- S could represent the set of tasks in the scheduler, executing tasks, 
+    -- requests in a queue, active air sensors, or generally elements in a data structure,
+    -- where all such objects have a non-zero ID.
+
+    -- C2PO will transform the above formula to:
+           ((s[0][0] > 0) -> F[0,EXEC_TIME] (tid^0_0 == exec[0])) && ((tid^0_1 == scheduled[1]) -> F[0,EXEC_TIME] (tid^0_1 == exec[1])) &&
+    F[1,1] ((tid^1_0 == scheduled[0]) -> F[0,EXEC_TIME] (tid^1_0 == exec[0])) && ((tid^1_1 == scheduled[1]) -> F[0,EXEC_TIME] (tid^1_1 == exec[1])) &&
+    F[2,2] ((tid^2_0 == scheduled[0]) -> F[0,EXEC_TIME] (tid^2_0 == exec[0])) && ((tid^2_1 == scheduled[1]) -> F[0,EXEC_TIME] (tid^2_1 == exec[1])) &&
+

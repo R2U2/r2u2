@@ -1,0 +1,150 @@
+We'll have the following files:
+
+    formula.fomltl
+    bounds.txt
+    traces.txt
+    traces/
+        trace.0.json
+        trace.1.json
+
+Then the following call:
+
+    python3 c2po.py --first-order-formula formula.mfotl --first-order-bounds bounds.txt --first-order-traces traces.txt
+
+Will produce a 'spec.bin' and file 'trace.i.csv' for each trace in 'traces/'
+
+Contents of formula.fomltl:
+
+    forall(x:X) ( forall(y:Y) (x != y) ->  F[0,2] p(x,y) );
+
+Contents of bounds.txt:
+
+    X=2;
+    Y=2;
+
+This will produce the following C2PO file according to \lambda as defined in the paper draft:
+
+    INPUT
+        X[6]: bool; -- where X(x^i_j) = X[(i*2)+j]
+        Y[6]: bool; -- where X(x^i_j) = X[(i*2)+j]
+        x_eq_y[12]: bool; -- where (x^i_j=y^k_h) = x_eq_y[(i*2)+j]
+        p_x_y[12]: bool; -- where p(x^i_j,y^k_h) = p_x_y[(i*2)+j]
+
+    FTSPEC
+        (TAU % 3 == 0) -> (
+                (X(x^0_0) -> (
+                    (TAU % 3 == 0) -> ((Y(y^0_0) -> ((x^0_0 != y^0_0) -> F[0,2] p(x^0_0,y^0_0))) && 
+                                       (Y(y^0_1) -> ((x^0_0 != y^0_1) -> F[0,2] p(x^0_0,y^0_1))))) &&
+                    (TAU % 3 == 1) -> ((Y(y^1_0) -> ((x^0_0 != y^1_0) -> F[0,2] p(x^0_0,y^1_0))) && 
+                                       (Y(y^1_1) -> ((x^0_0 != y^1_1) -> F[0,2] p(x^0_0,y^1_1)))) &&
+                    (TAU % 3 == 2) -> ((Y(y^2_0) -> ((x^0_0 != y^2_0) -> F[0,2] p(x^0_0,y^2_0))) && 
+                                       (Y(y^2_1) -> ((x^0_0 != y^2_1) -> F[0,2] p(x^0_0,y^2_1)))))
+                (X(x^0_1) -> (
+                    (TAU % 3 == 0) -> ((Y(y^0_0) -> ((x^0_1 != y^0_0) -> F[0,2] p(x^0_1,y^0_0))) && 
+                                       (Y(y^0_1) -> ((x^0_1 != y^0_1) -> F[0,2] p(x^0_1,y^0_1))))) &&
+                    (TAU % 3 == 1) -> ((Y(y^1_0) -> ((x^0_1 != y^1_0) -> F[0,2] p(x^0_1,y^1_0))) && 
+                                       (Y(y^1_1) -> ((x^0_1 != y^1_1) -> F[0,2] p(x^0_1,y^1_1)))) &&
+                    (TAU % 3 == 2) -> ((Y(y^2_0) -> ((x^0_1 != y^2_0) -> F[0,2] p(x^0_1,y^2_0))) && 
+                                       (Y(y^2_1) -> ((x^0_1 != y^2_1) -> F[0,2] p(x^0_1,y^2_1)))))
+        ) &&
+        (TAU % 3 == 1) -> (
+            ...
+        ) &&
+        (TAU % 3 == 2) -> (
+            ...
+        );
+
+        -- Can do some simplification: if TAU % 3 == 0, then TAU % 3 != 1 and TAU % 3 != 2
+
+        (TAU % 3 == 0) -> ((X(x^0_0) -> ((Y(y^0_0) -> ((x^0_0 != y^0_0) -> F[0,2] p(x^0_0,y^0_0))) && 
+                                         (Y(y^0_1) -> ((x^0_0 != y^0_1) -> F[0,2] p(x^0_0,y^0_1))))) &&
+                           (X(x^0_1) -> ((Y(y^0_0) -> ((x^0_1 != y^0_0) -> F[0,2] p(x^0_1,y^0_0))) && 
+                                         (Y(y^0_1) -> ((x^0_1 != y^0_1) -> F[0,2] p(x^0_1,y^0_1)))))) &&
+        (TAU % 3 == 1) -> ((X(x^1_0) -> ((Y(y^1_0) -> ((x^1_0 != y^1_0) -> F[0,2] p(x^1_0,y^1_0))) && 
+                                         (Y(y^1_1) -> ((x^1_0 != y^1_1) -> F[0,2] p(x^1_0,y^1_1))))) &&
+                           (X(x^1_1) -> ((Y(y^1_0) -> ((x^1_1 != y^1_0) -> F[0,2] p(x^1_1,y^1_0))) && 
+                                         (Y(y^1_1) -> ((x^1_1 != y^1_1) -> F[0,2] p(x^1_1,y^1_1)))))) &&
+        (TAU % 3 == 2) -> ((X(x^2_0) -> ((Y(y^2_0) -> ((x^2_0 != y^2_0) -> F[0,2] p(x^2_0,y^2_0))) && 
+                                         (Y(y^2_1) -> ((x^2_0 != y^2_1) -> F[0,2] p(x^2_0,y^2_1))))) &&
+                           (X(x^2_1) -> ((Y(y^2_0) -> ((x^2_1 != y^2_0) -> F[0,2] p(x^2_1,y^2_0))) && 
+                                         (Y(y^2_1) -> ((x^2_1 != y^2_1) -> F[0,2] p(x^2_1,y^2_1))))));
+
+Note: if we do only future-time SAT, then we can choose to drop all but the (TAU % 3 == 0)-guarded
+clauses, since we search for a trace that starts at timestamp 0. If we admit past-time, we need to
+explicitly search also for a starting time tau of the trace. Mixed-time SAT problem is: 
+    \exists \Pi,tau,v such that \Pi,\tau,v \models \Phi. 
+Future-time SAT problem is only 
+    \exists \Pi,v such that \Pi,0,v \models \Phi
+So for FT-SAT, we do not need to TAU mod operator at all and complexity is just a function of
+MLTL-SAT. For mixed-time-SAT, the CAV paper on MLTL-SAT only focuses on FT so it's unclear that the
+complexity is the same even in mixed-time MLTL-SAT
+
+Contents of traces/trace.0.json:
+
+[
+    {"X": [1,2], "Y": [1,3], "p": []},
+    {"X": [],    "Y": [],    "p": []},
+    {"X": [],    "Y": [],    "p": [{"0": 1, "2": 3}, {"0": 2, "1": 3}, {"0": 2, "2": 1}]}
+]
+
+Then assuming the following mapping for TAU=0..2:
+x^0_0 = 1
+x^0_1 = 2
+y^0_0 = 1
+y^0_1 = 3
+
+This will produce then the following R2U2-compatible trace:
+
+X(x^0_0), X(x^0_1), X(x^1_0), X(x^1_1), X(x^2_0), X(x^2_1), Y(y^0_0), Y(y^0_1), Y(y^1_0), Y(y^1_1), Y(y^2_0), Y(y^2_1)
+T,        T,        F,        F,        F,        F,        T,        T,        F,        F,        F,        F
+T,        T,        F,        F,        F,        F,        F,        F,        F,        F,        F,        F
+T,        T,        F,        F,        F,        F,        F,        F,        F,        F,        F,        F
+
+x^0_0!=y^0_0, x^0_1!=y^0_0, x^0_0!=y^0_1, x^0_1!=y^0_1 
+F,            T,            T,            T          
+F,            T,            T,            T            
+F,            T,            T,            T     
+
+x^1_0!=y^1_0, x^1_1!=y^1_0, x^1_0!=y^1_1, x^1_1!=y^1_1
+F,            F,            F,            F           
+F,            F,            F,            F            
+F,            F,            F,            F            
+
+x^2_0!=y^2_0, x^2_1!=y^2_0, x^2_0!=y^2_1, x^2_1!=y^2_1 
+F,            F,            F,            F
+F,            F,            F,            F
+F,            F,            F,            F
+
+p(x^0_0,y^0_0), p(x^0_0,y^0_1), p(x^0_1,y^0_0), p(x^0_1,y^0_1)
+F,              F,              F,              F
+F,              F,              F,              F
+F,              T,              T,              T
+  
+p(x^1_0,y^1_0), p(x^1_0,y^1_1), p(x^1_1,y^1_0), p(x^1_1,y^1_1)
+F,              F,              F,              F
+F,              F,              F,              F
+F,              F,              F,              F
+
+p(x^2_0,y^2_0), p(x^2_0,y^2_1), p(x^2_1,y^2_0), p(x^2_1,y^2_1)
+F,              F,              F,              F
+F,              F,              F,              F
+F,              F,              F,              F
+
+
+Sketch of algorithm for computing R2U2-compatible formula and trace wrt Phi, Pi, v, mu^tau:
+phi = lambda(Phi,bnd)
+AP = set of propositions in phi
+pi = empty trace of length |Pi|
+for each time tau in Pi:
+    for each guard in Guard(Phi):
+        if |guard[tau]| >= bnd(guard)
+            reject trace
+    for each ap a_{p(t0,...,tn)} in AP:
+        for each ti in t0,...,tn:
+            if ti is free:
+                ti' = v(ti)
+            else:
+                ti' = mu^tau(guard,ti)
+        if (t0',...,tn') in p[tau]:
+            add a_{p(t0,...,tn)} to pi[tau]
+

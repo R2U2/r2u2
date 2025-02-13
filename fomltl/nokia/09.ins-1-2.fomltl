@@ -1,0 +1,6 @@
+forall(user1:Users)(
+    (insert(user1,db1,data) & (data != unknown)) ->
+    O[0,1] F[0,108000] exists(user2:Users)(
+        insert(user2,db2,data) & delete(user2,db1,data)
+    )
+)

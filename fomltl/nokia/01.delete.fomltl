@@ -1,0 +1,1 @@
+forall(user:Users) (delete(user,db2) -> (user=script2))

@@ -1,0 +1,18 @@
+{
+    "bounds": {"active": 4},
+    "predicates": [
+        {"name": "active", "arity": 1, "type": "float"},
+        {"name": "b", "type": "float"},
+        {"name": "d", "type": "float"}
+    ],
+    "domain": ["a", "b", "c", "d"],
+    "trace": [
+        {
+            "active": {"a":true, "b":true, "d":true},
+            "bad": {},
+            "value": {"a":3, "b":4, "d":5},
+            "S_avg": 4
+        }
+    ]
+}
+

@@ -1,0 +1,49 @@
+formula.fomltl:
+
+    F[0,5] forall(x) ( P(x) -> Q(x) )
+
+bounds.txt:
+
+    P=2;
+
+Transformed to the following ground FOMLTL formula with mission-time M:
+
+    (TAU == 0) -> (F[0,5] forall(x) (P(x) -> Q(x))) &&
+    (TAU == 1) -> (F[0,5] forall(x) (P(x) -> Q(x))) &&
+    ...
+    (TAU == M) -> (F[0,5] forall(x) (P(x) -> Q(x)))
+
+Then
+
+    (TAU == 0) -> (       forall(x) (P(x) -> Q(x)) ||
+                   F[1,1] forall(x) (P(x) -> Q(x)) ||
+                   ... ||
+                   F[5,5] forall(x) (P(x) -> Q(x))) &&
+    (TAU == 1) -> (       forall(x) (P(x) -> Q(x)) ||
+                   F[1,1] forall(x) (P(x) -> Q(x)) ||
+                   ... ||
+                   F[5,5] forall(x) (P(x) -> Q(x))) &&
+    ...
+    (TAU == M) -> (       forall(x) (P(x) -> Q(x)) ||
+                   F[1,1] forall(x) (P(x) -> Q(x)) ||
+                   ... ||
+                   F[5,5] forall(x) (P(x) -> Q(x)))
+
+trace.json:
+
+[
+    {"P": [1,2], "Q": []},
+    {"P": [3],   "Q": []},
+    {"P": [],    "Q": []},
+    {"P": [],    "Q": []},
+    {"P": [],    "Q": []},
+    {"P": [1],   "Q": [1]},
+    {"P": [],    "Q": [1]},
+    {"P": [],    "Q": [1]},
+]
+
+At TAU=0 we have the following ground formula:
+
+
+
+

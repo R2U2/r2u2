@@ -1,0 +1,115 @@
+First we solve FOMLTL-SAT. First marking all variables v in Phi as v@0, L(Phi) is defined
+as follows:
+
+    L( p(x) ) := p(x)
+    L( (x=y) ) := (x=y)
+    L( ! Phi ) := Phi
+    L( Phi & Psi ) := L(Phi) & L(Psi)
+    L( F[lb,ub] Phi ) := {
+        F[lb,ub] L(Phi)                                     if Phi is ground and not temporal
+        \/_{lb <= j <= ub} F[j,j] L(Phi[v@k |-> v@k+j])   otherwise (Phi is not ground but is temporal)
+    }
+    L( Phi U[lb,ub] Psi ) := {
+        L(Phi) U[lb,ub] L(Psi)                                                                    if Phi is ground and not temporal
+        F[lb,lb] Psi[v@k |-> v@{k+lb}] | (F[lb,lb] Phi[v@k |-> v@{k+lb}] & L(Phi [lb+1,ub] Psi))  otherwise (Phi is not ground but is temporal)
+    }
+    L( forall(x)(X(x) -> Phi) ) := /\_{0 <= i < bnd(X)} X(x_i) -> Phi[x |-> x_i]
+
+Note that Phi[v@k |-> v@k+j] denotes the formula Phi where every variable v@k in Phi is replaced with a
+fresh variable v@{k+j} (representing the value of v at time k+j). 
+
+Assume we have a function l(Pi,v,(mu^0,...,mu^n)) with n=max(k | v@k in Phi) for transforming FO
+traces to propositional traces (where mu^j(x) = epsilon for all |Pi| <= j <= n). These
+transformations (L,l) are sufficient to prove that:
+
+    \forall Pi,v: Pi,0,v |== Phi iff l(Phi,v,(mu^0,...,m^n)),0 := L(Phi)
+
+where mu^j provides a mapping for the variables marked @j. This is good enough for SAT, since
+future-time SAT can be defined as:
+
+    \exists Pi,v: Pi,0,v |== Phi
+
+and this is true iff \exists mu^0,...,mu^n: l(Phi,v,(mu^0,...,m^n)),0 |== L(Phi), which we can solve
+using MLTL-SAT and some basic arithmetic for computing mus (trivial if we have an ordering of terms,
+just assume a '<' operator is available, really just need to enumerate terms that satisfy each
+guard).
+
+Some examples where bnd(P)=2: 
+ 
+    L( forall(x)(P(x) -> Q(x)) ) := 
+        (P(x_0) -> Q(x_0)) & (P(x_1) -> Q(x_1))
+
+    L( forall(x)(P(x) -> F[0,3] Q(x)) ) :=
+        (P(x_0) -> F[0,3] Q(x_0)) & (P(x_1) -> F[0,3] Q(x_1))
+
+    **Ground and not temporal**
+    L( F[0,3] P(x) ) :=
+        F[0,3] P(x)
+
+    **Neither ground nor temporal (may be able to eliminate temporal operator)**
+    L( F[0,3] forall(x)(P(x) -> Q(x)) ) :=
+               L(forall(x)(P(x) -> Q(x))) |
+        F[1,1] L(forall(x)(P(x) -> Q(x))) |
+        F[2,2] L(forall(x)(P(x) -> Q(x))) |
+        F[3,3] L(forall(x)(P(x) -> Q(x)))
+      =        ((P(x_0@0) -> Q(x_0@0)) & (P(x_1@0) -> Q(x_1@0))) |
+        F[1,1] ((P(x_0@1) -> Q(x_0@1)) & (P(x_1@1) -> Q(x_1@1))) |
+        F[2,2] ((P(x_0@2) -> Q(x_0@2)) & (P(x_1@2) -> Q(x_1@2))) |
+        F[3,3] ((P(x_0@3) -> Q(x_0@3)) & (P(x_1@3) -> Q(x_1@3))) 
+
+    **Not ground but is temporal**
+    L( F[0,3] forall(x)(P(x) -> G[0,1] Q(x)) ) :=
+               L(forall(x)(P(x) -> G[0,1] Q(x))) |
+        F[1,1] L(forall(x)(P(x) -> G[0,1] Q(x))) |
+        F[2,2] L(forall(x)(P(x) -> G[0,1] Q(x))) |
+        F[3,3] L(forall(x)(P(x) -> G[0,1] Q(x)))
+      =        ((P(x_0@0) -> G[0,1] Q(x_0@0)) & (P(x_1@0) -> G[0,1] Q(x_1@0))) |
+        F[1,1] ((P(x_0@1) -> G[0,1] Q(x_0@1)) & (P(x_1@1) -> G[0,1] Q(x_1@1))) |
+        F[2,2] ((P(x_0@2) -> G[0,1] Q(x_0@2)) & (P(x_1@2) -> G[0,1] Q(x_1@2))) |
+        F[3,3] ((P(x_0@3) -> G[0,1] Q(x_0@3)) & (P(x_1@3) -> G[0,1] Q(x_1@3))) 
+
+Thinking of P as an array with two elements, P[0] and P[1], we can think of x_0 as the contents of
+P[0] at each time and x_1 as the contents of P[1]. In contrast, we can think of x_0@0 as the
+contents of P[0] at time 0 and x_0@1 as P[0] at time 1. Generally, x_i denotes the contents of P[i]
+at the current time, and x_i@j denotes the contents of P[i] at time j.
+
+----------------------------------------------------------------------------------------------------
+
+Monitoring is different from SAT, however. Given a trace Pi, valuation function v, and formula Phi,
+the monitoring problem asks to compute for all tau such that 0 <= tau < |Pi| whether:
+
+    Pi,v,tau |== Phi
+
+We can use our transformation above for this and compute for each tau:
+
+    \exists mu^0,...,mu^M: l(Pi,v,(mu^0,...,mu^M)),tau |== L(Phi[v@j |-> v@{j+tau}])
+
+where we normalize each Phi to tau such that each x@j always denotes the value of x at time j.
+
+This reduction amounts to creating a new MLTL monitor at each timestamp and evaluating it according
+to l. We note, however, that we don't necessarily need space for M monitors total. Consider that at
+tau=0, we will necessarily know the result at tau=wpd(Phi) in the worst case, so at timestamp
+tau=wpd(Phi)+1 we can release that monitor's memory and then monitor Phi at wpd(Phi)+1, effectively
+re-using its memory.
+
+We can optimize this further via CSE. Consider the problem of monitoring the final example above,
+but only for the times tau=0 and 1 where we assume that forall(x)(P(x) -> G[0,1] Q(x)) holds at time
+1. In this case, we consider two problems:
+
+    P1: \exists mu^0,...,mu^M: l(Pi,v,(mu^0,...,mu^M)),0 |== L(Phi)
+    P2: \exists mu^1,...,mu^M: l(Pi,v,(mu^0,...,mu^M)),1 |== L(Phi[x@j |-> x@{j+1}])
+
+If we consider the problem disjointly, then:   
+
+    Pi,v,0 |== F[1,1] forall(x)(P(x) -> G[0,1] Q(x)) -> P1
+    Pi,v,1 |==        forall(x)(P(x) -> G[0,1] Q(x)) -> P2
+
+which we will compute via:
+
+    \exists mu^0,...,mu^M: l(Pi,v,(mu^0,...,mu^M)),1 |== (P(x_0@1) -> G[0,1] Q(x_0@1)) & (P(x_1@1) -> G[0,1] Q(x_1@1))
+    \exists mu^0,...,mu^M: l(Pi,v,(mu^0,...,mu^M)),0 |== (P(x_0@1) -> G[0,1] Q(x_0@1)) & (P(x_1@1) -> G[0,1] Q(x_1@1))
+
+Noticing that these two problems are identical, we can combine their monitors. This is just a
+special case of CSE, where we combine all syntactically-identical formulas.
+
+

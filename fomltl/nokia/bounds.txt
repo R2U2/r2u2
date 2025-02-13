@@ -1,0 +1,6 @@
+Users=180
+Scripts=200
+DBs=3
+URLs=10
+Revs=100
+Statuses=100

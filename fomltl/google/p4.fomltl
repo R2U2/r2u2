@@ -1,0 +1,4 @@
+forall(c:Computers)(
+    (net(c) & (F[600,1200] net(c)) & (O[86400,172800] alive(c)) & !(O[0,259200] upd_success(c))) ->
+    F[0,1200] upd_connect(c)
+)

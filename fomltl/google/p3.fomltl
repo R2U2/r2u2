@@ -1,0 +1,5 @@
+forall(c:Computers)(forall(s:SSHSessions)(
+    ssh_login(c,s) & 
+    ((F[60,1200] net(c) & G[0,86400] net(c)) -> (F[60,1200] net(c))) -> 
+        F[0,86400] ssh_logout(c,s)
+))

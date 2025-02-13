@@ -1,0 +1,66 @@
+Extend C2PO with a "first order" mode that will produce an MLTL-equivalent C2PO file given a FO-LTL
+formula. If the '-fof' or '--first-order-formula' flag is passed to C2PO, it will expect a file with
+a FO-MLTL formula and bound for each quantifier guard:
+
+formula.fomltl:
+
+    forall(t:sched) (
+        F[0,2] exec(t)
+    );
+
+bounds.txt:
+
+    sched=2;
+
+This will produce the following C2PO file according to \lambda as defined in the paper draft:
+
+    INPUT
+        sched[6], exec[6]: bool;
+
+    FTSPEC
+        (TAU % 3 == 0) -> ((sched[0] -> F[0,2] exec[0]) && (sched[1] -> F[0,2] exec[1])) &&
+        (TAU % 3 == 1) -> ((sched[2] -> F[0,2] exec[2]) && (sched[3] -> F[0,2] exec[3])) &&
+        (TAU % 3 == 2) -> ((sched[4] -> F[0,2] exec[4]) && (sched[5] -> F[0,2] exec[5]));
+
+        -- If TAU=0, then we only care about first clause. If TAU=5, then we only care about third clause.
+
+Then, if the '-fot' or '--first-order-trace' flag is passed *in addition to the FO formula above*,
+it will expect a first-order trace .json file (or set of files) such as:
+
+
+[
+    {"sched": [1,2], "exec": []},
+    {"sched": [3,4], "exec": []},
+    {"sched": [5,6], "exec": [1,2,3,4,5,6,7,...,N]}
+]
+
+This will produce then the following R2U2-compatible trace:
+
+sched[0], exec[0], sched[1], exec[1], sched[2], exec[2], sched[3], exec[3], sched[4], exec[4], sched[5], exec[5] 
+T,        F,       T,        F,       F,        F,       F,        F,       F,        F,       F,        F              
+F,        F,       F,        F,       T,        F,       T,        F,       F,        F,       F,        F              
+F,        T,       F,        T,       F,        T,       F,        T,       T,        T,       T,        T   
+
+where C2PO will perform the following for each time t:
+1. Check that |sched| is less than bnd(sched)
+2. Assign each element in 'sched' an index i such that (t * bnd(sched)) <= i < (t * bnd(sched) + bnd(sched)) via mu^t
+    a. Example: mu^0(0)=1, mu^0(1)=2, mu^1(2)=2, ..., mu^2(5)=6
+3. For each index i, if exists elem such that mu^t(i)=elem set sched[i]=T, otherwise set sched[i]=F
+4. For each index i, if exists elem such that mu^t(i)=elem and elem is in 'exec', then set exec[i]=T, otherwise set exec[i]-F
+
+
+Sketch of algorithm for computing R2U2-compatible formula and trace wrt Phi, Pi:
+phi = lambda(Phi,bnd)
+AP = set of propositions in phi
+pi = empty trace of length |Pi|
+for each time tau in Pi:
+    for each guard in Guard(Phi):
+        if |guard[tau]| >= bnd(guard)
+            reject trace
+    for each ap a_{p(x^j)} in AP: (free vars)
+        if v(x^j) in p[tau]
+            add ap to pi[tau]
+    for each ap a_{p(x^j_i)} in AP: (bound vars)
+        if mu[tau](x^j_i) in p[tau]
+            add ap to pi[tau]
+

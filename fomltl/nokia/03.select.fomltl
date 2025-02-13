@@ -1,0 +1,1 @@
+forall(user:Users) (select(user,db2) -> (user=script1 | user=script2 | user=triggers))

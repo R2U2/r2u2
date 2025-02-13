@@ -1,0 +1,4 @@
+forall(c:Computers)(
+    (upd_connect(c) & (F[300,1200] alive(c))) ->
+    F[0,1800] (upd_success(c) | upd_skip(c))
+)

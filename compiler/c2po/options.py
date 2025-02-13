@@ -76,6 +76,12 @@ copyback_enabled: bool = False
 copyback_dirname: str = EMPTY_FILENAME
 copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
+enable_first_order: bool = False
+fo_bounds_filename: str = EMPTY_FILENAME
+fo_trace_filename: str = EMPTY_FILENAME
+fo_bounds_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+fo_trace_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+
 stats: bool = False
 debug: bool = False
 log_level: int = 0
@@ -87,13 +93,14 @@ def setup() -> bool:
     **Must call `passes.setup()` after this function.**"""
     global spec_filename, trace_filename, map_filename, output_filename, \
         spec_path, output_path, \
-        signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, endian, endian_sigil, \
+        signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, \
         frontend, only_parse, only_type_check, only_compile, final_stage, assembly_enabled, \
-        enable_atomic_checkers, enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
+        enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
         smt_solver, timeout_eqsat, timeout_sat, \
         copyback_enabled, copyback_dirname, copyback_path, \
         write_c2po, write_prefix, write_mltl, write_pickle, write_smt, \
         write_c2po_filename, write_prefix_filename, write_mltl_filename, write_pickle_filename, write_smt_dirname, \
+        enable_first_order, fo_bounds_filename, fo_trace_filename, fo_bounds_path, fo_trace_path, \
         stats, debug, log_level, quiet 
 
     if debug:
@@ -210,5 +217,23 @@ def setup() -> bool:
         write_pickle_filename = f"{spec_path.stem}.pickle"
     if write_smt and write_smt_dirname == EMPTY_FILENAME:
         write_smt_dirname = f"{spec_path.stem}_smt"
+
+    if enable_first_order:
+        if fo_bounds_filename == EMPTY_FILENAME:
+            log.error(MODULE_CODE, "First-order mode enabled without bounds file")
+            status = False
+        else:
+            fo_bounds_path = pathlib.Path(fo_bounds_filename)
+            if not fo_bounds_path.is_file():
+                log.error(MODULE_CODE, f"First-order bounds file '{fo_bounds_filename}' is not a valid file")
+                status = False
+        if fo_trace_filename == EMPTY_FILENAME:
+            log.error(MODULE_CODE, "First-order mode enabled without trace file")
+            status = False
+        else:
+            fo_trace_path = pathlib.Path(fo_trace_filename)
+            if not fo_trace_path.is_file():
+                log.error(MODULE_CODE, f"First-order trace file '{fo_trace_filename}' is not a valid file")
+                status = False
 
     return status

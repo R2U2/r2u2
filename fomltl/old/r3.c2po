@@ -1,0 +1,28 @@
+STRUCT
+    Element: {
+        active, corrupt: bool;
+    };
+
+INPUT
+    Active: bool[10];
+    Corrupt: bool[10];
+    purge_DS: bool;
+
+DEFINE
+    DS := {
+        Element(Active[0], Corrupt[0]),
+        Element(Active[1], Corrupt[1]),
+        Element(Active[2], Corrupt[2]),
+        Element(Active[3], Corrupt[3]),
+        Element(Active[4], Corrupt[4]),
+        Element(Active[5], Corrupt[5]),
+        Element(Active[6], Corrupt[6]),
+        Element(Active[7], Corrupt[7]),
+        Element(Active[8], Corrupt[8]),
+        Element(Active[9], Corrupt[9])
+    };
+
+FTSPEC
+    -- If any element in a data structure has status "corrupt" for at least 3 cycles in
+    -- a row, then the data structure shall be purged within the following 5 cycles.
+    R3: foreach(elem : DS)(elem.active -> ((G[0,3] elem.corrupt) -> (F[4,9] purge_DS)));

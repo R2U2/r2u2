@@ -1,0 +1,6 @@
+forall(db:DBs)(
+    (select(script1,db) | insert(script1,db) | delete(script1,db) | update(script1,db)) ->
+        ((!O[0,1] F[0,1] end(script1)) S[0,M] 
+            (O[0,1] F[0,1]start(script1) | O[0,1] F[0,1] end(script1))
+        )
+)

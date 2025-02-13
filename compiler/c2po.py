@@ -84,6 +84,13 @@ parser.add_argument("--write-smt", nargs="?", const=c2po.options.EMPTY_FILENAME,
 parser.add_argument("--copyback",
                     help="name of directory to copy workdir contents to upon termination")
 
+parser.add_argument("-fo", "--first-order", action="store_true",
+                    help="enable first-order mode")
+parser.add_argument("--first-order-bounds",
+                    help="file storing bounds for first-order formula quantifier guards")
+parser.add_argument("--first-order-trace",
+                    help="first-order trace file")
+
 args = parser.parse_args()
 
 return_code = c2po.main.main(
@@ -116,6 +123,9 @@ return_code = c2po.main.main(
     timeout_eqsat=args.timeout_eqsat,
     timeout_sat=args.timeout_sat,
     copyback_dirname=args.copyback,
+    enable_first_order=args.first_order,
+    fo_bounds_filename=args.first_order_bounds,
+    fo_trace_filename=args.first_order_trace,
     stats=args.stats,
     debug=args.debug,
     log_level=args.log_level,

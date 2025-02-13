@@ -1,0 +1,77 @@
+-- Sets:
+-- 1. Computers C
+-- 2. Times T
+
+STRUCT
+    Computer: {
+        auth: bool;         -- true if the computer is entering credentials with the tool AUTH
+        auth_time: int;     -- time taken to enter credentials with the tool AUTH
+        ssh_login: bool;    -- true if the computer is logging in via SSH
+        ssh_logout: bool;   -- true if the computer is logging out via SSH
+        net: bool;          -- true if the computer is connected to the network
+        alive: bool;        -- true if the computer is alive
+        upd_success: bool;  -- true if the computer's UPD updates the config of the computer
+        upd_connect: bool;  -- true if the computer's UPD connects to the central server and download the latest config
+        upd_skip: bool;     -- true if the computer's UPD terminated because it it believes that the computer was recently updated
+    };
+
+INPUT
+    -- TODO: Add input variables
+
+DEFINE
+    AUTH_TIME := 1000;
+
+    -- TODO: Define 'Computers'
+
+FTSPEC 
+    -- Entering credentials with the tool AUTH must take at least 1 second. 
+    -- MFOTL: \forall c. \forall t. auth(c, t) -> (1000 < t)
+    R1: foreach(c : Computers)(
+            c.auth -> (AUTH_TIME < c.auth_time)
+        );
+
+    -- The tool AUTH may only be used if the computer has been updated to the
+    -- latest centrally-managed configuration within the last 3 days.
+    -- MFOTL: \forall c. \forall t. auth(c, t) -> O[0,3d] upd_success(c)
+    R2: foreach(c : Computers)(
+            c.auth -> O[0,3d] (c.upd_success)
+        );
+
+    -- (Reach out to the authors for clarification -- spec seems to be incorrect)
+    -- Long-running SSH sessions present a security risk. Therefore, they must not
+    -- last longer than 24 hours
+    -- MFOTL: \forall c. \forall s. (
+    --            (ssh_login(c, s) & ((F[1m,20m] net(c) & G[0,1d] net(c)) -> F[1m,20m] net(c))) 
+    --              -> 
+    --            F[0,1d] ssh_logout(c, s)
+    -- )
+    R3: foreach(c : Computers)(
+            (c.ssh_login ((F[1m,20m] c.net & G[0,1d] c.net) -> F[1m,20m] c.net)) -> (F[0,1d] c.ssh_logout)
+        );
+
+    R3corrected: foreach(c : Computers)(
+            ((c.ssh_login & G[0,1d] c.net) -> F[0,1d] c.ssh_logout)
+        );
+
+    -- Each computer must be updated at least once every 3 days unless it is turned
+    -- off or not connected to the corporate network.
+    -- MFOTL: \forall c. (net(c) & F[10m,20m] net(c) & O[1d,2d] alive(c) & !O[0,3d] upd_success(c)) -> F[0,3d] upd_connect(c)  
+    R4: foreach(c : Computers)(
+            (c.net & (F[10m,20m] c.net) & (O[1d,2d] c.alive) & !(O[0,3d] c.upd_success)) -> (F[0,3d] c.upd_connect)
+        );
+
+    -- If a computer connects to the central configuration server and downloads
+    -- the new configuration, then the computer should successfully reconfigure itself
+    -- within the next 30 minutes.
+    -- MFOTL: \forall c. (upd_connect(c) & F[5m,20m] alive(c)) -> (F[0,30m] upd_success(c) | upd_skip(c))
+    R5: foreach(c : Computers)(
+            (c.upd_connect & (F[5m,20m] c.alive)) -> (F[0,30m] c.upd_success | c.upd_skip)
+        );
+
+    -- If the tool UPD aborts the update process, claiming that the computer was
+    -- recently successfully updated, then this update must have occurred within the
+    -- last 24 hours.
+    -- MFOTL: \forall c. upd_skip(c) -> (O[0,1d] upd_success(c))
+    R6: foreach(c : Computers)(
+            c.upd_skip -> (O[0,1d] c.upd_success)
+        );

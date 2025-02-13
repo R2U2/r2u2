@@ -1,0 +1,1 @@
+forall(user) (insert(user,db2) -> (user=script1))

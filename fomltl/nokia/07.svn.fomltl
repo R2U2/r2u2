@@ -1,0 +1,6 @@
+forall(script:Scripts)(
+    start(script) ->
+    O[0,1] F[0,10] exists(url:URLs) (
+        exists(rev:Revs) snv(script,latest,url,rev)
+    )
+)

@@ -1,0 +1,16 @@
+PREDS
+    Scheduled: pred;
+    Exec: pred;
+
+    max(Scheduled) = 3;
+
+FTSPEC
+    -- Each task in the scheduler shall execute within the next 4 seconds.
+    R1: forall(t)(Scheduled(t) -> F[0,4] Exec(t));
+
+-- Example trace:
+-- Scheduled={(1),(2),(3)},Exec={}
+-- Scheduled={(4),(5),(6)},Exec={}
+-- Scheduled={(7),(8),(9)},Exec={}
+-- Scheduled={(10),(11),(12)},Exec={}
+-- Scheduled={(13),(14),(15)},Exec={(1),(2),...,(15)}

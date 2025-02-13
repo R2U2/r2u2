@@ -1,0 +1,276 @@
+- The inputs to R2U2 are a fixed set of signals. For example: 3 bools, 5 ints, 3 floats.
+- The inputs to an MLTLBDS monitor are relations, these do not have a fixed size.
+
+- Consider a formula:
+    \forall x : D(x) -> F[0,3] p(x)
+  where max(D) = 2
+
+- An input trace that holds at all times t for this formula could look like:
+    t=0: D={1,2}, p={}
+    t=1: D={3,4}, p={}
+    t=2: D={5,6}, p={}
+    t=3: D={7,8}, p={1,2,3,4,5,6,7,8,9,10,....}
+
+- While there is a bound on D, there is no bound on p. 
+- The upshot of the guard on the quantifier though is that only the objects in D are relevant for the 
+  evaluation of the formula at a given time (unless there is a free variable, but there are only
+  ever a fixed number of these).
+- Point is: the objects 1,2 are relevant for the formula for times 0 and 1, so those must be
+  provided for those times.
+- For the above trace, a corresponding R2U2 trace might look like:
+  t, size(D), D[0], D[1], p[0], p[1], ..., p[7]
+  0,   
+  1,   
+  2,   
+  3,   
+
+- For each set symbol D, we provide one input signal for its size at time t and then max(D) signals for its contents
+- For each predicate symbol p with bounded var over set D, we provide (aub(p) - alb(p)) * max(D) signals
+
+- Consider the formula:
+    \forall x : D(x) -> (\forall y : E(y) -> F[0,3] p(x,y))
+  where max(D) = 2, max(E) = 3
+
+- An input trace that holds at all times t for this formula could look like:
+    t=0: D={1,2}, E={1,2,3},    p={}
+    t=1: D={3,4}, E={4,5,6},    p={}
+    t=2: D={5,6}, E={7,8,9},    p={}
+    t=3: D={7,8}, E={10,11,12}, p={(1,1),(1,2),(1,3),
+                                   (2,1),(2,2),(2,3),
+                                   (3,4),(3,5),(3,6),
+                                   (4,4),(4,5),(4,6),
+                                   ...,
+                                   (7,10),(7,11),(7,12),
+                                   (8,10),(8,11),(8,12)} 
+
+- The number of signals for set symbols remains the same
+- For a predicate symbol p with bound vars b0,b1,...bn with resp. sets B0,B1,...,Bn, 
+  we provide (aub(p) - alb(p)) * max(B0) * max(B1) * ... * max(Bn) signals. 
+- This number provides a bound on the number of relevant objects tuples for the predicate at a given time.
+- An object tuple is relevant for a formula if its presence impacts the evaluation of the formula for a given trace (?).
+
+
+------------------------------------------------------------------------------------------------------------
+
+- What if we just consider any Booleanizer expression a predicate?
+- The benefit of our formalization is that we are agnostic to the predicate evaluation.
+- So for example, we can define "p(x,y) = x>y".
+- Set predicates are *special*, since in our transformation they are unrolled.
+- So the formula:
+    \forall x : D(x) -> (\forall y : E(y) -> F[0,3] p(x,y))
+  Becomes 
+    /\_{i \in [0,1]} ( active(D[i]) -> 
+        /\_{j \in [0,2]} ( active(E[j]) ->  
+            F[0,3] p(D[i],D[j]) 
+        )
+    )
+- For R2U2, we quantify over structs and require that the struct has a member named "active" of type
+  bool that denotes whether the struct is active in its quantified set.
+- So for the formula above, we may have a struct defined as: 
+    S: { active: bool, value: int }
+  then the formula becomes
+    /\_{i \in [0,1]} ( D[i].active -> 
+        /\_{j \in [0,2]} ( E[j].active ->  
+            F[0,3] (D[i].value > E[j].active)
+        )
+    )
+
+- We assume values (constants, struct members) are integers.
+
+- A struct s has a finite set of members each with an identifier:
+    s: { m0, m1, ..., mn }
+  where m0 thru mn are integers not named "active". Structs have a reserved member "active" that is
+  a bool. Structs/members are analogous to records/accessors.
+
+- Now we have a separate term language for a constant c, terms t,t0,t1, and struct s:
+    c | s.m | - t | t0 + t1
+  where m is a member of struct s. Is it reasonable to state that this term language could be
+  generalized to any predicate language?
+
+- Now we have a formula language where q,q0,q1 are formulas and l,u are naturals:
+    s.active | t0 = t1 | t0 > t1 | ! q | q0 & q1 | q0 U[l,u] q1 | \forall s : s.active -> q
+  where s.active is a special member denoting whether the struct is in its set.
+
+- We omit relations from this definition but are fairly agnostic to the term language except for the
+  "active" struct member, though this could be replaced with a unary predicate.  
+  Maybe in a future paper on satisfiability we generalize the logic to relations as we did
+  perviously and place restrictions on the quantifier guard relations.
+
+- Traces are then finite sequences of struct instances. For example, if we have the
+  struct s with members m0, m1, and m2, then the following trace is valid with struct instances
+  A,B,C,...:
+
+  \Pi[0] = {
+    A: { m0=0, m1=1, m2=2, S0=true, S1=true, ... },
+    B: { m0=3, m1=4, m2=5, ... },
+    C: { ... },
+    D: { ... },
+    ...
+  },
+  ...
+
+- Then a BDS-valid trace \Pi is one where for each set symbol in "Sets", the number of structs with that
+  set symbol as a member is less than its maximum:
+    \forall t \in [0,|\Pi| - 1] : \forall set \in Sets : |{ st | \Pi[t] |= st.set }| <= max(set) 
+
+
+--------
+
+- Back to standard first-order logic for a moment.
+- Assume that we have some fixed predicate language like LIA, no general relations/predicates.
+- Then we can treat the unary set predicates specially and treat the other predicates like a normal function 
+  that returns a bool
+
+- Consider the formula:
+    \forall x : D(x) -> (F[0,3] (\exists y : E(y) & (x > y)))
+  where max(D) = 2, max(E) = 3
+
+- To make this work in R2U2, we define a struct called "SetMember" defined as follows:
+    SetMember: { active: bool, value: int }
+
+- Then each xi, yj are SetMembers, so we have 
+    D[0].active, D[0].value, 
+    D[1].active, D[1].value,
+    E[0].active, E[0].value, 
+    E[1].active, E[1].value, 
+    E[2].active, E[2].value
+  as input signals to R2U2.
+
+- The sets are defined as:
+    D := {SetMember(D[0].active, D[0].value),
+          SetMember(D[1].active, D[1].value)}
+  and
+    E := {SetMember(E[0].active, E[0].value),
+          SetMember(E[1].active, E[1].value),
+          SetMember(E[2].active, E[2].value)}
+
+- Then the following is the input to R2U2:
+    foreach(d : D) (
+      F[0,3] (
+        forsome(e : E) (
+          (d.value > e.value)
+        )
+      )
+    )
+
+- Consider the following trace:
+    t=0, D={1,2}, E={}
+    t=1, D={3,4}, E={}
+    t=2, D={5,6}, E={}
+    t=3, D={7,8}, E={0}
+  This should satisfy the above formula at each time.
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+We allow the following types: bool, int, float, struct, set
+
+Bool, int, and float types are base types.
+
+A struct type S has a fixed set of named, typed members with the special bool member "active":
+  S := { m0: tp0, ..., mn: tpn, active: bool }
+
+A set type denotes a set of values of the same type.
+
+A term t is defined as:
+  t := c | x | -t | t1 + t2 | t1 * t2 | r.a
+
+
+------------------------------------------------------------------------------------------------------------
+
+- In first-order MLTL, we have a fixed set of constants, variables, functions, predicates, logical
+  operations and a (possibly infinite) domain of discourse. In contrast, MLTL has a only fixed set
+  of input signals (propositions) and logical operations. 
+
+- To implement FOMLTL monitors efficiently, we 
+
+- In MLTL^BDS we have:
+    t := c | x | f(t0,...,tN)
+    F := t0 = t1 | p(t0,...,tN) | ! F | F0 & F1 | F0 U[l,u] F1 | forall x : D(x) -> F
+  where c is a constant, x is a variable, t,t0,...,tN are terms, f is a function, p and D are
+  predicates, F,F0,...,FN are FOMLTL formulas.
+
+- In R2U2 we have:
+    F := q | ! F | F0 & F1 | F0 U[l,u] F1
+  where q is a proposition and F,F0,F1 are formulas.
+
+
+  Given a MLTL^BDS formula Phi, FO trace Pi, valuation function v, function max: p -> N, and bound var mapping mu: dom -> N:
+    Phi := forall x : D(x) -> F[0,2] p(x)
+  where max(D) = 2. To monitor this formula, we perform quantifier elimination to obtain:
+    PhiQF := /\_{i in [1,max(D)]} D(x_i) -> F[0,2] p(x_i)
+  And create an array of wpd(Phi)+1=3 copies of the formula:
+    ArrPhiQF[j] = /\_{i in [1,max(D)]} D(x_i^j) -> F[0,2] p(x_i^j) for j in [0,3]
+
+  
+  Which we then encode into R2U2 as:
+    phi_j for j in [0,wpd(Phi)] := /\_{i in [1,max(D)]} active(D,i,j) -> F[0,2] p(D,i,j)
+  where 
+    pi[0] := { active(D,mu(v(x)),0) | D(v(x)) in Pi[0] } U { p(D,i,0) | p(v(x)) in Pi[0] }
+    ...
+    pi[2] := { active(D,mu(v(x)),2) | D(v(x)) in Pi[2] } U { p(D,i,2) | p(v(x)) in Pi[2] }
+    pi[3] := { active(D,mu(v(x)),0) | D(v(x)) in Pi[3] } U { p(D,i,0) | p(v(x)) in Pi[3] }
+    ...
+    pi[tau] := { active(D,mu(v(x)),tau mod 3) | D(v(x)) in Pi[tau] } U { p(D,i,tau mod 3) | p(v(x)) in Pi[tau] }
+
+  Then Pi,tau |= Phi iff pi,tau |= phi_{tau mod wpd(Phi)}
+
+  Consider trace Pi:
+    Pi[0] = D={1,2}, p={}
+    Pi[1] = D={3,4}, p={}
+    Pi[2] = D={5,6}, p={1,2,3,4,5,6}
+
+  with:
+    mu(1)=0, mu(2)=1
+
+  Then we have the following trace:
+    pi[0] = { active(D,0,0), active(D,1,0) }
+    pi[1] = { active(D,0,1), active(D,1,1) }
+    pi[2] = { active(D,0,2), active(D,1,2), p(D,0,0), p(D,1,0), p(D,0,1), p(D,1,1), p(D,0,2), p(D,1,2) }
+
+
+  Now consider the MLTL^BDS formula:
+    Phi := forall x : D(x) -> forall y : E(y) -> F[0,2] p(x,y)
+  where max(D) = 2, max(E) = 2, which we then encode into R2U2 as:
+    phi_j for j in [0,2] := /\_{i in [1,2]} active(D,i,j) -> (phi_k for k in [0,2] F[0,2] p(D,i,j))
+
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+
+- In C2PO we have 
+    R := { a0:t0,...,aN:tN }
+    A := { t0,...,tN }
+    t := c | x | - t | t0 + t1 | t0 * t1 | A[i] | R.a
+    F := active(A,i) | t0 = t1 | t0 > t1 | ! F | F0 & F1 | F0 U[l,u] F1
+  where R is a record with named accessors a0,...,aN, A is a fixed array of terms with size |A|, c is
+  a constant, x is a variable, t,t0,...,tN are terms, f is a function, i is an integer in [0,|A|], p
+  is a predicate, F,F0,...,FN are FOMLTL formulas. 
+
+  Given a MLTL^BDS formula Phi, FO trace Pi, valuation function v, and bound var mapping mu:
+    Phi := forall x : D(x) -> F[0,5] gt0(x)
+  which we then encode into c2po as:
+    /\_{i in [1,max(D)]} active(D,i) -> F[0,5] (A[i] > 0)
+  with the following trace:
+    pi[tau] := {
+
+    }
+
+    
+------------------------------------------------------------------------------------------------------------
+
+p(x) -> F[0,5] q(x)
+
+0: p(1)
+1: p(2),q(2)
+2:
+3:
+4:
+5:
+
+If v(x) = 1, then should fail at 0 and succeed elsewhere
+If v(x) = 2, then should succeed everywhere
+

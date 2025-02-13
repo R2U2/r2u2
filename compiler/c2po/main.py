@@ -7,7 +7,7 @@ import tempfile
 import shutil
 from typing import Optional
 
-from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options
+from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options, first_order
 
 MODULE_CODE = "MAIN"
 
@@ -33,7 +33,18 @@ def compile() -> ReturnCode:
     5. Option-based passes
     6. Optimizations
     7. Assembly
+
+    There is a special 'first-order' mode that is enabled by the --first-order flag.
     """
+    if options.enable_first_order:
+        log.debug(MODULE_CODE, 1, f"Compiling first-order formula ({options.fo_bounds_path})")
+        parsed = first_order.parse_fo(options.spec_path, options.fo_bounds_path, options.mission_time)
+        if not parsed:
+            log.error(MODULE_CODE, "Failed parsing first-order formula")
+            return ReturnCode.PARSE_ERR
+        (expr, bounds) = parsed
+        return ReturnCode.SUCCESS
+
     # ----------------------------------
     # Parse
     # ----------------------------------
@@ -124,7 +135,6 @@ def compile() -> ReturnCode:
     return ReturnCode.SUCCESS
 
 
-
 def main(
     spec_filename: str,
     trace_filename: Optional[str] = None,
@@ -155,6 +165,9 @@ def main(
     write_smt_dirname: Optional[str] = None,
     timeout_eqsat: int = 3600,
     copyback_dirname: Optional[str] = None,
+    enable_first_order: bool = False,
+    fo_bounds_filename: Optional[str] = None,
+    fo_trace_filename: Optional[str] = None,
     stats: bool = False,
     debug: bool = False,
     log_level: int = 0,
@@ -201,6 +214,10 @@ def main(
 
     options.copyback_enabled = copyback_dirname is not None
     options.copyback_dirname = copyback_dirname
+
+    options.enable_first_order = enable_first_order
+    options.fo_bounds_filename = fo_bounds_filename if fo_bounds_filename else options.EMPTY_FILENAME
+    options.fo_trace_filename = fo_trace_filename if fo_trace_filename else options.EMPTY_FILENAME
 
     options.stats = stats
     options.debug = debug

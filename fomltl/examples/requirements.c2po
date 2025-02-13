@@ -1,0 +1,12 @@
+-- Each task in the scheduler shall execute within the next 5 seconds.
+R1: foreach(t : Sched)(t.sched -> F[0,5] t.exec);
+
+-- At least one request in the queue shall be granted or rejected within 10 seconds.
+R2: forsome(req : Queue)(req.queued && F[0,10] (req.grant || req.reject));
+
+-- If any element in a data structure has status "corrupt" for at least 3 cycles in
+-- a row, then the data structure shall be purged within the following 5 cycles.
+R3: foreach(e : DS)(e.active -> ((G[0,3] e.corrupt) -> (F[4,9] purgeDS)));
+
+-- Every active sensor is monitored by at least one active monitor.
+R4: foreach(sensor : S)(sensor.active -> forsome(m : M)(m.active && (m.sensor.id = sensor.id)))
