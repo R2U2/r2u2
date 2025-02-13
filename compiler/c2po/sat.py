@@ -193,40 +193,90 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     The same goes for future and global -- `F[l,u] p = ! G[l,u] !p`, where the expression `G[l,u] !p` could be true because `!p` held from `l` to `u` starting at `i`, or because the trace had a length shorter than or equal to `i+l`.
 
     mltlsat translates all `! G[lb,ub] p` to `True U[lb,ub] !p` and `! F[lb,ub] p` to `False R[lb,ub] !p`
+
+    For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a limitation of the approach. Instead of having an uninterpreted function for each atomic, we have an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`. 
     """
     smt_commands: list[str] = []
 
     smt_commands.append("(set-logic AUFLIA)")
 
-    atomic_map: dict[cpt.Expression, str] = {}
-    for atomic, id in context.atomic_id.items():
-        atomic_map[atomic] = f"f_a{id}"
-        smt_commands.append(f"(declare-fun {atomic_map[atomic]} (Int) Bool)")
+    atomic_map: dict[str, str] = {}
+    for signal,typ in context.signals.items():
+        atomic_map[signal] = f"f_{signal}"
+        smt_commands.append(f"(declare-fun f_{signal} (Int) {types.to_smt_type(typ)})")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
     for expr in cpt.postorder(start, context):
-        if expr in expr_map or (
-            expr.engine is not types.R2U2Engine.TEMPORAL_LOGIC
-            and expr not in context.atomic_id
-            and not isinstance(expr, cpt.Constant)
-        ):
-            continue
+        # if expr in expr_map or (
+        #     expr.engine is not types.R2U2Engine.TEMPORAL_LOGIC
+        #     and expr not in context.atomic_id
+        #     and not isinstance(expr, cpt.Constant)
+        # ):
+            # continue
 
         expr_id = f"f_e{cnt}"
         cnt += 1
         expr_map[expr] = expr_id
 
-        fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) Bool"
+        fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
 
         if isinstance(expr, cpt.Constant) and expr.value:
             smt_commands.append(f"({fun_signature} true)")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} false)")
-        elif expr in context.atomic_id:
+        elif isinstance(expr, cpt.Signal):
             smt_commands.append(
-                f"({fun_signature} (and (> len k) ({atomic_map[expr]} k)))"
+                f"({fun_signature} ({atomic_map[expr.symbol]} k))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
+            smt_commands.append(
+                f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
+            smt_commands.append(
+                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
+            smt_commands.append(
+                f"({fun_signature} (* ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
+            smt_commands.append(
+                f"({fun_signature} (div ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
+            smt_commands.append(
+                f"({fun_signature} (mod ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (>= (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (< ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (<= (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
@@ -312,6 +362,11 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     except subprocess.TimeoutExpired:
         log.warning(MODULE_CODE, f"z3 timeout after {context.config.timeout_sat}s")
         log.stat(MODULE_CODE, "sat_check_time=timeout")
+        return SatResult.UNKNOWN
+    
+    if proc.returncode != 0:
+        log.error(MODULE_CODE, f"z3 failed with return code {proc.returncode}")
+        log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
         return SatResult.UNKNOWN
 
     end = util.get_rusage_time()

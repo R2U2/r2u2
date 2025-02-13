@@ -93,8 +93,6 @@ class Expression(Node):
             prev_visited_children = visited_children
             visited_children = []
    
-
-
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
@@ -113,6 +111,7 @@ class Expression(Node):
                 child.parents.remove(self)
 
         self.replacement = new
+        # new.type = self.type
 
     def has_only_tl_parents(self) -> bool:
         """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
@@ -454,7 +453,7 @@ class OperatorKind(enum.Enum):
     # Arithmetic
     ARITHMETIC_ADD = "+"
     ARITHMETIC_SUBTRACT = "-"
-    ARITHMETIC_MULTPLY = "*"
+    ARITHMETIC_MULTIPLY = "*"
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
@@ -462,7 +461,6 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_SQRT = "sqrt"
     ARITHMETIC_ABS = "abs"
     ARITHMETIC_RATE = "rate"
-
 
     # Relational
     EQUAL = "=="
@@ -506,7 +504,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.SHIFT_RIGHT,
             OperatorKind.ARITHMETIC_ADD,
             OperatorKind.ARITHMETIC_SUBTRACT,
-            OperatorKind.ARITHMETIC_MULTPLY,
+            OperatorKind.ARITHMETIC_MULTIPLY,
             OperatorKind.ARITHMETIC_DIVIDE,
             OperatorKind.ARITHMETIC_MODULO,
             OperatorKind.ARITHMETIC_NEGATE,
@@ -595,7 +593,7 @@ class Operator(Expression):
         operands: list[Expression],
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_MULTPLY, operands, type)
+        return Operator(loc, OperatorKind.ARITHMETIC_MULTIPLY, operands, type)
 
     @staticmethod
     def ArithmeticDivide(
@@ -819,7 +817,7 @@ def is_commutative_operator(expr) -> bool:
         OperatorKind.BITWISE_OR,
         OperatorKind.BITWISE_XOR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.EQUAL,
         OperatorKind.NOT_EQUAL,
     }
@@ -830,7 +828,7 @@ def is_multi_arity_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
     }
 
 
@@ -848,7 +846,7 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_SUBTRACT,
         OperatorKind.ARITHMETIC_DIVIDE,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
         OperatorKind.ARITHMETIC_POWER,
