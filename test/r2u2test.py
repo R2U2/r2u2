@@ -124,9 +124,6 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
         c2po_options.append("--float-width")
         c2po_options.append(options["float-width"])
 
-    if "atomic-checkers" in options and options["atomic-checkers"]:
-        c2po_options.append("--atomic-checkers")
-
     if "booleanizer" in options and options["booleanizer"]:
         c2po_options.append("--booleanizer")
 

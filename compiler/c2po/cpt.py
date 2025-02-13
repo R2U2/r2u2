@@ -16,8 +16,8 @@ class C2POSection(enum.Enum):
     STRUCT = 0
     INPUT = 1
     DEFINE = 2
-    FTSPEC = 4
-    PTSPEC = 5
+    FTSPEC = 3
+    PTSPEC = 4
 
 
 class CompilationStage(enum.Enum):
