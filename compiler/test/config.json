@@ -314,6 +314,11 @@
             "options": ["-bz", "-c", "-sat", "--extops"]
         },
         {
+            "input": "sat/bz_sat_3.c2po", 
+            "expected_output": "sat/bz_sat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
             "input": "sat/bz_unsat_1.c2po", 
             "expected_output": "sat/bz_unsat_1.c2po.expect", 
             "options": ["-bz", "-c", "-sat", "--extops"]

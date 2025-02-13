@@ -226,6 +226,10 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             smt_commands.append(f"({fun_signature} true)")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} false)")
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
+            )
         elif isinstance(expr, cpt.Signal):
             smt_commands.append(
                 f"({fun_signature} ({atomic_map[expr.symbol]} k))"
