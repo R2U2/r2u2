@@ -28,8 +28,13 @@
     ],
     "cav": [
         {
-            "input": "cav/array.c2po", 
-            "expected_prefix": "cav/array.prefix.c2po.expect", 
+            "input": "cav/array_1.c2po", 
+            "expected_prefix": "cav/array_1.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "-c"]
+        },
+        {
+            "input": "cav/array_2.c2po", 
+            "expected_prefix": "cav/array_2.prefix.c2po.expect", 
             "options": ["-bz", "--write-prefix", "-c"]
         },
         {

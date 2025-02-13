@@ -1,0 +1,12 @@
+STRUCT
+    Test: { I: int[]; };
+
+INPUT
+    i0,i1,i2: int;
+
+DEFINE
+    s := {i0,i1,i2};
+    t := Test(s);
+
+FTSPEC
+    F[0,1] (t.I[2] < 3);
