@@ -8,7 +8,7 @@ from typing import NamedTuple, Optional
 
 MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 
-debug_level = 0
+log_level = 0
 enable_stat = False
 enable_quiet = False
 
@@ -31,12 +31,12 @@ class Color(enum.Enum):
     UNDERLINE = "\033[4m"
 
 
-def set_debug(level: int) -> None:
-    global debug_level
-    debug_level = level
+def set_log_level(level: int) -> None:
+    global log_level
+    log_level = level
 
 
-def set_stat() -> None:
+def set_report_stats() -> None:
     global enable_stat
     enable_stat = True
 
@@ -91,8 +91,8 @@ def debug(
     message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    global debug_level
-    if level > debug_level or enable_quiet:
+    global log_level
+    if level > log_level or enable_quiet:
         return
     formatted_message = format(
         message, "DBG", Color.OKBLUE, module, location

@@ -5,7 +5,7 @@ from enum import Enum
 from struct import Struct as CStruct
 from typing import Any, Optional, Union, cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, options
 
 # See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
@@ -1007,7 +1007,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 
 def assemble(
-    program: cpt.Program, context: cpt.Context, enable_aux: bool
+    program: cpt.Program, context: cpt.Context
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
     log.debug(MODULE_CODE, 1, "Assembling")
 
@@ -1028,7 +1028,7 @@ def assemble(
 
     binary += b"\x00"
 
-    if enable_aux:
+    if options.enable_aux:
         (aliases, binary_aliases) = pack_aliases(program, context)
         assembly += aliases
         binary += binary_aliases
@@ -1037,4 +1037,4 @@ def assemble(
 
     binary += b"\x00"
 
-    return (assembly, binary)
+    return (assembly, binary) #type: ignore

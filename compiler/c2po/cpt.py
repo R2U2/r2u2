@@ -5,8 +5,6 @@ from __future__ import annotations
 import copy
 import enum
 import pickle
-import dataclasses
-import pathlib
 from typing import Iterator, Optional, Union, cast, Any
 
 from c2po import log, types
@@ -1147,42 +1145,8 @@ class Program(Node):
         return "\n".join([repr(s) for s in self.get_specs()])
 
 
-@dataclasses.dataclass
-class Config:
-    input_path: pathlib.Path
-    output_path: pathlib.Path
-    implementation: types.R2U2Implementation
-    mission_time: int
-    frontend: types.R2U2Engine
-    assembly_enabled: bool
-    signal_mapping: types.SignalMapping
-    timeout_egglog: int
-    timeout_sat: int
-    workdir: pathlib.Path
-    copyback_path: Optional[pathlib.Path]
-
-    @staticmethod
-    def Empty() -> Config:
-        return Config(
-            pathlib.Path(),
-            pathlib.Path(),
-            types.R2U2Implementation.C,
-            0,
-            "",
-            types.R2U2Engine.NONE,
-            False,
-            {},
-            0,
-            0,
-            pathlib.Path(),
-            None,
-        )
-
-
 class Context:
-    def __init__(self, config: Config):
-        self.config = config
-
+    def __init__(self) -> None:
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1196,10 +1160,6 @@ class Context:
         self.has_future_time = False
         self.has_past_time = False
         self.status = True
-
-    @staticmethod
-    def Empty() -> Context:
-        return Context(Config.Empty())
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
@@ -1416,7 +1376,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, Atomic):
             if seen == 0:
-                s += f"("
+                s += "("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
@@ -1510,7 +1470,7 @@ def to_prefix_str(start: Expression) -> str:
                 s = s[:-1] + ") "
         elif isinstance(expr, Atomic):
             if seen == 0:
-                s += f"("
+                s += "("
                 stack.append((seen + 1, expr))
                 [stack.append((0, child)) for child in reversed(expr.children)]
             else:

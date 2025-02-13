@@ -84,7 +84,7 @@ def run_test(test: dict) -> bool:
         elif "expected_c2po" in test:
             # See serialize.py for default dump file names
             input_path = pathlib.Path(test["input"])
-            c2po_output_path = input_path.with_suffix(".out.c2po")
+            c2po_output_path = TEST_DIR / input_path.with_suffix(".c2po").name
 
             with open(str(c2po_output_path), "r") as f:
                 test_output = f.read().splitlines(keepends=True)
@@ -100,7 +100,7 @@ def run_test(test: dict) -> bool:
         elif "expected_mltl" in test:
             # See serialize.py for default dump file names
             input_path = pathlib.Path(test["input"])
-            mltl_output_path = input_path.with_suffix(".mltl")
+            mltl_output_path = TEST_DIR / input_path.with_suffix(".mltl").name
 
             with open(str(mltl_output_path), "r") as f:
                 test_output = f.read().splitlines(keepends=True)
@@ -116,7 +116,7 @@ def run_test(test: dict) -> bool:
         elif "expected_prefix" in test:
             # See serialize.py for default dump file names
             input_path = pathlib.Path(test["input"])
-            prefix_output_path = input_path.with_suffix(".prefix.c2po")
+            prefix_output_path = TEST_DIR / input_path.with_suffix(".c2po.prefix").name
 
             with open(str(prefix_output_path), "r") as f:
                 test_output = f.read().splitlines(keepends=True)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, cast
 
-from c2po import cpt, log, types, sat, eqsat
+from c2po import cpt, log, types, sat, eqsat, options
 from copy import deepcopy
 
 MODULE_CODE = "PASS"
@@ -1067,9 +1067,9 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
-        if context.config.frontend is types.R2U2Engine.NONE:
+        if options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0 or not context.config.assembly_enabled:
+                if expr.signal_id < 0 or not options.assembly_enabled:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
@@ -1260,7 +1260,7 @@ Pass = Callable[[cpt.Program, cpt.Context], None]
 # This list is ORDER-SENSITIVE 
 # We resolve struct accesses twice in the case that a struct is an element of an array and an array
 # is a member of a struct
-PASS_LIST: list[Pass] = [
+pass_list: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
@@ -1280,3 +1280,39 @@ PASS_LIST: list[Pass] = [
     check_sat,
     compute_scq_sizes, 
 ]
+
+
+def setup() -> None:
+    """Sets up the passes for the compiler."""
+    log.debug(MODULE_CODE, 1, "Setting up passes")
+
+    if not options.enable_rewrite:
+        pass_list.remove(optimize_rewrite_rules)
+
+    if not options.enable_cse:
+        pass_list.remove(optimize_cse)
+
+    if options.enable_extops:
+        pass_list.remove(remove_extended_operators)
+
+    if options.enable_eqsat:
+        if optimize_rewrite_rules in pass_list:
+            pass_list.remove(optimize_rewrite_rules)
+        if optimize_cse in pass_list:
+            pass_list.remove(optimize_cse)
+        if remove_extended_operators in pass_list:
+            pass_list.remove(remove_extended_operators)
+
+        # since optimize_egraph flattens operators, no need to convert them to binary
+        pass_list.remove(multi_operators_to_binary)
+    else: # not enable_egraph
+        pass_list.remove(optimize_eqsat)
+        
+    if not options.enable_nnf:
+        pass_list.remove(to_nnf)
+
+    if not options.enable_bnf:
+        pass_list.remove(to_bnf)
+
+    if not options.enable_sat:
+        pass_list.remove(check_sat)

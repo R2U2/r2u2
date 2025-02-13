@@ -124,9 +124,6 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
         c2po_options.append("--float-width")
         c2po_options.append(options["float-width"])
 
-    if "atomic-checkers" in options and options["atomic-checkers"]:
-        c2po_options.append("--atomic-checkers")
-
     if "booleanizer" in options and options["booleanizer"]:
         c2po_options.append("--booleanizer")
 
@@ -292,6 +289,8 @@ class TestCase():
                     str(self.test_results_dir / self.spec_bin_workdir_path.name), 
                     str(self.test_results_dir / self.trace_path.name)
                 ]
+        else:
+            raise ValueError(f"Invalid monitor type {args.monitor}")
 
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2_command_new))
@@ -536,6 +535,8 @@ if __name__ == "__main__":
             r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml"
         else:
             r2u2bin = Path(args.r2u2)
+    else:
+        raise ValueError(f"Invalid monitor type '{args.monitor}' (options are 'c' or 'rust')")
     resultsdir = Path(args.resultsdir)
 
     retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback, args.monitor)
