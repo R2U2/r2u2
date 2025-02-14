@@ -29,7 +29,8 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
-    """Converts each function call in `program` that corresponds to a struct instantiation to a `ast.C2POStruct`."""
+    """Converts each function call in `program` that corresponds to a struct instantiation to a `cpt.Struct`."""
+    log.debug(MODULE_CODE, 1, "Converting function calls to structs")
     for expr in [
         expr
         for define in context.definitions.values()
@@ -87,6 +88,9 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
             ),
         ]
 
+        for formula in new_formulas:
+            formula.get_expr().type = types.BoolType()
+
         new_formulas = cast("list[cpt.Specification]", new_formulas)
 
         program.replace_spec(contract, new_formulas)
@@ -101,17 +105,23 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, "Unrolling set aggregation expressions.")
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
-        for subexpr in cpt.postorder(expr, context):
-            if not isinstance(subexpr, cpt.StructAccess):
-                continue
+        if not isinstance(expr, cpt.StructAccess):
+            return
 
-            struct = subexpr.get_struct()
-            if not isinstance(struct, cpt.Struct):
-                continue
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            return
 
-            member = struct.get_member(subexpr.member)
-            if member:
-                subexpr.replace(member)
+        member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                              "Please contact the developers for support.\n"
+                             f"Email: {log.MAINTAINER_EMAIL}")
+
+        new_type = member.type
+        if member:
+            expr.replace(member)
+            member.type = new_type
 
     for expr in program.preorder(context):
         if not isinstance(expr, cpt.SetAggregation):
@@ -224,10 +234,20 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         if not isinstance(expr, cpt.StructAccess):
             continue
 
-        s: cpt.Struct = expr.get_struct()
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            continue
+
         member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                              "Please contact the developers for support.\n"
+                             f"Email: {log.MAINTAINER_EMAIL}")
+
+        new_type = member.type
         if member:
             expr.replace(member)
+            member.type = new_type
 
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
@@ -1264,6 +1284,7 @@ pass_list: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
+    resolve_struct_accesses,
     unroll_set_aggregation,
     resolve_struct_accesses,
     resolve_array_accesses,

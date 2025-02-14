@@ -202,3 +202,17 @@ def configure_types(
     else:
         IntType.width = int_width
         FloatType.width = float_width
+
+
+def to_smt_type(t: Type) -> str:
+    """Convert a C2PO type to an SMT type."""
+    if isinstance(t, BoolType):
+        return "Bool"
+    if isinstance(t, IntType):
+        # TODO: Consider instead using f"(_ BitVec {IntType.width})"
+        # Need to check how well the SMT solver supports combinations of BVs and Ints
+        return "Int"
+    if isinstance(t, FloatType):
+        return "Real"
+    return "NoType"
+

@@ -90,8 +90,6 @@ class Expression(Node):
             prev_visited_children = visited_children
             visited_children = []
    
-
-
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
@@ -110,6 +108,7 @@ class Expression(Node):
                 child.parents.remove(self)
 
         self.replacement = new
+        new.type = self.type
 
     def has_only_tl_parents(self) -> bool:
         """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
@@ -441,6 +440,7 @@ class SetAggregation(Expression):
 
         self.operator = operator
         self.bound_var = var
+        self.type = types.BoolType()
 
     @staticmethod
     def ForEach(
@@ -524,7 +524,7 @@ class OperatorKind(enum.Enum):
     # Arithmetic
     ARITHMETIC_ADD = "+"
     ARITHMETIC_SUBTRACT = "-"
-    ARITHMETIC_MULTPLY = "*"
+    ARITHMETIC_MULTIPLY = "*"
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
@@ -532,7 +532,6 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_SQRT = "sqrt"
     ARITHMETIC_ABS = "abs"
     ARITHMETIC_RATE = "rate"
-
 
     # Relational
     EQUAL = "=="
@@ -577,7 +576,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.SHIFT_RIGHT,
             OperatorKind.ARITHMETIC_ADD,
             OperatorKind.ARITHMETIC_SUBTRACT,
-            OperatorKind.ARITHMETIC_MULTPLY,
+            OperatorKind.ARITHMETIC_MULTIPLY,
             OperatorKind.ARITHMETIC_DIVIDE,
             OperatorKind.ARITHMETIC_MODULO,
             OperatorKind.ARITHMETIC_NEGATE,
@@ -617,31 +616,45 @@ class Operator(Expression):
         children: list[Expression],
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.COUNT, [num] + children, type)
+        new = Operator(loc, OperatorKind.COUNT, [num] + children, type)
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseAnd(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_AND, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_AND, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseOr(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_OR, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_OR, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseXor(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_XOR, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_XOR, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseNegate(loc: log.FileLocation, operand: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_NEGATE, [operand])
+        new = Operator(loc, OperatorKind.BITWISE_NEGATE, [operand])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ShiftLeft(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.SHIFT_LEFT, [lhs, rhs])
+        new = Operator(loc, OperatorKind.SHIFT_LEFT, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ShiftRight(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.SHIFT_RIGHT, [lhs, rhs])
+        new = Operator(loc, OperatorKind.SHIFT_RIGHT, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ArithmeticAdd(
@@ -666,7 +679,7 @@ class Operator(Expression):
         operands: list[Expression],
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_MULTPLY, operands, type)
+        return Operator(loc, OperatorKind.ARITHMETIC_MULTIPLY, operands, type)
 
     @staticmethod
     def ArithmeticDivide(
@@ -684,7 +697,9 @@ class Operator(Expression):
         rhs: Expression,
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+        new = Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+        new.type = types.IntType()
+        return new
     
     @staticmethod
     def ArithmeticPower(
@@ -703,7 +718,6 @@ class Operator(Expression):
     def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
 
-
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
@@ -718,39 +732,52 @@ class Operator(Expression):
 
     @staticmethod
     def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def NotEqual(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.NOT_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.NOT_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def GreaterThan(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.GREATER_THAN, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.GREATER_THAN, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LessThan(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.LESS_THAN, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.LESS_THAN, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def GreaterThanOrEqual(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.GREATER_THAN_OR_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.GREATER_THAN_OR_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LessThanOrEqual(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.LESS_THAN_OR_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.LESS_THAN_OR_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -758,6 +785,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -765,6 +793,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_XOR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -772,6 +801,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -781,6 +811,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_IMPLIES, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -788,6 +819,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_NEGATE, [operand])
         operator.bpd = operand.bpd
         operator.wpd = operand.wpd
+        operator.type = types.BoolType()
         return operator
 
     def __deepcopy__(self, memo) -> Operator:
@@ -829,6 +861,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -839,6 +872,7 @@ class TemporalOperator(Operator):
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
         operator.symbol = f"F[{lb},{ub}]"
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -848,6 +882,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -857,6 +892,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -866,6 +902,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.HISTORICAL, lb, ub, [operand])
         operator.bpd = operand.bpd - ub
         operator.wpd = operand.bpd - lb
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -875,6 +912,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.ONCE, lb, ub, [operand])
         operator.bpd = operand.bpd - ub
         operator.wpd = operand.bpd - lb
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -893,6 +931,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.TRIGGER, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
+        operator.type = types.BoolType()
         return operator
 
     def __deepcopy__(self, memo) -> Operator:
@@ -920,7 +959,7 @@ def is_commutative_operator(expr) -> bool:
         OperatorKind.BITWISE_OR,
         OperatorKind.BITWISE_XOR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.EQUAL,
         OperatorKind.NOT_EQUAL,
     }
@@ -931,7 +970,7 @@ def is_multi_arity_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
     }
 
 
@@ -949,7 +988,7 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_SUBTRACT,
         OperatorKind.ARITHMETIC_DIVIDE,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
         OperatorKind.ARITHMETIC_POWER,

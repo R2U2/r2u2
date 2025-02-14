@@ -1,8 +1,13 @@
 {
     "cav": [
         {
-            "input": "cav/array.c2po", 
-            "expected_prefix": "cav/array.prefix.c2po.expect", 
+            "input": "cav/array_1.c2po", 
+            "expected_prefix": "cav/array_1.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "-c"]
+        },
+        {
+            "input": "cav/array_2.c2po", 
+            "expected_prefix": "cav/array_2.prefix.c2po.expect", 
             "options": ["-bz", "--write-prefix", "-c"]
         },
         {
@@ -272,8 +277,33 @@
             "options": ["-c", "-sat", "--extops"]
         },
         {
-            "input": "sat/bz_sat.c2po", 
-            "expected_output": "sat/bz_sat.c2po.expect", 
+            "input": "sat/bz_sat_1.c2po", 
+            "expected_output": "sat/bz_sat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_sat_2.c2po", 
+            "expected_output": "sat/bz_sat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_sat_3.c2po", 
+            "expected_output": "sat/bz_sat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_unsat_1.c2po", 
+            "expected_output": "sat/bz_unsat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_unsat_2.c2po", 
+            "expected_output": "sat/bz_unsat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops"]
+        },
+        {
+            "input": "sat/bz_unsat_3.c2po", 
+            "expected_output": "sat/bz_unsat_3.c2po.expect", 
             "options": ["-bz", "-c", "-sat", "--extops"]
         }
     ]
