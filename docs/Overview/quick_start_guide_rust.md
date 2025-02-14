@@ -32,6 +32,10 @@ Running R2U2 requires a **specification** and an **input stream**.
         request:0
         grant:1
 
+3. Compile the specification using C2PO:
+
+        r2u2_cli compile simple.c2po simple.map
+
 4. Write a simulated trace to monitor in a file named `simple.csv`, where the first column are the
    values of `request` and the second are the values of `grant`:
 
@@ -48,7 +52,7 @@ Running R2U2 requires a **specification** and an **input stream**.
 
 5. Run C2PO and R2U2 using the specification and the input stream:
         
-        r2u2_cli run simple.c2po simple.csv
+        r2u2_cli run spec.bin simple.csv
 
 ## Output
 
