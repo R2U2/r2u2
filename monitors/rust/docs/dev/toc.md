@@ -5,7 +5,6 @@ architecture
 internals
 memory
 engines
-impl
 debug
 verification
 ```
