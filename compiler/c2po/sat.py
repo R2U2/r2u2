@@ -51,7 +51,7 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     for signal,typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
         if typ == types.BoolType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} Bool))")
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
         elif typ == types.IntType():
             smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
 
@@ -82,8 +82,9 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
         elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            # Have to compare to #b1 because MathSat doesn't allow Arrays to have Bool elements
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (select {atomic_map[expr.symbol]} k)))"
+                f"({fun_signature} (and (bvugt len k) (= (select {atomic_map[expr.symbol]} k) #b1)))"
             )
         elif isinstance(expr, cpt.Signal):
             smt_commands.append(
@@ -249,7 +250,7 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     for signal,typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
         if typ == types.BoolType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} Bool))")
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
         elif typ == types.IntType():
             smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
 
@@ -281,7 +282,7 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
         elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (select {atomic_map[expr.symbol]} k)))"
+                f"({fun_signature} (and (bvugt len k) (= (select {atomic_map[expr.symbol]} k) #b1)))"
             )
         elif isinstance(expr, cpt.Signal):
             smt_commands.append(
