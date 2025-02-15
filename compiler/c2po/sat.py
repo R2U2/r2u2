@@ -201,9 +201,6 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
     smt = "\n".join(smt_commands)
 
-    with open("test.smt", "w") as f:
-        f.write(smt)
-
     return smt
 
 
