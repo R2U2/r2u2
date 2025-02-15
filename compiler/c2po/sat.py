@@ -59,6 +59,10 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         if expr in expr_map:
             continue
 
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
+            continue
+
         expr_id = f"f_e{cnt}"
         cnt += 1
         expr_map[expr] = expr_id
