@@ -1,1 +1,1 @@
-F[0,5] forall(x:P) ( Q(x) )
+F[0,5] forall(x:P) (G[0,2] Q(x) )

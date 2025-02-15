@@ -142,6 +142,7 @@ class Constant(Expression):
         self.value: bool = value
         self.symbol = str(value)
         self.engine = types.R2U2Engine.BOOLEANIZER
+        self.timestamp = 0
 
         if isinstance(value, bool):
             self.type = types.BoolType(True)
@@ -162,6 +163,8 @@ class Variable(Expression):
     def __init__(self, loc: log.FileLocation, s: str) -> None:
         super().__init__(loc, [])
         self.symbol: str = s
+        self.timestamp = -1
+        self.index = -1
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, Variable) and __o.symbol == self.symbol
@@ -175,7 +178,23 @@ class Variable(Expression):
     def __deepcopy__(self, memo):
         new = Variable(self.loc, self.symbol)
         self.copy_attrs(new)
+        new.timestamp = self.timestamp
+        new.index = self.index
         return new
+    
+    def set_timestamp(self, t: int) -> None:
+        self.timestamp = t
+
+    def set_index(self, i: int) -> None:
+        self.index = i
+
+    def formatted_symbol(self) -> str:
+        s = self.symbol
+        if self.index >= 0:
+            s += f"[{self.index}]"
+        if self.timestamp >= 0:
+            s += f"@{self.timestamp}"
+        return s
 
 
 class Signal(Expression):
@@ -297,6 +316,13 @@ class Predicate(Expression):
     def __init__(self, loc: log.FileLocation, s: str, operands: list[Expression]) -> None:
         super().__init__(loc, operands)
         self.symbol: str = s
+        self.type = types.BoolType()
+        for op in operands:
+            if not isinstance(op, (Variable, Constant)):
+                raise ValueError(f"Bad operand ({op})")
+            
+    def get_args(self) -> list[Union[Variable, Constant]]:
+        return [cast(Union[Variable, Constant], op) for op in self.children]
 
     def __deepcopy__(self, memo) -> Predicate:
         return Predicate(
@@ -304,29 +330,6 @@ class Predicate(Expression):
             self.symbol,
             copy.deepcopy(cast("list[Expression]", self.children), memo),
         )
-
-
-class QuantifierBind(Expression):
-    def __init__(
-        self, loc: log.FileLocation, var: Variable, set_pred: str 
-    ) -> None:
-        super().__init__(loc, [])
-        self.bound_var = var
-        self.set_pred = set_pred
-
-    def get_bound_var(self) -> Variable:
-        return self.bound_var
-
-    def get_set_pred(self) -> str:
-        return self.set_pred
-
-    def __str__(self) -> str:
-        return ""
-
-    def __deepcopy__(self, memo):
-        new = QuantifierBind(self.loc, self.bound_var, self.set_pred)
-        self.copy_attrs(new)
-        return new
     
 
 class QuantifierKind(enum.Enum):
@@ -342,38 +345,35 @@ class Quantifier(Expression):
         set_pred: str,
         expr: Expression,
     ) -> None:
-        super().__init__(loc, [var, QuantifierBind(loc, var, set_pred), expr])
+        super().__init__(loc, [expr])
+        self.symbol = operator.value
         self.operator = operator
         self.bound_var = var
         self.set_pred = set_pred
+        self.type = types.BoolType()
 
     @staticmethod
     def ForAll(
         loc: log.FileLocation, var: Variable, set_pred: str, expr: Expression
     ) -> Quantifier:
-        return Quantifier(loc, QuantifierKind.FORALL, var, set_pred, expr)
+        return Quantifier(loc, QuantifierKind.FORALL, var, set_pred, Operator.LogicalImplies(loc, Predicate(loc, set_pred, [var]), expr))
 
     @staticmethod
     def Exists(
         loc: log.FileLocation, var: Variable, set_pred: str, expr: Expression
     ) -> Quantifier:
-        return Quantifier(loc, QuantifierKind.EXISTS, var, set_pred, expr)
-
-    def get_set_pred(self) -> str:
-        return self.set_pred
+        return Quantifier(loc, QuantifierKind.EXISTS, var, set_pred, Operator.LogicalAnd(loc, [Predicate(loc, set_pred, [var]), expr]))
 
     def get_expr(self) -> Expression:
-        """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
-        return cast(Expression, self.children[-1])
+        return cast(Expression, self.children[0])
 
     def __deepcopy__(self, memo):
-        children = [copy.deepcopy(c, memo) for c in self.children]
         new = Quantifier(
             self.loc,
             self.operator,
             cast(Variable, copy.deepcopy(self.bound_var, memo)),
             self.set_pred,
-            cast(Expression, children[-1]),
+            copy.deepcopy(self.children[0], memo)
         )
         self.copy_attrs(new)
         return new
@@ -773,7 +773,9 @@ class Operator(Expression):
         return operator
 
     @staticmethod
-    def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+    def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Expression:
+        if len(operands) == 1:
+            return operands[0]
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
@@ -781,7 +783,9 @@ class Operator(Expression):
         return operator
 
     @staticmethod
-    def LogicalOr(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+    def LogicalOr(loc: log.FileLocation, operands: list[Expression]) -> Expression:
+        if len(operands) == 1:
+            return operands[0]
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
@@ -1446,7 +1450,7 @@ def to_infix_str(start: Expression) -> str:
                 s += ","
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
-        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
+        elif isinstance(expr, (Struct, FunctionCall, Predicate)) or is_operator(
             expr, OperatorKind.COUNT
         ):
             if seen == len(expr.children):
@@ -1459,6 +1463,16 @@ def to_infix_str(start: Expression) -> str:
                 s += ","
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
+        elif isinstance(expr, Quantifier):
+            if seen == 0:
+                s += f"{expr.symbol}({expr.bound_var})"
+                stack.append((seen + 1, expr))
+            elif seen == 1:
+                s += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_expr()))
+            else:
+                s += ")"
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1508,8 +1522,9 @@ def to_infix_str(start: Expression) -> str:
                 s += ")"
         elif isinstance(expr, Formula):
             if seen == 0:
-                s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-                s += ":"
+                if expr.symbol != "":
+                    s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
+                    s += ":"
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_expr()))
             else:
@@ -1526,8 +1541,7 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += ")"
         else:
-            log.error(MODULE_CODE, f"Bad str ({expr})")
-            return ""
+            raise ValueError("Bad str")
 
     return s
 
@@ -1541,8 +1555,10 @@ def to_prefix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, Variable, Signal)):
+        if isinstance(expr, (Constant, Signal)):
             s += expr.symbol + " "
+        elif isinstance(expr, Variable):
+            s += expr.formatted_symbol() + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:
                 stack.append((seen + 1, expr))
@@ -1562,7 +1578,7 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((0, expr.children[0]))
             elif seen == 1:
                 s = s[:-1] + f"[{expr.index}] "
-        elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
+        elif isinstance(expr, (Struct, FunctionCall, Predicate)) or is_operator(
             expr, OperatorKind.COUNT
         ):
             if seen == len(expr.children):
@@ -1575,6 +1591,16 @@ def to_prefix_str(start: Expression) -> str:
                 s += ","
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
+        elif isinstance(expr, Quantifier):
+            if seen == 0:
+                s += f"{expr.symbol}({expr.bound_var})"
+                stack.append((seen + 1, expr))
+            elif seen == 1:
+                s += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.get_expr()))
+            else:
+                s += ")"
         elif isinstance(expr, SetAggregation):
             if seen == 0:
                 s += f"{expr.symbol}({expr.bound_var}:"
@@ -1618,8 +1644,7 @@ def to_prefix_str(start: Expression) -> str:
         elif isinstance(expr, SpecificationSet):
             [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
-            log.error(MODULE_CODE, f"Bad repr ({expr})")
-            return ""
+            raise ValueError("Bad str")
 
     return s[:-1]
 

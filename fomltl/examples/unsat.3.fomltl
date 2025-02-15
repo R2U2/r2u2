@@ -1,0 +1,1 @@
+exists(x:P) ( exists(y:Q) ( (G[0,1] (x == y)) & (G[0,1] f(x)) & (G[0,1] (! f(y))) ) )

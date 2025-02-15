@@ -6,12 +6,12 @@ as follows:
     L( ! Phi ) := Phi
     L( Phi & Psi ) := L(Phi) & L(Psi)
     L( F[lb,ub] Phi ) := {
-        F[lb,ub] L(Phi)                                     if Phi is ground and not temporal
-        \/_{lb <= j <= ub} F[j,j] L(Phi[v@k |-> v@k+j])   otherwise (Phi is not ground but is temporal)
+        F[lb,ub] L(Phi)                            if Phi is ground and not temporal
+        \/_{lb <= j <= ub} L(Phi[v@k |-> v@k+j])   otherwise (Phi is not ground but is temporal)
     }
     L( Phi U[lb,ub] Psi ) := {
-        L(Phi) U[lb,ub] L(Psi)                                                                    if Phi is ground and not temporal
-        F[lb,lb] Psi[v@k |-> v@{k+lb}] | (F[lb,lb] Phi[v@k |-> v@{k+lb}] & L(Phi [lb+1,ub] Psi))  otherwise (Phi is not ground but is temporal)
+        L(Phi) U[lb,ub] L(Psi)                                                   if Phi is ground and not temporal
+        Psi[v@k |-> v@{k+lb}] | (Phi[v@k |-> v@{k+lb}] & L(Phi U[lb+1,ub] Psi))  otherwise (Phi is not ground but is temporal)
     }
     L( forall(x)(X(x) -> Phi) ) := /\_{0 <= i < bnd(X)} X(x_i) -> Phi[x |-> x_i]
 
@@ -52,10 +52,10 @@ Some examples where bnd(P)=2:
         F[1,1] L(forall(x)(P(x) -> Q(x))) |
         F[2,2] L(forall(x)(P(x) -> Q(x))) |
         F[3,3] L(forall(x)(P(x) -> Q(x)))
-      =        ((P(x_0@0) -> Q(x_0@0)) & (P(x_1@0) -> Q(x_1@0))) |
-        F[1,1] ((P(x_0@1) -> Q(x_0@1)) & (P(x_1@1) -> Q(x_1@1))) |
-        F[2,2] ((P(x_0@2) -> Q(x_0@2)) & (P(x_1@2) -> Q(x_1@2))) |
-        F[3,3] ((P(x_0@3) -> Q(x_0@3)) & (P(x_1@3) -> Q(x_1@3))) 
+      = ((P(x_0@0) -> Q(x_0@0)) & (P(x_1@0) -> Q(x_1@0))) |
+        ((P(x_0@1) -> Q(x_0@1)) & (P(x_1@1) -> Q(x_1@1))) |
+        ((P(x_0@2) -> Q(x_0@2)) & (P(x_1@2) -> Q(x_1@2))) |
+        ((P(x_0@3) -> Q(x_0@3)) & (P(x_1@3) -> Q(x_1@3))) 
 
     **Not ground but is temporal**
     L( F[0,3] forall(x)(P(x) -> G[0,1] Q(x)) ) :=
@@ -63,10 +63,10 @@ Some examples where bnd(P)=2:
         F[1,1] L(forall(x)(P(x) -> G[0,1] Q(x))) |
         F[2,2] L(forall(x)(P(x) -> G[0,1] Q(x))) |
         F[3,3] L(forall(x)(P(x) -> G[0,1] Q(x)))
-      =        ((P(x_0@0) -> G[0,1] Q(x_0@0)) & (P(x_1@0) -> G[0,1] Q(x_1@0))) |
-        F[1,1] ((P(x_0@1) -> G[0,1] Q(x_0@1)) & (P(x_1@1) -> G[0,1] Q(x_1@1))) |
-        F[2,2] ((P(x_0@2) -> G[0,1] Q(x_0@2)) & (P(x_1@2) -> G[0,1] Q(x_1@2))) |
-        F[3,3] ((P(x_0@3) -> G[0,1] Q(x_0@3)) & (P(x_1@3) -> G[0,1] Q(x_1@3))) 
+      = ((P(x_0@0) -> G[0,1] Q(x_0@0)) & (P(x_1@0) -> G[0,1] Q(x_1@0))) |
+        ((P(x_0@1) -> G[0,1] Q(x_0@1)) & (P(x_1@1) -> G[0,1] Q(x_1@1))) |
+        ((P(x_0@2) -> G[0,1] Q(x_0@2)) & (P(x_1@2) -> G[0,1] Q(x_1@2))) |
+        ((P(x_0@3) -> G[0,1] Q(x_0@3)) & (P(x_1@3) -> G[0,1] Q(x_1@3))) 
 
 Thinking of P as an array with two elements, P[0] and P[1], we can think of x_0 as the contents of
 P[0] at each time and x_1 as the contents of P[1]. In contrast, we can think of x_0@0 as the

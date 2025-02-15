@@ -7,7 +7,7 @@ import tempfile
 import shutil
 from typing import Optional
 
-from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options, first_order
+from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options, first_order_parse, first_order, sat
 
 MODULE_CODE = "MAIN"
 
@@ -38,11 +38,18 @@ def compile() -> ReturnCode:
     """
     if options.enable_first_order:
         log.debug(MODULE_CODE, 1, f"Compiling first-order formula ({options.fo_bounds_path})")
-        parsed = first_order.parse_fo(options.spec_path, options.fo_bounds_path, options.mission_time)
+        parsed = first_order_parse.parse_fo(options.spec_path, options.fo_bounds_path, options.mission_time)
         if not parsed:
             log.error(MODULE_CODE, "Failed parsing first-order formula")
             return ReturnCode.PARSE_ERR
-        (expr, bounds) = parsed
+        (formula, bounds) = parsed
+        result = first_order.check_sat(formula, bounds)
+        if result is sat.SatResult.SAT:
+            print("sat")
+        elif result is sat.SatResult.UNSAT:
+            print("unsat")
+        elif result is sat.SatResult.UNKNOWN:
+            print("unknown")
         return ReturnCode.SUCCESS
 
     # ----------------------------------

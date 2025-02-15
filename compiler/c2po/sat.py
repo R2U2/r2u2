@@ -22,7 +22,7 @@ def check_solver_installed(solver: str) -> bool:
         return False
 
 
-def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
+def to_bv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """FIXME: Until not implemented correctly
 
     Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic.
@@ -175,7 +175,7 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
     return smt
 
 
-def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
+def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
 
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
@@ -338,6 +338,179 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     return smt
 
 
+def to_uflia_smtlib2_first_order(start: cpt.Expression, context: cpt.Context) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the Bounded FOMLTL sat problem."""
+    def collect_predicates() -> set[cpt.Predicate]:
+        """Collect all predicates in the given expression."""
+        nonlocal context, start
+        preds = set()
+        pred_symbols = set()
+        for subexpr in cpt.postorder(start, context):
+            if isinstance(subexpr, cpt.Predicate) and str(subexpr) not in pred_symbols:
+                preds.add(subexpr)
+                pred_symbols.add(str(subexpr))
+        return preds
+
+    def collect_variables() -> set[cpt.Variable]:
+        """Collect all variables in the given expression."""
+        nonlocal context, start
+        variables = set()
+        variable_symbols = set()
+        for subexpr in cpt.postorder(start, context):
+            if isinstance(subexpr, cpt.Variable) and subexpr.symbol not in variable_symbols:
+                variables.add(subexpr)
+                variable_symbols.add(subexpr.symbol)
+        return variables
+
+    smt_commands: list[str] = []
+
+    smt_commands.append("(set-logic UFLIA)")
+
+    var_map: dict[str, str] = {}
+    for var in collect_variables():
+        smt_commands.append(f"(declare-fun |{var.symbol}| (Int) Int)")
+        var_map[var.symbol] = f"|{var.symbol}|"
+
+    pred_map: dict[str, str] = {}
+    for pred in collect_predicates():
+        smt_commands.append(f"(declare-fun |{str(pred)}| (Int Int) Bool)")
+        pred_map[pred.symbol] = f"|{str(pred)}|"
+
+    expr_map: dict[cpt.Expression, str] = {}
+    cnt = 0
+
+    for expr in cpt.postorder(start, context):
+        if expr in expr_map:
+            continue
+
+        expr_id = f"|f_e{cnt}|"
+        cnt += 1
+        expr_map[expr] = expr_id
+
+        fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+
+        if isinstance(expr, cpt.Constant) and expr.value:
+            smt_commands.append(f"({fun_signature} true)")
+        elif isinstance(expr, cpt.Constant) and not expr.value:
+            smt_commands.append(f"({fun_signature} false)")
+        elif isinstance(expr, cpt.Variable):
+            smt_commands.append(
+                f"({fun_signature} ({var_map[expr.symbol]} k))"
+            )
+        elif isinstance(expr, cpt.Predicate):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) ({pred_map[expr.symbol]} k {expr.get_args()[0].timestamp})))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
+            smt_commands.append(
+                f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
+            smt_commands.append(
+                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
+            smt_commands.append(
+                f"({fun_signature} (* ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
+            smt_commands.append(
+                f"({fun_signature} (div ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
+            smt_commands.append(
+                f"({fun_signature} (mod ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (>= (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (< ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (<= (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
+            operands = " ".join(
+                [f"({expr_map[child]} k len)" for child in expr.children]
+            )
+            smt_commands.append(f"({fun_signature} (and {operands}))")
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
+            operands = " ".join(
+                [f"({expr_map[child]} k len)" for child in expr.children]
+            )
+            smt_commands.append(f"({fun_signature} (or {operands}))")
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
+            smt_commands.append(
+                f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            smt_commands.append(
+                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[0]]} i len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
+            log.error(MODULE_CODE, f"Release not implemented for first-order MLTL-SAT\n\t{expr}")
+            return ""
+        else:
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            return ""
+
+    smt_commands.append("(declare-fun len () Int)")
+    smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
+    smt_commands.append("(check-sat)")
+
+    smt = "\n".join(smt_commands)
+
+    with open("test.smt2", "w") as f:
+        f.write(smt)
+
+    return smt
+
+
 def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
@@ -346,7 +519,10 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return SatResult.UNKNOWN
 
-    smt = to_uflia_sat_query(expr, context)
+    if options.enable_first_order:
+        smt = to_uflia_smtlib2_first_order(expr, context)
+    else:
+        smt = to_uflia_smtlib2(expr, context)
 
     smt_file_path = options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:

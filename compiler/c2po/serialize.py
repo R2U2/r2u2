@@ -47,4 +47,4 @@ def write_outputs(
                 continue
             expr = spec.get_expr()
             with open(str(smt_output_path / f"{spec.symbol}.smt"), "w") as f:
-                f.write(sat.to_uflia_sat_query(expr, context))
+                f.write(sat.to_uflia_smtlib2(expr, context))

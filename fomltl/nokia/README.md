@@ -1,2 +1,2 @@
 # Monitoring Data Usage in Distributed Systems (Nokia)
-Table 1, page 11 of the [Monitoring Data Usage in Distributed Systems](https://ieeexplore.ieee.org/iel7/32/4359463/06493331.pdf?casa_token=XWjm82remFYAAAAA:H0qth8epxNdg1M_NmXkZ3vtYSsNPx_Cf6R7OqUuDzBxqhF19uoOgy0rwCfL9SMEoaAKKtboQP40)
+Table 1, page 11 of the [Monitoring Data Usage in Distributed Systems](https://people.inf.ethz.ch/basin/pubs/TSE2013.pdf)
