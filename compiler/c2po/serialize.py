@@ -51,3 +51,5 @@ def write_outputs(
                     f.write(sat.to_uflia_smtlib2(expr, context))
                 elif options.smt_theory == options.SMTTheories.AUFBV:
                     f.write(sat.to_aufbv_smtlib2(expr, context))
+                elif options.smt_theory == options.SMTTheories.QF_AUFBV:
+                    f.write(sat.to_qfaufbv_smtlib2(expr, context))

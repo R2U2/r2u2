@@ -16,6 +16,7 @@ R2U2_IMPL_MAP = {
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
     AUFBV = "aufbv"
+    QF_AUFBV = "qf_aufbv"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -213,6 +214,8 @@ def setup() -> bool:
         smt_theory = SMTTheories.UFLIA
     elif smt_theory_str == "aufbv":
         smt_theory = SMTTheories.AUFBV
+    elif smt_theory_str == "qf_aufbv":
+        smt_theory = SMTTheories.QF_AUFBV
     else:
         log.error(MODULE_CODE, f"Invalid SMT theory '{smt_theory_str}'")
         status = False
