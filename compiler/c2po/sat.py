@@ -8,7 +8,8 @@ from c2po import cpt, log, util, types
 MODULE_CODE = "SAT"
 
 Z3 = "z3"
-
+CVC5 = "cvc5"
+CVC5_FLAGS = ["--fmf-bound", "--finite-model-find", "--arrays-exp"]
 
 class SatResult(enum.Enum):
     SAT = 0
@@ -24,22 +25,18 @@ def check_solver_installed(solver: str) -> bool:
         return False
 
 
-def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
-    """FIXME: Until not implemented correctly
-
-    Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic.
-
-    See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
-    """
+def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the AUFBV logic."""
     if context.config.mission_time > 0:
         mission_time = context.config.mission_time
-    else:
+    elif start.wpd > 0:
         mission_time = start.wpd
+    else:
+        mission_time = 1
 
-    idx_size = mission_time.bit_length()
+    timestamp_width = mission_time.bit_length()
 
-    trace_sort = f"(_ BitVec {mission_time})"
-    idx_sort = f"(_ BitVec {idx_size})"
+    timestamp_sort = f"(_ BitVec {timestamp_width})"
     # const_one_trace = f"#b{'0'*(mission_time-1)}1"
     # const_zero_trace = f"#b{'0'*(mission_time-1)}1"
 
@@ -52,19 +49,23 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
     def one_in_idx(length: int, idx: int):
         return f"#b{'0'*(length-(length-idx))}1{'0'*(length-idx-1)}"
 
-    def to_bv(length: int, value: int):
-        return f"(_ bv{value} {length})"
+    def to_bv(value: int):
+        nonlocal timestamp_width
+        return f"(_ bv{value} {timestamp_width})"
 
     smt_commands: list[str] = []
-    smt_commands.append("(set-logic QF_UFBV)")
+    smt_commands.append("(set-logic AUFBV)")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
-    atomic_map: dict[cpt.Expression, str] = {}
-    for atomic, id in context.atomic_id.items():
-        atomic_map[atomic] = f"f_a{id}"
-        smt_commands.append(f"(declare-const {atomic_map[atomic]} {trace_sort})")
+    atomic_map: dict[str, str] = {}
+    for signal,typ in context.signals.items():
+        atomic_map[signal] = f"f_{signal}"
+        if typ == types.BoolType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} Bool))")
+        elif typ == types.IntType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
 
     for expr in cpt.postorder(start, context):
         if expr in expr_map:
@@ -74,19 +75,85 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
         cnt += 1
         expr_map[expr] = expr_id
 
-        fun_signature = f"define-fun {expr_id} ((k {idx_sort}) (len {idx_sort})) Bool"
+        if expr.type == types.BoolType():
+            smt_type = "Bool"
+        elif expr.type == types.IntType():
+            smt_type = f"(_ BitVec {types.IntType().width})"
+        else:
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+
+        fun_signature = f"define-fun {expr_id} ((k {timestamp_sort}) (len {timestamp_sort})) {smt_type}"
 
         if isinstance(expr, cpt.Constant) and expr.value:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) true))")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
-        elif expr in context.atomic_id:
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (= ((_ extract 0 0) (bvshl {atomic_map[expr]} ((_ zero_extend {mission_time - idx_size}) k)) #b1) ))"
+                f"({fun_signature} (and (bvugt len k) (select {atomic_map[expr.symbol]} k)))"
+            )
+        elif isinstance(expr, cpt.Signal):
+            smt_commands.append(
+                f"({fun_signature} (select {atomic_map[expr.symbol]} k))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
+            smt_commands.append(
+                f"({fun_signature} (bvadd ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
+            smt_commands.append(
+                f"({fun_signature} (bvsub ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
+            smt_commands.append(
+                f"({fun_signature} (bvmul ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
+            op = "bvudiv" if not types.IntType().is_signed else "bvsdiv"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
+            op = "bvurem" if not types.IntType().is_signed else "bvsmod"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (bvneg ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
+            op = "bvugt" if not types.IntType().is_signed else "bvsgt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
+            op = "bvuge" if not types.IntType().is_signed else "bvsge"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
+            op = "bvult" if not types.IntType().is_signed else "bvslt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
+            op = "bvule" if not types.IntType().is_signed else "bvsle"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (not ({expr_map[expr.children[0]]} k len))))"
+                f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             operands = " ".join(
@@ -114,51 +181,22 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
-            else:
-                smt_expr = f"(and {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
-
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+                f"({fun_signature} (or (bvule len (bvadd {to_bv(lb)} k)) (forall ((i {timestamp_sort})) (=> (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len)) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
-            else:
-                smt_expr = f"(or {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
-
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) (exists ((i {timestamp_sort})) (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            log.error(
-                MODULE_CODE, f"Until not implemented for MLTL-SAT via QF_BV\n\t{expr}"
-            )
-            return ""
-
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[1]]} {lb} len)"
-            else:
-                cases = " ".join(
-                    [
-                        f"(and ({expr_map[expr.children[0]]} {i} len))"
-                        for i in range(lb, ub + 1)
-                    ]
-                )
-                smt_expr = f"(or {cases})"
-
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) (exists ((i {timestamp_sort})) (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len) ({expr_map[expr.children[1]]} i len) (forall ((j {timestamp_sort})) (=> (and (bvule (bvadd {to_bv(lb)} k) j) (bvult j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(
@@ -166,18 +204,22 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
             )
             return ""
         else:
-            log.error(MODULE_CODE, f"Bad repr ({expr})")
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
             return ""
 
-    smt_commands.append(f"(assert ({expr_map[start]} 0 {mission_time}))")
+    smt_commands.append(f"(declare-fun len () {timestamp_sort})")
+    smt_commands.append(f"(assert ({expr_map[start]} {to_bv(0)} len))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
 
+    with open("test.smt", "w") as f:
+        f.write(smt)
+
     return smt
 
 
-def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
+def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
 
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
@@ -198,7 +240,7 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
     """
     smt_commands: list[str] = []
 
-    smt_commands.append("(set-logic AUFLIA)")
+    smt_commands.append("(set-logic UFLIA)")
 
     atomic_map: dict[str, str] = {}
     for signal,typ in context.signals.items():
@@ -332,7 +374,8 @@ def to_uflia_sat_query(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Unsupported operator ({expr})")
             return ""
 
-    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
+    smt_commands.append("(declare-fun len () Int)")
+    smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -348,7 +391,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         log.error(MODULE_CODE, "z3 not found")
         return SatResult.UNKNOWN
 
-    smt = to_uflia_sat_query(expr, context)
+    smt = to_aufbv_smtlib2(expr, context)
 
     smt_file_path = context.config.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
