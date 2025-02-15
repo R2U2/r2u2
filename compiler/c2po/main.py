@@ -150,7 +150,7 @@ def main(
     enable_eqsat: bool = False,
     smt_solver: Optional[str] = None,
     smt_options: Optional[str] = None,
-    smt_theory: Optional[str] = None,
+    smt_theory: Optional[str] = "uflia",
     write_c2po_filename: Optional[str] = None,
     write_prefix_filename: Optional[str] = None,
     write_mltl_filename: Optional[str] = None,
