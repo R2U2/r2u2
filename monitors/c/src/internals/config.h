@@ -34,27 +34,6 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_AT_EXTRA_FILTERS
-    /* Enables the Rate, Angle difference, and moving average AT filters */
-    #define R2U2_AT_EXTRA_FILTERS INHIBIT
-#endif
-
-#ifndef R2U2_AT_FFT_Filter
-    /* Enables the discrete Fourier transform filter,
-     * but requires the fftw3 library */
-    #define R2U2_AT_FFT_Filter INHIBIT
-#endif
-
-#ifndef R2U2_AT_Prognostics
-    /* Enables the prognostics module */
-    #define R2U2_Prognostics INHIBIT
-#endif
-
-#ifndef R2U2_AT_Signal_Sets
-    /* Enables set aggregation filters */
-    #define R2U2_AT_Signal_Sets INHIBIT
-#endif
-
 #ifndef R2U2_TL_SCQ_Verdict_Aggregation
     /* Compress SCQs with verdict aggregation */
     #define R2U2_TL_Formula_Names EXHIBIT
@@ -94,8 +73,6 @@
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    #define R2U2_AT_EXTRA_FILTERS INHIBIT
-    #define R2U2_AT_FFT_Filter INHIBIT
     #define R2U2_Prognostics INHIBIT
 #elif defined(_WIN32)
     // No known feature incompatibilities

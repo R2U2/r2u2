@@ -8,7 +8,6 @@ the CAV 2023 paper in the indicated section:
                               output (inactive, invalid, or verified)
 - `arrays`          Array Types: Use of parametrized typing on a 
                               structure member
-- `atomic_checker`  Atomic Checker: various signal processing examples
 - `cav`             CAV: The example from the paper showcasing a 
                               realistic composition of the other features
 - `cse`             Common Subexpression Elimination: Removal of 

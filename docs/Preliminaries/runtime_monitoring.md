@@ -1,6 +1,6 @@
 # Runtime Monitoring
 
-Recall from the MLTL formal semantics that we interpret an MLTL formula $\phi$ over a finite trace (aka computation) $pi$, and check that $\pi$ models (satisfies) an MLTL formula $\phi$, denoted as $\pi\models \phi$.
+Recall from the MLTL/ptMLTL formal semantics that we interpret an MLTL/ptMLTL formula $\phi$ over a finite trace (aka computation) $\pi$, and check that $\pi$ models (satisfies) an MLTL/ptMLTL formula $\phi$ starting from time index $i \geq 0$, denoted as $\pi,i\models \phi$.
 
 R2U2 implements real-time, stream-based runtime verification. So our $\pi$ consists of the traces of relevant sensor and software values from the (currently running) system. R2U2 answers the question of whether $\phi$ holds starting from time $i$, evaluated over computation $\pi$ and outputs a stream of $\langle time, verdict\rangle$ pairs, one for every time $i$. We formally write this runtime verification question as: $\forall i: \pi, i \models \phi$.
 

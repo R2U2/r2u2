@@ -16,7 +16,6 @@ class R2U2Engine(enum.Enum):
     NONE = 0
     SYSTEM = 1
     CONFIG = 2
-    ATOMIC_CHECKER = 3
     TEMPORAL_LOGIC = 4
     BOOLEANIZER = 5
 

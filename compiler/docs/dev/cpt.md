@@ -11,7 +11,7 @@ generator function, which yields each node of the CPT expression in postorder fa
 also usually carry a `cpt.Context` object throughout, that stores information about defined structs,
 declared variables, etc.
 
-## DUOQ Sizing
+## SCQ Sizing
 
 Each node in the final CPT representation requires some memory to store its result during the
 execution of R2U2. The exact amount of memory each node requires is determined by the *propagation
@@ -24,12 +24,11 @@ tracks its parents, computing the propagation delays of its siblings is fairly t
 ## R2U2 Engines
 
 Each CPT class has an engine type which determines what R2U2 engine will compute that node's value
-at runtime. The available engines in R2U2 are the Temporal Logic (TL) Engine, the Booleanizer (BZ),
-and Atomic Checkers (AT).
+at runtime. The available engines in R2U2 are the Temporal Logic (TL) Engine and the Booleanizer (BZ).
 
 In R2U2, BZ engine nodes can only read from other BZ nodes or the *signals vector* and can write to
 the *atomics vector*. TL engine nodes can only read from other TL nodes or the *atomics vector*. As
 a result, we mark any BZ nodes that are read from TL nodes as *atomics*. These nodes are computed
 during the `compute_atomics` pass in `passes.py`. During assembly, these nodes
 emit both a BZ engine instruction to compute their value, a BZ instruction to store its value in the
-atomics vector, nd a TL instruction to read it from the atomics vector.
+atomics vector, and a TL instruction to read it from the atomics vector.

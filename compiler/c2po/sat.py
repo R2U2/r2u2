@@ -3,51 +3,39 @@ import enum
 
 from typing import cast
 
-from c2po import cpt, log, util, types
+from c2po import cpt, log, util, types, options
 
 MODULE_CODE = "SAT"
 
-Z3 = "z3"
-CVC5 = "cvc5"
-CVC5_FLAGS = ["--fmf-bound", "--finite-model-find", "--arrays-exp"]
 
 class SatResult(enum.Enum):
-    SAT = 0
-    UNSAT = 1
-    UNKNOWN = 2
+    SAT = "sat"
+    UNSAT = "unsat"
+    UNKNOWN = "unknown"
 
 
-def check_solver_installed(solver: str) -> bool:
+def check_solver() -> bool:
     try:
-        proc = subprocess.run([solver, "-version"], capture_output=True)
-        return proc.returncode == 0
+        proc0 = subprocess.run([options.smt_solver, "-version"], capture_output=True)
+        proc1 = subprocess.run([options.smt_solver, "--version"], capture_output=True)
+        return proc0.returncode == 0 or proc1.returncode == 0
     except FileNotFoundError:
         return False
 
 
 def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the AUFBV logic."""
-    if context.config.mission_time > 0:
-        mission_time = context.config.mission_time
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in AUFBV logic:\n\t{repr(start)}")
+
+    if options.mission_time > 0:
+        mission_time = options.mission_time
     elif start.wpd > 0:
         mission_time = start.wpd
     else:
         mission_time = 1
 
     timestamp_width = mission_time.bit_length()
-
     timestamp_sort = f"(_ BitVec {timestamp_width})"
-    # const_one_trace = f"#b{'0'*(mission_time-1)}1"
-    # const_zero_trace = f"#b{'0'*(mission_time-1)}1"
-
-    def ones(length: int):
-        return f"#b{'1'*length}"
-
-    def zeroes(length: int):
-        return f"#b{'0'*length}"
-
-    def one_in_idx(length: int, idx: int):
-        return f"#b{'0'*(length-(length-idx))}1{'0'*(length-idx-1)}"
 
     def to_bv(value: int):
         nonlocal timestamp_width
@@ -238,6 +226,8 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
     For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a limitation of the approach. Instead of having an uninterpreted function for each atomic, we have an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`. 
     """
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
+
     smt_commands: list[str] = []
 
     smt_commands.append("(set-logic UFLIA)")
@@ -256,6 +246,10 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             return ""
         
         if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
             continue
 
         expr_id = f"f_e{cnt}"
@@ -371,7 +365,7 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT\n\t{expr}")
             return ""
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            log.error(MODULE_CODE, f"Unsupported operator ({expr} {type(expr)})")
             return ""
 
     smt_commands.append("(declare-fun len () Int)")
@@ -387,58 +381,67 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if not check_solver_installed(Z3):
-        log.error(MODULE_CODE, "z3 not found")
+    if not check_solver():
+        log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return SatResult.UNKNOWN
 
-    smt = to_aufbv_smtlib2(expr, context)
+    if options.smt_theory == options.SMTTheories.UFLIA:
+        smt = to_uflia_smtlib2(expr, context)
+    elif options.smt_theory == options.SMTTheories.AUFBV:
+        smt = to_aufbv_smtlib2(expr, context)
+    else:
+        log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_theory}")
+        return SatResult.UNKNOWN
 
-    smt_file_path = context.config.workdir / "__tmp__.smt"
+    smt_file_path = options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 
-    command = [Z3, str(smt_file_path)]
+    command = [options.smt_solver, str(smt_file_path)]
+    if options.smt_options != "":
+        command += options.smt_options.split(" ")
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
-    start = util.get_rusage_time()
-
     try:
+        start = util.get_rusage_time()
         proc = subprocess.run(
-            command, capture_output=True, timeout=context.config.timeout_sat
+            command, capture_output=True, timeout=options.timeout_sat
         )
+        end = util.get_rusage_time()
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"z3 timeout after {context.config.timeout_sat}s")
+        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
         log.stat(MODULE_CODE, "sat_check_time=timeout")
+        log.stat(MODULE_CODE, f"sat_result={SatResult.UNKNOWN.value}")
         return SatResult.UNKNOWN
     
     if proc.returncode != 0:
-        log.error(MODULE_CODE, f"z3 failed with return code {proc.returncode}")
+        log.error(MODULE_CODE, f"{options.smt_solver} failed with return code {proc.returncode}")
         log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
         return SatResult.UNKNOWN
 
-    end = util.get_rusage_time()
-    sat_time = end - start
-    log.stat(MODULE_CODE, f"sat_check_time={sat_time}")
-
-    smt_file_path.unlink()
-
     if proc.stdout.decode().find("unsat") > -1:
         log.debug(MODULE_CODE, 1, "unsat")
-        return SatResult.UNSAT
+        result = SatResult.UNSAT
     elif proc.stdout.decode().find("sat") > -1:
         log.debug(MODULE_CODE, 1, "sat")
-        return SatResult.SAT
+        result = SatResult.SAT
     else:
         log.debug(MODULE_CODE, 1, "unknown")
-        return SatResult.UNKNOWN
+        result = SatResult.UNKNOWN
+
+    sat_time = end - start
+    log.stat(MODULE_CODE, f"sat_time={sat_time}")
+    log.stat(MODULE_CODE, f"sat_result={result.value}")
+
+    return result
 
 
 def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
-    """Runs an SMT solver (Z3 by default) on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver_installed(Z3):
-        log.error(MODULE_CODE, "z3 not found")
+    """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
+    if not check_solver():
+        log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}
@@ -459,7 +462,7 @@ def check_equiv(
 ) -> SatResult:
     """Returns true if `expr1` is equivalent to `expr2`, false if they are not, and None if the check timed our or failed in some other way.
 
-    To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |= expr` and `pi |/= expr` or vice versa.
+    To check equivalence, this function encodes the formula `!(expr1 <-> expr2)`: if this formula is unsatisfiable it means there is no trace `pi` such that `pi |== expr` and `pi |=/= expr` or vice versa.
     """
     log.debug(
         MODULE_CODE,
@@ -477,7 +480,7 @@ def check_equiv(
 
     end = util.get_rusage_time()
     equiv_time = end - start
-    if equiv_time > float(context.config.timeout_sat):
+    if equiv_time > float(options.timeout_sat):
         log.stat(MODULE_CODE, "equiv_check_time=timeout")
     else:
         log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")

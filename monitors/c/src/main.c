@@ -30,7 +30,7 @@ r2u2_csv_reader_t r2u2_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
 
 // Create Queue memory arena
-uint8_t *arena = &(uint8_t [R2U2_DUOQ_BYTES]){0};
+uint8_t *arena = &(uint8_t [R2U2_SCQ_BYTES]){0};
 
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
@@ -83,7 +83,7 @@ int main(int argc, char const *argv[]) {
         return 1;
       }
       // map read-only mirror of the file to memory - great for execution perf
-      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ, MAP_PRIVATE, spec_file, 0);
+      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, spec_file, 0);
       if (r2u2_monitor.instruction_mem == MAP_FAILED) {
         PRINT_USAGE();
         perror("Error memory mapping specification file");
@@ -101,8 +101,8 @@ int main(int argc, char const *argv[]) {
   }
 
   // Connect monitor to queue memory arena
-  r2u2_monitor.duo_queue_mem.blocks = (r2u2_duoq_control_block_t*) arena;
-  r2u2_monitor.duo_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_DUOQ_BYTES - 4);
+  r2u2_monitor.shared_connection_queue_mem.blocks = (r2u2_scq_control_block_t*) arena;
+  r2u2_monitor.shared_connection_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_SCQ_BYTES - 4);
 
   // Reset monitor and build instuction table from spec binary
   r2u2_init(&r2u2_monitor);
