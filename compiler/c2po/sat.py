@@ -148,22 +148,22 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (and {operands})))"
+                f"({fun_signature} (and {operands}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (or {operands})))"
+                f"({fun_signature} (or {operands}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+                f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
