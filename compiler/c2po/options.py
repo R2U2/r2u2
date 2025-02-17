@@ -1,5 +1,6 @@
 import pathlib
 import enum
+import sys
 
 from c2po import types, log, parse
 
@@ -24,6 +25,8 @@ class CompilationStage(enum.Enum):
     TYPE_CHECK = 1
     PASSES = 2
     ASSEMBLE = 3
+
+command: str =  " ".join(sys.argv)
 
 spec_filename: str = EMPTY_FILENAME
 trace_filename: str = EMPTY_FILENAME

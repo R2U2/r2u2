@@ -6,7 +6,8 @@ import enum
 import sys
 from typing import NamedTuple, Optional
 
-MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
+ISSUE_URL: str = "https://github.com/R2U2/r2u2/issues"
+VERSION: str = "1.0"
 
 log_level = 0
 enable_stat = False
@@ -129,5 +130,6 @@ def internal(
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "BUG", Color.FAIL, module, location)
+    message_extra = f"\nPlease report this issue at {ISSUE_URL}"
+    formatted_message = format(message + message_extra, "BUG", Color.FAIL, module, location)
     sys.stderr.write(formatted_message)

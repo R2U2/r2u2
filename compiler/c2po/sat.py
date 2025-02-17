@@ -7,6 +7,8 @@ from c2po import cpt, log, util, types, options
 
 MODULE_CODE = "SAT"
 
+PREAMBLE = f"""(set-info :source |SMT encoding for satisfiability checking of Mission-time Linear Temporal Logic (MLTL) formulas.\nEncoded by C2PO v{log.VERSION}, see https://github.com/R2U2/r2u2/tree/develop/compiler.|)"""
+
 
 class SatResult(enum.Enum):
     SAT = "sat"
@@ -21,7 +23,7 @@ def check_solver() -> bool:
         return proc0.returncode == 0 or proc1.returncode == 0
     except FileNotFoundError:
         return False
-    
+
 
 def run_smt_solver(smt: str) -> SatResult:
     """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
@@ -42,18 +44,21 @@ def run_smt_solver(smt: str) -> SatResult:
 
     try:
         start = util.get_rusage_time()
-        proc = subprocess.run(
-            command, capture_output=True, timeout=options.timeout_sat
-        )
+        proc = subprocess.run(command, capture_output=True, timeout=options.timeout_sat)
         end = util.get_rusage_time()
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
+        log.warning(
+            MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s"
+        )
         log.stat(MODULE_CODE, "sat_check_time=timeout")
         log.stat(MODULE_CODE, f"sat_result={SatResult.UNKNOWN.value}")
         return SatResult.UNKNOWN
-    
+
     if proc.returncode != 0:
-        log.error(MODULE_CODE, f"{options.smt_solver} failed with return code {proc.returncode}")
+        log.error(
+            MODULE_CODE,
+            f"{options.smt_solver} failed with return code {proc.returncode}",
+        )
         log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
         return SatResult.UNKNOWN
 
@@ -76,7 +81,11 @@ def run_smt_solver(smt: str) -> SatResult:
 
 def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic. Specifically, encodes whether there exists a trace of length at most `trace_len` that satisfies the formula."""
-    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}")
+    log.debug(
+        MODULE_CODE,
+        1,
+        f"Encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}",
+    )
 
     bv_width = trace_len
     bv_sort = f"(_ BitVec {bv_width})"
@@ -84,16 +93,16 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
     def to_bv(value: int):
         nonlocal bv_width
         return f"(_ bv{value} {bv_width})"
-    
+
     def ones():
         nonlocal bv_width
-        return f"(_ bv{2**bv_width-1} {bv_width})"
-    
+        return f"(_ bv{2**bv_width - 1} {bv_width})"
+
     def zeros():
         nonlocal bv_width
         return f"(_ bv0 {bv_width})"
 
-    smt_commands: list[str] = []
+    smt_commands: list[str] = [PREAMBLE]
     smt_commands.append("(set-logic QF_BV)")
 
     expr_map: dict[cpt.Expression, str] = {}
@@ -128,9 +137,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} {zeros()})")
         elif isinstance(expr, cpt.Signal):
-            smt_commands.append(
-                f"({fun_signature} {atomic_map[expr.symbol]})"
-            )
+            smt_commands.append(f"({fun_signature} {atomic_map[expr.symbol]})")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
                 f"({fun_signature} (bvnot {expr_map[expr.children[0]]}))"
@@ -139,16 +146,12 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
             op = f"(bvand {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
             for child in expr.children[2:]:
                 op = f"(bvand {op} {expr_map[child]})"
-            smt_commands.append(
-                f"({fun_signature} {op})"
-            )
+            smt_commands.append(f"({fun_signature} {op})")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             op = f"(bvor {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
             for child in expr.children[2:]:
                 op = f"(bvor {op} {expr_map[child]})"
-            smt_commands.append(
-                f"({fun_signature} {op})"
-            )
+            smt_commands.append(f"({fun_signature} {op})")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
             smt_commands.append(
                 f"({fun_signature} (= {expr_map[expr.children[0]]} {expr_map[expr.children[1]]}))"
@@ -161,7 +164,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             shift_amt = f"(_ bv{lb} {bv_width})"
-            shift_ones_bitmask = f"(_ bv{2**lb-1} {bv_width})"
+            shift_ones_bitmask = f"(_ bv{2**lb - 1} {bv_width})"
             smt_commands.append(
                 f"({fun_signature} (bvor (bvshl {expr_map[expr.children[0]]} {shift_amt}) {shift_ones_bitmask}))"
             )
@@ -189,15 +192,22 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
 
 def check_sat_qfbv(start: cpt.Expression, context: cpt.Context) -> SatResult:
     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
-    log.debug(MODULE_CODE, 1, f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}")
+    log.debug(
+        MODULE_CODE,
+        1,
+        f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}",
+    )
 
     if options.enable_booleanizer:
-        log.warning(MODULE_CODE, "Booleanizer enabled, skipping QF_BV sat check.\n\t"
-                                 "Consider using a different SMT theory.")
+        log.warning(
+            MODULE_CODE,
+            "Booleanizer enabled, skipping QF_BV sat check.\n\t"
+            "Consider using a different SMT theory.",
+        )
         return SatResult.UNKNOWN
 
     if start.wpd <= 255:
-        smt = to_qfbv_smtlib2(start, context, start.wpd+1)
+        smt = to_qfbv_smtlib2(start, context, start.wpd + 1)
         return run_smt_solver(smt)
 
     log.debug(MODULE_CODE, 1, "WPD larger than 255, trying sat shorter checks")
@@ -209,15 +219,17 @@ def check_sat_qfbv(start: cpt.Expression, context: cpt.Context) -> SatResult:
         smt = to_qfbv_smtlib2(start, context, 255)
         result = run_smt_solver(smt)
     if result == SatResult.UNKNOWN:
-        smt = to_qfbv_smtlib2(start, context, start.wpd+1)
+        smt = to_qfbv_smtlib2(start, context, start.wpd + 1)
         result = run_smt_solver(smt)
-    
+
     return result
 
 
 def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_AUFBV logic."""
-    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in QF_AUFBV logic:\n\t{repr(start)}")
+    log.debug(
+        MODULE_CODE, 1, f"Encoding MLTL formula in QF_AUFBV logic:\n\t{repr(start)}"
+    )
 
     if options.mission_time > 0:
         mission_time = options.mission_time
@@ -233,19 +245,23 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         nonlocal timestamp_width
         return f"(_ bv{value} {timestamp_width})"
 
-    smt_commands: list[str] = []
+    smt_commands: list[str] = [PREAMBLE]
     smt_commands.append("(set-logic QF_AUFBV)")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
     atomic_map: dict[str, str] = {}
-    for signal,typ in context.signals.items():
+    for signal, typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
         if typ == types.BoolType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
+            smt_commands.append(
+                f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))"
+            )
         elif typ == types.IntType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
+            smt_commands.append(
+                f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))"
+            )
 
     for expr in cpt.postorder(start, context):
         if expr in expr_map:
@@ -344,9 +360,7 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) {operands}))"
-            )
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) {operands}))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
@@ -366,9 +380,12 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-            conds = [f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)" for i in range(lb,ub+1)]
+            conds = [
+                f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)"
+                for i in range(lb, ub + 1)
+            ]
             smt_commands.append(
-                f"({fun_signature} " 
+                f"({fun_signature} "
                 f"(and (bvugt len k) (or (bvule len (bvadd {to_bv(lb)} k)) "
                 f"(and {' '.join(conds)}))))"
             )
@@ -376,9 +393,12 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-            conds = [f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)" for i in range(lb,ub+1)]
+            conds = [
+                f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)"
+                for i in range(lb, ub + 1)
+            ]
             smt_commands.append(
-                f"({fun_signature} " 
+                f"({fun_signature} "
                 f"(and (bvugt len (bvadd {to_bv(lb)} k)) "
                 f"(or {' '.join(conds)})))"
             )
@@ -388,13 +408,11 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             ub = expr.interval.ub
 
             unroll = f"({expr_map[expr.children[1]]} (bvadd {to_bv(ub)} k) len)"
-            for i in reversed(range(lb,ub)):
-                unroll = f"(or ({expr_map[expr.children[1]]} (bvadd {to_bv(lb+i)} k) len) (and ({expr_map[expr.children[0]]} (bvadd {to_bv(lb+i)} k) len) {unroll}))"
+            for i in reversed(range(lb, ub)):
+                unroll = f"(or ({expr_map[expr.children[1]]} (bvadd {to_bv(lb + i)} k) len) (and ({expr_map[expr.children[0]]} (bvadd {to_bv(lb + i)} k) len) {unroll}))"
 
             smt_commands.append(
-                f"({fun_signature} "
-                f"(and (bvugt len (bvadd {to_bv(lb)} k)) "
-                f"{unroll}))"
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) {unroll}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(
@@ -432,19 +450,23 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         nonlocal timestamp_width
         return f"(_ bv{value} {timestamp_width})"
 
-    smt_commands: list[str] = []
+    smt_commands: list[str] = [PREAMBLE]
     smt_commands.append("(set-logic AUFBV)")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
     atomic_map: dict[str, str] = {}
-    for signal,typ in context.signals.items():
+    for signal, typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
         if typ == types.BoolType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
+            smt_commands.append(
+                f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))"
+            )
         elif typ == types.IntType():
-            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
+            smt_commands.append(
+                f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))"
+            )
 
     for expr in cpt.postorder(start, context):
         if expr in expr_map:
@@ -542,9 +564,7 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) {operands}))"
-            )
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) {operands}))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
@@ -616,16 +636,16 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
     mltlsat translates all `! G[lb,ub] p` to `True U[lb,ub] !p` and `! F[lb,ub] p` to `False R[lb,ub] !p`
 
-    For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a limitation of the approach. Instead of having an uninterpreted function for each atomic, we have an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`. 
+    For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a limitation of the approach. Instead of having an uninterpreted function for each atomic, we have an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`.
     """
     log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
 
-    smt_commands: list[str] = []
+    smt_commands: list[str] = [PREAMBLE]
 
     smt_commands.append("(set-logic UFLIA)")
 
     atomic_map: dict[str, str] = {}
-    for signal,typ in context.signals.items():
+    for signal, typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} (Int) {types.to_smt_type(typ)})")
 
@@ -636,7 +656,7 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         if expr.type != types.BoolType() and expr.type != types.IntType():
             log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
             return ""
-        
+
         if expr in expr_map:
             continue
 
@@ -648,7 +668,9 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         cnt += 1
         expr_map[expr] = expr_id
 
-        fun_signature = f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+        fun_signature = (
+            f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+        )
 
         if isinstance(expr, cpt.Constant) and expr.value:
             smt_commands.append(f"({fun_signature} true)")
@@ -659,9 +681,7 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
             )
         elif isinstance(expr, cpt.Signal):
-            smt_commands.append(
-                f"({fun_signature} ({atomic_map[expr.symbol]} k))"
-            )
+            smt_commands.append(f"({fun_signature} ({atomic_map[expr.symbol]} k))")
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
             smt_commands.append(
                 f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
@@ -784,10 +804,10 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     else:
         log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_theory}")
         return SatResult.UNKNOWN
-    
+
     return run_smt_solver(smt)
 
-    
+
 def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":

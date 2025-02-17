@@ -115,8 +115,7 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
         member = s.get_member(expr.member)
         if not member:
             raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
-                              "Please contact the developers for support.\n"
-                             f"Email: {log.MAINTAINER_EMAIL}")
+                             f"Please open an issue at {log.ISSUE_URL}.")
 
         new_type = member.type
         if member:
@@ -241,8 +240,7 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         member = s.get_member(expr.member)
         if not member:
             raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
-                              "Please contact the developers for support.\n"
-                             f"Email: {log.MAINTAINER_EMAIL}")
+                             f"Please open an issue at {log.ISSUE_URL}.")
 
         new_type = member.type
         if member:
