@@ -882,32 +882,32 @@ def to_uflia_smtlib2_first_order(start: cpt.Expression, context: cpt.Context) ->
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
-                f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
+                f"({fun_signature} (and (> len k) (not ({expr_map[expr.children[0]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(f"({fun_signature} (and {operands}))")
+            smt_commands.append(f"({fun_signature} (and (> len k) {operands}))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(f"({fun_signature} (or {operands}))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (or {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             smt_commands.append(
-                f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+                f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
             smt_commands.append(
-                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len)))))"
+                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
