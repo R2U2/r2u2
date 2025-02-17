@@ -220,91 +220,402 @@
             "options": ["--map", "default.map", "--extops"]
         }
     ],
-    "sat": [
+    "sat-uflia": [
         {
             "input": "sat/sat_1.mltl", 
             "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/sat_2.mltl", 
             "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/sat_3.mltl", 
             "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/sat_4.mltl", 
             "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/sat_5.mltl", 
             "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/sat_6.mltl", 
             "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/unsat_2.mltl", 
             "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/unsat_3.mltl", 
             "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/unsat_4.mltl", 
             "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops"]
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_sat_1.c2po", 
             "expected_output": "sat/bz_sat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_sat_2.c2po", 
             "expected_output": "sat/bz_sat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_sat_3.c2po", 
             "expected_output": "sat/bz_sat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_unsat_1.c2po", 
             "expected_output": "sat/bz_unsat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_unsat_2.c2po", 
             "expected_output": "sat/bz_unsat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
         },
         {
             "input": "sat/bz_unsat_3.c2po", 
             "expected_output": "sat/bz_unsat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops"]
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+        }
+    ],
+    "sat-aufbv": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_1.c2po", 
+            "expected_output": "sat/bz_sat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_2.c2po", 
+            "expected_output": "sat/bz_sat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_3.c2po", 
+            "expected_output": "sat/bz_sat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_1.c2po", 
+            "expected_output": "sat/bz_unsat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_2.c2po", 
+            "expected_output": "sat/bz_unsat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_3.c2po", 
+            "expected_output": "sat/bz_unsat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+        }
+    ],
+    "sat-qf-aufbv": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_1.c2po", 
+            "expected_output": "sat/bz_sat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_2.c2po", 
+            "expected_output": "sat/bz_sat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_3.c2po", 
+            "expected_output": "sat/bz_sat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_1.c2po", 
+            "expected_output": "sat/bz_unsat_1.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_2.c2po", 
+            "expected_output": "sat/bz_unsat_2.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_unsat_3.c2po", 
+            "expected_output": "sat/bz_unsat_3.c2po.expect", 
+            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+        }
+    ],
+    "sat-qf-bv": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
         }
     ]
 }

@@ -9,7 +9,7 @@ More information also available at [https://docs.rs/r2u2_core/latest/r2u2_core/]
 ## Bounds
 
 Bounds are numeric limits set as Rust pre-processor macros which are used primarily to set array and memory sizes.
-Using fixed memory bounds allows for fast, consistent operation without memory allocation (e.g., if it loads, it won't OOM) at the cost of requiring manual tuning for optimal performance.
+Using fixed memory bounds allows for memory-safe Rust performance.
 
 If these numbers must be adjusted, it is most consistent to do so in the `bounds.rs` file or overwrite values in parent application, e.g., include something like
 ```
@@ -53,6 +53,9 @@ in `.cargo/config.toml`.
 `R2U2_FLOAT_EPSILON`
 : Sets the error value used for float comparisons (i.e., how close is considered "equal").
 : Default: 0.00001
+
+:::{note} `R2U2_FLOAT_EPSILON` can only be changed in `bounds.rs`.
+:::
 
 ---
 

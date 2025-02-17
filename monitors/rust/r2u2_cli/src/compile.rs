@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyTypeError;
 use pyo3::ffi::c_str;
 
-pub fn c2po_compile(input_filename: &str,
+pub fn c2po_compile(spec_filename: &str,
     trace_filename: &str,
     map_filename: &str,
     output_filename: &str,
@@ -48,7 +48,7 @@ pub fn c2po_compile(input_filename: &str,
         PyModule::from_code(py, passes_code, c_str!("c2po/passes.py"), c_str!("c2po.passes"))?;
         PyModule::from_code(py, serialize_code, c_str!("c2po/serialize.py"), c_str!("c2po.serialize"))?;
         let main_py = PyModule::from_code(py, main_code, c_str!("c2po/main.py"), c_str!("c2po.main"))?;
-        let args = (input_filename,
+        let args = (spec_filename,
             trace_filename,
             map_filename,
             output_filename,

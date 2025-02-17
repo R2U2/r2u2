@@ -14,7 +14,7 @@ def capture_print_output(func):
     return wrapper
 
 def compile_and_log(
-    input_filename: str,
+    spec_filename: str,
     trace_filename: str = "",
     map_filename: str = "",
     output_filename: str = "spec.bin",
@@ -27,7 +27,7 @@ def compile_and_log(
 ):
     temp = capture_print_output(main.main)
     return temp(
-        input_filename=input_filename,
+        spec_filename=spec_filename,
         trace_filename=trace_filename,
         map_filename=map_filename,
         output_filename=output_filename,

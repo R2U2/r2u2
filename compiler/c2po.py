@@ -64,6 +64,12 @@ parser.add_argument("-eq", "--eqsat", action="store_true",
                     help="enable equality saturation")
 parser.add_argument("-sat", "--check-sat", action="store_true",
                     help="enable satisfiability checking of future-time formulas")
+parser.add_argument("--smt-path", default="z3",
+                    help="path to SMTLIB2-compliant solver executable, default assumes z3 is in PATH (default: z3)")
+parser.add_argument("--smt-options", default="",
+                    help="quoted list of additional options to pass to the SMT solver (example: \"--fmf-bound --finite-model-find\")")
+parser.add_argument("--smt-theory", default="uflia", choices=[member.value for member in c2po.options.SMTTheories],
+                    help="specify the SMT theory encoding to use for satisfiability checking (default: uflia)")
 
 parser.add_argument("--timeout-eqsat", type=int, default=3600, 
                     help="set the timeout of equality saturation calls in seconds (default: 3600)")
@@ -115,6 +121,9 @@ return_code = c2po.main.main(
     enable_nnf=args.nnf,
     enable_bnf=args.bnf,
     enable_sat=args.check_sat,
+    smt_solver=args.smt_path,
+    smt_options=args.smt_options,
+    smt_theory=args.smt_theory,
     write_c2po_filename=args.write_c2po,
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,

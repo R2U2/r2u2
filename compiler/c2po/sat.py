@@ -9,78 +9,332 @@ MODULE_CODE = "SAT"
 
 
 class SatResult(enum.Enum):
-    SAT = 0
-    UNSAT = 1
-    UNKNOWN = 2
+    SAT = "sat"
+    UNSAT = "unsat"
+    UNKNOWN = "unknown"
 
 
-def check_solver_installed(solver: str) -> bool:
+def check_solver() -> bool:
     try:
-        proc = subprocess.run([solver, "-version"], capture_output=True)
-        return proc.returncode == 0
+        proc0 = subprocess.run([options.smt_solver, "-version"], capture_output=True)
+        proc1 = subprocess.run([options.smt_solver, "--version"], capture_output=True)
+        return proc0.returncode == 0 or proc1.returncode == 0
     except FileNotFoundError:
         return False
+    
 
+def run_smt_solver(smt: str) -> SatResult:
+    """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
+    log.debug(MODULE_CODE, 1, "Running SMT solver.")
 
-def to_bv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
-    """FIXME: Until not implemented correctly
+    if not check_solver():
+        log.error(MODULE_CODE, f"{options.smt_solver} not found")
+        return SatResult.UNKNOWN
 
-    Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic.
+    smt_file_path = options.workdir / "__tmp__.smt"
+    with open(smt_file_path, "w") as f:
+        f.write(smt)
 
-    See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
-    """
-    if options.mission_time > 0:
-        mission_time = options.mission_time
+    command = [options.smt_solver, str(smt_file_path)]
+    if options.smt_options != "":
+        command += options.smt_options.split(" ")
+    log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
+
+    try:
+        start = util.get_rusage_time()
+        proc = subprocess.run(
+            command, capture_output=True, timeout=options.timeout_sat
+        )
+        end = util.get_rusage_time()
+    except subprocess.TimeoutExpired:
+        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
+        log.stat(MODULE_CODE, "sat_check_time=timeout")
+        log.stat(MODULE_CODE, f"sat_result={SatResult.UNKNOWN.value}")
+        return SatResult.UNKNOWN
+    
+    if proc.returncode != 0:
+        log.error(MODULE_CODE, f"{options.smt_solver} failed with return code {proc.returncode}")
+        log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
+        return SatResult.UNKNOWN
+
+    if proc.stdout.decode().find("unsat") > -1:
+        log.debug(MODULE_CODE, 1, "unsat")
+        result = SatResult.UNSAT
+    elif proc.stdout.decode().find("sat") > -1:
+        log.debug(MODULE_CODE, 1, "sat")
+        result = SatResult.SAT
     else:
-        mission_time = start.wpd
+        log.debug(MODULE_CODE, 1, "unknown")
+        result = SatResult.UNKNOWN
 
-    idx_size = mission_time.bit_length()
+    sat_time = end - start
+    log.stat(MODULE_CODE, f"sat_time={sat_time}")
+    log.stat(MODULE_CODE, f"sat_result={result.value}")
 
-    trace_sort = f"(_ BitVec {mission_time})"
-    idx_sort = f"(_ BitVec {idx_size})"
-    # const_one_trace = f"#b{'0'*(mission_time-1)}1"
-    # const_zero_trace = f"#b{'0'*(mission_time-1)}1"
+    return result
 
-    def ones(length: int):
-        return f"#b{'1'*length}"
 
-    def zeroes(length: int):
-        return f"#b{'0'*length}"
+def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_BV logic. Specifically, encodes whether there exists a trace of length at most `trace_len` that satisfies the formula."""
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}")
 
-    def one_in_idx(length: int, idx: int):
-        return f"#b{'0'*(length-(length-idx))}1{'0'*(length-idx-1)}"
+    bv_width = trace_len
+    bv_sort = f"(_ BitVec {bv_width})"
 
-    def to_bv(length: int, value: int):
-        return f"(_ bv{value} {length})"
+    def to_bv(value: int):
+        nonlocal bv_width
+        return f"(_ bv{value} {bv_width})"
+    
+    def ones():
+        nonlocal bv_width
+        return f"(_ bv{2**bv_width-1} {bv_width})"
+    
+    def zeros():
+        nonlocal bv_width
+        return f"(_ bv0 {bv_width})"
 
     smt_commands: list[str] = []
-    smt_commands.append("(set-logic QF_UFBV)")
+    smt_commands.append("(set-logic QF_BV)")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
-    atomic_map: dict[cpt.Expression, str] = {}
-    for atomic, id in context.atomic_id.items():
-        atomic_map[atomic] = f"f_a{id}"
-        smt_commands.append(f"(declare-const {atomic_map[atomic]} {trace_sort})")
+    atomic_map: dict[str, str] = {}
+    for signal in context.signals.keys():
+        atomic_map[signal] = f"f_{signal}"
+        smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
 
-    for expr in cpt.postorder(start, context):
+    unrolled_expr = cpt.unroll(start, context)
+    for expr in cpt.postorder(unrolled_expr, context):
         if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
             continue
 
         expr_id = f"f_e{cnt}"
         cnt += 1
         expr_map[expr] = expr_id
 
-        fun_signature = f"define-fun {expr_id} ((k {idx_sort}) (len {idx_sort})) Bool"
+        if expr.type != types.BoolType():
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+
+        fun_signature = f"define-fun {expr_id} () {bv_sort} "
+
+        if isinstance(expr, cpt.Constant) and expr.value:
+            smt_commands.append(f"({fun_signature} {ones()})")
+        elif isinstance(expr, cpt.Constant) and not expr.value:
+            smt_commands.append(f"({fun_signature} {zeros()})")
+        elif isinstance(expr, cpt.Signal):
+            smt_commands.append(
+                f"({fun_signature} {atomic_map[expr.symbol]})"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (bvnot {expr_map[expr.children[0]]}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
+            op = f"(bvand {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
+            for child in expr.children[2:]:
+                op = f"(bvand {op} {expr_map[child]})"
+            smt_commands.append(
+                f"({fun_signature} {op})"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
+            op = f"(bvor {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
+            for child in expr.children[2:]:
+                op = f"(bvor {op} {expr_map[child]})"
+            smt_commands.append(
+                f"({fun_signature} {op})"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            smt_commands.append(
+                f"({fun_signature} (= {expr_map[expr.children[0]]} {expr_map[expr.children[1]]}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            # We want to implement the following:
+            # cs(G[lb,lb] p) := cs(p) << lb where we shift in ones from the right
+            # To do so, we shift by lb and then OR with a bitmask of 1s equal to 2^lb - 1
+            # Example: let cs(p) = 0b1010 and lb = 2, then cs(G[2,2] p) = (0b1010 << 2) | 0b0011 = 0b1011
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            shift_amt = f"(_ bv{lb} {bv_width})"
+            shift_ones_bitmask = f"(_ bv{2**lb-1} {bv_width})"
+            smt_commands.append(
+                f"({fun_signature} (bvor (bvshl {expr_map[expr.children[0]]} {shift_amt}) {shift_ones_bitmask}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            shift_amt = f"(_ bv{lb} {bv_width})"
+            smt_commands.append(
+                f"({fun_signature} (bvshl {expr_map[expr.children[0]]} {shift_amt}))"
+            )
+        else:
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            return ""
+
+    smt_commands.append(f"(assert (bvugt {expr_map[unrolled_expr]} {zeros()}))")
+    smt_commands.append("(check-sat)")
+
+    smt = "\n".join(smt_commands)
+
+    with open("temp.smt", "w") as f:
+        f.write(smt)
+
+    return smt
+
+
+def check_sat_qfbv(start: cpt.Expression, context: cpt.Context) -> SatResult:
+    """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
+    log.debug(MODULE_CODE, 1, f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}")
+
+    if options.enable_booleanizer:
+        log.warning(MODULE_CODE, "Booleanizer enabled, skipping QF_BV sat check.\n\t"
+                                 "Consider using a different SMT theory.")
+        return SatResult.UNKNOWN
+
+    if start.wpd <= 255:
+        smt = to_qfbv_smtlib2(start, context, start.wpd+1)
+        return run_smt_solver(smt)
+
+    log.debug(MODULE_CODE, 1, "WPD larger than 255, trying sat shorter checks")
+
+    # otherwise do one short check, then a longer check, then check the whole thing
+    smt = to_qfbv_smtlib2(start, context, 1)
+    result = run_smt_solver(smt)
+    if result == SatResult.UNKNOWN:
+        smt = to_qfbv_smtlib2(start, context, 255)
+        result = run_smt_solver(smt)
+    if result == SatResult.UNKNOWN:
+        smt = to_qfbv_smtlib2(start, context, start.wpd+1)
+        result = run_smt_solver(smt)
+    
+    return result
+
+
+def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_AUFBV logic."""
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in QF_AUFBV logic:\n\t{repr(start)}")
+
+    if options.mission_time > 0:
+        mission_time = options.mission_time
+    elif start.wpd > 0:
+        mission_time = start.wpd
+    else:
+        mission_time = 1
+
+    timestamp_width = mission_time.bit_length()
+    timestamp_sort = f"(_ BitVec {timestamp_width})"
+
+    def to_bv(value: int):
+        nonlocal timestamp_width
+        return f"(_ bv{value} {timestamp_width})"
+
+    smt_commands: list[str] = []
+    smt_commands.append("(set-logic QF_AUFBV)")
+
+    expr_map: dict[cpt.Expression, str] = {}
+    cnt = 0
+
+    atomic_map: dict[str, str] = {}
+    for signal,typ in context.signals.items():
+        atomic_map[signal] = f"f_{signal}"
+        if typ == types.BoolType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
+        elif typ == types.IntType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
+
+    for expr in cpt.postorder(start, context):
+        if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
+            continue
+
+        expr_id = f"f_e{cnt}"
+        cnt += 1
+        expr_map[expr] = expr_id
+
+        if expr.type == types.BoolType():
+            smt_type = "Bool"
+        elif expr.type == types.IntType():
+            smt_type = f"(_ BitVec {types.IntType().width})"
+        else:
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+
+        fun_signature = f"define-fun {expr_id} ((k {timestamp_sort}) (len {timestamp_sort})) {smt_type}"
 
         if isinstance(expr, cpt.Constant) and expr.value:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) true))")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
-        elif expr in context.atomic_id:
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            # Have to compare to #b1 because MathSat doesn't allow Arrays to have Bool elements
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (= ((_ extract 0 0) (bvshl {atomic_map[expr]} ((_ zero_extend {mission_time - idx_size}) k)) #b1) ))"
+                f"({fun_signature} (and (bvugt len k) (= (select {atomic_map[expr.symbol]} k) #b1)))"
+            )
+        elif isinstance(expr, cpt.Signal):
+            smt_commands.append(
+                f"({fun_signature} (select {atomic_map[expr.symbol]} k))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
+            smt_commands.append(
+                f"({fun_signature} (bvadd ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
+            smt_commands.append(
+                f"({fun_signature} (bvsub ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
+            smt_commands.append(
+                f"({fun_signature} (bvmul ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
+            op = "bvudiv" if not types.IntType().is_signed else "bvsdiv"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
+            op = "bvurem" if not types.IntType().is_signed else "bvsmod"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (bvneg ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
+            op = "bvugt" if not types.IntType().is_signed else "bvsgt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
+            op = "bvuge" if not types.IntType().is_signed else "bvsge"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
+            op = "bvult" if not types.IntType().is_signed else "bvslt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
+            op = "bvule" if not types.IntType().is_signed else "bvsle"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
@@ -91,7 +345,7 @@ def to_bv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len k) (and {operands})))"
+                f"({fun_signature} (and (bvugt len k) {operands}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
@@ -112,51 +366,35 @@ def to_bv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
-            else:
-                smt_expr = f"(and {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
-
+            conds = [f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)" for i in range(lb,ub+1)]
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+                f"({fun_signature} " 
+                f"(and (bvugt len k) (or (bvule len (bvadd {to_bv(lb)} k)) "
+                f"(and {' '.join(conds)}))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
-
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[0]]} {lb} len)"
-            else:
-                smt_expr = f"(or {' '.join([f'({expr_map[expr.children[0]]} {i} len)' for i in range(lb,ub+1)])})"
-
+            conds = [f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)" for i in range(lb,ub+1)]
             smt_commands.append(
-                f"({fun_signature} (and (bvugt len (bvadd {to_bv(idx_size, lb)} k)) {smt_expr}))"
+                f"({fun_signature} " 
+                f"(and (bvugt len (bvadd {to_bv(lb)} k)) "
+                f"(or {' '.join(conds)})))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            log.error(
-                MODULE_CODE, f"Until not implemented for MLTL-SAT via QF_BV\n\t{expr}"
-            )
-            return ""
-
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
 
-            if lb == ub:
-                smt_expr = f"({expr_map[expr.children[1]]} {lb} len)"
-            else:
-                cases = " ".join(
-                    [
-                        f"(and ({expr_map[expr.children[0]]} {i} len))"
-                        for i in range(lb, ub + 1)
-                    ]
-                )
-                smt_expr = f"(or {cases})"
+            unroll = f"({expr_map[expr.children[1]]} (bvadd {to_bv(ub)} k) len)"
+            for i in reversed(range(lb,ub)):
+                unroll = f"(or ({expr_map[expr.children[1]]} (bvadd {to_bv(lb+i)} k) len) (and ({expr_map[expr.children[0]]} (bvadd {to_bv(lb+i)} k) len) {unroll}))"
 
             smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i (- len i)) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
+                f"({fun_signature} "
+                f"(and (bvugt len (bvadd {to_bv(lb)} k)) "
+                f"{unroll}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(
@@ -164,10 +402,196 @@ def to_bv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             )
             return ""
         else:
-            log.error(MODULE_CODE, f"Bad repr ({expr})")
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
             return ""
 
-    smt_commands.append(f"(assert ({expr_map[start]} 0 {mission_time}))")
+    smt_commands.append(f"(declare-fun len () {timestamp_sort})")
+    smt_commands.append(f"(assert ({expr_map[start]} {to_bv(0)} len))")
+    smt_commands.append("(check-sat)")
+
+    smt = "\n".join(smt_commands)
+
+    return smt
+
+
+def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
+    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the AUFBV logic."""
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in AUFBV logic:\n\t{repr(start)}")
+
+    if options.mission_time > 0:
+        mission_time = options.mission_time
+    elif start.wpd > 0:
+        mission_time = start.wpd
+    else:
+        mission_time = 1
+
+    timestamp_width = mission_time.bit_length()
+    timestamp_sort = f"(_ BitVec {timestamp_width})"
+
+    def to_bv(value: int):
+        nonlocal timestamp_width
+        return f"(_ bv{value} {timestamp_width})"
+
+    smt_commands: list[str] = []
+    smt_commands.append("(set-logic AUFBV)")
+
+    expr_map: dict[cpt.Expression, str] = {}
+    cnt = 0
+
+    atomic_map: dict[str, str] = {}
+    for signal,typ in context.signals.items():
+        atomic_map[signal] = f"f_{signal}"
+        if typ == types.BoolType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec 1)))")
+        elif typ == types.IntType():
+            smt_commands.append(f"(declare-fun f_{signal} () (Array {timestamp_sort} (_ BitVec {types.IntType().width})))")
+
+    for expr in cpt.postorder(start, context):
+        if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
+            continue
+
+        expr_id = f"f_e{cnt}"
+        cnt += 1
+        expr_map[expr] = expr_id
+
+        if expr.type == types.BoolType():
+            smt_type = "Bool"
+        elif expr.type == types.IntType():
+            smt_type = f"(_ BitVec {types.IntType().width})"
+        else:
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+
+        fun_signature = f"define-fun {expr_id} ((k {timestamp_sort}) (len {timestamp_sort})) {smt_type}"
+
+        if isinstance(expr, cpt.Constant) and expr.value:
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) true))")
+        elif isinstance(expr, cpt.Constant) and not expr.value:
+            smt_commands.append(f"({fun_signature} (and (bvugt len k) false))")
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (= (select {atomic_map[expr.symbol]} k) #b1)))"
+            )
+        elif isinstance(expr, cpt.Signal):
+            smt_commands.append(
+                f"({fun_signature} (select {atomic_map[expr.symbol]} k))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
+            smt_commands.append(
+                f"({fun_signature} (bvadd ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
+            smt_commands.append(
+                f"({fun_signature} (bvsub ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
+            smt_commands.append(
+                f"({fun_signature} (bvmul ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
+            op = "bvudiv" if not types.IntType().is_signed else "bvsdiv"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
+            op = "bvurem" if not types.IntType().is_signed else "bvsmod"
+            smt_commands.append(
+                f"({fun_signature} ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (bvneg ({expr_map[expr.children[0]]} k len)))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
+            op = "bvugt" if not types.IntType().is_signed else "bvsgt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
+            op = "bvuge" if not types.IntType().is_signed else "bvsge"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
+            op = "bvult" if not types.IntType().is_signed else "bvslt"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
+            op = "bvule" if not types.IntType().is_signed else "bvsle"
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) ({op} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (not ({expr_map[expr.children[0]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
+            operands = " ".join(
+                [f"({expr_map[child]} k len)" for child in expr.children]
+            )
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) {operands}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
+            operands = " ".join(
+                [f"({expr_map[child]} k len)" for child in expr.children]
+            )
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (or {operands})))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len k)  (or (bvule len (bvadd {to_bv(lb)} k)) (forall ((i {timestamp_sort})) (=> (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len)) ({expr_map[expr.children[0]]} i len))))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) (exists ((i {timestamp_sort})) (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len) ({expr_map[expr.children[0]]} i len)))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) (exists ((i {timestamp_sort})) (and (bvule (bvadd {to_bv(lb)} k) i) (bvule i (bvadd {to_bv(ub)} k)) (bvult i len) ({expr_map[expr.children[1]]} i len) (forall ((j {timestamp_sort})) (=> (and (bvule (bvadd {to_bv(lb)} k) j) (bvult j i)) ({expr_map[expr.children[0]]} j len)))))))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
+            log.error(
+                MODULE_CODE, f"Release not implemented for MLTL-SAT via QF_BV\n\t{expr}"
+            )
+            return ""
+        else:
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            return ""
+
+    smt_commands.append(f"(declare-fun len () {timestamp_sort})")
+    smt_commands.append(f"(assert ({expr_map[start]} {to_bv(0)} len))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -194,9 +618,11 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
     For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a limitation of the approach. Instead of having an uninterpreted function for each atomic, we have an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`. 
     """
+    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
+
     smt_commands: list[str] = []
 
-    smt_commands.append("(set-logic AUFLIA)")
+    smt_commands.append("(set-logic UFLIA)")
 
     atomic_map: dict[str, str] = {}
     for signal,typ in context.signals.items():
@@ -212,6 +638,10 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             return ""
         
         if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
             continue
 
         expr_id = f"f_e{cnt}"
@@ -282,32 +712,32 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
-                f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
+                f"({fun_signature} (and (> len k) (not ({expr_map[expr.children[0]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(f"({fun_signature} (and {operands}))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (and {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             operands = " ".join(
                 [f"({expr_map[child]} k len)" for child in expr.children]
             )
-            smt_commands.append(f"({fun_signature} (or {operands}))")
+            smt_commands.append(f"({fun_signature} (and (> len k) (or {operands})))")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             smt_commands.append(
-                f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+                f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
             smt_commands.append(
-                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
+                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len)))))"
+                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
@@ -327,10 +757,11 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT\n\t{expr}")
             return ""
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            log.error(MODULE_CODE, f"Unsupported operator ({expr} {type(expr)})")
             return ""
 
-    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
+    smt_commands.append("(declare-fun len () Int)")
+    smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
@@ -515,60 +946,26 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if not check_solver_installed(options.smt_solver):
-        log.error(MODULE_CODE, f"{options.smt_solver} not found")
-        return SatResult.UNKNOWN
-
-    if options.enable_first_order:
-        smt = to_uflia_smtlib2_first_order(expr, context)
-    else:
+    if options.smt_theory == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
-
-    smt_file_path = options.workdir / "__tmp__.smt"
-    with open(smt_file_path, "w") as f:
-        f.write(smt)
-
-    command = [options.smt_solver, str(smt_file_path)]
-    log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
-
-    start = util.get_rusage_time()
-
-    try:
-        proc = subprocess.run(
-            command, capture_output=True, timeout=options.timeout_sat
-        )
-    except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
-        log.stat(MODULE_CODE, "sat_check_time=timeout")
+    elif options.smt_theory == options.SMTTheories.AUFBV:
+        smt = to_aufbv_smtlib2(expr, context)
+    elif options.smt_theory == options.SMTTheories.QF_AUFBV:
+        smt = to_qfaufbv_smtlib2(expr, context)
+    elif options.smt_theory == options.SMTTheories.QF_BV:
+        return check_sat_qfbv(expr, context)
+    else:
+        log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_theory}")
         return SatResult.UNKNOWN
     
-    if proc.returncode != 0:
-        log.error(MODULE_CODE, f"z3 failed with return code {proc.returncode}")
-        log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
-        return SatResult.UNKNOWN
+    return run_smt_solver(smt)
 
-    end = util.get_rusage_time()
-    sat_time = end - start
-    log.stat(MODULE_CODE, f"sat_check_time={sat_time}")
-
-    smt_file_path.unlink()
-
-    if proc.stdout.decode().find("unsat") > -1:
-        log.debug(MODULE_CODE, 1, "unsat")
-        return SatResult.UNSAT
-    elif proc.stdout.decode().find("sat") > -1:
-        log.debug(MODULE_CODE, 1, "sat")
-        return SatResult.SAT
-    else:
-        log.debug(MODULE_CODE, 1, "unknown")
-        return SatResult.UNKNOWN
-
-
+    
 def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver_installed(options.smt_solver):
+    if not check_solver():
         log.error(MODULE_CODE, f"{options.smt_solver} not found")
         return {}
 

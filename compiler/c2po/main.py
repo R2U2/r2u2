@@ -165,6 +165,9 @@ def main(
     enable_nnf: bool = False,
     enable_bnf: bool = False,
     enable_eqsat: bool = False,
+    smt_solver: Optional[str] = None,
+    smt_options: Optional[str] = None,
+    smt_theory: Optional[str] = "uflia",
     write_c2po_filename: Optional[str] = None,
     write_prefix_filename: Optional[str] = None,
     write_mltl_filename: Optional[str] = None,
@@ -203,13 +206,17 @@ def main(
     options.enable_rewrite = enable_rewrite
     options.enable_eqsat = enable_eqsat
     options.enable_cse = enable_cse
-    options.enable_sat = enable_sat
 
+    options.enable_sat = enable_sat
+    options.smt_solver = smt_solver
+    options.smt_options = smt_options
+    options.smt_theory_str = smt_theory
+    
     options.write_c2po = write_c2po_filename is not None
     options.write_prefix = write_prefix_filename is not None
     options.write_mltl = write_mltl_filename is not None
     options.write_pickle = write_pickle_filename is not None
-    options.write_smt_dirname = write_smt_dirname is not None
+    options.write_smt = write_smt_dirname is not None
     options.write_c2po_filename = write_c2po_filename
     options.write_prefix_filename = write_prefix_filename
     options.write_mltl_filename = write_mltl_filename

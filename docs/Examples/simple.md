@@ -21,11 +21,14 @@ This trace is a csv file where the first line is a header (denoted by the `#` fi
 
 We can then compile our specification using the following command:
 ```bash
-python compiler/r2u2prep.py --booleanizer simple.mltl --trace simple.csv
+python compiler/c2po.py --booleanizer simple.mltl --trace simple.csv
 ```
 The `--booleanizer` flag enables the Booleanizer engine, which computes non-Boolean operations (for example, addition, multiplication, comparisons, etc.). This command will generate a file named `spec.bin` that is a binary encoding of the specification for `r2u2`.
 
-Now we can monitor our trace using `r2u2`:
-```bash
-./monitors/static/build/r2u2 spec.bin simple.csv
-```
+And finally run using R2U2 C version:
+
+    ./monitors/c/build/r2u2 spec.bin simple.csv
+
+Or R2U2 Rust version:
+
+    ./monitors/rust/r2u2_cli/target/release/r2u2_cli run spec.bin agc.csv
