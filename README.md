@@ -24,6 +24,7 @@ The following dependencies are required to run R2U2 Rust version:
 The following dependencies are required to run C2PO: 
 - Python 3.8 or greater
 - (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
+- (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
 
 # Building
 
