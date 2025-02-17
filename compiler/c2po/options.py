@@ -17,6 +17,7 @@ class SMTTheories(enum.Enum):
     UFLIA = "uflia"
     AUFBV = "aufbv"
     QF_AUFBV = "qf_aufbv"
+    QF_BV = "qf_bv"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -216,6 +217,8 @@ def setup() -> bool:
         smt_theory = SMTTheories.AUFBV
     elif smt_theory_str == "qf_aufbv":
         smt_theory = SMTTheories.QF_AUFBV
+    elif smt_theory_str == "qf_bv":
+        smt_theory = SMTTheories.QF_BV
     else:
         log.error(MODULE_CODE, f"Invalid SMT theory '{smt_theory_str}'")
         status = False

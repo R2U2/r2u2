@@ -74,22 +74,22 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
-    
+
     def get_descendants(self) -> list[Expression]:
         prev_visited_children: list[Expression] = [self]
         visited_children: list[Expression] = []
         children: list[Expression] = []
-        while(True):  
+        while True:
             for node in prev_visited_children:
                 for child in node.children:
                     if not isinstance(child, SpecificationSet):
                         visited_children.append(child)
                         children.append(child)
-            if(len(visited_children) == 0):
+            if len(visited_children) == 0:
                 return children
             prev_visited_children = visited_children
             visited_children = []
-   
+
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
         # Special case: if trying to replace this with itself
@@ -479,7 +479,6 @@ class OperatorKind(enum.Enum):
     COUNT = "count"
     PREVIOUS = "prev"
 
-
     def is_booleanizer_operator(self) -> bool:
         return self in {
             OperatorKind.BITWISE_AND,
@@ -614,7 +613,7 @@ class Operator(Expression):
         new = Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
         new.type = types.IntType()
         return new
-    
+
     @staticmethod
     def ArithmeticPower(
         loc: log.FileLocation,
@@ -623,11 +622,11 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
-    
+
     @staticmethod
     def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
-    
+
     @staticmethod
     def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
@@ -635,11 +634,13 @@ class Operator(Expression):
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
-        
+
     @staticmethod
-    def RateFunction(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+    def RateFunction(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_RATE, [lhs, rhs])
-    
+
     @staticmethod
     def PreviousFunction(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.PREVIOUS, [operand])
@@ -741,12 +742,10 @@ class Operator(Expression):
         new = Operator(self.loc, self.operator, children)
         self.copy_attrs(new)
         return new
-    
-    
+
+
 class Atomic(Expression):
-    def __init__(
-        self, loc: log.FileLocation, child: Expression
-    ) -> None:
+    def __init__(self, loc: log.FileLocation, child: Expression) -> None:
         super().__init__(loc, [child])
         self.engine = types.R2U2Engine.BOOLEANIZER
 
@@ -839,7 +838,7 @@ class TemporalOperator(Operator):
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
         return operator
-    
+
     @staticmethod
     def Trigger(
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
@@ -952,10 +951,12 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.TRIGGER,
     }
 
+
 def is_prev_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.PREVIOUS,
     }
+
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
@@ -1124,9 +1125,7 @@ class PastTimeSpecSection(SpecSection):
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
 
-ProgramSection = Union[
-    StructSection, InputSection, DefineSection, SpecSection
-]
+ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
 
 
 class Program(Node):
@@ -1323,6 +1322,65 @@ def rename(
     for node in postorder(new, context):
         if target == node:
             node.replace(repl)
+
+    return new
+
+
+def unroll(expr: Expression, context: Context) -> Expression:
+    """Unrolls the given expression `expr` using the given context `context`"""
+    new = copy.deepcopy(expr)
+
+    def unrolled_expr(expr: Expression) -> Expression:
+        if is_operator(expr, OperatorKind.FUTURE):
+            expr = cast(TemporalOperator, expr)
+            return Operator.LogicalOr(
+                expr.loc,
+                [
+                    TemporalOperator.Future(expr.loc, b, b, expr.children[0])
+                    for b in range(expr.interval.lb, expr.interval.ub + 1)
+                ],
+            )
+        elif is_operator(expr, OperatorKind.GLOBAL):
+            expr = cast(TemporalOperator, expr)
+            return Operator.LogicalAnd(
+                expr.loc,
+                [
+                    TemporalOperator.Global(expr.loc, b, b, expr.children[0])
+                    for b in range(expr.interval.lb, expr.interval.ub + 1)
+                ],
+            )
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+
+            repl = TemporalOperator.Future(expr.loc, ub, ub, expr.children[1])
+            for b in range(ub - 1, lb - 1, -1):
+                repl = TemporalOperator.LogicalOr(
+                    expr.loc,
+                    [
+                        TemporalOperator.Future(expr.loc, b, b, expr.children[1]),
+                        TemporalOperator.LogicalAnd(
+                            expr.loc,
+                            [
+                                TemporalOperator.Future(expr.loc, b, b, expr.children[0]),
+                                repl,
+                            ],
+                        ),
+                    ],
+                )
+
+            return repl
+        elif is_operator(expr, OperatorKind.RELEASE):
+            raise NotImplementedError(
+                "Release operator not yet supported for unrolling"
+            )
+
+        return expr
+
+    for subexpr in postorder(new, context):
+        new = unrolled_expr(subexpr)
+        subexpr.replace(new)
 
     return new
 
