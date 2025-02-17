@@ -946,7 +946,9 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if options.smt_theory == options.SMTTheories.UFLIA:
+    if options.enable_first_order:
+        smt = to_uflia_smtlib2_first_order(expr, context)
+    elif options.smt_theory == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
     elif options.smt_theory == options.SMTTheories.AUFBV:
         smt = to_aufbv_smtlib2(expr, context)
