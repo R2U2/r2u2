@@ -1,0 +1,67 @@
+BootStrap: docker
+From: rust:1.84
+Stage: build
+
+%files
+    ../../compiler/* /opt/compiler/
+
+%post
+    apt-get -y update
+    apt-get -y install python3 python3-pip ninja-build
+
+    mkdir /opt/compiler/deps
+
+    git clone https://github.com/egraphs-good/egglog.git /opt/compiler/deps/egglog
+    cd /opt/compiler/deps/egglog
+    git checkout v0.4.0
+    cargo build --bin egglog --release
+
+    cd /opt/compiler/deps
+
+    wget https://yices.csl.sri.com/releases/2.6.5/yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+    tar -xvf yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+    mv yices-2.6.5 yices2
+    rm yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+
+    wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.2.1/cvc5-Linux-x86_64-static.zip
+    unzip cvc5-Linux-x86_64-static.zip
+    mv cvc5-Linux-x86_64-static cvc5
+    rm cvc5-Linux-x86_64-static.zip
+
+    wget https://mathsat.fbk.eu/download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz
+    tar -xvf "download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz"
+    mv mathsat-5.6.11-linux-x86_64 mathsat5
+    rm "download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz"
+
+    git clone https://github.com/bitwuzla/bitwuzla
+    cd bitwuzla
+    pip3 install --break-system-packages meson
+    ./configure.py
+    cd build && ninja
+
+
+BootStrap: docker
+From: python:3.11
+
+%files from build
+    /opt/compiler/* /opt/compiler/
+
+%post
+    apt-get -y update
+    apt-get -y install z3
+
+%environment
+    export PATH=$PATH:/opt/compiler/deps/yices2/bin
+    export PATH=$PATH:/opt/compiler/deps/cvc5/bin
+    export PATH=$PATH:/opt/compiler/deps/mathsat5/bin
+    export PATH=$PATH:/opt/compiler/deps/bitwuzla/build/src/main
+
+%test
+    cd /opt/compiler/test
+    python3 test.py sat-uflia
+
+%runscript
+    python3 /opt/compiler/c2po.py -c $*
+
+%labels
+    Author chris

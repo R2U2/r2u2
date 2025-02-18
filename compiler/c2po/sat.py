@@ -14,6 +14,8 @@ class SatResult(enum.Enum):
     SAT = "sat"
     UNSAT = "unsat"
     UNKNOWN = "unknown"
+    TIMEOUT = "timeout"
+    FAILURE = "fail"
 
 
 def check_solver() -> bool:
@@ -25,34 +27,30 @@ def check_solver() -> bool:
         return False
 
 
-def run_smt_solver(smt: str) -> SatResult:
+def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
     """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
     log.debug(MODULE_CODE, 1, "Running SMT solver.")
 
     if not check_solver():
         log.error(MODULE_CODE, f"{options.smt_solver} not found")
-        return SatResult.UNKNOWN
+        return (SatResult.FAILURE, -1)
 
     smt_file_path = options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 
-    command = [options.smt_solver, str(smt_file_path)]
-    if options.smt_options != "":
-        command += options.smt_options.split(" ")
+    command = [options.smt_solver, str(smt_file_path)] + options.smt_options
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     try:
         start = util.get_rusage_time()
-        proc = subprocess.run(command, capture_output=True, timeout=options.timeout_sat)
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
         end = util.get_rusage_time()
     except subprocess.TimeoutExpired:
         log.warning(
-            MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s"
+            MODULE_CODE, f"{options.smt_solver} timeout after {timeout}s"
         )
-        log.stat(MODULE_CODE, "sat_check_time=timeout")
-        log.stat(MODULE_CODE, f"sat_result={SatResult.UNKNOWN.value}")
-        return SatResult.UNKNOWN
+        return (SatResult.TIMEOUT, -1)
 
     if proc.returncode != 0:
         log.error(
@@ -60,7 +58,7 @@ def run_smt_solver(smt: str) -> SatResult:
             f"{options.smt_solver} failed with return code {proc.returncode}",
         )
         log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
-        return SatResult.UNKNOWN
+        return (SatResult.FAILURE, -1)
 
     if proc.stdout.decode().find("unsat") > -1:
         log.debug(MODULE_CODE, 1, "unsat")
@@ -73,10 +71,7 @@ def run_smt_solver(smt: str) -> SatResult:
         result = SatResult.UNKNOWN
 
     sat_time = end - start
-    log.stat(MODULE_CODE, f"sat_time={sat_time}")
-    log.stat(MODULE_CODE, f"sat_result={result.value}")
-
-    return result
+    return (result, sat_time)
 
 
 def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
@@ -113,7 +108,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
 
-    unrolled_expr = cpt.unroll(start, context)
+    unrolled_expr = cpt.unroll_temporal_operators(start, context)
     for expr in cpt.postorder(unrolled_expr, context):
         if expr in expr_map:
             continue
@@ -154,7 +149,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
             smt_commands.append(f"({fun_signature} {op})")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
             smt_commands.append(
-                f"({fun_signature} (= {expr_map[expr.children[0]]} {expr_map[expr.children[1]]}))"
+                f"({fun_signature} (bvxnor {expr_map[expr.children[0]]} {expr_map[expr.children[1]]}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             # We want to implement the following:
@@ -184,14 +179,33 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
 
     smt = "\n".join(smt_commands)
 
-    with open("temp.smt", "w") as f:
-        f.write(smt)
-
     return smt
 
 
-def check_sat_qfbv(start: cpt.Expression, context: cpt.Context) -> SatResult:
+def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResult:
     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
+    total_sat_time: float = 0
+    num_sat_calls: int = 0
+    trace_len: int = 1
+
+    def update_stats(sat_time: float) -> None:
+        nonlocal total_sat_time, num_sat_calls, trace_len
+        total_sat_time += sat_time
+        num_sat_calls += 1
+        log.stat(MODULE_CODE, f"sat_time_{num_sat_calls}={sat_time}")
+        log.stat(MODULE_CODE, f"sat_trace_len_{num_sat_calls}={trace_len}")
+
+    def report_stats(result: SatResult) -> None:
+        nonlocal total_sat_time, num_sat_calls
+        log.stat(MODULE_CODE, f"sat_result={result.value}")
+        log.stat(MODULE_CODE, f"num_sat_calls={num_sat_calls}")
+        log.stat(MODULE_CODE, f"sat_time={total_sat_time}")
+
+    def done(result: SatResult) -> bool:
+        # We know we are done when the result is sat, timeout, or failure or we have checked traces with length up to start.wpd + 1
+        nonlocal trace_len
+        return result in {SatResult.SAT, SatResult.TIMEOUT, SatResult.FAILURE} or trace_len >= (start.wpd + 1)
+
     log.debug(
         MODULE_CODE,
         1,
@@ -206,22 +220,38 @@ def check_sat_qfbv(start: cpt.Expression, context: cpt.Context) -> SatResult:
         )
         return SatResult.UNKNOWN
 
+    # start with a quick check
+    smt = to_qfbv_smtlib2(start, context, trace_len)
+    (result, sat_time) = run_smt_solver(smt, options.timeout_sat)
+    update_stats(sat_time)
+    if done(result):
+        report_stats(result)
+        return result
+
+    # if wpd is less than 256 then just go straight for it
     if start.wpd <= 255:
-        smt = to_qfbv_smtlib2(start, context, start.wpd + 1)
-        return run_smt_solver(smt)
+        trace_len = start.wpd - 1
+        smt = to_qfbv_smtlib2(start, context, trace_len)
+        (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+        update_stats(sat_time)
+        report_stats(result)
+        return result
 
-    log.debug(MODULE_CODE, 1, "WPD larger than 255, trying sat shorter checks")
+    # otherwise wpd >= 256, so try its bpd first, then its wpd
+    trace_len = start.bpd + 1
+    smt = to_qfbv_smtlib2(start, context, trace_len)
+    (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+    update_stats(sat_time)
+    if done(result):
+        report_stats(result)
+        return result
+    
+    trace_len = start.wpd + 1
+    smt = to_qfbv_smtlib2(start, context, trace_len)
+    (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+    update_stats(sat_time)
 
-    # otherwise do one short check, then a longer check, then check the whole thing
-    smt = to_qfbv_smtlib2(start, context, 1)
-    result = run_smt_solver(smt)
-    if result == SatResult.UNKNOWN:
-        smt = to_qfbv_smtlib2(start, context, 255)
-        result = run_smt_solver(smt)
-    if result == SatResult.UNKNOWN:
-        smt = to_qfbv_smtlib2(start, context, start.wpd + 1)
-        result = run_smt_solver(smt)
-
+    report_stats(result)
     return result
 
 
@@ -793,19 +823,25 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if options.smt_theory == options.SMTTheories.UFLIA:
+    if options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
-    elif options.smt_theory == options.SMTTheories.AUFBV:
+    elif options.smt_encoding == options.SMTTheories.AUFBV:
         smt = to_aufbv_smtlib2(expr, context)
-    elif options.smt_theory == options.SMTTheories.QF_AUFBV:
+    elif options.smt_encoding == options.SMTTheories.QF_AUFBV:
         smt = to_qfaufbv_smtlib2(expr, context)
-    elif options.smt_theory == options.SMTTheories.QF_BV:
-        return check_sat_qfbv(expr, context)
+    elif options.smt_encoding == options.SMTTheories.QF_BV:
+        smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
+    elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
+        return check_sat_qfbv_incr(expr, context)
     else:
-        log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_theory}")
+        log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_encoding}")
         return SatResult.UNKNOWN
 
-    return run_smt_solver(smt)
+    (result, time) = run_smt_solver(smt, options.timeout_sat)
+    log.stat(MODULE_CODE, f"sat_result={result.value}")
+    log.stat(MODULE_CODE, f"sat_time={time}")
+    log.stat(MODULE_CODE, "num_sat_calls=1")
+    return result
 
 
 def check_sat(

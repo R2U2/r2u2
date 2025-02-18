@@ -6,7 +6,7 @@ import c2po.options
 
 parser = argparse.ArgumentParser()
 parser.add_argument("spec",
-                    help="specification file (either .c2po or .mltl)")
+                    help="specification file (either .c2po .mltl)")
 
 parser.add_argument("--trace",
                     help="CSV file where variable names are mapped to signal order using file header")
@@ -20,7 +20,7 @@ parser.add_argument("-v", "--verbose", dest="log_level", action="count", default
 parser.add_argument("--debug", action="store_true",
                     help="set debug mode, implies trace logging")
 parser.add_argument("--stats", action="store_true",
-                    help="enable stat output")
+                    help="enable statistics output")
 
 parser.add_argument("--impl", default="c", choices=["c","cpp","vhdl"],
                     help="specifies target R2U2 implementation version (default: c)")
@@ -45,47 +45,50 @@ parser.add_argument("-tc", "--type-check", action="store_true",
                     help="run only the parser and type checker")
 parser.add_argument("-c", "--compile", action="store_true",
                     help="run only the parser, type checker, and passes")
-parser.add_argument("-da", "--disable-aux", action="store_false",
-                    help = "disable aux data (e.g., contract status and specification naming)")
 
-parser.add_argument("-dc", "--disable-cse", action="store_false",
-                    help="disable CSE optimization")
-parser.add_argument("-dr", "--disable-rewrite", action="store_false",
-                    help="disable MLTL rewrite rule optimizations")
-parser.add_argument("--extops", action="store_true",
-                    help="enable extended operations")
+parser.add_argument("--aux", action=argparse.BooleanOptionalAction, default=True,
+                    help = "enable aux data (e.g., contract status and specification naming) (default: true)")
+parser.add_argument("--cse", action=argparse.BooleanOptionalAction, default=True,
+                    help="enable CSE optimization (default: true)")
+parser.add_argument("--rewrite", action=argparse.BooleanOptionalAction, default=True,
+                    help="enable MLTL rewrite rule optimizations (default: true)")
+parser.add_argument("--extops", action=argparse.BooleanOptionalAction, default=False,
+                    help="enable extended operations (default: false)")
 
-parser.add_argument("-nnf", action="store_true",
-                    help="enable negation normal form")
-parser.add_argument("-bnf", action="store_true",
-                    help="enable boolean normal form")
+parser.add_argument("--nnf", action="store_true",
+                    help="rewrite final formulas in negation normal form")
+parser.add_argument("--bnf", action="store_true",
+                    help="rewrite final formulas in boolean normal form")
 
-parser.add_argument("-eq", "--eqsat", action="store_true",
-                    help="enable equality saturation")
-parser.add_argument("-sat", "--check-sat", action="store_true",
-                    help="enable satisfiability checking of future-time formulas")
+parser.add_argument("--eqsat", action=argparse.BooleanOptionalAction, default=False,
+                    help="enable equality saturation (default: false)")
+parser.add_argument("--egglog-path", default="deps/egglog/target/release/egglog",
+                    help="path to egglog executable, run 'setup_egglog.sh' for default location")
+
+parser.add_argument("--sat", action=argparse.BooleanOptionalAction, default=False,
+                    help="enable satisfiability checking of future-time formulas (default: false)")
 parser.add_argument("--smt-path", default="z3",
                     help="path to SMTLIB2-compliant solver executable, default assumes z3 is in PATH (default: z3)")
-parser.add_argument("--smt-options", default="",
-                    help="quoted list of additional options to pass to the SMT solver (example: \"--fmf-bound --finite-model-find\")")
-parser.add_argument("--smt-theory", default="uflia", choices=[member.value for member in c2po.options.SMTTheories],
-                    help="specify the SMT theory encoding to use for satisfiability checking (default: uflia)")
+parser.add_argument("--smt-encoding", default="uflia", choices=[member.value for member in c2po.options.SMTTheories],
+                    help="specify the SMT encoding to use for satisfiability checking (default: uflia)")
+parser.add_argument("--smt-option", action="append", default=[],
+                    help="additional option to pass to the SMT solver, can be specified multiple times (example: --smt-option=\"--opt-1\" --smt-option=\"--opt-2\")")
 
 parser.add_argument("--timeout-eqsat", type=int, default=3600, 
-                    help="set the timeout of equality saturation calls in seconds (default: 3600)")
+                    help="set the timeout of calls to egglog in seconds (default: 3600)")
 parser.add_argument("--timeout-sat", type=int, default=3600, 
-                    help="set the timeout of sat calls in seconds (default: 3600)")
+                    help="set the total timeout of calls to the SMT solver in seconds (default: 3600)")
 
-parser.add_argument("--write-c2po", nargs="?", const=c2po.options.EMPTY_FILENAME,
-                    help="write final program in C2PO input format")
-parser.add_argument("--write-mltl", nargs="?", const=c2po.options.EMPTY_FILENAME,
-                    help="write final program in MLTL standard format")
-parser.add_argument("--write-prefix", nargs="?", const=c2po.options.EMPTY_FILENAME,
-                    help="write final program in prefix notation")
-parser.add_argument("--write-pickle", nargs="?", const=c2po.options.EMPTY_FILENAME,
-                    help="pickle the final program")
-parser.add_argument("--write-smt", nargs="?", const=c2po.options.EMPTY_FILENAME,
-                    help="write SMT encoding of FT formulas")
+parser.add_argument("--write-c2po",
+                    help="path to write final program in C2PO input format")
+parser.add_argument("--write-mltl",
+                    help="path to write final program in MLTL standard format")
+parser.add_argument("--write-prefix",
+                    help="path to write final program in prefix notation")
+parser.add_argument("--write-pickle",
+                    help="path to pickle the final program")
+parser.add_argument("--write-smt",
+                    help="path to write SMT encodings of formulas")
 
 parser.add_argument("--copyback",
                     help="name of directory to copy workdir contents to upon termination")
@@ -106,17 +109,18 @@ return_code = c2po.main.main(
     only_type_check=args.type_check,
     only_compile=args.compile,
     enable_booleanizer=args.booleanizer, 
-    enable_aux=args.disable_aux,
-    enable_cse=args.disable_cse, 
+    enable_aux=args.aux,
+    enable_cse=args.cse, 
     enable_extops=args.extops, 
-    enable_rewrite=args.disable_rewrite, 
+    enable_rewrite=args.rewrite, 
     enable_eqsat=args.eqsat,
     enable_nnf=args.nnf,
     enable_bnf=args.bnf,
-    enable_sat=args.check_sat,
+    enable_sat=args.sat,
+    egglog_path=args.egglog_path,
     smt_solver=args.smt_path,
-    smt_options=args.smt_options,
-    smt_theory=args.smt_theory,
+    smt_options=args.smt_option,
+    smt_encoding=args.smt_encoding,
     write_c2po_filename=args.write_c2po,
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,

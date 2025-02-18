@@ -19,6 +19,7 @@ class SMTTheories(enum.Enum):
     AUFBV = "aufbv"
     QF_AUFBV = "qf_aufbv"
     QF_BV = "qf_bv"
+    QF_BV_INCR = "qf_bv_incr"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -67,9 +68,11 @@ enable_cse: bool = False
 enable_sat: bool = False
 
 smt_solver: str = "z3"
-smt_options: str = ""
-smt_theory_str: str = "uflia"
-smt_theory: SMTTheories = SMTTheories.UFLIA
+smt_options: list[str] = []
+smt_encoding_str: str = "uflia"
+smt_encoding: SMTTheories = SMTTheories.UFLIA
+
+egglog: str = ""
 
 timeout_eqsat: int = 3600
 timeout_sat: int = 3600
@@ -104,7 +107,7 @@ def setup() -> bool:
         frontend, only_parse, only_type_check, only_compile, final_stage, assembly_enabled, \
         enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
         smt_solver, timeout_eqsat, timeout_sat, \
-        smt_theory, smt_theory_str, \
+        smt_encoding, smt_encoding_str, \
         copyback_enabled, copyback_dirname, copyback_path, \
         write_c2po, write_prefix, write_mltl, write_pickle, write_smt, \
         write_c2po_filename, write_prefix_filename, write_mltl_filename, write_pickle_filename, write_smt_dirname, \
@@ -214,16 +217,18 @@ def setup() -> bool:
     else:
         frontend = types.R2U2Engine.NONE
         
-    if smt_theory_str == "uflia":
-        smt_theory = SMTTheories.UFLIA
-    elif smt_theory_str == "aufbv":
-        smt_theory = SMTTheories.AUFBV
-    elif smt_theory_str == "qf_aufbv":
-        smt_theory = SMTTheories.QF_AUFBV
-    elif smt_theory_str == "qf_bv":
-        smt_theory = SMTTheories.QF_BV
+    if smt_encoding_str == "uflia":
+        smt_encoding = SMTTheories.UFLIA
+    elif smt_encoding_str == "aufbv":
+        smt_encoding = SMTTheories.AUFBV
+    elif smt_encoding_str == "qf_aufbv":
+        smt_encoding = SMTTheories.QF_AUFBV
+    elif smt_encoding_str == "qf_bv":
+        smt_encoding = SMTTheories.QF_BV
+    elif smt_encoding_str == "qf_bv_incr":
+        smt_encoding = SMTTheories.QF_BV_INCR
     else:
-        log.error(MODULE_CODE, f"Invalid SMT theory '{smt_theory_str}'")
+        log.error(MODULE_CODE, f"Invalid SMT theory '{smt_encoding_str}'")
         status = False
 
     if write_c2po and write_c2po_filename == EMPTY_FILENAME:

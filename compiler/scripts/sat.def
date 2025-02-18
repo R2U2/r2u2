@@ -1,0 +1,22 @@
+BootStrap: localimage
+From: deps.sif
+
+%post
+    apt-get -y update
+    apt-get -y install z3
+
+%environment
+    export PATH=$PATH:/opt/compiler/deps/yices2/bin
+    export PATH=$PATH:/opt/compiler/deps/cvc5/bin
+    export PATH=$PATH:/opt/compiler/deps/mathsat5/bin
+    export PATH=$PATH:/opt/compiler/deps/bitwuzla/build/src/main
+
+%test
+    cd /opt/compiler/test
+    python3 test.py sat-uflia
+
+%runscript
+    python3 /opt/compiler/scripts/mltlsat.py $*
+
+%labels
+    Author chris

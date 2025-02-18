@@ -39,14 +39,14 @@ if ($ARGV[0] =~ /--help/) {
 
 $S = 1; #default value for S (not starting from 0)
 
-$M = 100; #default value for M
+$M = 1024; #default value for M (max interval size)
 
-$T = 100; #default value for T
+$T = 1024; #default value for T (mission time)
 
 # if ($ARGV[0] =~ /-useR/i) {
 #     $useR = 1; 
 #     print "Creating two directories, with and without 'R'...\n";
-#     shift(@ARGV); #remove this flag
+#     shift(@ARGV); #remove this flag 
 # } #end if
 # die "ARGV is now @ARGV";
 
@@ -110,7 +110,7 @@ print OUT "N is @N\n";
 print "L = (@Llist)\n";
 print OUT "L = (@Llist)\n";
 
-@Plist = (1/3, 0.5, 0.7, 0.95); #array of probabilities to try
+@Plist = (0.33, 0.5, 0.7, 0.95); #array of probabilities to try
 print "P = (@Plist)\n";
 print OUT "P = (@Plist)\n";
 
@@ -118,7 +118,8 @@ print OUT "P = (@Plist)\n";
 
 
 #Note: No R operator in MTL
-@operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
+# @operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
+@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
 $num_unary_temporal_ops = 2;
 $num_temporal_ops = 4;
 #order is very important here: unary temporal ops, binary temporal ops, then ! then binary ops
@@ -146,13 +147,13 @@ sub generate_bounds {
     }
 
     if ($M_num == 1) { #1) Make the bounds 0 ... num
-	my $first_num = int(rand($M));
+	my $first_num = int(rand($M-1)) + 1;
 	$this = "[0,$first_num]"; #M single bound
     } #end if
     elsif ($M_num == 2) { #2) Make the bounds num1 ... num2
 	my $first_num = int(rand($M));
 	my $bound = $M - $first_num;
-	my $second_num = $first_num + int(rand($bound)); #ensure 2nd num is >= 1st
+	my $second_num = $first_num + int(rand($bound-1)) + 1; #ensure 2nd num is >= 1st
 	$this = "[${first_num},${second_num}]"; #M double bound
     } #end if
     else { #3) Make the bounds num1 ... T
@@ -176,7 +177,7 @@ sub generate_formula {
     my $this;
     my $bound;
 
-    print STDERR "generate_formula here: L is $L, N is $n, P is $P, M is $M, and T is $T\n";
+    # print STDERR "generate_formula here: L is $L, N is $n, P is $P, M is $M, and T is $T\n";
     
     if ($L == 1) { #randomly choose one variable
 	    my $var_num = int(rand($n));

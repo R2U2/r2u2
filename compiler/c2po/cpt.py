@@ -1326,13 +1326,15 @@ def rename(
     return new
 
 
-def unroll(expr: Expression, context: Context) -> Expression:
+def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
     """Unrolls the given expression `expr` using the given context `context`"""
     new = copy.deepcopy(expr)
 
     def unrolled_expr(expr: Expression) -> Expression:
         if is_operator(expr, OperatorKind.FUTURE):
             expr = cast(TemporalOperator, expr)
+            if expr.interval.lb == expr.interval.ub:
+                return expr
             return Operator.LogicalOr(
                 expr.loc,
                 [
@@ -1342,6 +1344,8 @@ def unroll(expr: Expression, context: Context) -> Expression:
             )
         elif is_operator(expr, OperatorKind.GLOBAL):
             expr = cast(TemporalOperator, expr)
+            if expr.interval.lb == expr.interval.ub:
+                return expr
             return Operator.LogicalAnd(
                 expr.loc,
                 [

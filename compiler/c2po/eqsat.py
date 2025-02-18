@@ -17,7 +17,6 @@ INF = 1_000_000_000
 
 SRC_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "release" / "egglog"
 PRELUDE_PATH = SRC_DIR / "mltl.egg"
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
@@ -559,7 +558,7 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-    command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
+    command = [options.egglog, "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
     start = util.get_rusage_time()

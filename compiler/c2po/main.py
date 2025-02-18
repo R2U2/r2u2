@@ -148,9 +148,10 @@ def main(
     enable_nnf: bool = False,
     enable_bnf: bool = False,
     enable_eqsat: bool = False,
+    egglog_path: str = "",
     smt_solver: Optional[str] = None,
-    smt_options: Optional[str] = None,
-    smt_theory: Optional[str] = "uflia",
+    smt_options: list[str] = [],
+    smt_encoding: Optional[str] = "uflia",
     write_c2po_filename: Optional[str] = None,
     write_prefix_filename: Optional[str] = None,
     write_mltl_filename: Optional[str] = None,
@@ -184,13 +185,15 @@ def main(
     options.enable_nnf = enable_nnf
     options.enable_bnf = enable_bnf
     options.enable_rewrite = enable_rewrite
-    options.enable_eqsat = enable_eqsat
     options.enable_cse = enable_cse
+
+    options.enable_eqsat = enable_eqsat
+    options.egglog = egglog_path
 
     options.enable_sat = enable_sat
     options.smt_solver = smt_solver
     options.smt_options = smt_options
-    options.smt_theory_str = smt_theory
+    options.smt_encoding_str = smt_encoding
     
     options.write_c2po = write_c2po_filename is not None
     options.write_prefix = write_prefix_filename is not None
