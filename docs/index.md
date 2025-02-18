@@ -45,7 +45,7 @@ examples
 :hidden:
 :caption: 🛠 Developer Guides
 _collections/c2po_docs/dev/toc
-R2U2_Implementation
+Implementation/impl
 _collections/r2u2_c_docs/dev/toc
 _collections/r2u2_rust_docs/dev/toc
 README

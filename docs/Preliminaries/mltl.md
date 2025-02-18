@@ -13,7 +13,7 @@ R2U2 implements the following formal semantics for MLTL and ptMLTL.
 We interpret MLTL and ptMLTL formulas over finite traces bounded by base-10 (decimal) intervals. A finite trace, denoted by $\pi$, is a finite sequence of sets of atomic propositions. The $i^{th}$ set is denoted by $\pi(i)$ and contains the atomic propositions that are satisfied at the $i^{th}$ time step. $|\pi|$ denotes the length of $\pi$ (where $|\pi| < \infty$), and $\pi[lb,ub]$ denotes the trace segment $\pi(lb),\pi(lb+1),...,\pi(ub)$.
 
 
-Let $lb, ub \in \mathbb{N}_0, lb \le ub$ and let $I$ be a closed interval $[lb,ub]$; we recursively define that $\pi$ models (satisfies) an MLTL formula $\phi$ starting from time index $i \geq 0$, denoted as $\pi,i\models \phi$, as follows:
+Let $lb, ub \in \mathbb{N}_0, lb \le ub$ and let $I$ be a closed interval $[lb,ub]$; we recursively define that $\pi$ models (satisfies) an MLTL formula $\varphi$ starting from time index $i \geq 0$, denoted as $\pi,i\models \varphi$, as follows:
 
 * $\pi,i\models \sf true$
 * $\pi,i\models p$ for $p \in \mathcal{AP}$ iff $p \in \pi(i)$
@@ -27,7 +27,7 @@ Let $lb, ub \in \mathbb{N}_0, lb \le ub$ and let $I$ be a closed interval $[lb,u
 
 Given two MLTL formulas $\psi$ and $\xi$, they are semantically equivalent (denoted by $\psi \equiv \xi$) if and only if $\pi \models \psi \Leftrightarrow \pi \models \xi$ for all traces $\pi$. MLTL also keeps the standard operator equivalences from LTL, including $\sf false \equiv \neg \sf true$, $\psi\ \vee\ \xi\equiv\neg(\neg \psi\ \wedge\ \neg \xi)$, $\psi \rightarrow \xi \equiv \neg \psi \vee \xi$, $\psi\leftrightarrow\xi\equiv \neg(\psi\oplus\xi)$, $\neg(\psi\ \mathcal{U}_I\ \xi)\equiv(\neg\psi\ \mathcal{R}_I\ \neg\xi)$, $\neg\Diamond_I\psi\equiv\Box_I\neg\psi$, $\Diamond_I\psi\equiv(\sf true\ \mathcal{U}_I\ \psi)$, and $\Box_I\psi\equiv(\sf false\ \mathcal{R}_I\ \psi)$. Notably, MLTL discards the next ($\mathcal{N}$) operator since $\mathcal{N}\psi \equiv \Box_{[1,1]}\psi$.
 
-Let $lb, ub \in \mathbb{N}_0, lb \le ub$ and let $I$ be a closed interval $[lb,ub]$; we recursively define that $\pi$ models (satisfies) an ptMLTL formula $\phi$ starting from time index $i \geq 0$, denoted as $\pi,i\models \phi$, as follows:
+Let $lb, ub \in \mathbb{N}_0, lb \le ub$ and let $I$ be a closed interval $[lb,ub]$; we recursively define that $\pi$ models (satisfies) an ptMLTL formula $\varphi$ starting from time index $i \geq 0$, denoted as $\pi,i\models \varphi$, as follows:
 
 * $\pi,i\models \sf true$
 * $\pi,i\models p$ for $p \in \mathcal{AP}$ iff $p \in \pi(i)$
