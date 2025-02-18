@@ -10,7 +10,7 @@ Configuration Compiler for Property Organization (C2PO).
 
 ![R2U2 workflow](docs/_static/r2u2-flow.png)
 
-If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)). 
+If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)) and [2025 NFM paper](https://temporallogic.org/research/R2U2Rust/) ([.bib](CITATION2.bib)). 
 
 # Requirements 
 

@@ -23,7 +23,7 @@ precedence = (
 )
 ```
 
-For more details on operator definitions, see [the website](https://temporallogic.org/research/FORMATS20/) of {footcite:p}`KZJZR20`
+For more details on operator definitions, see {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`. 
 
 :::{footbibliography}
 :::

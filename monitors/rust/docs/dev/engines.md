@@ -31,7 +31,7 @@ Past-time and future-time logic uses [shared connection queues](./memory.md#shar
 
 The queue sizing is the primary reason the monitor might need to walk the program instructions multiple times per time-step and is the source of the progress checks.
 
-The internal architecture of the monitors is described in {footcite:p}`KZJZR20`.
+The internal architecture of the monitors is described in {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

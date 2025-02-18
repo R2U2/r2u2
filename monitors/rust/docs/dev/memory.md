@@ -21,7 +21,7 @@ and the second consisting of all SCQ slots (which each SCQ reserves a portion by
 If the SCQ memory domain is insufficient, Rust will panic.
 :::
 
-For SCQ operational semantics and sizing, see {footcite:p}`KZJZR20`.
+For SCQ operational semantics and sizing, see {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

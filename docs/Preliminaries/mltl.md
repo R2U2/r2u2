@@ -4,7 +4,7 @@ Mission-time Linear Temporal Logic (MLTL) and past-time MLTL (ptMLTL) enables un
 
 ## References
 
-MLTL was first defined in {footcite:p}`RRS14`. MLTL satisfiability and its complexity appears in {footcite:p}`LVR19`. MLTL validation (checking that an MLTL formula represents exactly the behavior intended) strategies include consulting the formal semantics, truth table validation, satisfiability checking, transition machine visualizations, which all appear in detail in {footcite:p}`RDR22`. We can also validate formulas through oracle generation {footcite:p}`LR18`. The WEST tool provides an (open-source) interactive GUI for MLTL visualization {footcite:p}`EGSTWR23`. The R2U2 GUI provides additional tools for profiling MLTL specifications, including calculating the size of monitor instances for equivalent MLTL formulas {footcite:p}`JJKRZ23`.
+MLTL was first defined in {footcite:p}`RRS14`, and ptMLTL was first defined in {footcite:p}`AJR2025`. MLTL satisfiability and its complexity appears in {footcite:p}`LVR19`. MLTL validation (checking that an MLTL formula represents exactly the behavior intended) strategies include consulting the formal semantics, truth table validation, satisfiability checking, transition machine visualizations, which all appear in detail in {footcite:p}`RDR22`. We can also validate formulas through oracle generation {footcite:p}`LR18`. The WEST tool provides an (open-source) interactive GUI for MLTL visualization {footcite:p}`EGSTWR23`. The R2U2 GUI provides additional tools for profiling MLTL specifications, including calculating the size of monitor instances for equivalent MLTL formulas {footcite:p}`JJKRZ23`.
 
 ## MLTL Formal Semantics
 
