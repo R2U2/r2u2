@@ -3,17 +3,17 @@
         {
             "input": "cav/array_1.c2po", 
             "expected_prefix": "cav/array_1.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "-c"]
+            "options": ["-bz", "--write-prefix", "output", "-c"]
         },
         {
             "input": "cav/array_2.c2po", 
             "expected_prefix": "cav/array_2.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "-c"]
+            "options": ["-bz", "--write-prefix", "output", "-c"]
         },
         {
             "input": "cav/struct.c2po", 
             "expected_prefix": "cav/struct.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "-c"]
+            "options": ["-bz", "--write-prefix", "output", "-c"]
         }
     ],
     "cse": [
@@ -94,44 +94,44 @@
         {
             "input": "type_check/array_index_prec.c2po", 
             "expected_prefix": "type_check/array_index_prec.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "-c"]
+            "options": ["-bz", "--write-prefix", "output", "-c"]
         }
     ],
     "serialize": [
         {
             "input": "serialize/cav.c2po", 
             "expected_c2po": "serialize/cav.c2po.expect", 
-            "options": ["-bz", "--write-c2po", "-c"]
+            "options": ["-bz", "--write-c2po", "output", "-c"]
         },
         {
             "input": "serialize/simple.c2po", 
             "expected_c2po": "serialize/simple.c2po.expect", 
-            "options": ["--write-c2po", "-c"]
+            "options": ["--write-c2po", "output", "-c"]
         },
         {
             "input": "serialize/simple.c2po", 
             "expected_mltl": "serialize/simple.mltl.expect", 
-            "options": ["--write-mltl", "-c"]
+            "options": ["--write-mltl", "output", "-c"]
         },
         {
             "input": "serialize/simple.c2po", 
             "expected_prefix": "serialize/simple.prefix.c2po.expect", 
-            "options": ["--write-prefix", "-c"]
+            "options": ["--write-prefix", "output", "-c"]
         },
         {
             "input": "serialize/multi_arity.c2po", 
             "expected_mltl": "serialize/multi_arity.mltl.expect", 
-            "options": ["--write-mltl", "-c"]
+            "options": ["--write-mltl", "output", "-c"]
         },
         {
             "input": "serialize/multi_arity.c2po", 
             "expected_prefix": "serialize/multi_arity.prefix.c2po.expect", 
-            "options": ["--write-prefix", "-c"]
+            "options": ["--write-prefix", "output", "-c"]
         },
         {
             "input": "serialize/multi_arity.c2po", 
             "expected_c2po": "serialize/multi_arity.c2po.expect", 
-            "options": ["--write-c2po", "-c"]
+            "options": ["--write-c2po", "output", "-c"]
         }
     ],
     "mltl": [
@@ -155,17 +155,17 @@
         {
             "input": "normal_forms/nnf_logic.c2po", 
             "expected_output": "normal_forms/nnf_logic.c2po.expect", 
-            "options": ["--map", "default.map", "--extops", "-nnf"]
+            "options": ["--map", "default.map", "--extops", "--nnf"]
         },
         {
             "input": "normal_forms/nnf_logic.c2po", 
             "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
-            "options": ["--map", "default.map", "-nnf"]
+            "options": ["--map", "default.map", "--nnf"]
         },
         {
             "input": "normal_forms/nnf_temporal.c2po", 
             "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
-            "options": ["--map", "default.map", "--extops", "-nnf"]
+            "options": ["--map", "default.map", "--extops", "--nnf"]
         }
     ],
     "rewrite": [
@@ -224,398 +224,530 @@
         {
             "input": "sat/sat_1.mltl", 
             "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_2.mltl", 
             "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_3.mltl", 
             "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_4.mltl", 
             "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_5.mltl", 
             "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_6.mltl", 
             "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_7.mltl", 
             "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/sat_8.mltl", 
             "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_2.mltl", 
             "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_3.mltl", 
             "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_4.mltl", 
             "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_6.mltl", 
             "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_sat_1.c2po", 
             "expected_output": "sat/bz_sat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_sat_2.c2po", 
             "expected_output": "sat/bz_sat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_sat_3.c2po", 
             "expected_output": "sat/bz_sat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_unsat_1.c2po", 
             "expected_output": "sat/bz_unsat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_unsat_2.c2po", 
             "expected_output": "sat/bz_unsat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
             "input": "sat/bz_unsat_3.c2po", 
             "expected_output": "sat/bz_unsat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "uflia"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/bz_sat_4.c2po", 
+            "expected_output": "sat/bz_sat_4.c2po.uflia.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "uflia"]
+        }
+    ],
+    "sat-auflia": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_sat_1.c2po", 
+            "expected_output": "sat/bz_sat_1.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_sat_2.c2po", 
+            "expected_output": "sat/bz_sat_2.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_sat_3.c2po", 
+            "expected_output": "sat/bz_sat_3.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_unsat_1.c2po", 
+            "expected_output": "sat/bz_unsat_1.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_unsat_2.c2po", 
+            "expected_output": "sat/bz_unsat_2.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_unsat_3.c2po", 
+            "expected_output": "sat/bz_unsat_3.c2po.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
+        },
+        {
+            "input": "sat/bz_sat_4.c2po", 
+            "expected_output": "sat/bz_sat_4.c2po.auflia.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "auflia"]
         }
     ],
     "sat-aufbv": [
         {
             "input": "sat/sat_1.mltl", 
             "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_2.mltl", 
             "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_3.mltl", 
             "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_4.mltl", 
             "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_5.mltl", 
             "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_6.mltl", 
             "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_7.mltl", 
             "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/sat_8.mltl", 
             "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_2.mltl", 
             "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_3.mltl", 
             "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_4.mltl", 
             "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_6.mltl", 
             "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_sat_1.c2po", 
             "expected_output": "sat/bz_sat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_sat_2.c2po", 
             "expected_output": "sat/bz_sat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_sat_3.c2po", 
             "expected_output": "sat/bz_sat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_unsat_1.c2po", 
             "expected_output": "sat/bz_unsat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_unsat_2.c2po", 
             "expected_output": "sat/bz_unsat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         },
         {
             "input": "sat/bz_unsat_3.c2po", 
             "expected_output": "sat/bz_unsat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_4.c2po", 
+            "expected_output": "sat/bz_sat_4.c2po.aufbv.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "aufbv"]
         }
     ],
     "sat-qf-aufbv": [
         {
             "input": "sat/sat_1.mltl", 
             "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_2.mltl", 
             "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_3.mltl", 
             "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_4.mltl", 
             "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_5.mltl", 
             "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_6.mltl", 
             "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_7.mltl", 
             "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/sat_8.mltl", 
             "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_2.mltl", 
             "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_3.mltl", 
             "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_4.mltl", 
             "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_6.mltl", 
             "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_sat_1.c2po", 
             "expected_output": "sat/bz_sat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_sat_2.c2po", 
             "expected_output": "sat/bz_sat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_sat_3.c2po", 
             "expected_output": "sat/bz_sat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_unsat_1.c2po", 
             "expected_output": "sat/bz_unsat_1.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_unsat_2.c2po", 
             "expected_output": "sat/bz_unsat_2.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         },
         {
             "input": "sat/bz_unsat_3.c2po", 
             "expected_output": "sat/bz_unsat_3.c2po.expect", 
-            "options": ["-bz", "-c", "-sat", "--extops", "--smt-theory", "qf_aufbv"]
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
+        },
+        {
+            "input": "sat/bz_sat_4.c2po", 
+            "expected_output": "sat/bz_sat_4.c2po.qf_aufbv.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_aufbv"]
         }
     ],
     "sat-qf-bv": [
         {
             "input": "sat/sat_1.mltl", 
             "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_2.mltl", 
             "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_3.mltl", 
             "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_4.mltl", 
             "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_5.mltl", 
             "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_6.mltl", 
             "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_7.mltl", 
             "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/sat_8.mltl", 
             "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_2.mltl", 
             "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_3.mltl", 
             "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_4.mltl", 
             "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_5.mltl", 
             "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_6.mltl", 
             "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         },
         {
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "-sat", "--extops", "--smt-theory", "qf_bv"]
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
+        },
+        {
+            "input": "sat/bz_sat_4.c2po", 
+            "expected_output": "sat/bz_sat_4.c2po.qf_bv.expect", 
+            "options": ["-bz", "-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         }
     ]
 }

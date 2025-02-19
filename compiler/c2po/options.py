@@ -16,6 +16,8 @@ R2U2_IMPL_MAP = {
 
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
+    AUFLIA = "auflia"
+    QF_AUFLIA = "qf_auflia"
     AUFBV = "aufbv"
     QF_AUFBV = "qf_aufbv"
     QF_BV = "qf_bv"
@@ -219,6 +221,10 @@ def setup() -> bool:
         
     if smt_encoding_str == "uflia":
         smt_encoding = SMTTheories.UFLIA
+    elif smt_encoding_str == "auflia":
+        smt_encoding = SMTTheories.AUFLIA
+    elif smt_encoding_str == "qf_auflia":
+        smt_encoding = SMTTheories.QF_AUFLIA
     elif smt_encoding_str == "aufbv":
         smt_encoding = SMTTheories.AUFBV
     elif smt_encoding_str == "qf_aufbv":

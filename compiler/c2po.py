@@ -62,13 +62,13 @@ parser.add_argument("--bnf", action="store_true",
 
 parser.add_argument("--eqsat", action=argparse.BooleanOptionalAction, default=False,
                     help="enable equality saturation (default: false)")
-parser.add_argument("--egglog-path", default="deps/egglog/target/release/egglog",
-                    help="path to egglog executable, run 'setup_egglog.sh' for default location")
+parser.add_argument("--egglog-path", default="egglog",
+                    help="path to egglog executable, default assumes egglog is in PATH (default: egglog)")
 
 parser.add_argument("--sat", action=argparse.BooleanOptionalAction, default=False,
                     help="enable satisfiability checking of future-time formulas (default: false)")
-parser.add_argument("--smt-path", default="z3",
-                    help="path to SMTLIB2-compliant solver executable, default assumes z3 is in PATH (default: z3)")
+parser.add_argument("--smt-solver", default="z3",
+                    help="path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: z3)")
 parser.add_argument("--smt-encoding", default="uflia", choices=[member.value for member in c2po.options.SMTTheories],
                     help="specify the SMT encoding to use for satisfiability checking (default: uflia)")
 parser.add_argument("--smt-option", action="append", default=[],
@@ -118,7 +118,7 @@ return_code = c2po.main.main(
     enable_bnf=args.bnf,
     enable_sat=args.sat,
     egglog_path=args.egglog_path,
-    smt_solver=args.smt_path,
+    smt_solver=args.smt_solver,
     smt_options=args.smt_option,
     smt_encoding=args.smt_encoding,
     write_c2po_filename=args.write_c2po,
