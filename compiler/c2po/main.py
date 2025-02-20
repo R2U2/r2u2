@@ -55,6 +55,8 @@ def compile() -> ReturnCode:
 
         (program, signal_mapping) = parse_output
         options.signal_mapping = signal_mapping
+
+        passes.set_only_mltl()
     elif options.spec_path.suffix == ".pickle":
         with open(str(options.spec_path), "rb") as f:
             program = pickle.load(f)

@@ -185,6 +185,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
 def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResult:
     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
     total_sat_time: float = 0
+    total_enc_time: float = 0
     num_sat_calls: int = 0
     trace_len: int = 1
 
@@ -196,7 +197,8 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         log.stat(MODULE_CODE, f"sat_trace_len_{num_sat_calls}={trace_len}")
 
     def report_stats(result: SatResult) -> None:
-        nonlocal total_sat_time, num_sat_calls
+        nonlocal total_sat_time, total_enc_time, num_sat_calls
+        log.stat(MODULE_CODE, f"smt_encoding_time={total_enc_time}")
         log.stat(MODULE_CODE, f"sat_result={result.value}")
         log.stat(MODULE_CODE, f"num_sat_calls={num_sat_calls}")
         log.stat(MODULE_CODE, f"sat_time={total_sat_time}")
@@ -221,7 +223,11 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         return SatResult.UNKNOWN
 
     # start with a quick check
+    enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
+    end_end = util.get_rusage_time()
+    total_enc_time += end_end - enc_start
+    
     (result, sat_time) = run_smt_solver(smt, options.timeout_sat)
     update_stats(sat_time)
     if done(result):
@@ -231,7 +237,10 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     # if wpd is less than 256 then just go straight for it
     if start.wpd <= 255:
         trace_len = start.wpd - 1
+        enc_start = util.get_rusage_time()
         smt = to_qfbv_smtlib2(start, context, trace_len)
+        end_end = util.get_rusage_time()
+        total_enc_time += end_end - enc_start
         (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
         update_stats(sat_time)
         report_stats(result)
@@ -239,7 +248,10 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
 
     # otherwise wpd >= 256, so try its bpd first, then its wpd
     trace_len = start.bpd + 1
+    enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
+    end_end = util.get_rusage_time()
+    total_enc_time += end_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
     update_stats(sat_time)
     if done(result):
@@ -247,7 +259,10 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         return result
     
     trace_len = start.wpd + 1
+    enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
+    end_end = util.get_rusage_time()
+    total_enc_time += end_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
     update_stats(sat_time)
 
@@ -441,7 +456,7 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
             unroll = f"({expr_map[expr.children[1]]} (bvadd {to_bv(ub)} k) len)"
             for i in reversed(range(lb, ub)):
-                unroll = f"(or ({expr_map[expr.children[1]]} (bvadd {to_bv(lb + i)} k) len) (and ({expr_map[expr.children[0]]} (bvadd {to_bv(lb + i)} k) len) {unroll}))"
+                unroll = f"(or ({expr_map[expr.children[1]]} (bvadd {to_bv(i)} k) len) (and ({expr_map[expr.children[0]]} (bvadd {to_bv(i)} k) len) {unroll}))"
 
             smt_commands.append(
                 f"({fun_signature} (and (bvugt len (bvadd {to_bv(lb)} k)) {unroll}))"
@@ -818,7 +833,7 @@ def to_qfauflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
             unroll = f"({expr_map[expr.children[1]]} (+ {ub} k) len)"
             for i in reversed(range(lb, ub)):
-                unroll = f"(or ({expr_map[expr.children[1]]} (+ {lb + i} k) len) (and ({expr_map[expr.children[0]]} (+ {lb + i} k) len) {unroll}))"
+                unroll = f"(or ({expr_map[expr.children[1]]} (+ {i} k) len) (and ({expr_map[expr.children[0]]} (+ {i} k) len) {unroll}))"
 
             smt_commands.append(
                 f"({fun_signature} (and (> len (+ {lb} k)) {unroll}))"
@@ -1202,6 +1217,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
+    start = util.get_rusage_time()
     if options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
     elif options.smt_encoding == options.SMTTheories.AUFLIA:
@@ -1219,7 +1235,10 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     else:
         log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_encoding}")
         return SatResult.UNKNOWN
-    
+    end = util.get_rusage_time()
+    encoding_time = end - start
+    log.stat(MODULE_CODE, f"smt_encoding_time={encoding_time}")
+
     log.debug(MODULE_CODE, 2, f"SMT encoding:\n{smt}")
 
     (result, time) = run_smt_solver(smt, options.timeout_sat)
