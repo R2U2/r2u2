@@ -14,6 +14,11 @@ R2U2_IMPL_MAP = {
     "vhdl": types.R2U2Implementation.VHDL,
 }
 
+class SpecFormat(enum.Enum):
+    C2PO = ".c2po"
+    MLTL = ".mltl"
+    PICKLE = ".pickle"
+
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
     AUFLIA = "auflia"
@@ -41,6 +46,7 @@ workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 output_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
+spec_format: SpecFormat = SpecFormat.C2PO
 signal_mapping: types.SignalMapping = {}
 impl_str: str = "c"
 impl: types.R2U2Implementation = types.R2U2Implementation.C
@@ -105,7 +111,7 @@ def setup() -> bool:
     **Must call `passes.setup()` after this function.**"""
     global spec_filename, trace_filename, map_filename, output_filename, \
         spec_path, output_path, \
-        signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, \
+        spec_format, signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, \
         frontend, only_parse, only_type_check, only_compile, final_stage, assembly_enabled, \
         enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
         smt_solver, timeout_eqsat, timeout_sat, \
@@ -129,6 +135,18 @@ def setup() -> bool:
     spec_path = pathlib.Path(spec_filename)
     if not spec_path.is_file():
         log.error(MODULE_CODE, f"Input file '{spec_filename} not a valid file.'")
+        status = False
+
+    if spec_path.suffix == ".c2po":
+        spec_format = SpecFormat.C2PO
+    elif spec_path.suffix == ".mltl":
+        spec_format = SpecFormat.MLTL
+    elif spec_path.suffix == ".pickle":
+        spec_format = SpecFormat.PICKLE
+    else:
+        log.error(
+            MODULE_CODE, f"Unsupported input format ({spec_path.suffix})"
+        )
         status = False
     
     trace_path = None

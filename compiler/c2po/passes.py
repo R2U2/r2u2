@@ -1305,6 +1305,16 @@ def setup() -> None:
     """Sets up the passes for the compiler."""
     log.debug(MODULE_CODE, 1, "Setting up passes")
 
+    if options.spec_format == options.SpecFormat.MLTL:
+        pass_list.remove(expand_definitions)
+        pass_list.remove(convert_function_calls_to_structs)
+        pass_list.remove(resolve_contracts)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(unroll_set_aggregation)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(resolve_array_accesses)
+        pass_list.remove(resolve_struct_accesses)
+
     if not options.enable_rewrite:
         pass_list.remove(optimize_rewrite_rules)
 

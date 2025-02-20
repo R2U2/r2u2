@@ -37,7 +37,7 @@ def compile() -> ReturnCode:
     # ----------------------------------
     # Parse
     # ----------------------------------
-    if options.spec_path.suffix == ".c2po":
+    if options.spec_format == options.SpecFormat.C2PO:
         program: Optional[cpt.Program] = parse.parse_c2po(
             options.spec_path, options.mission_time
         )
@@ -46,7 +46,7 @@ def compile() -> ReturnCode:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
-    elif options.spec_path.suffix == ".mltl":
+    elif options.spec_format == options.SpecFormat.MLTL:
         parse_output = parse.parse_mltl(options.spec_path, options.mission_time)
 
         if not parse_output:
@@ -55,9 +55,7 @@ def compile() -> ReturnCode:
 
         (program, signal_mapping) = parse_output
         options.signal_mapping = signal_mapping
-
-        passes.set_only_mltl()
-    elif options.spec_path.suffix == ".pickle":
+    elif options.spec_format == options.SpecFormat.PICKLE:
         with open(str(options.spec_path), "rb") as f:
             program = pickle.load(f)
 
@@ -65,7 +63,7 @@ def compile() -> ReturnCode:
             log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
     else:
-        log.error(
+        log.internal(
             MODULE_CODE, f"Unsupported input format ({options.spec_path.suffix})"
         )
         return ReturnCode.INVALID_INPUT
