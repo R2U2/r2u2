@@ -15,6 +15,7 @@ class SatResult(enum.Enum):
     UNSAT = "unsat"
     UNKNOWN = "unknown"
     TIMEOUT = "timeout"
+    MEMOUT = "memout"
     FAILURE = "fail"
 
 
@@ -42,28 +43,75 @@ def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
     command = [options.smt_solver, str(smt_file_path)] + [opt.replace('"', '') for opt in options.smt_options]
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
+    start = util.get_rusage_time()
+    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        start = util.get_rusage_time()
-        proc = subprocess.run(command, capture_output=True, timeout=timeout)
-        end = util.get_rusage_time()
+        (stdout, stderr) = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
-        log.warning(
-            MODULE_CODE, f"{options.smt_solver} timeout after {timeout}s"
-        )
+        proc.kill()
+        log.warning(MODULE_CODE, f"{options.smt_solver} timed out")
         return (SatResult.TIMEOUT, -1)
+    
+    end = util.get_rusage_time()
+    stdout = stdout.decode() if stdout else ""
+    stderr = stderr.decode() if stderr else ""
 
     if proc.returncode != 0:
+        # z3 memout: 
+        #   stdout=
+        #   stderr=(error "out of memory")
+        #   returncode=101
+        if "z3" in options.smt_solver and "(error \"out of memory\")" in stderr:
+            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+            return (SatResult.MEMOUT, -1)
+
+        # cvc5 memout: 
+        #   stdout(error "std::bad_alloc")
+        #   stderr=
+        #   returncode=1
+        if "cvc5" in options.smt_solver and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
+            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+            return (SatResult.MEMOUT, -1)
+
+        # yices memout:
+        #   stdout=
+        #   stderr=out of memory
+        #   returncode=16
+        if "yices" in options.smt_solver and "Out of memory" in stderr:
+            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+            return (SatResult.MEMOUT, -1)
+
+        # mathsat memout
+        #   stdout=
+        #   stderr=
+        #   returncode=6
+        if "mathsat" in options.smt_solver and proc.returncode == -6:
+            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+            return (SatResult.MEMOUT, -1)
+
+        # bitwuzla memout
+        #   stdout=
+        #   stderr=terminate called after throwing an instance of 'std::bad_alloc'
+        #            what():  std::bad_alloc
+        #   returncode=-6
+        if "bitwuzla" in options.smt_solver and "std::bad_alloc" in stderr and proc.returncode == -6:
+            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+            return (SatResult.MEMOUT, -1)
+        
         log.error(
             MODULE_CODE,
             f"{options.smt_solver} failed with return code {proc.returncode}",
         )
-        log.debug(MODULE_CODE, 1, proc.stdout.decode()[:-1])
+        log.debug(MODULE_CODE, 1, "stdout:")
+        print(stdout[:-1])
+        log.debug(MODULE_CODE, 1, "stderr:")
+        print(stderr[:-1])
         return (SatResult.FAILURE, -1)
 
-    if proc.stdout.decode().find("unsat") > -1:
+    if stdout.find("unsat") > -1:
         log.debug(MODULE_CODE, 1, "unsat")
         result = SatResult.UNSAT
-    elif proc.stdout.decode().find("sat") > -1:
+    elif stdout.find("sat") > -1:
         log.debug(MODULE_CODE, 1, "sat")
         result = SatResult.SAT
     else:
@@ -193,15 +241,15 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         nonlocal total_sat_time, num_sat_calls, trace_len
         total_sat_time += sat_time
         num_sat_calls += 1
-        log.stat(MODULE_CODE, f"sat_time_{num_sat_calls}={sat_time}")
-        log.stat(MODULE_CODE, f"sat_trace_len_{num_sat_calls}={trace_len}")
+        log.stat(MODULE_CODE, f"sat_time_{num_sat_calls}", sat_time)
+        log.stat(MODULE_CODE, f"sat_trace_len_{num_sat_calls}", trace_len)
 
     def report_stats(result: SatResult) -> None:
         nonlocal total_sat_time, total_enc_time, num_sat_calls
-        log.stat(MODULE_CODE, f"smt_encoding_time={total_enc_time}")
-        log.stat(MODULE_CODE, f"sat_result={result.value}")
-        log.stat(MODULE_CODE, f"num_sat_calls={num_sat_calls}")
-        log.stat(MODULE_CODE, f"sat_time={total_sat_time}")
+        log.stat(MODULE_CODE, "smt_encoding_time", total_enc_time)
+        log.stat(MODULE_CODE, "sat_result", result.value)
+        log.stat(MODULE_CODE, "num_sat_calls", num_sat_calls)
+        log.stat(MODULE_CODE, "sat_time", total_sat_time)
 
     def done(result: SatResult) -> bool:
         # We know we are done when the result is sat, timeout, or failure or we have checked traces with length up to start.wpd + 1
@@ -228,7 +276,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     end_end = util.get_rusage_time()
     total_enc_time += end_end - enc_start
     
-    (result, sat_time) = run_smt_solver(smt, options.timeout_sat)
+    (result, sat_time) = run_smt_solver(smt, options.smt_max_time)
     update_stats(sat_time)
     if done(result):
         report_stats(result)
@@ -241,7 +289,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         smt = to_qfbv_smtlib2(start, context, trace_len)
         end_end = util.get_rusage_time()
         total_enc_time += end_end - enc_start
-        (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+        (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
         update_stats(sat_time)
         report_stats(result)
         return result
@@ -252,7 +300,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     smt = to_qfbv_smtlib2(start, context, trace_len)
     end_end = util.get_rusage_time()
     total_enc_time += end_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+    (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
     update_stats(sat_time)
     if done(result):
         report_stats(result)
@@ -263,7 +311,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     smt = to_qfbv_smtlib2(start, context, trace_len)
     end_end = util.get_rusage_time()
     total_enc_time += end_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, options.timeout_sat - total_sat_time)
+    (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
     update_stats(sat_time)
 
     report_stats(result)
@@ -279,7 +327,7 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     if options.mission_time > 0:
         mission_time = options.mission_time
     elif start.wpd > 0:
-        mission_time = start.wpd
+        mission_time = start.wpd + 1
     else:
         mission_time = 1
 
@@ -428,7 +476,7 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             conds = [
-                f"({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len)"
+                f"(=> (bvugt len (bvadd k (_ bv{i} {timestamp_width}))) ({expr_map[expr.children[0]]} (bvadd k (_ bv{i} {timestamp_width})) len))"
                 for i in range(lb, ub + 1)
             ]
             smt_commands.append(
@@ -721,6 +769,10 @@ def to_qfauflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             smt_commands.append(f"({fun_signature} false)")
         elif isinstance(expr, cpt.Constant):
             smt_commands.append(f"({fun_signature} {expr.value})")
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (select {atomic_map[expr.symbol]} k)))"
+            )
         elif isinstance(expr, cpt.Signal):
             smt_commands.append(
                 f"({fun_signature} (select {atomic_map[expr.symbol]} k))"
@@ -805,7 +857,7 @@ def to_qfauflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             conds = [
-                f"({expr_map[expr.children[0]]} (+ k {i}) len)"
+                f"(=> (> len (+ k {i})) ({expr_map[expr.children[0]]} (+ k {i}) len))"
                 for i in range(lb, ub + 1)
             ]
             smt_commands.append(
@@ -911,6 +963,10 @@ def to_auflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             smt_commands.append(f"({fun_signature} false)")
         elif isinstance(expr, cpt.Constant):
             smt_commands.append(f"({fun_signature} {expr.value})")
+        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (select {atomic_map[expr.symbol]} k)))"
+            )
         elif isinstance(expr, cpt.Signal):
             smt_commands.append(
                 f"({fun_signature} (select {atomic_map[expr.symbol]} k))"
@@ -995,7 +1051,7 @@ def to_auflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             smt_commands.append(
-                f"({fun_signature} (and (> len k)  (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len))))))"
+                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
@@ -1237,14 +1293,14 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         return SatResult.UNKNOWN
     end = util.get_rusage_time()
     encoding_time = end - start
-    log.stat(MODULE_CODE, f"smt_encoding_time={encoding_time}")
+    log.stat(MODULE_CODE, "smt_encoding_time", encoding_time)
 
-    log.debug(MODULE_CODE, 2, f"SMT encoding:\n{smt}")
+    # log.debug(MODULE_CODE, 2, f"SMT encoding:\n{smt}")
 
-    (result, time) = run_smt_solver(smt, options.timeout_sat)
-    log.stat(MODULE_CODE, f"sat_result={result.value}")
-    log.stat(MODULE_CODE, f"sat_time={time}")
-    log.stat(MODULE_CODE, "num_sat_calls=1")
+    (result, time) = run_smt_solver(smt, options.smt_max_time)
+    log.stat(MODULE_CODE, "sat_result", result.value)
+    log.stat(MODULE_CODE, "sat_time", time)
+    log.stat(MODULE_CODE, "num_sat_calls", 1)
     return result
 
 
@@ -1287,15 +1343,14 @@ def check_equiv(
     )
 
     start = util.get_rusage_time()
-
     result = check_sat_expr(neg_equiv_expr, context)
-
     end = util.get_rusage_time()
     equiv_time = end - start
-    if equiv_time > float(options.timeout_sat):
-        log.stat(MODULE_CODE, "equiv_check_time=timeout")
+    log.stat(MODULE_CODE, "equiv_check_result", result.value)
+    if result is SatResult.TIMEOUT:
+        log.stat(MODULE_CODE, "equiv_check_time", "timeout")
     else:
-        log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")
+        log.stat(MODULE_CODE, "equiv_check_time", equiv_time)
 
     if result is SatResult.SAT:
         log.debug(MODULE_CODE, 1, "Not equivalent")

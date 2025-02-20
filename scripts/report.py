@@ -1,6 +1,7 @@
 import pathlib
 import csv
 import itertools
+import pprint
 
 CURDIR = pathlib.Path(__file__).parent
 
@@ -10,7 +11,7 @@ results: dict[str, dict[str, str]] = {}
 
 # CSV files are of the form:
 # "filename", "status", "result", "time", "calls"
-for file in CURDIR.glob("*.csv"):
+for file in CURDIR.glob("cvc5**.csv"):
     benchmark_name = file.stem
     results[benchmark_name] = {}
     with open(file, newline="") as csvfile:
@@ -34,27 +35,35 @@ for benchmark in benchmarks:
     print(f"{benchmark:31}: {failures}")
 
 benchmark_sizes = [len(results[benchmark]) for benchmark in benchmarks]
+CORRECT_SIZE = 10000
 if any(size != benchmark_sizes[0] for size in benchmark_sizes):
     print("\nDifferent number of tests in each benchmark")
     print("\n".join([f"{benchmark:31}: {len(results[benchmark])}" for benchmark in benchmarks]))
-    exit(1)
+    for i in range(len(benchmarks)):
+        benchmark = benchmarks[i]
+        if len(results[benchmark]) != CORRECT_SIZE:
+            del results[benchmark]
 
-# # this will store "filename" -> list of results for all files if there are any disagreements
-# disagreements = {}
+# update benchmarks after removing any
+benchmarks = sorted(list(results.keys()))
 
-# # now we can iterate over the results see if there are any diagreements
-# for b1,b2 in itertools.combinations(results.values(), 2):
-#     for test in tests:
-#         if (
-#             (
-#                 (results[b1[test]] == "sat" and results[b2][test] == "unsat") or 
-#                 (results[b1[test]] == "unsat" and results[b2][test] == "sat") 
-#             ) and test not in disagreements
-#         ):
-#             disagreements[test] = [b["test"] for b in benchmarks]
+# this will store "filename" -> list of results for all files if there are any disagreements
+disagreements: dict[str, list[tuple[str,str]]] = {}
 
-# if len(disagreements) == 0:
-#     print("No disagreements")
-# else:
-#     print("Disagreements:")
-#     print("\n".join(disagreements))
+# now we can iterate over the results see if there are any diagreements
+for b1,b2 in itertools.combinations(results.values(), 2):
+    for test in tests:
+        if (
+            (
+                (b1[test] == "sat" and b2[test] == "unsat") or 
+                (b1[test] == "unsat" and b2[test] == "sat") 
+            ) and test not in disagreements
+        ):
+            disagreements[test] = [(b, results[b][test]) for b in benchmarks]
+
+if len(disagreements) == 0:
+    print("No disagreements")
+else:
+    print("Disagreements:")
+    for test, res in sorted(disagreements.items()):
+        pprint.pprint(f"{test:31}: {res}")

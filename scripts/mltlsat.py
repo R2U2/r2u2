@@ -6,7 +6,7 @@ import glob
 import csv
 
 # FIXME: always make sure this is "/opt/compiler/c2po.py" before building container
-C2PO_PATH: str = "/opt/compiler/c2po.py"
+C2PO_PATH: str = "../compiler/c2po.py"
 
 output_filename: str = ""
 debug: bool = False
@@ -45,7 +45,7 @@ def test(cmd) -> None:
 
     result = {"filename": cmd[2], "status": "ok"}
 
-    datum = [s.split(" ")[1] for s in proc.stdout.decode().splitlines()]
+    datum = [s.split(" ")[1] for s in proc.stdout.decode().splitlines() if "STAT" in s]
     for data in datum:
         name, value = data.split("=")
         result[name] = value
@@ -75,10 +75,16 @@ if __name__ == "__main__":
         "--eqsat", help="enable equality saturation", action="store_true"
     )
     parser.add_argument(
-        "--timeout-sat", default=600, type=int, help="timeout for smt solver"
+        "--smt-max-time", default=600, type=int, help="timeout for smt solver"
     )
     parser.add_argument(
-        "--timeout-eqsat", default=600, type=int, help="timeout for eqsat"
+        "--eqsat-max-time", default=600, type=int, help="timeout for eqsat"
+    )
+    parser.add_argument(
+        "--smt-max-memory", default=0, type=int, help="max memory for smt solver, 0 for no limit (in MB)"
+    )
+    parser.add_argument(
+        "--eqsat-max-memory", default=0, type=int, help="max memory for eqsat, 0 for no limit (in MB)"
     )
     parser.add_argument("--debug", action="store_true", help="run c2po with debug flag")
     args = parser.parse_args()
@@ -95,13 +101,16 @@ if __name__ == "__main__":
             C2PO_PATH,
             file,
             "-c",
-            "--no-cse",
             "--extops",
             "--sat",
-            "--timeout-sat",
-            str(args.timeout_sat),
-            "--timeout-eqsat",
-            str(args.timeout_eqsat),
+            "--smt-max-time",
+            str(args.smt_max_time),
+            "--eqsat-max-time",
+            str(args.eqsat_max_time),
+            "--smt-max-memory",
+            str(args.smt_max_memory),
+            "--eqsat-max-memory",
+            str(args.eqsat_max_memory),
             "--smt-solver",
             args.solver,
             "--smt-encoding",

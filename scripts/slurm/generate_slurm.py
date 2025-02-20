@@ -4,10 +4,10 @@ template = """#!/bin/bash
 #    sbatch thefilename
 # job standard output will go to the file slurm-%j.out (where %j is the job ID)
 
-#SBATCH --time=24:00:00   # walltime limit (HH:MM:SS)
+#SBATCH --time=72:00:00   # walltime limit (HH:MM:SS)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --ntasks-per-node=36   # 36 processor core(s) per node 
-#SBATCH --mem=369G   # maximum memory per node
+#SBATCH --ntasks-per-node=24   # 36 processor core(s) per node 
+#SBATCH --mem=384G   # maximum memory per node
 #SBATCH --mail-user=cgjohann@iastate.edu   # email address
 #SBATCH --mail-type=END
 
@@ -76,10 +76,7 @@ configurations = [
         "options": ["--fmf-bound", "--finite-model-find", "--arrays-exp"],
     },
     {"solver": "cvc5", "encoding": "aufbv", "options": ["--arrays-exp"]},
-    {
-        "solver": "cvc5",
-        "encoding": "qf_aufbv",
-    },
+    {"solver": "cvc5", "encoding": "qf_aufbv", "options": ["--arrays-exp"]},
     {
         "solver": "cvc5",
         "encoding": "qf_bv",
@@ -144,7 +141,15 @@ configurations = [
 
 for config in configurations:
     for benchmark in benchmarks:
-        if config["encoding"] == "qf_bv_incr" and benchmark in {"random-4", "random-8", "random-16", "random-32", "random-64", "random-128", "random-256"}:
+        if config["encoding"] == "qf_bv_incr" and benchmark in {
+            "random-4",
+            "random-8",
+            "random-16",
+            "random-32",
+            "random-64",
+            "random-128",
+            "random-256",
+        }:
             continue
 
         experiment_name = f"{config['solver']}.{config['encoding']}.{benchmark}"
@@ -154,6 +159,15 @@ for config in configurations:
                 config["solver"],
                 config["encoding"],
                 f"{experiment_name}.csv",
-                " ".join([f"--solver-option=\"{opt}\"" for opt in config.get("options", [])]),
+                (
+                    "--smt-max-time 600 "
+                    + f"--smt-max-memory {16 * 1024} "
+                    + " ".join(
+                        [
+                            f'--solver-option="{opt}"'
+                            for opt in config.get("options", [])
+                        ]
+                    )
+                ),
             )
             f.write(content)

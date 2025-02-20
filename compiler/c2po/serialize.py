@@ -52,7 +52,7 @@ def write_outputs(
                 elif options.smt_encoding == options.SMTTheories.AUFLIA:
                     f.write(sat.to_auflia_smtlib2(expr, context))
                 elif options.smt_encoding == options.SMTTheories.QF_AUFLIA:
-                    f.write(sat.to_qfaufbv_smtlib2(expr, context))
+                    f.write(sat.to_qfauflia_smtlib2(expr, context))
                 elif options.smt_encoding == options.SMTTheories.AUFBV:
                     f.write(sat.to_aufbv_smtlib2(expr, context))
                 elif options.smt_encoding == options.SMTTheories.QF_AUFBV:

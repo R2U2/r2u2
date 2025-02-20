@@ -1,6 +1,7 @@
 import pathlib
 import enum
 import sys
+import resource
 
 from c2po import types, log, parse
 
@@ -79,11 +80,12 @@ smt_solver: str = "z3"
 smt_options: list[str] = []
 smt_encoding_str: str = "uflia"
 smt_encoding: SMTTheories = SMTTheories.UFLIA
+smt_max_time: int = 3600
+smt_max_memory: int = resource.RLIM_INFINITY
 
 egglog: str = ""
-
-timeout_eqsat: int = 3600
-timeout_sat: int = 3600
+eqsat_max_time: int = 3600
+eqsat_max_memory: int = resource.RLIM_INFINITY
 
 write_c2po: bool = False
 write_prefix: bool = False
@@ -114,7 +116,7 @@ def setup() -> bool:
         spec_format, signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, \
         frontend, only_parse, only_type_check, only_compile, final_stage, assembly_enabled, \
         enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
-        smt_solver, timeout_eqsat, timeout_sat, \
+        smt_solver, smt_max_memory, smt_max_memory, eqsat_max_memory, eqsat_max_time, \
         smt_encoding, smt_encoding_str, \
         copyback_enabled, copyback_dirname, copyback_path, \
         write_c2po, write_prefix, write_mltl, write_pickle, write_smt, \
@@ -236,6 +238,16 @@ def setup() -> bool:
         frontend = types.R2U2Engine.BOOLEANIZER
     else:
         frontend = types.R2U2Engine.NONE
+
+    if eqsat_max_memory == 0:
+        eqsat_max_memory = resource.RLIM_INFINITY
+    else:
+        eqsat_max_memory = eqsat_max_memory * 1024 * 1024
+
+    if smt_max_memory == 0:
+        smt_max_memory = resource.RLIM_INFINITY
+    else:
+        smt_max_memory = smt_max_memory * 1024 * 1024
         
     if smt_encoding_str == "uflia":
         smt_encoding = SMTTheories.UFLIA

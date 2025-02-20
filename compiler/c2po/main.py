@@ -135,7 +135,6 @@ def main(
     enable_rewrite: bool = True,
     enable_cse: bool = True,
     enable_sat: bool = False,
-    timeout_sat: int = 3600,
     impl: str = "c",
     mission_time: int = -1,
     int_width: int = 32,
@@ -149,15 +148,18 @@ def main(
     enable_bnf: bool = False,
     enable_eqsat: bool = False,
     egglog_path: str = "",
+    eqsat_max_time: int = 3600,
+    eqsat_max_memory: int = 0,
     smt_solver: Optional[str] = None,
     smt_options: list[str] = [],
     smt_encoding: Optional[str] = "uflia",
+    smt_max_time: int = 3600,
+    smt_max_memory: int = 0,
     write_c2po_filename: Optional[str] = None,
     write_prefix_filename: Optional[str] = None,
     write_mltl_filename: Optional[str] = None,
     write_pickle_filename: Optional[str] = None,
     write_smt_dirname: Optional[str] = None,
-    timeout_eqsat: int = 3600,
     copyback_dirname: Optional[str] = None,
     stats: bool = False,
     debug: bool = False,
@@ -189,12 +191,16 @@ def main(
 
     options.enable_eqsat = enable_eqsat
     options.egglog = egglog_path
+    options.eqsat_max_time = eqsat_max_time
+    options.eqsat_max_memory = eqsat_max_memory
 
     options.enable_sat = enable_sat
     options.smt_solver = smt_solver
     options.smt_options = smt_options
     options.smt_encoding_str = smt_encoding
-    
+    options.smt_max_time = smt_max_time
+    options.smt_max_memory = smt_max_memory
+
     options.write_c2po = write_c2po_filename is not None
     options.write_prefix = write_prefix_filename is not None
     options.write_mltl = write_mltl_filename is not None
@@ -205,9 +211,6 @@ def main(
     options.write_mltl_filename = write_mltl_filename
     options.write_pickle_filename = write_pickle_filename
     options.write_smt_dirname = write_smt_dirname
-
-    options.timeout_eqsat = timeout_eqsat
-    options.timeout_sat = timeout_sat
 
     options.copyback_enabled = copyback_dirname is not None
     options.copyback_dirname = copyback_dirname

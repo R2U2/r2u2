@@ -1128,7 +1128,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
-    log.stat(MODULE_CODE, f"old_scq_size={program.total_scq_size}")
+    log.stat(MODULE_CODE, "old_scq_size", program.total_scq_size)
 
     log.warning(MODULE_CODE, "Equality saturation is an experimental feature")
     log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
@@ -1164,8 +1164,8 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
             old.replace(new)
             compute_scq_sizes(program, context)
 
-        log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
-        log.stat(MODULE_CODE, f"new_scq_size={program.total_scq_size}")
+        log.stat(MODULE_CODE, "equiv_result", equiv_result)
+        log.stat(MODULE_CODE, "new_scq_size", program.total_scq_size)
 
     log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
 

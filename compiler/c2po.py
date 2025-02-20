@@ -64,6 +64,10 @@ parser.add_argument("--eqsat", action=argparse.BooleanOptionalAction, default=Fa
                     help="enable equality saturation (default: false)")
 parser.add_argument("--egglog-path", default="egglog",
                     help="path to egglog executable, default assumes egglog is in PATH (default: egglog)")
+parser.add_argument("--eqsat-max-time", type=int, default=3600, 
+                    help="set the maximum time to allow for egglog in seconds (default: 3600)")
+parser.add_argument("--eqsat-max-memory", type=int, default=0, 
+                    help="set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: 0)")
 
 parser.add_argument("--sat", action=argparse.BooleanOptionalAction, default=False,
                     help="enable satisfiability checking of future-time formulas (default: false)")
@@ -73,11 +77,10 @@ parser.add_argument("--smt-encoding", default="uflia", choices=[member.value for
                     help="specify the SMT encoding to use for satisfiability checking (default: uflia)")
 parser.add_argument("--smt-option", action="append", default=[],
                     help="additional option to pass to the SMT solver, can be specified multiple times (example: --smt-option=\"--opt-1\" --smt-option=\"--opt-2\")")
-
-parser.add_argument("--timeout-eqsat", type=int, default=3600, 
-                    help="set the timeout of calls to egglog in seconds (default: 3600)")
-parser.add_argument("--timeout-sat", type=int, default=3600, 
-                    help="set the total timeout of calls to the SMT solver in seconds (default: 3600)")
+parser.add_argument("--smt-max-time", type=int, default=3600, 
+                    help="set the total maximum time to allow for SMT calls in seconds (default: 3600)")
+parser.add_argument("--smt-max-memory", type=int, default=0, 
+                    help="set the total maximum memory to allow for SMT calls in MB, use 0 for no maximum (default: 0)")
 
 parser.add_argument("--write-c2po",
                     help="path to write final program in C2PO input format")
@@ -118,16 +121,18 @@ return_code = c2po.main.main(
     enable_bnf=args.bnf,
     enable_sat=args.sat,
     egglog_path=args.egglog_path,
+    eqsat_max_time=args.eqsat_max_time,
+    eqsat_max_memory=args.eqsat_max_memory,
     smt_solver=args.smt_solver,
     smt_options=args.smt_option,
     smt_encoding=args.smt_encoding,
+    smt_max_time=args.smt_max_time,
+    smt_max_memory=args.smt_max_memory,
     write_c2po_filename=args.write_c2po,
     write_mltl_filename=args.write_mltl,
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
     write_smt_dirname=args.write_smt,
-    timeout_eqsat=args.timeout_eqsat,
-    timeout_sat=args.timeout_sat,
     copyback_dirname=args.copyback,
     stats=args.stats,
     debug=args.debug,

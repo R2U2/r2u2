@@ -4,7 +4,7 @@ Error messaging (source file location) are inspired by GNU error message standar
 """
 import enum
 import sys
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Any
 
 ISSUE_URL: str = "https://github.com/R2U2/r2u2/issues"
 VERSION: str = "1.0"
@@ -74,14 +74,14 @@ def format(
 
 def stat(
     module: str,
-    message: str,
-    location: Optional[FileLocation] = None,
+    name: str,
+    value: Any
 ) -> None:
     global enable_stat
     if not enable_stat or enable_quiet:
         return
     formatted_message = format(
-        message, "STAT", None, module, location
+        f"{name}={value}", "STAT", None, module, None
     )
     sys.stdout.write(formatted_message)
 
