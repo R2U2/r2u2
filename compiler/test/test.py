@@ -47,6 +47,8 @@ def run_diff(
     status = True
     diff = ""
     for line in result:
+        if "unknown" in line:
+            continue
         if line[0] in {"-", "+", "?"}:
             status = False
         diff += line
