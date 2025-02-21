@@ -241,8 +241,6 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         nonlocal total_sat_time, num_sat_calls, trace_len
         total_sat_time += sat_time
         num_sat_calls += 1
-        log.stat(MODULE_CODE, f"sat_time_{num_sat_calls}", sat_time)
-        log.stat(MODULE_CODE, f"sat_trace_len_{num_sat_calls}", trace_len)
 
     def report_stats(result: SatResult) -> None:
         nonlocal total_sat_time, total_enc_time, num_sat_calls
@@ -534,7 +532,7 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     if options.mission_time > 0:
         mission_time = options.mission_time
     elif start.wpd > 0:
-        mission_time = start.wpd
+        mission_time = start.wpd + 1
     else:
         mission_time = 1
 

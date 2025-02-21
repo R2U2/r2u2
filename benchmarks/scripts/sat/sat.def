@@ -3,7 +3,7 @@ From: rust:1.84
 Stage: build
 
 %files
-    ../compiler/* /opt/compiler/
+    ../../../compiler/* /opt/compiler/
     mltlsat.py /opt/
 
 %post
@@ -18,6 +18,11 @@ Stage: build
     cargo build --bin egglog --release
 
     cd /opt/compiler/deps
+
+    wget https://github.com/Z3Prover/z3/releases/download/z3-4.14.0/z3-4.14.0-x64-glibc-2.35.zip
+    unzip z3-4.14.0-x64-glibc-2.35.zip
+    mv z3-4.14.0-x64-glibc-2.35 z3
+    rm z3-4.14.0-x64-glibc-2.35.zip
 
     wget https://yices.csl.sri.com/releases/2.6.5/yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
     tar -xvf yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
@@ -36,6 +41,7 @@ Stage: build
 
     git clone https://github.com/bitwuzla/bitwuzla
     cd bitwuzla
+    git checkout 0.7.0
     pip3 install --break-system-packages meson
     ./configure.py release
     cd build && ninja
@@ -47,12 +53,9 @@ From: python:3.11
 %files from build
     /opt/* /opt/
 
-%post
-    apt-get -y update
-    apt-get -y install z3
-
 %environment
     export PATH=$PATH:/opt/compiler/deps/egglog/target/release
+    export PATH=$PATH:/opt/compiler/deps/z3/bin
     export PATH=$PATH:/opt/compiler/deps/yices2/bin
     export PATH=$PATH:/opt/compiler/deps/cvc5/bin
     export PATH=$PATH:/opt/compiler/deps/mathsat5/bin

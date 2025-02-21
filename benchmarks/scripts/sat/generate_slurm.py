@@ -1,24 +1,26 @@
+import os
+
 template = """#!/bin/bash
 
 # Copy/paste this job script into a text file and submit with the command:
 #    sbatch thefilename
 # job standard output will go to the file slurm-%j.out (where %j is the job ID)
 
-#SBATCH --time=72:00:00   # walltime limit (HH:MM:SS)
+#SBATCH --time=36:00:00   # walltime limit (HH:MM:SS)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --ntasks-per-node=24   # 36 processor core(s) per node 
+#SBATCH --ntasks-per-node=20   # 20 processor core(s) per node 
 #SBATCH --mem=384G   # maximum memory per node
 #SBATCH --mail-user=cgjohann@iastate.edu   # email address
 #SBATCH --mail-type=END
+#SBATCH --job-name="{}"   # Job name to display in squeue
+#SBATCH --output="{}"   # Job standard output file
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 module load apptainer
 cd /work/kyrozier/cgjohann/mltlsat
-apptainer run container.sif random/{} {} {} results/{} {}
+apptainer run container.sif random/{} {} {} results/{} --smt-max-time 1200 --smt-max-memory 16000 {}
 """
 
-solvers = ["z3", "cvc5", "mathsat", "yices-smt2", "bitwuzla"]
-encodings = ["uflia", "aufbv", "qf_aufbv", "qf_bv", "qf_bv_incr"]
 benchmarks = [
     "random-4",
     "random-8",
@@ -29,6 +31,9 @@ benchmarks = [
     "random-256",
     "random-512",
     "random-1024",
+    "random-2048",
+    "random-4096",
+    "random-8192",
 ]
 
 configurations = [
@@ -109,35 +114,9 @@ configurations = [
         "solver": "yices-smt2",
         "encoding": "qf_bv_incr",
     },
-    {
-        "solver": "mathsat",
-        "encoding": "uflia",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "auflia",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "qf_auflia",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "aufbv",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "qf_aufbv",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "mathsat",
-        "encoding": "qf_bv_incr",
-    },
 ]
+
+os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
@@ -153,21 +132,16 @@ for config in configurations:
             continue
 
         experiment_name = f"{config['solver']}.{config['encoding']}.{benchmark}"
-        with open(f"{experiment_name}.slurm", "w") as f:
+        with open(f"slurm/{experiment_name}.slurm", "w") as f:
             content = template.format(
+                benchmark,
+                f"{benchmark}.out",
                 benchmark,
                 config["solver"],
                 config["encoding"],
                 f"{experiment_name}.csv",
-                (
-                    "--smt-max-time 600 "
-                    + f"--smt-max-memory {16 * 1024} "
-                    + " ".join(
-                        [
-                            f'--solver-option="{opt}"'
-                            for opt in config.get("options", [])
-                        ]
-                    )
+                " ".join(
+                    [f'--solver-option="{opt}"' for opt in config.get("options", [])]
                 ),
             )
             f.write(content)

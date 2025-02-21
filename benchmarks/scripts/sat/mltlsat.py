@@ -6,7 +6,7 @@ import glob
 import csv
 
 # FIXME: always make sure this is "/opt/compiler/c2po.py" before building container
-C2PO_PATH: str = "../compiler/c2po.py"
+C2PO_PATH: str = "/opt/compiler/c2po.py"
 
 output_filename: str = ""
 debug: bool = False
@@ -75,10 +75,10 @@ if __name__ == "__main__":
         "--eqsat", help="enable equality saturation", action="store_true"
     )
     parser.add_argument(
-        "--smt-max-time", default=600, type=int, help="timeout for smt solver"
+        "--smt-max-time", default=1200, type=int, help="timeout for smt solver"
     )
     parser.add_argument(
-        "--eqsat-max-time", default=600, type=int, help="timeout for eqsat"
+        "--eqsat-max-time", default=1200, type=int, help="timeout for eqsat"
     )
     parser.add_argument(
         "--smt-max-memory", default=0, type=int, help="max memory for smt solver, 0 for no limit (in MB)"
