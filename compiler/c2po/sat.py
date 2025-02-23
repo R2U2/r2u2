@@ -1,5 +1,6 @@
 import subprocess
 import enum
+import sys
 
 from typing import cast
 
@@ -44,7 +45,7 @@ def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory_offset(options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         (stdout, stderr) = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -133,9 +134,13 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
     bv_width = trace_len
     bv_sort = f"(_ BitVec {bv_width})"
 
+    # Need to set this in case bv literals have more than 4300 digits (in decimal) for to_bv
+    # 0 means no limit
+    sys.set_int_max_str_digits(0) 
+
     def to_bv(value: int):
         nonlocal bv_width
-        return f"(_ bv{value} {bv_width})"
+        return f"(_ bv{min(value, (2**bv_width) - 1)} {bv_width})"
 
     def ones():
         nonlocal bv_width
@@ -206,15 +211,15 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
             # Example: let cs(p) = 0b1010 and lb = 2, then cs(G[2,2] p) = (0b1010 << 2) | 0b0011 = 0b1011
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
-            shift_amt = f"(_ bv{lb} {bv_width})"
-            shift_ones_bitmask = f"(_ bv{2**lb - 1} {bv_width})"
+            shift_amt = to_bv(lb)
+            shift_ones_bitmask = to_bv(2**lb - 1)
             smt_commands.append(
                 f"({fun_signature} (bvor (bvshl {expr_map[expr.children[0]]} {shift_amt}) {shift_ones_bitmask}))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
-            shift_amt = f"(_ bv{lb} {bv_width})"
+            shift_amt = to_bv(lb)
             smt_commands.append(
                 f"({fun_signature} (bvshl {expr_map[expr.children[0]]} {shift_amt}))"
             )
@@ -252,7 +257,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     def done(result: SatResult) -> bool:
         # We know we are done when the result is sat, timeout, or failure or we have checked traces with length up to start.wpd + 1
         nonlocal trace_len
-        return result in {SatResult.SAT, SatResult.TIMEOUT, SatResult.FAILURE} or trace_len >= (start.wpd + 1)
+        return result in {SatResult.SAT, SatResult.TIMEOUT, SatResult.MEMOUT, SatResult.FAILURE} or trace_len >= (start.wpd + 1)
 
     log.debug(
         MODULE_CODE,
@@ -271,9 +276,8 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     # start with a quick check
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    end_end = util.get_rusage_time()
-    total_enc_time += end_end - enc_start
-    
+    enc_end = util.get_rusage_time()
+    total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time)
     update_stats(sat_time)
     if done(result):
@@ -282,11 +286,11 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
 
     # if wpd is less than 256 then just go straight for it
     if start.wpd <= 255:
-        trace_len = start.wpd - 1
+        trace_len = start.wpd + 1
         enc_start = util.get_rusage_time()
         smt = to_qfbv_smtlib2(start, context, trace_len)
-        end_end = util.get_rusage_time()
-        total_enc_time += end_end - enc_start
+        enc_end = util.get_rusage_time()
+        total_enc_time += enc_end - enc_start
         (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
         update_stats(sat_time)
         report_stats(result)
@@ -296,8 +300,8 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     trace_len = start.bpd + 1
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    end_end = util.get_rusage_time()
-    total_enc_time += end_end - enc_start
+    enc_end = util.get_rusage_time()
+    total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
     update_stats(sat_time)
     if done(result):
@@ -307,8 +311,8 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     trace_len = start.wpd + 1
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    end_end = util.get_rusage_time()
-    total_enc_time += end_end - enc_start
+    enc_end = util.get_rusage_time()
+    total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
     update_stats(sat_time)
 

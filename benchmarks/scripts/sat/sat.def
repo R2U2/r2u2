@@ -67,7 +67,7 @@ From: python:3.11
     cvc5 --version
     mathsat -version
     bitwuzla --version
-    python3 /opt/compiler/c2po.py -bz -c --sat --eqsat --extops /opt/compiler/test/sat/sat_1.mltl
+    python3 /opt/compiler/c2po.py -bz -c --sat --eqsat --extops /opt/compiler/test/sat/sat_1.mltl --debug
 
 %runscript
     python3 /opt/mltlsat.py $*

@@ -36,7 +36,7 @@ def test(cmd) -> None:
     if proc.returncode:
         print(proc.stdout.decode())
         print(proc.stderr.decode())
-        write_result({"filename": cmd[-1], "status": "err"})
+        write_result({"filename": cmd[2], "status": "err"})
         return
     
     if debug:
