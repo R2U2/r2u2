@@ -86,6 +86,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--eqsat-max-memory", default=0, type=int, help="max memory for eqsat, 0 for no limit (in MB)"
     )
+    parser.add_argument(
+        "--nprocs", type=int, help="number of processes to use"
+    )
     parser.add_argument("--debug", action="store_true", help="run c2po with debug flag")
     args = parser.parse_args()
 
@@ -124,5 +127,5 @@ if __name__ == "__main__":
     ]
 
     # passing None here means we use cpu_count processes
-    with mp.Pool(None) as pool:
+    with mp.Pool(args.nprocs) as pool:
         results = pool.map(test, test_cmds)

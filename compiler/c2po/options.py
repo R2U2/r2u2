@@ -22,6 +22,7 @@ class SpecFormat(enum.Enum):
 
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
+    QF_UFLIA = "qf_uflia"
     AUFLIA = "auflia"
     QF_AUFLIA = "qf_auflia"
     AUFBV = "aufbv"
@@ -251,6 +252,8 @@ def setup() -> bool:
         
     if smt_encoding_str == "uflia":
         smt_encoding = SMTTheories.UFLIA
+    elif smt_encoding_str == "qf_uflia":
+        smt_encoding = SMTTheories.QF_UFLIA
     elif smt_encoding_str == "auflia":
         smt_encoding = SMTTheories.AUFLIA
     elif smt_encoding_str == "qf_auflia":

@@ -53,7 +53,7 @@ def set_max_memory(bytes: int) -> None:
     except ValueError:
         log.warning(
             MODULE_CODE,
-            "Failed to set max memory limit, provided limit is likely over current hard limit",
+            "Failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
         )
 
 
