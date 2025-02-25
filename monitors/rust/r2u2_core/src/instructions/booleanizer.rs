@@ -48,20 +48,13 @@ pub const BZ_OP_IABS: u8 = 0b100101;
 pub const BZ_OP_FABS: u8 = 0b100110;
 pub const BZ_OP_PREV: u8 = 0b100111;
 
+#[derive(Copy, Clone)]
 pub struct BooleanizerInstruction {
     pub param1: u32,
     pub param2: u32,
     pub memory_reference: u32,
     pub opcode: u8,
 
-}
-
-impl Copy for BooleanizerInstruction{ }
-
-impl Clone for BooleanizerInstruction{
-    fn clone(&self) -> BooleanizerInstruction {
-        return *self
-    }
 }
 
 impl BooleanizerInstruction {

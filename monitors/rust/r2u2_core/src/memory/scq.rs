@@ -17,6 +17,7 @@ use vstd::prelude::*;
 
 verus! {
     
+#[derive(Copy, Clone)]
 pub struct SCQCtrlBlock{
     pub length: u32,
     pub write: u32,
@@ -25,14 +26,6 @@ pub struct SCQCtrlBlock{
     pub next_time: r2u2_time,
     pub temporal_block: SCQTemporalBlock,
     pub queue_ref: u32
-}
-
-impl Copy for SCQCtrlBlock{ }
-
-impl Clone for SCQCtrlBlock{
-    fn clone(&self) -> SCQCtrlBlock {
-        return *self
-    }
 }
 
 impl Default for SCQCtrlBlock{
@@ -49,19 +42,12 @@ impl Default for SCQCtrlBlock{
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct SCQTemporalBlock {
     pub lower_bound: r2u2_time,
     pub upper_bound: r2u2_time,
     pub edge: r2u2_verdict,
     pub previous: r2u2_verdict,
-}
-
-impl Copy for SCQTemporalBlock{ }
-
-impl Clone for SCQTemporalBlock{
-    fn clone(&self) -> SCQTemporalBlock {
-        return *self
-    }
 }
 
 impl Default for SCQTemporalBlock {

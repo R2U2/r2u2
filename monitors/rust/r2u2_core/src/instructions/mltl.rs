@@ -35,6 +35,7 @@ pub const MLTL_OP_TYPE_DIRECT: u8 = 0b01;
 pub const MLTL_OP_TYPE_SUBFORMULA: u8 = 0b10;
 pub const MLTL_OP_TYPE_NOT_SET: u8 = 0b11;
 
+#[derive(Copy, Clone)]
 pub struct MLTLInstruction {
     pub op1_value: u32,
     pub op2_value: u32,
@@ -42,14 +43,6 @@ pub struct MLTLInstruction {
     pub op1_type: u8,
     pub op2_type: u8,
     pub opcode: u8,
-}
-
-impl Copy for MLTLInstruction{ }
-
-impl Clone for MLTLInstruction{
-    fn clone(&self) -> MLTLInstruction {
-        return *self
-    }
 }
 
 impl MLTLInstruction {
