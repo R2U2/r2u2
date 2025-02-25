@@ -7,8 +7,8 @@ The monitor structure defined here tracks the monitor internal state and stores 
 
 There are 4  major types of fields in the monitor structure:
 1. The vector clock, made up of the time stamp, BZ and TL program counters, and progress indicator.
-2. Instruction memory, including an instuction table for both BZ and TL instructions and auxiliary string information.
-3. Internal memory such as input signal buffer, atomic proprosition buffer, and SCQ memory arena.
+2. Instruction memory, including an instruction table for both BZ and TL instructions and auxiliary string information.
+3. Internal memory such as input signal buffer, atomic proposition buffer, and SCQ memory arena.
 4. Output buffers made of arrays containing the verdict stream and contract information including and index referring to the length of valid buffered information for the given time stamp
 
 ## Shared Connection Queue

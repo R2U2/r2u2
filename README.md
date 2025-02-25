@@ -41,7 +41,7 @@ This only needs to be *once*, regardless of the specifications you wish to monit
 
 To build R2U2 from source, run `cargo build --release` from `monitors/r2u2_cli`:
 ```bash
-cd monitors/rust/rust_cli/
+cd monitors/rust/r2u2_cli/
 cargo build --release
 ```
 
@@ -57,7 +57,6 @@ defined in [`examples/simple.c2po`](examples/simple.c2po) using
 
 1. Compile the specification using C2PO
 ```bash
-cd compiler
 python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
 ```
 

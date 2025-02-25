@@ -3,7 +3,7 @@
 When using R2U2 as a library within a user-provided application, configuration and execution of the monitor becomes the callers responsibility.
 The `r2u2_core` crate is written in `no_std` and includes the core of R2U2 with specified API calls. Both `r2u2_cli` and 
 `r2u2_cortex_m_example` demonstrate examples of how to utilize the `r2u2_core` crate. `r2u2_cli` allows users
-to utilze R2U2 through a commandline interface, and `r2u2_cortex_m_example` demonstrates how to embed R2U2 on a microcontroller.
+to utilize R2U2 through a commandline interface, and `r2u2_cortex_m_example` demonstrates how to embed R2U2 on a microcontroller.
 
 - `r2u2_core` is available as a publically accessibly crate here for easy import into applications: [https://crates.io/crates/r2u2_core](https://crates.io/crates/r2u2_core)
 - Documentation on `r2u2_core` is available here: [https://docs.rs/r2u2_core/latest/r2u2_core/](https://docs.rs/r2u2_core/latest/r2u2_core/)
