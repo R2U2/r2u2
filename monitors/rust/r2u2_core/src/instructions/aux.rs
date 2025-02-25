@@ -6,8 +6,8 @@ fn convert_ascii_to_decimal(ascii: &[u8]) -> u32 {
     let mut num: u32 = 0;
     let mut multiplier: u32 = 1;
     for x in (0..ascii.len()).rev() {
-        num = num + ((ascii[x] as char).to_digit(10).unwrap_or(0) * multiplier);
-        multiplier = multiplier * 10;
+        num += ((ascii[x] as char).to_digit(10).unwrap_or(0) * multiplier);
+        multiplier *= 10;
     }
     return num;
 }

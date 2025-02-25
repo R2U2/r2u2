@@ -47,7 +47,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                 _ => {
                     // Store instruction in table
                     monitor.bz_instruction_table[monitor.bz_program_count.max_program_count] = instr;
-                    monitor.bz_program_count.max_program_count = monitor.bz_program_count.max_program_count + 1;
+                    monitor.bz_program_count.max_program_count += 1;
                 }
             }
         }
@@ -56,7 +56,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             let instr = MLTLInstruction::set_from_binary(&spec_file[offset+2..]);
             // Store instruction in table
             monitor.mltl_instruction_table[monitor.mltl_program_count.max_program_count] = instr;
-            monitor.mltl_program_count.max_program_count = monitor.mltl_program_count.max_program_count + 1;
+            monitor.mltl_program_count.max_program_count += 1;
         }
         offset = offset + (spec_file[offset] as usize);
     }
@@ -82,13 +82,13 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         // Print output of mltl table
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         print_mltl_instruction(monitor.mltl_instruction_table[i]);
-        i = i + 1;
+        i += 1;
     }
 
     #[cfg(feature = "aux_string_specs")]{
         let mut i = 0;
         let mut length;
-        offset = offset + 1;
+        offset += 1;
         while { // Rust do-while loop
             match spec_file[offset] as char {
                 'C' => { // Contract auxiliary info
@@ -110,7 +110,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             }
 
             offset = offset + length + 1;
-            i = i + 1;
+            i += 1;
             
             spec_file[offset] != 0 // Condition to loop again
         } {}

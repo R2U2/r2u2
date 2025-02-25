@@ -34,7 +34,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     // Run booleanizer instructions (once)
     while monitor.bz_program_count.curr_program_count < monitor.bz_program_count.max_program_count {
         bz_update(monitor);
-        monitor.bz_program_count.curr_program_count = monitor.bz_program_count.curr_program_count + 1;
+        monitor.bz_program_count.curr_program_count += 1;
     }
     monitor.bz_program_count.curr_program_count = 0;
     // Run mltl instructions (currently just supporting future time)
@@ -42,7 +42,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     while start_time == monitor.time_stamp{
         while monitor.mltl_program_count.curr_program_count < monitor.mltl_program_count.max_program_count {
             mltl_update(monitor);
-            monitor.mltl_program_count.curr_program_count = monitor.mltl_program_count.curr_program_count + 1;
+            monitor.mltl_program_count.curr_program_count += 1;
         }
         match monitor.progress {
             MonitorProgressState::FirstLoop => {
