@@ -213,7 +213,7 @@ pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
 /// 
 /// ```
 /// let mut monitor = r2u2_core::get_monitor(&spec_file);
-/// for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+/// for out in r2u2_core::get_output_buffer(&monitor) {
 ///     println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
 /// }
 /// ```
@@ -237,7 +237,7 @@ pub fn get_output_buffer(monitor: &Monitor) -> &[r2u2_output]{
 /// 
 /// ```
 /// let mut monitor = r2u2_core::get_monitor(&spec_file);
-/// for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+/// for out in r2u2_core::get_contract_buffer(&monitor) {
 ///     println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
 /// }
 /// ```
