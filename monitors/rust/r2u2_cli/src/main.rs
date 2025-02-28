@@ -114,7 +114,7 @@ fn valid_spec_file(s: &str) -> Result<PathBuf, String> {
         Ok(file as PathBuf)
     } else {
         Err(format!(
-            "{} is not a .c2po or .mltl file", s
+            "{s} is not a .c2po or .mltl file"
         ))
     }
 }
@@ -151,7 +151,7 @@ fn valid_map_file(s: &str) -> Result<PathBuf, String> {
         Ok(file as PathBuf)
     } else {
         Err(format!(
-            "{} is not a .csv or .map file", s
+            "{s} is not a .csv or .map file"
         ))
     }
 }
