@@ -1,7 +1,7 @@
-use crate::internals::types::*;
+use crate::internals::types::r2u2_bool;
 use crate::memory::monitor::*;
-use mltl::*;
-use booleanizer::*;
+use mltl::mltl_update;
+use booleanizer::bz_update;
 
 mod mltl;
 mod booleanizer;

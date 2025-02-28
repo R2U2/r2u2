@@ -3,7 +3,7 @@ use libm::{pow, sqrt};
 use crate::internals::bounds::R2U2_FLOAT_EPSILON;
 
 use crate::instructions::booleanizer::*;
-use crate::memory::monitor::*;
+use crate::memory::monitor::Monitor;
 use crate::internals::types::*;
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]

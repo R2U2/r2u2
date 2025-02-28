@@ -1,8 +1,8 @@
 use crate::internals::types::*;
-use crate::memory::monitor::*;
+use crate::memory::monitor::Monitor;
 
 
-use crate::internals::bounds::*;
+use crate::internals::bounds::{R2U2_MAX_TL_INSTRUCTIONS, R2U2_TOTAL_QUEUE_MEM};
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::internals::debug::*;

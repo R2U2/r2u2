@@ -1,5 +1,3 @@
-use r2u2_core;
-
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
