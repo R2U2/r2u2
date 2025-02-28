@@ -261,7 +261,7 @@ fn main() {
             disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
             if output.is_some(){
-                out_location = output.clone().unwrap_or(PathBuf::new()).to_str().unwrap_or(".").to_owned();
+                out_location = output.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(".").to_owned();
                 out_location.push_str("/spec.bin");
             } else{
                 out_location = "spec.bin".to_owned();
