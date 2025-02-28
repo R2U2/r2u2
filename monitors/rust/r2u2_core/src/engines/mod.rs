@@ -18,6 +18,7 @@ use libc_print::std_name::println;
 // pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ
 // pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control
 pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
+// Original Atomic Checker was 3, but has been removed since v4.0
 pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
 pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
