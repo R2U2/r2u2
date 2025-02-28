@@ -212,16 +212,16 @@ fn main() {
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
                         if *enable_aux {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("{} ({}):{},{}\n", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
                             }
                         } else {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("{}:{},{}\n", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
                             }
                         }
                         if !disable_contracts {
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_contract_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("Contract {} {} at {}\n", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time));
                             }
                         }
@@ -238,16 +238,16 @@ fn main() {
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
                         if *enable_aux {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 println!("{} ({}):{},{}", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
                             }
                         } else {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
                             }
                         }
                         if !disable_contracts {
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_contract_buffer(&monitor) {
                                 println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
                             }
                         }
