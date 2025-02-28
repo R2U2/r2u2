@@ -245,6 +245,7 @@ pub fn mltl_update(monitor: &mut Monitor){
     }
 }
 
+// Verus doesn't support saturating_sub; therefore, have to provide specification for it
 pub open spec fn saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> r2u2_time {
     if lhs - rhs < 0 {
         0
