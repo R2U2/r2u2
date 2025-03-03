@@ -23,9 +23,6 @@ verus! {
 pub fn bz_update(monitor: &mut Monitor){
     let instr = monitor.bz_instruction_table[monitor.bz_program_count.curr_program_count];
     match instr.opcode{
-        BZ_OP_NONE => {
-            return;
-        }
         BZ_OP_ILOAD => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ILOAD");

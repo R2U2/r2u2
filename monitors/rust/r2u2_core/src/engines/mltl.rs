@@ -43,10 +43,6 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             let op_id = if op_num == 0 {instr.op1_value} else {instr.op2_value};
             return scq_read(monitor, instr.memory_reference, op_id, op_num);
         }
-        MLTL_OP_TYPE_NOT_SET => {
-            // Error
-            return None;
-        }
         _ => {
             // Error
             return None;
@@ -69,9 +65,6 @@ fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verd
 pub fn mltl_update(monitor: &mut Monitor){
     let instr = monitor.mltl_instruction_table[monitor.mltl_program_count.curr_program_count];
     match instr.opcode {
-        MLTL_OP_FT_NOP => {
-            return;
-        }
         MLTL_OP_FT_LOAD => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("LOAD");
