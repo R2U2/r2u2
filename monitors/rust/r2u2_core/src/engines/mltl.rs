@@ -143,20 +143,14 @@ pub fn mltl_update(monitor: &mut Monitor){
             debug_print!("FT UNTIL");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match until_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = until_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_RELEASE => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("FT RELEASE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match release_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = release_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_ONCE => {
             return;
@@ -169,49 +163,34 @@ pub fn mltl_update(monitor: &mut Monitor){
             debug_print!("PT SINCE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match since_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = since_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_TRIGGER => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("PT TRIGGER");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match trigger_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = trigger_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_NOT => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("NOT");
             let op = check_operand_data(instr, monitor, 0);
-            match not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_AND => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("AND");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_OR => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("OR");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match or_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = or_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         MLTL_OP_IMPLIES => {
             return;
@@ -227,10 +206,7 @@ pub fn mltl_update(monitor: &mut Monitor){
             debug_print!("EQUIVALENT");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match equivalent_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = equivalent_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         _ => {
             return;
