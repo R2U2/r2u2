@@ -89,7 +89,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
         let mut i = 0;
         let mut length;
         offset += 1;
-        while { // Rust do-while loop
+        loop {
             match spec_file[offset] as char {
                 'C' => { // Contract auxiliary info
                     (monitor.aux_string_table[i], length) = AuxiliaryInfo::set_contract(&spec_file[offset..]);
@@ -112,7 +112,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             offset = offset + length + 1;
             i += 1;
             
-            spec_file[offset] != 0 // Condition to loop again
-        } {}
+            if spec_file[offset] == 0 { break };
+        }
     }
 }

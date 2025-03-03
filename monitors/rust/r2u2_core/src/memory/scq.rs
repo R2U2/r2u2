@@ -134,7 +134,7 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
         return None;
     }
 
-    while { // Rust do-while loop
+    loop {
         // Check if time pointed to is >= desired time
         if monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize].time >= parent_queue_ctrl.next_time {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -146,8 +146,8 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
         *read = (*read + 1) % child_queue_ctrl.length;
 
         
-        *read != child_queue_ctrl.write // Condition to loop again
-    } {}
+        if *read == child_queue_ctrl.write { break };
+    }
 
     // Here we hit the write pointer while scanning forwards, take a step back
     // in case the next value is compacted onto the slot we just checked.
