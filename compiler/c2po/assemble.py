@@ -179,7 +179,7 @@ class TLOperandType(Enum):
 
 
 class FTOperator(Enum):
-    # See monitors/c/src/engines/mltl/mltl.h
+    # See monitors/c/src/engines/mltl.h
     NOP = 0b11111
     CONFIG = 0b11110
     LOAD = 0b11101

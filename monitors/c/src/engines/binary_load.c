@@ -4,8 +4,8 @@
 #include "internals/bounds.h"
 #include "internals/debug.h"
 #include "internals/errors.h"
-#include "engines/booleanizer/booleanizer.h"
-#include "engines/mltl/mltl.h"
+#include "engines/booleanizer.h"
+#include "engines/mltl.h"
 #include <stdio.h>
 
 static short x = 0x3210;
