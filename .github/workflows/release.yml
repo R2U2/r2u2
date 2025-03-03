@@ -1,0 +1,42 @@
+name: Push and publish release to GitHub
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  parse_tag:
+    runs-on: ubuntu-latest
+    outputs: 
+      version: ${{ steps.tag_ref.outputs._0 }}
+      suffix: ${{ steps.tag_ref.outputs._1 }}
+    steps:
+    - name: Get version number
+      uses: jungwinter/split@v2
+      id: tag_ref
+      with:
+        msg: ${{ github.ref_name }}
+        separator: '-'
+          
+  release:
+    runs-on: ubuntu-latest
+    needs: parse_tag
+    permissions:
+      contents: write
+    if: ${{ needs.parse_tag.outputs.suffix == 'release' }}
+    steps:
+    - name: Get current date
+      id: date
+      run: echo "date=$(date +'%B %e, %Y')" >> $GITHUB_ENV
+    - uses: actions/checkout@v4
+    - name: Create Release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Release ${{ needs.parse_tag.outputs.version }}
+        body: |
+              # R2U2 Release Version ${{ needs.parse_tag.outputs.version }}
+
+              -   GitHub tag: ${{ github.ref_name }}
+              -   Release date: ${{ env.date }}
+        generateReleaseNotes: true
