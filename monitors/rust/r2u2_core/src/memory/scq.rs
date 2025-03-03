@@ -100,7 +100,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
             !(monitor.queue_arena.queue_mem[(queue_ctrl.queue_ref+queue_ctrl.write) as usize].time == r2u2_infinity && queue_ctrl.write == 0){
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Compacting write");
-        queue_ctrl.write = prev as u32;
+        queue_ctrl.write = prev;
     } 
   
     // Here the write offset is ready in all cases, write and advance

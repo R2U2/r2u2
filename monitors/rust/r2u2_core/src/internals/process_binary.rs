@@ -19,7 +19,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
 
     while spec_file[offset] != 0 {
         // Configure Instructions
-        if (spec_file[offset + 1] == engines::R2U2_ENG_CG as u8) && (spec_file[offset + 2] == engines::R2U2_ENG_TL as u8){
+        if (spec_file[offset + 1] == engines::R2U2_ENG_CG) && (spec_file[offset + 2] == engines::R2U2_ENG_TL){
             let instr = MLTLInstruction::set_from_binary(&spec_file[offset+3..]);
             mltl_configure_instruction_dispatch(instr, monitor);
         }
