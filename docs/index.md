@@ -10,7 +10,10 @@ Configuration Compiler for Property Organization (C2PO).
 
 To get started, go to the [Quick Start Guide (C Version)](Overview/quick_start_guide_c) or [Quick Start Guide (Rust Version)](Overview/quick_start_guide_rust).
 
-If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) and our [2025 NFM paper](https://temporallogic.org/research/R2U2Rust/). 
+If you would like to cite R2U2, please use our 2023 CAV paper {footcite:p}`JJKRZ23` and our 2025 NFM Paper {footcite:p}`AJR2025`. 
+
+:::{footbibliography}
+:::
 
 
 ```{toctree}
