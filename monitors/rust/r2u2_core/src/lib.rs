@@ -46,7 +46,7 @@ mod memory;
 pub use internals::types::{r2u2_output,r2u2_verdict};
 #[cfg(feature = "aux_string_specs")]
 pub use internals::types::{r2u2_contract, AGC_INACTIVE, AGC_INVALID, AGC_VERIFIED};
-pub use internals::bounds::{R2U2_MAX_SPECS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_MEM};
+pub use internals::bounds::{R2U2_MAX_SPECS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_MEM,R2U2_FLOAT_EPSILON};
 
 /// Get runtime monitor
 /// 
@@ -147,7 +147,7 @@ pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
 /// 
 pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = value != 0.0;
+        monitor.atomic_buffer[index] = value >= R2U2_FLOAT_EPSILON || value <= -R2U2_FLOAT_EPSILON;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
