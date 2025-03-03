@@ -75,7 +75,13 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
+r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
+
+  // Copy to buffer to avoid alignment issues
+  // TODO(bckempa): Make this optional based on bin packing switch
+  r2u2_mltl_instruction_t inst_buff;
+  memcpy(&inst_buff, instr, sizeof(r2u2_mltl_instruction_t));
+  instr = &inst_buff;
 
   r2u2_bool op0_rdy, op1_rdy;
   r2u2_tnt_t op0, op1, result;
@@ -582,14 +588,4 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
   }
 
   return error_cond;
-}
-
-r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
-
-  // Copy to buffer to avoid alignment issues
-  // TODO(bckempa): Make this optional based on bin packing switch
-  r2u2_mltl_instruction_t inst_buff;
-  memcpy(&inst_buff, instr, sizeof(r2u2_mltl_instruction_t));
-
-  return r2u2_mltl_update(monitor, &inst_buff);
 }
