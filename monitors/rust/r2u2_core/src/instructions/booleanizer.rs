@@ -57,7 +57,7 @@ pub struct BooleanizerInstruction {
 
 }
 
-impl BooleanizerInstruction {
+impl BooleanizerInstruction { // C2PO format sensitive
     pub fn get_param1_int_from_binary(instr: &[u8]) -> i32 {
         return LittleEndian::read_i32(&instr[0..]);
     }

@@ -5,29 +5,29 @@ use crate::memory::{scq::SCQCtrlBlock, monitor::Monitor};
 use crate::internals::debug;
     
 // MLTL Instruction Opcodes
-pub const MLTL_OP_FT_NOP: u8 = 0b11111;
+pub const MLTL_OP_NOP: u8 = 0b11111;
 
-pub const MLTL_OP_FT_LOAD: u8 = 0b11101;
-pub const MLTL_OP_FT_RETURN: u8 = 0b11100;
+pub const MLTL_OP_LOAD: u8 = 0b11101;
+pub const MLTL_OP_RETURN: u8 = 0b11100;
 
-pub const MLTL_OP_FT_EVENTUALLY: u8 = 0b11011;
-pub const MLTL_OP_FT_GLOBALLY: u8 = 0b11010;
-pub const MLTL_OP_FT_UNTIL: u8 = 0b11001;
-pub const MLTL_OP_FT_RELEASE: u8 = 0b11000;
+pub const MLTL_OP_EVENTUALLY: u8 = 0b11011;
+pub const MLTL_OP_GLOBALLY: u8 = 0b11010;
+pub const MLTL_OP_UNTIL: u8 = 0b11001;
+pub const MLTL_OP_RELEASE: u8 = 0b11000;
 
-pub const MLTL_OP_FT_NOT: u8 = 0b10111;
-pub const MLTL_OP_FT_AND: u8 = 0b10110;
-pub const MLTL_OP_FT_OR: u8 = 0b10101;
-pub const MLTL_OP_FT_IMPLIES: u8 = 0b10100;
+pub const MLTL_OP_NOT: u8 = 0b10111;
+pub const MLTL_OP_AND: u8 = 0b10110;
+pub const MLTL_OP_OR: u8 = 0b10101;
+pub const MLTL_OP_IMPLIES: u8 = 0b10100;
 
-pub const MLTL_OP_FT_PROB: u8 = 0b10011;
-pub const MLTL_OP_FT_XOR: u8 = 0b10001;
-pub const MLTL_OP_FT_EQUIVALENT: u8 = 0b10000;
+pub const MLTL_OP_PROB: u8 = 0b10011;
+pub const MLTL_OP_XOR: u8 = 0b10001;
+pub const MLTL_OP_EQUIVALENT: u8 = 0b10000;
 
-pub const MLTL_OP_PT_ONCE: u8 = 0b01011;
-pub const MLTL_OP_PT_HISTORICALLY: u8 = 0b01010;
-pub const MLTL_OP_PT_SINCE: u8 = 0b01001;
-pub const MLTL_OP_PT_TRIGGER: u8 = 0b01000;
+pub const MLTL_OP_ONCE: u8 = 0b01011;
+pub const MLTL_OP_HISTORICALLY: u8 = 0b01010;
+pub const MLTL_OP_SINCE: u8 = 0b01001;
+pub const MLTL_OP_TRIGGER: u8 = 0b01000;
 
 // MLTL Operand Types
 pub const MLTL_OP_TYPE_ATOMIC: u8 = 0b00;
@@ -45,7 +45,7 @@ pub struct MLTLInstruction {
     pub opcode: u8,
 }
 
-impl MLTLInstruction {
+impl MLTLInstruction { // C2PO format sensitive
     pub fn set_from_binary(instr: &[u8]) -> MLTLInstruction{
         return MLTLInstruction{ 
             op1_value: LittleEndian::read_u32(&instr[0..]),
@@ -63,7 +63,7 @@ impl MLTLInstruction {
             memory_reference: 0,
             op1_type: MLTL_OP_TYPE_NOT_SET,
             op2_type: MLTL_OP_TYPE_NOT_SET,
-            opcode: MLTL_OP_FT_NOP,
+            opcode: MLTL_OP_NOP,
         };
     }
 }

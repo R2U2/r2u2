@@ -266,22 +266,9 @@ fn main() {
             } else{
                 out_location = "spec.bin".to_owned();
             }
-            if map.extension().and_then(OsStr::to_str) == Some("csv") {
-                compile::c2po_compile(spec.to_str().unwrap(),
-                        map.to_str().unwrap(),
-                        "",
-                        &out_location,
-                        !disable_booleanizer,
-                        !disable_aux,
-                        !disable_rewrite,
-                        !disable_cse,
-                        enable_sat.to_owned(),
-                        if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
-                        );
-            } else if map.extension().and_then(OsStr::to_str) == Some("map") {
-                compile::c2po_compile(spec.to_str().unwrap(),
-                "",
-                map.to_str().unwrap(),
+            compile::c2po_compile(spec.to_str().unwrap(),
+                if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
+                if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
                 &out_location,
                 !disable_booleanizer,
                 !disable_aux,
@@ -290,7 +277,6 @@ fn main() {
                 enable_sat.to_owned(),
                 if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
                 );
-            }
         }
         _ => {}
     }

@@ -573,10 +573,8 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t 
       error_cond = R2U2_OK;
       break;
     }
-
     /* Error Case */
     default: {
-      // Somehow got into wrong tense dispatch
       R2U2_DEBUG_PRINT("Warning: Bad Inst Type\n");
       error_cond = R2U2_INVALID_INST;
       break;

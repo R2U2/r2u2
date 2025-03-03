@@ -74,8 +74,8 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
     let mut i = 0;
     while i < monitor.mltl_program_count.max_program_count{
         // For future time, we never need information from [0, lb]
-        if monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_UNTIL || 
-            monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_RELEASE {
+        if monitor.mltl_instruction_table[i].opcode == MLTL_OP_UNTIL || 
+            monitor.mltl_instruction_table[i].opcode == MLTL_OP_RELEASE {
                 let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[monitor.mltl_instruction_table[i].memory_reference as usize];
                 queue.next_time = queue.temporal_block.lower_bound;
             }

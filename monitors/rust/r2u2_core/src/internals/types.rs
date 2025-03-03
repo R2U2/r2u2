@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 #[cfg(feature = "aux_string_specs")]
 use fixedstr::ztr64;
 
@@ -16,25 +18,19 @@ pub const AGC_INVALID: u8 = 1;
 /// Assume-Guarantee Contract (AGC) verified status
 pub const AGC_VERIFIED: u8 = 2;
 
-#[allow(non_camel_case_types)]
 pub type r2u2_time = u32;
 
-#[allow(non_camel_case_types)]
 pub type r2u2_float = f64;
 
-#[allow(non_camel_case_types)]
 pub type r2u2_bool = bool;
 
-#[allow(non_camel_case_types)]
 pub type r2u2_int = i32;
 
-#[allow(non_camel_case_types)]
 pub type r2u2_addr = u32;
 
 #[allow(non_upper_case_globals)]
 pub const r2u2_infinity: r2u2_time = r2u2_time::MAX;
 
-#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 /// Struct to contain verdict-timestamp tuples
 pub struct r2u2_verdict{
@@ -53,7 +49,6 @@ impl Default for r2u2_verdict{
 }
 
 #[verifier::external] // Verus doesn't support floats
-#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 pub struct r2u2_value{
     // Notice that we store booleans as integers so we do not require 
@@ -72,7 +67,6 @@ impl Default for r2u2_value{
     }
 }
 
-#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 /// Struct to contain output verdicts (i.e., specification identification and verdict)
 pub struct r2u2_output{
@@ -95,7 +89,6 @@ impl Default for r2u2_output{
 }
 
 #[cfg(feature = "aux_string_specs")]
-#[allow(non_camel_case_types)]
 #[derive(Copy, Clone)]
 /// Struct to contain Assume-Guarantee Contract (AGC) verdicts (i.e., contract identification and status)
 pub struct r2u2_contract{
