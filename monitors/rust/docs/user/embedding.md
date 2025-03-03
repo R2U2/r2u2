@@ -12,6 +12,13 @@ to utilize R2U2 through a commandline interface, and `r2u2_cortex_m_example` dem
 
 The "static" in the name "R2U2 static monitor" refers to the monitor not perform any memory allocation calls, it is the user's responsibility to provide proper sizing parameters. A `Monitor` struct is used to represent the state and memory of an instance of R2U2. The `get_monitor` function will setup a monitor with default extents, see [configuration](./configuration.md) to adjust those sizes.
 
+## C2PO Specification Input
+Each R2U2 static monitor monitors its own specifications that have been specified utilizing C2PO. It is the user's responsibility to set the C2PO binary correctly. The specification binary can be passed by reference as `&[u8]` when creating the monitor with `get_monitor` or updated with `update_binary_file`.
+
+:::{note}
+The `xxd -i [file path to C2PO binary]` terminal command will dump the binary compiled by C2PO into a byte array.
+:::
+
 ## Signal Input
 
 System state values, called signals, are read from the signal vector by the monitor on each tic.
