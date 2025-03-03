@@ -41,7 +41,7 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ STORE");
             let op = monitor.value_buffer[instr.param1 as usize].i;
-            monitor.atomic_buffer[instr.param2 as usize] = if op == 0 {false} else {true};
+            monitor.atomic_buffer[instr.param2 as usize] = op != 0;
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("a{} = {} (b{})", instr.param2, monitor.atomic_buffer[instr.param2 as usize], instr.param1 as usize);
         }

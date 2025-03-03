@@ -127,7 +127,7 @@ pub fn load_bool_signal(monitor: &mut Monitor, index: usize, value: r2u2_bool){
 /// 
 pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value == 0 {false} else {true};
+        monitor.atomic_buffer[index] = value != 0;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
@@ -147,7 +147,7 @@ pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
 /// 
 pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value == 0.0 {false} else {true};
+        monitor.atomic_buffer[index] = value != 0.0;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
@@ -168,7 +168,7 @@ pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float)
 /// 
 pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value.parse::<r2u2_int>().expect("Please provide a 0 or 1") == 0 {false} else {true};
+        monitor.atomic_buffer[index] = value.parse::<r2u2_int>().expect("Please provide a 0 or 1") != 0;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
