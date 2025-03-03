@@ -546,7 +546,7 @@ fn integer_negative(op: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
     if op == r2u2_int::MIN {
         return (r2u2_int::MAX, true);
     } else {
-        return (-1 * op, false);
+        return (-op, false);
     }
 }
 
@@ -554,7 +554,7 @@ fn integer_negative(op: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
 #[inline(always)]
 fn float_negative(op: r2u2_float) -> (result: r2u2_float)
 {
-    return -1.0 * op;
+    return -op;
 }
 
 #[inline(always)]
