@@ -216,7 +216,6 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
             push_result(monitor, instr, result);
             ctrl->next_time = next;
             temp->previous = R2U2_TNT_TRUE | result;
-            error_cond = R2U2_OK;
           }
         }
       }
@@ -271,7 +270,6 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
             push_result(monitor, instr, result);
             ctrl->next_time = next;
             temp->previous = R2U2_TNT_TRUE | result;
-            error_cond = R2U2_OK;
           }
         }
       }
