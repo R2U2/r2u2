@@ -13,7 +13,7 @@ typedef enum {
     R2U2_ENG_NA = 0, // Null instruction tag - acts as ENDSEQ
     R2U2_ENG_SY = 1, // System commands - reserved for monitor control
     R2U2_ENG_CG = 2, // Immediate Configuration Directive
-    R2U2_ENG_AT = 3, // Original Atomic Checker
+    // Original Atomic Checker was 3, but has been removed since v4.0
     R2U2_ENG_TL = 4, // MLTL Temporal logic engine
     R2U2_ENG_BZ = 5, // Booleanizer
 } r2u2_engine_tag_t;

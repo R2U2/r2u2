@@ -1,0 +1,8 @@
+INPUT
+    button: bool;
+
+FTSPEC
+    G[0,500] button;
+
+PTSPEC
+    O[0,500] button;

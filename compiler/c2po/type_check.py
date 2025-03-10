@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from c2po import cpt, log, types
+from c2po import cpt, log, types, options
 
 MODULE_CODE = "TYPC"
 
@@ -59,8 +59,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             #     ...
         elif isinstance(expr, cpt.Signal):
             if (
-                context.config.assembly_enabled
-                and expr.symbol not in context.config.signal_mapping
+                options.assembly_enabled
+                and expr.symbol not in options.signal_mapping
             ):
                 log.error(
                     MODULE_CODE,
@@ -70,7 +70,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 return False
             
             if (
-                context.config.frontend is not types.R2U2Engine.BOOLEANIZER
+                options.frontend is not types.R2U2Engine.BOOLEANIZER
                 and expr.type in {types.IntType(), types.FloatType()}
             ):
                 log.error(
@@ -81,30 +81,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.config.frontend is types.R2U2Engine.BOOLEANIZER:
+            if options.frontend is types.R2U2Engine.BOOLEANIZER:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
 
-            if expr.symbol in context.config.signal_mapping:
-                expr.signal_id = context.config.signal_mapping[expr.symbol]
+            if expr.symbol in options.signal_mapping:
+                expr.signal_id = options.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
-        elif isinstance(expr, cpt.AtomicChecker):
-            if context.config.frontend is not types.R2U2Engine.ATOMIC_CHECKER:
-                log.error(
-                    MODULE_CODE,
-                    "Atomic checkers not enabled, but found in expression\n\t"
-                    f"{expr}",
-                    expr.loc,
-                )
-                return False
-
-            if expr.symbol not in context.atomic_checkers:
-                log.error(
-                    MODULE_CODE,
-                    f"Atomic checker '{expr.symbol}' not defined",
-                    expr.loc,
-                )
-                return False
         elif isinstance(expr, cpt.Variable):
             symbol = expr.symbol
 
@@ -132,8 +115,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-            elif symbol in context.atomic_checkers:
-                expr.type = types.BoolType()
             elif symbol in context.specifications:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
@@ -269,7 +250,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 cpt.SetAggregationKind.FOR_AT_MOST,
                 cpt.SetAggregationKind.FOR_AT_LEAST,
             }:
-                if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
+                if options.frontend is not types.R2U2Engine.BOOLEANIZER:
                     log.error(
                         MODULE_CODE,
                         "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled",
@@ -320,7 +301,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
             elif cpt.is_past_time_operator(expr):
-                if context.config.implementation != types.R2U2Implementation.C:
+                if options.impl != types.R2U2Implementation.C:
                     log.error(
                         MODULE_CODE,
                         f"Past-time operators only support in C version of R2U2\n\t{expr}",
@@ -358,7 +339,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
-            if context.config.implementation != types.R2U2Implementation.C:
+            if options.impl != types.R2U2Implementation.C:
                 log.error(
                     MODULE_CODE,
                     f"Bitwise operators only support in C version of R2U2.\n\t{expr}",
@@ -366,7 +347,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
+            if options.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     MODULE_CODE,
                     f"Found context.booleanizer_enabled expression, but Booleanizer expressions disabled\n\t{expr}",
@@ -393,7 +374,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const: bool = True
 
-            if context.config.implementation != types.R2U2Implementation.C:
+            if options.impl != types.R2U2Implementation.C:
                 log.error(
                     MODULE_CODE,
                     f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
@@ -401,7 +382,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.config.frontend is not types.R2U2Engine.BOOLEANIZER:
+            if options.frontend is not types.R2U2Engine.BOOLEANIZER:
                 log.error(
                     MODULE_CODE,
                     f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
@@ -471,7 +452,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
 
-            if context.config.implementation != types.R2U2Implementation.C:
+            if options.impl != types.R2U2Implementation.C:
                 log.error(
                     MODULE_CODE,
                     f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
@@ -479,9 +460,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            if context.config.frontend not in {
+            if options.frontend not in {
                 types.R2U2Engine.BOOLEANIZER,
-                types.R2U2Engine.ATOMIC_CHECKER,
             } and expr.operator not in {
                 cpt.OperatorKind.EQUAL,
                 cpt.OperatorKind.NOT_EQUAL,
@@ -535,53 +515,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.loc,
             )
             return False
-
-    return True
-
-
-def type_check_atomic(
-    atomic: cpt.AtomicCheckerDefinition, context: cpt.Context
-) -> bool:
-    relational_expr = atomic.get_expr()
-
-    if not cpt.is_relational_operator(relational_expr):
-        log.error(
-            MODULE_CODE,
-            f"Atomic checker definition not a relation\n\t" f"{atomic}",
-            relational_expr.loc,
-        )
-        return False
-
-    if not type_check_expr(relational_expr, context):
-        return False
-
-    lhs = relational_expr.children[0]
-    rhs = relational_expr.children[1]
-
-    if isinstance(lhs, cpt.FunctionCall):
-        log.error(
-            MODULE_CODE,
-            "Atomic checker filters unsupported",
-            lhs.loc,
-        )
-        return False
-    elif not isinstance(lhs, cpt.Signal):
-        log.error(
-            MODULE_CODE,
-            "Left-hand side of atomic checker definition not a filter nor signal\n\t"
-            f"{atomic}",
-            lhs.loc,
-        )
-        return False
-
-    if not isinstance(rhs, (cpt.Constant, cpt.Signal)):
-        log.error(
-            MODULE_CODE,
-            "Right-hand side of atomic checker definition not a constant nor signal\n\t"
-            f"{rhs}",
-            rhs.loc,
-        )
-        return False
 
     return True
 
@@ -648,22 +581,6 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 )
 
             context.add_struct(struct.symbol, struct.members)
-    elif isinstance(section, cpt.AtomicSection):
-        for atomic in section.atomics:
-            if atomic.symbol in context.get_symbols():
-                status = False
-                log.error(
-                    MODULE_CODE,
-                    f"Symbol '{atomic.symbol}' already in use",
-                    atomic.loc,
-                )
-
-            is_good_atomic = type_check_atomic(atomic, context)
-
-            if is_good_atomic:
-                context.add_atomic(atomic.symbol, atomic.get_expr())
-
-            status = status and is_good_atomic
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
             context.set_future_time()
@@ -685,11 +602,11 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
     return status
 
 
-def type_check(program: cpt.Program, config: cpt.Config) -> tuple[bool, cpt.Context]:
+def type_check(program: cpt.Program) -> tuple[bool, cpt.Context]:
     log.debug(MODULE_CODE, 1, "Type checking")
 
     status: bool = True
-    context = cpt.Context(config)
+    context = cpt.Context()
 
     for section in program.sections:
         status = type_check_section(section, context) and status

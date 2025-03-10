@@ -1,6 +1,7 @@
 from tqdm.auto import tqdm
 from itertools import product, repeat, chain, combinations_with_replacement, count
 from collections import namedtuple
+import argparse
 import subprocess
 import tempfile
 import csv
@@ -9,9 +10,10 @@ from math import log, log10, comb
 from functools import lru_cache
 
 C2PO_PATH = "../compiler"
-R2U2_PATH = "../monitors/c/build"
+R2U2_C_PATH = "../monitors/c/build/r2u2"
+R2U2_RUST_PATH = "../monitors/rust/r2u2_cli/target/release/r2u2_cli"
 
-TestConfig = namedtuple('TestConfig', ['max_depth', 'max_interval', 'max_atoms', 'max_time', 'cumulative'])
+TestConfig = namedtuple('TestConfig', ['monitor', 'max_depth', 'max_interval', 'max_atoms', 'max_time', 'cumulative'])
 
 class Operator(namedtuple('Operator', ['name', 'arity', 'tense', 'temporal', 'format', 'oracle'])):
 
@@ -327,14 +329,17 @@ def c2po_compile(spec, tmpdir):
 
     return tmpdir + "/spec.bin"
 
-def r2u2_monitor(signal, tmpdir):
+def r2u2_monitor(conf, signal, tmpdir):
     with open(tmpdir+'/signal.csv', 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         for row in signal:
             csvwriter.writerow(row)
 
     try:
-        subprocess.run(f"{R2U2_PATH}/r2u2 {tmpdir}/spec.bin {tmpdir}/signal.csv > {tmpdir}/R2U2.log", shell=True, capture_output=True, check=True)
+        if conf.monitor == "c":
+            subprocess.run(f"{R2U2_C_PATH} {tmpdir}/spec.bin {tmpdir}/signal.csv > {tmpdir}/R2U2.log", shell=True, capture_output=True, check=True)
+        else:
+            subprocess.run(f"{R2U2_RUST_PATH} run {tmpdir}/spec.bin {tmpdir}/signal.csv > {tmpdir}/R2U2.log", shell=True, capture_output=True, check=True)
     except subprocess.CalledProcessError as e:
         print(e.stderr)
         raise e
@@ -421,7 +426,7 @@ def main(conf):
             c2po_compile(spec, tmpdir)
             for signal in gen_signals(spec, conf):
                 # print(f"\t{signal}")
-                r2u2_trace = r2u2_monitor(signal, tmpdir)
+                r2u2_trace = r2u2_monitor(conf, signal, tmpdir)
                 oracle_trace = consult_oracle(spec, signal, conf.max_time)
                 # print(f"\t\t{r2u2_trace}")
                 # print(f"\t\t{oracle_trace}")
@@ -433,10 +438,18 @@ def main(conf):
     print(f"Total faults: {fault_count}")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--monitor", default="c", help="options are 'c' or 'rust'")
     # conf = TestConfig(2,2,0,6,True)
-    conf = TestConfig(2,1,2,6,True)
-    print(conf)
-    main(conf)
+    args = parser.parse_args()
+    if args.monitor == "c":
+        conf = TestConfig('c',2,1,2,6,True)
+        print(conf)
+        main(conf)
+    elif args.monitor == "rust":
+        conf = TestConfig('rust',2,1,2,6,True)
+        print(conf)
+        main(conf)
     # print(total_test_cases(conf))
     # count_tests(conf)
 

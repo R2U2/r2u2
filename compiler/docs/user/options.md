@@ -30,8 +30,6 @@ The following is the usage of C2PO:
                             specifies mission time, overriding inference from a trace file, if present
     --endian {native,network,big,little}
                             Specifies byte-order of spec file (default: little)
-    -at, --atomic-checkers
-                            enable atomic checkers
     -bz, --booleanizer    enable booleanizer
     -p, --parse           only run the parser
     -tc, --type-check     only run the parser and type checker

@@ -10,16 +10,25 @@ Configuration Compiler for Property Organization (C2PO).
 
 ![R2U2 workflow](docs/_static/r2u2-flow.png)
 
-If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)). 
+If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)) and [2025 NFM paper](https://temporallogic.org/research/R2U2Rust/) ([.bib](CITATION2.bib)). 
 
 # Requirements 
 
-The following dependencies are required to run R2U2 and C2PO: 
+The following dependencies are required to run C2PO: 
+- Python 3.8 or greater
+- (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
+- (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
+
+The following dependencies are required to run R2U2 C version:
 - Make 
 - C99 compiler 
-- Python 3.8 or greater
+
+The following dependencies are required to run R2U2 Rust version:
+- [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater 
 
 # Building
+
+## R2U2 C Version
 
 To build R2U2, run `make` from `monitors/c/`:
 ```bash
@@ -27,6 +36,18 @@ cd monitors/c/
 make
 ```
 This only needs to be *once*, regardless of the specifications you wish to monitor.
+
+## R2U2 Rust Version
+
+To build R2U2 from source, run `cargo build --release` from `monitors/r2u2_cli`:
+```bash
+cd monitors/rust/r2u2_cli/
+cargo build --release
+```
+
+This only needs to be *once*, regardless of the specifications you wish to monitor.
+
+***There is also a [r2u2_cli](https://crates.io/crates/r2u2_cli) Rust crate available to run C2PO and R2U2.
 
 # Running
 
@@ -40,9 +61,15 @@ python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/si
 ```
 
 2. Run R2U2 using the compiled specification and the input stream
-```bash
-./monitors/c/build/r2u2 spec.bin < examples/simple.csv
-```
+
+    a. Run R2U2 C version:
+    ```bash
+    ./monitors/c/build/r2u2 spec.bin < examples/simple.csv
+    ```
+    b. Run R2U2 Rust version:
+    ```bash
+    ./monitors/rust/r2u2_cli/target/release/r2u2_cli run spec.bin examples/simple.csv
+    ```
 
 ## Output
 

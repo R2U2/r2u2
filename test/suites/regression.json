@@ -8,16 +8,6 @@
     },
     "tests": [
         {
-            "name": "atomic_checkers",
-            "mltl": "atomic_checkers.c2po",
-            "trace": "atomic_checkers.csv",
-            "oracle": "atomic_checkers.log",
-            "options": {
-                "booleanizer": false,
-                "atomic-checkers": true
-            }
-        },
-        {
             "name": "booleanizer_operators",
             "mltl": "booleanizer_operators.c2po",
             "trace": "booleanizer_operators.csv",
