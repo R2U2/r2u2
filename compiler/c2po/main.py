@@ -7,7 +7,7 @@ import tempfile
 import shutil
 from typing import Optional
 
-from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options
+from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options, gen
 
 MODULE_CODE = "MAIN"
 
@@ -92,6 +92,16 @@ def compile() -> ReturnCode:
         cpass(program, context)
         if not context.status:
             return ReturnCode.ERROR
+    
+    if options.bvmon:
+        passes.compute_accumulated_bounds(program, context)
+        formula = program.ft_spec_set.get_specs()[0]
+        assert isinstance(formula, cpt.Formula)
+        if options.enable_bvmon_trace_len:
+            gen.gen_code_exact_trace_len(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_trace_len)
+        else:
+            gen.gen_code(formula.get_expr(), context, options.bvmon_word_size)
+        return ReturnCode.SUCCESS
 
     if options.only_compile:
         serialize.write_outputs(program, context)
@@ -160,11 +170,15 @@ def main(
     write_mltl_filename: Optional[str] = None,
     write_pickle_filename: Optional[str] = None,
     write_smt_dirname: Optional[str] = None,
+    write_hydra_filename: Optional[str] = None,
     copyback_dirname: Optional[str] = None,
     stats: bool = False,
     debug: bool = False,
     log_level: int = 0,
     quiet: bool = False,
+    bvmon: bool = False,
+    bvmon_word_size: int = 8,
+    bvmon_trace_len: Optional[int] = None
 ) -> ReturnCode:
     options.spec_filename = spec_filename
     options.trace_filename = trace_filename if trace_filename else options.EMPTY_FILENAME
@@ -206,11 +220,13 @@ def main(
     options.write_mltl = write_mltl_filename is not None
     options.write_pickle = write_pickle_filename is not None
     options.write_smt = write_smt_dirname is not None
+    options.write_hydra = write_hydra_filename is not None
     options.write_c2po_filename = write_c2po_filename
     options.write_prefix_filename = write_prefix_filename
     options.write_mltl_filename = write_mltl_filename
     options.write_pickle_filename = write_pickle_filename
     options.write_smt_dirname = write_smt_dirname
+    options.write_hydra_filename = write_hydra_filename
 
     options.copyback_enabled = copyback_dirname is not None
     options.copyback_dirname = copyback_dirname
@@ -219,6 +235,11 @@ def main(
     options.debug = debug
     options.log_level = log_level
     options.quiet = quiet
+
+    options.bvmon = bvmon
+    options.bvmon_word_size = bvmon_word_size
+    options.bvmon_trace_len = bvmon_trace_len
+    options.enable_bvmon_trace_len = bvmon_trace_len is not None
 
     status = options.setup()
     passes.setup()

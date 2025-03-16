@@ -49,6 +49,8 @@ class Expression(Node):
         self.scq_size: int = -1
         self.bpd: int = 0
         self.wpd: int = 0
+        self.aub: int = 0
+        self.alb: int = 0
         self.scq: tuple[int, int] = (-1, -1)
         self.type: types.Type = type
 
@@ -1367,7 +1369,9 @@ def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
                         TemporalOperator.LogicalAnd(
                             expr.loc,
                             [
-                                TemporalOperator.Future(expr.loc, b, b, expr.children[0]),
+                                TemporalOperator.Future(
+                                    expr.loc, b, b, expr.children[0]
+                                ),
                                 repl,
                             ],
                         ),
@@ -1387,6 +1391,46 @@ def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
         subexpr.replace(new)
 
     return new
+
+
+def unroll_untils(expr: Expression, context: Context) -> Expression:
+    """Unrolls Until operators in the given expression `expr` using the given context `context`"""
+    new = copy.deepcopy(expr)
+
+    def unrolled_expr(expr: Expression) -> Expression:
+        if not is_operator(expr, OperatorKind.UNTIL):
+            return expr
+        
+        expr = cast(TemporalOperator, expr)
+        lb = expr.interval.lb
+        ub = expr.interval.ub
+
+        repl = TemporalOperator.Future(expr.loc, ub, ub, expr.children[1])
+        for b in range(ub - 1, lb - 1, -1):
+            repl = TemporalOperator.LogicalOr(
+                expr.loc,
+                [
+                    TemporalOperator.Future(expr.loc, b, b, expr.children[1]),
+                    TemporalOperator.LogicalAnd(
+                        expr.loc,
+                        [
+                            TemporalOperator.Future(
+                                expr.loc, b, b, expr.children[0]
+                            ),
+                            repl,
+                        ],
+                    ),
+                ],
+            )
+
+        return repl
+
+    for subexpr in postorder(new, context):
+        new = unrolled_expr(subexpr)
+        subexpr.replace(new)
+
+    return new
+
 
 
 def to_infix_str(start: Expression) -> str:
@@ -1656,3 +1700,85 @@ def to_mltl_std(program: Program, context: Context) -> str:
         mltl += "\n"
 
     return mltl
+
+
+def to_hydra(program: Program, context: Context) -> str:
+    """Converts the given program to Hydra format using the given context. Program must be in BNF
+    form (see passes.to_bnf). Only outputs the first specification in the program."""
+    hydra = ""
+
+    stack: list[tuple[int, Expression]] = []
+
+    if len(program.get_specs()) == 0:
+        log.error(MODULE_CODE, "No specifications found in program")
+        return hydra
+    
+    spec = program.get_specs()[0]
+
+    if isinstance(spec, Contract):
+        log.warning(MODULE_CODE, "Cannot express AGCs in Hydra, returning")
+        return hydra
+
+    stack.append((0, spec.get_expr()))
+
+    while len(stack) > 0:
+        (seen, expr) = stack.pop()
+        print(hydra)
+        print(f"\t{seen}: {expr}")
+
+        if isinstance(expr, Constant) and expr.value:
+            hydra += "true"
+        elif isinstance(expr, Constant) and not expr.value:
+            hydra += "false"
+        elif expr in context.atomic_id:
+            hydra += f"a{context.atomic_id[expr]}"
+        elif is_operator(expr, OperatorKind.LOGICAL_NEGATE):
+            if seen == 0:
+                hydra += "NOT ("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            else:
+                hydra += ")"
+        elif is_operator(expr, OperatorKind.LOGICAL_AND):
+            if seen == len(expr.children):
+                hydra += ")"
+            elif seen == 0:
+                hydra += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            else:
+                hydra += ") AND ("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+        elif is_operator(expr, OperatorKind.LOGICAL_OR):
+            if seen == len(expr.children):
+                hydra += ")"
+            elif seen == 0:
+                hydra += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            else:
+                hydra += ") OR ("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            if seen == 0:
+                # hydra += f"(true UNTIL[{lb},{lb}] (" if lb > 0 else "("
+                hydra += "("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            elif seen == 1:
+                hydra += f") UNTIL [0,{ub - lb}] ("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[seen]))
+            else:
+                # hydra += "))" if lb > 0 else ")"
+                hydra += ")"
+        else:
+            log.error(MODULE_CODE, f"Expression incompatible with Hydra ({expr})")
+            return ""
+
+    return hydra

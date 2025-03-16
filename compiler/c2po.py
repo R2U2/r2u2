@@ -92,9 +92,15 @@ parser.add_argument("--write-pickle",
                     help="path to pickle the final program")
 parser.add_argument("--write-smt",
                     help="path to write SMT encodings of formulas")
+parser.add_argument("--write-hydra",
+                    help="path to write first specification in Hydra format")
 
 parser.add_argument("--copyback",
                     help="name of directory to copy workdir contents to upon termination")
+
+parser.add_argument("--bvmon", action="store_true", help="bvmon mode")
+parser.add_argument("--bvmon-word-size", type=int, default=8, help="bvmon word size")
+parser.add_argument("--bvmon-trace-len", type=int, help="bvmon trace length, encoding is trace length-independent if omitted")
 
 args = parser.parse_args()
 
@@ -133,11 +139,15 @@ return_code = c2po.main.main(
     write_prefix_filename=args.write_prefix,
     write_pickle_filename=args.write_pickle,
     write_smt_dirname=args.write_smt,
+    write_hydra_filename=args.write_hydra,
     copyback_dirname=args.copyback,
     stats=args.stats,
     debug=args.debug,
     log_level=args.log_level,
-    quiet=args.quiet
+    quiet=args.quiet,
+    bvmon=args.bvmon,
+    bvmon_word_size=args.bvmon_word_size,
+    bvmon_trace_len=args.bvmon_trace_len
 )
 
 sys.exit(return_code.value)

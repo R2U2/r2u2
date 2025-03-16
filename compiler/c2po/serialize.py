@@ -63,3 +63,11 @@ def write_outputs(
                     f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
                 elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
                     log.warning(MODULE_CODE, "qf_bv_incr encoding writes multiple files incrementally depending on SMT results, not writing")
+
+    if options.write_hydra:
+        log.debug(MODULE_CODE, 1, f"Dumping Hydra format to {options.write_hydra_filename}")
+        if not options.enable_bnf:
+            log.error(MODULE_CODE, "Hydra format requires BNF form, enable with --bnf flag")
+            return
+        with open(options.write_hydra_filename, "w") as f:
+            f.write(cpt.to_hydra(program, context))

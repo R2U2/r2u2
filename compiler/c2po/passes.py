@@ -1270,6 +1270,64 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, f"Program SCQ size: {total_scq_size}")
 
 
+def compute_accumulated_bounds(program: cpt.Program, context: cpt.Context) -> None:
+    """Computes accumulated upper and lower bounds for each node."""
+
+    for expr in cpt.preorder(program.ft_spec_set, context):
+        if isinstance(expr, (cpt.Formula, cpt.Contract)):
+            continue
+
+        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+            expr.children[1].aub = expr.aub
+            expr.children[1].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+            expr.children[1].aub = expr.aub
+            expr.children[1].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+            expr.children[1].aub = expr.aub
+            expr.children[1].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_XOR):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+            expr.children[1].aub = expr.aub
+            expr.children[1].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            expr.children[0].aub = expr.aub
+            expr.children[0].alb = expr.alb
+            expr.children[1].aub = expr.aub
+            expr.children[1].alb = expr.alb
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+            expr.children[0].aub = expr.aub + expr.interval.ub
+            expr.children[0].alb = expr.alb + expr.interval.lb
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
+            expr.children[0].aub = expr.aub + expr.interval.ub
+            expr.children[0].alb = expr.alb + expr.interval.lb
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
+            expr.children[0].aub = expr.aub + expr.interval.ub
+            expr.children[0].alb = expr.alb + expr.interval.lb
+            expr.children[1].aub = expr.aub + expr.interval.ub
+            expr.children[1].alb = expr.alb + expr.interval.lb
+        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
+            expr = cast(cpt.TemporalOperator, expr)
+            expr.children[0].aub = expr.aub + expr.interval.ub
+            expr.children[0].alb = expr.alb + expr.interval.lb
+            expr.children[1].aub = expr.aub + expr.interval.ub
+            expr.children[1].alb = expr.alb + expr.interval.lb
+
+
+
 # A Pass is a function with the signature:
 #    pass(program, context) -> None
 Pass = Callable[[cpt.Program, cpt.Context], None]

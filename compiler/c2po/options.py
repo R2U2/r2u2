@@ -93,11 +93,13 @@ write_prefix: bool = False
 write_mltl: bool = False
 write_pickle: bool = False
 write_smt: bool = False
+write_hydra: bool = False
 write_c2po_filename: str = EMPTY_FILENAME
 write_prefix_filename: str = EMPTY_FILENAME
 write_mltl_filename: str = EMPTY_FILENAME
 write_pickle_filename: str = EMPTY_FILENAME
 write_smt_dirname: str = EMPTY_FILENAME
+write_hydra_filename: str = EMPTY_FILENAME
 
 copyback_enabled: bool = False
 copyback_dirname: str = EMPTY_FILENAME
@@ -108,6 +110,10 @@ debug: bool = False
 log_level: int = 0
 quiet: bool = False
 
+bvmon: bool = False
+bvmon_word_size: int = 8
+enable_bvmon_trace_len: bool = False
+bvmon_trace_len: int = 0
 
 def setup() -> bool:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
@@ -122,7 +128,7 @@ def setup() -> bool:
         copyback_enabled, copyback_dirname, copyback_path, \
         write_c2po, write_prefix, write_mltl, write_pickle, write_smt, \
         write_c2po_filename, write_prefix_filename, write_mltl_filename, write_pickle_filename, write_smt_dirname, \
-        stats, debug, log_level, quiet 
+        stats, debug, log_level, quiet, bvmon
 
     if debug:
         log.set_log_level(5)
@@ -214,10 +220,10 @@ def setup() -> bool:
             MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
         )
 
-    if not enable_extops and (enable_nnf or enable_bnf):
+    if not enable_extops and enable_nnf:
         log.warning(
             MODULE_CODE,
-            "NNF and BNF incompatible without extended operators, output will not be in either normal form",
+            "NNF incompatible without extended operators, output will not be in NNF",
         )
 
     if only_parse:

@@ -26,6 +26,9 @@ class Interval(NamedTuple):
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, Interval) and self.lb == __value.lb and self.ub == __value.ub
+    
+    def __str__(self) -> str:
+        return f"[{self.lb},{self.ub}]"
 
 
 SignalMapping = Dict[str, int]
