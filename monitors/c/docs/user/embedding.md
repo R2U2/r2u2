@@ -12,6 +12,13 @@ A `r2u2_monitor_t` struct is used to represent the state and memory of an instan
 The `R2U2_DEFAULT_MONITOR` macro will setup a monitor with default extents, see [configuration](./configuration.md) to adjust those sizes.
 Alternatively, the required memory can be set aside by the user and referenced by the monitor struct, allowing arbitrary sizes of all memory arenas and arrays to be built even at runtime.
 
+## C2PO Specification Input
+Each R2U2 static monitor monitors its own specifications that have been specified utilizing C2PO. It is the user's responsibility to set the C2PO binary correctly. The specification binary must be mapped to the `instruction_mem` uint8_t array member of the monitor. Consult `main.c` for an example of loading the specification binary through `mmap`.
+
+:::{note}
+The `xxd -i [file path to C2PO binary]` terminal command will dump the binary compiled by C2PO into a byte array.
+:::
+
 ## Signal Input
 
 System state values, called signals, are read from the signal vector by the monitor on each tic.

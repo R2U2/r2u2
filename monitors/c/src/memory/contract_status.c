@@ -2,7 +2,7 @@
 
 #include "contract_status.h"
 
-#include "engines/mltl/mltl.h"
+#include "engines/mltl.h"
 
 r2u2_status_t r2u2_contract_status_load_mapping(r2u2_contract_status_reporter_t *status_reporter, r2u2_monitor_t *monitor) {
   // TODO(bckempa): We need to extract this to a higher level as more members of the aux system return

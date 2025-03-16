@@ -179,7 +179,7 @@ class TLOperandType(Enum):
 
 
 class FTOperator(Enum):
-    # See monitors/static_c/src/engines/mltl/mltl.h
+    # See monitors/c/src/engines/mltl.h
     NOP = 0b11111
     CONFIG = 0b11110
     LOAD = 0b11101
@@ -500,7 +500,7 @@ def gen_bz_instruction(
 
 
 def gen_tl_operand(
-    operand: Optional[cpt.Node], instructions: dict[cpt.Expression, TLInstruction]
+    operand: Optional[cpt.Expression], instructions: dict[cpt.Expression, TLInstruction]
 ) -> tuple[TLOperandType, Any]:
     if isinstance(operand, cpt.Constant):
         operand_type = TLOperandType.DIRECT

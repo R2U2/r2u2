@@ -3,7 +3,7 @@ use crate::{engines, memory};
 use crate::instructions::{booleanizer::*, mltl::*};
 
 #[cfg(feature = "aux_string_specs")]
-use crate::instructions::aux::*;
+use crate::instructions::aux::AuxiliaryInfo;
 
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -19,7 +19,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
 
     while spec_file[offset] != 0 {
         // Configure Instructions
-        if (spec_file[offset + 1] == engines::R2U2_ENG_CG as u8) && (spec_file[offset + 2] == engines::R2U2_ENG_TL as u8){
+        if (spec_file[offset + 1] == engines::R2U2_ENG_CG) && (spec_file[offset + 2] == engines::R2U2_ENG_TL){
             let instr = MLTLInstruction::set_from_binary(&spec_file[offset+3..]);
             mltl_configure_instruction_dispatch(instr, monitor);
         }
@@ -47,7 +47,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                 _ => {
                     // Store instruction in table
                     monitor.bz_instruction_table[monitor.bz_program_count.max_program_count] = instr;
-                    monitor.bz_program_count.max_program_count = monitor.bz_program_count.max_program_count + 1;
+                    monitor.bz_program_count.max_program_count += 1;
                 }
             }
         }
@@ -56,7 +56,7 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             let instr = MLTLInstruction::set_from_binary(&spec_file[offset+2..]);
             // Store instruction in table
             monitor.mltl_instruction_table[monitor.mltl_program_count.max_program_count] = instr;
-            monitor.mltl_program_count.max_program_count = monitor.mltl_program_count.max_program_count + 1;
+            monitor.mltl_program_count.max_program_count += 1;
         }
         offset = offset + (spec_file[offset] as usize);
     }
@@ -74,22 +74,22 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
     let mut i = 0;
     while i < monitor.mltl_program_count.max_program_count{
         // For future time, we never need information from [0, lb]
-        if monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_UNTIL || 
-            monitor.mltl_instruction_table[i].opcode == MLTL_OP_FT_RELEASE {
+        if monitor.mltl_instruction_table[i].opcode == MLTL_OP_UNTIL || 
+            monitor.mltl_instruction_table[i].opcode == MLTL_OP_RELEASE {
                 let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[monitor.mltl_instruction_table[i].memory_reference as usize];
                 queue.next_time = queue.temporal_block.lower_bound;
             }
         // Print output of mltl table
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         print_mltl_instruction(monitor.mltl_instruction_table[i]);
-        i = i + 1;
+        i += 1;
     }
 
     #[cfg(feature = "aux_string_specs")]{
         let mut i = 0;
         let mut length;
-        offset = offset + 1;
-        while { // Rust do-while loop
+        offset += 1;
+        loop {
             match spec_file[offset] as char {
                 'C' => { // Contract auxiliary info
                     (monitor.aux_string_table[i], length) = AuxiliaryInfo::set_contract(&spec_file[offset..]);
@@ -110,9 +110,9 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             }
 
             offset = offset + length + 1;
-            i = i + 1;
+            i += 1;
             
-            spec_file[offset] != 0 // Condition to loop again
-        } {}
+            if spec_file[offset] == 0 { break };
+        }
     }
 }

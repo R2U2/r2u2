@@ -1,5 +1,3 @@
-use r2u2_core;
-
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -116,7 +114,7 @@ fn valid_spec_file(s: &str) -> Result<PathBuf, String> {
         Ok(file as PathBuf)
     } else {
         Err(format!(
-            "{} is not a .c2po or .mltl file", s
+            "{s} is not a .c2po or .mltl file"
         ))
     }
 }
@@ -153,7 +151,7 @@ fn valid_map_file(s: &str) -> Result<PathBuf, String> {
         Ok(file as PathBuf)
     } else {
         Err(format!(
-            "{} is not a .csv or .map file", s
+            "{s} is not a .csv or .map file"
         ))
     }
 }
@@ -214,16 +212,16 @@ fn main() {
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
                         if *enable_aux {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("{} ({}):{},{}\n", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
                             }
                         } else {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("{}:{},{}\n", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"}));
                             }
                         }
                         if !disable_contracts {
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_contract_buffer(&monitor) {
                                 let _ = output_file.write_fmt(format_args!("Contract {} {} at {}\n", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time));
                             }
                         }
@@ -240,16 +238,16 @@ fn main() {
                     }
                     if r2u2_core::monitor_step(&mut monitor) {
                         if *enable_aux {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 println!("{} ({}):{},{}", out.spec_str, out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
                             }
                         } else {
-                            for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_output_buffer(&monitor) {
                                 println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
                             }
                         }
                         if !disable_contracts {
-                            for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+                            for out in r2u2_core::get_contract_buffer(&monitor) {
                                 println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
                             }
                         }
@@ -263,27 +261,14 @@ fn main() {
             disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
             if output.is_some(){
-                out_location = output.clone().unwrap_or(PathBuf::new()).to_str().unwrap_or(".").to_owned();
+                out_location = output.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(".").to_owned();
                 out_location.push_str("/spec.bin");
             } else{
                 out_location = "spec.bin".to_owned();
             }
-            if map.extension().and_then(OsStr::to_str) == Some("csv") {
-                compile::c2po_compile(spec.to_str().unwrap(),
-                        map.to_str().unwrap(),
-                        "",
-                        &out_location,
-                        !disable_booleanizer,
-                        !disable_aux,
-                        !disable_rewrite,
-                        !disable_cse,
-                        enable_sat.to_owned(),
-                        if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
-                        );
-            } else if map.extension().and_then(OsStr::to_str) == Some("map") {
-                compile::c2po_compile(spec.to_str().unwrap(),
-                "",
-                map.to_str().unwrap(),
+            compile::c2po_compile(spec.to_str().unwrap(),
+                if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
+                if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
                 &out_location,
                 !disable_booleanizer,
                 !disable_aux,
@@ -292,7 +277,6 @@ fn main() {
                 enable_sat.to_owned(),
                 if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
                 );
-            }
         }
         _ => {}
     }

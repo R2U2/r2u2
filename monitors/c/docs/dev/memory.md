@@ -43,7 +43,7 @@ This arrangement allows for either a few very large buffers or many small buffer
 
 If the SCQ memory domain is insufficient, the metadata "stack" will crash into the queue slot "heap" in the middle of the domain, but this is caught during initialization when DEBUG memory checks are enabled.
 
-For SCQ operational semantics and sizing, see {footcite:p}`KZJZR20`.
+For SCQ operational semantics and sizing, see {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

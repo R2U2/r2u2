@@ -22,11 +22,11 @@ in `.cargo/config.toml`.
 ### Array Extents
 
 `R2U2_MAX_SPECS`
-: Maximum number of instructions that will be read from a specification binary. Also used for some debug printing
+: Maximum number of instructions that will be read from a specification binary.
 : Default: 256
 
 `R2U2_MAX_SIGNALS`
-: Size of incoming signal vector, i.e., maximum number of signals. Only used by default monitor constructor
+: Size of incoming signal vector, i.e., maximum number of signals.
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
@@ -34,11 +34,11 @@ in `.cargo/config.toml`.
 : Default: 256
 
 `R2U2_MAX_BZ_INSTRUCTIONS`
-: Size of value buffer, used as working memory by BZ front end. Only used by default monitor constructor
+: Size of value buffer, used as working memory by BZ front end.
 : Default: 256
 
 `R2U2_MAX_TL_INSTRUCTIONS`
-: Size of value buffer, used as working memory by TL front end. Only used by default monitor constructor
+: Size of value buffer, used as working memory by TL front end.
 : Default: 256
 
 

@@ -69,7 +69,7 @@ r2u2_core = "0.2.0"
                 r2u2_core::load_string_signal(&mut monitor, n, record.get(n).expect("Error reading signal values"));
             }
             if r2u2_core::monitor_step(&mut monitor) {
-                for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                for out in r2u2_core::get_output_buffer(&monitor) {
                     println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
                 }
             } else {
