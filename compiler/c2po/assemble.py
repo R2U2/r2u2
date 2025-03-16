@@ -500,7 +500,7 @@ def gen_bz_instruction(
 
 
 def gen_tl_operand(
-    operand: Optional[cpt.Node], instructions: dict[cpt.Expression, TLInstruction]
+    operand: Optional[cpt.Expression], instructions: dict[cpt.Expression, TLInstruction]
 ) -> tuple[TLOperandType, Any]:
     if isinstance(operand, cpt.Constant):
         operand_type = TLOperandType.DIRECT

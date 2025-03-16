@@ -1069,7 +1069,7 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
         if options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0 or not options.assembly_enabled:
+                if expr.signal_id < 0:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
@@ -1171,7 +1171,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
     total_scq_size = 0
 
-    for expr in cpt.postorder(program.get_specs(), context):
+    for expr in program.postorder(context):
         if isinstance(expr, cpt.SpecSection):
             continue
 
