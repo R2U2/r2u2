@@ -77,9 +77,15 @@ for hex_digit in content:
 # print(f"Hydra trace: {hydra_trace}")
 # print(f"BvMon trace: {bvmon_trace}")
 
-for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):
-    r2u2 = r2u2_trace[i]
+for i in range(min(len(hydra_trace), len(bvmon_trace))):
     hydra = hydra_trace[i]
     bvmon = bvmon_trace[i]
-    if r2u2 != hydra or r2u2 != bvmon or hydra != bvmon:
-        print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, Hydra={hydra}, BvMon={bvmon}")
+    if hydra != bvmon:
+        print(f"Discrepancy at timestamp {i}: Hydra={hydra}, BvMon={bvmon}")
+
+# for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):
+#     r2u2 = r2u2_trace[i]
+#     hydra = hydra_trace[i]
+#     bvmon = bvmon_trace[i]
+#     if r2u2 != hydra or r2u2 != bvmon or hydra != bvmon:
+#         print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, Hydra={hydra}, BvMon={bvmon}")

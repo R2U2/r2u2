@@ -1723,8 +1723,6 @@ def to_hydra(program: Program, context: Context) -> str:
 
     while len(stack) > 0:
         (seen, expr) = stack.pop()
-        print(hydra)
-        print(f"\t{seen}: {expr}")
 
         if isinstance(expr, Constant) and expr.value:
             hydra += "true"
@@ -1766,8 +1764,7 @@ def to_hydra(program: Program, context: Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             if seen == 0:
-                # hydra += f"(true UNTIL[{lb},{lb}] (" if lb > 0 else "("
-                hydra += "("
+                hydra += f"(true UNTIL[{lb},{lb}] (" if lb > 0 else "("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
             elif seen == 1:
@@ -1775,8 +1772,7 @@ def to_hydra(program: Program, context: Context) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
             else:
-                # hydra += "))" if lb > 0 else ")"
-                hydra += ")"
+                hydra += "))" if lb > 0 else ")"
         else:
             log.error(MODULE_CODE, f"Expression incompatible with Hydra ({expr})")
             return ""

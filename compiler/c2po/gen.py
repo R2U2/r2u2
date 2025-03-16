@@ -1,5 +1,4 @@
 from typing import cast
-import sys
 
 from c2po import cpt
 
@@ -12,18 +11,6 @@ def hexlit(value: int, word_size: int) -> str:
     return f"{value:#0{(word_size // 8) * 2 + 2}x}"
 
 def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> str:
-
-    # formula = cpt.unroll_untils(formula, context)
-
-    def shift(val: str, amt: int) -> str:
-        return val if amt == 0 else f"({val} << {amt})" if amt > 0 else f"({val} >> {-amt})"
-    
-    # def singleton() -> str:
-    #     nonlocal word_size
-    #     return (
-    #         f"(({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead})%{size[child]}] << {i % word_size}) | "
-    #         f"({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead - 1})%{size[child]}] >> {word_size - (i % word_size)}))" 
-    #     )
 
     def gen_compute_expr_code_new(
         expr: cpt.Expression,
@@ -64,30 +51,6 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
                     f"({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead - 1})%{size[child]}] >> {word_size - (i % word_size)}))" 
                 ]
             return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] |= {' | '.join(words)};\n"
-            # interval = cast(cpt.TemporalOperator, expr).interval
-            # child = expr.children[0]
-            # updates = []
-            # for i in range(interval.lb // word_size, ((word_size - 1) + interval.ub) // word_size + 1):
-            #     low = min(max(interval.lb - word_size * i, -(word_size-1)), word_size-1) 
-            #     high = min(max(interval.ub - word_size * i, -(word_size-1)), word_size-1)
-            #     dir = 1
-
-            #     print(f"low: {low}, high: {high}", file=sys.stderr)
-
-            #     if low < 0:
-            #         tmp = low
-            #         low = high
-            #         high = tmp
-            #         dir = -1
-                    
-            #     print(f"low: {low}, high: {high}, dir: {dir}", file=sys.stderr)
-            #     high = high+1 if high>0 else high-1
-
-            #     words = [shift(f"{fid[child]}[({tau}-{word_wpd[child]})%{size[child]}]", j) for j in range(low, high, dir)]
-            #     updates.append(
-            #         f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[child] + i})%{size[expr]}] |= {' | '.join(words)};\n"
-            #     )
-            # return "".join(updates)
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
@@ -182,29 +145,6 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
                     f"({fid[child]}[{(tau - word_wpd[expr] + word_lookahead + 1) % size[child]}] >> {word_size - (i % word_size)}))" 
                 ]
             return f"{TAB}{fid[expr]}[{(tau - word_wpd[expr]) % size[expr]}] |= {' | '.join(words)};\n"
-            # interval = cast(cpt.TemporalOperator, expr).interval
-            # child = expr.children[0]
-            # updates = []
-            # for i in [
-            #     i
-            #     for i in range(
-            #         interval.lb // word_size,
-            #         ((word_size - 1) + interval.ub) // word_size + 1,
-            #     )
-            #     if tau - word_wpd[child] - i >= 0
-            # ]:
-            #     low = min(max(interval.lb - word_size * i, -(word_size-1)), word_size-1)
-            #     high = min(max(interval.ub - word_size * i, -(word_size-1)), word_size-1) 
-            #     words = [
-            #         f"({fid[child]}[({tau-word_wpd[child]})%{size[child]}] << {abs(k)})" 
-            #         if k >= 0 else 
-            #         f"({fid[child]}[({tau-word_wpd[child]})%{size[child]}] >> {abs(k)})"
-            #         for k in range(low, high+1)
-            #     ]
-            #     updates.append(
-            #         f"{TAB}{fid[expr]}[({tau - word_wpd[child] - i})%{size[expr]}] |= {' | '.join(words)};\n"
-            #     )
-            # return "".join(updates)
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             if tau - word_wpd[expr] < 0:
                 return ""
@@ -229,31 +169,36 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
             lhs = expr.children[0]
             rhs = expr.children[1]
             word_lookahead = interval.ub // word_size
-            words = (
-                f"(({fid[rhs]}[{(tau-word_wpd[expr] - word_lookahead) % size[rhs]}] << {interval.ub % word_size}) | "
-                f"({fid[rhs]}[{(tau-word_wpd[expr] - word_lookahead - 1) % size[rhs]}] >> {word_size - (interval.ub % word_size)}))" 
-            )
+            if interval.ub % word_size == 0:
+                words = (
+                    f"{fid[rhs]}[({tau - word_wpd[expr] + word_lookahead})%{size[rhs]}]"
+                )
+            else:
+                words = (
+                    f"(({fid[rhs]}[{(tau - word_wpd[expr] + word_lookahead) % size[rhs]}] << {interval.ub % word_size}) | "
+                    f"({fid[rhs]}[{(tau - word_wpd[expr] + word_lookahead + 1) % size[rhs]}] >> {word_size - (interval.ub % word_size)}))" 
+                )
             for i in range(interval.ub - 1, interval.lb - 1, -1):
                 word_lookahead = i // word_size
                 if i % word_size == 0:
                     words = (
-                        f"({fid[rhs]}[{(tau-word_wpd[expr] - word_lookahead) % size[rhs]}] "
+                        f"({fid[rhs]}[{(tau - word_wpd[expr] + word_lookahead) % size[rhs]}] "
                         " | "
-                        f"({fid[lhs]}[{(tau-word_wpd[expr] - word_lookahead) % size[lhs]}] "
+                        f"({fid[lhs]}[{(tau - word_wpd[expr] + word_lookahead) % size[lhs]}] "
                         " & "
                         + words 
                     )
                     continue
                 words = (
-                    f"((({fid[rhs]}[{(tau-word_wpd[expr] - word_lookahead) % size[rhs]}] << {i % word_size}) | "
-                    f"({fid[rhs]}[{(tau-word_wpd[expr] - word_lookahead - 1) % size[rhs]}] >> {word_size - (i % word_size)}))" 
+                    f"((({fid[rhs]}[{(tau - word_wpd[expr] + word_lookahead) % size[rhs]}] << {i % word_size}) | "
+                    f"({fid[rhs]}[{(tau - word_wpd[expr] + word_lookahead + 1) % size[rhs]}] >> {word_size - (i % word_size)}))" 
                     " | "
-                    f"((({fid[lhs]}[{(tau-word_wpd[expr] - word_lookahead) % size[lhs]}] << {i % word_size}) | "
-                    f"({fid[lhs]}[{(tau-word_wpd[expr] - word_lookahead - 1) % size[lhs]}] >> {word_size - (i % word_size)}))" 
+                    f"((({fid[lhs]}[{(tau - word_wpd[expr] + word_lookahead) % size[lhs]}] << {i % word_size}) | "
+                    f"({fid[lhs]}[{(tau - word_wpd[expr] + word_lookahead + 1) % size[lhs]}] >> {word_size - (i % word_size)}))" 
                     " & "
                     + words 
                 )
-            return f"{TAB*2}{fid[expr]}[{(tau-word_wpd[expr]) % size[expr]}] |= {words}{')'*((interval.ub-interval.lb-1)*2+2)};\n"
+            return f"{TAB*2}{fid[expr]}[{(tau - word_wpd[expr]) % size[expr]}] |= {words}{')'*((interval.ub-interval.lb-1)*2+2)};\n"
         return ""
 
     code = f"""#include <stdio.h>

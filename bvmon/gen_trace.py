@@ -32,18 +32,18 @@ def bvmon_trace(trace: list[list[bool]], word_size: int) -> bytes:
 
 
 def r2u2_trace(trace: list[list[bool]]) -> str: 
-    rows = []
-    for i in range(len(trace[0])):
-        row = ["1" if tr[i] else "0" for tr in trace]
-        rows.append(",".join(row))
+    rows = [
+        ",".join(["1" if tr[i] else "0" for tr in trace])
+        for i in range(len(trace[0]))
+    ]
     return "\n".join(rows)
 
 
 def hydra_trace(trace: list[list[bool]]) -> str: 
-    rows = []
-    for i in range(len(trace[0])):
-        row = f"@{i} {' '.join([f'a{j}' for j in range(len(trace)) if trace[j][i]])}"
-        rows.append(row)
+    rows = [
+        f"@{i} {' '.join([f'a{j}' for j in range(len(trace)) if trace[j][i]])}"
+        for i in range(len(trace[0]))
+    ]
     return "\n".join(rows)
 
 
