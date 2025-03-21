@@ -1,0 +1,4 @@
+INPUT
+    p: bool; 
+FTSPEC
+    ExampleSpec: F[2,3] p;
