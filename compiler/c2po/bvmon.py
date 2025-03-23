@@ -10,7 +10,7 @@ def ceildiv(a: int, b: int) -> int:
 def hexlit(value: int, word_size: int) -> str:
     return f"{value:#0{(word_size // 8) * 2 + 2}x}"
 
-def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> str:
+def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsigs: int, use_mmap: bool) -> str:
 
     def gen_compute_expr_code_new(
         expr: cpt.Expression,
@@ -20,9 +20,7 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
         tau: str,
     ) -> str:
         nonlocal word_size
-        if isinstance(expr, cpt.Signal):
-            return f"{TAB*2}{fid[expr]}[{tau}%{size[expr]}] = {str(expr)}[{tau}];\n"
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
                 f"{TAB}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = "
                 f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})%{size[expr]}];\n"
@@ -111,9 +109,7 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
         tau: int,
     ) -> str:
         nonlocal word_size
-        if isinstance(expr, cpt.Signal):
-            return f"{TAB}{fid[expr]}[{tau % size[expr]}] = {str(expr)}[{tau}];\n"
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+        if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
                 f"{TAB}{fid[expr]}[({tau-word_wpd[expr]})%{size[expr]}] = "
                 f"~ {fid[expr.children[0]]}[({tau-word_wpd[expr]})%{size[expr]}];\n"
@@ -200,13 +196,17 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int) -> s
                 )
             return f"{TAB*2}{fid[expr]}[{(tau - word_wpd[expr]) % size[expr]}] |= {words}{')'*((interval.ub-interval.lb-1)*2+2)};\n"
         return ""
-
-    code = f"""#include <stdio.h>
+    
+    code = """#include <stdio.h>
 #include <stdint.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
+"""
 
+    if use_mmap:
+        code += "#include <sys/mman.h>\n"
+
+    code += f"""
 #ifdef DEBUG
 void print_binary(uint{word_size}_t value) 
 {{
@@ -232,27 +232,33 @@ int main(int argc, char const *argv[])
     uint64_t num_words;
     read(f, &num_words, 8);
 
-    uint{word_size}_t *trace = mmap(NULL, 8 + ({len(context.signals)} * num_words * {word_size // 8}), PROT_READ, MAP_PRIVATE, f, 0);
-    if (trace == NULL) {{ 
-        fprintf(stderr, "mmap fail\\n");
-        return 1; 
-    }}
-
 """
-
-    for signal in sorted(context.signals.keys()):
-        aid = int(signal[1:])
-        code += f"{TAB}uint{word_size}_t *{signal} = trace + {'1' if word_size == 64 else '2' if word_size == 32 else '4' if word_size == 16 else '8'} + {aid} * num_words;\n"
-    code += "\n"
+    
+    if use_mmap:
+        code += f"""uint{word_size}_t *trace = mmap(NULL, 8 + ({len(context.signals)} * num_words * {word_size // 8}), PROT_READ, MAP_PRIVATE, f, 0);
+if (trace == NULL) {{ 
+    fprintf(stderr, "mmap fail\\n");
+    return 1; 
+}}
+    """
+        for aid in range(nsigs):
+            signal = f"a{aid}"
+            code += f"{TAB}uint{word_size}_t *{signal} = trace + {'1' if word_size == 64 else '2' if word_size == 32 else '4' if word_size == 16 else '8'} + {aid} * num_words;\n"
+        code += "\n"
 
     fid: dict[cpt.Expression, str] = {}
+    sigsize: dict[str, int] = {}
     size: dict[cpt.Expression, int] = {}
     word_wpd: dict[cpt.Expression, int] = {} # how many words to wait until all children are computed
     word_bpd: dict[cpt.Expression, int] = {} 
+
     cnt = 0
     for expr in cpt.postorder(formula, context):
-        fid[expr] = f"f_{cnt}"
-        cnt += 1
+        if isinstance(expr, cpt.Signal):
+            fid[expr] = str(expr)
+        else:
+            fid[expr] = f"f_{cnt}"
+            cnt += 1
         size[expr] = 1
 
         if isinstance(expr, cpt.TemporalOperator):
@@ -269,20 +275,43 @@ int main(int argc, char const *argv[])
         word_bpd[expr] = (lb // word_size) + min_child_word_bpd
 
         max_child_size = max([size[c] for c in expr.children] + [0])
-        for c in expr.children:
-            size[expr] = max(size[expr], max_child_size)
+        size[expr] = max(size[expr], max_child_size)
 
-    # For now, force all sub-formulas to be of size word_wpd[formula] + 1
+    
+
     for expr in cpt.postorder(formula, context):
+        # For now, force all sub-formulas to be of size word_wpd[formula] + 1
         size[expr] = word_wpd[formula] + 1
 
+    for aid in range(nsigs):
+        signal = f"a{aid}"
+        sigsize[signal] = word_wpd[formula] + 1
+        code += f"{TAB}uint{word_size}_t {signal}[{sigsize[signal]}] = {{0}};\n"
+
     for expr in cpt.postorder(formula, context):
+        if isinstance(expr, cpt.Signal):
+            continue
         code += f"{TAB}uint{word_size}_t {fid[expr]}[{size[expr]}] = {{0}}; // {expr}\n"
     code += "\n"
 
     # First we fill the buffers for each sub-formula until we have sufficient data to start computing the first word of `formula`
     for word in range(word_wpd[formula]):
+        for aid in range(nsigs):
+            signal = f"a{aid}"
+            if use_mmap:
+                code += f"{TAB}{signal}[{word % sigsize[signal]}] = {signal}[{word}];\n"
+            else:
+                code += f"{TAB}read(f, &{signal}[{word % sigsize[signal]}], {word_size // 8});\n"
+            code += "#ifdef DEBUG\n"
+            code += (
+                f'\t\tprintf("{signal:3}@%d: ", {word});\n'
+                f'\t\tprint_binary({signal}[({word})%{sigsize[signal]}]); printf("\\n");\n'
+            )
+            code += "#endif\n"
+
         for expr in cpt.postorder(formula, context):
+            if isinstance(expr, cpt.Signal):
+                continue
             code += gen_compute_expr_code_begin(expr, fid, size, word_wpd, word)
             if word-word_wpd[expr] >= 0:
                 code += "#ifdef DEBUG\n"
@@ -295,7 +324,21 @@ int main(int argc, char const *argv[])
 
     code += "\tuint64_t word;\n"
     code += f"\tfor (word = {word_wpd[formula]}; word < num_words; ++word) {{\n"
+    for aid in range(nsigs):
+        signal = f"a{aid}"
+        if use_mmap:
+            code += f"{TAB*2}{signal}[word%{sigsize[signal]}] = {signal}[word];\n"
+        else:
+            code += f"{TAB}read(f, &{signal}[word%{sigsize[signal]}], {word_size // 8});\n"
+        code += "#ifdef DEBUG\n"
+        code += (
+            f'\t\tprintf("{signal:3}@%llu: ", word);\n'
+            f'\t\tprint_binary({signal}[word%{sigsize[signal]}]); printf("\\n");\n'
+        )
+        code += "#endif\n"
     for expr in cpt.postorder(formula, context):
+        if isinstance(expr, cpt.Signal):
+            continue
         code += gen_compute_expr_code_new(expr, fid, size, word_wpd, "word")
         code += "#ifdef DEBUG\n"
         code += (
@@ -312,14 +355,12 @@ int main(int argc, char const *argv[])
         code += f"\t\t{fid[expr]}[(word+1)%{size[expr]}] = 0;\n"
 
     code += "\t}\n"
-
-    # After we have reached the end of the trace, go through and compute what we can
-    # for word in range(ceildiv(formula.wpd, word_size) - 1, 0, -1):
-    #     for expr in cpt.postorder(formula, context):
-    #         offset = ceildiv(max([c.wpd for c in expr.children] + [0]), word_size) # how many words to wait until all children are computed
-    #         code += gen_compute_expr_code_end(expr, fid, size, offset, f"num_words-{word}")
-    # code += "\n"
     
+    # we return the final value computed only so that if -DOUTPUT or -DDEBUG are not defined, then
+    # the compiler doesn't just do nothing. (if -DOUTPUT or -DDEBUG are not defined then the
+    # compiler doesn't think the program does anything useful, since it will print nothing and
+    # return 0 in all cases.)
+    code += f"return \t{fid[formula]}[(num_words-1)%{size[formula]}];\n"
     code += "}"
     print(code)
     return code
@@ -419,7 +460,7 @@ int main(int argc, char const *argv[])
                     f"{word_size - (i % word_size)}))"
                     for i in range(interval.lb, interval.ub + 1)
                 ]
-                code += f"{TAB}{fid[expr]}[{word}] = \n{TAB * 2}{f' &\n{TAB * 2}'.join(words)};\n"
+                code += f"{TAB}{fid[expr]}[{word}] = \n{TAB * 2}{f' &{TAB * 2}'.join(words)};\n"
             elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
                 interval = cast(cpt.TemporalOperator, expr).interval
                 words = [
@@ -435,7 +476,7 @@ int main(int argc, char const *argv[])
                     f"{word_size - (i % word_size)}))"
                     for i in range(interval.lb, interval.ub + 1)
                 ]
-                code += f"{TAB}{fid[expr]}[{word}] = \n{TAB * 2}{f' |\n{TAB * 2}'.join(words)};\n"
+                code += f"{TAB}{fid[expr]}[{word}] = \n{TAB * 2}{f' |{TAB * 2}'.join(words)};\n"
             elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
                 interval = cast(cpt.TemporalOperator, expr).interval
                 lb = interval.lb
@@ -555,240 +596,3 @@ int main(int argc, char const *argv[])
     """
 
 
-
-
-# def gen_compute_expr_code_end(
-#     expr: cpt.Expression,
-#     fid: dict[cpt.Expression, str],
-#     size: dict[cpt.Expression, int],
-#     offset: int,
-#     i: str,
-# ) -> str:
-#     nonlocal word_size
-#     if isinstance(expr, cpt.Signal):
-#         return f"{TAB*2}{fid[expr]}[{i}%{size[expr]}] = {str(expr)}[{i}];\n"
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-#         return (
-#             f"{TAB}{fid[expr]}[({i}-{offset})%{size[expr]}] = "
-#             f"~ {fid[expr.children[0]]}[({i}-{offset})%{size[expr]}];\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-#         return (
-#             f"{TAB}{fid[expr]}[({i}-{offset})%{size[expr]}] = "
-#             f"{' & '.join([f'{fid[c]}[({i}-{offset})%{size[c]}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-#         return (
-#             f"{TAB}{fid[expr]}[({i}-{offset})%{size[expr]}] = "
-#             f"{' | '.join([f'{fid[c]}[({i}-{offset})%{size[c]}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         child = expr.children[0]
-#         updates = []
-#         for j in range(interval.lb // word_size - 1, ceildiv(interval.ub, word_size)):
-#             low = min(
-#                 max(interval.lb - word_size * j, -(word_size - 1)), word_size - 1
-#             )
-#             high = min(
-#                 max(interval.ub - word_size * j, -(word_size - 1)), word_size - 1
-#             )
-#             words = [
-#                 f"({fid[child]}[({i}+{j})%{size[child]}] << {abs(k)})"
-#                 if k >= 0
-#                 else f"({fid[child]}[({i}+{j})%{size[child]}] >> {abs(k)})"
-#                 for k in range(low, high + 1)
-#             ]
-#             updates.append(
-#                 f"{TAB * 2}{fid[expr]}[{i}%{size[expr]}] |= {' | '.join(words)};\n"
-#             )
-#         return "".join(updates)
-#     return ""
-
-# def gen_compute_expr_code(
-#     expr: cpt.Expression,
-#     fid: dict[cpt.Expression, str],
-#     size: dict[cpt.Expression, int],
-#     offset: int,
-# ) -> str:
-#     nonlocal word_size
-#     if isinstance(expr, cpt.Signal):
-#         return f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = {str(expr)}[word+{offset}];\n"
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = "
-#             f"~ {fid[expr.children[0]]}[(word+{offset})%{size[expr]}];\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = "
-#             f"{' & '.join([f'{fid[c]}[(word+{offset})%{size[expr]}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = "
-#             f"{' | '.join([f'{fid[c]}[(word+{offset})%{size[expr]}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         child = expr.children[0]
-#         words = [
-#             f"{fid[child]}[(word+{(i // word_size) + offset})%{size[child]}]"
-#                 if i % word_size == 0 else 
-#             f"(({fid[child]}[(word+{(i // word_size) + offset})%{size[child]}] << {i % word_size}) | "
-#             f"(({fid[child]}[(word+{(i // word_size) + 1 + offset})%{size[child]}] & "
-#             f"{hex(sum([2**j for j in range(word_size - 1, word_size - (i % word_size) - 1, -1)]))}) >> "
-#             f"{word_size - (i % word_size)}))"
-#             for i in range(interval.lb, interval.ub + 1)
-#         ]
-#         return f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = \n{TAB * 3}{f' &\n{TAB * 3}'.join(words)};\n"
-#     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         child = expr.children[0]
-#         words = [
-#             f"{fid[child]}[(word+{(i // word_size) + offset})%{size[child]}]"
-#                 if i % word_size == 0 else 
-#             f"(({fid[child]}[(word+{(i // word_size) + offset})%{size[child]}] << {i % word_size}) | "
-#             f"(({fid[child]}[(word+{(i // word_size) + 1 + offset})%{size[child]}] & "
-#             f"{hex(sum([2**j for j in range(word_size - 1, word_size - (i % word_size) - 1, -1)]))}) >> "
-#             f"{word_size - (i % word_size)}))"
-#             for i in range(interval.lb, interval.ub + 1)
-#         ]
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size[expr]}] = {fid[expr]}[(word+{offset})%{size[expr]}] |\n"
-#             f"{TAB * 3}{f' |\n{TAB * 3}'.join(words)};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         lb = interval.lb
-#         ub = interval.ub
-#         lhs = expr.children[0]
-#         rhs = expr.children[1]
-#         w = (
-#             f"(({fid[rhs]}[word+{(ub // word_size)}] << {ub % word_size}) | "
-#             f"(({fid[rhs]}[word+{(ub // word_size) + 1}] & "
-#             f"{sum([2**j for j in range(word_size - 1, word_size - (ub % word_size) - 1, -1)])}) >> "
-#             f"{word_size - (ub % word_size)}))"
-#         )
-#         for b in range(ub - 1, lb - 1, -1):
-#             w = (
-#                 "("
-#                 + (
-#                     f"(({fid[rhs]}[word+{(b // word_size)}] << {b % word_size}) | "
-#                     f"({fid[rhs]}[word+{(b // word_size) + 1}] & "
-#                     f"{sum([2**j for j in range(word_size - 1, word_size - (b % word_size) - 1, -1)])}) >> "
-#                     f"{word_size - (b % word_size)})"
-#                 )
-#                 + " | ("
-#                 + (
-#                     f"(({fid[lhs]}[word+{(b // word_size)}] << {b % word_size}) | "
-#                     f"({fid[lhs]}[word+{(b // word_size) + 1}] & "
-#                     f"{sum([2**j for j in range(word_size - 1, word_size - (b % word_size) - 1, -1)])}) >> "
-#                     f"{word_size - (b % word_size)})"
-#                 )
-#                 + " & "
-#                 + w
-#             )
-#         return f"{TAB}{fid[expr]}[word] = \n{TAB * 2}{w}{')' * (ub - lb + 1)};\n"
-#     else:
-#         raise ValueError(f"Unimplemented for bvmon code gen {type(expr)}")
-
-# def gen_compute_expr_code_end_of_trace(
-#     expr: cpt.Expression,
-#     fid: dict[cpt.Expression, str],
-#     word_size: int,
-#     offset: int,
-# ) -> str:
-#     size = ceildiv((expr.aub - expr.alb), word_size) + 1
-#     if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size}] = "
-#             f"~ {fid[expr.children[0]]}[(word+{offset})%{size}];\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size}] = "
-#             f"{' & '.join([f'{fid[c]}[(word+{offset})%{size}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-#         return (
-#             f"{TAB}{fid[expr]}[(word+{offset})%{size}] = "
-#             f"{' | '.join([f'{fid[c]}[(word+{offset})%{size}]' for c in expr.children])};\n"
-#         )
-#     elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
-#         # Let word_size=8, trace_len=24
-#         # G[0,15] G[0,15] p
-
-#         # p:  8b 8b 8b
-#         # f1: 8b 8b
-#         # f2: 8b
-#         # p:  8b 8b 8b
-#         # f1:    8b 8b
-#         # f2:    8b
-#         # p:  8b 8b 8b
-#         # f1:       8b
-#         # f2:       8b
-
-#         child_size = (
-#             ceildiv((expr.children[0].aub - expr.children[0].alb), word_size) + 1
-#         )
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         words = [
-#             f"{fid[expr.children[0]]}[(word+{(i // word_size) + offset})%{child_size}]"
-#             if i % word_size == 0
-#             else f"(({fid[expr.children[0]]}[(word+{(i // word_size) + offset})%{child_size}] << {i % word_size}) | "
-#             f"(({fid[expr.children[0]]}[(word+{(i // word_size) + 1 + offset})%{child_size}] & "
-#             f"{hex(sum([2**j for j in range(word_size - 1, word_size - (i % word_size) - 1, -1)]))}) >> "
-#             f"{word_size - (i % word_size)}))"
-#             for i in range(interval.lb, interval.ub + 1)
-#         ]
-#         return f"{TAB}{fid[expr]}[(word+{offset})%{size}] = \n{TAB * 2}{f' &\n{TAB * 2}'.join(words)};\n"
-#     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-#         child_size = (
-#             ceildiv((expr.children[0].aub - expr.children[0].alb), word_size) + 1
-#         )
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         words = [
-#             f"{fid[expr.children[0]]}[(word+{(i // word_size) + offset})%{child_size}]"
-#             if i % word_size == 0
-#             else f"(({fid[expr.children[0]]}[(word+{(i // word_size) + offset})%{child_size}] << {i % word_size}) | "
-#             f"(({fid[expr.children[0]]}[(word+{(i // word_size) + 1 + offset})%{child_size}] & "
-#             f"{hex(sum([2**j for j in range(word_size - 1, word_size - (i % word_size) - 1, -1)]))}) >> "
-#             f"{word_size - (i % word_size)}))"
-#             for i in range(interval.lb, interval.ub + 1)
-#         ]
-#         return f"{TAB}{fid[expr]}[(word+{offset})%{size}] = \n{TAB * 2}{f' |\n{TAB * 2}'.join(words)};\n"
-#     elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-#         interval = cast(cpt.TemporalOperator, expr).interval
-#         lb = interval.lb
-#         ub = interval.ub
-#         lhs = expr.children[0]
-#         rhs = expr.children[1]
-#         w = (
-#             f"(({fid[rhs]}[word+{(ub // word_size)}] << {ub % word_size}) | "
-#             f"(({fid[rhs]}[word+{(ub // word_size) + 1}] & "
-#             f"{sum([2**j for j in range(word_size - 1, word_size - (ub % word_size) - 1, -1)])}) >> "
-#             f"{word_size - (ub % word_size)}))"
-#         )
-#         for b in range(ub - 1, lb - 1, -1):
-#             w = (
-#                 "("
-#                 + (
-#                     f"(({fid[rhs]}[word+{(b // word_size)}] << {b % word_size}) | "
-#                     f"({fid[rhs]}[word+{(b // word_size) + 1}] & "
-#                     f"{sum([2**j for j in range(word_size - 1, word_size - (b % word_size) - 1, -1)])}) >> "
-#                     f"{word_size - (b % word_size)})"
-#                 )
-#                 + " | ("
-#                 + (
-#                     f"(({fid[lhs]}[word+{(b // word_size)}] << {b % word_size}) | "
-#                     f"({fid[lhs]}[word+{(b // word_size) + 1}] & "
-#                     f"{sum([2**j for j in range(word_size - 1, word_size - (b % word_size) - 1, -1)])}) >> "
-#                     f"{word_size - (b % word_size)})"
-#                 )
-#                 + " & "
-#                 + w
-#             )
-#         return f"{TAB}{fid[expr]}[word] = \n{TAB * 2}{w}{')' * (ub - lb + 1)};\n"
-#     else:
-#         raise ValueError(f"Unimplemented for bvmon code gen {type(expr)}")

@@ -101,6 +101,8 @@ parser.add_argument("--copyback",
 parser.add_argument("--bvmon", action="store_true", help="bvmon mode")
 parser.add_argument("--bvmon-word-size", type=int, default=8, help="bvmon word size")
 parser.add_argument("--bvmon-trace-len", type=int, help="bvmon trace length, encoding is trace length-independent if omitted")
+parser.add_argument("--bvmon-mmap", action="store_true", help="use mmap instead of open/read for file io")
+parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon encoding")
 
 args = parser.parse_args()
 
@@ -147,7 +149,9 @@ return_code = c2po.main.main(
     quiet=args.quiet,
     bvmon=args.bvmon,
     bvmon_word_size=args.bvmon_word_size,
-    bvmon_trace_len=args.bvmon_trace_len
+    bvmon_trace_len=args.bvmon_trace_len,
+    bvmon_mmap=args.bvmon_mmap,
+    bvmon_nsigs=args.bvmon_nsigs,
 )
 
 sys.exit(return_code.value)

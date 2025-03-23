@@ -23,9 +23,16 @@ def bvmon_trace(trace: list[list[bool]], word_size: int) -> bytes:
     trace_bin = bytes()
     for prop_trace in trace:
         for i in range(0, len(prop_trace), word_size):
-            val = 0
-            for j in [k for k in range(0, word_size) if i + (word_size - k - 1) < len(prop_trace)]:
-                val += (2 ** j) if prop_trace[i + (word_size - j - 1)] else 0
+            val = sum(
+                [
+                    (2**j) if prop_trace[i + (word_size - j - 1)] else 0
+                    for j in [
+                        k
+                        for k in range(0, word_size)
+                        if i + (word_size - k - 1) < len(prop_trace)
+                    ]
+                ]
+            )
             trace_bin += CStruct(sigil).pack(val)
 
     return CStruct("Q").pack(ceildiv(trace_len, word_size)) + trace_bin
@@ -51,9 +58,9 @@ if __name__ == "__main__":
     trace_len = int(sys.argv[1])
     num_sigs = int(sys.argv[2])
     word_size = int(sys.argv[3])
-    # assert trace_len % word_size == 0
+    density = float(sys.argv[4]) # relative proportion of trues to falses for each prop
 
-    trace = [[random.choice([True, False]) for _ in range(trace_len)] for _ in range(num_sigs)]
+    trace = [random.choices([True, False], weights=[density,1], k=trace_len) for _ in range(num_sigs)]
 
     r2u2_tr = r2u2_trace(trace)
     hydra_tr = hydra_trace(trace)

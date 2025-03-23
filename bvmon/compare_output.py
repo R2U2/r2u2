@@ -21,7 +21,7 @@ bvmon_trace: list[bool] = []
 # where FID and TS are natural numbers wth FID being a formula ID and TS being the timestamp. 
 # We assume a single formula per run, so FID will always be 0.
 # Example:
-# 0:2,T
+# 0:3,T
 # 0:4,F
 # 0:11,F
 # 0:12,T
@@ -44,8 +44,8 @@ for line in content.split("\n"):
 # but we do not consider this case so OFFSET will always be 0.
 # (Example: @0 a0 @0 a1 ... --- this is not allowed)
 # Example: 
-# 2:0 true
-# 11:0 false
+# 3:0 true
+# 4:0 false
 # 12:0 true
 with open(hydra_filename, "r") as f:
     content = f.read()
@@ -56,9 +56,12 @@ for line in content.split("\n"):
         continue
     ts = line.split(":")[0]
     verdict = line.split(" ")[1]
-    while cur_ts <= int(ts):
-        hydra_trace.append(verdict == "true")
+    prev_verdict = False if cur_ts == 0 else hydra_trace[-1]
+    while cur_ts < int(ts):
+        hydra_trace.append(prev_verdict)
         cur_ts += 1
+    hydra_trace.append(verdict == "true")
+    cur_ts += 1
 
 # bvmon output format:
 # \x*
@@ -73,15 +76,17 @@ with open(bvmon_filename, "r") as f:
 for hex_digit in content:
     bvmon_trace.extend([bit == "1" for bit in f"{int(hex_digit, 16):04b}"])
 
-# print(f"R2U2 trace: {r2u2_trace}")
-# print(f"Hydra trace: {hydra_trace}")
-# print(f"BvMon trace: {bvmon_trace}")
+# print(f"R2U2 trace: {len(r2u2_trace)}")
+print(f"Hydra trace: {len(hydra_trace)}")
+print(f"BvMon trace: {len(bvmon_trace)}")
 
+status = 0
 for i in range(min(len(hydra_trace), len(bvmon_trace))):
     hydra = hydra_trace[i]
     bvmon = bvmon_trace[i]
     if hydra != bvmon:
-        print(f"Discrepancy at timestamp {i}: Hydra={hydra}, BvMon={bvmon}")
+        print(f"Discrepancy at timestamp {i}: Hydra={hydra}, BvMon={bvmon}", file=sys.stderr)
+        status = 1
 
 # for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):
 #     r2u2 = r2u2_trace[i]
@@ -89,3 +94,6 @@ for i in range(min(len(hydra_trace), len(bvmon_trace))):
 #     bvmon = bvmon_trace[i]
 #     if r2u2 != hydra or r2u2 != bvmon or hydra != bvmon:
 #         print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, Hydra={hydra}, BvMon={bvmon}")
+#         status = 1
+
+sys.exit(status)

@@ -1,32 +1,33 @@
-file="$1"
+dir="$1"
 len="$2"
 nsigs="$3"
 wsize="$4"
 
-# generate the trace
-# echo "Generating trace"
-# python3 gen_trace.py $len $nsigs $wsize
-# echo "Done"
+gcc gen_trace.c -o gen_trace -DWORD_SIZE=$wsize -DWORD_TYPE="uint${wsize}_t"
 
-# run r2u2
-# python3 ../compiler/c2po.py $file > /dev/null
-# time ../monitors/c/build/r2u2 spec.bin trace.r2u2.log > out.r2u2.log
-# echo "Done with r2u2"
+for filename in $dir/*.mltl; do
+    echo "Generating trace"
+    /usr/bin/time -h ./gen_trace $len $nsigs 1
 
-# run hydra
-echo "Running Hydra"
-python3 ../compiler/c2po.py --bnf --write-hydra hydra.mtl -c $file
-time ../../hydra/hydra hydra.mtl trace.hydra.log > out.hydra.log
-echo "Done with hydra"
+    echo "Running each tool on $filename"
 
-# run bvmon
-echo "Running bvmon"
-python3 ../compiler/c2po.py --no-rewrite --bvmon --bvmon-word-size $wsize -c --extops $file > bvmon.c
-gcc -DOUTPUT -o bvmon bvmon.c
-time ./bvmon trace.bvmon.log > out.bvmon.log
-echo "Done with bvmon"
+    # echo "Running r2u2"
+    # python3 ../compiler/c2po.py $filename > /dev/null
+    # /usr/bin/time -h ../monitors/c/build/r2u2 spec.bin trace.r2u2.log > out.r2u2.log
 
-# compare the results
-echo "Comparing output"
-python3 compare_output.py out.r2u2.log out.hydra.log out.bvmon.log
+    echo "Running Hydra"
+    python3 ../compiler/c2po.py --bnf --write-hydra hydra.mtl -c $filename
+    /usr/bin/time -h ../../hydra/hydra hydra.mtl trace.hydra.log > out.hydra.log
 
+    echo "Running bvmon"
+    /usr/bin/time -h python3 ../compiler/c2po.py --no-rewrite --bvmon --bvmon-nsigs $nsigs --bvmon-word-size $wsize -c --extops $filename > bvmon.c
+    /usr/bin/time -h gcc -DOUTPUT -o bvmon bvmon.c
+    /usr/bin/time -h ./bvmon trace.bvmon.log > out.bvmon.log
+
+    # compare the results
+    echo "Comparing output"
+    python3 compare_output.py out.r2u2.log out.hydra.log out.bvmon.log
+    if [[ $? -ne 0 ]]; then
+        exit 1
+    fi
+done

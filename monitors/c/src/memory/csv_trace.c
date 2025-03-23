@@ -22,11 +22,9 @@ r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t *csv_reader, r2u2_mon
 
     //if the term starts with an '@' then store it in the monitor's time_stamp
     if (signal[0] == '@'){
-      char *timechar = signal+1;
-      uint32_t time_signature;
-      if(sscanf(timechar,"%u",&time_signature) != 1 ) return R2U2_END_OF_TRACE;
-      (monitor->time_stamp) = time_signature;
-      R2U2_DEBUG_PRINT("Event: %u\n",monitor->time_stamp);
+      if( sscanf(signal+1,"%u", &monitor->time_stamp) != 1 ) return R2U2_END_OF_TRACE;
+      R2U2_DEBUG_PRINT("Event: @%u\n",monitor->time_stamp);
+      i--;
       continue; 
     }
 

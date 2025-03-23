@@ -112,8 +112,10 @@ quiet: bool = False
 
 bvmon: bool = False
 bvmon_word_size: int = 8
+enable_bvmon_mmap: bool = False
 enable_bvmon_trace_len: bool = False
 bvmon_trace_len: int = 0
+bvmon_nsigs: int = -1
 
 def setup() -> bool:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
