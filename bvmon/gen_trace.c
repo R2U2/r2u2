@@ -7,6 +7,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
+#include <time.h>
+
+#include "xoshiro256pp.h"
 
 #define BUFFER_SIZE 16384
 
@@ -46,10 +50,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    struct timespec tspec;
+    timespec_get(&tspec, TIME_UTC);
+    xoshiro256pp_init((uint64_t) tspec.tv_nsec);
+
     uint64_t trace_len;
     uint8_t nsigs, density;
 
-    sscanf(argv[1], "%llu", &trace_len);
+    sscanf(argv[1], "%lu", &trace_len);
     sscanf(argv[2], "%hhu", &nsigs);
     sscanf(argv[3], "%hhu", &density);
 
@@ -71,21 +79,10 @@ int main(int argc, char *argv[])
 
     uint64_t num_gen = trace_len / WORD_SIZE; // number of words to generate
     for (i = 0; i <= num_gen; ++i) { 
-        // arc4random() creates 32 bit random numbers, so for 64 bit words we need to concatenate two together
-        if (WORD_SIZE == 64) {
-            for (s = 0; s < nsigs; ++s) {
-                value = (((WORD_TYPE) arc4random()) << 32) | ((WORD_TYPE) arc4random());
-                for (d = 1; d < density; ++d) { 
-                    value &= (((WORD_TYPE) arc4random()) << 32) | ((WORD_TYPE) arc4random()); 
-                }
-                buffer[s][i % BUFFER_SIZE] = (WORD_TYPE) value;
-            }
-        } else {
-            for (s = 0; s < nsigs; ++s) {
-                value = arc4random();
-                for (d = 1; d < density; ++d) { value &= arc4random(); }
-                buffer[s][i % BUFFER_SIZE] = (WORD_TYPE) value;
-            }
+        for (s = 0; s < nsigs; ++s) {
+            value = xoshiro256pp_next();
+            for (d = 1; d < density; ++d) { value &= xoshiro256pp_next(); }
+            buffer[s][i % BUFFER_SIZE] = (WORD_TYPE) value;
         }
 
         // write-out and reset buffer once buffer is full or have generated all words
@@ -104,7 +101,7 @@ int main(int argc, char *argv[])
                         // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
                         // Offset in buffer = (j * WORD_SIZE)
                         // Offset in word = b
-                        fprintf(r2u2_file, "@%llu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
+                        fprintf(r2u2_file, "@%lu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
                         for (s = 0; s < nsigs; ++s) {
                             fprintf(r2u2_file, ",%hhu", sig_val[s]);
                         }
@@ -121,7 +118,7 @@ int main(int argc, char *argv[])
                     // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
                     // Offset in buffer = (j * WORD_SIZE)
                     // Offset in word = b
-                    fprintf(hydra_file, "@%llu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
+                    fprintf(hydra_file, "@%lu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
                     for (s = 0; s < nsigs; ++s) {
                         sig_val[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j] << b)) > 0;
                         if (sig_val[s]) fprintf(hydra_file, " a%hhu", s);
