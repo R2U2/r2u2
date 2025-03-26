@@ -103,6 +103,8 @@ parser.add_argument("--bvmon-word-size", type=int, default=8, help="bvmon word s
 parser.add_argument("--bvmon-trace-len", type=int, help="bvmon trace length, encoding is trace length-independent if omitted")
 parser.add_argument("--bvmon-mmap", action="store_true", help="use mmap instead of open/read for file io")
 parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon encoding")
+parser.add_argument("--bvmon-unroll", action="store_true", help="unroll all temporal ops in generated C code")
+parser.add_argument("--bvmon-cuda", action="store_true", help="use CUDA encoding")
 
 args = parser.parse_args()
 
@@ -152,6 +154,8 @@ return_code = c2po.main.main(
     bvmon_trace_len=args.bvmon_trace_len,
     bvmon_mmap=args.bvmon_mmap,
     bvmon_nsigs=args.bvmon_nsigs,
+    bvmon_unroll=args.bvmon_unroll,
+    bvmon_cuda=args.bvmon_cuda,
 )
 
 sys.exit(return_code.value)

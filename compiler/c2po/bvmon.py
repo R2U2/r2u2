@@ -54,9 +54,9 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*3}"
                 f"{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i & {word_size-1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
             ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
@@ -80,9 +80,9 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*3}"
                 f"{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i & {word_size-1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
             ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
@@ -135,13 +135,13 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB*2}for (i = {interval.ub - 1}; {'i < UINT64_MAX' if interval.lb == 0 else f'i >= {interval.lb}'}; --i) " "{\n"
             ret += (
                 f"{TAB*3}{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
-                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i % {word_size})) |"
-                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
+                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i & {word_size-1})) |"
+                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB*3}{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
-                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i % {word_size})) |"
-                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
+                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i & {word_size-1})) |"
+                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
             ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
@@ -194,9 +194,9 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*2}"
                 f"{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i & {word_size-1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB}" "}\n"
             )
             ret += f"{TAB}{fid[expr]}[{tau - word_wpd[expr]}&{size[expr]-1}] = {fid[expr]}_v;\n"
@@ -223,9 +223,9 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*2}"
                 f"{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i & {word_size-1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB}" "}\n"
             )
             ret += f"{TAB}{fid[expr]}[{tau - word_wpd[expr]}&{size[expr]-1}] = {fid[expr]}_v;\n"
@@ -280,13 +280,13 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
             ret += f"{TAB}for (i = {interval.ub - 1}; {'i < UINT64_MAX' if interval.lb == 0 else f'i >= {interval.lb}'}; --i) " "{\n"
             ret += (
                 f"{TAB*2}{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
-                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i % {word_size})) |"
-                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
+                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i & {word_size-1})) |"
+                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB*2}{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
-                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i % {word_size})) |"
-                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
+                f"(i & {word_size-1} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
+                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i & {word_size-1})) |"
+                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
                 f"{TAB}" "}\n"
             )
             ret += f"{TAB}{fid[expr]}[{(tau - word_wpd[expr]) % size[expr]}] = {fid[expr]}_v;\n"
@@ -312,6 +312,12 @@ void print_binary(uint{word_size}_t value)
 }}
 #endif
 
+// for profiling --- parse time is shown to be insignificant
+ssize_t _read(int fd, void *buf, size_t count)
+{{
+    return read(fd, buf, count);
+}}
+
 int main(int argc, char const *argv[]) 
 {{
     if (argc != 2) {{
@@ -326,7 +332,7 @@ int main(int argc, char const *argv[])
     }}
 
     uint64_t num_words;
-    read(f, &num_words, 8);
+    _read(f, &num_words, 8);
 
 """
     
@@ -404,13 +410,13 @@ if (trace == NULL) {{
             if use_mmap:
                 code += f"{TAB}{signal}[{word % sigsize[signal]}] = {signal}[{word}];\n"
             else:
-                code += f"{TAB}read(f, &{signal}[{word % sigsize[signal]}], {word_size // 8});\n"
+                code += f"{TAB}_read(f, &{signal}[{word % sigsize[signal]}], {word_size // 8});\n"
 
             if debug:
                 code += "#ifdef DEBUG\n"
                 code += (
                     f'\t\tprintf("{signal:3}@%d: ", {word});\n'
-                    f'\t\tprint_binary({signal}[({word})%{sigsize[signal]}]); printf("\\n");\n'
+                    f'\t\tprint_binary({signal}[({word})&{sigsize[signal]-1}]); printf("\\n");\n'
                 )
                 code += "#endif\n"
 
@@ -422,7 +428,7 @@ if (trace == NULL) {{
                 code += "#ifdef DEBUG\n"
                 code += (
                     f'\t\tprintf("{fid[expr]:3}@%d: ", {word-word_wpd[expr]});\n'
-                    f'\t\tprint_binary({fid[expr]}[({word-word_wpd[expr]})%{size[expr]}]); printf("\\n");\n'
+                    f'\t\tprint_binary({fid[expr]}[({word-word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
                 )
                 code += "#endif\n"
     code += "\n"
@@ -434,7 +440,7 @@ if (trace == NULL) {{
         if use_mmap:
             code += f"{TAB*2}{signal}[word&{sigsize[signal]-1}] = {signal}[word];\n"
         else:
-            code += f"{TAB*2}read(f, &{signal}[word&{sigsize[signal]-1}], {word_size // 8});\n"
+            code += f"{TAB*2}_read(f, &{signal}[word&{sigsize[signal]-1}], {word_size // 8});\n"
         if debug:
             code += "#ifdef DEBUG\n"
             code += (
@@ -485,75 +491,61 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
         nonlocal word_size
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = "
-                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})%{size[expr]}];\n"
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
                 f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
                 f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
-            ret =  f"{TAB*2}{fid[expr]}_v = 0;\n"
-            ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
-            ret += (f"{TAB*3}"
-                f"{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB*2}" "}\n"
-            )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = {fid[expr]}_v;\n"
-            return ret
+            return f"""
+        cudaMemcpy(dev_{fid[child]}, {fid[child]}, {size[child] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[child]}, dev_{fid[child]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cub::DeviceReduce::Reduce(
+            dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
+            dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvor_op, bvor_init
+        );
+        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+"""
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
-            ret =  f"{TAB*2}{fid[expr]}_v = " + hexlit((2**word_size)-1, word_size) + ";\n"
-            ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
-            ret += (f"{TAB*3}"
-                f"{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB*2}" "}\n"
-            )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = {fid[expr]}_v;\n"
-            return ret
+            return f"""
+        cudaMemcpy(dev_{fid[child]}, {fid[child]}, {size[child] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[child]}, dev_{fid[child]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cub::DeviceReduce::Reduce(
+            dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
+            dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvand_op, bvand_init
+        );
+        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+"""
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             interval = cast(cpt.TemporalOperator, expr).interval
             lhs = expr.children[0]
             rhs = expr.children[1]
-            ret = (
-                f"{TAB*2}{fid[expr]}_v = " +
-                (
-                    f"{fid[rhs]}[({tau} - {word_wpd[expr] - (interval.ub // word_size)})&{size[rhs]-1}];\n"
-                    if interval.ub % word_size == 0 else 
-                    f"(({fid[rhs]}[({tau} - {word_wpd[expr] - (interval.ub // word_size)})&{size[rhs]-1}] << {interval.ub % word_size}) | "
-                    f"({fid[rhs]}[({tau} - {word_wpd[expr] - (interval.ub // word_size) - 1})&{size[rhs]-1}] >> {word_size - (interval.ub % word_size)}));\n"
-                )
-            )
-            ret += f"{TAB*2}for (i = {interval.ub - 1}; {'i < UINT64_MAX' if interval.lb == 0 else f'i >= {interval.lb}'}; --i) " "{\n"
-            ret += (
-                f"{TAB*3}{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
-                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i % {word_size})) |"
-                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB*3}{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
-                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i % {word_size})) |"
-                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB*2}" "}\n"
-            )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})%{size[expr]}] = {fid[expr]}_v;\n"
-            return ret
-        
+            return f"""
+        cudaMemcpy(dev_{fid[lhs]}, {fid[lhs]}, {size[lhs] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_{fid[rhs]}, {fid[rhs]}, {size[rhs] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[lhs]}, dev_{fid[lhs]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[rhs]}, dev_{fid[rhs]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cudaMemcpy({fid[lhs]}_arr, dev_{fid[lhs]}_tmp, {(interval.ub - interval.lb + 1) * (word_size // 8)}, cudaMemcpyDeviceToHost);
+        cudaMemcpy({fid[rhs]}_arr, dev_{fid[rhs]}_tmp, {(interval.ub - interval.lb + 1) * (word_size // 8)}, cudaMemcpyDeviceToHost);
+        {fid[expr]}_v = {fid[rhs]}_arr[{interval.ub - interval.lb}];
+        for (i = {interval.ub - interval.lb - 1}; i != UINT64_MAX; --i) {{
+            {fid[expr]}_v &= {fid[lhs]}_arr[i];
+            {fid[expr]}_v |= {fid[rhs]}_arr[i];
+        }}
+        {fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;
+"""
         return ""
 
     def gen_compute_expr_code_begin(
@@ -580,73 +572,55 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
                 f"{' | '.join([f'{fid[c]}[{(tau-word_wpd[expr]) % size[c]}]' for c in expr.children])};\n"
             ) if word_wpd[expr] <= tau else ""
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-            if tau - word_wpd[expr] < 0:
-                return ""
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
-            ret =  f"{TAB}{fid[expr]}_v = 0;\n"
-            ret += f"{TAB}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
-            ret += (f"{TAB*2}"
-                f"{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB}" "}\n"
-            )
-            ret += f"{TAB}{fid[expr]}[{tau - word_wpd[expr]}%{size[expr]}] = {fid[expr]}_v;\n"
-            return ret
+            return f"""
+        cudaMemcpy(dev_{fid[child]}, {fid[child]}, {size[child] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[child]}, dev_{fid[child]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cub::DeviceReduce::Reduce(
+            dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
+            dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvor_op, bvor_init
+        );
+        cudaMemcpy(&{fid[expr]}[{tau - word_wpd[expr] % size[expr]}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+"""
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
-            if tau - word_wpd[expr] < 0:
-                return ""
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
-            ret =  f"{TAB}{fid[expr]}_v = " + hexlit((2**word_size)-1, word_size) + ";\n"
-            ret += f"{TAB}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
-            ret += (f"{TAB*2}"
-                f"{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[child]-1}] << (i % {word_size})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[child]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB}" "}\n"
-            )
-            ret += f"{TAB}{fid[expr]}[{tau - word_wpd[expr]}%{size[expr]}] = {fid[expr]}_v;\n"
-            return ret
+            return f"""
+        cudaMemcpy(dev_{fid[child]}, {fid[child]}, {size[child] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[child]}, dev_{fid[child]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cub::DeviceReduce::Reduce(
+            dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
+            dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvand_op, bvand_init
+        );
+        cudaMemcpy(&{fid[expr]}[{tau - word_wpd[expr] % size[expr]}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+"""
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            if tau - word_wpd[expr] < 0:
-                return ""
             interval = cast(cpt.TemporalOperator, expr).interval
             lhs = expr.children[0]
             rhs = expr.children[1]
-            ret = (
-                f"{TAB}{fid[expr]}_v = " +
-                (
-                    f"{fid[rhs]}[{(tau - (word_wpd[expr] - (interval.ub // word_size))) % size[rhs]}];\n"
-                    if interval.ub % word_size == 0 else 
-                    f"(({fid[rhs]}[{(tau - (word_wpd[expr] - (interval.ub // word_size))) % size[rhs]}] << {interval.ub % word_size}) | "
-                    f"({fid[rhs]}[{(tau - (word_wpd[expr] - (interval.ub // word_size) - 1)) % size[rhs]}] >> {word_size - (interval.ub % word_size)}));\n"
-                )
-            )
-            ret += f"{TAB}for (i = {interval.ub - 1}; {'i < UINT64_MAX' if interval.lb == 0 else f'i >= {interval.lb}'}; --i) " "{\n"
-            ret += (
-                f"{TAB*2}{fid[expr]}_v &= "
-                f"(i % {word_size} == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] : "
-                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[lhs]-1}] << (i % {word_size})) |"
-                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[lhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB*2}{fid[expr]}_v |= "
-                f"(i % {word_size} == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] : "
-                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size})))&{size[rhs]-1}] << (i % {word_size})) |"
-                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i / {word_size}) - 1))&{size[rhs]-1}] >> ({word_size} - (i % {word_size}))));\n" 
-                f"{TAB}" "}\n"
-            )
-            ret += f"{TAB}{fid[expr]}[{(tau - word_wpd[expr]) % size[expr]}] = {fid[expr]}_v;\n"
-            return ret
+            return f"""
+        cudaMemcpy(dev_{fid[lhs]}, {fid[lhs]}, {size[lhs] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_{fid[rhs]}, {fid[rhs]}, {size[rhs] * (word_size // 8)}, cudaMemcpyHostToDevice);
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[lhs]}, dev_{fid[lhs]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        singleton<<<blocksPerGrid, threadsPerBlock>>>(dev_{fid[rhs]}, dev_{fid[rhs]}_tmp, word, {interval.lb}, {interval.ub}, {word_wpd[expr]});
+        cudaMemcpy({fid[lhs]}_arr, dev_{fid[lhs]}_tmp, {(interval.ub - interval.lb + 1) * (word_size // 8)}, cudaMemcpyDeviceToHost);
+        cudaMemcpy({fid[rhs]}_arr, dev_{fid[rhs]}_tmp, {(interval.ub - interval.lb + 1) * (word_size // 8)}, cudaMemcpyDeviceToHost);
+        {fid[expr]}_v = {fid[rhs]}_arr[{interval.ub - interval.lb}];
+        for (i = {interval.ub - interval.lb - 1}; i != UINT64_MAX; --i) {{
+            {fid[expr]}_v &= {fid[lhs]}_arr[i];
+            {fid[expr]}_v |= {fid[rhs]}_arr[i];
+        }}
+        {fid[expr]}[{tau - word_wpd[expr] % size[expr]}] = {fid[expr]}_v;
+"""
         return ""
-    
+
     fid: dict[cpt.Expression, str] = {}
     sigsize: dict[str, int] = {}
     size: dict[cpt.Expression, int] = {}
     word_wpd: dict[cpt.Expression, int] = {} # how many words to wait until all children are computed
     word_bpd: dict[cpt.Expression, int] = {} 
+    max_interval: int = 0
 
     cnt = 0
     for expr in cpt.postorder(formula, context):
@@ -661,7 +635,8 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
             lb = expr.interval.lb
             ub = expr.interval.ub
             size[expr] = max(((word_size - 1) + ub) // word_size - (lb // word_size) + 1, size[expr]) + 1
-        
+            max_interval = max(max_interval, ub - lb + 1)
+
         max_child_word_wpd = max([word_wpd[c] for c in expr.children] + [0])
         ub = (expr.interval.ub if isinstance(expr, cpt.TemporalOperator) else 0)
         word_wpd[expr] = (((word_size - 1) + ub) // word_size) + max_child_word_wpd
@@ -674,16 +649,20 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
         size[expr] = max(size[expr], max_child_size)
 
     for expr in cpt.postorder(formula, context):
-        # For now, force all sub-formulas to be of size word_wpd[formula] + 1
-        size[expr] = word_wpd[formula] + 1
+        # For now, force all sub-formulas to be at least of size word_wpd[formula] + 1
+        # Also nice if it's a power of two, then modulo operations become *much* faster
+        size[expr] = 1 << (word_wpd[formula]).bit_length()
 
-    code = f"""#include <stdio.h>
+    code = """#include <stdio.h>
 #include <stdint.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <cuda_runtime.h>
 #include <cub/device/device_reduce.cuh>
+"""
 
+    if debug:
+        code += f"""
 #ifdef DEBUG
 void print_binary(uint{word_size}_t value) 
 {{
@@ -692,8 +671,10 @@ void print_binary(uint{word_size}_t value)
     }}
 }}
 #endif
+"""
 
-struct CustomOr
+    code += f"""
+struct BitwiseOr
 {{
     template <typename T>
     __device__ __forceinline__
@@ -702,16 +683,22 @@ struct CustomOr
     }}
 }};
 
-/**
- * CUDA Kernel Device code
- */
-__global__ void future(const uint{word_size}_t *in, uint{word_size}_t *out,
-                        const uint64_t word, const uint64_t low, const uint64_t high, const_t uint64_t sz) {{
+struct BitwiseAnd
+{{
+    template <typename T>
+    __device__ __forceinline__
+    T operator()(const T &a, const T &b) const {{
+        return a & b;
+    }}
+}};
+
+__global__ void singleton(const uint{word_size}_t *in, uint{word_size}_t *out,
+                        const uint64_t word, const uint64_t low, const uint64_t high, const uint64_t word_wpd) {{
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     if (i <= high - low) {{
-        out[i] = ((low + i) % {word_size} == 0) ? 
-            in[(word - (2 - (i / {word_size})))%sz] : 
-            ((in[(word - (2 - (i / {word_size})))%sz] << (i % {word_size})) | (in[(word - (2 - (i / {word_size}) - 1))%sz] >> ({word_size} - (i % {word_size}))));
+        out[i] = ((low + i) & {word_size-1} == 0) ? 
+            in[(word - (word_wpd - ((low + i) / {word_size})))&{size[formula]-1}] : 
+            ((in[(word - (word_wpd - ((low + i) / {word_size})))&{size[formula]-1}] << ((low + i) & {word_size-1})) | (in[(word - (word_wpd - ((low + i) / {word_size}) - 1))&{size[formula]-1}] >> ({word_size} - ((low + i) & {word_size-1}))));
     }}
 }}
 
@@ -730,38 +717,85 @@ int main(int argc, char const *argv[])
 
     uint64_t num_words;
     read(f, &num_words, 8);
+    uint64_t i;
+
+    // FIXME: mess with these values
+    int threadsPerBlock = 512;
+    // FIXME: Should blocksPerGrid be a power of 2?
+    int blocksPerGrid = ({max_interval} + threadsPerBlock - 1) / threadsPerBlock;
 
 """
 
     for aid in range(nsigs):
         signal = f"a{aid}"
-        sigsize[signal] = word_wpd[formula] + 1
+        sigsize[signal] = 1 << (word_wpd[formula]).bit_length()
         code += f"{TAB}uint{word_size}_t {signal}[{sigsize[signal]}] = {{0}};\n"
 
     for expr in cpt.postorder(formula, context):
         if isinstance(expr, cpt.Signal):
             continue
         code += f"{TAB}uint{word_size}_t {fid[expr]}[{size[expr]}] = {{0}}; // {expr}\n"
-    code += "\n"
+    
+    code += f"""
+    BitwiseOr bvor_op;
+    uint{word_size}_t bvor_init = {hexlit(0, word_size)};
+    BitwiseAnd bvand_op;
+    uint{word_size}_t bvand_init = {hexlit((2**word_size)-1, word_size)};
+    
+"""
 
+    # Each temporal operator requires the following variables on the device:
+    # - its inputs
+    # - its output
+    # - a temporary vector of the interval size for the GPU computation
+    dev_vars: set[cpt.Expression] = set()
     for expr in cpt.postorder(formula, context):
         if not cpt.is_temporal_operator(expr):
             continue
-        code += f"{TAB}uint{word_size}_t {fid[expr]}_v;\n"
-    code += f"{TAB}uint64_t i;\n"
-    code += "\n"
+        expr = cast(cpt.TemporalOperator, expr)
+        lb = expr.interval.lb
+        ub = expr.interval.ub
+        for c in [c for c in expr.children if c not in dev_vars]:
+            code += f"{TAB}uint{word_size}_t *dev_{fid[c]};\n"
+            code += f"{TAB}cudaMalloc((void**) &dev_{fid[c]}, {size[c] * (word_size // 8)});\n"
+            code += f"{TAB}uint{word_size}_t *dev_{fid[c]}_tmp;\n"
+            code += f"{TAB}cudaMalloc((void**) &dev_{fid[c]}_tmp, {(ub - lb + 1) * (word_size // 8)});\n"
+            dev_vars.add(c)
+        if expr not in dev_vars:
+            code += f"{TAB}uint{word_size}_t *dev_{fid[expr]};\n"
+            code += f"{TAB}cudaMalloc((void**) &dev_{fid[expr]}, {word_size // 8});\n"
+            dev_vars.add(expr)
+        if expr.operator is cpt.OperatorKind.UNTIL:
+            # cannot do parallel reduction on untils :(
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            code += f"{TAB}uint{word_size}_t {fid[lhs]}_arr[{(ub - lb + 1) * (word_size // 8)}];\n"
+            code += f"{TAB}uint{word_size}_t {fid[rhs]}_arr[{(ub - lb + 1) * (word_size // 8)}];\n"
+            code += f"{TAB}uint{word_size}_t {fid[expr]}_v = 0;\n"
+            continue
+        child = expr.children[0] # future and global have only 1 child
+        code += f"{TAB}void *dev_tmp_storage_{fid[child]} = nullptr;\n"
+        code += f"{TAB}size_t dev_tmp_storage_{fid[child]}_bytes = 0;"
+        code += f"""
+    cub::DeviceReduce::Reduce(
+        dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
+        dev_{fid[child]}_tmp, dev_{fid[child]}, {(ub - lb + 1)}, bvor_op, bvor_init
+    );
+    cudaMalloc(&dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes);
 
-    # First we fill the buffers for each sub-formula until we have sufficient data to start computing the first word of `formula`
+"""
+
+    # First we fill the buffers for each sub-formula until we have sufficient data to start
+    # computing the first word of `formula`
     for word in range(word_wpd[formula]):
         for aid in range(nsigs):
             signal = f"a{aid}"
             code += f"{TAB}read(f, &{signal}[{word % sigsize[signal]}], {word_size // 8});\n"
-
             if debug:
                 code += "#ifdef DEBUG\n"
                 code += (
                     f'\t\tprintf("{signal:3}@%d: ", {word});\n'
-                    f'\t\tprint_binary({signal}[({word})%{sigsize[signal]}]); printf("\\n");\n'
+                    f'\t\tprint_binary({signal}[({word})&{sigsize[signal]-1}]); printf("\\n");\n'
                 )
                 code += "#endif\n"
 
@@ -773,7 +807,7 @@ int main(int argc, char const *argv[])
                 code += "#ifdef DEBUG\n"
                 code += (
                     f'\t\tprintf("{fid[expr]:3}@%d: ", {word-word_wpd[expr]});\n'
-                    f'\t\tprint_binary({fid[expr]}[({word-word_wpd[expr]})%{size[expr]}]); printf("\\n");\n'
+                    f'\t\tprint_binary({fid[expr]}[({word-word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
                 )
                 code += "#endif\n"
     code += "\n"
@@ -782,12 +816,12 @@ int main(int argc, char const *argv[])
     code += f"\tfor (word = {word_wpd[formula]}; word < num_words; ++word) {{\n"
     for aid in range(nsigs):
         signal = f"a{aid}"
-        code += f"{TAB*2}read(f, &{signal}[word%{sigsize[signal]}], {word_size // 8});\n"
+        code += f"{TAB*2}read(f, &{signal}[word&{sigsize[signal]-1}], {word_size // 8});\n"
         if debug:
             code += "#ifdef DEBUG\n"
             code += (
                 f'\t\tprintf("{signal:3}@%lu: ", word);\n'
-                f'\t\tprint_binary({signal}[word%{sigsize[signal]}]); printf("\\n");\n'
+                f'\t\tprint_binary({signal}[word&{sigsize[signal]-1}]); printf("\\n");\n'
             )
             code += "#endif\n"
     for expr in cpt.postorder(formula, context):
@@ -798,16 +832,16 @@ int main(int argc, char const *argv[])
             code += "#ifdef DEBUG\n"
             code += (
                 f'\t\tprintf("{fid[expr]:3}@%lu: ", word-{word_wpd[expr]});\n'
-                f'\t\tprint_binary({fid[expr]}[(word-{word_wpd[expr]})%{size[expr]}]); printf("\\n");\n'
+                f'\t\tprint_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
             )
             code += "#endif\n"
 
     code += "#ifdef OUTPUT\n"
-    code += f'\t\tprintf("%0{"16lx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}", {fid[formula]}[(word-{word_wpd[formula]})%{size[formula]}]);\n'
+    code += f'\t\tprintf("%0{"16lx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}", {fid[formula]}[(word-{word_wpd[formula]})&{size[formula]-1}]);\n'
     code += "#endif\n"
 
     for expr in cpt.postorder(formula, context):
-        code += f"\t\t{fid[expr]}[(word+1)%{size[expr]}] = 0;\n"
+        code += f"\t\t{fid[expr]}[(word+1)&{size[expr]-1}] = 0;\n"
 
     code += "\t}\n"
     
@@ -815,7 +849,7 @@ int main(int argc, char const *argv[])
     # the compiler doesn't just do nothing. (if -DOUTPUT or -DDEBUG are not defined then the
     # compiler doesn't think the program does anything useful, since it will print nothing and
     # return 0 in all cases.)
-    code += f"return \t{fid[formula]}[(num_words-1)%{size[formula]}];\n"
+    code += f"return \t{fid[formula]}[(num_words-1)&{size[formula]-1}];\n"
     code += "}"
     print(code)
     return code
