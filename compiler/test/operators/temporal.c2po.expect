@@ -9,12 +9,12 @@ TL n7  return n6 2
 TL n8  release n0 n5
 TL n9  return n8 3
 TL n10 load   a0
-TL q11 trigger False n10
+TL n11 trigger False n10
 TL n12 return n11 4
-TL q13 since  True n10
+TL n13 since  True n10
 TL n14 return n13 5
 TL n15 load   a1
-TL q16 since  n10 n15
+TL n16 since  n10 n15
 TL n17 return n16 6
 CG TL SCQ q0 |1|
 CG TL SCQ q1 |5|
