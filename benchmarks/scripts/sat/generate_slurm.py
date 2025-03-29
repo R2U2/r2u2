@@ -2,19 +2,16 @@ import os
 
 template = """#!/bin/bash
 
-# Copy/paste this job script into a text file and submit with the command:
-#    sbatch thefilename
-# job standard output will go to the file slurm-%j.out (where %j is the job ID)
-
 #SBATCH --time=120:00:00   # walltime limit (HH:MM:SS)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --ntasks-per-node=28   # 28 processor core(s) per node 
-#SBATCH --mem=512G   # maximum memory per node
+#SBATCH --mem=485G   # maximum memory per node
 #SBATCH --mail-user=cgjohann@iastate.edu   # email address
 #SBATCH --mail-type=END
 #SBATCH --job-name="{}"   # Job name to display in squeue
 #SBATCH --output="{}"   # Job standard output file
 #SBATCH --error="{}"   # Job standard output file
+#SBATCH --constraint=epyc-7502
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 module load apptainer
@@ -58,15 +55,21 @@ configurations = [
     },
     {
         "solver": "cvc5",
+        "encoding": "qf_bv",
+    },
+    {
+        "solver": "cvc5",
         "encoding": "qf_bv_incr",
     },
     {
         "solver": "bitwuzla",
         "encoding": "qf_bv",
+        "options": ["--abstraction"]
     },
     {
         "solver": "bitwuzla",
         "encoding": "qf_bv_incr",
+        "options": ["--abstraction"]
     },
     {
         "solver": "yices-smt2",
