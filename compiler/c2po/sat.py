@@ -404,6 +404,12 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
             lb = expr.interval.lb
             ub = expr.interval.ub
             i = 0
+
+            if ub == 0:
+                smt_commands.append(
+                    f"({fun_signature.format(expr_id)} {expr_map[expr.children[0]]})"
+                )
+                continue
             
             if lb > 0:
                 shift_amt = lb
@@ -442,6 +448,12 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
             ub = expr.interval.ub
             i = 0
 
+            if ub == 0:
+                smt_commands.append(
+                    f"({fun_signature.format(expr_id)} {expr_map[expr.children[0]]})"
+                )
+                continue
+
             if lb > 0:
                 smt_commands.append(
                     f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {expr_map[expr.children[0]]} {to_bv(lb)}))"
@@ -477,6 +489,12 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
             ub = expr.interval.ub
             i = 0
             j = 0
+
+            if ub == 0:
+                smt_commands.append(
+                    f"({fun_signature.format(expr_id)} {expr_map[rhs]})"
+                )
+                continue
 
             if lb > 0:
                 smt_commands.append(
