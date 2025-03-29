@@ -498,10 +498,10 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
 
             if lb > 0:
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {expr_map[lhs]} {to_bv(lb)}))"
+                    f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {expr_map[rhs]} {to_bv(lb)}))"
                 )
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {expr_map[rhs]} {to_bv(lb)}))"
+                    f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {expr_map[lhs]} {to_bv(lb)}))"
                 )
                 i += 1
                 j += 1
