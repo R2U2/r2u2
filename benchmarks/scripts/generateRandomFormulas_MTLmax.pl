@@ -39,9 +39,9 @@ if ($ARGV[0] =~ /--help/) {
 
 $S = 1; #default value for S (not starting from 0)
 
-$M = 1024; #default value for M (max interval size)
+$M = 1000; #default value for M (max interval size)
 
-$T = 1024; #default value for T (mission time)
+$T = 1000; #default value for T (mission time)
 
 # if ($ARGV[0] =~ /-useR/i) {
 #     $useR = 1; 

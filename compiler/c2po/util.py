@@ -55,6 +55,8 @@ def set_max_memory(bytes: int) -> None:
             MODULE_CODE,
             "Failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
         )
+    except OverflowError:
+        pass
 
 
 def set_max_memory_offset(bytes: int) -> None:

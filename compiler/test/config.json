@@ -831,5 +831,82 @@
             "expected_output": "sat/unsat_7.mltl.expect", 
             "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv"]
         }
+    ],
+    "sat-qf-bv-log": [
+        {
+            "input": "sat/sat_1.mltl", 
+            "expected_output": "sat/sat_1.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_2.mltl", 
+            "expected_output": "sat/sat_2.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_3.mltl", 
+            "expected_output": "sat/sat_3.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_4.mltl", 
+            "expected_output": "sat/sat_4.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_5.mltl", 
+            "expected_output": "sat/sat_5.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_6.mltl", 
+            "expected_output": "sat/sat_6.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_7.mltl", 
+            "expected_output": "sat/sat_7.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/sat_8.mltl", 
+            "expected_output": "sat/sat_8.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_1.mltl", 
+            "expected_output": "sat/unsat_1.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_2.mltl", 
+            "expected_output": "sat/unsat_2.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_3.mltl", 
+            "expected_output": "sat/unsat_3.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_4.mltl", 
+            "expected_output": "sat/unsat_4.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_5.mltl", 
+            "expected_output": "sat/unsat_5.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_6.mltl", 
+            "expected_output": "sat/unsat_6.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        },
+        {
+            "input": "sat/unsat_7.mltl", 
+            "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "--sat", "--extops", "--smt-encoding", "qf_bv_log"]
+        }
     ]
 }

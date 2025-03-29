@@ -63,3 +63,8 @@ def write_outputs(
                     f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
                 elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
                     log.warning(MODULE_CODE, "qf_bv_incr encoding writes multiple files incrementally depending on SMT results, not writing")
+                elif options.smt_encoding == options.SMTTheories.QF_BV_LOG:
+                    f.write(sat.to_qfbv_log_smtlib2(expr, context, expr.wpd + 1))
+                elif options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
+                    log.warning(MODULE_CODE, "qf_bv_log_incr encoding writes multiple files incrementally depending on SMT results, not writing")
+

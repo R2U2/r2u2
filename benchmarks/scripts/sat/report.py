@@ -19,10 +19,6 @@ for file in (CURDIR / "results").glob("*.csv"):
         for row in reader:
             testpath = pathlib.Path(row[0])
             testname = testpath.stem
-
-            # if testname in results[benchmark_name]:
-            #     print(f"Duplicate test {testname} in benchmark {benchmark_name}")
-
             results[benchmark_name][testname] = (row[1], row[3], row[4])
 
 benchmarks = sorted(list(results.keys()))

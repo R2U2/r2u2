@@ -235,7 +235,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
     return smt
 
 
-def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResult:
+def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: bool) -> SatResult:
     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
     total_sat_time: float = 0
     total_enc_time: float = 0
@@ -275,7 +275,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
 
     # start with a quick check
     enc_start = util.get_rusage_time()
-    smt = to_qfbv_smtlib2(start, context, trace_len)
+    smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time)
@@ -288,7 +288,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     if start.wpd <= 255:
         trace_len = start.wpd + 1
         enc_start = util.get_rusage_time()
-        smt = to_qfbv_smtlib2(start, context, trace_len)
+        smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
         enc_end = util.get_rusage_time()
         total_enc_time += enc_end - enc_start
         (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
@@ -299,7 +299,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     # otherwise wpd >= 256, so try its bpd first, then its wpd
     trace_len = start.bpd + 1
     enc_start = util.get_rusage_time()
-    smt = to_qfbv_smtlib2(start, context, trace_len)
+    smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
@@ -310,7 +310,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     
     trace_len = start.wpd + 1
     enc_start = util.get_rusage_time()
-    smt = to_qfbv_smtlib2(start, context, trace_len)
+    smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
     (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
@@ -318,6 +318,224 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
 
     report_stats(result)
     return result
+
+
+def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
+    log.debug(
+        MODULE_CODE,
+        1,
+        f"Encoding MLTL formula in QF_BV (logarithmic) logic (up to length {trace_len}):\n\t{repr(start)}",
+    )
+
+    bv_width = trace_len
+    bv_sort = f"(_ BitVec {bv_width})"
+
+    # Need to set this in case bv literals have more than 4300 digits (in decimal) for to_bv
+    # 0 means no limit
+    sys.set_int_max_str_digits(0) 
+
+    def to_bv(value: int):
+        nonlocal bv_width
+        return f"(_ bv{min(value, (2**bv_width) - 1)} {bv_width})"
+
+    def ones():
+        nonlocal bv_width
+        return f"(_ bv{2**bv_width - 1} {bv_width})"
+
+    def zeros():
+        nonlocal bv_width
+        return f"(_ bv0 {bv_width})"
+
+    smt_commands: list[str] = [PREAMBLE]
+    smt_commands.append("(set-logic QF_BV)")
+
+    expr_map: dict[cpt.Expression, str] = {}
+    cnt = 0
+
+    atomic_map: dict[str, str] = {}
+    for signal in context.signals.keys():
+        atomic_map[signal] = f"f_{signal}"
+        smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
+
+    for expr in cpt.postorder(start, context):
+        if expr in expr_map:
+            continue
+
+        if isinstance(expr, cpt.Atomic):
+            expr_map[expr] = expr_map[expr.children[0]]
+            continue
+
+        expr_id = f"f_e{cnt}"
+        cnt += 1
+        expr_map[expr] = expr_id
+
+        if expr.type != types.BoolType():
+            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            return ""
+
+        fun_signature = "define-fun {0} () " + bv_sort
+
+        if isinstance(expr, cpt.Constant) and expr.value:
+            smt_commands.append(f"({fun_signature.format(expr_id)} {ones()})")
+        elif isinstance(expr, cpt.Constant) and not expr.value:
+            smt_commands.append(f"({fun_signature.format(expr_id)} {zeros()})")
+        elif isinstance(expr, cpt.Signal):
+            smt_commands.append(f"({fun_signature.format(expr_id)} {atomic_map[expr.symbol]})")
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
+            smt_commands.append(
+                f"({fun_signature.format(expr_id)} (bvnot {expr_map[expr.children[0]]}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
+            op = f"(bvand {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
+            for child in expr.children[2:]:
+                op = f"(bvand {op} {expr_map[child]})"
+            smt_commands.append(f"({fun_signature.format(expr_id)} {op})")
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
+            op = f"(bvor {expr_map[expr.children[0]]} {expr_map[expr.children[1]]})"
+            for child in expr.children[2:]:
+                op = f"(bvor {op} {expr_map[child]})"
+            smt_commands.append(f"({fun_signature.format(expr_id)} {op})")
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            smt_commands.append(
+                f"({fun_signature.format(expr_id)} (bvxnor {expr_map[expr.children[0]]} {expr_map[expr.children[1]]}))"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            i = 0
+            
+            if lb > 0:
+                shift_amt = lb
+                shift_ones_bitmask = to_bv(2**shift_amt - 1)
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvor (bvshl {expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
+                )
+                i += 1
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(n)
+                    s -= (2**n - 1)
+            
+            for a in reversed(amounts):
+                for j in range(0,a):
+                    shift_amt = 2**j
+                    shift_ones_bitmask = to_bv(2**shift_amt - 1)
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvor (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
+                    )
+                    i += 1
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvand {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
+                    )
+                    i += 1
+
+            smt_commands.append(
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            i = 0
+
+            if lb > 0:
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {expr_map[expr.children[0]]} {to_bv(lb)}))"
+                )
+                i += 1
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(n)
+                    s -= (2**n - 1)
+            
+            for a in reversed(amounts):
+                for j in range(0,a):
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(2**j)}))"
+                    )
+                    i += 1
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvor {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
+                    )
+                    i += 1
+
+            smt_commands.append(
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
+            expr = cast(cpt.TemporalOperator, expr)
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            i = 0
+            j = 0
+
+            if lb > 0:
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {expr_map[lhs]} {to_bv(lb)}))"
+                )
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {expr_map[rhs]} {to_bv(lb)}))"
+                )
+                i += 1
+                j += 1
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(n)
+                    s -= (2**n - 1)
+            
+            for a in reversed(amounts):
+                for k in range(0,a):
+                    # expr_R = expr_R_{j} | (expr_L_{i-1} & (expr_R_{j} << 2^k))
+                    # (expr_R_{i} << 1)
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]} {to_bv(2**k)}))"
+                    )
+                    # (expr_L_{j-1} & (expr_R_{i} << 2^k))
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_R_{i+1}')} (bvand {f'{expr_id}_R_{i}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
+                    )
+                    # expr_R_{i} | (expr_L_{j-1} & (expr_R_{i} << 2^k))
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_R_{i+2}')} (bvor {f'{expr_id}_R_{i+1}'} {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]}))"
+                    )
+                    i += 3
+
+                    # expr_L = expr_L_{j-1} & (expr_L_{j-1} << 2^k)
+                    # expr_L_{j-1} << 2^k
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]} {to_bv(2**k)}))"
+                    )
+                    # expr_R_{j-1} & (expr_R_{j-1} << 2^k)
+                    smt_commands.append(
+                        f"({fun_signature.format(f'{expr_id}_L_{j+1}')} (bvor {f'{expr_id}_L_{j}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
+                    )
+                    j += 2
+
+            smt_commands.append(
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'})"
+            )
+        else:
+            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            return ""
+
+    smt_commands.append(f"(assert (bvugt {expr_map[start]} {zeros()}))")
+    smt_commands.append("(check-sat)")
+
+    smt = "\n".join(smt_commands)
+
+    return smt
 
 
 def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
@@ -1476,7 +1694,11 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     elif options.smt_encoding == options.SMTTheories.QF_BV:
         smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
     elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
-        return check_sat_qfbv_incr(expr, context)
+        return check_sat_qfbv_incr(expr, context, is_log=False)
+    elif options.smt_encoding == options.SMTTheories.QF_BV_LOG:
+        smt = to_qfbv_log_smtlib2(expr, context, expr.wpd + 1)
+    elif options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
+        return check_sat_qfbv_incr(expr, context, is_log=False)
     else:
         log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_encoding}")
         return SatResult.UNKNOWN

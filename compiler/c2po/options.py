@@ -29,6 +29,8 @@ class SMTTheories(enum.Enum):
     QF_AUFBV = "qf_aufbv"
     QF_BV = "qf_bv"
     QF_BV_INCR = "qf_bv_incr"
+    QF_BV_LOG = "qf_bv_log"
+    QF_BV_LOG_INCR = "qf_bv_log_incr"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -266,6 +268,10 @@ def setup() -> bool:
         smt_encoding = SMTTheories.QF_BV
     elif smt_encoding_str == "qf_bv_incr":
         smt_encoding = SMTTheories.QF_BV_INCR
+    elif smt_encoding_str == "qf_bv_log":
+        smt_encoding = SMTTheories.QF_BV_LOG
+    elif smt_encoding_str == "qf_bv_log_incr":
+        smt_encoding = SMTTheories.QF_BV_LOG_INCR
     else:
         log.error(MODULE_CODE, f"Invalid SMT theory '{smt_encoding_str}'")
         status = False

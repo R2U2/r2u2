@@ -20,4 +20,6 @@ Use `cactus.py` to generate cactus plots.
 
 Use `report.py` to validate that test results for any failures and disagreements.
 
+Use `vp.py` to generate a virtual best for a set of benchmarks. Use the `-data` flag to also output some useful data. 
+
 The benchmarks use 1200s for timeout (same as SMTCOMP 2022) and 16GB for memout.
