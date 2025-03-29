@@ -537,7 +537,7 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
                     )
                     # expr_R_{j-1} & (expr_R_{j-1} << 2^k)
                     smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_L_{j+1}')} (bvor {f'{expr_id}_L_{j}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
+                        f"({fun_signature.format(f'{expr_id}_L_{j+1}')} (bvand {f'{expr_id}_L_{j}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
                     )
                     j += 2
 
