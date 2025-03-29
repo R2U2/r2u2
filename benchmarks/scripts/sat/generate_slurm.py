@@ -44,6 +44,14 @@ configurations = [
         "encoding": "qf_bv_incr",
     },
     {
+        "solver": "z3",
+        "encoding": "qf_bv_log",
+    },
+    {
+        "solver": "z3",
+        "encoding": "qf_bv_log_incr",
+    },
+    {
         "solver": "cvc5",
         "encoding": "uflia",
         "options": ["--fmf-bound", "--finite-model-find"],
@@ -62,14 +70,28 @@ configurations = [
         "encoding": "qf_bv_incr",
     },
     {
+        "solver": "cvc5",
+        "encoding": "qf_bv_log",
+    },
+    {
+        "solver": "cvc5",
+        "encoding": "qf_bv_log_incr",
+    },
+    {
         "solver": "bitwuzla",
         "encoding": "qf_bv",
-        "options": ["--abstraction"]
     },
     {
         "solver": "bitwuzla",
         "encoding": "qf_bv_incr",
-        "options": ["--abstraction"]
+    },
+    {
+        "solver": "bitwuzla",
+        "encoding": "qf_bv_log",
+    },
+    {
+        "solver": "bitwuzla",
+        "encoding": "qf_bv_log_incr",
     },
     {
         "solver": "yices-smt2",
@@ -83,13 +105,21 @@ configurations = [
         "solver": "yices-smt2",
         "encoding": "qf_bv_incr",
     },
+    {
+        "solver": "yices-smt2",
+        "encoding": "qf_bv_log",
+    },
+    {
+        "solver": "yices-smt2",
+        "encoding": "qf_bv_log_incr",
+    },
 ]
 
 os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
-        if config["encoding"] == "qf_bv_incr" and benchmark in {
+        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_log_incr" and benchmark in {
             "random-10",
             "random-100",
         }:
