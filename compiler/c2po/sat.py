@@ -1716,7 +1716,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     elif options.smt_encoding == options.SMTTheories.QF_BV_LOG:
         smt = to_qfbv_log_smtlib2(expr, context, expr.wpd + 1)
     elif options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
-        return check_sat_qfbv_incr(expr, context, is_log=False)
+        return check_sat_qfbv_incr(expr, context, is_log=True)
     else:
         log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_encoding}")
         return SatResult.UNKNOWN
