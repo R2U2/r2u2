@@ -3,14 +3,15 @@ import csv
 import itertools
 import argparse
 
-plt.rcParams.update({"font.family": "serif", "font.size": 12})
+plt.rcParams.update({"font.family": "serif", "font.size": 10})
 
-parser = argparse.ArgumentParser(description="Plot results from a set of benchmarks")
-parser.add_argument("benchmarks", type=str, help="File containing list of benchmarks")
-parser.add_argument("output", type=str, help="File to save the plot")
-parser.add_argument("-vb", action="store_true", help="Include virtual best")
-parser.add_argument("-log", action="store_true", help="Use logarithmic scale")
-parser.add_argument("-mark", action="store_true", help="Use markers")
+parser = argparse.ArgumentParser(description="plot results from a set of benchmarks")
+parser.add_argument("benchmarks", type=str, help="file containing list of benchmarks")
+parser.add_argument("output", type=str, help="file to save the plot")
+parser.add_argument("-vb", action="store_true", help="include virtual best")
+parser.add_argument("-log", action="store_true", help="use logarithmic scale")
+parser.add_argument("-mark", action="store_true", help="use markers")
+parser.add_argument("-linestyle", action="store_true", help="use linestyles to differentiate benchmark sizes")
 args = parser.parse_args()
 
 with open(args.benchmarks, "r") as f:
@@ -21,7 +22,7 @@ with open(args.benchmarks, "r") as f:
 results: dict[str, dict[str, float]] = {}
 
 if args.vb:
-    results["virtual_best"] = {}
+    results["__virtual_best__"] = {}
 
 # CSV files are of the form:
 # "filename", "status", "encoding-time", "sat-result", "sat-time", "calls"
@@ -34,71 +35,87 @@ for benchmark in benchmarks:
             if row[3] == "sat" or row[3] == "unsat":
                 results[benchmark][testname] = float(row[4])
                 if args.vb:
-                    if testname in results["virtual_best"]:
-                        results["virtual_best"][testname] = min(
-                            results["virtual_best"][testname], float(row[4])
+                    if testname in results["__virtual_best__"]:
+                        results["__virtual_best__"][testname] = min(
+                            results["__virtual_best__"][testname], float(row[4])
                         )
                     else:
-                        results["virtual_best"][testname] = float(row[4])
+                        results["__virtual_best__"][testname] = float(row[4])
 
-sorted: dict[str, list[float]] = {b: sorted(r.values()) for b, r in results.items()}
+sorted_data: dict[str, list[float]] = {b: sorted(r.values()) for b,r in results.items()}
 
-fig, ax = plt.subplots(figsize=(12, 6))
+fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
 for benchmark in results.keys():
-    sorted[benchmark] = list(itertools.accumulate(sorted[benchmark]))
-    sorted[benchmark] = [x / 60 for x in sorted[benchmark]]
-    # sorted[benchmark] = sorted[benchmark][0::10]
+    sorted_data[benchmark] = list(itertools.accumulate(sorted_data[benchmark]))
+    sorted_data[benchmark] = [x / 60 for x in sorted_data[benchmark]]
 
-    fmt = ""
-    if ".uflia" in benchmark:
-        fmt += "*-" if args.mark else "-"
-    elif ".auflia" in benchmark:
-        fmt += "o-" if args.mark else "-"
-    elif ".qf_auflia" in benchmark:
-        fmt += "v-" if args.mark else "-"
-    elif ".aufbv" in benchmark:
-        fmt += "s-" if args.mark else "-"
-    elif ".qf_aufbv" in benchmark:
-        fmt += "x-" if args.mark else "-"
-    elif ".qf_bv_incr" in benchmark:
-        fmt += "P-" if args.mark else "-"
-    elif ".qf_bv" in benchmark: 
-        fmt += "D-" if args.mark else "-"     
+    color = ""
+    linestyle = ""
+    marker = ""
+    linewidth = 2
+    if ".uflia." in benchmark:
+        color = "darkgoldenrod" 
+        linestyle = "solid"
+    elif ".qf_uflia." in benchmark:
+        color = "darkorchid" 
+        linestyle = "solid"
+    elif ".qf_bv_incr." in benchmark:
+        color = "blue" 
+        linestyle = "solid"
+    elif ".qf_bv." in benchmark: 
+        color = "red"    
+        linestyle = "solid"
+    elif ".qf_bv_log." in benchmark: 
+        color = "green"    
+        linestyle = "solid"
+    elif ".qf_bv_log_incr." in benchmark:
+        color = "green" 
+        linestyle = "dashed"
+    elif "__virtual_best__" in benchmark:
+        color = "black"
+        linestyle = "solid"
 
-    if "z3" in benchmark:
-        fmt += "b"
-    elif "cvc5" in benchmark:
-        fmt += "g"
-    elif "yices" in benchmark:
-        fmt += "r"
-    elif "bitwuzla" in benchmark:
-        fmt += "c"
-
-    if "virtual_best" in benchmark:
-        fmt += "h-k" if args.mark else "-k"
+    if args.linestyle:
+        if "10000" in benchmark:
+            linestyle = "solid"
+        elif "1000" in benchmark:
+            linestyle = "dashdot"
+        elif "100" in benchmark:
+            linestyle = "dashed"
+        elif "10" in benchmark:
+            linestyle = "dotted"
 
     ax.plot(
-        sorted[benchmark], range(len(sorted[benchmark])), fmt, linewidth=(1 if args.mark else 3), markersize=5
+        sorted_data[benchmark], range(len(sorted_data[benchmark])), color=color, linewidth=linewidth, linestyle=linestyle,
+        marker=marker if args.mark else None,
+        markevery=500 if args.mark else None,
     )
-
-# ax.set_xticks(range(0, len(sorted[benchmarks[0]]), 5))
-# ax.set_xticklabels([str(x * 300) for x in range(0, len(sorted[benchmarks[0]]), 5)])
-
-box = ax.get_position()
-ax.set_position((box.x0, box.y0, box.width * 0.7, box.height))
 
 if args.log:
     ax.set_yscale("log")
 
 plt.legend(
     [
-        b.removeprefix("results/").removesuffix(".csv").replace("yices-smt2", "yices2")
+        b.removeprefix("results/")
+        .removesuffix(".csv")
+        .replace("yices-smt2", "yices2")
+        .replace("vb.", "")
+        .replace("qf_bv_log_incr.", "QF_BV_log_incr-")
+        .replace("qf_bv_log.", "QF_BV_log-")
+        .replace("qf_bv_incr.", "QF_BV_lin_incr-")
+        .replace("qf_bv.", "QF_BV_lin-")
+        .replace("qf_uflia.", "QF_UFLIA-")
+        .replace("uflia.", "UFLIA-")
+        .replace("random-10", "10")
+        .replace("random-100", "100")
+        .replace("random-1000", "1000")
+        .replace("random-10000", "10000")
+        .replace("__virtual_best__", "Virtual best")
         for b in results.keys()
     ],
-    loc="center left",
-    bbox_to_anchor=(1, 0.5),
+    loc="lower right",
 )
-plt.xlabel("Time (min)")
+plt.xlabel("Cumulative Time (min)")
 plt.ylabel("Number solved")
-plt.savefig(args.output)
+plt.savefig(args.output, dpi=300)

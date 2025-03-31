@@ -1,1 +1,3 @@
 *.slurm
+old/
+*.png
