@@ -1,6 +1,7 @@
 import subprocess
 import enum
 import sys
+import math
 
 from typing import cast
 
@@ -357,7 +358,8 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
 
-    for expr in cpt.postorder(start, context):
+    decomposed_expr = cpt.decompose_intervals(start, context)
+    for expr in cpt.postorder(decomposed_expr, context):
         if expr in expr_map:
             continue
 
@@ -401,85 +403,73 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             expr = cast(cpt.TemporalOperator, expr)
+            child = expr.children[0]
             lb = expr.interval.lb
             ub = expr.interval.ub
             i = 0
 
             if ub == 0:
                 smt_commands.append(
-                    f"({fun_signature.format(expr_id)} {expr_map[expr.children[0]]})"
+                    f"({fun_signature.format(expr_id)} {expr_map[child]})"
                 )
                 continue
-            
-            if lb > 0:
+            elif lb > 0:
                 shift_amt = lb
                 shift_ones_bitmask = to_bv(2**shift_amt - 1)
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvor (bvshl {expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
+                    f"({fun_signature.format(expr_id)} (bvor (bvshl {expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
+                )
+                continue
+            # else lb = 0 and ub > 0 and ub = 2^k for some k
+
+            for j in range(0, int(math.log2(ub+1))):
+                shift_amt = 2**j
+                shift_ones_bitmask = to_bv(2**shift_amt - 1)
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvor (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
+                )
+                i += 1
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvand {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
                 )
                 i += 1
 
-            s = ub-lb
-            amounts = []
-            for n in reversed(range(1, (ub-lb+1).bit_length())):
-                while s >= (2**n - 1):
-                    amounts.append(n)
-                    s -= (2**n - 1)
-            
-            for a in reversed(amounts):
-                for j in range(0,a):
-                    shift_amt = 2**j
-                    shift_ones_bitmask = to_bv(2**shift_amt - 1)
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvor (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(shift_amt)}) {shift_ones_bitmask}))"
-                    )
-                    i += 1
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvand {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
-                    )
-                    i += 1
-
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'}) ; {expr}"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
+            child = expr.children[0]
             lb = expr.interval.lb
             ub = expr.interval.ub
             i = 0
 
             if ub == 0:
                 smt_commands.append(
-                    f"({fun_signature.format(expr_id)} {expr_map[expr.children[0]]})"
+                    f"({fun_signature.format(expr_id)} {expr_map[child]})"
                 )
                 continue
-
-            if lb > 0:
+            elif lb > 0:
+                shift_amt = lb
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {expr_map[expr.children[0]]} {to_bv(lb)}))"
+                    f"({fun_signature.format(expr_id)} (bvshl {expr_map[expr.children[0]]} {to_bv(shift_amt)}))"
+                )
+                continue
+            # else lb = 0 and ub > 0 and ub = 2^k for some k
+
+            for j in range(0, int(math.log2(ub+1))):
+                shift_amt = 2**j
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(shift_amt)}))"
+                )
+                i += 1
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_{i}')} (bvor {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
                 )
                 i += 1
 
-            s = ub-lb
-            amounts = []
-            for n in reversed(range(1, (ub-lb+1).bit_length())):
-                while s >= (2**n - 1):
-                    amounts.append(n)
-                    s -= (2**n - 1)
-            
-            for a in reversed(amounts):
-                for j in range(0,a):
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvshl {f'{expr_id}_{i-1}' if i > 0 else expr_map[expr.children[0]]} {to_bv(2**j)}))"
-                    )
-                    i += 1
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_{i}')} (bvor {f'{expr_id}_{i-1}'} {f'{expr_id}_{i-2}' if i > 1 else expr_map[expr.children[0]]}))"
-                    )
-                    i += 1
-
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'}) ; {expr}"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             expr = cast(cpt.TemporalOperator, expr)
@@ -495,60 +485,48 @@ def to_qfbv_log_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: 
                     f"({fun_signature.format(expr_id)} {expr_map[rhs]})"
                 )
                 continue
-
-            if lb > 0:
+            elif lb > 0:
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {expr_map[rhs]} {to_bv(lb)}))"
+                    f"({fun_signature.format(expr_id)} (bvshl {expr_map[rhs]} {to_bv(lb)}))"
                 )
+                continue
+            # else lb = 0 and ub > 0 and ub = 2^k for some k
+             
+            for k in range(0, int(math.log2(ub+1))):
+                # expr_R = expr_R_{j} | (expr_L_{i-1} & (expr_R_{j} << 2^k))
+                # (expr_R_{i} << 1)
                 smt_commands.append(
-                    f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {expr_map[lhs]} {to_bv(lb)}))"
+                    f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]} {to_bv(2**k)}))"
                 )
-                i += 1
-                j += 1
+                # (expr_L_{j-1} & (expr_R_{i} << 2^k))
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_R_{i+1}')} (bvand {f'{expr_id}_R_{i}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
+                )
+                # expr_R_{i} | (expr_L_{j-1} & (expr_R_{i} << 2^k))
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_R_{i+2}')} (bvor {f'{expr_id}_R_{i+1}'} {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]}))"
+                )
+                i += 3
 
-            s = ub-lb
-            amounts = []
-            for n in reversed(range(1, (ub-lb+1).bit_length())):
-                while s >= (2**n - 1):
-                    amounts.append(n)
-                    s -= (2**n - 1)
-            
-            for a in reversed(amounts):
-                for k in range(0,a):
-                    # expr_R = expr_R_{j} | (expr_L_{i-1} & (expr_R_{j} << 2^k))
-                    # (expr_R_{i} << 1)
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_R_{i}')} (bvshl {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]} {to_bv(2**k)}))"
-                    )
-                    # (expr_L_{j-1} & (expr_R_{i} << 2^k))
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_R_{i+1}')} (bvand {f'{expr_id}_R_{i}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
-                    )
-                    # expr_R_{i} | (expr_L_{j-1} & (expr_R_{i} << 2^k))
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_R_{i+2}')} (bvor {f'{expr_id}_R_{i+1}'} {f'{expr_id}_R_{i-1}' if i > 0 else expr_map[rhs]}))"
-                    )
-                    i += 3
-
-                    # expr_L = expr_L_{j-1} & (expr_L_{j-1} << 2^k)
-                    # expr_L_{j-1} << 2^k
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]} {to_bv(2**k)}))"
-                    )
-                    # expr_R_{j-1} & (expr_R_{j-1} << 2^k)
-                    smt_commands.append(
-                        f"({fun_signature.format(f'{expr_id}_L_{j+1}')} (bvand {f'{expr_id}_L_{j}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
-                    )
-                    j += 2
+                # expr_L = expr_L_{j-1} & (expr_L_{j-1} << 2^k)
+                # expr_L_{j-1} << 2^k
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_L_{j}')} (bvshl {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]} {to_bv(2**k)}))"
+                )
+                # expr_R_{j-1} & (expr_R_{j-1} << 2^k)
+                smt_commands.append(
+                    f"({fun_signature.format(f'{expr_id}_L_{j+1}')} (bvand {f'{expr_id}_L_{j}'} {f'{expr_id}_L_{j-1}' if j > 0 else expr_map[lhs]}))"
+                )
+                j += 2
 
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'})"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'}) ; {expr}"
             )
         else:
             log.error(MODULE_CODE, f"Unsupported operator ({expr})")
             return ""
 
-    smt_commands.append(f"(assert (bvugt {expr_map[start]} {zeros()}))")
+    smt_commands.append(f"(assert (bvugt {expr_map[decomposed_expr]} {zeros()}))")
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
