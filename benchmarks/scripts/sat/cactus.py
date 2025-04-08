@@ -55,22 +55,22 @@ for benchmark in results.keys():
     marker = ""
     linewidth = 2
     if ".uflia." in benchmark:
-        color = "darkgoldenrod" 
+        color = "red" 
         linestyle = "solid"
-    elif ".qf_uflia." in benchmark:
-        color = "darkorchid" 
-        linestyle = "solid"
-    elif ".qf_bv_incr." in benchmark:
-        color = "blue" 
-        linestyle = "solid"
-    elif ".qf_bv." in benchmark: 
-        color = "red"    
-        linestyle = "solid"
+    # elif ".qf_uflia." in benchmark:
+    #     color = "darkorchid" 
+    #     linestyle = "solid"
+    # elif ".qf_bv_incr." in benchmark:
+    #     color = "blue" 
+    #     linestyle = "solid"
+    # elif ".qf_bv." in benchmark: 
+    #     color = "red"    
+    #     linestyle = "solid"
     elif ".qf_bv_log." in benchmark: 
-        color = "green"    
+        color = "blue"    
         linestyle = "solid"
     elif ".qf_bv_log_incr." in benchmark:
-        color = "green" 
+        color = "blue" 
         linestyle = "dashed"
     elif "__virtual_best__" in benchmark:
         color = "black"

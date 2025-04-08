@@ -1,6 +1,3 @@
-results/vb.qf_bv.random-10000.csv
-results/vb.qf_bv_incr.random-10000.csv
 results/vb.qf_bv_log.random-10000.csv
 results/vb.qf_bv_log_incr.random-10000.csv
-results/vb.qf_uflia.random-10000.csv
 results/vb.uflia.random-10000.csv

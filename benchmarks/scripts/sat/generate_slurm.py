@@ -24,24 +24,18 @@ benchmarks = [
     "random-100",
     "random-1000",
     "random-10000",
+    "boeing-wbs-1000",
+    "boeing-wbs-10000",
+    "boeing-wbs-100000",
+    "nasa-atc-1000",
+    "nasa-atc-10000",
+    "nasa-atc-100000",
 ]
 
 configurations = [
     {
         "solver": "z3",
         "encoding": "uflia",
-    },
-    {
-        "solver": "z3",
-        "encoding": "qf_uflia",
-    },
-    {
-        "solver": "z3",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "z3",
-        "encoding": "qf_bv_incr",
     },
     {
         "solver": "z3",
@@ -58,19 +52,6 @@ configurations = [
     },
     {
         "solver": "cvc5",
-        "encoding": "qf_uflia",
-        "options": ["--fmf-bound", "--finite-model-find", "--arrays-exp"],
-    },
-    {
-        "solver": "cvc5",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "cvc5",
-        "encoding": "qf_bv_incr",
-    },
-    {
-        "solver": "cvc5",
         "encoding": "qf_bv_log",
     },
     {
@@ -79,31 +60,11 @@ configurations = [
     },
     {
         "solver": "bitwuzla",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "bitwuzla",
-        "encoding": "qf_bv_incr",
-    },
-    {
-        "solver": "bitwuzla",
         "encoding": "qf_bv_log",
     },
     {
         "solver": "bitwuzla",
         "encoding": "qf_bv_log_incr",
-    },
-    {
-        "solver": "yices-smt2",
-        "encoding": "qf_uflia",
-    },
-    {
-        "solver": "yices-smt2",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "yices-smt2",
-        "encoding": "qf_bv_incr",
     },
     {
         "solver": "yices-smt2",
