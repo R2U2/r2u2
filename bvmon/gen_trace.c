@@ -12,7 +12,7 @@
 
 #include "xoshiro256pp.h"
 
-#define BUFFER_SIZE 16384
+#define BUFFER_SIZE 1024
 
 #ifndef WORD_TYPE
 #define WORD_TYPE uint32_t
@@ -55,10 +55,11 @@ int main(int argc, char *argv[])
     xoshiro256pp_init((uint64_t) tspec.tv_nsec);
 
     uint64_t trace_len;
-    uint8_t nsigs, density;
+    uint8_t density;
+    size_t nsigs;
 
-    sscanf(argv[1], "%lu", &trace_len);
-    sscanf(argv[2], "%hhu", &nsigs);
+    sscanf(argv[1], "%llu", &trace_len);
+    sscanf(argv[2], "%zu", &nsigs);
     sscanf(argv[3], "%hhu", &density);
 
     if (trace_len < WORD_SIZE) {
@@ -67,15 +68,12 @@ int main(int argc, char *argv[])
     }
 
     uint64_t i, j;
-    uint8_t d, b, sig_val[nsigs], any, s;
+    uint8_t d, b, sig_val[nsigs], sig_val_next[nsigs], diff, s;
     WORD_TYPE value, buffer[nsigs][BUFFER_SIZE];
 
-    FILE *r2u2_file = fopen("trace.r2u2.log", "w");
+    FILE *r2u2_file = fopen("trace.r2u2.csv", "w");
     FILE *hydra_file = fopen("trace.hydra.log", "w");
     int bvmon_fd = open("trace.bvmon.log", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
-
-    uint64_t num_words = trace_len / WORD_SIZE;
-    write(bvmon_fd, &num_words, sizeof(uint64_t));
 
     uint64_t num_gen = trace_len / WORD_SIZE; // number of words to generate
     for (i = 0; i <= num_gen; ++i) { 
@@ -90,19 +88,28 @@ int main(int argc, char *argv[])
             // write-out to r2u2 trace
             for (j = 0; j < ((i % BUFFER_SIZE != 0) ? (i % BUFFER_SIZE) : BUFFER_SIZE); ++j) {
                 for (b = 0; b < WORD_SIZE; ++b) {
-                    any = 0;
+                    if (j == 0 || j == BUFFER_SIZE || j == (i % BUFFER_SIZE)) {
+                        diff = 1; // always print the first and last state of the buffer
+                    } else {
+                        for (s = 0; s < nsigs; ++s) {
+                            sig_val_next[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j+1] << b)) > 0;
+                        }
+                    }
+
                     for (s = 0; s < nsigs; ++s) {
                         sig_val[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j] << b)) > 0;
-                        any |= sig_val[s];
+                        diff |= (sig_val[s] != sig_val_next[s]);
                     }
-                    if (any) {
+
+                    if (diff) {
                         // Number of buffer write-outs so far = ceildiv(i, BUFFER_SIZE) - 1 
                         //                                    = (((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1)
                         // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
                         // Offset in buffer = (j * WORD_SIZE)
                         // Offset in word = b
-                        fprintf(r2u2_file, "@%lu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
-                        for (s = 0; s < nsigs; ++s) {
+                        fprintf(r2u2_file, "@%llu ", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
+                        fprintf(r2u2_file, "%hhu", sig_val[0]);
+                        for (s = 1; s < nsigs; ++s) {
                             fprintf(r2u2_file, ",%hhu", sig_val[s]);
                         }
                         fprintf(r2u2_file, "\n");
@@ -118,7 +125,7 @@ int main(int argc, char *argv[])
                     // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
                     // Offset in buffer = (j * WORD_SIZE)
                     // Offset in word = b
-                    fprintf(hydra_file, "@%lu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
+                    fprintf(hydra_file, "@%llu", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
                     for (s = 0; s < nsigs; ++s) {
                         sig_val[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j] << b)) > 0;
                         if (sig_val[s]) fprintf(hydra_file, " a%hhu", s);
@@ -128,7 +135,7 @@ int main(int argc, char *argv[])
             }
 
             // write-out to bvmon trace
-            for (j = 0; j < ((i < BUFFER_SIZE) ? i+1 : BUFFER_SIZE); ++j) {
+            for (j = 0; j < ((i % BUFFER_SIZE != 0) ? (i % BUFFER_SIZE) : BUFFER_SIZE); ++j) {
                 for (s = 0; s < nsigs; ++s) {
                     write(bvmon_fd, &buffer[s][j], sizeof(WORD_TYPE));
                 }

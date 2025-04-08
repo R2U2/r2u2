@@ -118,6 +118,8 @@ bvmon_trace_len: int = 0
 bvmon_nsigs: int = -1
 bvmon_unroll: bool = False
 bvmon_cuda: bool = False
+bvmon_log: bool = False
+bvmon_func: bool = False
 
 def setup() -> bool:
     """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 

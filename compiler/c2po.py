@@ -105,6 +105,8 @@ parser.add_argument("--bvmon-mmap", action="store_true", help="use mmap instead 
 parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon encoding")
 parser.add_argument("--bvmon-unroll", action="store_true", help="unroll all temporal ops in generated C code")
 parser.add_argument("--bvmon-cuda", action="store_true", help="use CUDA encoding")
+parser.add_argument("--bvmon-log", action="store_true", help="use logarithmic encoding")
+parser.add_argument("--bvmon-func", action="store_true", help="use functions in bvmon encoding instead of inlining")
 
 args = parser.parse_args()
 
@@ -156,6 +158,8 @@ return_code = c2po.main.main(
     bvmon_nsigs=args.bvmon_nsigs,
     bvmon_unroll=args.bvmon_unroll,
     bvmon_cuda=args.bvmon_cuda,
+    bvmon_log=args.bvmon_log,
+    bvmon_func=args.bvmon_func,
 )
 
 sys.exit(return_code.value)

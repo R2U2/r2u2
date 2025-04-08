@@ -1432,6 +1432,91 @@ def unroll_untils(expr: Expression, context: Context) -> Expression:
     return new
 
 
+def decompose_intervals(expr: Expression, context: Context) -> Expression:
+    """Decomposes temporal operators in `start` to combinations of intervals with sizes that are
+    powers of 2. For example: F[2,22] p ==> F[2,17] F[0,3] F[0,1] F[0,1] p."""
+    new = copy.deepcopy(expr)
+
+    def decompose(expr: Expression) -> Expression:
+        if is_operator(expr, OperatorKind.FUTURE):
+            expr = cast(TemporalOperator, expr)
+            child = expr.children[0]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+
+            if lb == ub:
+                return expr
+
+            size = ub - lb
+            intervals: list[types.Interval] = []
+            for n in reversed(range(1, (ub - lb + 1).bit_length())):
+                while size >= (2**n - 1):
+                    intervals.append(types.Interval(0, 2**n - 1))
+                    size -= (2**n - 1)
+
+            intervals[0] = types.Interval(intervals[0].lb + lb, intervals[0].ub + lb)
+            
+            repl = child
+            for new_lb, new_ub in reversed(intervals):
+                repl = TemporalOperator.Future(expr.loc, new_lb, new_ub, repl)
+                
+            return repl
+        elif is_operator(expr, OperatorKind.GLOBAL):
+            expr = cast(TemporalOperator, expr)
+            child = expr.children[0]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            
+            if lb == ub:
+                return expr
+
+            size = ub - lb
+            intervals: list[types.Interval] = []
+            for n in reversed(range(1, (ub - lb + 1).bit_length())):
+                while size >= (2**n - 1):
+                    intervals.append(types.Interval(0, 2**n - 1))
+                    size -= (2**n - 1)
+
+            intervals[0] = types.Interval(intervals[0].lb + lb, intervals[0].ub + lb)
+            
+            repl = child
+            for new_lb, new_ub in reversed(intervals):
+                repl = TemporalOperator.Global(expr.loc, new_lb, new_ub, repl)
+                
+            return repl
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            
+            if lb == ub:
+                return expr
+
+            size = ub - lb
+            intervals: list[types.Interval] = []
+            for n in reversed(range(1, (ub - lb + 1).bit_length())):
+                while size >= (2**n - 1):
+                    intervals.append(types.Interval(0, 2**n - 1))
+                    size -= (2**n - 1)
+
+            intervals[0] = types.Interval(intervals[0].lb + lb, intervals[0].ub + lb)
+            
+            repl = rhs
+            for new_lb, new_ub in reversed(intervals):
+                repl = TemporalOperator.Until(expr.loc, new_lb, new_ub, lhs, repl)
+                
+            return repl
+
+        return expr
+
+    for subexpr in postorder(new, context):
+        new = decompose(subexpr)
+        subexpr.replace(new)
+
+    return new
+
 
 def to_infix_str(start: Expression) -> str:
     s = ""

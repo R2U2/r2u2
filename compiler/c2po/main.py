@@ -99,10 +99,10 @@ def compile() -> ReturnCode:
         assert isinstance(formula, cpt.Formula)
         if options.bvmon_cuda:
             bvmon.gen_code_cuda(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_nsigs, False)
-        elif options.enable_bvmon_trace_len:
-            bvmon.gen_code_exact_trace_len(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_trace_len)
+        elif options.bvmon_log:
+            bvmon.gen_code(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_nsigs)
         else:
-            bvmon.gen_code(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_nsigs, options.enable_bvmon_mmap, options.bvmon_unroll, False)
+            bvmon.gen_code_linear(formula.get_expr(), context, options.bvmon_word_size, options.bvmon_nsigs, options.bvmon_unroll, False)
         return ReturnCode.SUCCESS
 
     if options.only_compile:
@@ -185,6 +185,8 @@ def main(
     bvmon_nsigs: int = -1,
     bvmon_unroll: bool = False,
     bvmon_cuda: bool = False,
+    bvmon_log: bool = False,
+    bvmon_func: bool = False,
 ) -> ReturnCode:
     options.spec_filename = spec_filename
     options.trace_filename = trace_filename if trace_filename else options.EMPTY_FILENAME
@@ -250,6 +252,8 @@ def main(
     options.bvmon_nsigs = bvmon_nsigs
     options.bvmon_unroll = bvmon_unroll
     options.bvmon_cuda = bvmon_cuda
+    options.bvmon_log = bvmon_log
+    options.bvmon_func = bvmon_func
 
     status = options.setup()
     passes.setup()
