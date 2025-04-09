@@ -53,22 +53,20 @@ def hydra_trace(trace: list[list[bool]]) -> str:
     ]
     return "\n".join(rows)
 
-
 if __name__ == "__main__":
     trace_len = int(sys.argv[1])
     num_sigs = int(sys.argv[2])
-    word_size = int(sys.argv[3])
-    density = float(sys.argv[4]) # relative proportion of trues to falses for each prop
+    density = float(sys.argv[3]) # relative proportion of trues to falses for each prop
 
     trace = [random.choices([True, False], weights=[density,1], k=trace_len) for _ in range(num_sigs)]
 
     r2u2_tr = r2u2_trace(trace)
     hydra_tr = hydra_trace(trace)
-    bvmon_tr = bvmon_trace(trace, word_size)
+    # bvmon_tr = bvmon_trace(trace, word_size)
 
-    with open("trace.r2u2.log", "w") as f:
+    with open("trace.r2u2.csv", "w") as f:
         f.write(r2u2_tr)
     with open("trace.hydra.log", "w") as f:
         f.write(hydra_tr)
-    with open("trace.bvmon.log", "wb") as f:
-        f.write(bvmon_tr)
+    # with open("trace.bvmon.log", "wb") as f:
+    #     f.write(bvmon_tr)

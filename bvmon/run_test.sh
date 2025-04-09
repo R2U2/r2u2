@@ -5,9 +5,8 @@ wsize="$4"
 
 TIME="gtime"
 
-gcc gen_trace.c -o gen_trace -DWORD_SIZE=$wsize -DWORD_TYPE="uint${wsize}_t"
 echo "Generating trace"
-$TIME -p ./gen_trace $len $nsigs 2
+python3 gen_trace.py $len $nsigs 0.5
 
 for filename in $dir/*.mltl; do
     echo "Running each tool on $filename"
@@ -22,9 +21,9 @@ for filename in $dir/*.mltl; do
     $TIME -p ../../hydra/hydra hydra.mtl trace.hydra.log > out.hydra.log
 
     echo "Running bvmon"
-    $TIME -p python3 ../compiler/c2po.py --no-rewrite --bvmon --bvmon-nsigs $nsigs --bvmon-word-size $wsize -c --extops --bvmon-log --bvmon-func $filename > bvmon.c
+    $TIME -p python3 ../compiler/c2po.py --no-rewrite --bvmon -c --extops --bvmon-log --bvmon-func --bvmon-nsigs $nsigs --bvmon-word-size $wsize  $filename > bvmon.c
     $TIME -p gcc -O3 -DOUTPUT -o bvmon bvmon.c
-    $TIME -p ./bvmon trace.bvmon.log > out.bvmon.log
+    $TIME -p ./bvmon trace.r2u2.csv > out.bvmon.log
 
     # compare the results
     echo "Comparing output"
@@ -33,3 +32,12 @@ for filename in $dir/*.mltl; do
         exit 1
     fi
 done
+
+# python3 gen_prec_chain.py 
+
+# python3 ../compiler/c2po.py prec_chain.mltl
+# ../monitors/c/build/r2u2 spec.bin prec_chain.csv | ts -i %.s > stdout.r2u2
+
+# python3 ../compiler/c2po.py -c --extops --bvmon --bvmon-log --bvmon-func --bvmon-nsigs 6 --bvmon-word-size 8 prec_chain.mltl > bvmon.c
+# gcc bvmon.c -o bvmon
+# ./bvmon prec_chain.csv 2>&1 | ts -i %.s > stdout.bvmon

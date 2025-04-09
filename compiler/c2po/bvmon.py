@@ -4,6 +4,7 @@ from typing import cast
 from c2po import cpt
 
 TAB = "    "
+PROFILE = False
 
 def ceildiv(a: int, b: int) -> int:
     return -(a // -b)
@@ -67,10 +68,9 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
         raise NotImplementedError(f"Operator '{expr.symbol}' not implemented")
 
     fid: dict[cpt.Expression, str] = {}
-    sigsize: dict[str, int] = {}
     size: dict[cpt.Expression, int] = {}
     word_wpd: dict[cpt.Expression, int] = {} # how many words to wait until all children are computed
-    buffer_size: dict[cpt.Expression, int] = {} # how many words to wait until all children are computed
+    buffer_size: dict[cpt.Expression, int] = {} 
 
     formula = cpt.decompose_intervals(formula, context)
 
@@ -98,9 +98,10 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
         # Also nice if it's a power of two, then modulo operations become *much* faster
         size[expr] = 1 << (word_wpd[formula]).bit_length()
 
-    code = """#include <stdio.h>
+    code = f"""#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+{'#include <sys/time.h>' if PROFILE else ''}
 
 #define MAXLINE 256
 """
@@ -123,22 +124,25 @@ void print_output(uint64_t word, uint64_t offset, uint{word_size}_t value)
         printf("%llu:%{"llu" if word_size == 64 else "u" if word_size == 32 else "hu" if word_size == 16 else "hhu"}\\n", ((word - offset) * {word_size}) + ({word_size - 1} - j), (value >> j) & 1);
     }}
 }}
-
-int read_inputs(FILE *f, int (*abuf)[{nsigs}], uint{word_size}_t (*atomics)[{nsigs}][{size[formula]}], uint64_t word)
-{{
-    for (int i = 0; i < {word_size}; ++i) {{
-        if(fscanf(f, "{','.join(['%d' for _ in range(nsigs)])}\\n", {', '.join([f'&(*abuf)[{i}]' for i in range(nsigs)])}) != {nsigs}) {{
-            return 1;
-        }}
-        {f'\n{TAB*2}'.join([f'(*atomics)[{i}][word & {size[formula] - 1}] = ((*atomics)[{i}][word & {size[formula] - 1}] << 1) | ((*abuf)[{i}] == 1);' for i in range(nsigs)])}
-    }}
-    return 0;
-}}
 """
+    
+#     for profiling purposes only
+#     code += f"""
+# int read_inputs(FILE *f, int (*abuf)[{nsigs}], uint{word_size}_t (*atomics)[{nsigs}][{size[formula]}], uint64_t word)
+# {{
+#     for (int i = 0; i < {word_size}; ++i) {{
+#         if(fscanf(f, "{','.join(['%d' for _ in range(nsigs)])}\\n", {', '.join([f'&(*abuf)[{i}]' for i in range(nsigs)])}) != {nsigs}) {{
+#             return 1;
+#         }}
+#         {f'\n{TAB*2}'.join([f'(*atomics)[{i}][word & {size[formula] - 1}] = ((*atomics)[{i}][word & {size[formula] - 1}] << 1) | ((*abuf)[{i}] == 1);' for i in range(nsigs)])}
+#     }}
+#     return 0;
+# }}
+# """
     
     log_word_size = int(math.log2(word_size))
     code += f"""
-uint{word_size}_t future(uint{word_size}_t *a, uint{word_size}_t *buf, uint8_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
+uint{word_size}_t future(uint{word_size}_t *a, uint{word_size}_t *buf, uint64_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
@@ -166,7 +170,7 @@ uint{word_size}_t future(uint{word_size}_t *a, uint{word_size}_t *buf, uint8_t n
   return buf[0];
 }}
 
-uint{word_size}_t global(uint{word_size}_t *a, uint{word_size}_t *buf, uint8_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
+uint{word_size}_t global(uint{word_size}_t *a, uint{word_size}_t *buf, uint64_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
@@ -194,7 +198,7 @@ uint{word_size}_t global(uint{word_size}_t *a, uint{word_size}_t *buf, uint8_t n
     return buf[0];
 }}
 
-uint{word_size}_t until(uint{word_size}_t *a1, uint{word_size}_t *a2, uint{word_size}_t *buf1, uint{word_size}_t *buf2, uint8_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
+uint{word_size}_t until(uint{word_size}_t *a1, uint{word_size}_t *a2, uint{word_size}_t *buf1, uint{word_size}_t *buf2, uint64_t nbuf, uint64_t word, uint64_t word_wpd, uint64_t lb, uint64_t ub) 
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
@@ -279,9 +283,13 @@ int main(int argc, char const *argv[])
     code += f"""
     uint64_t i, word = 0;
     int abuf[{nsigs}];
+    {f'struct timeval stop[{size[formula]}], start[{size[formula]}];' if PROFILE else ''}
     while(1) {{
-        if (read_inputs(f, &abuf, &atomics, word)) {{
-            return 0;
+        for (int i = 0; i < {word_size}; ++i) {{
+            if(fscanf(f, "{','.join(['%d' for _ in range(nsigs)])}\\n", {', '.join([f'&abuf[{i}]' for i in range(nsigs)])}) != {nsigs}) {{
+                return 0;
+            }}
+            {f'\n{TAB*3}'.join([f'atomics[{i}][word & {size[formula] - 1}] = (atomics[{i}][word & {size[formula] - 1}] << 1) | (abuf[{i}] == 1);' for i in range(nsigs)])}
         }}
 """
     # for aid in range(nsigs-1):
@@ -298,6 +306,9 @@ int main(int argc, char const *argv[])
     # code += f"{TAB*2}r = _read(f, &{signal}[word&{sigsize[signal]-1}], {word_size // 8});\n"
     # code += f"{TAB*2}if (r == 0) {{ break; }}\n"
 
+    if PROFILE:
+         code += f"gettimeofday(&start[word & {size[formula] - 1}], NULL);\n"
+
     for expr in cpt.postorder(formula, context):
         if isinstance(expr, cpt.Signal):
             continue
@@ -310,11 +321,24 @@ int main(int argc, char const *argv[])
         #     )
         #     code += "#endif\n"
 
+    code += f"\n{TAB*2}if (word >= {word_wpd[formula]}) {{"
+    if PROFILE:
+        code += f"""
+            gettimeofday(&stop[(word - {word_wpd[formula]}) & {size[formula] - 1}], NULL);
+            fprintf(stderr, "%llu 0.%06d\\n", word - {word_wpd[formula]}, 
+                    stop[(word - {word_wpd[formula]}) & {size[formula] - 1}].tv_usec - start[(word - {word_wpd[formula]}) & {size[formula] - 1}].tv_usec
+            );"""
     code += f"""
-        if (word >= {word_wpd[formula]}) {{
-            print_output(word, {word_wpd[formula]}, {fid[formula]}[(word - {word_wpd[formula]}) & {size[formula] - 1}]);
+            printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) & {size[formula] - 1}]);
         }}
 """
+
+#     code += f"""
+#         if (word >= {word_wpd[formula]}) {{
+            
+#             printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) & {size[formula] - 1}]);
+#         }}
+# """
 
     # code += "#ifdef OUTPUT\n"
     # code += f"{TAB*2}if (word >= {word_wpd[formula]}) {{\n"

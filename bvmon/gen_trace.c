@@ -73,10 +73,10 @@ int main(int argc, char *argv[])
 
     FILE *r2u2_file = fopen("trace.r2u2.csv", "w");
     FILE *hydra_file = fopen("trace.hydra.log", "w");
-    int bvmon_fd = open("trace.bvmon.log", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
+    // int bvmon_fd = open("trace.bvmon.log", O_CREAT | O_TRUNC | O_RDWR, S_IRWXU);
 
-    uint64_t num_gen = trace_len / WORD_SIZE; // number of words to generate
-    for (i = 0; i <= num_gen; ++i) { 
+    // uint64_t num_gen = trace_len / WORD_SIZE; // number of words to generate
+    for (i = 0; i <= trace_len; ++i) { 
         for (s = 0; s < nsigs; ++s) {
             value = xoshiro256pp_next();
             for (d = 1; d < density; ++d) { value &= xoshiro256pp_next(); }
@@ -84,36 +84,24 @@ int main(int argc, char *argv[])
         }
 
         // write-out and reset buffer once buffer is full or have generated all words
-        if (((i % BUFFER_SIZE == 0) && (i > 0)) || i == num_gen) { 
+        if (((i % BUFFER_SIZE == 0) && (i > 0)) || i == trace_len) { 
             // write-out to r2u2 trace
             for (j = 0; j < ((i % BUFFER_SIZE != 0) ? (i % BUFFER_SIZE) : BUFFER_SIZE); ++j) {
                 for (b = 0; b < WORD_SIZE; ++b) {
-                    if (j == 0 || j == BUFFER_SIZE || j == (i % BUFFER_SIZE)) {
-                        diff = 1; // always print the first and last state of the buffer
-                    } else {
-                        for (s = 0; s < nsigs; ++s) {
-                            sig_val_next[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j+1] << b)) > 0;
-                        }
-                    }
-
                     for (s = 0; s < nsigs; ++s) {
                         sig_val[s] = ((((WORD_TYPE) 1) << (WORD_SIZE-1)) & (buffer[s][j] << b)) > 0;
-                        diff |= (sig_val[s] != sig_val_next[s]);
                     }
 
-                    if (diff) {
-                        // Number of buffer write-outs so far = ceildiv(i, BUFFER_SIZE) - 1 
-                        //                                    = (((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1)
-                        // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
-                        // Offset in buffer = (j * WORD_SIZE)
-                        // Offset in word = b
-                        fprintf(r2u2_file, "@%llu ", ((((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1) * (WORD_SIZE * BUFFER_SIZE)) + (j * WORD_SIZE) + b);
-                        fprintf(r2u2_file, "%hhu", sig_val[0]);
-                        for (s = 1; s < nsigs; ++s) {
-                            fprintf(r2u2_file, ",%hhu", sig_val[s]);
-                        }
-                        fprintf(r2u2_file, "\n");
+                    // Number of buffer write-outs so far = ceildiv(i, BUFFER_SIZE) - 1 
+                    //                                    = (((i + BUFFER_SIZE - 1) / BUFFER_SIZE) - 1)
+                    // Number of timestamps per buffer write-out = (WORD_SIZE * BUFFER_SIZE)
+                    // Offset in buffer = (j * WORD_SIZE)
+                    // Offset in word = b
+                    fprintf(r2u2_file, "%hhu", sig_val[0]);
+                    for (s = 1; s < nsigs; ++s) {
+                        fprintf(r2u2_file, ",%hhu", sig_val[s]);
                     }
+                    fprintf(r2u2_file, "\n");
                 }
             }
 
@@ -135,11 +123,11 @@ int main(int argc, char *argv[])
             }
 
             // write-out to bvmon trace
-            for (j = 0; j < ((i % BUFFER_SIZE != 0) ? (i % BUFFER_SIZE) : BUFFER_SIZE); ++j) {
-                for (s = 0; s < nsigs; ++s) {
-                    write(bvmon_fd, &buffer[s][j], sizeof(WORD_TYPE));
-                }
-            }
+            // for (j = 0; j < ((i % BUFFER_SIZE != 0) ? (i % BUFFER_SIZE) : BUFFER_SIZE); ++j) {
+            //     for (s = 0; s < nsigs; ++s) {
+            //         write(bvmon_fd, &buffer[s][j], sizeof(WORD_TYPE));
+            //     }
+            // }
 
             // reset the buffer
             memset(buffer, 0, BUFFER_SIZE * sizeof(WORD_TYPE));
@@ -148,7 +136,7 @@ int main(int argc, char *argv[])
 
     fclose(r2u2_file);
     fclose(hydra_file);
-    close(bvmon_fd);
+    // close(bvmon_fd);
 
     return 0;
 }
