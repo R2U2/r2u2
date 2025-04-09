@@ -1025,7 +1025,7 @@ def assemble(
 
     binary += b"\x00"
 
-    if options.enable_aux:
+    if context.options.enable_aux:
         (aliases, binary_aliases) = pack_aliases(program, context)
         assembly += aliases
         binary += binary_aliases

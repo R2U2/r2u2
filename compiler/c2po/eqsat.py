@@ -9,7 +9,7 @@ import dataclasses
 import json
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types, util, options
+from c2po import cpt, log, types, util
 
 MODULE_CODE = "EQST"
 
@@ -548,7 +548,7 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
 def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     """Encodes `spec` into an egglog query, runs egglog, then returns an EGraph if no error occurred during construction. Returns None otherwise."""
-    TMP_EGG_PATH = options.workdir / "__tmp__.egg"
+    TMP_EGG_PATH = context.options.workdir / "__tmp__.egg"
     EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
     with open(PRELUDE_PATH, "r") as f:
@@ -565,9 +565,9 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     start = util.get_rusage_time()
 
     try:
-        proc = subprocess.run(command, capture_output=True, timeout=options.timeout_eqsat)
+        proc = subprocess.run(command, capture_output=True, timeout=context.options.timeout_eqsat)
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"egglog timeout after {options.timeout_eqsat}s")
+        log.warning(MODULE_CODE, f"egglog timeout after {context.options.timeout_eqsat}s")
         log.stat(MODULE_CODE, "egraph_time=timeout")
         return None
 

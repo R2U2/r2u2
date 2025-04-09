@@ -3,7 +3,7 @@ import enum
 
 from typing import cast
 
-from c2po import cpt, log, util, types, options
+from c2po import cpt, log, util, types
 
 MODULE_CODE = "SAT"
 
@@ -29,8 +29,8 @@ def to_smt_sat_query_bv(start: cpt.Expression, context: cpt.Context) -> str:
 
     See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
     """
-    if options.mission_time > 0:
-        mission_time = options.mission_time
+    if context.options.mission_time > 0:
+        mission_time = context.options.mission_time
     else:
         mission_time = start.wpd
 
@@ -288,27 +288,27 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    if not check_solver_installed(options.smt_solver):
-        log.error(MODULE_CODE, f"{options.smt_solver} not found")
+    if not check_solver_installed(context.options.smt_solver):
+        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
         return SatResult.UNKNOWN
 
     smt = to_uflia_sat_query(expr, context)
 
-    smt_file_path = options.workdir / "__tmp__.smt"
+    smt_file_path = context.options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt)
 
-    command = [options.smt_solver, str(smt_file_path)]
+    command = [context.options.smt_solver, str(smt_file_path)]
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
 
     try:
         proc = subprocess.run(
-            command, capture_output=True, timeout=options.timeout_sat
+            command, capture_output=True, timeout=context.options.timeout_sat
         )
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"{options.smt_solver} timeout after {options.timeout_sat}s")
+        log.warning(MODULE_CODE, f"{context.options.smt_solver} timeout after {context.options.timeout_sat}s")
         log.stat(MODULE_CODE, "sat_check_time=timeout")
         return SatResult.UNKNOWN
 
@@ -333,8 +333,8 @@ def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver_installed(options.smt_solver):
-        log.error(MODULE_CODE, f"{options.smt_solver} not found")
+    if not check_solver_installed(context.options.smt_solver):
+        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}
@@ -373,7 +373,7 @@ def check_equiv(
 
     end = util.get_rusage_time()
     equiv_time = end - start
-    if equiv_time > float(options.timeout_sat):
+    if equiv_time > float(context.options.timeout_sat):
         log.stat(MODULE_CODE, "equiv_check_time=timeout")
     else:
         log.stat(MODULE_CODE, f"equiv_check_time={equiv_time}")
