@@ -5,6 +5,7 @@ from c2po import cpt
 
 TAB = "    "
 PROFILE = False
+BUFSZ2 = True
 
 def ceildiv(a: int, b: int) -> int:
     return -(a // -b)
@@ -25,45 +26,54 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
         nonlocal word_size
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
-                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = "
-                f"~ {fid[expr.children[0]]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}];\n"
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"~ {fid[expr.children[0]]}[({tau} - {word_wpd[expr]}) % {size[expr]}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             return (
-                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = "
-                f"{' & '.join([f'{fid[c]}[({tau} - {word_wpd[expr]}) & {size[c]-1}]' for c in expr.children])};\n"
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"{' & '.join([f'{fid[c]}[({tau} - {word_wpd[expr]}) % {size[c]}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             return (
-                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = "
-                f"{' | '.join([f'{fid[c]}[({tau} - {word_wpd[expr]}) & {size[c]-1}]' for c in expr.children])};\n"
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"{' | '.join([f'{fid[c]}[({tau} - {word_wpd[expr]}) % {size[c]}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
             lhs = expr.children[0]
             rhs = expr.children[1]
             return (
-                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = "
-                f"(~ {fid[lhs]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}]) | {fid[rhs]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}];\n"
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"(~ {fid[lhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}]) | {fid[rhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             interval = cast(cpt.TemporalOperator, expr).interval
             lb = interval.lb
             ub = interval.ub
             child = expr.children[0]
-            return f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = future({fid[child]}, {fid[expr]}_buf, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            return (
+                f"{TAB * 2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"future({fid[child]}, {fid[expr]}_buf, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
             lb = interval.lb
             ub = interval.ub
             child = expr.children[0]
-            return f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = global({fid[child]}, {fid[expr]}_buf, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            return (
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"global({fid[child]}, {fid[expr]}_buf, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             interval = cast(cpt.TemporalOperator, expr).interval
             lb = interval.lb
             ub = interval.ub
             lhs = expr.children[0]
             rhs = expr.children[1]
-            return f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = until({fid[lhs]}, {fid[rhs]}, {fid[expr]}_buf_1, {fid[expr]}_buf_2, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            return (
+                f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"until({fid[lhs]}, {fid[rhs]}, {fid[expr]}_buf_1, {fid[expr]}_buf_2, {buffer_size[expr]}, {tau}, {word_wpd[expr]}, {lb}, {ub});\n"
+            )
         
         raise NotImplementedError(f"Operator '{expr.symbol}' not implemented")
 
@@ -96,7 +106,11 @@ def gen_code(formula: cpt.Expression, context: cpt.Context, word_size: int, nsig
     for expr in cpt.postorder(formula, context):
         # For now, force all sub-formulas to be at least of size word_wpd[formula] + 1
         # Also nice if it's a power of two, then modulo operations become *much* faster
-        size[expr] = 1 << (word_wpd[formula]).bit_length()
+
+        if BUFSZ2:
+            size[expr] = 1 << (word_wpd[formula]).bit_length()
+        else:
+            size[expr] = word_wpd[formula]
 
     code = f"""#include <stdio.h>
 #include <stdint.h>
@@ -134,7 +148,7 @@ void print_output(uint64_t word, uint64_t offset, uint{word_size}_t value)
 #         if(fscanf(f, "{','.join(['%d' for _ in range(nsigs)])}\\n", {', '.join([f'&(*abuf)[{i}]' for i in range(nsigs)])}) != {nsigs}) {{
 #             return 1;
 #         }}
-#         {f'\n{TAB*2}'.join([f'(*atomics)[{i}][word & {size[formula] - 1}] = ((*atomics)[{i}][word & {size[formula] - 1}] << 1) | ((*abuf)[{i}] == 1);' for i in range(nsigs)])}
+#         {f'\n{TAB*2}'.join([f'(*atomics)[{i}][word % {size[formula]}] = ((*atomics)[{i}][word % {size[formula]}] << 1) | ((*abuf)[{i}] == 1);' for i in range(nsigs)])}
 #     }}
 #     return 0;
 # }}
@@ -146,11 +160,11 @@ uint{word_size}_t future(uint{word_size}_t *a, uint{word_size}_t *buf, uint64_t 
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
-        buf[i] = ((lb & {word_size-1}) == 0) ?
-            a[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] :
+        buf[i] = ((lb & {word_size - 1}) == 0) ?
+            a[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] :
             (
-                (a[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] << (lb & {word_size-1})) | 
-                (a[(word - word_wpd + i + (lb >> {log_word_size}) + 1) & {size[formula] - 1}] >> ({word_size} - (lb & {word_size-1})))
+                (a[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] << (lb & {word_size - 1})) | 
+                (a[(word - word_wpd + i + (lb >> {log_word_size}) + 1) % {size[formula]}] >> ({word_size} - (lb & {word_size - 1})))
             );
     }}
 
@@ -174,11 +188,11 @@ uint{word_size}_t global(uint{word_size}_t *a, uint{word_size}_t *buf, uint64_t 
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
-        buf[i] = ((lb & {word_size-1}) == 0) ?
-            a[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] :
+        buf[i] = ((lb & {word_size - 1}) == 0) ?
+            a[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] :
             (
-                (a[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] << (lb & {word_size-1})) | 
-                (a[(word - word_wpd + i + (lb >> {log_word_size}) + 1) & {size[formula] - 1}] >> ({word_size} - (lb & {word_size-1})))
+                (a[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] << (lb & {word_size - 1})) | 
+                (a[(word - word_wpd + i + (lb >> {log_word_size}) + 1) % {size[formula]}] >> ({word_size} - (lb & {word_size - 1})))
             );
     }}
 
@@ -202,17 +216,17 @@ uint{word_size}_t until(uint{word_size}_t *a1, uint{word_size}_t *a2, uint{word_
 {{
     uint64_t i, j;
     for(i = 0; i < nbuf; ++i) {{
-        buf1[i] = ((lb & {word_size-1}) == 0) ?
-            a1[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] :
+        buf1[i] = ((lb & {word_size - 1}) == 0) ?
+            a1[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] :
             (
-                (a1[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] << (lb & {word_size-1})) | 
-                (a1[(word - word_wpd + i + (lb >> {log_word_size}) + 1) & {size[formula] - 1}] >> ({word_size} - (lb & {word_size-1})))
+                (a1[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] << (lb & {word_size - 1})) | 
+                (a1[(word - word_wpd + i + (lb >> {log_word_size}) + 1) % {size[formula]}] >> ({word_size} - (lb & {word_size - 1})))
             );
-        buf2[i] = ((lb & {word_size-1}) == 0) ?
-            a2[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] :
+        buf2[i] = ((lb & {word_size - 1}) == 0) ?
+            a2[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] :
             (
-                (a2[(word - word_wpd + i + (lb >> {log_word_size})) & {size[formula] - 1}] << (lb & {word_size-1})) | 
-                (a2[(word - word_wpd + i + (lb >> {log_word_size}) + 1) & {size[formula] - 1}] >> ({word_size} - (lb & {word_size-1})))
+                (a2[(word - word_wpd + i + (lb >> {log_word_size})) % {size[formula]}] << (lb & {word_size - 1})) | 
+                (a2[(word - word_wpd + i + (lb >> {log_word_size}) + 1) % {size[formula]}] >> ({word_size} - (lb & {word_size - 1})))
             );
     }}
 
@@ -289,7 +303,7 @@ int main(int argc, char const *argv[])
             if(fscanf(f, "{','.join(['%d' for _ in range(nsigs)])}\\n", {', '.join([f'&abuf[{i}]' for i in range(nsigs)])}) != {nsigs}) {{
                 return 0;
             }}
-            {f'\n{TAB*3}'.join([f'atomics[{i}][word & {size[formula] - 1}] = (atomics[{i}][word & {size[formula] - 1}] << 1) | (abuf[{i}] == 1);' for i in range(nsigs)])}
+            {f'\n{TAB*3}'.join([f'atomics[{i}][word % {size[formula]}] = (atomics[{i}][word % {size[formula]}] << 1) | (abuf[{i}] == 1);' for i in range(nsigs)])}
         }}
 """
     # for aid in range(nsigs-1):
@@ -307,7 +321,7 @@ int main(int argc, char const *argv[])
     # code += f"{TAB*2}if (r == 0) {{ break; }}\n"
 
     if PROFILE:
-         code += f"gettimeofday(&start[word & {size[formula] - 1}], NULL);\n"
+         code += f"gettimeofday(&start[word % {size[formula]}], NULL);\n"
 
     for expr in cpt.postorder(formula, context):
         if isinstance(expr, cpt.Signal):
@@ -317,26 +331,26 @@ int main(int argc, char const *argv[])
         #     code += "#ifdef DEBUG\n"
         #     code += (
         #         f'{TAB*2}printf("{fid[expr]:3}@%llu: ", word-{word_wpd[expr]});\n'
-        #         f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
+        #         f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr] - 1}]); printf("\\n");\n'
         #     )
         #     code += "#endif\n"
 
     code += f"\n{TAB*2}if (word >= {word_wpd[formula]}) {{"
     if PROFILE:
         code += f"""
-            gettimeofday(&stop[(word - {word_wpd[formula]}) & {size[formula] - 1}], NULL);
+            gettimeofday(&stop[(word - {word_wpd[formula]}) % {size[formula]}], NULL);
             fprintf(stderr, "%llu 0.%06d\\n", word - {word_wpd[formula]}, 
-                    stop[(word - {word_wpd[formula]}) & {size[formula] - 1}].tv_usec - start[(word - {word_wpd[formula]}) & {size[formula] - 1}].tv_usec
+                    stop[(word - {word_wpd[formula]}) % {size[formula]}].tv_usec - start[(word - {word_wpd[formula]}) % {size[formula]}].tv_usec
             );"""
     code += f"""
-            printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) & {size[formula] - 1}]);
+            printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) % {size[formula]}]);
         }}
 """
 
 #     code += f"""
 #         if (word >= {word_wpd[formula]}) {{
             
-#             printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) & {size[formula] - 1}]);
+#             printf("%0{"16llx" if word_size == 64 else "8x" if word_size == 32 else "4hx" if word_size == 16 else "2hhx"}\\n", {fid[formula]}[(word - {word_wpd[formula]}) % {size[formula]}]);
 #         }}
 # """
 
@@ -347,7 +361,7 @@ int main(int argc, char const *argv[])
     # code += "#endif\n"
 
     for expr in cpt.postorder(formula, context):
-        code += f"{TAB*2}{fid[expr]}[(word + 1) & {size[expr] - 1}] = 0;\n"
+        code += f"{TAB*2}{fid[expr]}[(word + 1) % {size[expr]}] = 0;\n"
 
     code += """
         word++;
@@ -372,17 +386,17 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
         nonlocal word_size
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
-                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
+                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
@@ -398,7 +412,7 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
                     f"(({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead})&{size[child]-1}] << {i % word_size}) | "
                     f"({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead - 1})&{size[child]-1}] >> {word_size - (i % word_size)}))" 
                 ]
-            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] |= {' | '.join(words)};\n"
+            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] |= {' | '.join(words)};\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
             child = expr.children[0]
@@ -412,7 +426,7 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
                     f"(({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead})&{size[child]-1}] << {i % word_size}) | "
                     f"({fid[child]}[({tau}-{word_wpd[expr] - word_lookahead - 1})&{size[child]-1}] >> {word_size - (i % word_size)}))" 
                 ]
-            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] |= {' & '.join(words)};\n"
+            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] |= {' & '.join(words)};\n"
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             interval = cast(cpt.TemporalOperator, expr).interval
             lhs = expr.children[0]
@@ -447,7 +461,7 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
                     " & "
                     + words 
                 )
-            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {words}{')'*((interval.ub-interval.lb-1)*2+2)};\n"
+            return f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = {words}{')'*((interval.ub-interval.lb-1)*2+2)};\n"
         
         return ""
 
@@ -461,17 +475,17 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
         nonlocal word_size
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
-                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
+                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
@@ -481,12 +495,12 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
             ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*3}"
                 f"{fid[expr]}_v |= "
-                f"((i & {word_size-1}) == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] << (i & {word_size-1})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
+                f"((i & {word_size - 1}) == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] << (i & {word_size - 1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size - 1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
+            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = {fid[expr]}_v;\n"
             return ret
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
@@ -495,12 +509,12 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
             ret += f"{TAB*2}for (i = {interval.lb}; i <= {interval.ub}; ++i) " "{\n"
             ret += (f"{TAB*3}"
                 f"{fid[expr]}_v &= "
-                f"((i & {word_size-1}) == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] : "
-                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] << (i & {word_size-1})) | "
-                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
+                f"((i & {word_size - 1}) == 0) ? {fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] : "
+                f"(({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[child]-1}] << (i & {word_size - 1})) | "
+                f"({fid[child]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[child]-1}] >> ({word_size} - (i & {word_size - 1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
+            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = {fid[expr]}_v;\n"
             return ret
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             interval = cast(cpt.TemporalOperator, expr).interval
@@ -518,16 +532,16 @@ def gen_code_linear(formula: cpt.Expression, context: cpt.Context, word_size: in
             ret += f"{TAB*2}for (i = {interval.ub - 1}; {'i < UINT64_MAX' if interval.lb == 0 else f'i >= {interval.lb}'}; --i) " "{\n"
             ret += (
                 f"{TAB*3}{fid[expr]}_v &= "
-                f"((i & {word_size-1}) == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[lhs]-1}] : "
-                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[lhs]-1}] << (i & {word_size-1})) |"
-                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[lhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
+                f"((i & {word_size - 1}) == 0) ? {fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[lhs]-1}] : "
+                f"(({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[lhs]-1}] << (i & {word_size - 1})) |"
+                f" ({fid[lhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[lhs]-1}] >> ({word_size} - (i & {word_size - 1}))));\n" 
                 f"{TAB*3}{fid[expr]}_v |= "
-                f"((i & {word_size-1}) == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[rhs]-1}] : "
-                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[rhs]-1}] << (i & {word_size-1})) |"
-                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[rhs]-1}] >> ({word_size} - (i & {word_size-1}))));\n" 
+                f"((i & {word_size - 1}) == 0) ? {fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[rhs]-1}] : "
+                f"(({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))})))&{size[rhs]-1}] << (i & {word_size - 1})) |"
+                f" ({fid[rhs]}[({tau} - ({word_wpd[expr]} - (i >> {int(math.log2(word_size))}) - 1))&{size[rhs]-1}] >> ({word_size} - (i & {word_size - 1}))));\n" 
                 f"{TAB*2}" "}\n"
             )
-            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;\n"
+            ret += f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = {fid[expr]}_v;\n"
             return ret
         
         return ""
@@ -632,7 +646,7 @@ int main(int argc, char const *argv[])
             code += "#ifdef DEBUG\n"
             code += (
                 f'{TAB*2}printf("{fid[expr]:3}@%llu: ", word-{word_wpd[expr]});\n'
-                f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
+                f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr] - 1}]); printf("\\n");\n'
             )
             code += "#endif\n"
 
@@ -643,7 +657,7 @@ int main(int argc, char const *argv[])
     code += "#endif\n"
 
     for expr in cpt.postorder(formula, context):
-        code += f"{TAB*2}{fid[expr]}[(word+1)&{size[expr]-1}] = 0;\n"
+        code += f"{TAB*2}{fid[expr]}[(word+1)&{size[expr] - 1}] = 0;\n"
 
     code += f"{TAB}}}\n"
     
@@ -669,17 +683,17 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
         nonlocal word_size
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
-                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
+                f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}];\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
             return (
-                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+                f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
                 f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
@@ -692,7 +706,7 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
             dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
             dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvor_op, bvor_init
         );
-        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
 """
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             interval = cast(cpt.TemporalOperator, expr).interval
@@ -704,7 +718,7 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
             dev_tmp_storage_{fid[child]}, dev_tmp_storage_{fid[child]}_bytes,
             dev_{fid[child]}_tmp, dev_{fid[expr]}, {interval.ub - interval.lb + 1}, bvand_op, bvand_init
         );
-        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
+        cudaMemcpy(&{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}], dev_{fid[expr]}, {word_size // 8}, cudaMemcpyDeviceToHost);
 """
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             interval = cast(cpt.TemporalOperator, expr).interval
@@ -722,7 +736,7 @@ def gen_code_cuda(formula: cpt.Expression, context: cpt.Context, word_size: int,
             {fid[expr]}_v &= {fid[lhs]}_arr[i];
             {fid[expr]}_v |= {fid[rhs]}_arr[i];
         }}
-        {fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = {fid[expr]}_v;
+        {fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = {fid[expr]}_v;
 """
         return ""
 
@@ -874,9 +888,9 @@ __global__ void singleton(const uint{word_size}_t *in, uint{word_size}_t *out,
                         const uint64_t word, const uint64_t low, const uint64_t high, const uint64_t word_wpd) {{
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     if (i <= high - low) {{
-        out[i] = ((low + i) & {word_size-1} == 0) ? 
+        out[i] = ((low + i) & {word_size - 1} == 0) ? 
             in[(word - (word_wpd - ((low + i) / {word_size})))&{size[formula]-1}] : 
-            ((in[(word - (word_wpd - ((low + i) / {word_size})))&{size[formula]-1}] << ((low + i) & {word_size-1})) | (in[(word - (word_wpd - ((low + i) / {word_size}) - 1))&{size[formula]-1}] >> ({word_size} - ((low + i) & {word_size-1}))));
+            ((in[(word - (word_wpd - ((low + i) / {word_size})))&{size[formula]-1}] << ((low + i) & {word_size - 1})) | (in[(word - (word_wpd - ((low + i) / {word_size}) - 1))&{size[formula]-1}] >> ({word_size} - ((low + i) & {word_size - 1}))));
     }}
 }}
 
@@ -985,7 +999,7 @@ int main(int argc, char const *argv[])
                 code += "#ifdef DEBUG\n"
                 code += (
                     f'{TAB*2}printf("{fid[expr]:3}@%d: ", {word-word_wpd[expr]});\n'
-                    f'{TAB*2}print_binary({fid[expr]}[({word-word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
+                    f'{TAB*2}print_binary({fid[expr]}[({word-word_wpd[expr]})&{size[expr] - 1}]); printf("\\n");\n'
                 )
                 code += "#endif\n"
     code += "\n"
@@ -1010,7 +1024,7 @@ int main(int argc, char const *argv[])
             code += "#ifdef DEBUG\n"
             code += (
                 f'{TAB*2}printf("{fid[expr]:3}@%llu: ", word-{word_wpd[expr]});\n'
-                f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr]-1}]); printf("\\n");\n'
+                f'{TAB*2}print_binary({fid[expr]}[(word-{word_wpd[expr]})&{size[expr] - 1}]); printf("\\n");\n'
             )
             code += "#endif\n"
 
@@ -1019,7 +1033,7 @@ int main(int argc, char const *argv[])
     code += "#endif\n"
 
     for expr in cpt.postorder(formula, context):
-        code += f"{TAB*2}{fid[expr]}[(word+1)&{size[expr]-1}] = 0;\n"
+        code += f"{TAB*2}{fid[expr]}[(word+1)&{size[expr] - 1}] = 0;\n"
 
     code += f"{TAB}}}\n"
     
@@ -1044,17 +1058,17 @@ int main(int argc, char const *argv[])
 #     nonlocal word_size
 #     if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
-#             f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
+#             f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}];\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
 #             f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
 #             f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
@@ -1108,7 +1122,7 @@ int main(int argc, char const *argv[])
 #                     ""
 #                 )
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf[0];\n"
 #         return ret
 #     elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
 #         interval = cast(cpt.TemporalOperator, expr).interval
@@ -1161,7 +1175,7 @@ int main(int argc, char const *argv[])
 #                     ""
 #                 )
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf[0];\n"
 #         return ret
 #     elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
 #         interval = cast(cpt.TemporalOperator, expr).interval
@@ -1243,7 +1257,7 @@ int main(int argc, char const *argv[])
 #                     ""
 #                 )
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf_2[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf_2[0];\n"
 #         return ret
 #     return ""
 
@@ -1258,17 +1272,17 @@ int main(int argc, char const *argv[])
 #     nonlocal word_size
 #     if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
-#             f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr]-1}];\n"
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
+#             f"~ {fid[expr.children[0]]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}];\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
 #             f"{' & '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
 #         return (
-#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr]-1}] = "
+#             f"{TAB*2}{fid[expr]}[({tau}-{word_wpd[expr]})&{size[expr] - 1}] = "
 #             f"{' | '.join([f'{fid[c]}[({tau}-{word_wpd[expr]})&{size[c]-1}]' for c in expr.children])};\n"
 #         )
 #     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
@@ -1318,7 +1332,7 @@ int main(int argc, char const *argv[])
 #             ret += f"{TAB*3}}}\n"
 #             ret += f"{TAB*2}}}\n"
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf[0];\n"
 #         return ret
 #     elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
 #         interval = cast(cpt.TemporalOperator, expr).interval
@@ -1367,7 +1381,7 @@ int main(int argc, char const *argv[])
 #             ret += f"{TAB*3}}}\n"
 #             ret += f"{TAB*2}}}\n"
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf[0];\n"
 #         return ret
 #     elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
 #         interval = cast(cpt.TemporalOperator, expr).interval
@@ -1443,7 +1457,7 @@ int main(int argc, char const *argv[])
 #             ret += f"{TAB*3}}}\n"
 #             ret += f"{TAB*2}}}\n"
 
-#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr]-1}] = {fid[expr]}_buf_2[0];\n"
+#         ret += f"{TAB*2}{fid[expr]}[({tau} - {word_wpd[expr]}) & {size[expr] - 1}] = {fid[expr]}_buf_2[0];\n"
 #         return ret
     
 #     return ""

@@ -1,8 +1,10 @@
 import random
-import sys
+import os
 from struct import Struct as CStruct
+import argparse
 
-def bvmon_trace(trace: list[list[bool]], word_size: int) -> bytes:
+# Older version of the bvmon trace format where the input is just raw bytes
+def bvmon_raw_trace(trace: list[list[bool]], word_size: int) -> bytes:
 
     def ceildiv(a: int, b: int) -> int:
         return -(a // -b)
@@ -53,20 +55,30 @@ def hydra_trace(trace: list[list[bool]]) -> str:
     ]
     return "\n".join(rows)
 
-if __name__ == "__main__":
-    trace_len = int(sys.argv[1])
-    num_sigs = int(sys.argv[2])
-    density = float(sys.argv[3]) # relative proportion of trues to falses for each prop
+parser = argparse.ArgumentParser()
+parser.add_argument("len", type=int, help="length of generated trace")
+parser.add_argument("nsigs", type=int, help="number of signals for eah timestamp")
+parser.add_argument("density", type=float, help="relative proportion of trues to falses for each signal")
+parser.add_argument("output", help="directory to output traces")
+args = parser.parse_args()
 
-    trace = [random.choices([True, False], weights=[density,1], k=trace_len) for _ in range(num_sigs)]
+trace_len: int = args.len
+num_sigs: int = args.nsigs
+density: float = args.density 
+dir: str = args.output
 
-    r2u2_tr = r2u2_trace(trace)
-    hydra_tr = hydra_trace(trace)
-    # bvmon_tr = bvmon_trace(trace, word_size)
+trace = [random.choices([True, False], weights=[density,1], k=trace_len) for _ in range(num_sigs)]
 
-    with open("trace.r2u2.csv", "w") as f:
-        f.write(r2u2_tr)
-    with open("trace.hydra.log", "w") as f:
-        f.write(hydra_tr)
-    # with open("trace.bvmon.log", "wb") as f:
-    #     f.write(bvmon_tr)
+r2u2_tr = r2u2_trace(trace)
+hydra_tr = hydra_trace(trace)
+# bvmon_tr = bvmon_raw_trace(trace, word_size)
+
+try:
+    os.mkdir(dir)
+except FileExistsError:
+    pass
+
+with open(f"{dir}/r2u2.csv", "w") as f:
+    f.write(r2u2_tr)
+with open(f"{dir}/hydra.log", "w") as f:
+    f.write(hydra_tr)
