@@ -7,7 +7,17 @@ import tempfile
 import shutil
 from typing import Optional
 
-from c2po import assemble, cpt, log, parse, type_check, passes, serialize, options
+from c2po import (
+    assemble,
+    cpt,
+    log,
+    parse_c2po,
+    parse_mltl,
+    type_check,
+    passes,
+    serialize,
+    options,
+)
 
 MODULE_CODE = "MAIN"
 
@@ -38,7 +48,7 @@ def compile(opts: options.Options) -> ReturnCode:
     # Parse
     # ----------------------------------
     if opts.spec_path.suffix == ".c2po":
-        program: Optional[cpt.Program] = parse.parse_c2po(
+        program: Optional[cpt.Program] = parse_c2po.parse_c2po(
             opts.spec_path, opts.mission_time
         )
 
@@ -47,7 +57,7 @@ def compile(opts: options.Options) -> ReturnCode:
             return ReturnCode.PARSE_ERR
 
     elif opts.spec_path.suffix == ".mltl":
-        parse_output = parse.parse_mltl(opts.spec_path, opts.mission_time)
+        parse_output = parse_mltl.parse_mltl(opts.spec_path, opts.mission_time)
 
         if not parse_output:
             log.error(MODULE_CODE, "Failed parsing")
@@ -124,7 +134,6 @@ def compile(opts: options.Options) -> ReturnCode:
     return ReturnCode.SUCCESS
 
 
-
 def main(opts: options.Options) -> ReturnCode:
     status = opts.setup()
     passes.setup(opts)
@@ -136,3 +145,30 @@ def main(opts: options.Options) -> ReturnCode:
         opts.workdir = workdir_path
         return compile(opts)
 
+
+def main_rs(
+    spec_filename: str,
+    trace_filename: str,
+    map_filename: str,
+    output_filename: str,
+    enable_aux: bool,
+    enable_booleanizer: bool,
+    enable_rewrite: bool,
+    enable_cse: bool,
+    enable_sat: bool,
+    timeout_sat: int
+):
+    """Wrapper for main function to allow for easier interfacing with Rust CLI tool and playground."""
+    opts = options.Options(
+        spec_filename=spec_filename,
+        trace_filename=trace_filename if trace_filename != "" else None,
+        map_filename=map_filename if map_filename != "" else None,
+        output_filename=output_filename,
+        enable_aux=enable_aux,
+        enable_booleanizer=enable_booleanizer,
+        enable_rewrite=enable_rewrite,
+        enable_cse=enable_cse,
+        enable_sat=enable_sat,
+        timeout_sat=timeout_sat,
+    )
+    return main(opts)

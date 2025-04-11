@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
+from typing import Optional
 import pathlib
 import enum
 
-from c2po import types, log, parse
+from c2po import types, log, parse_other
 
 MODULE_CODE = "OPTS"
 
@@ -20,47 +21,81 @@ class CompilationStage(enum.Enum):
     PASSES = 2
     ASSEMBLE = 3
 
+DEFAULTS = {
+    "trace_filename": None,
+    "map_filename": None,
+    "output_filename": "spec.bin",
+    "impl_str": "c",
+    "mission_time": -1,
+    "int_width": 32,
+    "int_is_signed": False,
+    "float_width": 32,
+    "only_parse": False,
+    "only_type_check": False,
+    "only_compile": False,
+    "enable_aux": True,
+    "enable_booleanizer": False,
+    "enable_extops": False,
+    "enable_nnf": False,
+    "enable_bnf": False,
+    "enable_rewrite": True,
+    "enable_eqsat": False,
+    "enable_cse": True,
+    "enable_sat": False,
+    "timeout_eqsat": 3600,
+    "timeout_sat": 3600,
+    "write_c2po_filename": None,
+    "write_prefix_filename": None,
+    "write_mltl_filename": None,
+    "write_pickle_filename": None,
+    "write_smt_dirname": None,
+    "copyback_dirname": None,
+    "stats": False,
+    "debug": False,
+    "log_level": 0,
+    "quiet": False,
+}
+
 @dataclass
 class Options:
     spec_filename: str
-    trace_filename: str
-    map_filename: str
-    output_filename: str
-    impl_str: str
-    mission_time: int
-    int_width: int
-    int_is_signed: bool
-    float_width: int
-    only_parse: bool
-    only_type_check: bool
-    only_compile: bool
-    enable_aux: bool
-    enable_booleanizer: bool
-    enable_extops: bool
-    enable_nnf: bool
-    enable_bnf: bool
-    enable_rewrite: bool
-    enable_eqsat: bool
-    enable_cse: bool
-    enable_sat: bool
-    timeout_eqsat: int
-    timeout_sat: int
-    write_c2po_filename: str
-    write_prefix_filename: str
-    write_mltl_filename: str
-    write_pickle_filename: str
-    write_smt_dirname: str
-    copyback_dirname: str
-    stats: bool
-    debug: bool
-    log_level: int
-    quiet: bool
+    trace_filename: Optional[str] = DEFAULTS["trace_filename"]
+    map_filename: Optional[str] = DEFAULTS["map_filename"]
+    output_filename: str = DEFAULTS["output_filename"]
+    impl_str: str = DEFAULTS["impl_str"]
+    mission_time: int = DEFAULTS["mission_time"]
+    int_width: int = DEFAULTS["int_width"]
+    int_is_signed: bool = DEFAULTS["int_is_signed"]
+    float_width: int = DEFAULTS["float_width"]
+    only_parse: bool = DEFAULTS["only_parse"]
+    only_type_check: bool = DEFAULTS["only_type_check"]
+    only_compile: bool = DEFAULTS["only_compile"]
+    enable_aux: bool = DEFAULTS["enable_aux"]
+    enable_booleanizer: bool = DEFAULTS["enable_booleanizer"]
+    enable_extops: bool = DEFAULTS["enable_extops"]
+    enable_nnf: bool = DEFAULTS["enable_nnf"]
+    enable_bnf: bool = DEFAULTS["enable_bnf"]
+    enable_rewrite: bool = DEFAULTS["enable_rewrite"]
+    enable_eqsat: bool = DEFAULTS["enable_eqsat"]
+    enable_cse: bool = DEFAULTS["enable_cse"]
+    enable_sat: bool = DEFAULTS["enable_sat"]
+    timeout_eqsat: int = DEFAULTS["timeout_eqsat"]
+    timeout_sat: int = DEFAULTS["timeout_sat"]
+    write_c2po_filename: Optional[str] = DEFAULTS["write_c2po_filename"]
+    write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
+    write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
+    write_pickle_filename: Optional[str] = DEFAULTS["write_pickle_filename"]
+    write_smt_dirname: Optional[str] = DEFAULTS["write_smt_dirname"]
+    copyback_dirname: Optional[str] = DEFAULTS["copyback_dirname"]
+    stats: bool = DEFAULTS["stats"]
+    debug: bool = DEFAULTS["debug"]
+    log_level: int = DEFAULTS["log_level"]
+    quiet: bool = DEFAULTS["quiet"]
 
     workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     output_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     signal_mapping: types.SignalMapping = field(default_factory=dict)
-
     impl: types.R2U2Implementation = types.R2U2Implementation.C
     frontend: types.R2U2Engine = types.R2U2Engine.NONE
     final_stage: CompilationStage = CompilationStage.ASSEMBLE
@@ -110,21 +145,22 @@ class Options:
 
         self.output_path = pathlib.Path(self.output_filename)
 
-        if self.copyback_enabled:
+        if self.copyback_dirname is not None:
             self.copyback_path = pathlib.Path(self.copyback_dirname)
             if self.copyback_path.exists():
                 log.error(MODULE_CODE, f"Directory already exists '{self.copyback_path}'")
                 status = False
+            self.copyback_enabled = True
 
         tmp_signal_mapping = None
         self.trace_length = -1
 
         if self.trace_path:
-            (self.trace_length, tmp_signal_mapping) = parse.parse_trace_file(
+            (self.trace_length, tmp_signal_mapping) = parse_other.parse_trace_file(
                 self.trace_path, self.map_path is not None
             )
         if self.map_path:
-            tmp_signal_mapping = parse.parse_map_file(self.map_path)
+            tmp_signal_mapping = parse_other.parse_map_file(self.map_path)
 
         if not tmp_signal_mapping:
             self.signal_mapping = {}
@@ -139,7 +175,7 @@ class Options:
                     f"Trace length is shorter than given mission time ({self.trace_length} < {self.mission_time})",
                 )
         else:
-            self.ission_time = self.trace_length
+            self.mission_time = self.trace_length
 
         self.impl = R2U2_IMPL_MAP[self.impl_str]
         types.configure_types(self.impl, self.int_width, self.int_is_signed, self.float_width)
@@ -181,16 +217,5 @@ class Options:
             self.frontend = types.R2U2Engine.BOOLEANIZER
         else:
             self.frontend = types.R2U2Engine.NONE
-
-        if self.write_c2po_filename == EMPTY_FILENAME:
-            self.write_c2po_filename = f"{self.spec_path.stem}.c2po"
-        if self.write_prefix_filename == EMPTY_FILENAME:
-            self.write_prefix_filename = f"{self.spec_path.stem}.c2po.prefix"
-        if self.write_mltl_filename == EMPTY_FILENAME:
-            self.write_mltl_filename = f"{self.spec_path.stem}.mltl"
-        if self.write_pickle_filename == EMPTY_FILENAME:
-            self.write_pickle_filename = f"{self.spec_path.stem}.pickle"
-        if self.write_smt_dirname == EMPTY_FILENAME:
-            self.write_smt_dirname = f"{self.spec_path.stem}_smt"
 
         return status

@@ -1,9 +1,8 @@
 from __future__ import annotations
-
+from copy import deepcopy
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat, options
-from copy import deepcopy
 
 MODULE_CODE = "PASS"
 
