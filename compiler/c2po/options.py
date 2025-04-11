@@ -13,6 +13,7 @@ R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
     "cpp": types.R2U2Implementation.CPP,
     "vhdl": types.R2U2Implementation.VHDL,
+    "rust": types.R2U2Implementation.RUST,
 }
 
 class CompilationStage(enum.Enum):
