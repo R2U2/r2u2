@@ -1172,7 +1172,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
     """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
-    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
+    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
     
     results = sat.check_sat(program, context)
 
