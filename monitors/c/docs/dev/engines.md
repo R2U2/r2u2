@@ -7,6 +7,7 @@ typedef enum {
     R2U2_ENG_NA = 0, // Null instruction tag - acts as ENDSEQ
     R2U2_ENG_SY = 1, // System commands - reserved for monitor control
     R2U2_ENG_CG = 2, // Immediate Configuration Directive
+    // Original Atomic Checker was 3, but has been removed since v4.0
     R2U2_ENG_TL = 4, // MLTL Temporal logic engine
     R2U2_ENG_BZ = 5, // Booleanizer
 } r2u2_engine_tag_t;
@@ -35,7 +36,7 @@ Past-time and future-time logic uses [shared connection queues](./memory.md#shar
 
 The queue sizing is the primary reason the monitor might need to walk the program instructions multiple times per time-step and is the source of the progress checks.
 
-The internal architecture of the monitors is described in {footcite:p}`KZJZR20`.
+The internal architecture of the monitors is described in {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

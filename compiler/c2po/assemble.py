@@ -179,7 +179,7 @@ class TLOperandType(Enum):
 
 
 class FTOperator(Enum):
-    # See monitors/static_c/src/engines/mltl/mltl.h
+    # See monitors/c/src/engines/mltl.h
     NOP = 0b11111
     CONFIG = 0b11110
     LOAD = 0b11101
@@ -368,10 +368,7 @@ class TLInstruction:
         field_strs: list[str] = []
 
         field_strs.append(f"{self.engine_tag.name}")
-        if isinstance(self.operator, PTOperator) and self.operator.is_temporal():
-            field_strs.append(f"q{self.id:<2}")
-        else:
-            field_strs.append(f"n{self.id:<2}")
+        field_strs.append(f"n{self.id:<2}")
         field_strs.append(f"{self.operator:6}")
 
         if self.operand1_type == TLOperandType.DIRECT:
@@ -500,7 +497,7 @@ def gen_bz_instruction(
 
 
 def gen_tl_operand(
-    operand: Optional[cpt.Node], instructions: dict[cpt.Expression, TLInstruction]
+    operand: Optional[cpt.Expression], instructions: dict[cpt.Expression, TLInstruction]
 ) -> tuple[TLOperandType, Any]:
     if isinstance(operand, cpt.Constant):
         operand_type = TLOperandType.DIRECT

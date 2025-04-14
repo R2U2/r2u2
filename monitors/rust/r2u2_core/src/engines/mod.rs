@@ -1,7 +1,7 @@
-use crate::internals::types::*;
+use crate::internals::types::r2u2_bool;
 use crate::memory::monitor::*;
-use mltl::*;
-use booleanizer::*;
+use mltl::mltl_update;
+use booleanizer::bz_update;
 
 mod mltl;
 mod booleanizer;
@@ -18,6 +18,7 @@ use libc_print::std_name::println;
 // pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ
 // pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control
 pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
+// Original Atomic Checker was 3, but has been removed since v4.0
 pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
 pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 
@@ -34,7 +35,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     // Run booleanizer instructions (once)
     while monitor.bz_program_count.curr_program_count < monitor.bz_program_count.max_program_count {
         bz_update(monitor);
-        monitor.bz_program_count.curr_program_count = monitor.bz_program_count.curr_program_count + 1;
+        monitor.bz_program_count.curr_program_count += 1;
     }
     monitor.bz_program_count.curr_program_count = 0;
     // Run mltl instructions (currently just supporting future time)
@@ -42,7 +43,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
     while start_time == monitor.time_stamp{
         while monitor.mltl_program_count.curr_program_count < monitor.mltl_program_count.max_program_count {
             mltl_update(monitor);
-            monitor.mltl_program_count.curr_program_count = monitor.mltl_program_count.curr_program_count + 1;
+            monitor.mltl_program_count.curr_program_count += 1;
         }
         match monitor.progress {
             MonitorProgressState::FirstLoop => {

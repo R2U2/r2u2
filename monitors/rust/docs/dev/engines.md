@@ -4,6 +4,7 @@ Each engine is identified by a constant value:
 
 ```Rust
 pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
+// Original Atomic Checker was 3, but has been removed since v4.0
 pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
 pub const R2U2_ENG_BZ: u8 = 5; // Booleanizer
 ```
@@ -31,7 +32,7 @@ Past-time and future-time logic uses [shared connection queues](./memory.md#shar
 
 The queue sizing is the primary reason the monitor might need to walk the program instructions multiple times per time-step and is the source of the progress checks.
 
-The internal architecture of the monitors is described in {footcite:p}`KZJZR20`.
+The internal architecture of the monitors is described in {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

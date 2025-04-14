@@ -98,7 +98,7 @@ fn main() -> ! {
                     let cycles = DWT::cycle_count() - cycles;
                     hprintln!("{}", cycles);
                 }
-                for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+                for out in r2u2_core::get_output_buffer(&monitor) {
                     if out.spec_num == 0 { // G[0,500] button
                         if out.verdict.truth {
                             led_red.set_high().ok();

@@ -10,9 +10,14 @@ Configuration Compiler for Property Organization (C2PO).
 
 ![R2U2 workflow](docs/_static/r2u2-flow.png)
 
-If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)). 
+If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23) ([.bib](CITATION.bib)) and [2025 NFM paper](https://temporallogic.org/research/R2U2Rust/) ([.bib](CITATION2.bib)). 
 
 # Requirements 
+
+The following dependencies are required to run C2PO: 
+- Python 3.8 or greater
+- (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
+- (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
 
 The following dependencies are required to run R2U2 C version:
 - Make 
@@ -20,11 +25,6 @@ The following dependencies are required to run R2U2 C version:
 
 The following dependencies are required to run R2U2 Rust version:
 - [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater 
-
-The following dependencies are required to run C2PO: 
-- Python 3.9 or greater
-- (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
-- (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
 
 # Building
 
@@ -41,7 +41,7 @@ This only needs to be *once*, regardless of the specifications you wish to monit
 
 To build R2U2 from source, run `cargo build --release` from `monitors/r2u2_cli`:
 ```bash
-cd monitors/rust/rust_cli/
+cd monitors/rust/r2u2_cli/
 cargo build --release
 ```
 
@@ -57,7 +57,6 @@ defined in [`examples/simple.c2po`](examples/simple.c2po) using
 
 1. Compile the specification using C2PO
 ```bash
-cd compiler
 python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
 ```
 

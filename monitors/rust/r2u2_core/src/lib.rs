@@ -46,7 +46,7 @@ mod memory;
 pub use internals::types::{r2u2_output,r2u2_verdict};
 #[cfg(feature = "aux_string_specs")]
 pub use internals::types::{r2u2_contract, AGC_INACTIVE, AGC_INVALID, AGC_VERIFIED};
-pub use internals::bounds::{R2U2_MAX_SPECS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_MEM};
+pub use internals::bounds::{R2U2_MAX_SPECS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_MEM,R2U2_FLOAT_EPSILON};
 
 /// Get runtime monitor
 /// 
@@ -127,7 +127,7 @@ pub fn load_bool_signal(monitor: &mut Monitor, index: usize, value: r2u2_bool){
 /// 
 pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value == 0 {false} else {true};
+        monitor.atomic_buffer[index] = value != 0;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
@@ -147,7 +147,7 @@ pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
 /// 
 pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value == 0.0 {false} else {true};
+        monitor.atomic_buffer[index] = value >= R2U2_FLOAT_EPSILON || value <= -R2U2_FLOAT_EPSILON;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
@@ -168,7 +168,7 @@ pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float)
 /// 
 pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
     if monitor.bz_program_count.max_program_count == 0 {
-        monitor.atomic_buffer[index] = if value.parse::<r2u2_int>().expect("Please provide a 0 or 1") == 0 {false} else {true};
+        monitor.atomic_buffer[index] = value.parse::<r2u2_int>().expect("Please provide a 0 or 1") != 0;
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index, monitor.atomic_buffer[index]);
     } else{
@@ -213,7 +213,7 @@ pub fn load_string_signal(monitor: &mut Monitor, index: usize, value: &str){
 /// 
 /// ```
 /// let mut monitor = r2u2_core::get_monitor(&spec_file);
-/// for out in r2u2_core::get_output_buffer(&mut monitor).iter() {
+/// for out in r2u2_core::get_output_buffer(&monitor) {
 ///     println!("{}:{},{}", out.spec_num, out.verdict.time, if out.verdict.truth {"T"} else {"F"} );
 /// }
 /// ```
@@ -237,7 +237,7 @@ pub fn get_output_buffer(monitor: &Monitor) -> &[r2u2_output]{
 /// 
 /// ```
 /// let mut monitor = r2u2_core::get_monitor(&spec_file);
-/// for out in r2u2_core::get_contract_buffer(&mut monitor).iter() {
+/// for out in r2u2_core::get_contract_buffer(&monitor) {
 ///     println!("Contract {} {} at {}", out.spec_str, if out.status == r2u2_core::AGC_VERIFIED {"verified"} else if out.status == r2u2_core::AGC_INVALID {"invalid"} else {"inactive"}, out.time);
 /// }
 /// ```

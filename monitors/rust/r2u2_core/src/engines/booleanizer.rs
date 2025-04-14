@@ -3,7 +3,7 @@ use libm::{pow, sqrt};
 use crate::internals::bounds::R2U2_FLOAT_EPSILON;
 
 use crate::instructions::booleanizer::*;
-use crate::memory::monitor::*;
+use crate::memory::monitor::Monitor;
 use crate::internals::types::*;
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -23,9 +23,6 @@ verus! {
 pub fn bz_update(monitor: &mut Monitor){
     let instr = monitor.bz_instruction_table[monitor.bz_program_count.curr_program_count];
     match instr.opcode{
-        BZ_OP_NONE => {
-            return;
-        }
         BZ_OP_ILOAD => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ ILOAD");
@@ -44,7 +41,7 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ STORE");
             let op = monitor.value_buffer[instr.param1 as usize].i;
-            monitor.atomic_buffer[instr.param2 as usize] = if op == 0 {false} else {true};
+            monitor.atomic_buffer[instr.param2 as usize] = op != 0;
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("a{} = {} (b{})", instr.param2, monitor.atomic_buffer[instr.param2 as usize], instr.param1 as usize);
         }
@@ -546,7 +543,7 @@ fn integer_negative(op: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
     if op == r2u2_int::MIN {
         return (r2u2_int::MAX, true);
     } else {
-        return (-1 * op, false);
+        return (-op, false);
     }
 }
 
@@ -554,7 +551,7 @@ fn integer_negative(op: r2u2_int) -> (result: (r2u2_int, r2u2_bool))
 #[inline(always)]
 fn float_negative(op: r2u2_float) -> (result: r2u2_float)
 {
-    return -1.0 * op;
+    return -op;
 }
 
 #[inline(always)]

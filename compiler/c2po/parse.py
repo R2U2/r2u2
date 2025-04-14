@@ -405,7 +405,7 @@ class C2POParser(sly.Parser):
         if len(p[0]) > 50:
             log.error(
                 MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name", 
+                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False
@@ -419,7 +419,7 @@ class C2POParser(sly.Parser):
         if len(p[0]) > 50:
             log.error(
                 MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name", 
+                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False

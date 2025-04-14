@@ -59,11 +59,6 @@ typedef struct {
   r2u2_tnt_t previous;
 } r2u2_scq_temporal_block_t;
 
-typedef struct {
-  r2u2_tnt_t start;
-  r2u2_tnt_t end;
-} r2u2_scq_pt_interval_t;
-
 /* Shared Connection Queue Arena
  * Used by the monitor to track arena extents.
  * Since we access offsets from both ends of the arena, storing two pointers
@@ -97,49 +92,8 @@ r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_
  */
 r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id);
 
-/* FT (SCQ replacement) */
+/* SCQ Read and Write */
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
 r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
-
-/* PT (Box Queue replacement)
- * Control Block Values:
- *   - length:    Length
- *   - write:     Head
- *   - read1:     Tail
- *   - read2:     interval.end
- *   - next_time: interval.start
- *
- * R2U2_TNT_TRUE Used as empty value (previously R2U2_infin)
- */
-
-static inline r2u2_time r2u2_scq_pt_effective_id_get(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return (r2u2_time)((ctrl->queue)[ctrl->length]);
-}
-
-r2u2_status_t r2u2_scq_pt_effective_id_set(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time effective_id);
-
-static inline r2u2_status_t r2u2_scq_pt_reset(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  ctrl->write = 0;
-  ctrl->read1 = 0;
-  return R2U2_OK;
-}
-
-static inline r2u2_bool r2u2_scq_pt_is_empty(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return ctrl->write == ctrl->read1;
-}
-static inline r2u2_bool r2u2_scq_pt_is_full(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return ((ctrl->write + 2) % ctrl->length) == ctrl->read1;
-}
-
-r2u2_status_t r2u2_scq_pt_push(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_scq_pt_interval_t value);
-
-r2u2_scq_pt_interval_t r2u2_scq_pt_peek(r2u2_scq_arena_t *arena, r2u2_time queue_id);
-r2u2_scq_pt_interval_t r2u2_scq_pt_head_pop(r2u2_scq_arena_t *arena, r2u2_time queue_id);
-r2u2_scq_pt_interval_t r2u2_scq_pt_tail_pop(r2u2_scq_arena_t *arena, r2u2_time queue_id);
-
 
 #endif /* R2U2_MEMORY_SCQ_H */

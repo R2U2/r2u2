@@ -5,8 +5,8 @@
 #include <string.h> // For memcpy
 
 #include "engines/engines.h"
-#include "engines/booleanizer/booleanizer.h"
-#include "engines/mltl/mltl.h"
+#include "engines/booleanizer.h"
+#include "engines/mltl.h"
 
 #include "memory/register.h" // For buffer flip
 // r2u2_status_t (*r2u2_engine_func_table[])(r2u2_instruction_t *) = {
