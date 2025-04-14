@@ -178,6 +178,10 @@ parser.add_argument(
     help="timeout of sat calls in seconds (default: 3600)",
 )
 parser.add_argument(
+    "--write-bounds",
+    help="location to write either bounds.h or config.toml file (depending on impl)",
+)
+parser.add_argument(
     "--write-c2po",
     help="location to write final program in C2PO input format",
 )
@@ -228,6 +232,7 @@ opts = c2po.options.Options(
     enable_sat=args.check_sat,
     timeout_eqsat=args.timeout_eqsat,
     timeout_sat=args.timeout_sat,
+    write_bounds_filename=args.write_bounds,
     write_c2po_filename=args.write_c2po,
     write_prefix_filename=args.write_prefix,
     write_mltl_filename=args.write_mltl,

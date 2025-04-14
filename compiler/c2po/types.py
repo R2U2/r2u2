@@ -33,6 +33,8 @@ class Interval(NamedTuple):
 SignalMapping = Dict[str, int]
 
 
+
+
 class BaseType(enum.Enum):
     NOTYPE = 0
     BOOL = 1

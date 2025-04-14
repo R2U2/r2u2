@@ -45,6 +45,8 @@ DEFAULTS = {
     "enable_sat": False,
     "timeout_eqsat": 3600,
     "timeout_sat": 3600,
+    "bounds_filename": None,
+    "write_bounds_filename": None,
     "write_c2po_filename": None,
     "write_prefix_filename": None,
     "write_mltl_filename": None,
@@ -82,6 +84,7 @@ class Options:
     enable_sat: bool = DEFAULTS["enable_sat"]
     timeout_eqsat: int = DEFAULTS["timeout_eqsat"]
     timeout_sat: int = DEFAULTS["timeout_sat"]
+    write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
     write_c2po_filename: Optional[str] = DEFAULTS["write_c2po_filename"]
     write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
     write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
@@ -103,11 +106,6 @@ class Options:
     assembly_enabled: bool = True
     enabled_passes: set = field(default_factory=set)
     smt_solver: str = "z3"
-    write_c2po: bool = False
-    write_prefix: bool = False
-    write_mltl: bool = False
-    write_pickle: bool = False
-    write_smt: bool = False
     copyback_enabled: bool = False
     copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
