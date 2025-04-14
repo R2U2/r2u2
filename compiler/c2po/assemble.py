@@ -368,10 +368,7 @@ class TLInstruction:
         field_strs: list[str] = []
 
         field_strs.append(f"{self.engine_tag.name}")
-        if isinstance(self.operator, PTOperator) and self.operator.is_temporal():
-            field_strs.append(f"q{self.id:<2}")
-        else:
-            field_strs.append(f"n{self.id:<2}")
+        field_strs.append(f"n{self.id:<2}")
         field_strs.append(f"{self.operator:6}")
 
         if self.operand1_type == TLOperandType.DIRECT:

@@ -1,10 +1,10 @@
 TL n0  load   a0
-TL q1  trigger False n0
+TL n1  trigger False n0
 TL n2  return n1 0
-TL q3  since  True n0
+TL n3  since  True n0
 TL n4  return n3 1
 TL n5  load   a1
-TL q6  since  n0 n5
+TL n6  since  n0 n5
 TL n7  return n6 2
 CG TL SCQ q0 |1|
 CG TL SCQ q1 |5|
