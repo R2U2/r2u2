@@ -3,7 +3,8 @@ from typing import Optional
 import pathlib
 import enum
 
-from c2po import types, log, parse_other
+from c2po import types, log
+from compiler.c2po import parse_utils
 
 MODULE_CODE = "OPTS"
 
@@ -157,11 +158,11 @@ class Options:
         self.trace_length = -1
 
         if self.trace_path:
-            (self.trace_length, tmp_signal_mapping) = parse_other.parse_trace_file(
+            (self.trace_length, tmp_signal_mapping) = parse_utils.parse_trace_file(
                 self.trace_path, self.map_path is not None
             )
         if self.map_path:
-            tmp_signal_mapping = parse_other.parse_map_file(self.map_path)
+            tmp_signal_mapping = parse_utils.parse_map_file(self.map_path)
 
         if not tmp_signal_mapping:
             self.signal_mapping = {}
