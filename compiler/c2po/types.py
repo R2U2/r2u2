@@ -204,3 +204,15 @@ def configure_types(
     else:
         IntType.width = int_width
         FloatType.width = float_width
+
+
+def to_smt_type(t: Type) -> str:
+    """Convert a C2PO type to an SMT type."""
+    if isinstance(t, BoolType):
+        return "Bool"
+    if isinstance(t, IntType):
+        return "Int"
+    if isinstance(t, FloatType):
+        return "Real"
+    return "NoType"
+

@@ -10,4 +10,3 @@ DEFINE
 
 FTSPEC
     foreach(i:t.I)(i > 5);
-    F[0,1] (t.I[2] < 3);

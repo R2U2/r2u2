@@ -28,7 +28,8 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
-    """Converts each function call in `program` that corresponds to a struct instantiation to a `ast.C2POStruct`."""
+    """Converts each function call in `program` that corresponds to a struct instantiation to a `cpt.Struct`."""
+    log.debug(MODULE_CODE, 1, "Converting function calls to structs")
     for expr in [
         expr
         for define in context.definitions.values()
@@ -86,6 +87,9 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
             ),
         ]
 
+        for formula in new_formulas:
+            formula.get_expr().type = types.BoolType()
+
         new_formulas = cast("list[cpt.Specification]", new_formulas)
 
         program.replace_spec(contract, new_formulas)
@@ -100,17 +104,22 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, "Unrolling set aggregation expressions.")
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
-        for subexpr in cpt.postorder(expr, context):
-            if not isinstance(subexpr, cpt.StructAccess):
-                continue
+        if not isinstance(expr, cpt.StructAccess):
+            return
 
-            struct = subexpr.get_struct()
-            if not isinstance(struct, cpt.Struct):
-                continue
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            return
 
-            member = struct.get_member(subexpr.member)
-            if member:
-                subexpr.replace(member)
+        member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                             f"Please open an issue at {log.ISSUE_URL}.")
+
+        new_type = member.type
+        if member:
+            expr.replace(member)
+            member.type = new_type
 
     for expr in program.preorder(context):
         if not isinstance(expr, cpt.SetAggregation):
@@ -223,10 +232,19 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         if not isinstance(expr, cpt.StructAccess):
             continue
 
-        s: cpt.Struct = expr.get_struct()
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            continue
+
         member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                             f"Please open an issue at {log.ISSUE_URL}.")
+
+        new_type = member.type
         if member:
             expr.replace(member)
+            member.type = new_type
 
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
@@ -1109,7 +1127,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
-    log.stat(MODULE_CODE, f"old_scq_size={program.total_scq_size}")
+    log.stat(MODULE_CODE, "old_scq_size", program.total_scq_size)
 
     log.warning(MODULE_CODE, "Equality saturation is an experimental feature")
     log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
@@ -1145,15 +1163,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
             old.replace(new)
             compute_scq_sizes(program, context)
 
-        log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
-        log.stat(MODULE_CODE, f"new_scq_size={program.total_scq_size}")
+        log.stat(MODULE_CODE, "equiv_result", equiv_result)
+        log.stat(MODULE_CODE, "new_scq_size", program.total_scq_size)
 
     log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
     """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
-    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
+    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
     
     results = sat.check_sat(program, context)
 
@@ -1225,6 +1243,7 @@ pass_list: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
+    resolve_struct_accesses,
     unroll_set_aggregation,
     resolve_struct_accesses,
     resolve_array_accesses,
@@ -1246,6 +1265,16 @@ pass_list: list[Pass] = [
 def setup(opts: options.Options) -> None:
     """Sets up the passes for the compiler."""
     log.debug(MODULE_CODE, 1, "Setting up passes")
+
+    if opts.spec_format == options.SpecFormat.MLTL:
+        pass_list.remove(expand_definitions)
+        pass_list.remove(convert_function_calls_to_structs)
+        pass_list.remove(resolve_contracts)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(unroll_set_aggregation)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(resolve_array_accesses)
+        pass_list.remove(resolve_struct_accesses)
 
     if not opts.enable_rewrite:
         pass_list.remove(optimize_rewrite_rules)
