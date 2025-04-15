@@ -29,7 +29,7 @@ def compute_cpu_wcet(
     total_wcet = 0
 
     for instr in assembly:
-        if isinstance(instr, (assemble.CGInstruction)):
+        if isinstance(instr, (assemble.CGInstruction, assemble.AliasInstruction)):
             continue
 
         operator: Optional[assemble.Operator] = instr.operator
@@ -46,7 +46,7 @@ def compute_cpu_wcet(
 
         total_wcet += wcet
 
-    log.stat(MODULE_CODE, f"cpu_wcet={total_wcet}")
+    log.stat(MODULE_CODE, "cpu_wcet", total_wcet)
 
     return total_wcet
 
@@ -70,7 +70,7 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
     scq_instrs = [instr for instr in assembly if isinstance(instr, assemble.CGInstruction) and instr.type == assemble.CGType.SCQ]
 
     for instr in assembly:
-        if isinstance(instr, (assemble.CGInstruction)):
+        if isinstance(instr, (assemble.CGInstruction, assemble.AliasInstruction)):
             continue
 
         operator: Optional[assemble.Operator] = instr.operator
@@ -105,6 +105,6 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
 
         total_wcet += wcet
 
-    log.stat(MODULE_CODE, f"fpga_wcet={total_wcet}")
+    log.stat(MODULE_CODE, "fpga_wcet", total_wcet)
 
     return total_wcet

@@ -24,15 +24,8 @@ class SpecFormat(enum.Enum):
 
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
-    QF_UFLIA = "qf_uflia"
-    AUFLIA = "auflia"
-    QF_AUFLIA = "qf_auflia"
-    AUFBV = "aufbv"
-    QF_AUFBV = "qf_aufbv"
     QF_BV = "qf_bv"
     QF_BV_INCR = "qf_bv_incr"
-    QF_BV_LOG = "qf_bv_log"
-    QF_BV_LOG_INCR = "qf_bv_log_incr"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -274,24 +267,10 @@ class Options:
             
         if self.smt_encoding_str == "uflia":
             self.smt_encoding = SMTTheories.UFLIA
-        elif self.smt_encoding_str == "qf_uflia":
-            self.smt_encoding = SMTTheories.QF_UFLIA
-        elif self.smt_encoding_str == "auflia":
-            self.smt_encoding = SMTTheories.AUFLIA
-        elif self.smt_encoding_str == "qf_auflia":
-            self.smt_encoding = SMTTheories.QF_AUFLIA
-        elif self.smt_encoding_str == "aufbv":
-            self.smt_encoding = SMTTheories.AUFBV
-        elif self.smt_encoding_str == "qf_aufbv":
-            self.smt_encoding = SMTTheories.QF_AUFBV
         elif self.smt_encoding_str == "qf_bv":
             self.smt_encoding = SMTTheories.QF_BV
         elif self.smt_encoding_str == "qf_bv_incr":
             self.smt_encoding = SMTTheories.QF_BV_INCR
-        elif self.smt_encoding_str == "qf_bv_log":
-            self.smt_encoding = SMTTheories.QF_BV_LOG
-        elif self.smt_encoding_str == "qf_bv_log_incr":
-            self.smt_encoding = SMTTheories.QF_BV_LOG_INCR
         else:
             log.error(MODULE_CODE, f"Invalid SMT theory '{self.smt_encoding_str}'")
             status = False
