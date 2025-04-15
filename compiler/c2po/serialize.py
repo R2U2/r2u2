@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 
-from c2po import cpt, log, sat, options
+from c2po import cpt, log, sat
 
 MODULE_CODE = "SRLZ"
 
@@ -11,30 +11,30 @@ def write_outputs(
     context: cpt.Context
 ) -> None:
     """Writes `program` to each of the given filenames if they are not '.'"""
-    if options.write_c2po:
-        log.debug(MODULE_CODE, 1, f"Writing C2PO to {options.write_c2po_filename}")
-        with open(options.write_c2po_filename, "w") as f:
+    if context.options.write_c2po_filename is not None:
+        log.debug(MODULE_CODE, 1, f"Writing C2PO to {context.options.write_c2po_filename}")
+        with open(context.options.write_c2po_filename, "w") as f:
             f.write(str(program))
     
-    if options.write_prefix:
-        log.debug(MODULE_CODE, 1, f"Writing prefix format to {options.write_prefix_filename}")
-        with open(options.write_prefix_filename, "w") as f:
+    if context.options.write_prefix_filename is not None:
+        log.debug(MODULE_CODE, 1, f"Writing prefix format to {context.options.write_prefix_filename}")
+        with open(context.options.write_prefix_filename, "w") as f:
             f.write(repr(program))
 
-    if options.write_mltl:
-        log.debug(MODULE_CODE, 1, f"Dumping MLTL standard format to {options.write_mltl_filename}")
-        with open(options.write_mltl_filename, "w") as f:
+    if context.options.write_mltl_filename is not None:
+        log.debug(MODULE_CODE, 1, f"Dumping MLTL standard format to {context.options.write_mltl_filename}")
+        with open(context.options.write_mltl_filename, "w") as f:
             f.write(cpt.to_mltl_std(program, context))
 
-    if options.write_pickle:
-        log.debug(MODULE_CODE, 1, f"Writing pickled program to {options.write_pickle_filename}")
-        with open(options.write_pickle_filename, "wb") as f:
+    if context.options.write_pickle_filename is not None:
+        log.debug(MODULE_CODE, 1, f"Writing pickled program to {context.options.write_pickle_filename}")
+        with open(context.options.write_pickle_filename, "wb") as f:
             f.write(program.pickle())
 
-    if options.write_smt:
-        log.debug(MODULE_CODE, 1, f"Writing SMT encoding to {options.write_smt_dirname}")
+    if context.options.write_smt_dirname is not None:
+        log.debug(MODULE_CODE, 1, f"Writing SMT encoding to {context.options.write_smt_dirname}")
 
-        smt_output_path = pathlib.Path(options.write_smt_dirname)
+        smt_output_path = pathlib.Path(context.options.write_smt_dirname)
         if smt_output_path.is_file():
             smt_output_path.unlink()
         elif smt_output_path.is_dir():

@@ -7,7 +7,7 @@ import enum
 import pickle
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types
+from c2po import log, types, options
 
 MODULE_CODE = "CPT"
 
@@ -1146,7 +1146,8 @@ class Program(Node):
 
 
 class Context:
-    def __init__(self) -> None:
+    def __init__(self, opts: options.Options) -> None:
+        self.options = opts
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
