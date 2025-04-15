@@ -10,6 +10,7 @@ class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
     VHDL = 2
+    RUST = 3
 
 
 class R2U2Engine(enum.Enum):

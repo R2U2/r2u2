@@ -21,37 +21,37 @@ class SatResult(enum.Enum):
     FAILURE = "fail"
 
 
-def check_solver() -> bool:
+def check_solver(smt_solver: str) -> bool:
     try:
-        proc0 = subprocess.run([options.smt_solver, "-version"], capture_output=True)
-        proc1 = subprocess.run([options.smt_solver, "--version"], capture_output=True)
+        proc0 = subprocess.run([smt_solver, "-version"], capture_output=True)
+        proc1 = subprocess.run([smt_solver, "--version"], capture_output=True)
         return proc0.returncode == 0 or proc1.returncode == 0
     except FileNotFoundError:
         return False
 
 
-def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
+def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> tuple[SatResult, float]:
     """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
     log.debug(MODULE_CODE, 1, "Running SMT solver.")
 
-    if not check_solver():
-        log.error(MODULE_CODE, f"{options.smt_solver} not found")
+    if not check_solver(context.options.smt_solver):
+        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
         return (SatResult.FAILURE, -1)
 
-    smt_file_path = options.workdir / "__tmp__.smt"
+    smt_file_path = context.options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
-        f.write(smt)
+        f.write(smt_encoding)
 
-    command = [options.smt_solver, str(smt_file_path)] + [opt.replace('"', '') for opt in options.smt_options]
+    command = [context.options.smt_solver, str(smt_file_path)] + [opt.replace('"', '') for opt in context.options.smt_options]
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory_offset(options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory_offset(context.options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         (stdout, stderr) = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
-        log.warning(MODULE_CODE, f"{options.smt_solver} timed out")
+        log.warning(MODULE_CODE, f"{context.options.smt_solver} timed out")
         return (SatResult.TIMEOUT, -1)
     
     end = util.get_rusage_time()
@@ -63,32 +63,32 @@ def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
         #   stdout=
         #   stderr=(error "out of memory")
         #   returncode=101
-        if "z3" in options.smt_solver and "(error \"out of memory\")" in stderr:
-            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+        if "z3" in context.options.smt_solver and "(error \"out of memory\")" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
             return (SatResult.MEMOUT, -1)
 
         # cvc5 memout: 
         #   stdout(error "std::bad_alloc")
         #   stderr=
         #   returncode=1
-        if "cvc5" in options.smt_solver and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+        if "cvc5" in context.options.smt_solver and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
             return (SatResult.MEMOUT, -1)
 
         # yices memout:
         #   stdout=
         #   stderr=out of memory
         #   returncode=16
-        if "yices" in options.smt_solver and "Out of memory" in stderr:
-            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+        if "yices" in context.options.smt_solver and "Out of memory" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
             return (SatResult.MEMOUT, -1)
 
         # mathsat memout
         #   stdout=
         #   stderr=
         #   returncode=6
-        if "mathsat" in options.smt_solver and proc.returncode == -6:
-            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+        if "mathsat" in context.options.smt_solver and proc.returncode == -6:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
             return (SatResult.MEMOUT, -1)
 
         # bitwuzla memout
@@ -96,13 +96,13 @@ def run_smt_solver(smt: str, timeout: float) -> tuple[SatResult, float]:
         #   stderr=terminate called after throwing an instance of 'std::bad_alloc'
         #            what():  std::bad_alloc
         #   returncode=-6
-        if "bitwuzla" in options.smt_solver and "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{options.smt_solver} ran out of memory")
+        if "bitwuzla" in context.options.smt_solver and "std::bad_alloc" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
             return (SatResult.MEMOUT, -1)
         
         log.error(
             MODULE_CODE,
-            f"{options.smt_solver} failed with return code {proc.returncode}",
+            f"{context.options.smt_solver} failed with return code {proc.returncode}",
         )
         log.debug(MODULE_CODE, 1, "stdout:")
         print(stdout[:-1])
@@ -266,7 +266,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: boo
         f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}",
     )
 
-    if options.enable_booleanizer:
+    if context.options.enable_booleanizer:
         log.warning(
             MODULE_CODE,
             "Booleanizer enabled, skipping QF_BV sat check.\n\t"
@@ -279,7 +279,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: boo
     smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, options.smt_max_time)
+    (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time, context)
     update_stats(sat_time)
     if done(result):
         report_stats(result)
@@ -292,7 +292,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: boo
         smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
         enc_end = util.get_rusage_time()
         total_enc_time += enc_end - enc_start
-        (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
+        (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
         update_stats(sat_time)
         report_stats(result)
         return result
@@ -303,7 +303,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: boo
     smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
+    (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
     update_stats(sat_time)
     if done(result):
         report_stats(result)
@@ -314,7 +314,7 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context, is_log: boo
     smt = to_qfbv_log_smtlib2(start, context, trace_len) if is_log else to_qfbv_smtlib2(start, context, trace_len) 
     enc_end = util.get_rusage_time()
     total_enc_time += enc_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, options.smt_max_time - total_sat_time)
+    (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
     update_stats(sat_time)
 
     report_stats(result)
@@ -540,8 +540,8 @@ def to_qfaufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         MODULE_CODE, 1, f"Encoding MLTL formula in QF_AUFBV logic:\n\t{repr(start)}"
     )
 
-    if options.mission_time > 0:
-        mission_time = options.mission_time
+    if context.options.mission_time > 0:
+        mission_time = context.options.mission_time
     elif start.wpd > 0:
         mission_time = start.wpd + 1
     else:
@@ -747,8 +747,8 @@ def to_aufbv_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the AUFBV logic."""
     log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in AUFBV logic:\n\t{repr(start)}")
 
-    if options.mission_time > 0:
-        mission_time = options.mission_time
+    if context.options.mission_time > 0:
+        mission_time = context.options.mission_time
     elif start.wpd > 0:
         mission_time = start.wpd + 1
     else:
@@ -1699,28 +1699,28 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
     start = util.get_rusage_time()
-    if options.smt_encoding == options.SMTTheories.UFLIA:
+    if context.options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.QF_UFLIA:
+    elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
         smt = to_qfuflia_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.AUFLIA:
+    elif context.options.smt_encoding == options.SMTTheories.AUFLIA:
         smt = to_auflia_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.QF_AUFLIA:
+    elif context.options.smt_encoding == options.SMTTheories.QF_AUFLIA:
         smt = to_qfauflia_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.AUFBV:
+    elif context.options.smt_encoding == options.SMTTheories.AUFBV:
         smt = to_aufbv_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.QF_AUFBV:
+    elif context.options.smt_encoding == options.SMTTheories.QF_AUFBV:
         smt = to_qfaufbv_smtlib2(expr, context)
-    elif options.smt_encoding == options.SMTTheories.QF_BV:
+    elif context.options.smt_encoding == options.SMTTheories.QF_BV:
         smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
-    elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
+    elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
         return check_sat_qfbv_incr(expr, context, is_log=False)
-    elif options.smt_encoding == options.SMTTheories.QF_BV_LOG:
+    elif context.options.smt_encoding == options.SMTTheories.QF_BV_LOG:
         smt = to_qfbv_log_smtlib2(expr, context, expr.wpd + 1)
-    elif options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
+    elif context.options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
         return check_sat_qfbv_incr(expr, context, is_log=True)
     else:
-        log.error(MODULE_CODE, f"Unsupported SMT theory {options.smt_encoding}")
+        log.error(MODULE_CODE, f"Unsupported SMT theory {context.options.smt_encoding}")
         return SatResult.UNKNOWN
     end = util.get_rusage_time()
     encoding_time = end - start
@@ -1728,7 +1728,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
 
     # log.debug(MODULE_CODE, 2, f"SMT encoding:\n{smt}")
 
-    (result, time) = run_smt_solver(smt, options.smt_max_time)
+    (result, time) = run_smt_solver(smt, context.options.smt_max_time, context)
     log.stat(MODULE_CODE, "sat_result", result.value)
     log.stat(MODULE_CODE, "sat_time", time)
     log.stat(MODULE_CODE, "num_sat_calls", 1)
@@ -1739,8 +1739,8 @@ def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver():
-        log.error(MODULE_CODE, f"{options.smt_solver} not found")
+    if not check_solver(context.options.smt_solver):
+        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}

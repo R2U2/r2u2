@@ -1,9 +1,10 @@
+from dataclasses import dataclass, field
+from typing import Optional
 import pathlib
 import enum
-import sys
 import resource
 
-from c2po import types, log, parse
+from c2po import types, log, parse_utils
 
 MODULE_CODE = "OPTS"
 
@@ -13,6 +14,7 @@ R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
     "cpp": types.R2U2Implementation.CPP,
     "vhdl": types.R2U2Implementation.VHDL,
+    "rust": types.R2U2Implementation.RUST,
 }
 
 class SpecFormat(enum.Enum):
@@ -38,253 +40,258 @@ class CompilationStage(enum.Enum):
     PASSES = 2
     ASSEMBLE = 3
 
-command: str =  " ".join(sys.argv)
+DEFAULTS = {
+    "trace_filename": None,
+    "map_filename": None,
+    "output_filename": "spec.bin",
+    "impl_str": "c",
+    "mission_time": -1,
+    "int_width": 32,
+    "int_is_signed": False,
+    "float_width": 32,
+    "only_parse": False,
+    "only_type_check": False,
+    "only_compile": False,
+    "enable_aux": True,
+    "enable_booleanizer": False,
+    "enable_extops": False,
+    "enable_nnf": False,
+    "enable_bnf": False,
+    "enable_rewrite": True,
+    "enable_eqsat": False,
+    "enable_cse": True,
+    "enable_sat": False,
+    "egglog": "egglog",
+    "eqsat_max_time": 3600,
+    "eqsat_max_memory": 0,
+    "smt_solver": "z3",
+    "smt_options": [],
+    "smt_encoding_str": "uflia",
+    "smt_max_time": 3600,
+    "smt_max_memory": 0,
+    "write_c2po_filename": None,
+    "write_prefix_filename": None,
+    "write_mltl_filename": None,
+    "write_pickle_filename": None,
+    "write_smt_dirname": None,
+    "copyback_dirname": None,
+    "stats": False,
+    "debug": False,
+    "log_level": 0,
+    "quiet": False,
+}
 
-spec_filename: str = EMPTY_FILENAME
-trace_filename: str = EMPTY_FILENAME
-map_filename: str = EMPTY_FILENAME
-output_filename: str = "spec.bin"
+@dataclass
+class Options:
+    spec_filename: str
+    trace_filename: Optional[str] = DEFAULTS["trace_filename"]
+    map_filename: Optional[str] = DEFAULTS["map_filename"]
+    output_filename: str = DEFAULTS["output_filename"]
+    impl_str: str = DEFAULTS["impl_str"]
+    mission_time: int = DEFAULTS["mission_time"]
+    int_width: int = DEFAULTS["int_width"]
+    int_is_signed: bool = DEFAULTS["int_is_signed"]
+    float_width: int = DEFAULTS["float_width"]
+    only_parse: bool = DEFAULTS["only_parse"]
+    only_type_check: bool = DEFAULTS["only_type_check"]
+    only_compile: bool = DEFAULTS["only_compile"]
+    enable_aux: bool = DEFAULTS["enable_aux"]
+    enable_booleanizer: bool = DEFAULTS["enable_booleanizer"]
+    enable_extops: bool = DEFAULTS["enable_extops"]
+    enable_nnf: bool = DEFAULTS["enable_nnf"]
+    enable_bnf: bool = DEFAULTS["enable_bnf"]
+    enable_rewrite: bool = DEFAULTS["enable_rewrite"]
+    enable_eqsat: bool = DEFAULTS["enable_eqsat"]
+    enable_cse: bool = DEFAULTS["enable_cse"]
+    enable_sat: bool = DEFAULTS["enable_sat"]
+    egglog: str = DEFAULTS["egglog"]
+    eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
+    eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
+    smt_solver: str = DEFAULTS["smt_solver"]
+    smt_options: list[str] = DEFAULTS["smt_options"]
+    smt_encoding_str: str = DEFAULTS["smt_encoding_str"]
+    smt_max_time: int = DEFAULTS["smt_max_time"]
+    smt_max_memory: int = DEFAULTS["smt_max_memory"]
+    write_c2po_filename: Optional[str] = DEFAULTS["write_c2po_filename"]
+    write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
+    write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
+    write_pickle_filename: Optional[str] = DEFAULTS["write_pickle_filename"]
+    write_smt_dirname: Optional[str] = DEFAULTS["write_smt_dirname"]
+    copyback_dirname: Optional[str] = DEFAULTS["copyback_dirname"]
+    stats: bool = DEFAULTS["stats"]
+    debug: bool = DEFAULTS["debug"]
+    log_level: int = DEFAULTS["log_level"]
+    quiet: bool = DEFAULTS["quiet"]
 
-workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+    spec_format: SpecFormat = SpecFormat.C2PO
+    workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+    spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+    output_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+    signal_mapping: types.SignalMapping = field(default_factory=dict)
+    impl: types.R2U2Implementation = types.R2U2Implementation.C
+    frontend: types.R2U2Engine = types.R2U2Engine.NONE
+    final_stage: CompilationStage = CompilationStage.ASSEMBLE
+    assembly_enabled: bool = True
+    enabled_passes: set = field(default_factory=set)
+    smt_encoding: SMTTheories = SMTTheories.UFLIA
+    write_c2po: bool = False
+    write_prefix: bool = False
+    write_mltl: bool = False
+    write_pickle: bool = False
+    write_smt: bool = False
+    copyback_enabled: bool = False
+    copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
-spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
-output_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
+    def setup(self) -> bool:
+        """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
+        **Must call `passes.setup()` after this function.**"""
+        if self.debug:
+            log.set_log_level(5)
+        else:
+            log.set_log_level(self.log_level)
 
-spec_format: SpecFormat = SpecFormat.C2PO
-signal_mapping: types.SignalMapping = {}
-impl_str: str = "c"
-impl: types.R2U2Implementation = types.R2U2Implementation.C
-mission_time: int = -1
-int_width: int = 8
-int_is_signed: bool = False
-float_width: int = 32
+        if self.stats:
+            log.set_report_stats()
 
-frontend: types.R2U2Engine = types.R2U2Engine.NONE
+        log.debug(MODULE_CODE, 1, "Validating input")
+        status: bool = True
 
-only_parse: bool = False
-only_type_check: bool = False
-only_compile: bool = False
-final_stage: CompilationStage = CompilationStage.ASSEMBLE
-
-assembly_enabled: bool = True
-
-enabled_passes: set = set()
-enable_aux: bool = False
-enable_booleanizer: bool = False
-enable_extops: bool = False
-enable_nnf: bool = False
-enable_bnf: bool = False
-enable_rewrite: bool = False
-enable_eqsat: bool = False
-enable_cse: bool = False
-enable_sat: bool = False
-
-smt_solver: str = "z3"
-smt_options: list[str] = []
-smt_encoding_str: str = "uflia"
-smt_encoding: SMTTheories = SMTTheories.UFLIA
-smt_max_time: int = 3600
-smt_max_memory: int = resource.RLIM_INFINITY
-
-egglog: str = ""
-eqsat_max_time: int = 3600
-eqsat_max_memory: int = resource.RLIM_INFINITY
-
-write_c2po: bool = False
-write_prefix: bool = False
-write_mltl: bool = False
-write_pickle: bool = False
-write_smt: bool = False
-write_c2po_filename: str = EMPTY_FILENAME
-write_prefix_filename: str = EMPTY_FILENAME
-write_mltl_filename: str = EMPTY_FILENAME
-write_pickle_filename: str = EMPTY_FILENAME
-write_smt_dirname: str = EMPTY_FILENAME
-
-copyback_enabled: bool = False
-copyback_dirname: str = EMPTY_FILENAME
-copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
-
-stats: bool = False
-debug: bool = False
-log_level: int = 0
-quiet: bool = False
-
-
-def setup() -> bool:
-    """Validate the input options/files. Checks for option compatibility, file existence, and sets certain options. 
-    **Must call `passes.setup()` after this function.**"""
-    global spec_filename, trace_filename, map_filename, output_filename, \
-        spec_path, output_path, \
-        spec_format, signal_mapping, impl, mission_time, int_width, int_is_signed, float_width, \
-        frontend, only_parse, only_type_check, only_compile, final_stage, assembly_enabled, \
-        enable_booleanizer, enable_extops, enable_nnf, enable_bnf, enable_rewrite, enable_eqsat, enable_cse, enable_sat, \
-        smt_solver, smt_max_memory, smt_max_memory, eqsat_max_memory, eqsat_max_time, \
-        smt_encoding, smt_encoding_str, \
-        copyback_enabled, copyback_dirname, copyback_path, \
-        write_c2po, write_prefix, write_mltl, write_pickle, write_smt, \
-        write_c2po_filename, write_prefix_filename, write_mltl_filename, write_pickle_filename, write_smt_dirname, \
-        stats, debug, log_level, quiet 
-
-    if debug:
-        log.set_log_level(5)
-    else:
-        log.set_log_level(log_level)
-
-    if stats:
-        log.set_report_stats()
-
-    log.debug(MODULE_CODE, 1, "Validating input")
-    status: bool = True
-
-    spec_path = pathlib.Path(spec_filename)
-    if not spec_path.is_file():
-        log.error(MODULE_CODE, f"Input file '{spec_filename} not a valid file.'")
-        status = False
-
-    if spec_path.suffix == ".c2po":
-        spec_format = SpecFormat.C2PO
-    elif spec_path.suffix == ".mltl":
-        spec_format = SpecFormat.MLTL
-    elif spec_path.suffix == ".pickle":
-        spec_format = SpecFormat.PICKLE
-    else:
-        log.error(
-            MODULE_CODE, f"Unsupported input format ({spec_path.suffix})"
-        )
-        status = False
-    
-    trace_path = None
-    if trace_filename != EMPTY_FILENAME:
-        trace_path = pathlib.Path(trace_filename)
-        if not trace_path.is_file():
-            log.error(MODULE_CODE, f"Trace file '{trace_filename}' is not a valid file")
+        self.spec_path = pathlib.Path(self.spec_filename)
+        if not self.spec_path.is_file():
+            log.error(MODULE_CODE, f"Input file '{self.spec_filename} not a valid file.'")
             status = False
 
-    map_path = None
-    if map_filename != EMPTY_FILENAME:
-        map_path = pathlib.Path(map_filename)
-        if not map_path.is_file():
-            log.error(MODULE_CODE, f"Map file '{map_filename}' is not a valid file")
+        if self.spec_path.suffix == SpecFormat.C2PO.value:
+            self.spec_format = SpecFormat.C2PO
+        elif self.spec_path.suffix == SpecFormat.MLTL.value:
+            self.spec_format = SpecFormat.MLTL
+        elif self.spec_path.suffix == SpecFormat.PICKLE.value:
+            self.spec_format = SpecFormat.PICKLE
+        else:
+            log.error(MODULE_CODE, f"Input file '{self.spec_filename}' has an invalid format.")
             status = False
+        
+        self.trace_path = None
+        if self.trace_filename is not None:
+            self.trace_path = pathlib.Path(self.trace_filename)
+            if not self.trace_path.is_file():
+                log.error(MODULE_CODE, f"Trace file '{self.trace_filename}' is not a valid file")
+                status = False
 
-    output_path = pathlib.Path(output_filename)
+        self.map_path = None
+        if self.map_filename is not None:
+            self.map_path = pathlib.Path(self.map_filename)
+            if not self.map_path.is_file():
+                log.error(MODULE_CODE, f"Map file '{self.map_filename}' is not a valid file")
+                status = False
 
-    if copyback_enabled:
-        copyback_path = pathlib.Path(copyback_dirname)
-        if copyback_path.exists():
-            log.error(MODULE_CODE, f"Directory already exists '{copyback_path}'")
-            status = False
+        self.output_path = pathlib.Path(self.output_filename)
 
-    tmp_signal_mapping = None
-    trace_length = -1
+        if self.copyback_dirname is not None:
+            self.copyback_path = pathlib.Path(self.copyback_dirname)
+            if self.copyback_path.exists():
+                log.error(MODULE_CODE, f"Directory already exists '{self.copyback_path}'")
+                status = False
+            self.copyback_enabled = True
 
-    if trace_path:
-        (trace_length, tmp_signal_mapping) = parse.parse_trace_file(
-            trace_path, map_path is not None
-        )
-    if map_path:
-        tmp_signal_mapping = parse.parse_map_file(map_path)
+        tmp_signal_mapping = None
+        self.trace_length = -1
 
-    if not tmp_signal_mapping:
-        signal_mapping = {}
-    else:
-        signal_mapping = tmp_signal_mapping
+        if self.trace_path:
+            (self.trace_length, tmp_signal_mapping) = parse_utils.parse_trace_file(
+                self.trace_path, self.map_path is not None
+            )
+        if self.map_path:
+            tmp_signal_mapping = parse_utils.parse_map_file(self.map_path)
 
-    if mission_time > -1:
-        # warn if the given trace is shorter than the defined mission time
-        if trace_length > -1 and trace_length < mission_time:
+        if not tmp_signal_mapping:
+            self.signal_mapping = {}
+        else:
+            self.signal_mapping = tmp_signal_mapping
+
+        if self.mission_time > -1:
+            # warn if the given trace is shorter than the defined mission time
+            if self.trace_length > -1 and self.trace_length < self.mission_time:
+                log.warning(
+                    MODULE_CODE,
+                    f"Trace length is shorter than given mission time ({self.trace_length} < {self.mission_time})",
+                )
+        else:
+            self.mission_time = self.trace_length
+
+        self.impl = R2U2_IMPL_MAP[self.impl_str]
+        types.configure_types(self.impl, self.int_width, self.int_is_signed, self.float_width)
+
+        if self.impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
+            if self.enable_extops:
+                log.error(
+                    MODULE_CODE, "Extended operators only support for C implementation"
+                )
+                status = False
+
+        if self.enable_nnf and self.enable_bnf:
+            log.warning(
+                MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
+            )
+
+        if not self.enable_extops and (self.enable_nnf or self.enable_bnf):
             log.warning(
                 MODULE_CODE,
-                f"Trace length is shorter than given mission time ({trace_length} < {mission_time})",
+                "NNF and BNF incompatible without extended operators, output will not be in either normal form",
             )
-    else:
-        mission_time = trace_length
 
-    impl = R2U2_IMPL_MAP[impl_str]
-    types.configure_types(impl, int_width, int_is_signed, float_width)
+        if self.only_parse:
+            final_stage = CompilationStage.PARSE
+        elif self.only_type_check:
+            final_stage = CompilationStage.TYPE_CHECK
+        elif self.only_compile:
+            final_stage = CompilationStage.PASSES
+        else:
+            final_stage = CompilationStage.ASSEMBLE
 
-    if impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
-        if enable_extops:
-            log.error(
-                MODULE_CODE, "Extended operators only support for C implementation"
-            )
+        self.assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
+
+        if self.enable_booleanizer and self.impl != types.R2U2Implementation.C:
+            log.error(MODULE_CODE, "Booleanizer only available for C implementation")
             status = False
 
-    if enable_nnf and enable_bnf:
-        log.warning(
-            MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
-        )
+        if self.enable_booleanizer:
+            self.frontend = types.R2U2Engine.BOOLEANIZER
+        else:
+            self.frontend = types.R2U2Engine.NONE
 
-    if not enable_extops and (enable_nnf or enable_bnf):
-        log.warning(
-            MODULE_CODE,
-            "NNF and BNF incompatible without extended operators, output will not be in either normal form",
-        )
+        if self.eqsat_max_memory == 0:
+            self.eqsat_max_memory = resource.RLIM_INFINITY
+        else:
+            self.eqsat_max_memory = self.eqsat_max_memory * 1024 * 1024
 
-    if only_parse:
-        final_stage = CompilationStage.PARSE
-    elif only_type_check:
-        final_stage = CompilationStage.TYPE_CHECK
-    elif only_compile:
-        final_stage = CompilationStage.PASSES
-    else:
-        final_stage = CompilationStage.ASSEMBLE
+        if self.smt_max_memory == 0:
+            self.smt_max_memory = resource.RLIM_INFINITY
+        else:
+            self.smt_max_memory = self.smt_max_memory * 1024 * 1024
+            
+        if self.smt_encoding_str == "uflia":
+            self.smt_encoding = SMTTheories.UFLIA
+        elif self.smt_encoding_str == "qf_uflia":
+            self.smt_encoding = SMTTheories.QF_UFLIA
+        elif self.smt_encoding_str == "auflia":
+            self.smt_encoding = SMTTheories.AUFLIA
+        elif self.smt_encoding_str == "qf_auflia":
+            self.smt_encoding = SMTTheories.QF_AUFLIA
+        elif self.smt_encoding_str == "aufbv":
+            self.smt_encoding = SMTTheories.AUFBV
+        elif self.smt_encoding_str == "qf_aufbv":
+            self.smt_encoding = SMTTheories.QF_AUFBV
+        elif self.smt_encoding_str == "qf_bv":
+            self.smt_encoding = SMTTheories.QF_BV
+        elif self.smt_encoding_str == "qf_bv_incr":
+            self.smt_encoding = SMTTheories.QF_BV_INCR
+        elif self.smt_encoding_str == "qf_bv_log":
+            self.smt_encoding = SMTTheories.QF_BV_LOG
+        elif self.smt_encoding_str == "qf_bv_log_incr":
+            self.smt_encoding = SMTTheories.QF_BV_LOG_INCR
+        else:
+            log.error(MODULE_CODE, f"Invalid SMT theory '{self.smt_encoding_str}'")
+            status = False
 
-    assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
-
-    if enable_booleanizer and impl != types.R2U2Implementation.C:
-        log.error(MODULE_CODE, "Booleanizer only available for C implementation")
-        status = False
-
-    if enable_booleanizer:
-        frontend = types.R2U2Engine.BOOLEANIZER
-    else:
-        frontend = types.R2U2Engine.NONE
-
-    if eqsat_max_memory == 0:
-        eqsat_max_memory = resource.RLIM_INFINITY
-    else:
-        eqsat_max_memory = eqsat_max_memory * 1024 * 1024
-
-    if smt_max_memory == 0:
-        smt_max_memory = resource.RLIM_INFINITY
-    else:
-        smt_max_memory = smt_max_memory * 1024 * 1024
-        
-    if smt_encoding_str == "uflia":
-        smt_encoding = SMTTheories.UFLIA
-    elif smt_encoding_str == "qf_uflia":
-        smt_encoding = SMTTheories.QF_UFLIA
-    elif smt_encoding_str == "auflia":
-        smt_encoding = SMTTheories.AUFLIA
-    elif smt_encoding_str == "qf_auflia":
-        smt_encoding = SMTTheories.QF_AUFLIA
-    elif smt_encoding_str == "aufbv":
-        smt_encoding = SMTTheories.AUFBV
-    elif smt_encoding_str == "qf_aufbv":
-        smt_encoding = SMTTheories.QF_AUFBV
-    elif smt_encoding_str == "qf_bv":
-        smt_encoding = SMTTheories.QF_BV
-    elif smt_encoding_str == "qf_bv_incr":
-        smt_encoding = SMTTheories.QF_BV_INCR
-    elif smt_encoding_str == "qf_bv_log":
-        smt_encoding = SMTTheories.QF_BV_LOG
-    elif smt_encoding_str == "qf_bv_log_incr":
-        smt_encoding = SMTTheories.QF_BV_LOG_INCR
-    else:
-        log.error(MODULE_CODE, f"Invalid SMT theory '{smt_encoding_str}'")
-        status = False
-
-    if write_c2po and write_c2po_filename == EMPTY_FILENAME:
-        write_c2po_filename = f"{spec_path.stem}.c2po"
-    if write_prefix and write_prefix_filename == EMPTY_FILENAME:
-        write_prefix_filename = f"{spec_path.stem}.c2po.prefix"
-    if write_mltl and write_mltl_filename == EMPTY_FILENAME:
-        write_mltl_filename = f"{spec_path.stem}.mltl"
-    if write_pickle and write_pickle_filename == EMPTY_FILENAME:
-        write_pickle_filename = f"{spec_path.stem}.pickle"
-    if write_smt and write_smt_dirname == EMPTY_FILENAME:
-        write_smt_dirname = f"{spec_path.stem}_smt"
-
-    return status
+        return status

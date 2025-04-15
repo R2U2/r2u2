@@ -1,3 +1,5 @@
+"""Wrapper functions for the c2po compiler to capture print output and return it
+as a string. Used primarily for the playground."""
 import sys
 import io
 from c2po import main
@@ -25,7 +27,7 @@ def compile_and_log(
     enable_sat: bool = False,
     timeout_sat: int = 3600,
 ):
-    temp = capture_print_output(main.main)
+    temp = capture_print_output(main.main_rs)
     return temp(
         spec_filename=spec_filename,
         trace_filename=trace_filename,

@@ -156,15 +156,18 @@
             "input": "normal_forms/nnf_logic.c2po", 
             "expected_output": "normal_forms/nnf_logic.c2po.expect", 
             "options": ["--map", "default.map", "--extops", "--nnf"]
+            "options": ["--map", "default.map", "--extops", "--nnf"]
         },
         {
             "input": "normal_forms/nnf_logic.c2po", 
             "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
             "options": ["--map", "default.map", "--nnf"]
+            "options": ["--map", "default.map", "--nnf"]
         },
         {
             "input": "normal_forms/nnf_temporal.c2po", 
             "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
+            "options": ["--map", "default.map", "--extops", "--nnf"]
             "options": ["--map", "default.map", "--extops", "--nnf"]
         }
     ],
