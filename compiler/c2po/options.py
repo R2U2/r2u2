@@ -3,8 +3,7 @@ from typing import Optional
 import pathlib
 import enum
 
-from c2po import types, log
-from compiler.c2po import parse_utils
+from c2po import types, log, parse_utils
 
 MODULE_CODE = "OPTS"
 
