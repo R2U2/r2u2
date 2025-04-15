@@ -10,6 +10,7 @@ TEST_DIR = pathlib.Path(__file__).parent
 C2PO_PATH = TEST_DIR / ".." / "c2po.py"
 MAP_PATH = TEST_DIR / "default.map"
 CONFIG_PATH = TEST_DIR / "config.json"
+OUTPUT_PATH = TEST_DIR / "output" # assume that all serialized output is written to a file named 'output'
 
 
 class Color:
@@ -46,6 +47,8 @@ def run_diff(
     status = True
     diff = ""
     for line in result:
+        if "unknown" in line:
+            continue
         if line[0] in {"-", "+", "?"}:
             status = False
         diff += line
@@ -64,7 +67,7 @@ def run_test(test: dict) -> bool:
 
     See `config.json`.
     """
-    status, diff = True, ""
+    status, bad_file, diff = True, False, ""
 
     command = ["python3", str(C2PO_PATH.absolute())] + test["options"] + [test["input"]]
 
@@ -97,11 +100,17 @@ def run_test(test: dict) -> bool:
             output_path.unlink()
     except FileNotFoundError:
         status = False
+        bad_file = True
 
     if status:
         print_pass(f"{test['input']}")
+    elif diff == "":
+        print_fail(f"{test['input']}\nCommand: {' '.join(command)}")
     else:
         print_fail(f"{test['input']}\nCommand: {' '.join(command)}\n{diff}")
+
+    if bad_file:
+        print("Expected output or actual output file does not exist.")
 
     return status
 
@@ -118,12 +127,17 @@ if __name__ == "__main__":
 
     if args.subset == "":
         # no subset given, so concatenate all the tests together
-        tests = [s for _,arr in config.items() for s in arr]
+        # tests = {name:s for name,arr in config.items() for s in arr}
+        tests = config
     elif args.subset in config:
-        tests = config[args.subset]
+        tests = {args.subset: config[args.subset]}
     else:
-        print_fail(f"Subset {args.subset} not in {CONFIG_PATH}")
+        print_fail(f"Subset '{args.subset}' not in {CONFIG_PATH}")
         sys.exit(1)
 
-    # Exit with number of failed tests
-    sys.exit(sum([not run_test(test) for test in tests]))
+    num_failed = 0
+    for subset_name,tests in tests.items():
+        print('{:*^80}'.format(f" Subset '{subset_name}' "))
+        num_failed += sum([not run_test(test) for test in tests])
+
+    sys.exit(num_failed)

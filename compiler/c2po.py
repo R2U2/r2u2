@@ -5,8 +5,10 @@ import c2po.main
 import c2po.options
 
 parser = argparse.ArgumentParser()
-parser.add_argument("spec", help="specification file (either .c2po or .mltl)")
-
+parser.add_argument(
+    "spec", 
+    help="specification file (either .c2po or .mltl)"
+)
 parser.add_argument(
     "--trace",
     default=c2po.options.DEFAULTS["trace_filename"],
@@ -51,7 +53,7 @@ parser.add_argument(
     "--impl",
     default=c2po.options.DEFAULTS["impl_str"],
     choices=["c", "rust", "cpp", "vhdl"],
-    help="target R2U2 implementation version (default: c)",
+    help=f"target R2U2 implementation version (default: {c2po.options.DEFAULTS['impl_str']})",
 )
 parser.add_argument(
     "-o",
@@ -63,19 +65,19 @@ parser.add_argument(
     "--int-width",
     default=c2po.options.DEFAULTS["int_width"],
     type=int,
-    help="bit width for integer types (default: 32)",
+    help=f"bit width for integer types (default: {c2po.options.DEFAULTS['int_width']})",
 )
 parser.add_argument(
     "--int-signed",
     action="store_const",
     const=True,
     default=c2po.options.DEFAULTS["int_is_signed"],
-    help="signed-ness of int types (default: unsigned)",
+    help=f"signed-ness of int types (default: {c2po.options.DEFAULTS['int_is_signed']})",
 )
 parser.add_argument(
     "--float-width",
     default=c2po.options.DEFAULTS["float_width"],
-    help="bit width for floating point types (default: 32)",
+    help=f"bit width for floating point types (default: {c2po.options.DEFAULTS['float_width']})",
 )
 parser.add_argument(
     "--mission-time",
@@ -154,28 +156,63 @@ parser.add_argument(
     help="enable boolean normal form"
 )
 parser.add_argument(
-    "--eqsat",
+    "--eqsat", 
     action=argparse.BooleanOptionalAction, 
     default=c2po.options.DEFAULTS["enable_eqsat"],
-    help="enable equality saturation"
+    help=f"enable equality saturation (default: {c2po.options.DEFAULTS['enable_eqsat']})"
 )
 parser.add_argument(
-    "--check-sat",
+    "--egglog-path", 
+    default=c2po.options.DEFAULTS["egglog"],
+    help=f"path to egglog executable, default assumes egglog is in PATH (default: {c2po.options.DEFAULTS['egglog']})"
+)
+parser.add_argument(
+    "--eqsat-max-time", 
+    type=int, 
+    default=c2po.options.DEFAULTS["eqsat_max_time"], 
+    help=f"set the maximum time to allow for egglog in seconds (default: {c2po.options.DEFAULTS['eqsat_max_time']})"
+)
+parser.add_argument(
+    "--eqsat-max-memory", 
+    type=int, 
+    default=c2po.options.DEFAULTS["eqsat_max_memory"], 
+    help=f"set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['eqsat_max_memory']})"
+)
+
+parser.add_argument(
+    "--check-sat", 
     action=argparse.BooleanOptionalAction, 
     default=c2po.options.DEFAULTS["enable_sat"],
-    help="enable satisfiability checking of future-time formulas",
+    help=f"enable satisfiability checking of future-time formulas (default: {c2po.options.DEFAULTS['enable_sat']})"
 )
 parser.add_argument(
-    "--timeout-eqsat",
-    type=int,
-    default=3600,
-    help="timeout of equality saturation calls in seconds (default: 3600)",
+    "--smt-solver", 
+    default=c2po.options.DEFAULTS["smt_solver"],
+    help=f"path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: {c2po.options.DEFAULTS['smt_solver']})"
 )
 parser.add_argument(
-    "--timeout-sat",
-    type=int,
-    default=3600,
-    help="timeout of sat calls in seconds (default: 3600)",
+    "--smt-encoding", 
+    default=c2po.options.DEFAULTS["smt_encoding_str"], 
+    choices=[member.value for member in c2po.options.SMTTheories],
+    help=f"specify the SMT encoding to use for satisfiability checking (default: {c2po.options.DEFAULTS['smt_encoding_str']})"
+)
+parser.add_argument(
+    "--smt-option", 
+    action="append", 
+    default=[],
+    help="additional option to pass to the SMT solver, can be specified multiple times (example: --smt-option=\"--opt-1\" --smt-option=\"--opt-2\")"
+)
+parser.add_argument(
+    "--smt-max-time", 
+    type=int, 
+    default=c2po.options.DEFAULTS["smt_max_time"], 
+    help=f"set the total maximum time to allow for SMT calls in seconds (default: {c2po.options.DEFAULTS['smt_max_time']})"
+)
+parser.add_argument(
+    "--smt-max-memory", 
+    type=int, 
+    default=c2po.options.DEFAULTS["smt_max_memory"], 
+    help=f"set the total maximum memory to allow for SMT calls in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['smt_max_memory']})"
 )
 parser.add_argument(
     "--write-bounds",
@@ -230,9 +267,15 @@ opts = c2po.options.Options(
     enable_eqsat=args.eqsat,
     enable_cse=args.cse,
     enable_sat=args.check_sat,
-    timeout_eqsat=args.timeout_eqsat,
-    timeout_sat=args.timeout_sat,
     write_bounds_filename=args.write_bounds,
+    egglog=args.egglog_path,
+    eqsat_max_time=args.eqsat_max_time,
+    eqsat_max_memory=args.eqsat_max_memory,
+    smt_solver=args.smt_solver,
+    smt_encoding_str=args.smt_encoding,
+    smt_options=args.smt_option,
+    smt_max_time=args.smt_max_time,
+    smt_max_memory=args.smt_max_memory,
     write_c2po_filename=args.write_c2po,
     write_prefix_filename=args.write_prefix,
     write_mltl_filename=args.write_mltl,

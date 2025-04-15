@@ -47,7 +47,7 @@ def compile(opts: options.Options) -> ReturnCode:
     # ----------------------------------
     # Parse
     # ----------------------------------
-    if opts.spec_path.suffix == ".c2po":
+    if opts.spec_format == options.SpecFormat.C2PO:
         program: Optional[cpt.Program] = parse_c2po.parse_c2po(
             opts.spec_path, opts.mission_time
         )
@@ -56,7 +56,7 @@ def compile(opts: options.Options) -> ReturnCode:
             log.error(MODULE_CODE, "Failed parsing")
             return ReturnCode.PARSE_ERR
 
-    elif opts.spec_path.suffix == ".mltl":
+    elif opts.spec_format == options.SpecFormat.MLTL:
         parse_output = parse_mltl.parse_mltl(opts.spec_path, opts.mission_time)
 
         if not parse_output:
@@ -65,7 +65,7 @@ def compile(opts: options.Options) -> ReturnCode:
 
         (program, signal_mapping) = parse_output
         opts.signal_mapping = signal_mapping
-    elif opts.spec_path.suffix == ".pickle":
+    elif opts.spec_format == options.SpecFormat.PICKLE:
         with open(str(opts.spec_path), "rb") as f:
             program = pickle.load(f)
 
@@ -73,9 +73,6 @@ def compile(opts: options.Options) -> ReturnCode:
             log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
     else:
-        log.error(
-            MODULE_CODE, f"Unsupported input format ({opts.spec_path.suffix})"
-        )
         return ReturnCode.INVALID_INPUT
 
     if opts.only_parse:
@@ -169,6 +166,6 @@ def main_rs(
         enable_rewrite=enable_rewrite,
         enable_cse=enable_cse,
         enable_sat=enable_sat,
-        timeout_sat=timeout_sat,
+        smt_max_time=timeout_sat,
     )
     return main(opts)

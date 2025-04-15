@@ -1,0 +1,2 @@
+results/cvc5.uflia.random-10.csv
+results/z3.uflia.random-10.csv

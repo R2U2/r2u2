@@ -1,0 +1,3 @@
+results/yices-smt2.qf_uflia.random-10000.csv
+results/cvc5.qf_uflia.random-10000.csv
+results/z3.qf_uflia.random-10000.csv

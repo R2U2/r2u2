@@ -105,8 +105,8 @@ $T = 4; #default value for T
 
 
 #Note: No R operator in MTL
-@operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
-#@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
+# @operators = ("G", "F", "U", "!", "&&", "||"); #array of operators: 
+@operators = ("G", "F", "U", "!", "&", "|"); #array of operators: 
 $num_unary_temporal_ops = 2;
 #$num_temporal_ops = 4;
 $num_temporal_ops = 3;#Pei################################################

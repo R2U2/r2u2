@@ -17,7 +17,6 @@ INF = 1_000_000_000
 
 SRC_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "release" / "egglog"
 PRELUDE_PATH = SRC_DIR / "mltl.egg"
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
@@ -559,20 +558,25 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-    command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
+    command = [context.options.egglog, "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-
+    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(context.options.eqsat_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        proc = subprocess.run(command, capture_output=True, timeout=context.options.timeout_eqsat)
+        (stdout, stderr) = proc.communicate(timeout=context.options.eqsat_max_time)
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"egglog timeout after {context.options.timeout_eqsat}s")
-        log.stat(MODULE_CODE, "egraph_time=timeout")
+        proc.kill()
+        log.warning(MODULE_CODE, f"{context.options.egglog} timed out")
+        log.stat(MODULE_CODE, "egraph_time", "timeout")
         return None
+    
+    end = util.get_rusage_time()
+    stdout = stdout.decode()
+    stderr = stderr.decode()
 
     if proc.returncode:
-        log.error(MODULE_CODE, f"Error running egglog\n{proc.stderr.decode()}")
+        log.error(MODULE_CODE, f"Error running egglog\n{stderr}")
         return None
 
     with open(EGGLOG_OUTPUT, "r") as f:
@@ -582,6 +586,6 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
 
     end = util.get_rusage_time()
     egraph_time = end - start
-    log.stat(MODULE_CODE, f"egraph_time={egraph_time}")
+    log.stat(MODULE_CODE, "egraph_time", egraph_time)
 
     return egraph

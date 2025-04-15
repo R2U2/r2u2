@@ -2,8 +2,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 import pathlib
 import enum
+import resource
 
-from c2po import types, log, parse_other
+from c2po import types, log, parse_utils
 
 MODULE_CODE = "OPTS"
 
@@ -15,6 +16,23 @@ R2U2_IMPL_MAP = {
     "vhdl": types.R2U2Implementation.VHDL,
     "rust": types.R2U2Implementation.RUST,
 }
+
+class SpecFormat(enum.Enum):
+    C2PO = ".c2po"
+    MLTL = ".mltl"
+    PICKLE = ".pickle"
+
+class SMTTheories(enum.Enum):
+    UFLIA = "uflia"
+    QF_UFLIA = "qf_uflia"
+    AUFLIA = "auflia"
+    QF_AUFLIA = "qf_auflia"
+    AUFBV = "aufbv"
+    QF_AUFBV = "qf_aufbv"
+    QF_BV = "qf_bv"
+    QF_BV_INCR = "qf_bv_incr"
+    QF_BV_LOG = "qf_bv_log"
+    QF_BV_LOG_INCR = "qf_bv_log_incr"
 
 class CompilationStage(enum.Enum):
     PARSE = 0
@@ -43,10 +61,15 @@ DEFAULTS = {
     "enable_eqsat": False,
     "enable_cse": True,
     "enable_sat": False,
-    "timeout_eqsat": 3600,
-    "timeout_sat": 3600,
-    "bounds_filename": None,
     "write_bounds_filename": None,
+    "egglog": "egglog",
+    "eqsat_max_time": 3600,
+    "eqsat_max_memory": 0,
+    "smt_solver": "z3",
+    "smt_options": [],
+    "smt_encoding_str": "uflia",
+    "smt_max_time": 3600,
+    "smt_max_memory": 0,
     "write_c2po_filename": None,
     "write_prefix_filename": None,
     "write_mltl_filename": None,
@@ -82,9 +105,15 @@ class Options:
     enable_eqsat: bool = DEFAULTS["enable_eqsat"]
     enable_cse: bool = DEFAULTS["enable_cse"]
     enable_sat: bool = DEFAULTS["enable_sat"]
-    timeout_eqsat: int = DEFAULTS["timeout_eqsat"]
-    timeout_sat: int = DEFAULTS["timeout_sat"]
     write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
+    egglog: str = DEFAULTS["egglog"]
+    eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
+    eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
+    smt_solver: str = DEFAULTS["smt_solver"]
+    smt_options: list[str] = field(default_factory=list)
+    smt_encoding_str: str = DEFAULTS["smt_encoding_str"]
+    smt_max_time: int = DEFAULTS["smt_max_time"]
+    smt_max_memory: int = DEFAULTS["smt_max_memory"]
     write_c2po_filename: Optional[str] = DEFAULTS["write_c2po_filename"]
     write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
     write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
@@ -96,6 +125,7 @@ class Options:
     log_level: int = DEFAULTS["log_level"]
     quiet: bool = DEFAULTS["quiet"]
 
+    spec_format: SpecFormat = SpecFormat.C2PO
     workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     output_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
@@ -105,7 +135,12 @@ class Options:
     final_stage: CompilationStage = CompilationStage.ASSEMBLE
     assembly_enabled: bool = True
     enabled_passes: set = field(default_factory=set)
-    smt_solver: str = "z3"
+    smt_encoding: SMTTheories = SMTTheories.UFLIA
+    write_c2po: bool = False
+    write_prefix: bool = False
+    write_mltl: bool = False
+    write_pickle: bool = False
+    write_smt: bool = False
     copyback_enabled: bool = False
     copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
@@ -126,6 +161,16 @@ class Options:
         self.spec_path = pathlib.Path(self.spec_filename)
         if not self.spec_path.is_file():
             log.error(MODULE_CODE, f"Input file '{self.spec_filename} not a valid file.'")
+            status = False
+
+        if self.spec_path.suffix == SpecFormat.C2PO.value:
+            self.spec_format = SpecFormat.C2PO
+        elif self.spec_path.suffix == SpecFormat.MLTL.value:
+            self.spec_format = SpecFormat.MLTL
+        elif self.spec_path.suffix == SpecFormat.PICKLE.value:
+            self.spec_format = SpecFormat.PICKLE
+        else:
+            log.error(MODULE_CODE, f"Input file '{self.spec_filename}' has an invalid format.")
             status = False
         
         self.trace_path = None
@@ -155,11 +200,11 @@ class Options:
         self.trace_length = -1
 
         if self.trace_path:
-            (self.trace_length, tmp_signal_mapping) = parse_other.parse_trace_file(
+            (self.trace_length, tmp_signal_mapping) = parse_utils.parse_trace_file(
                 self.trace_path, self.map_path is not None
             )
         if self.map_path:
-            tmp_signal_mapping = parse_other.parse_map_file(self.map_path)
+            tmp_signal_mapping = parse_utils.parse_map_file(self.map_path)
 
         if not tmp_signal_mapping:
             self.signal_mapping = {}
@@ -216,5 +261,39 @@ class Options:
             self.frontend = types.R2U2Engine.BOOLEANIZER
         else:
             self.frontend = types.R2U2Engine.NONE
+
+        if self.eqsat_max_memory == 0:
+            self.eqsat_max_memory = resource.RLIM_INFINITY
+        else:
+            self.eqsat_max_memory = self.eqsat_max_memory * 1024 * 1024
+
+        if self.smt_max_memory == 0:
+            self.smt_max_memory = resource.RLIM_INFINITY
+        else:
+            self.smt_max_memory = self.smt_max_memory * 1024 * 1024
+            
+        if self.smt_encoding_str == "uflia":
+            self.smt_encoding = SMTTheories.UFLIA
+        elif self.smt_encoding_str == "qf_uflia":
+            self.smt_encoding = SMTTheories.QF_UFLIA
+        elif self.smt_encoding_str == "auflia":
+            self.smt_encoding = SMTTheories.AUFLIA
+        elif self.smt_encoding_str == "qf_auflia":
+            self.smt_encoding = SMTTheories.QF_AUFLIA
+        elif self.smt_encoding_str == "aufbv":
+            self.smt_encoding = SMTTheories.AUFBV
+        elif self.smt_encoding_str == "qf_aufbv":
+            self.smt_encoding = SMTTheories.QF_AUFBV
+        elif self.smt_encoding_str == "qf_bv":
+            self.smt_encoding = SMTTheories.QF_BV
+        elif self.smt_encoding_str == "qf_bv_incr":
+            self.smt_encoding = SMTTheories.QF_BV_INCR
+        elif self.smt_encoding_str == "qf_bv_log":
+            self.smt_encoding = SMTTheories.QF_BV_LOG
+        elif self.smt_encoding_str == "qf_bv_log_incr":
+            self.smt_encoding = SMTTheories.QF_BV_LOG_INCR
+        else:
+            log.error(MODULE_CODE, f"Invalid SMT theory '{self.smt_encoding_str}'")
+            status = False
 
         return status
