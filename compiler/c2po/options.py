@@ -108,7 +108,7 @@ class Options:
     eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
     eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
     smt_solver: str = DEFAULTS["smt_solver"]
-    smt_options: list[str] = DEFAULTS["smt_options"]
+    smt_options: list[str] = field(default_factory=list)
     smt_encoding_str: str = DEFAULTS["smt_encoding_str"]
     smt_max_time: int = DEFAULTS["smt_max_time"]
     smt_max_memory: int = DEFAULTS["smt_max_memory"]
