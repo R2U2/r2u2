@@ -215,6 +215,10 @@ parser.add_argument(
     help=f"set the total maximum memory to allow for SMT calls in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['smt_max_memory']})"
 )
 parser.add_argument(
+    "--write-bounds",
+    help="location to write either bounds.h or config.toml file (depending on impl)",
+)
+parser.add_argument(
     "--write-c2po",
     help="location to write final program in C2PO input format",
 )
@@ -263,6 +267,7 @@ opts = c2po.options.Options(
     enable_eqsat=args.eqsat,
     enable_cse=args.cse,
     enable_sat=args.check_sat,
+    write_bounds_filename=args.write_bounds,
     egglog=args.egglog_path,
     eqsat_max_time=args.eqsat_max_time,
     eqsat_max_memory=args.eqsat_max_memory,

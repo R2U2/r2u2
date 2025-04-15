@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 
-from c2po import cpt, log, sat
+from c2po import cpt, log, sat, types, options
 
 MODULE_CODE = "SRLZ"
 
@@ -10,7 +10,7 @@ def write_outputs(
     program: cpt.Program,
     context: cpt.Context
 ) -> None:
-    """Writes `program` to each of the given filenames if they are not '.'"""
+    """Writes `program` to each of the given filenames if they are not `None`."""
     if context.options.write_c2po_filename is not None:
         log.debug(MODULE_CODE, 1, f"Writing C2PO to {context.options.write_c2po_filename}")
         with open(context.options.write_c2po_filename, "w") as f:
@@ -47,24 +47,42 @@ def write_outputs(
                 continue
             expr = spec.get_expr()
             with open(str(smt_output_path / f"{spec.symbol}.smt"), "w") as f:
-                if options.smt_encoding == options.SMTTheories.UFLIA:
+                if context.options.smt_encoding == options.SMTTheories.UFLIA:
                     f.write(sat.to_uflia_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.QF_UFLIA:
+                elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
                     f.write(sat.to_qfuflia_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.AUFLIA:
+                elif context.options.smt_encoding == options.SMTTheories.AUFLIA:
                     f.write(sat.to_auflia_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.QF_AUFLIA:
+                elif context.options.smt_encoding == options.SMTTheories.QF_AUFLIA:
                     f.write(sat.to_qfauflia_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.AUFBV:
+                elif context.options.smt_encoding == options.SMTTheories.AUFBV:
                     f.write(sat.to_aufbv_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.QF_AUFBV:
+                elif context.options.smt_encoding == options.SMTTheories.QF_AUFBV:
                     f.write(sat.to_qfaufbv_smtlib2(expr, context))
-                elif options.smt_encoding == options.SMTTheories.QF_BV:
+                elif context.options.smt_encoding == options.SMTTheories.QF_BV:
                     f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
-                elif options.smt_encoding == options.SMTTheories.QF_BV_INCR:
+                elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
                     log.warning(MODULE_CODE, "qf_bv_incr encoding writes multiple files incrementally depending on SMT results, not writing")
-                elif options.smt_encoding == options.SMTTheories.QF_BV_LOG:
+                elif context.options.smt_encoding == options.SMTTheories.QF_BV_LOG:
                     f.write(sat.to_qfbv_log_smtlib2(expr, context, expr.wpd + 1))
-                elif options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
+                elif context.options.smt_encoding == options.SMTTheories.QF_BV_LOG_INCR:
                     log.warning(MODULE_CODE, "qf_bv_log_incr encoding writes multiple files incrementally depending on SMT results, not writing")
 
+    if context.options.write_bounds_filename is not None:
+        write_bounds_path = pathlib.Path(context.options.write_bounds_filename)
+        if write_bounds_path.is_file():
+            log.warning(MODULE_CODE, f"File {write_bounds_path} already exists. Overwriting.")
+        elif write_bounds_path.exists():
+            log.warning(MODULE_CODE, f"Path {write_bounds_path} not a file and already exists. Skipping.")
+            return
+        
+        if context.options.impl == types.R2U2Implementation.C:
+            log.debug(MODULE_CODE, 1, f"Writing bounds.h to {write_bounds_path}")
+            with open(write_bounds_path, "w") as f:
+                f.write(program.get_bounds_c_file())
+        elif context.options.impl == types.R2U2Implementation.RUST:
+            log.debug(MODULE_CODE, 1, f"Writing config.toml to {write_bounds_path}")
+            with open(write_bounds_path, "w") as f:
+                f.write(program.get_bounds_rs_file())
+        else:
+            log.warning(MODULE_CODE, f"Unsupported implementation {context.options.impl}, skipping bounds file write")

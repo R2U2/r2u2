@@ -1146,6 +1146,54 @@ class Program(Node):
 
         self.total_scq_size = -1
 
+        # Minimum values for bounds in bounds.h and config.toml
+        self.bounds_c = {
+            "R2U2_MAX_INSTRUCTIONS": -1,
+            "R2U2_MAX_SIGNALS": -1,
+            "R2U2_MAX_ATOMICS": -1,
+            "R2U2_MAX_INST_LEN": -1,
+            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
+            "R2U2_MAX_AUX_STRINGS": -1,
+            "R2U2_SCQ_BYTES": -1,
+            "R2U2_FLOAT_EPSILON": 0.00001,
+        }
+
+        self.bounds_rs = {
+            "R2U2_MAX_SPECS": -1,
+            "R2U2_MAX_SIGNALS": -1,
+            "R2U2_MAX_ATOMICS": -1,
+            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
+            "R2U2_MAX_TL_INSTRUCTIONS": -1,
+            "R2U2_TOTAL_QUEUE_MEM": -1,
+        }
+
+    def get_bounds_c_file(self) -> str:
+        """Returns the contents of the bounds.h file."""
+        contents =  "#ifndef R2U2_BOUNDS_H\n"
+        contents += "#define R2U2_BOUNDS_H\n"
+        contents += "\n".join(
+            [
+                f"#define {key} {value:F}"
+                if type(value) is float
+                else f"#define {key} {value}"
+                for key, value in self.bounds_c.items()
+            ]
+        )
+        contents += "\n#endif\n"
+        return contents
+
+    def get_bounds_rs_file(self) -> str:
+        """Returns the contents of the config.toml file."""
+        contents =  "[env]\n"
+        contents += "\n".join(
+            [
+                f'{key} = {{ value = "{value}", force = true }}'
+                for key, value in self.bounds_rs.items()
+            ]
+        )
+        return contents
+
+
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:

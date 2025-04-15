@@ -61,6 +61,7 @@ DEFAULTS = {
     "enable_eqsat": False,
     "enable_cse": True,
     "enable_sat": False,
+    "write_bounds_filename": None,
     "egglog": "egglog",
     "eqsat_max_time": 3600,
     "eqsat_max_memory": 0,
@@ -104,6 +105,7 @@ class Options:
     enable_eqsat: bool = DEFAULTS["enable_eqsat"]
     enable_cse: bool = DEFAULTS["enable_cse"]
     enable_sat: bool = DEFAULTS["enable_sat"]
+    write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
     egglog: str = DEFAULTS["egglog"]
     eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
     eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]

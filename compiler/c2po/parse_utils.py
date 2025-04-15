@@ -82,3 +82,10 @@ def parse_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
 
     return mapping
 
+
+def parse_bounds_c(bounds_path: pathlib.Path) -> None:
+    pass
+
+
+def parse_bounds_rust(bounds_path: pathlib.Path) -> None:
+    pass
