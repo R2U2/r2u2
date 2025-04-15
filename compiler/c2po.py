@@ -178,7 +178,6 @@ parser.add_argument(
     default=c2po.options.DEFAULTS["eqsat_max_memory"], 
     help=f"set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['eqsat_max_memory']})"
 )
-
 parser.add_argument(
     "--check-sat", 
     action=argparse.BooleanOptionalAction, 
