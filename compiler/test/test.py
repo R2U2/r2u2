@@ -84,42 +84,20 @@ def run_test(test: dict) -> bool:
             status, diff = run_diff(
                 expected_output, test_output, test["input"], test["expected_output"]
             )
-        elif "expected_c2po" in test:
-            with open(str(OUTPUT_PATH), "r") as f:
+        elif "expected_serialization" in test:
+            output_path = pathlib.Path("tmp.out")
+
+            with open(str(output_path), "r") as f:
                 test_output = f.read().splitlines(keepends=True)
 
-            with open(test["expected_c2po"], "r") as f:
+            with open(test["expected_serialization"], "r") as f:
                 expected_output = f.read().splitlines(keepends=True)
 
             status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_c2po"]
+                expected_output, test_output, test["input"], test["expected_serialization"]
             )
 
-            OUTPUT_PATH.unlink()
-        elif "expected_mltl" in test:
-            with open(str(OUTPUT_PATH), "r") as f:
-                test_output = f.read().splitlines(keepends=True)
-
-            with open(test["expected_mltl"], "r") as f:
-                expected_output = f.read().splitlines(keepends=True)
-
-            status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_mltl"]
-            )
-
-            OUTPUT_PATH.unlink()
-        elif "expected_prefix" in test:
-            with open(str(OUTPUT_PATH), "r") as f:
-                test_output = f.read().splitlines(keepends=True)
-
-            with open(test["expected_prefix"], "r") as f:
-                expected_output = f.read().splitlines(keepends=True)
-
-            status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_prefix"]
-            )
-
-            OUTPUT_PATH.unlink()
+            output_path.unlink()
     except FileNotFoundError:
         status = False
         bad_file = True

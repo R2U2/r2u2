@@ -10,6 +10,7 @@ class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
     VHDL = 2
+    RUST = 3
 
 
 class R2U2Engine(enum.Enum):
@@ -33,6 +34,8 @@ class Interval(NamedTuple):
 
 
 SignalMapping = Dict[str, int]
+
+
 
 
 class BaseType(enum.Enum):

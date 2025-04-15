@@ -1,9 +1,8 @@
 from __future__ import annotations
-
+from copy import deepcopy
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat, options
-from copy import deepcopy
 
 MODULE_CODE = "PASS"
 
@@ -1085,9 +1084,9 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
-        if options.frontend is types.R2U2Engine.NONE:
+        if context.options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0:
+                if expr.signal_id < 0 or not context.options.assembly_enabled:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
@@ -1172,7 +1171,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
     """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
-    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
+    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
     
     results = sat.check_sat(program, context)
 
@@ -1321,11 +1320,11 @@ pass_list: list[Pass] = [
 ]
 
 
-def setup() -> None:
+def setup(opts: options.Options) -> None:
     """Sets up the passes for the compiler."""
     log.debug(MODULE_CODE, 1, "Setting up passes")
 
-    if options.spec_format == options.SpecFormat.MLTL:
+    if opts.spec_format == options.SpecFormat.MLTL:
         pass_list.remove(expand_definitions)
         pass_list.remove(convert_function_calls_to_structs)
         pass_list.remove(resolve_contracts)
@@ -1335,16 +1334,16 @@ def setup() -> None:
         pass_list.remove(resolve_array_accesses)
         pass_list.remove(resolve_struct_accesses)
 
-    if not options.enable_rewrite:
+    if not opts.enable_rewrite:
         pass_list.remove(optimize_rewrite_rules)
 
-    if not options.enable_cse:
+    if not opts.enable_cse:
         pass_list.remove(optimize_cse)
 
-    if options.enable_extops:
+    if opts.enable_extops:
         pass_list.remove(remove_extended_operators)
 
-    if options.enable_eqsat:
+    if opts.enable_eqsat:
         if optimize_rewrite_rules in pass_list:
             pass_list.remove(optimize_rewrite_rules)
         if optimize_cse in pass_list:
@@ -1357,11 +1356,11 @@ def setup() -> None:
     else: # not enable_egraph
         pass_list.remove(optimize_eqsat)
         
-    if not options.enable_nnf:
+    if not opts.enable_nnf:
         pass_list.remove(to_nnf)
 
-    if not options.enable_bnf:
+    if not opts.enable_bnf:
         pass_list.remove(to_bnf)
 
-    if not options.enable_sat:
+    if not opts.enable_sat:
         pass_list.remove(check_sat)

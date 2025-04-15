@@ -34,11 +34,6 @@ Stage: build
     mv cvc5-Linux-x86_64-static cvc5
     rm cvc5-Linux-x86_64-static.zip
 
-    wget https://mathsat.fbk.eu/download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz
-    tar -xvf "download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz"
-    mv mathsat-5.6.11-linux-x86_64 mathsat5
-    rm "download.php?file=mathsat-5.6.11-linux-x86_64.tar.gz"
-
     git clone https://github.com/bitwuzla/bitwuzla
     cd bitwuzla
     git checkout 0.7.0
@@ -58,7 +53,6 @@ From: python:3.11
     export PATH=$PATH:/opt/compiler/deps/z3/bin
     export PATH=$PATH:/opt/compiler/deps/yices2/bin
     export PATH=$PATH:/opt/compiler/deps/cvc5/bin
-    export PATH=$PATH:/opt/compiler/deps/mathsat5/bin
     export PATH=$PATH:/opt/compiler/deps/bitwuzla/build/src/main
 
 %test

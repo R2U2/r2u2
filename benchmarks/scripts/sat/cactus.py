@@ -54,18 +54,24 @@ for benchmark in results.keys():
     linestyle = ""
     marker = ""
     linewidth = 2
-    if ".uflia" in benchmark:
-        color = "darkgoldenrod" 
+    if ".uflia." in benchmark:
+        color = "red" 
         linestyle = "solid"
-    elif ".qf_uflia" in benchmark:
-        color = "darkorchid" 
+    # elif ".qf_uflia." in benchmark:
+    #     color = "darkorchid" 
+    #     linestyle = "solid"
+    # elif ".qf_bv_incr." in benchmark:
+    #     color = "blue" 
+    #     linestyle = "solid"
+    # elif ".qf_bv." in benchmark: 
+    #     color = "red"    
+    #     linestyle = "solid"
+    elif ".qf_bv_log." in benchmark: 
+        color = "blue"    
         linestyle = "solid"
-    elif ".qf_bv_incr" in benchmark:
+    elif ".qf_bv_log_incr." in benchmark:
         color = "blue" 
-        linestyle = "solid"
-    elif ".qf_bv" in benchmark: 
-        color = "red"    
-        linestyle = "solid"
+        linestyle = "dashed"
     elif "__virtual_best__" in benchmark:
         color = "black"
         linestyle = "solid"
@@ -95,8 +101,10 @@ plt.legend(
         .removesuffix(".csv")
         .replace("yices-smt2", "yices2")
         .replace("vb.", "")
-        .replace("qf_bv_incr.", "QF_BV_incr-")
-        .replace("qf_bv.", "QF_BV-")
+        .replace("qf_bv_log_incr.", "QF_BV_log_incr-")
+        .replace("qf_bv_log.", "QF_BV_log-")
+        .replace("qf_bv_incr.", "QF_BV_lin_incr-")
+        .replace("qf_bv.", "QF_BV_lin-")
         .replace("qf_uflia.", "QF_UFLIA-")
         .replace("uflia.", "UFLIA-")
         .replace("random-10", "10")

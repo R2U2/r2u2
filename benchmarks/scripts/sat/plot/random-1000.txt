@@ -1,0 +1,3 @@
+results/vb.qf_bv_log.random-1000.csv
+results/vb.qf_bv_log_incr.random-1000.csv
+results/vb.uflia.random-1000.csv

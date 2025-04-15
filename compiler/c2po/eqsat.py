@@ -9,7 +9,7 @@ import dataclasses
 import json
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types, util, options
+from c2po import cpt, log, types, util
 
 MODULE_CODE = "EQST"
 
@@ -547,7 +547,7 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
 def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     """Encodes `spec` into an egglog query, runs egglog, then returns an EGraph if no error occurred during construction. Returns None otherwise."""
-    TMP_EGG_PATH = options.workdir / "__tmp__.egg"
+    TMP_EGG_PATH = context.options.workdir / "__tmp__.egg"
     EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
     with open(PRELUDE_PATH, "r") as f:
@@ -558,16 +558,16 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-    command = [options.egglog, "--to-json", str(TMP_EGG_PATH)]
+    command = [context.options.egglog, "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(options.eqsat_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(context.options.eqsat_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        (stdout, stderr) = proc.communicate(timeout=options.eqsat_max_time)
+        (stdout, stderr) = proc.communicate(timeout=context.options.eqsat_max_time)
     except subprocess.TimeoutExpired:
         proc.kill()
-        log.warning(MODULE_CODE, f"{options.egglog} timed out")
+        log.warning(MODULE_CODE, f"{context.options.egglog} timed out")
         log.stat(MODULE_CODE, "egraph_time", "timeout")
         return None
     

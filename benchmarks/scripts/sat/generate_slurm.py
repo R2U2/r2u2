@@ -2,19 +2,16 @@ import os
 
 template = """#!/bin/bash
 
-# Copy/paste this job script into a text file and submit with the command:
-#    sbatch thefilename
-# job standard output will go to the file slurm-%j.out (where %j is the job ID)
-
 #SBATCH --time=120:00:00   # walltime limit (HH:MM:SS)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --ntasks-per-node=28   # 28 processor core(s) per node 
-#SBATCH --mem=512G   # maximum memory per node
+#SBATCH --mem=485G   # maximum memory per node
 #SBATCH --mail-user=cgjohann@iastate.edu   # email address
 #SBATCH --mail-type=END
 #SBATCH --job-name="{}"   # Job name to display in squeue
 #SBATCH --output="{}"   # Job standard output file
 #SBATCH --error="{}"   # Job standard output file
+#SBATCH --constraint=epyc-7502
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 module load apptainer
@@ -27,6 +24,12 @@ benchmarks = [
     "random-100",
     "random-1000",
     "random-10000",
+    "boeing-wbs-1000",
+    "boeing-wbs-10000",
+    "boeing-wbs-100000",
+    "nasa-atc-1000",
+    "nasa-atc-10000",
+    "nasa-atc-100000",
 ]
 
 configurations = [
@@ -36,15 +39,11 @@ configurations = [
     },
     {
         "solver": "z3",
-        "encoding": "qf_uflia",
+        "encoding": "qf_bv_log",
     },
     {
         "solver": "z3",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "z3",
-        "encoding": "qf_bv_incr",
+        "encoding": "qf_bv_log_incr",
     },
     {
         "solver": "cvc5",
@@ -53,32 +52,27 @@ configurations = [
     },
     {
         "solver": "cvc5",
-        "encoding": "qf_uflia",
-        "options": ["--fmf-bound", "--finite-model-find", "--arrays-exp"],
+        "encoding": "qf_bv_log",
     },
     {
         "solver": "cvc5",
-        "encoding": "qf_bv_incr",
+        "encoding": "qf_bv_log_incr",
     },
     {
         "solver": "bitwuzla",
-        "encoding": "qf_bv",
+        "encoding": "qf_bv_log",
     },
     {
         "solver": "bitwuzla",
-        "encoding": "qf_bv_incr",
+        "encoding": "qf_bv_log_incr",
     },
     {
         "solver": "yices-smt2",
-        "encoding": "qf_uflia",
+        "encoding": "qf_bv_log",
     },
     {
         "solver": "yices-smt2",
-        "encoding": "qf_bv",
-    },
-    {
-        "solver": "yices-smt2",
-        "encoding": "qf_bv_incr",
+        "encoding": "qf_bv_log_incr",
     },
 ]
 
@@ -86,7 +80,7 @@ os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
-        if config["encoding"] == "qf_bv_incr" and benchmark in {
+        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_log_incr" and benchmark in {
             "random-10",
             "random-100",
         }:
