@@ -22,7 +22,7 @@ pub fn c2po_compile(spec_filename: &str,
     let options_code = c_str!(include_str!("../compiler/c2po/options.py"));
     let eqsat_code = c_str!(include_str!("../compiler/c2po/eqsat.py"));
     let log_code = c_str!(include_str!("../compiler/c2po/log.py"));
-    let parse_other_code= c_str!(include_str!("../compiler/c2po/parse_other.py"));
+    let parse_utils_code= c_str!(include_str!("../compiler/c2po/parse_utils.py"));
     let parse_mltl_code= c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
     let parse_c2po_code= c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
     let passes_code = c_str!(include_str!("../compiler/c2po/passes.py"));
@@ -39,7 +39,7 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, lex_code, c_str!("sly/lex.py"), c_str!("c2po.sly.lex"))?;
         PyModule::from_code(py, yacc_code, c_str!("sly//yacc.py"), c_str!("c2po.sly.yacc"))?;
         PyModule::from_code(py, sly_code, c_str!("sly/__init__.py"), c_str!("c2po.sly"))?;
-        PyModule::from_code(py, parse_other_code, c_str!("c2po/parse_other.py"), c_str!("c2po.parse_other"))?;
+        PyModule::from_code(py, parse_utils_code, c_str!("c2po/parse_utils.py"), c_str!("c2po.parse_utils"))?;
         PyModule::from_code(py, options_code, c_str!("c2po/options.py"), c_str!("c2po.options"))?;
         PyModule::from_code(py, cpt_code, c_str!("c2po/cpt.py"), c_str!("c2po.cpt"))?;
         PyModule::from_code(py, assemble_code, c_str!("c2po/assemble.py"), c_str!("c2po.assemble"))?;
