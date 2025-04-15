@@ -1005,7 +1005,6 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction], binary: bytes) -> None:
     """Computes values for bounds file, setting the values in `program.bounds_c` and `program.bounds_rs`."""
-    num_specs = len(program.get_specs())
     num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
     num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
     num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
@@ -1024,7 +1023,13 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
     program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
 
-    program.bounds_rs["R2U2_MAX_SPECS"] = num_specs
+    program.bounds_rs["R2U2_MAX_SPECS"] = sum(
+        [
+            spec.get_expr().wpd
+            for spec in program.get_specs()
+            if isinstance(spec, cpt.Formula)
+        ]
+    )
     program.bounds_rs["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
     program.bounds_rs["R2U2_MAX_ATOMICS"] = num_atomics
     program.bounds_rs["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
