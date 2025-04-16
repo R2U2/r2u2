@@ -1016,10 +1016,10 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     ])
 
     program.bounds_c["R2U2_MAX_INSTRUCTIONS"] = num_bz + num_tl
-    program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
+    program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 1
     program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
     program.bounds_c["R2U2_MAX_INST_LEN"] = len(binary)
-    program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
+    program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = max(num_bz, 1)
     program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
     program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
 
