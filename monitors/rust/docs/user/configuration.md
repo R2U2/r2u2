@@ -14,38 +14,46 @@ Using fixed memory bounds allows for memory-safe Rust performance.
 If these numbers must be adjusted, it is most consistent to do so in the `bounds.rs` file or overwrite values in parent application, e.g., include something like
 ```
 [env]
-R2U2_MAX_SPECS = { value = "1024", force = true }
+R2U2_MAX_OUTPUT_VERDICTS = { value = "1024", force = true }
 ```
 in `.cargo/config.toml`.
 
 
 ### Array Extents
 
+`R2U2_MAX_OUTPUT_VERDICTS`
+: Maximum number of output verdicts that can be returned at a single timestamp
+: Default: 256
+
+`R2U2_MAX_OUTPUT_CONTRACTS`
+: Maximum number of output contract statuses that can be returned at a single timestamp
+: Default: 256
+
 `R2U2_MAX_SPECS`
-: Maximum number of instructions that will be read from a specification binary.
+: Maximum number of specifications being monitored
 : Default: 256
 
 `R2U2_MAX_SIGNALS`
-: Size of incoming signal vector, i.e., maximum number of signals.
+: Maximum number of input signals
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
-: Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (AT or BZ) to the temporal logic engine
+: Maximum number of Booleans passed from the front-end (booleanizer or directly loaded atomics) to the temporal logic engine
 : Default: 256
 
 `R2U2_MAX_BZ_INSTRUCTIONS`
-: Size of value buffer, used as working memory by BZ front end.
+: Maximum number of booleanizer instructions
 : Default: 256
 
 `R2U2_MAX_TL_INSTRUCTIONS`
-: Size of value buffer, used as working memory by TL front end.
+: Maximum number of temporal logic instructions
 : Default: 256
 
 
 ### Memory Sizing
 
-`R2U2_TOTAL_QUEUE_MEM`
-: Number of SCQ slots for both future-time and past-time reasoning
+`R2U2_TOTAL_QUEUE_SLOTS`
+: Total number of SCQ slots for both future-time and past-time reasoning
 : Default: 2048
 
 ### Numeric Parameters
