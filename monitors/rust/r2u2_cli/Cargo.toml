@@ -15,7 +15,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 clap = {version = "4.0", features = ["derive", "cargo"]}
 csv = "1.3.0"
-pyo3 = {version = "0.23.3", features = ["auto-initialize"]}
+pyo3 = {version = "0.24.1", features = ["auto-initialize"]}
 # Uncomment the following dependency for the local version of r2u2_core
 r2u2_core = {path = "../r2u2_core", features = ["aux_string_specs"]}
 # Uncomment the following dependency for the public crates.io version of r2u2_core
