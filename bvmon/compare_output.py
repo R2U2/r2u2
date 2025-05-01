@@ -76,25 +76,10 @@ with open(bvmon_filename, "r") as f:
             bvmon_trace.extend([bit == "1" for bit in f"{int(hex_digit, 16):04b}"])
 
 print(f"R2U2 trace: {len(r2u2_trace)}")
-# print(f"Hydra trace: {len(hydra_trace)}")
+print(f"Hydra trace: {len(hydra_trace)}")
 print(f"BvMon trace: {len(bvmon_trace)}")
 
 status = 0
-
-# for i in range(min(len(hydra_trace), len(bvmon_trace))):
-#     r2u2 = r2u2_trace[i]
-#     bvmon = bvmon_trace[i]
-#     if r2u2 != bvmon:
-#         print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, BvMon={bvmon}", file=sys.stderr)
-#         status = 1
-
-# for i in range(min(len(hydra_trace), len(bvmon_trace))):
-#     hydra = hydra_trace[i]
-#     bvmon = bvmon_trace[i]
-#     if hydra != bvmon:
-#         print(f"Discrepancy at timestamp {i}: Hydra={hydra}, BvMon={bvmon}", file=sys.stderr)
-#         status = 1
-
 for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):
     r2u2 = r2u2_trace[i]
     hydra = hydra_trace[i]
