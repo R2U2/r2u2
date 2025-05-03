@@ -824,7 +824,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     start = util.get_rusage_time()
     if context.options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
-    if context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
+    elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
         smt = to_qfuflia_smtlib2(expr, context)
     elif context.options.smt_encoding == options.SMTTheories.QF_BV:
         smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
