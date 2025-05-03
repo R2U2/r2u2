@@ -105,7 +105,7 @@ if __name__ == "__main__":
             file,
             "-c",
             "--extops",
-            "--sat",
+            "--check-sat",
             "--smt-max-time",
             str(args.smt_max_time),
             "--eqsat-max-time",

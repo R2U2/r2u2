@@ -49,6 +49,8 @@ def write_outputs(
             with open(str(smt_output_path / f"{spec.symbol}.smt"), "w") as f:
                 if context.options.smt_encoding == options.SMTTheories.UFLIA:
                     f.write(sat.to_uflia_smtlib2(expr, context))
+                elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
+                     f.write(sat.to_qfuflia_smtlib2(expr, context))
                 elif context.options.smt_encoding == options.SMTTheories.QF_BV:
                     f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
                 elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
