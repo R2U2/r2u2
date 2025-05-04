@@ -34,10 +34,10 @@ pub struct Monitor{
     pub signal_buffer: [r2u2_value; R2U2_MAX_SIGNALS],
     pub value_buffer: [r2u2_value; R2U2_MAX_BZ_INSTRUCTIONS],
     pub atomic_buffer: [r2u2_bool; R2U2_MAX_ATOMICS],
-    pub output_buffer: [r2u2_output; R2U2_MAX_SPECS*2], //output_buffer may contain upto 2 verdicts per spec at each timestep due to propagation delay
+    pub output_buffer: [r2u2_output; R2U2_MAX_OUTPUT_VERDICTS],
     pub output_buffer_idx: usize,
     #[cfg(feature = "aux_string_specs")]
-    pub contract_buffer: [r2u2_contract; R2U2_MAX_SPECS], //contract_buffer may contain upto 2 verdicts per contract and there are 3 specs per contract
+    pub contract_buffer: [r2u2_contract; R2U2_MAX_OUTPUT_CONTRACTS],
     #[cfg(feature = "aux_string_specs")]
     pub contract_buffer_idx: usize,
     pub overflow_error: r2u2_bool,
@@ -59,10 +59,10 @@ impl Default for Monitor{
             signal_buffer: [r2u2_value::default(); R2U2_MAX_SIGNALS],
             value_buffer: [r2u2_value::default(); R2U2_MAX_BZ_INSTRUCTIONS],
             atomic_buffer: [false; R2U2_MAX_ATOMICS],
-            output_buffer: [r2u2_output::default(); R2U2_MAX_SPECS*2],
+            output_buffer: [r2u2_output::default(); R2U2_MAX_OUTPUT_VERDICTS],
             output_buffer_idx: 0,
             #[cfg(feature = "aux_string_specs")]
-            contract_buffer: [r2u2_contract::default(); R2U2_MAX_SPECS],
+            contract_buffer: [r2u2_contract::default(); R2U2_MAX_OUTPUT_CONTRACTS],
             #[cfg(feature = "aux_string_specs")]
             contract_buffer_idx: 0,
             overflow_error: false,

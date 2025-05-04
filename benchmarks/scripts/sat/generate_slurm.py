@@ -80,8 +80,10 @@ os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
-        if (config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_incr") and (benchmark == "random-10" or benchmark == "random-100"):
-            print(benchmark, config["encoding"])
+        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_incr" and benchmark in {
+            "random-10",
+            "random-100",
+        }:
             continue
 
         experiment_name = f"{config['solver']}.{config['encoding']}.{benchmark}"
