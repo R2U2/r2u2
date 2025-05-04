@@ -1853,7 +1853,38 @@ def to_hydra(program: Program, context: Context) -> str:
         log.warning(MODULE_CODE, "Cannot express AGCs in Hydra, returning")
         return hydra
 
-    stack.append((0, spec.get_expr()))
+    formula = copy.deepcopy(spec.get_expr())
+    for expr in postorder(formula, context):
+        if is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            if expr.interval.lb == 0:
+                continue
+            elif expr.interval.lb == expr.interval.ub:
+                expr.replace(
+                    TemporalOperator.Until(
+                        expr.loc,
+                        expr.interval.lb, expr.interval.lb, 
+                        Constant(expr.loc, True),
+                        expr.children[1]
+                    )
+                )
+            expr.replace(
+                TemporalOperator.Until(
+                    expr.loc,
+                    expr.interval.lb, expr.interval.lb, 
+                    Constant(expr.loc, True),
+                    TemporalOperator.Until(
+                        expr.loc,
+                        0, expr.interval.ub - expr.interval.lb,
+                        expr.children[0],
+                        expr.children[1], 
+                    )
+                )
+            )
+
+    str_atomic_ids = {str(s):v for s,v in context.atomic_id.items()}
+    stack.append((0, formula))
+    print(formula)
 
     while len(stack) > 0:
         (seen, expr) = stack.pop()
@@ -1862,8 +1893,8 @@ def to_hydra(program: Program, context: Context) -> str:
             hydra += "true"
         elif isinstance(expr, Constant) and not expr.value:
             hydra += "false"
-        elif expr in context.atomic_id:
-            hydra += f"a{context.atomic_id[expr]}"
+        elif str(expr) in str_atomic_ids:
+            hydra += f"a{str_atomic_ids[str(expr)]}"
         elif is_operator(expr, OperatorKind.LOGICAL_NEGATE):
             if seen == 0:
                 hydra += "NOT ("
@@ -1898,15 +1929,15 @@ def to_hydra(program: Program, context: Context) -> str:
             lb = expr.interval.lb
             ub = expr.interval.ub
             if seen == 0:
-                hydra += f"(true UNTIL[{lb},{lb}] (" if lb > 0 else "("
+                hydra += "("
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[seen]))
+                stack.append((0, expr.children[0]))
             elif seen == 1:
-                hydra += f") UNTIL [0,{ub - lb}] ("
+                hydra += f") UNTIL [{lb},{ub}] ("
                 stack.append((seen + 1, expr))
-                stack.append((0, expr.children[seen]))
+                stack.append((0, expr.children[1]))
             else:
-                hydra += "))" if lb > 0 else ")"
+                hydra += ")"
         else:
             log.error(MODULE_CODE, f"Expression incompatible with Hydra ({expr})")
             return ""

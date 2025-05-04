@@ -14,6 +14,9 @@ C2PO = "../compiler/c2po.py"
 HYDRA = "../../hydra/hydra"
 HYDRA_FILE = "hydra.mtl"
 HYDRA_TRACE = "traces/hydra.log"
+HYDRA_OUTPUT = "traces/hydra_output.log"
+R2U2_OUTPUT = "traces/r2u2_output.log"
+BVMON_OUTPUT = "traces/bvmon_output.log"
 TRACE_DIR = "traces"
 R2U2_TRACE = "traces/r2u2.csv"
 SPEC_BIN = "spec.bin"
@@ -167,6 +170,32 @@ def benchmark_bvmon(n: int, word_size: int) -> tuple[float, float]:
     return (throughput_avg, mem_avg)
 
 
+def compare_output() -> None:
+    print("Comparing outputs")
+    command = [R2U2_C, SPEC_BIN, R2U2_TRACE]
+    proc = subprocess.run(command, capture_output=True)
+    with open(R2U2_OUTPUT, "w") as f:
+        f.write(proc.stdout.decode())
+
+    command = [HYDRA, HYDRA_FILE, HYDRA_TRACE]
+    proc = subprocess.run(command, capture_output=True)
+    with open(HYDRA_OUTPUT, "w") as f:
+        f.write(proc.stdout.decode())
+
+    command = [f"./{BVMON_BIN}", R2U2_TRACE]
+    proc = subprocess.run(command, capture_output=True)
+    with open(BVMON_OUTPUT, "w") as f:
+        f.write(proc.stdout.decode())
+
+    command = ["python3", "compare_output.py", R2U2_OUTPUT, HYDRA_OUTPUT, BVMON_OUTPUT]
+    proc = subprocess.run(command)
+    if proc.returncode != 0:
+        print("Outputs do not match")
+        sys.exit(1)
+    else:
+        print("Outputs match")
+
+
 parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and bvmon")
 parser.add_argument(
     "benchmark",
@@ -187,8 +216,10 @@ if args.benchmark == "trace":
     data = {}
 
     for ub in [
-        # 10, 100, 1_000, 1_024, 
-        10_000, 16_384
+        # 100,
+        1_000,
+        1_024,
+        10_000
     ]:
         spec = f"F[0,{ub}] a0\n"
         with open(SPEC_FILE, "w") as f:
@@ -239,7 +270,6 @@ if args.benchmark == "trace":
             f.write("density,r2u2_c,r2u2_rust,hydra,bvmon\n")
             for density, times in data.items():
                 f.write(f"{density},{times[0]},{times[1]},{times[2]},{times[3]}\n")
-
 elif args.benchmark == "interval":
     trace_len = 5_000_000
     nsigs = 1
@@ -324,20 +354,20 @@ elif args.benchmark == "specs":
         recompile_r2u2_rust(spec)
         recompile_hydra(spec)
         recompile_bvmon(spec, nsigs, BVMON_DEFAULT_WORD_SIZE)
+        compare_output()
         data_r2u2_c = benchmark_r2u2_c(25)
         data_r2u2_rust = benchmark_r2u2_rust(25)
         data_hydra = benchmark_hydra(25)
         data_bvmon = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
 
         print(f"r2u2 (C): {data_r2u2_c}")
-        print(f"r2u2 (Rust): {data_r2u2_rust}")
         print(f"hydra: {data_hydra}")
         print(f"bvmon: {data_bvmon}")
 
         with open(f"{OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
             f.write("tool,throughput,mem\n")
             f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
-            f.write(f"r2u2_rust,{data_r2u2_rust[0]},{data_r2u2_rust[1]}\n")
+            # f.write(f"r2u2_rust,{data_r2u2_rust[0]},{data_r2u2_rust[1]}\n")
             f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
             f.write(f"bvmon,{data_bvmon[0]},{data_bvmon[1]}\n")
             

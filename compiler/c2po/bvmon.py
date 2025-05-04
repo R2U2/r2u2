@@ -4,8 +4,8 @@ from typing import cast
 from c2po import cpt
 
 TAB = "    "
-PROFILE = False
-BUFSZ2 = True
+PROFILE = False # enable profiling
+BUFSZ2 = True # force buffer size to be a power of 2 (modulo operations become bitwise-ands)
 
 def ceildiv(a: int, b: int) -> int:
     return -(a // -b)

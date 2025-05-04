@@ -75,9 +75,9 @@ with open(bvmon_filename, "r") as f:
         for hex_digit in line[:-1]:
             bvmon_trace.extend([bit == "1" for bit in f"{int(hex_digit, 16):04b}"])
 
-print(f"R2U2 trace: {len(r2u2_trace)}")
-print(f"Hydra trace: {len(hydra_trace)}")
-print(f"BvMon trace: {len(bvmon_trace)}")
+# print(f"R2U2 trace: {len(r2u2_trace)}")
+# print(f"Hydra trace: {len(hydra_trace)}")
+# print(f"BvMon trace: {len(bvmon_trace)}")
 
 status = 0
 for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):

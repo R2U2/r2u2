@@ -24,6 +24,7 @@ class SpecFormat(enum.Enum):
 
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
+    QF_UFLIA = "qf_uflia"
     QF_BV = "qf_bv"
     QF_BV_INCR = "qf_bv_incr"
 
@@ -275,6 +276,8 @@ class Options:
             
         if self.smt_encoding_str == "uflia":
             self.smt_encoding = SMTTheories.UFLIA
+        elif self.smt_encoding_str == "qf_uflia":
+            self.smt_encoding = SMTTheories.QF_UFLIA
         elif self.smt_encoding_str == "qf_bv":
             self.smt_encoding = SMTTheories.QF_BV
         elif self.smt_encoding_str == "qf_bv_incr":

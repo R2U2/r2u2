@@ -1086,14 +1086,13 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
         # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
         if context.options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0 or not context.options.assembly_enabled:
-                    context.atomic_id[expr] = aid
-                    atomic_map[cpt.to_prefix_str(expr)] = aid
-                    aid += 1
+                if expr.signal_id >= 0:
+                    context.atomic_id[expr] = expr.signal_id
+                    atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
                     continue
-
-                context.atomic_id[expr] = expr.signal_id
-                atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
+                context.atomic_id[expr] = aid
+                atomic_map[cpt.to_prefix_str(expr)] = aid
+                aid += 1
                 continue
         else:
             for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
