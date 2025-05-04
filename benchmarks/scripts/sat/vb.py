@@ -1,7 +1,6 @@
 import csv
 import argparse
 import pprint
-import sys
 
 parser = argparse.ArgumentParser(description="compute virtual best for a set of benchmarks")
 parser.add_argument("benchmarks", type=str, help="file containing list of benchmarks")
