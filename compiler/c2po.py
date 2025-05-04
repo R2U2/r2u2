@@ -86,6 +86,12 @@ parser.add_argument(
     help="mission time, overriding inference from a trace file if present",
 )
 parser.add_argument(
+    "--scq-constant",
+    type=int,
+    default=c2po.options.DEFAULTS["scq_constant"],
+    help="increase the SCQ sizes of all nodes by this constant",
+)
+parser.add_argument(
     "-bz", 
     "--booleanizer", 
     action="store_const",
@@ -251,6 +257,7 @@ opts = c2po.options.Options(
     output_filename=args.output,
     impl_str=args.impl,
     mission_time=args.mission_time,
+    scq_constant=args.scq_constant,
     int_width=args.int_width,
     int_is_signed=args.int_signed,
     float_width=args.float_width,
