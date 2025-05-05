@@ -51,30 +51,23 @@ for benchmark in results.keys():
     sorted_data[benchmark] = [x / 60 for x in sorted_data[benchmark]]
 
     color = ""
-    linestyle = ""
+    linestyle = "solid"
     marker = ""
     linewidth = 2
     if ".uflia." in benchmark:
         color = "red" 
-        linestyle = "solid"
     # elif ".qf_uflia." in benchmark:
     #     color = "darkorchid" 
-    #     linestyle = "solid"
     # elif ".qf_bv_incr." in benchmark:
     #     color = "blue" 
-    #     linestyle = "solid"
     # elif ".qf_bv." in benchmark: 
     #     color = "red"    
-    #     linestyle = "solid"
     elif ".qf_bv_log." in benchmark: 
         color = "blue"    
-        linestyle = "solid"
     elif ".qf_bv_log_incr." in benchmark:
-        color = "blue" 
-        linestyle = "dashed"
+        color = "darkorchid" 
     elif "__virtual_best__" in benchmark:
         color = "black"
-        linestyle = "solid"
 
     if args.linestyle:
         if "10000" in benchmark:
@@ -99,23 +92,20 @@ plt.legend(
     [
         b.removeprefix("results/")
         .removesuffix(".csv")
-        .replace("yices-smt2", "yices2")
         .replace("vb.", "")
-        .replace("qf_bv_log_incr.", "QF_BV_log_incr-")
-        .replace("qf_bv_log.", "QF_BV_log-")
-        .replace("qf_bv_incr.", "QF_BV_lin_incr-")
-        .replace("qf_bv.", "QF_BV_lin-")
-        .replace("qf_uflia.", "QF_UFLIA-")
-        .replace("uflia.", "UFLIA-")
+        .replace("qf_bv_log_incr.", "QF_BV* ")
+        .replace("qf_bv_log.", "QF_BV ")
+        .replace("uflia.", "UFLIA ")
         .replace("random-10", "10")
         .replace("random-100", "100")
-        .replace("random-1000", "1000")
-        .replace("random-10000", "10000")
+        .replace("random-1000", "1,000")
+        .replace("random-10000", "10,000")
         .replace("__virtual_best__", "Virtual best")
         for b in results.keys()
     ],
     loc="lower right",
 )
+plt.grid(axis="y")
 plt.xlabel("Cumulative Time (min)")
 plt.ylabel("Number solved")
 plt.savefig(args.output, dpi=300)
