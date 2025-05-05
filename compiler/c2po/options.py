@@ -40,6 +40,7 @@ DEFAULTS = {
     "output_filename": "spec.bin",
     "impl_str": "c",
     "mission_time": -1,
+    "scq_constant": 0,
     "int_width": 32,
     "int_is_signed": False,
     "float_width": 32,
@@ -87,6 +88,7 @@ class Options:
     map_filename: Optional[str] = DEFAULTS["map_filename"]
     output_filename: str = DEFAULTS["output_filename"]
     impl_str: str = DEFAULTS["impl_str"]
+    scq_constant: int = DEFAULTS["scq_constant"]
     mission_time: int = DEFAULTS["mission_time"]
     int_width: int = DEFAULTS["int_width"]
     int_is_signed: bool = DEFAULTS["int_is_signed"]

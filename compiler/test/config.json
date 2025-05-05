@@ -402,6 +402,11 @@
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
             "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
+        },
+        {
+            "input": "sat/hard_unsat.mltl", 
+            "expected_output": "sat/hard_unsat.mltl.expect", 
+            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
         }
     ]
 }

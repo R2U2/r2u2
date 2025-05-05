@@ -240,7 +240,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
                 i += 1
 
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'}) ; {expr}"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
@@ -274,7 +274,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
                 i += 1
 
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'}) ; {expr}"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_{i-1}'})"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             expr = cast(cpt.TemporalOperator, expr)
@@ -329,7 +329,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
                 j += 2
 
             smt_commands.append(
-                f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'}) ; {expr}"
+                f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'})"
             )
         else:
             log.error(MODULE_CODE, f"Unsupported operator ({expr})")

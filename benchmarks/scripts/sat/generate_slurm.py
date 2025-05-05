@@ -24,12 +24,12 @@ benchmarks = [
     "random-100",
     "random-1000",
     "random-10000",
-    "boeing-wbs-1000",
-    "boeing-wbs-10000",
-    "boeing-wbs-100000",
-    "nasa-atc-1000",
-    "nasa-atc-10000",
-    "nasa-atc-100000",
+    # "boeing-wbs-1000",
+    # "boeing-wbs-10000",
+    # "boeing-wbs-100000",
+    # "nasa-atc-1000",
+    # "nasa-atc-10000",
+    # "nasa-atc-100000",
 ]
 
 configurations = [
@@ -39,11 +39,11 @@ configurations = [
     },
     {
         "solver": "z3",
-        "encoding": "qf_bv_log",
+        "encoding": "qf_bv",
     },
     {
         "solver": "z3",
-        "encoding": "qf_bv_log_incr",
+        "encoding": "qf_bv_incr",
     },
     {
         "solver": "cvc5",
@@ -52,27 +52,27 @@ configurations = [
     },
     {
         "solver": "cvc5",
-        "encoding": "qf_bv_log",
+        "encoding": "qf_bv",
     },
     {
         "solver": "cvc5",
-        "encoding": "qf_bv_log_incr",
+        "encoding": "qf_bv_incr",
     },
     {
         "solver": "bitwuzla",
-        "encoding": "qf_bv_log",
+        "encoding": "qf_bv",
     },
     {
         "solver": "bitwuzla",
-        "encoding": "qf_bv_log_incr",
+        "encoding": "qf_bv_incr",
     },
     {
         "solver": "yices-smt2",
-        "encoding": "qf_bv_log",
+        "encoding": "qf_bv",
     },
     {
         "solver": "yices-smt2",
-        "encoding": "qf_bv_log_incr",
+        "encoding": "qf_bv_incr",
     },
 ]
 
@@ -80,7 +80,7 @@ os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
-        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_log_incr" and benchmark in {
+        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_incr" and benchmark in {
             "random-10",
             "random-100",
         }:
