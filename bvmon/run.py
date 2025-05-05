@@ -17,7 +17,7 @@ HYDRA_TRACE = "traces/hydra.log"
 HYDRA_OUTPUT = "traces/hydra_output.log"
 R2U2_OUTPUT = "traces/r2u2_output.log"
 BVMON_OUTPUT = "traces/bvmon_output.log"
-TRACE_DIR = "traces"
+TRACE_DIR = "traces/"
 R2U2_TRACE = "traces/r2u2.csv"
 SPEC_BIN = "spec.bin"
 SPEC_FILE = "spec.mltl"
@@ -25,7 +25,11 @@ TIME = "gtime" if sys.platform == "darwin" else "/usr/bin/time"
 CC = "gcc"
 BVMON_FILE = "bvmon.c"
 BVMON_BIN = "bvmon"
-OUTPUT_DIR = "output"
+OUTPUT_DIR = "output/"
+PATTERN_OUTPUT_DIR = "output/pattern"
+FUTURE_OUTPUT_DIR = "output/future"
+INTERVAL_OUTPUT_DIR = "output/interval"
+WORD_SIZE_OUTPUT_DIR = "output/word_size"
 BVMON_DEFAULT_WORD_SIZE = 8
 
 def get_time_data(time_output: str) -> tuple[float, int]:
@@ -59,7 +63,7 @@ def run_command_n(command: list[str], n: int) -> tuple[float, float]:
 
 def recompile_r2u2_c(spec: str, scq_const: int = 0) -> None:
     print("Compiling r2u2 spec (C)")
-    command = ["python3", C2PO, spec, "-o", "spec.bin", "--write-bounds", R2U2_C_BOUNDS, "scq-constant", str(scq_const)]
+    command = ["python3", C2PO, spec, "-o", SPEC_BIN, "--write-bounds", R2U2_C_BOUNDS, "--scq-constant", str(scq_const)]
     subprocess.run(command, capture_output=True)
 
     print("Rebuilding r2u2 (C)")
@@ -188,7 +192,7 @@ def compare_output() -> None:
         f.write(proc.stdout.decode())
 
     command = ["python3", "compare_output.py", R2U2_OUTPUT, HYDRA_OUTPUT, BVMON_OUTPUT]
-    proc = subprocess.run(command)
+    proc = subprocess.run(command, capture_output=True)
     if proc.returncode != 0:
         print("Outputs do not match")
         sys.exit(1)
@@ -204,10 +208,11 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-try: 
-    os.mkdir(OUTPUT_DIR)
-except FileExistsError:
-    pass
+for dir in [TRACE_DIR, OUTPUT_DIR, PATTERN_OUTPUT_DIR, FUTURE_OUTPUT_DIR, INTERVAL_OUTPUT_DIR, WORD_SIZE_OUTPUT_DIR]:
+    try:
+        os.mkdir(dir)
+    except FileExistsError:
+        pass
 
 if args.benchmark == "pattern":
     trace_len = 5_000_000
@@ -219,6 +224,7 @@ if args.benchmark == "pattern":
         ("patterns/min_duration.mltl", 1),
         ("patterns/prec_chain.mltl", 5),
     ]:
+        print(f"Running spec {spec}")
         print(f"Generating random trace of len={trace_len}, density=.5")
         command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), "0.5", TRACE_DIR]
         proc = subprocess.run(command, capture_output=True)
@@ -238,7 +244,7 @@ if args.benchmark == "pattern":
         print(f"hydra: {data_hydra}")
         print(f"bvmon: {data_bvmon}")
 
-        with open(f"{OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
+        with open(f"{PATTERN_OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
             f.write("tool,throughput,mem\n")
             f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
             f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
@@ -247,10 +253,9 @@ elif args.benchmark == "future":
     trace_len = 5_000_000
     nsigs = 1
 
-    data = {}
+    future_data: dict[int, tuple[float, float, float]]  = {}
 
     for ub in [
-        # 100,
         1_000,
         1_024,
         10_000
@@ -291,23 +296,23 @@ elif args.benchmark == "future":
             time_avg_hydra, _ = benchmark_hydra(10)
             time_avg_bvmon, _ = benchmark_bvmon(10, BVMON_DEFAULT_WORD_SIZE)
 
-            data[density] = (
+            future_data[density] = (
                 time_avg_r2u2_c,
                 time_avg_hydra,
                 time_avg_bvmon,
             )
             
-        with open(f"{OUTPUT_DIR}/{ub}.csv", "w") as f:
+        with open(f"{FUTURE_OUTPUT_DIR}/{ub}.csv", "w") as f:
             f.write("density,r2u2_c,r2u2_rust,hydra,bvmon\n")
-            for density, times in data.items():
-                f.write(f"{density},{times[0]},{times[1]},{times[2]},{times[3]}\n")
+            for density, times in future_data.items():
+                f.write(f"{density},{times[0]},{times[1]},{times[2]}\n")
 elif args.benchmark == "interval":
     trace_len = 5_000_000
     nsigs = 1
 
-    data_r2u2_c = {}
-    data_hydra = {}
-    data_bvmon = {}
+    data_r2u2_c_int: dict[int, tuple[float, float]] = {}
+    data_hydra_int: dict[int, tuple[float, float]] = {}
+    data_bvmon_int: dict[int, tuple[float, float]] = {}
 
     print(f"Generating random trace of len={trace_len}, density=.5")
     command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), "0.5", TRACE_DIR]
@@ -322,17 +327,17 @@ elif args.benchmark == "interval":
         recompile_hydra(SPEC_FILE)
         recompile_bvmon(SPEC_FILE, nsigs, BVMON_DEFAULT_WORD_SIZE)
 
-        data_r2u2_c[ub] = benchmark_r2u2_c(25)
-        data_hydra[ub] = benchmark_hydra(25)
-        data_bvmon[ub] = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
+        data_r2u2_c_int[ub] = benchmark_r2u2_c(25)
+        data_hydra_int[ub] = benchmark_hydra(25)
+        data_bvmon_int[ub] = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
     
-    with open(f"{OUTPUT_DIR}/interval.csv", "w") as f:
+    with open(f"{INTERVAL_OUTPUT_DIR}/interval.csv", "w") as f:
         f.write("tool,ub,time_avg,mem_avg\n")
-        for ub, data in data_r2u2_c.items():
+        for ub, data in data_r2u2_c_int.items():
             f.write(f"r2u2_c,{ub},{data[0]},{data[1]}\n")
-        for ub, data in data_hydra.items():
+        for ub, data in data_hydra_int.items():
             f.write(f"hydra,{ub},{data[0]},{data[1]}\n")
-        for ub, data in data_bvmon.items():
+        for ub, data in data_bvmon_int.items():
             f.write(f"bvmon,{ub},{data[0]},{data[1]}\n")
 elif args.benchmark == "word-size":
     trace_len = 5_000_000
@@ -358,7 +363,7 @@ elif args.benchmark == "word-size":
             mem_avg,
         )
 
-    with open(f"{OUTPUT_DIR}/word_size.csv", "w") as f:
+    with open(f"{WORD_SIZE_OUTPUT_DIR}/word_size.csv", "w") as f:
         f.write("word_size,time_avg,mem_avg\n")
         for word_size, data in data_bvmon.items():
             f.write(f"{word_size},{data[0]},{data[1]}\n")

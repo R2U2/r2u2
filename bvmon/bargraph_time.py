@@ -36,7 +36,7 @@ for file in files:
 
             tool = row[0]
             if tool == "bvmon":
-                tool = "SABER"
+                tool = "BVMon"
             elif tool == "hydra":
                 tool = "Hydra"
             # elif tool == "r2u2_rust":
@@ -55,7 +55,7 @@ fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
 # Prepare data for the bar graph
 specs = ["Future", "Until", "Min Duration", "Between", "Prec Chain"]
-tools = ["SABER", "Hydra", "R2U2"]
+tools = ["BVMon", "Hydra", "R2U2"]
 bar_width = 0.25
 group_spacing = 0.3  # Add extra spacing between groups
 x = [i * (1 + group_spacing) for i in range(len(specs))]  # Add spacing between groups
@@ -78,7 +78,7 @@ for tool in tools:
             "red" if tool == "R2U2" else
             # "firebrick" if tool == "R2U2 Rust" else
             "blue" if tool == "Hydra" else
-            "darkorchid" if tool == "SABER" else
+            "darkorchid" if tool == "BVMon" else
             "gray"  # Default color for any other tool
         )
     )
