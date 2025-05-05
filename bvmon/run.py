@@ -57,9 +57,9 @@ def run_command_n(command: list[str], n: int) -> tuple[float, float]:
     return (time_avg, mem_avg)
 
 
-def recompile_r2u2_c(spec: str) -> None:
-    print("Compiling spec (C)")
-    command = ["python3", C2PO, spec, "-o", "spec.bin", "--write-bounds", R2U2_C_BOUNDS]
+def recompile_r2u2_c(spec: str, scq_const: int = 0) -> None:
+    print("Compiling r2u2 spec (C)")
+    command = ["python3", C2PO, spec, "-o", "spec.bin", "--write-bounds", R2U2_C_BOUNDS, "scq-constant", str(scq_const)]
     subprocess.run(command, capture_output=True)
 
     print("Rebuilding r2u2 (C)")
@@ -86,7 +86,7 @@ def benchmark_r2u2_c(n: int) -> tuple[float, float]:
 
 
 def recompile_r2u2_rust(spec: str) -> None:
-    print("Compiling spec (Rust)")
+    print("Compiling r2u2 spec (Rust)")
     command = ["python3", C2PO, spec, "-o", "spec.bin", "--impl", "rust", "--write-bounds", R2U2_RUST_CONFIG]
     subprocess.run(command, capture_output=True)
 
@@ -199,7 +199,7 @@ def compare_output() -> None:
 parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and bvmon")
 parser.add_argument(
     "benchmark",
-    choices=["interval", "trace", "word-size", "specs"],
+    choices=["pattern", "future", "interval", "word-size"],
     help="Benchmark to run",
 )
 args = parser.parse_args()
@@ -209,7 +209,41 @@ try:
 except FileExistsError:
     pass
 
-if args.benchmark == "trace":
+if args.benchmark == "pattern":
+    trace_len = 5_000_000
+
+    for spec,nsigs in [
+        ("patterns/future.mltl", 1),
+        ("patterns/until.mltl", 2),
+        ("patterns/global_btwn_q_r.mltl", 3),
+        ("patterns/min_duration.mltl", 1),
+        ("patterns/prec_chain.mltl", 5),
+    ]:
+        print(f"Generating random trace of len={trace_len}, density=.5")
+        command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), "0.5", TRACE_DIR]
+        proc = subprocess.run(command, capture_output=True)
+
+        if spec == "patterns/prec_chain.mltl":
+            recompile_r2u2_c(spec, 10)
+        else:
+            recompile_r2u2_c(spec)
+        recompile_hydra(spec)
+        recompile_bvmon(spec, nsigs, BVMON_DEFAULT_WORD_SIZE)
+        compare_output()
+        data_r2u2_c = benchmark_r2u2_c(10)
+        data_hydra = benchmark_hydra(10)
+        data_bvmon = benchmark_bvmon(10, BVMON_DEFAULT_WORD_SIZE)
+
+        print(f"r2u2 (C): {data_r2u2_c}")
+        print(f"hydra: {data_hydra}")
+        print(f"bvmon: {data_bvmon}")
+
+        with open(f"{OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
+            f.write("tool,throughput,mem\n")
+            f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
+            f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
+            f.write(f"bvmon,{data_bvmon[0]},{data_bvmon[1]}\n")
+elif args.benchmark == "future":
     trace_len = 5_000_000
     nsigs = 1
 
@@ -226,7 +260,6 @@ if args.benchmark == "trace":
             f.write(spec)
 
         recompile_r2u2_c(SPEC_FILE)
-        recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
         recompile_bvmon(SPEC_FILE, nsigs, BVMON_DEFAULT_WORD_SIZE)
 
@@ -255,13 +288,11 @@ if args.benchmark == "trace":
             proc = subprocess.run(command, capture_output=True)
 
             time_avg_r2u2_c, _ = benchmark_r2u2_c(10)
-            time_avg_r2u2_rust, _ = benchmark_r2u2_rust(10)
             time_avg_hydra, _ = benchmark_hydra(10)
             time_avg_bvmon, _ = benchmark_bvmon(10, BVMON_DEFAULT_WORD_SIZE)
 
             data[density] = (
                 time_avg_r2u2_c,
-                time_avg_r2u2_rust,
                 time_avg_hydra,
                 time_avg_bvmon,
             )
@@ -275,7 +306,6 @@ elif args.benchmark == "interval":
     nsigs = 1
 
     data_r2u2_c = {}
-    data_r2u2_rust = {}
     data_hydra = {}
     data_bvmon = {}
 
@@ -289,12 +319,10 @@ elif args.benchmark == "interval":
             f.write(spec)
             
         recompile_r2u2_c(SPEC_FILE)
-        recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
         recompile_bvmon(SPEC_FILE, nsigs, BVMON_DEFAULT_WORD_SIZE)
 
         data_r2u2_c[ub] = benchmark_r2u2_c(25)
-        data_r2u2_rust[ub] = benchmark_r2u2_rust(25)
         data_hydra[ub] = benchmark_hydra(25)
         data_bvmon[ub] = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
     
@@ -302,8 +330,6 @@ elif args.benchmark == "interval":
         f.write("tool,ub,time_avg,mem_avg\n")
         for ub, data in data_r2u2_c.items():
             f.write(f"r2u2_c,{ub},{data[0]},{data[1]}\n")
-        for ub, data in data_r2u2_rust.items():
-            f.write(f"r2u2_rust,{ub},{data[0]},{data[1]}\n")
         for ub, data in data_hydra.items():
             f.write(f"hydra,{ub},{data[0]},{data[1]}\n")
         for ub, data in data_bvmon.items():
@@ -336,38 +362,5 @@ elif args.benchmark == "word-size":
         f.write("word_size,time_avg,mem_avg\n")
         for word_size, data in data_bvmon.items():
             f.write(f"{word_size},{data[0]},{data[1]}\n")
-elif args.benchmark == "specs":
-    trace_len = 5_000_000
 
-    for spec,nsigs in [
-        ("patterns/future.mltl", 1),
-        ("patterns/until.mltl", 2),
-        ("patterns/global_btwn_q_r.mltl", 3),
-        ("patterns/min_duration.mltl", 1),
-        ("patterns/prec_chain.mltl", 5),
-    ]:
-        print(f"Generating random trace of len={trace_len}, density=.5")
-        command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), "0.5", TRACE_DIR]
-        proc = subprocess.run(command, capture_output=True)
-
-        recompile_r2u2_c(spec)
-        recompile_r2u2_rust(spec)
-        recompile_hydra(spec)
-        recompile_bvmon(spec, nsigs, BVMON_DEFAULT_WORD_SIZE)
-        compare_output()
-        data_r2u2_c = benchmark_r2u2_c(25)
-        data_r2u2_rust = benchmark_r2u2_rust(25)
-        data_hydra = benchmark_hydra(25)
-        data_bvmon = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
-
-        print(f"r2u2 (C): {data_r2u2_c}")
-        print(f"hydra: {data_hydra}")
-        print(f"bvmon: {data_bvmon}")
-
-        with open(f"{OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
-            f.write("tool,throughput,mem\n")
-            f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
-            # f.write(f"r2u2_rust,{data_r2u2_rust[0]},{data_r2u2_rust[1]}\n")
-            f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
-            f.write(f"bvmon,{data_bvmon[0]},{data_bvmon[1]}\n")
             
