@@ -21,18 +21,15 @@ jobs:
         unzip z3-4.15.0-x64-glibc-2.39.zip
         echo `pwd`/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
 
-    # Removed for now --- used for c2po equality saturation optimization. Some tests fail because
-    #   output of commutative operations are not deterministic. For example, the output of `a && b`
-    #   and `b && a` are the same, but our test suite does not recognize that.
-    # - name: Install Egglog
-    #   run: |
-    #     mkdir -p deps/
-    #     cd deps/
-    #     git clone https://github.com/egraphs-good/egglog.git
-    #     cd egglog
-    #     git checkout v0.4.0
-    #     cargo build --bin egglog --release
-    #     echo `pwd`/target/release >> "$GITHUB_PATH"
+    - name: Install Egglog
+      run: |
+        mkdir -p deps/
+        cd deps/
+        git clone https://github.com/egraphs-good/egglog.git
+        cd egglog
+        git checkout v0.4.0
+        cargo build --bin egglog --release
+        echo `pwd`/target/release >> "$GITHUB_PATH"
       
     - name: Build R2U2
       run: |
