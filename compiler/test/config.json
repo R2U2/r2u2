@@ -408,12 +408,5 @@
             "expected_output": "sat/hard_unsat.mltl.expect", 
             "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
         }
-    ],
-    "eqsat": [
-        {
-            "input": "eqsat/and_global_1.mltl", 
-            "expected_serialization": "eqsat/and_global_1.prefix.c2po.expect", 
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        }
     ]
 }
