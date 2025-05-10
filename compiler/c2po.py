@@ -44,10 +44,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--stats",
-    action="store_const",
-    const=True,
     default=c2po.options.DEFAULTS["stats"],
-    help="enable stat output",
+    help="stats output format string",
 )
 parser.add_argument(
     "--impl",
@@ -169,8 +167,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--egglog-path", 
-    default=c2po.options.DEFAULTS["egglog"],
-    help=f"path to egglog executable, default assumes egglog is in PATH (default: {c2po.options.DEFAULTS['egglog']})"
+    default=c2po.options.DEFAULTS["egglog_path"],
+    help=f"path to egglog executable, default assumes egglog is in PATH (default: {c2po.options.DEFAULTS['egglog_path']})"
 )
 parser.add_argument(
     "--eqsat-max-time", 
@@ -192,8 +190,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--smt-solver", 
-    default=c2po.options.DEFAULTS["smt_solver"],
-    help=f"path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: {c2po.options.DEFAULTS['smt_solver']})"
+    default=c2po.options.DEFAULTS["smt_solver_path"],
+    help=f"path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: {c2po.options.DEFAULTS['smt_solver_path']})"
 )
 parser.add_argument(
     "--smt-encoding", 
@@ -274,10 +272,10 @@ opts = c2po.options.Options(
     enable_cse=args.cse,
     enable_sat=args.check_sat,
     write_bounds_filename=args.write_bounds,
-    egglog=args.egglog_path,
+    egglog_path=args.egglog_path,
     eqsat_max_time=args.eqsat_max_time,
     eqsat_max_memory=args.eqsat_max_memory,
-    smt_solver=args.smt_solver,
+    smt_solver_path=args.smt_solver,
     smt_encoding_str=args.smt_encoding,
     smt_options=args.smt_option,
     smt_max_time=args.smt_max_time,
@@ -288,7 +286,7 @@ opts = c2po.options.Options(
     write_pickle_filename=args.write_pickle,
     write_smt_dirname=args.write_smt,
     copyback_dirname=args.copyback,
-    stats=args.stats,
+    stats_format_str=args.stats,
     debug=args.debug,
     log_level=args.log_level,
     quiet=args.quiet,

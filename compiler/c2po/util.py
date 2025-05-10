@@ -49,8 +49,9 @@ def get_rusage_time() -> float:
 def set_max_memory(bytes: int) -> None:
     """Set the maximum memory in bytes."""
     if sys.platform == "darwin":
-        log.warning(
+        log.debug(
             MODULE_CODE,
+            1,
             "macOS does not support setrlimit for RLIMIT_AS, ignoring max memory limit",
         )
         return

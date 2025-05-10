@@ -553,22 +553,30 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
+    start = util.get_rusage_time()
     egglog = prelude + to_egglog(spec, context) + PRELUDE_END
+    end = util.get_rusage_time()
+    context.stats.eqsat_encoding_time = end - start
 
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-    command = [context.options.egglog, "--to-json", str(TMP_EGG_PATH)]
+    command = [context.options.egglog_path, "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-    proc = subprocess.Popen(command, preexec_fn=util.set_max_memory(context.options.eqsat_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.Popen(
+        command,
+        preexec_fn=util.set_max_memory(context.options.eqsat_max_memory),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     try:
         (stdout, stderr) = proc.communicate(timeout=context.options.eqsat_max_time)
     except subprocess.TimeoutExpired:
         proc.kill()
-        log.warning(MODULE_CODE, f"{context.options.egglog} timed out")
-        log.stat(MODULE_CODE, "egraph_time", "timeout")
+        log.warning(MODULE_CODE, f"{context.options.egglog_path} timed out")
+        context.stats.eqsat_solver_time = -1.0
         return None
     
     end = util.get_rusage_time()
@@ -585,7 +593,6 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     egraph = EGraph.from_json(egglog_output, spec.get_expr(), context)
 
     end = util.get_rusage_time()
-    egraph_time = end - start
-    log.stat(MODULE_CODE, "egraph_time", egraph_time)
+    context.stats.eqsat_solver_time = end - start
 
     return egraph

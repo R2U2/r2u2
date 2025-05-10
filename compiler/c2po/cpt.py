@@ -7,7 +7,7 @@ import enum
 import pickle
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types, options
+from c2po import log, types, options, stats
 
 MODULE_CODE = "CPT"
 
@@ -1243,6 +1243,7 @@ class Context:
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
         self.bound_vars: dict[str, ArrayExpression] = {}
+        self.stats = stats.Stats()
 
         self.is_ft = False
         self.has_future_time = False

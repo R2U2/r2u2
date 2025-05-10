@@ -57,10 +57,10 @@ DEFAULTS = {
     "enable_cse": True,
     "enable_sat": False,
     "write_bounds_filename": None,
-    "egglog": "egglog",
+    "egglog_path": "egglog",
     "eqsat_max_time": 3600,
     "eqsat_max_memory": 0,
-    "smt_solver": "z3",
+    "smt_solver_path": "z3",
     "smt_options": [],
     "smt_encoding_str": "uflia",
     "smt_max_time": 3600,
@@ -71,7 +71,7 @@ DEFAULTS = {
     "write_pickle_filename": None,
     "write_smt_dirname": None,
     "copyback_dirname": None,
-    "stats": False,
+    "stats": None,
     "debug": False,
     "log_level": 0,
     "quiet": False,
@@ -102,10 +102,10 @@ class Options:
     enable_cse: bool = DEFAULTS["enable_cse"]
     enable_sat: bool = DEFAULTS["enable_sat"]
     write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
-    egglog: str = DEFAULTS["egglog"]
+    egglog_path: str = DEFAULTS["egglog_path"]
     eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
     eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
-    smt_solver: str = DEFAULTS["smt_solver"]
+    smt_solver_path: str = DEFAULTS["smt_solver_path"]
     smt_options: list[str] = field(default_factory=list)
     smt_encoding_str: str = DEFAULTS["smt_encoding_str"]
     smt_max_time: int = DEFAULTS["smt_max_time"]
@@ -116,7 +116,7 @@ class Options:
     write_pickle_filename: Optional[str] = DEFAULTS["write_pickle_filename"]
     write_smt_dirname: Optional[str] = DEFAULTS["write_smt_dirname"]
     copyback_dirname: Optional[str] = DEFAULTS["copyback_dirname"]
-    stats: bool = DEFAULTS["stats"]
+    stats_format_str: Optional[str] = DEFAULTS["stats"]
     debug: bool = DEFAULTS["debug"]
     log_level: int = DEFAULTS["log_level"]
     quiet: bool = DEFAULTS["quiet"]
@@ -148,8 +148,8 @@ class Options:
         else:
             log.set_log_level(self.log_level)
 
-        if self.stats:
-            log.set_report_stats()
+        if self.quiet:
+            log.set_quiet()
 
         log.debug(MODULE_CODE, 1, "Validating input")
         status: bool = True
