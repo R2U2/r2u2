@@ -1,44 +1,6 @@
 import random
 import os
-from struct import Struct as CStruct
 import argparse
-
-# Older version of the bvmon trace format where the input is just raw bytes
-def bvmon_raw_trace(trace: list[list[bool]], word_size: int) -> bytes:
-
-    def ceildiv(a: int, b: int) -> int:
-        return -(a // -b)
-
-    sigil = ""
-    if word_size == 8:
-        sigil = "B"
-    elif word_size == 16:
-        sigil = "H"
-    elif word_size == 32:
-        sigil = "I"
-    elif word_size == 64:
-        sigil = "Q"
-
-    # trace encoding:
-    # bytes 0-7 = trace length (in number of words)
-    # bytes 8-8+trace length = values for signal ID
-    trace_bin = bytes()
-    for prop_trace in trace:
-        for i in range(0, len(prop_trace), word_size):
-            val = sum(
-                [
-                    (2**j) if prop_trace[i + (word_size - j - 1)] else 0
-                    for j in [
-                        k
-                        for k in range(0, word_size)
-                        if i + (word_size - k - 1) < len(prop_trace)
-                    ]
-                ]
-            )
-            trace_bin += CStruct(sigil).pack(val)
-
-    return CStruct("Q").pack(ceildiv(trace_len, word_size)) + trace_bin
-
 
 def r2u2_trace(trace: list[list[bool]]) -> str: 
     rows = [
@@ -71,7 +33,6 @@ trace = [random.choices([True, False], weights=[density,1], k=trace_len) for _ i
 
 r2u2_tr = r2u2_trace(trace)
 hydra_tr = hydra_trace(trace)
-# bvmon_tr = bvmon_raw_trace(trace, word_size)
 
 try:
     os.mkdir(dir)

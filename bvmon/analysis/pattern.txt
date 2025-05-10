@@ -1,0 +1,5 @@
+results/pattern/future.csv
+results/pattern/global_btwn_q_r.csv
+results/pattern/min_duration.csv
+results/pattern/prec_chain.csv
+results/pattern/until.csv

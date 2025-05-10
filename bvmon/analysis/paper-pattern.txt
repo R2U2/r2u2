@@ -1,0 +1,5 @@
+paper-results/pattern/future.csv
+paper-results/pattern/global_btwn_q_r.csv
+paper-results/pattern/min_duration.csv
+paper-results/pattern/prec_chain.csv
+paper-results/pattern/until.csv

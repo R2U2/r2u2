@@ -3,14 +3,13 @@ import os
 import pathlib
 import argparse
 import sys
-import statistics
 
 R2U2_RUST_DIR = "../monitors/rust/r2u2_cli/"
 R2U2_RUST = "../monitors/rust/r2u2_cli/target/release/r2u2_cli"
 R2U2_RUST_CONFIG = "../monitors/rust/r2u2_cli/.cargo/config.toml"
 R2U2_C_DIR = "../monitors/c/"
 R2U2_C = "../monitors/c/build/r2u2"
-R2U2_C_BOUNDS = "../monitors/c//src/internals/bounds.h"
+R2U2_C_BOUNDS = "../monitors/c/src/internals/bounds.h"
 C2PO = "../compiler/c2po.py"
 HYDRA = "../../hydra/hydra"
 HYDRA_FILE = "hydra.mtl"
@@ -26,11 +25,12 @@ TIME = "gtime" if sys.platform == "darwin" else "/usr/bin/time"
 CC = "gcc"
 BVMON_FILE = "bvmon.c"
 BVMON_BIN = "bvmon"
-OUTPUT_DIR = "results/"
-PATTERN_OUTPUT_DIR = "results/pattern"
-FUTURE_OUTPUT_DIR = "results/future"
+OUTPUT_DIR = "output/"
+PATTERN_OUTPUT_DIR = "output/pattern"
+FUTURE_OUTPUT_DIR = "output/future"
+INTERVAL_OUTPUT_DIR = "output/interval"
+WORD_SIZE_OUTPUT_DIR = "output/word_size"
 BVMON_DEFAULT_WORD_SIZE = 8
-COMPARE_OUTPUT_SCRIPT = "analysis/compare_output.py"
 
 def get_time_data(time_output: str) -> tuple[float, int]:
     """Extract time and memory data from the output of a `time` command."""
@@ -45,17 +45,20 @@ def get_time_data(time_output: str) -> tuple[float, int]:
 
 
 def run_command_n(command: list[str], n: int) -> tuple[float, float]:
-    """Run a command `n` times and collect median time and memory data."""
-    times = []
-    mems = []
+    """Run a command `n` times and collect average time and memory data."""
+    time_avg: float = 0
+    mem_avg: float = 0
 
     for _ in range(n):
         proc = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         time, mem = get_time_data(proc.stderr.decode())
-        times.append(time)
-        mems.append(mem)
+        time_avg += time
+        mem_avg += mem
 
-    return (statistics.median(times), statistics.median(mems))
+    time_avg /= n
+    mem_avg /= n
+
+    return (time_avg, mem_avg)
 
 
 def recompile_r2u2_c(spec: str, scq_const: int = 0) -> None:
@@ -126,7 +129,7 @@ def benchmark_hydra(n: int) -> tuple[float, float]:
     proc = subprocess.run(command, capture_output=True)
     num_verdicts = int(proc.stdout.decode().splitlines()[-1].split(":")[0])
 
-    print("Benchmarking hydra")
+    print("Running hydra")
     command = [TIME, "-v", HYDRA, HYDRA_FILE, HYDRA_TRACE]
     time_avg, mem_avg = run_command_n(command, n)
     throughput_avg = num_verdicts / time_avg
@@ -164,7 +167,7 @@ def benchmark_bvmon(n: int, word_size: int) -> tuple[float, float]:
     proc = subprocess.run(command, capture_output=True)
     num_verdicts = len(proc.stdout.decode().splitlines()) * word_size
 
-    print("Benchmarking bvmon")
+    print("Running bvmon")
     command = [TIME, "-v", f"./{BVMON_BIN}", R2U2_TRACE]
     time_avg, mem_avg = run_command_n(command, n)
     throughput_avg = num_verdicts / time_avg
@@ -188,7 +191,7 @@ def compare_output() -> None:
     with open(BVMON_OUTPUT, "w") as f:
         f.write(proc.stdout.decode())
 
-    command = ["python3", COMPARE_OUTPUT_SCRIPT, R2U2_OUTPUT, HYDRA_OUTPUT, BVMON_OUTPUT]
+    command = ["python3", "compare_output.py", R2U2_OUTPUT, HYDRA_OUTPUT, BVMON_OUTPUT]
     proc = subprocess.run(command, capture_output=True)
     if proc.returncode != 0:
         print("Outputs do not match")
@@ -200,19 +203,19 @@ def compare_output() -> None:
 parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and bvmon")
 parser.add_argument(
     "benchmark",
-    choices=["pattern", "future"],
+    choices=["pattern", "future", "interval", "word-size"],
     help="Benchmark to run",
 )
 args = parser.parse_args()
 
-for dir in [TRACE_DIR, OUTPUT_DIR, PATTERN_OUTPUT_DIR, FUTURE_OUTPUT_DIR]:
+for dir in [TRACE_DIR, OUTPUT_DIR, PATTERN_OUTPUT_DIR, FUTURE_OUTPUT_DIR, INTERVAL_OUTPUT_DIR, WORD_SIZE_OUTPUT_DIR]:
     try:
         os.mkdir(dir)
     except FileExistsError:
         pass
 
 if args.benchmark == "pattern":
-    trace_len = 1_000_000
+    trace_len = 5_000_000
 
     for spec,nsigs in [
         ("patterns/future.mltl", 1),
@@ -247,7 +250,7 @@ if args.benchmark == "pattern":
             f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
             f.write(f"bvmon,{data_bvmon[0]},{data_bvmon[1]}\n")
 elif args.benchmark == "future":
-    trace_len = 1_000_000
+    trace_len = 5_000_000
     nsigs = 1
 
     future_data: dict[int, tuple[float, float, float]]  = {}
@@ -255,7 +258,6 @@ elif args.benchmark == "future":
     for ub in [
         1_000,
         1_024,
-        5_000,
         10_000
     ]:
         spec = f"F[0,{ub}] a0\n"
@@ -269,8 +271,11 @@ elif args.benchmark == "future":
         for density in [
             10,
             5,
+            2,
             1,
+            0.75,
             0.5,
+            0.25,
             0.1,
             0.05,
             0.01,
@@ -280,14 +285,16 @@ elif args.benchmark == "future":
             0.0001,
             0.00005,
             0.00001,
+            0.000005,
+            0.000001,
         ]:
             print(f"Generating random trace of len={trace_len}, density={density}")
             command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), str(density), TRACE_DIR]
             proc = subprocess.run(command, capture_output=True)
 
-            time_avg_r2u2_c, _ = benchmark_r2u2_c(3)
-            time_avg_hydra, _ = benchmark_hydra(3)
-            time_avg_bvmon, _ = benchmark_bvmon(3, BVMON_DEFAULT_WORD_SIZE)
+            time_avg_r2u2_c, _ = benchmark_r2u2_c(10)
+            time_avg_hydra, _ = benchmark_hydra(10)
+            time_avg_bvmon, _ = benchmark_bvmon(10, BVMON_DEFAULT_WORD_SIZE)
 
             future_data[density] = (
                 time_avg_r2u2_c,
@@ -296,7 +303,7 @@ elif args.benchmark == "future":
             )
             
         with open(f"{FUTURE_OUTPUT_DIR}/{ub}.csv", "w") as f:
-            f.write("density,r2u2_c,hydra,bvmon\n")
+            f.write("density,r2u2_c,r2u2_rust,hydra,bvmon\n")
             for density, times in future_data.items():
                 f.write(f"{density},{times[0]},{times[1]},{times[2]}\n")
 elif args.benchmark == "interval":
@@ -324,7 +331,7 @@ elif args.benchmark == "interval":
         data_hydra_int[ub] = benchmark_hydra(25)
         data_bvmon_int[ub] = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
     
-    with open(f"{OUTPUT_DIR}/interval.csv", "w") as f:
+    with open(f"{INTERVAL_OUTPUT_DIR}/interval.csv", "w") as f:
         f.write("tool,ub,time_avg,mem_avg\n")
         for ub, data in data_r2u2_c_int.items():
             f.write(f"r2u2_c,{ub},{data[0]},{data[1]}\n")
@@ -356,7 +363,7 @@ elif args.benchmark == "word-size":
             mem_avg,
         )
 
-    with open(f"{OUTPUT_DIR}/word_size.csv", "w") as f:
+    with open(f"{WORD_SIZE_OUTPUT_DIR}/word_size.csv", "w") as f:
         f.write("word_size,time_avg,mem_avg\n")
         for word_size, data in data_bvmon.items():
             f.write(f"{word_size},{data[0]},{data[1]}\n")

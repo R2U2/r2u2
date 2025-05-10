@@ -39,8 +39,6 @@ for file in files:
                 tool = "BVMon"
             elif tool == "hydra":
                 tool = "Hydra"
-            # elif tool == "r2u2_rust":
-            #     tool = "R2U2 Rust"
             elif tool == "r2u2_c":
                 tool = "R2U2"
             
@@ -49,7 +47,7 @@ for file in files:
             if tool not in results[spec]:
                 results[spec][tool] = 0
 
-            results[spec][tool] = float(row[1]) / 1024 / 1024
+            results[spec][tool] = float(row[1]) / 1_000_000
 
 fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
@@ -76,7 +74,6 @@ for tool in tools:
         label=tool,
         color=(
             "red" if tool == "R2U2" else
-            # "firebrick" if tool == "R2U2 Rust" else
             "blue" if tool == "Hydra" else
             "darkorchid" if tool == "BVMon" else
             "gray"  # Default color for any other tool
@@ -86,11 +83,9 @@ for tool in tools:
 # Set x-axis labels and legend
 ax.set_xticks([i + (len(tools) - 1) * bar_width / 2 for i in x])  # Center labels under groups
 ax.set_xticklabels(specs)
-# plt.xticks(rotation=8)
-# ax.legend(loc="upper right")
 
 # Add labels and title
-plt.ylabel("Avg Throughput (10^6 verdicts/s)")
+plt.ylabel("Throughput (10^6 verdicts/s)")
 plt.grid(axis="y")
 plt.tight_layout()
 

@@ -1,3 +1,0 @@
-output/1000.csv
-output/1024.csv
-output/10000.csv
