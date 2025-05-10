@@ -2,6 +2,7 @@ import pathlib
 import os
 import shutil
 import resource
+import sys
 
 from c2po import log
 
@@ -47,7 +48,15 @@ def get_rusage_time() -> float:
 
 def set_max_memory(bytes: int) -> None:
     """Set the maximum memory in bytes."""
+    if sys.platform == "darwin":
+        log.warning(
+            MODULE_CODE,
+            "macOS does not support setrlimit for RLIMIT_AS, ignoring max memory limit",
+        )
+        return
+    
     log.debug(MODULE_CODE, 1, f"Setting max memory to {format_bytes(bytes)}")
+
     try:
         resource.setrlimit(resource.RLIMIT_AS, (bytes, resource.RLIM_INFINITY))
     except ValueError:
@@ -71,6 +80,9 @@ def set_max_memory_offset(bytes: int) -> None:
     rusage_self = resource.getrusage(resource.RUSAGE_SELF)
     rusage_child = resource.getrusage(resource.RUSAGE_CHILDREN)
     current_memory = rusage_self.ru_maxrss + rusage_child.ru_maxrss
+    if sys.platform == "darwin":
+        # macOS returns memory usage in bytes
+        current_memory = current_memory // 1024
 
     log.debug(MODULE_CODE, 1, f"Current memory usage: {format_bytes(current_memory * 1024)}")
 
