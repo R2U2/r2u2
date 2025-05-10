@@ -30,10 +30,12 @@ pub fn c2po_compile(spec_filename: &str,
     let serialize_code = c_str!(include_str!("../compiler/c2po/serialize.py"));
     let type_check_code = c_str!(include_str!("../compiler/c2po/type_check.py"));
     let types_code = c_str!(include_str!("../compiler/c2po/types.py"));
+    let stats_code = c_str!(include_str!("../compiler/c2po/stats.py"));
     let util_code = c_str!(include_str!("../compiler/c2po/util.py"));
 
     let from_python  = Python::with_gil(|py| -> PyResult<()>{
         PyModule::from_code(py, c2po_code, c_str!("c2po/__init__.py"), c_str!("c2po"))?;
+        PyModule::from_code(py, stats_code, c_str!("c2po/stats.py"), c_str!("c2po.stats"))?;
         PyModule::from_code(py, log_code, c_str!("c2po/log.py"), c_str!("c2po.log"))?;
         PyModule::from_code(py, types_code, c_str!("c2po/types.py"), c_str!("c2po.types"))?;
         PyModule::from_code(py, lex_code, c_str!("sly/lex.py"), c_str!("c2po.sly.lex"))?;
