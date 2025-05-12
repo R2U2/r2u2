@@ -136,6 +136,11 @@
     ],
     "mltl": [
         {
+            "input": "mltl/atomics.mltl", 
+            "expected_output": "mltl/atomics.mltl.expect", 
+            "options": []
+        },
+        {
             "input": "mltl/future.mltl", 
             "expected_output": "mltl/future.mltl.expect", 
             "options": []

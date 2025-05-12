@@ -5,6 +5,7 @@ class Stats:
     """
     A class to store statistics for the compiler.
     """
+    filename: str = ""
     total_scq_size: int = 0
 
     smt_encoding_time: float = 0.0
@@ -28,6 +29,7 @@ class Stats:
     def print(self, format_str: str) -> None:
         """Prints the statistics in the according to the given format string.
         The format string can contain the following placeholders:
+        - %F = Input Filename
         - %S = Total SCQ size
         - %sr = SMT solver result
         - %se = SMT encoding time
@@ -40,6 +42,7 @@ class Stats:
         - %es = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
         """
+        format_str = format_str.replace("%F", str(self.filename))
         format_str = format_str.replace("%S", str(self.total_scq_size))
         format_str = format_str.replace("%se", str(self.smt_encoding_time))
         format_str = format_str.replace("%st", str(self.smt_solver_time))

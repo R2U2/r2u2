@@ -1243,7 +1243,7 @@ class Context:
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
         self.bound_vars: dict[str, ArrayExpression] = {}
-        self.stats = stats.Stats()
+        self.stats = stats.Stats(filename=opts.spec_filename)
 
         self.is_ft = False
         self.has_future_time = False

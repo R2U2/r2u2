@@ -62,6 +62,7 @@ To run C2PO's test suite, see `test/README.md`.
 
 C2PO supports outputting stats via a format string with the `--stats` option. The following are the valid specifiers in the format string:
 
+- %F = Input filename
 - %S = Total SCQ size
 - %sr = SMT solver result
 - %se = SMT encoding time
