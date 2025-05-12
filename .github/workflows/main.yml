@@ -47,8 +47,8 @@ jobs:
       
     - name: Add dependencies to PATH
       run: |
-        echo deps/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
-        echo deps/egglog-0.4.0/target/release >> "$GITHUB_PATH"
+        echo `pwd`/deps/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
+        echo `pwd`/deps/egglog-0.4.0/target/release >> "$GITHUB_PATH"
 
     - name: Build R2U2
       run: |
