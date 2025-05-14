@@ -280,6 +280,7 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
+        r2u2_command_new = []
         if self.monitor == "c":
             r2u2_command_new = [
                 str(self.r2u2bin), 
@@ -533,7 +534,6 @@ if __name__ == "__main__":
             r2u2bin = Path(args.r2u2)
     elif args.monitor == "rust":
         if args.r2u2 is None:
-            print("HERE")
             r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml"
         else:
             r2u2bin = Path(args.r2u2)
