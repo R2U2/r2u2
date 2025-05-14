@@ -48,6 +48,7 @@ pub const BZ_OP_IABS: u8 = 0b100101;
 pub const BZ_OP_FABS: u8 = 0b100110;
 pub const BZ_OP_PREV: u8 = 0b100111;
 
+#[derive(Copy, Clone)]
 pub struct BooleanizerInstruction {
     pub param1: u32,
     pub param2: u32,
@@ -56,15 +57,7 @@ pub struct BooleanizerInstruction {
 
 }
 
-impl Copy for BooleanizerInstruction{ }
-
-impl Clone for BooleanizerInstruction{
-    fn clone(&self) -> BooleanizerInstruction {
-        return *self
-    }
-}
-
-impl BooleanizerInstruction {
+impl BooleanizerInstruction { // C2PO format sensitive
     pub fn get_param1_int_from_binary(instr: &[u8]) -> i32 {
         return LittleEndian::read_i32(&instr[0..]);
     }

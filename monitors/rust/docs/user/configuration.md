@@ -9,7 +9,7 @@ More information also available at [https://docs.rs/r2u2_core/latest/r2u2_core/]
 ## Bounds
 
 Bounds are numeric limits set as Rust pre-processor macros which are used primarily to set array and memory sizes.
-Using fixed memory bounds allows for fast, consistent operation without memory allocation (e.g., if it loads, it won't OOM) at the cost of requiring manual tuning for optimal performance.
+Using fixed memory bounds allows for memory-safe Rust performance.
 
 If these numbers must be adjusted, it is most consistent to do so in the `bounds.rs` file or overwrite values in parent application, e.g., include something like
 ```
@@ -22,11 +22,11 @@ in `.cargo/config.toml`.
 ### Array Extents
 
 `R2U2_MAX_SPECS`
-: Maximum number of instructions that will be read from a specification binary. Also used for some debug printing
+: Maximum number of instructions that will be read from a specification binary.
 : Default: 256
 
 `R2U2_MAX_SIGNALS`
-: Size of incoming signal vector, i.e., maximum number of signals. Only used by default monitor constructor
+: Size of incoming signal vector, i.e., maximum number of signals.
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
@@ -34,11 +34,11 @@ in `.cargo/config.toml`.
 : Default: 256
 
 `R2U2_MAX_BZ_INSTRUCTIONS`
-: Size of value buffer, used as working memory by BZ front end. Only used by default monitor constructor
+: Size of value buffer, used as working memory by BZ front end.
 : Default: 256
 
 `R2U2_MAX_TL_INSTRUCTIONS`
-: Size of value buffer, used as working memory by TL front end. Only used by default monitor constructor
+: Size of value buffer, used as working memory by TL front end.
 : Default: 256
 
 
@@ -53,6 +53,9 @@ in `.cargo/config.toml`.
 `R2U2_FLOAT_EPSILON`
 : Sets the error value used for float comparisons (i.e., how close is considered "equal").
 : Default: 0.00001
+
+:::{note} `R2U2_FLOAT_EPSILON` can only be changed in `bounds.rs`.
+:::
 
 ---
 

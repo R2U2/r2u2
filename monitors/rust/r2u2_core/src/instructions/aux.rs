@@ -6,29 +6,20 @@ fn convert_ascii_to_decimal(ascii: &[u8]) -> u32 {
     let mut num: u32 = 0;
     let mut multiplier: u32 = 1;
     for x in (0..ascii.len()).rev() {
-        num = num + ((ascii[x] as char).to_digit(10).unwrap_or(0) * multiplier);
-        multiplier = multiplier * 10;
+        num += (ascii[x] as char).to_digit(10).unwrap_or(0) * multiplier;
+        multiplier *= 10;
     }
     return num;
 }
 
 #[cfg(feature = "aux_string_specs")]
+#[derive(Copy, Clone)]
 pub struct AuxiliaryInfo {
     // Spec String and Spec Number(s)
     pub spec_str: ztr64,
     pub spec_0: u32, 
     pub spec_1: u32,
     pub spec_2: u32,
-}
-
-#[cfg(feature = "aux_string_specs")]
-impl Copy for AuxiliaryInfo { }
-
-#[cfg(feature = "aux_string_specs")]
-impl Clone for AuxiliaryInfo {
-    fn clone(&self) -> AuxiliaryInfo {
-        return *self
-    }
 }
 
 #[cfg(feature = "aux_string_specs")]

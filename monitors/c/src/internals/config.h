@@ -73,7 +73,7 @@
 #elif defined(__APPLE__)
     // No known feature incompatibilities
 #elif defined(__VXWORKS__)
-    #define R2U2_Prognostics INHIBIT
+    // No known feature incompatibilities
 #elif defined(_WIN32)
     // No known feature incompatibilities
     // #warning Windows is an unsupported platform

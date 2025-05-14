@@ -9,6 +9,7 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 git clone https://github.com/egraphs-good/egglog.git "$SCRIPT_DIR"/c2po/egglog
 cd "$SCRIPT_DIR"/c2po/egglog || { echo "Cannot find egglog git repo at $SCRIPT_DIR/c2po/egglog" 1>&2 ; exit 2; }
+git checkout v0.4.0
 
 # Compile egglog:
 #  * '--bin': build only build the egglog binary

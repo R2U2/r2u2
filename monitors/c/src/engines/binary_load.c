@@ -4,33 +4,30 @@
 #include "internals/bounds.h"
 #include "internals/debug.h"
 #include "internals/errors.h"
-#include "engines/booleanizer/booleanizer.h"
-#include "engines/mltl/mltl.h"
+#include "engines/booleanizer.h"
+#include "engines/mltl.h"
 #include <stdio.h>
 
-r2u2_bool big_endian_check() {
-  short x = 0x3210;
-  char *c = (char*) &x;
-  return *c == 0x32;
-}
+static short x = 0x3210;
+#define BIG_ENDIAN ( *((char*) &x) == 0x32)
 
-void SwapBytes(uint8_t* data, int length){
-  R2U2_DEBUG_PRINT("Before swapping endianness: ");
+static void SwapBytes(uint8_t* data, int length){
+  R2U2_TRACE_PRINT("Before swapping endianness: ");
   for(int x = 0; x < length; x++){
-    R2U2_DEBUG_PRINT("%d ", data[x]);
+    R2U2_TRACE_PRINT("%d ", data[x]);
   }
-  R2U2_DEBUG_PRINT("\n");
+  R2U2_TRACE_PRINT("\n");
   uint8_t temp;
   for(int i = 0; i < length/2; i++){
     temp = data[i];
     data[i] = data[length - 1 - i];
     data[length - 1 - i] = temp;
   }
-  R2U2_DEBUG_PRINT("After swapping endianness: ");
+  R2U2_TRACE_PRINT("After swapping endianness: ");
   for(int x = 0; x < length; x++){
-    R2U2_DEBUG_PRINT("%d ", data[x]);
+    R2U2_TRACE_PRINT("%d ", data[x]);
   }
-  R2U2_DEBUG_PRINT("\n");
+  R2U2_TRACE_PRINT("\n");
 }
 
 r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
@@ -53,7 +50,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
     // from monitor state transform, we'll look for config commands here.
     // Currently, only MLTL needs config commands, so we'll just check
     if ((data[offset+1] == R2U2_ENG_CG) && (data[offset+2] == R2U2_ENG_TL)) {
-        if (big_endian_check()) {
+        if (BIG_ENDIAN) {
           // Big Endian target; therefore, swap bytes
           SwapBytes(&data[offset+3], 4); // op1_value
           SwapBytes(&data[offset+7], 4); // op2_value
@@ -69,7 +66,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
     } else {
       if(data[offset+1] == R2U2_ENG_BZ){
         r2u2_bz_instruction_t* instr = (r2u2_bz_instruction_t *) &(data[offset+2]);
-        if (big_endian_check()) {
+        if (BIG_ENDIAN) {
           // Big Endian target; therefore, swap bytes
           if (instr->opcode == R2U2_BZ_OP_FCONST)
             SwapBytes(&data[offset+2], 8); // param1 - bz_float
@@ -96,7 +93,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor) {
         }
       }
       else if (data[offset+1] == R2U2_ENG_TL){
-        if (big_endian_check()) {
+        if (BIG_ENDIAN) {
           // Big Endian target; therefore, swap bytes
           SwapBytes(&data[offset+2], 4); // op1_value
           SwapBytes(&data[offset+6], 4); // op2_value

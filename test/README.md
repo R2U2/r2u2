@@ -1,7 +1,7 @@
 # Test Suite
 
-The R2U2 test suite is intended to test `c2po.py` and `r2u2`. Each test case in a suite has an MLTL
-specification, a trace, and an oracle. The test script compiles the MLTL specification using the
+The R2U2 test suite is intended to test `c2po.py` and `r2u2`. Each test case in a suite has an MLTL/ptMLTL
+specification, a trace, and an oracle. The test script compiles the MLTL/ptMLTL specification using the
 given `c2po.py` script, runs the given `r2u2` binary over the compiled specification and trace, and
 compares the output to the oracle.
 
@@ -28,15 +28,17 @@ assuming that the C version of the `r2u2` binary has been built.
 An example command to run the regression test suite on the Rust implementation from the top-level `r2u2/` directory is as
 follows:
 ```bash
-python3 test/r2u2test.py --c2po compiler/c2po.py --monitor rust --r2u2 monitors/rust/r2u2_cli/Cargo.toml regression
+python3 test/r2u2test.py --c2po compiler/c2po.py --monitor rust --r2u2 monitors/rust/r2u2_cli/target/release/r2u2_cli regression
 ```
+assuming that the Rust release version of the `r2u2` binary has been built.
+
 The test results can be seen in the `test/results` directory by default.
 
 Use the `--copyback` option to copy all the files used in the test case to the results directory.
 This is useful for re-running and debugging specific test cases.
 
 To run the hyper tester, install all the python requirements via `pip install -r requirements.txt`
-then run via `python3 hyper_test.py`
+then run via `python3 hyper_test.py --monitor c` or `python3 hyper_test.py --monitor rust` to test the C version and Rust version of R2U2, respectively.
 
 ## Suites
 
@@ -62,7 +64,7 @@ of the JSON files is as follows:
     "tests": [
         {
             "name": "TEST_NAME",
-            "mltl": "MLTL_FILENAME",
+            "mltl": "MLTL/ptMLTL_FILENAME",
             "trace": "TRACE_FILENAME",
             "oracle": "ORACLE_FILENAME",
             "options": {

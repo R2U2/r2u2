@@ -4,11 +4,11 @@ TL n2  and    n0 n1
 TL n3  load   a0
 TL n4  until  n2 n3
 TL n5  return n4 0
-CG TL DUOQ q0 |1|
-CG TL DUOQ q1 |1|
-CG TL DUOQ q2 |1|
-CG TL DUOQ q3 |1|
-CG TL DUOQ q4 |5|
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |1|
+CG TL SCQ q2 |1|
+CG TL SCQ q3 |1|
+CG TL SCQ q4 |5|
 CG TL TEMP q4 [2, 8]
-CG TL DUOQ q5 |1|
+CG TL SCQ q5 |1|
 F __f0__ 0

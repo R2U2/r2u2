@@ -13,15 +13,52 @@ jobs:
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
+    - uses: actions/cache@v3
+      id: cache-z3-4-15-0
+      with:
+        path: deps/z3-4.15.0-x64-glibc-2.39
+        key: ${{ runner.os }}-z3-4-15-0
+
     - name: Install Z3
       run: |
-        sudo apt update
-        sudo apt -y install z3
+        mkdir -p deps/
+        cd deps/
+        wget https://github.com/Z3Prover/z3/releases/download/z3-4.15.0/z3-4.15.0-x64-glibc-2.39.zip
+        unzip z3-4.15.0-x64-glibc-2.39.zip
+        
+      if: steps.cache-z3-4-15-0.outputs.cache-hit != 'true'
+
+    - uses: actions/cache@v3
+      id: cache-egglog-0-4-0
+      with:
+        path: deps/egglog-0.4.0
+        key: ${{ runner.os }}-egglog-0-4-0
+
+    - name: Install Egglog
+      run: |
+        mkdir -p deps/
+        cd deps/
+        git clone https://github.com/egraphs-good/egglog.git
+        mv egglog egglog-0.4.0
+        cd egglog-0.4.0
+        git checkout v0.4.0
+        cargo build --bin egglog --release
+      if: steps.cache-egglog-0-4-0.outputs.cache-hit != 'true'
       
+    - name: Add dependencies to PATH
+      run: |
+        echo `pwd`/deps/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
+        echo `pwd`/deps/egglog-0.4.0/target/release >> "$GITHUB_PATH"
+
     - name: Build R2U2
       run: |
         cd monitors/c
         make
+
+    - name: Build R2U2_CLI
+      run: |
+        cd monitors/rust/r2u2_cli
+        cargo build --release
 
     - name: Test c2po
       run: |
@@ -52,19 +89,39 @@ jobs:
     - name: Test cav (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml cav
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli cav
 
     - name: Test long-trace (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml long_trace
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli long_trace
 
     - name: Test ft-subset (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml ft_subset
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli ft_subset
 
     - name: Test ft-pt-test (rust implementation)
       run: |
         cd test/
-        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/Cargo.toml regression
+        python3 r2u2test.py --c2po ../compiler/c2po.py --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli regression
+
+    - name: Test cav (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli cav
+
+    - name: Test long-trace (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli long_trace
+
+    - name: Test ft-subset (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli ft_subset
+
+    - name: Test ft-pt-test (rust implementation with rust c2po)
+      run: |
+        cd test/
+        python3 r2u2test.py --c2po ../monitors/rust/r2u2_cli/target/release/r2u2_cli --monitor rust --r2u2 ../monitors/rust/r2u2_cli/target/release/r2u2_cli regression

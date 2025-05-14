@@ -1,8 +1,8 @@
 use crate::internals::types::*;
-use crate::memory::monitor::*;
+use crate::memory::monitor::Monitor;
 
 
-use crate::internals::bounds::*;
+use crate::internals::bounds::{R2U2_MAX_TL_INSTRUCTIONS, R2U2_TOTAL_QUEUE_MEM};
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::internals::debug::*;
@@ -17,6 +17,7 @@ use vstd::prelude::*;
 
 verus! {
     
+#[derive(Copy, Clone)]
 pub struct SCQCtrlBlock{
     pub length: u32,
     pub write: u32,
@@ -25,14 +26,6 @@ pub struct SCQCtrlBlock{
     pub next_time: r2u2_time,
     pub temporal_block: SCQTemporalBlock,
     pub queue_ref: u32
-}
-
-impl Copy for SCQCtrlBlock{ }
-
-impl Clone for SCQCtrlBlock{
-    fn clone(&self) -> SCQCtrlBlock {
-        return *self
-    }
 }
 
 impl Default for SCQCtrlBlock{
@@ -49,19 +42,12 @@ impl Default for SCQCtrlBlock{
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct SCQTemporalBlock {
     pub lower_bound: r2u2_time,
     pub upper_bound: r2u2_time,
     pub edge: r2u2_verdict,
     pub previous: r2u2_verdict,
-}
-
-impl Copy for SCQTemporalBlock{ }
-
-impl Clone for SCQTemporalBlock{
-    fn clone(&self) -> SCQTemporalBlock {
-        return *self
-    }
 }
 
 impl Default for SCQTemporalBlock {
@@ -114,7 +100,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
             !(monitor.queue_arena.queue_mem[(queue_ctrl.queue_ref+queue_ctrl.write) as usize].time == r2u2_infinity && queue_ctrl.write == 0){
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         debug_print!("Compacting write");
-        queue_ctrl.write = prev as u32;
+        queue_ctrl.write = prev;
     } 
   
     // Here the write offset is ready in all cases, write and advance
@@ -148,7 +134,7 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
         return None;
     }
 
-    while { // Rust do-while loop
+    loop {
         // Check if time pointed to is >= desired time
         if monitor.queue_arena.queue_mem[(child_queue_ctrl.queue_ref + *read) as usize].time >= parent_queue_ctrl.next_time {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -160,8 +146,8 @@ pub fn scq_read(monitor: &mut Monitor, parent_queue_id: u32, child_queue_id: u32
         *read = (*read + 1) % child_queue_ctrl.length;
 
         
-        *read != child_queue_ctrl.write // Condition to loop again
-    } {}
+        if *read == child_queue_ctrl.write { break };
+    }
 
     // Here we hit the write pointer while scanning forwards, take a step back
     // in case the next value is compacted onto the slot we just checked.
