@@ -23,6 +23,28 @@
             "options": ["--map", "default.map"]
         }
     ],
+    "set-agg": [
+        {
+            "input": "set_agg/basic.c2po", 
+            "expected_output": "set_agg/basic.c2po.expect", 
+            "options": ["--map", "default.map", "-bz"]
+        },
+        {
+            "input": "set_agg/basic_arr.c2po", 
+            "expected_output": "set_agg/basic_arr.c2po.expect", 
+            "options": ["--map", "default.map", "-bz"]
+        },
+        {
+            "input": "set_agg/struct_arr.c2po", 
+            "expected_output": "set_agg/struct_arr.c2po.expect", 
+            "options": ["--map", "default.map", "-bz"]
+        },
+        {
+            "input": "set_agg/var_arr.c2po", 
+            "expected_output": "set_agg/var_arr.c2po.expect", 
+            "options": ["--map", "default.map", "-bz"]
+        }
+    ],
     "operators": [
         {
             "input": "operators/arithmetic.c2po", 

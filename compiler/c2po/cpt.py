@@ -748,6 +748,7 @@ class Atomic(Expression):
     def __init__(self, loc: log.FileLocation, child: Expression) -> None:
         super().__init__(loc, [child])
         self.engine = types.R2U2Engine.BOOLEANIZER
+        self.type = types.BoolType()
 
     def __deepcopy__(self, memo):
         new = Atomic(self.loc, self.children[0])

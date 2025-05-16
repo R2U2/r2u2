@@ -47,9 +47,8 @@ def compile(opts: options.Options) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
 
     Compilation stages:
-    1. Input validation
-    2. Parser
-    3. Type checker
+    2. Parse
+    3. Type check
     4. Required passes
     5. Option-based passes
     6. Optimizations
