@@ -62,9 +62,9 @@ for benchmark in results.keys():
     #     color = "blue" 
     # elif ".qf_bv." in benchmark: 
     #     color = "red"    
-    elif ".qf_bv_log." in benchmark: 
+    elif ".qf_bv." in benchmark: 
         color = "blue"    
-    elif ".qf_bv_log_incr." in benchmark:
+    elif ".qf_bv_incr." in benchmark:
         color = "darkorchid" 
     elif "__virtual_best__" in benchmark:
         color = "black"
@@ -93,13 +93,13 @@ plt.legend(
         b.removeprefix("results/")
         .removesuffix(".csv")
         .replace("vb.", "")
-        .replace("qf_bv_log_incr.", "QF_BV* ")
-        .replace("qf_bv_log.", "QF_BV ")
+        .replace("qf_bv_incr.", "QF_BV* ")
+        .replace("qf_bv.", "QF_BV ")
         .replace("uflia.", "UFLIA ")
         .replace("random-10", "10")
         .replace("random-100", "100")
-        .replace("random-1000", "1,000")
-        .replace("random-10000", "10,000")
+        .replace("random-1000", "1000")
+        .replace("random-10000", "10000")
         .replace("__virtual_best__", "Virtual best")
         for b in results.keys()
     ],
