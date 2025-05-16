@@ -1115,25 +1115,6 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
                     atomic_map[cpt.to_prefix_str(new)] = aid
                     aid += 1
 
-            # for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-            #     if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
-            #         continue
-
-            #     if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
-            #         # No cpt.Atomic expression between BZ and TL engine; therefore make one
-            #         new = cpt.Atomic(expr.loc, deepcopy(expr))
-            #         expr.replace(new)  # FIXME: leave non-TL parents alone
-            #         if cpt.to_prefix_str(new) in atomic_map:
-            #             context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
-            #         else:
-            #             context.atomic_id[new] = aid
-            #             atomic_map[cpt.to_prefix_str(new)] = aid
-            #             aid += 1
-            #     elif isinstance(expr, cpt.Atomic) and expr not in context.atomic_id:
-            #         context.atomic_id[expr] = aid
-            #         atomic_map[cpt.to_prefix_str(expr)] = aid
-            #         aid += 1
-
     log.debug(
         MODULE_CODE, 1,
         f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
