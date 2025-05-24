@@ -43,6 +43,14 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
         f.write(smt_encoding)
 
     command = [context.options.smt_solver_path, str(smt_file_path)] + [opt.replace('"', '') for opt in context.options.smt_options]
+    if (
+        context.options.smt_encoding == options.SMTTheories.UFLIA
+        or context.options.smt_encoding == options.SMTTheories.QF_UFLIA
+    ) and "cvc5" in context.options.smt_solver_path:
+        # cvc5 requires the --finite-model-find option for UFLIA encoding
+        command.append("--finite-model-find")
+        command.append("--fmf-bound")
+
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
