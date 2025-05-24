@@ -314,6 +314,7 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
+        r2u2_command_new = []
         if self.monitor == "c":
             r2u2_command_new = [
                 str(self.r2u2bin), 
