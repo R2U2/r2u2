@@ -13,24 +13,43 @@ jobs:
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
+    - uses: actions/cache@v3
+      id: cache-z3-4-15-0
+      with:
+        path: deps/z3-4.15.0-x64-glibc-2.39
+        key: ${{ runner.os }}-z3-4-15-0
+
     - name: Install Z3
       run: |
         mkdir -p deps/
         cd deps/
         wget https://github.com/Z3Prover/z3/releases/download/z3-4.15.0/z3-4.15.0-x64-glibc-2.39.zip
         unzip z3-4.15.0-x64-glibc-2.39.zip
-        echo `pwd`/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
+        
+      if: steps.cache-z3-4-15-0.outputs.cache-hit != 'true'
+
+    - uses: actions/cache@v3
+      id: cache-egglog-0-4-0
+      with:
+        path: deps/egglog-0.4.0
+        key: ${{ runner.os }}-egglog-0-4-0
 
     - name: Install Egglog
       run: |
         mkdir -p deps/
         cd deps/
         git clone https://github.com/egraphs-good/egglog.git
-        cd egglog
+        mv egglog egglog-0.4.0
+        cd egglog-0.4.0
         git checkout v0.4.0
         cargo build --bin egglog --release
-        echo `pwd`/target/release >> "$GITHUB_PATH"
+      if: steps.cache-egglog-0-4-0.outputs.cache-hit != 'true'
       
+    - name: Add dependencies to PATH
+      run: |
+        echo `pwd`/deps/z3-4.15.0-x64-glibc-2.39/bin/ >> "$GITHUB_PATH"
+        echo `pwd`/deps/egglog-0.4.0/target/release >> "$GITHUB_PATH"
+
     - name: Build R2U2
       run: |
         cd monitors/c
