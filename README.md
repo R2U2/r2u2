@@ -101,8 +101,10 @@ The documentation for R2U2 can be found [here](https://r2u2.github.io/r2u2/). Th
 
 # Support 
 
+If you have a question about running R2U2, please open a "Question" issue.
+
 If you believe you have found a case of unsound output from R2U2, please refer to
-[CONTRIBUTING.md](CONTRIBUTING.md) and open a bug report issue.
+[CONTRIBUTING.md](CONTRIBUTING.md) and open a "Bug Report" issue.
 
 ## License
 
