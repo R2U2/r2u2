@@ -10,7 +10,9 @@ To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/in
 `setup_egglog.sh` script.
 
 To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based
-systems, this can be done via `sudo apt-get install z3`.
+systems, this can be done via `sudo apt-get install z3`. You can use any SMTLIB2-compatible by
+setting the executable path via the `--smt-solver` option. For example, using
+[Yices2](https://yices.csl.sri.com/) instead, you can set `--smt-solver path/to/yices-smt2`.
 
 ## Usage
 
