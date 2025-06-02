@@ -504,7 +504,7 @@ def gen_tl_operand(
         operand_value = operand.value
     elif operand in instructions:
         operand_type = TLOperandType.SUBFORMULA
-        operand_value = instructions[operand].id
+        operand_value = instructions[cast(cpt.Expression, operand)].id
     else:
         operand_type = TLOperandType.NONE
         operand_value = 0
