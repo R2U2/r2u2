@@ -1171,7 +1171,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
     """Computes SCQ sizes for each node."""
     total_scq_size = 0
 
-    for expr in cpt.postorder(program.get_specs(), context):
+    for expr in cpt.postorder(cast("list[cpt.Expression]", program.get_specs()), context):
         if isinstance(expr, cpt.SpecSection):
             continue
 
