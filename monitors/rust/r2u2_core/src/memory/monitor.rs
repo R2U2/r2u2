@@ -20,7 +20,7 @@ pub struct ProgramCount{
     pub max_program_count: usize,
 }
 
-
+/// Struct to contain monitor information
 pub struct Monitor{
     pub time_stamp: r2u2_time,
     pub progress: MonitorProgressState,

@@ -1,6 +1,6 @@
 [package]
 name = "r2u2_core"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Alexis Aurandt <lexaurandt@gmail.com>"]
 description = "R2U2: A stream-based runtime monitor in no_std"
 edition = "2021"
@@ -14,7 +14,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 byteorder = { version = "1", default-features = false }
-libm = "0.2.8"
+libm = "0.2.15"
 cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
 const_env = "0.1.2"

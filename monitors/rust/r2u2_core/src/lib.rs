@@ -29,7 +29,6 @@
 
 use internals::types::*;
 use internals::process_binary::process_binary_file;
-use memory::monitor::Monitor;
 use engines::r2u2_step;
 
 #[cfg(feature = "debug_print_semihosting")]
@@ -44,6 +43,7 @@ mod engines;
 mod memory;
 
 pub use internals::types::{r2u2_output,r2u2_verdict};
+pub use memory::monitor::Monitor;
 #[cfg(feature = "aux_string_specs")]
 pub use internals::types::{r2u2_contract, AGC_INACTIVE, AGC_INVALID, AGC_VERIFIED};
 #[cfg(feature = "aux_string_specs")]
