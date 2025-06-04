@@ -3,7 +3,7 @@ use crate::internals::types::*;
 use crate::memory::scq::SCQMemoryArena;
 
 #[cfg(feature = "aux_string_specs")]
-use crate::instructions::aux::*;
+use crate::instructions::aux_info::*;
 
 
 use crate::internals::bounds::*;
