@@ -1,6 +1,6 @@
 [package]
 name = "r2u2_core"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Alexis Aurandt <lexaurandt@gmail.com>"]
 description = "R2U2: A stream-based runtime monitor in no_std"
 edition = "2021"

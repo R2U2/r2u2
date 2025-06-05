@@ -81,8 +81,8 @@ pub fn get_monitor(spec_file: &[u8]) -> Monitor{
 /// * `monitor` - A reference to a monitor
 /// 
 pub fn update_binary_file(spec_file: &[u8], monitor: &mut Monitor){
-    process_binary_file(spec_file, monitor);
     monitor.reset();
+    process_binary_file(spec_file, monitor);
 }
 
 /// Take a step with runtime monitor
