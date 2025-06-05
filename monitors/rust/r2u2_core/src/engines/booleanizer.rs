@@ -712,13 +712,12 @@ fn float_power(op0: r2u2_float, op1: r2u2_float) -> (result: r2u2_float)
 #[inline(always)]
 fn integer_square_root(op: r2u2_int) -> (result: r2u2_int)
 {
-    // match op.checked_isqrt() {
-    //     Some(n) => {return n;}
-    //     None => {
-    //         return 0;
-    //     }
-    // }
-    return sqrt(op as r2u2_float) as r2u2_int; //isqrt is currently unstable in this version of rust
+    match op.checked_isqrt() {
+        Some(n) => {return n;}
+        None => {
+            return 0;
+        }
+    }
 }
 
 #[verifier::external] // Verus doesn't support evaluation of floats 
