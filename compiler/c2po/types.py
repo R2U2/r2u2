@@ -10,6 +10,7 @@ class R2U2Implementation(enum.Enum):
     C = 0
     CPP = 1
     VHDL = 2
+    RUST = 3
 
 
 class R2U2Engine(enum.Enum):
@@ -30,6 +31,8 @@ class Interval(NamedTuple):
 
 
 SignalMapping = Dict[str, int]
+
+
 
 
 class BaseType(enum.Enum):
@@ -203,3 +206,15 @@ def configure_types(
     else:
         IntType.width = int_width
         FloatType.width = float_width
+
+
+def to_smt_type(t: Type) -> str:
+    """Convert a C2PO type to an SMT type."""
+    if isinstance(t, BoolType):
+        return "Bool"
+    if isinstance(t, IntType):
+        return "Int"
+    if isinstance(t, FloatType):
+        return "Real"
+    return "NoType"
+

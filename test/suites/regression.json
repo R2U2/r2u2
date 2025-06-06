@@ -91,6 +91,12 @@
             "mltl":  "timestamp.c2po",
             "trace":  "timestamp.csv",
             "oracle":  "timestamp.log"
+        },
+        {
+            "name": "event",
+            "mltl":  "event.c2po",
+            "trace":  "event.csv",
+            "oracle":  "event.log"
         }
     ]
 }

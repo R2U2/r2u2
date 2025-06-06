@@ -128,13 +128,13 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
         c2po_options.append("--booleanizer")
 
     if "disable-cse" in options and options["disable-cse"]:
-        c2po_options.append("--disable-cse")
+        c2po_options.append("--no-cse")
 
     if "extops" in options and options["extops"]:
         c2po_options.append("--extops")
 
     if "disable-rewrite" in options and options["disable-rewrite"]:
-        c2po_options.append("--disable-rewrite")
+        c2po_options.append("--no-rewrite")
 
     return c2po_options
 
@@ -314,6 +314,7 @@ class TestCase():
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
+        r2u2_command_new = []
         if self.monitor == "c":
             r2u2_command_new = [
                 str(self.r2u2bin), 

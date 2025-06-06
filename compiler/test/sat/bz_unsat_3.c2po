@@ -1,0 +1,6 @@
+INPUT
+    b: bool;
+    i0, i1, i2, i3: int;
+
+FTSPEC
+    F[0,10] ((i0 + i1) != (i0 + i1));

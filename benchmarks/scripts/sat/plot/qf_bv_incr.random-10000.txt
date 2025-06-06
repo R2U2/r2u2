@@ -1,0 +1,4 @@
+results/bitwuzla.qf_bv_incr.random-10000.csv
+results/yices-smt2.qf_bv_incr.random-10000.csv
+results/cvc5.qf_bv_incr.random-10000.csv
+results/z3.qf_bv_incr.random-10000.csv

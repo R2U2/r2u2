@@ -6,10 +6,10 @@ import enum
 import sys
 from typing import NamedTuple, Optional
 
-MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
+ISSUE_URL: str = "https://github.com/R2U2/r2u2/issues"
+VERSION: str = "1.0"
 
 log_level = 0
-enable_stat = False
 enable_quiet = False
 
 
@@ -30,16 +30,9 @@ class Color(enum.Enum):
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
-
 def set_log_level(level: int) -> None:
     global log_level
     log_level = level
-
-
-def set_report_stats() -> None:
-    global enable_stat
-    enable_stat = True
-
 
 def set_quiet() -> None:
     global enable_quiet
@@ -69,20 +62,6 @@ def format(
     formatted_message += f" {message}\n"
 
     return formatted_message
-
-
-def stat(
-    module: str,
-    message: str,
-    location: Optional[FileLocation] = None,
-) -> None:
-    global enable_stat
-    if not enable_stat or enable_quiet:
-        return
-    formatted_message = format(
-        message, "STAT", None, module, location
-    )
-    sys.stdout.write(formatted_message)
 
 
 def debug(
@@ -129,5 +108,6 @@ def internal(
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "BUG", Color.FAIL, module, location)
+    message_extra = f"\nPlease report this issue at {ISSUE_URL}"
+    formatted_message = format(message + message_extra, "BUG", Color.FAIL, module, location)
     sys.stderr.write(formatted_message)

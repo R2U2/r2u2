@@ -9,6 +9,27 @@ Each line represents one time-step, but this is a logical clock and the actual e
 
 For example:
 ```
-# sig0,sig1
-0,1
+# p,q,i,j,k
+0,1,5,2,3
+0,0,4,2,3
+1,1,2,6,10
+```
+
+One can also define multiple time-steps in a single line, where `@T` is the signal at `T` and since the last `@` symbol. For example,
+the following:
+```
+# p,q,i,j,k
+0,1,5,2,3
+0,1,5,2,3
+0,1,5,2,3
+0,0,4,2,3
+0,0,4,2,3
+1,1,2,6,10
+```
+can also be represented as (note that time starts at 0):
+```
+# p,q,i,j,k
+@2 0,1,5,2,3
+@4 0,0,4,2,3
+@5 1,1,2,6,10
 ```

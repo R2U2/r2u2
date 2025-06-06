@@ -1,0 +1,5 @@
+INPUT
+    p,q: bool; 
+FTSPEC
+    ExampleSpec: F[2,3] p;
+    ExampleSpec2: G[3,4] q;

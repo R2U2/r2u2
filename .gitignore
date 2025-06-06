@@ -291,14 +291,10 @@ venv/
 __*
 
 # dependencies
-egg/
-egglog/
-
+deps/
 
 # Generated documentation files
 docs/_*
 
 # python virtual environment
 r2u2env/
-
-pico/
