@@ -343,6 +343,13 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {}/{}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, monitor.value_buffer[instr.memory_reference as usize].f);
         }
+        BZ_TS => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            debug_print!("BZ TS");
+            monitor.value_buffer[instr.memory_reference as usize] = monitor.time_stamp;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            debug_print!("b{} = {}", instr.memory_reference, monitor.time_stamp);
+        }
         _ => {
             return;
         }
