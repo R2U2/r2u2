@@ -19,11 +19,11 @@ docs
 
 
 examples
-: Examples of MLTL formulas highlighting various C2PO and R2U features
+: Examples of MLTL formulas highlighting various C2PO and R2U2 features
 
 
 monitors
-: Implementations of the R2U2 monitor, currently only C is supported
+: Implementations of the R2U2 monitor, currently only C and Rust are supported
 
 
 test

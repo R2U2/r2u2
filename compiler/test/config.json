@@ -1,31 +1,4 @@
 {
-    "atomic_checkers": [
-        {
-            "input": "atomic_checkers/bool.c2po", 
-            "expected_output": "atomic_checkers/bool.c2po.at.expect", 
-            "options": ["-at", "--map", "default.map"]
-        },
-        {
-            "input": "atomic_checkers/bool.c2po", 
-            "expected_output": "atomic_checkers/bool.c2po.bz.expect", 
-            "options": ["-bz", "--map", "default.map"]
-        },
-        {
-            "input": "atomic_checkers/int.c2po", 
-            "expected_output": "atomic_checkers/int.c2po.expect", 
-            "options": ["-at", "--map", "default.map"]
-        },
-        {
-            "input": "atomic_checkers/float.c2po", 
-            "expected_output": "atomic_checkers/float.c2po.expect", 
-            "options": ["-at", "--map", "default.map"]
-        },
-        {
-            "input": "atomic_checkers/bad_rhs_type.c2po", 
-            "expected_output": "atomic_checkers/bad_rhs_type.c2po.expect", 
-            "options": ["-at", "--map", "default.map"]
-        }
-    ],
     "cav": [
         {
             "input": "cav/array.c2po", 
@@ -39,11 +12,6 @@
         }
     ],
     "cse": [
-        {
-            "input": "cse/at.c2po", 
-            "expected_output": "cse/at.c2po.expect", 
-            "options": ["-at", "--map", "default.map"]
-        },
         {
             "input": "cse/basic.c2po", 
             "expected_output": "cse/basic.c2po.expect", 

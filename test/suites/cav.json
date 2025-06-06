@@ -34,8 +34,7 @@
             "trace": "simple.csv",
             "oracle": "simple.log",
             "options": {
-                "booleanizer": false,
-                "atomic-checkers": false
+                "booleanizer": false
             }
         },
         {

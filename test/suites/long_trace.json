@@ -1,8 +1,7 @@
 {
     "suite":  "ft_long_trace",
     "options": {
-        "booleanizer":  true,
-        "atomic_checker":  false
+        "booleanizer":  true
     },
     "tests": [
         {

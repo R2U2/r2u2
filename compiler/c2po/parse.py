@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Optional
 from pathlib import Path
+import re
 
 from c2po import sly
 from c2po import types
@@ -10,11 +11,89 @@ from c2po import log
 
 MODULE_CODE = "PARS"
 
+
+def parse_trace_file(
+    trace_path: pathlib.Path, map_file_provided: bool
+) -> tuple[int, Optional[types.SignalMapping]]:
+    """Given `trace_path`, return the inferred length of the trace and, if `return_mapping` is enabled, a signal mapping."""
+    with open(trace_path, "r") as f:
+        content: str = f.read()
+
+    lines: list[str] = content.splitlines()
+
+    if len(lines) < 1:
+        return (-1, None)
+
+    cnt: int = 0
+    signal_mapping: types.SignalMapping = {}
+
+    if lines[0][0] == "#":
+        # then there is a header
+        header = lines[0][1:]
+
+        if map_file_provided:
+            log.warning(
+                MODULE_CODE,
+                "Map file given and header included in trace file; header will be ignored"
+            )
+
+        for id in [s.strip() for s in header.split(",")]:
+            if id in signal_mapping:
+                log.warning(
+                    MODULE_CODE,
+                    f"Signal ID '{id}' found multiple times in csv, using right-most value",
+                    log.FileLocation(trace_path.name, 1)
+                )
+            signal_mapping[id] = cnt
+            cnt += 1
+
+        trace_length = len(lines) - 1
+
+        return (trace_length, signal_mapping)
+
+    # no header, so just return number of lines in file (i.e., number of time steps in trace)
+    return (len(lines), None)
+
+
+def parse_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
+    """Return the signal mapping from `map_path`."""
+    with open(map_path, "r") as f:
+        content: str = f.read()
+
+    mapping: types.SignalMapping = {}
+
+    lines = content.splitlines()
+    for line in lines:
+        if re.match(r"[a-zA-Z_][a-zA-Z0-9_\[\]]*:\d+", line):
+            strs = line.split(":")
+            id = strs[0]
+            sid = int(strs[1])
+
+            if id in mapping:
+                log.warning(
+                    MODULE_CODE,
+                    f"Signal ID '{id}' found multiple times in map file, using latest value",
+                    log.FileLocation(map_path.name, lines.index(line) + 1),
+                )
+
+            mapping[id] = sid
+        else:
+            log.error(
+                MODULE_CODE,
+                f"Invalid format for map line (found {line})"
+                "\n\t Should be of the form SYMBOL ':' NUMERAL",
+                log.FileLocation(map_path.name, lines.index(line)),
+            )
+            return None
+
+    return mapping
+
+
 class C2POLexer(sly.Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_ATOMIC, KW_FTSPEC, KW_PTSPEC,
+    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST, KW_TIMESTAMP,
-               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
+               TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
@@ -82,7 +161,6 @@ class C2POLexer(sly.Lexer):
     SYMBOL["STRUCT"]     = KW_STRUCT
     SYMBOL["INPUT"]      = KW_INPUT
     SYMBOL["DEFINE"]     = KW_DEFINE
-    SYMBOL["ATOMIC"]     = KW_ATOMIC
     SYMBOL["FTSPEC"]     = KW_FTSPEC
     SYMBOL["PTSPEC"]     = KW_PTSPEC
     SYMBOL["foreach"]    = KW_FOREACH
@@ -102,6 +180,7 @@ class C2POLexer(sly.Lexer):
     SYMBOL['U'] = TL_UNTIL
     SYMBOL['R'] = TL_RELEASE
     SYMBOL['S'] = TL_SINCE
+    SYMBOL['T'] = TL_TRIGGER
     SYMBOL['M'] = TL_MISSION_TIME
     SYMBOL["true"] = TL_TRUE
     SYMBOL["false"] = TL_FALSE
@@ -127,7 +206,7 @@ class C2POParser(sly.Parser):
         ("left", LOG_IMPL, LOG_XOR, LOG_IFF),
         ("left", LOG_OR),
         ("left", LOG_AND),
-        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
+        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
         ("left", BW_OR),
         ("left", BW_XOR),
         ("left", BW_AND),
@@ -180,10 +259,6 @@ class C2POParser(sly.Parser):
         return p[0] + [p[1]]
 
     @_("section define_section")
-    def section(self, p):
-        return p[0] + [p[1]]
-
-    @_("section atomic_section")
     def section(self, p):
         return p[0] + [p[1]]
 
@@ -300,25 +375,6 @@ class C2POParser(sly.Parser):
     def definition(self, p):
         return cpt.Definition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
 
-    @_("KW_ATOMIC atomic atomic_list")
-    def atomic_section(self, p):
-        p[2].append(p[1])
-        self.literals[p[1].symbol] = cpt.AtomicChecker
-        return cpt.AtomicSection(log.FileLocation(self.filename, p.lineno), p[2])
-
-    @_("atomic_list atomic")
-    def atomic_list(self, p):
-        self.literals[p[1].symbol] = cpt.AtomicChecker
-        return p[0] + [p[1]]
-
-    @_("")
-    def atomic_list(self, p):
-        return []
-
-    @_("SYMBOL ASSIGN expr SEMI")
-    def atomic(self, p):
-        return cpt.AtomicCheckerDefinition(log.FileLocation(self.filename, p.lineno), p[0], p[2])
-
     # Future-time specification section
     @_("KW_FTSPEC spec spec_list")
     def ft_spec_section(self, p):
@@ -347,6 +403,13 @@ class C2POParser(sly.Parser):
     # Labeled specification
     @_("SYMBOL COLON expr SEMI")
     def spec(self, p):
+        if len(p[0]) > 50:
+            log.error(
+                MODULE_CODE, 
+                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
         formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2])
         self.spec_num += 1
         return formula
@@ -354,6 +417,13 @@ class C2POParser(sly.Parser):
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
     def spec(self, p):
+        if len(p[0]) > 50:
+            log.error(
+                MODULE_CODE, 
+                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
+                log.FileLocation(self.filename, p.lineno)
+            )
+            self.status = False
         contract = cpt.Contract(
             log.FileLocation(self.filename, p.lineno), 
             p[0], 
@@ -580,6 +650,10 @@ class C2POParser(sly.Parser):
     @_("expr TL_SINCE interval expr")
     def expr(self, p):
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+    
+    @_("expr TL_TRIGGER interval expr")
+    def expr(self, p):
+        return cpt.TemporalOperator.Trigger(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")
@@ -602,8 +676,6 @@ class C2POParser(sly.Parser):
         if p[0] in self.literals:
             if self.literals[p[0]] is cpt.Signal:
                 return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
-            elif self.literals[p[0]] is cpt.AtomicChecker:
-                return cpt.AtomicChecker(log.FileLocation(self.filename, p.lineno), p[0])
         return cpt.Variable(log.FileLocation(self.filename, p.lineno), p[0])
 
     @_("KW_TIMESTAMP")
@@ -669,7 +741,7 @@ def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
 
 class MLTLLexer(sly.Lexer):
 
-    tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, 
+    tokens = { TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER,
                TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, 
                NEWLINE, NUMERAL, COMMA, LBRACK, RBRACK, LPAREN, RPAREN }
@@ -703,6 +775,7 @@ class MLTLLexer(sly.Lexer):
     TL_UNTIL   = r"U"
     TL_RELEASE = r"R"
     TL_SINCE   = r"S"
+    TL_TRIGGER = r"T"
     TL_TRUE    = r"true"
     TL_FALSE   = r"false"
     TL_ATOMIC  = r"a([1-9][0-9]*|0)"
@@ -729,7 +802,7 @@ class MLTLParser(sly.Parser):
         ("left", LOG_IMPL, LOG_IFF),
         ("left", LOG_OR),
         ("left", LOG_AND),
-        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE),
+        ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
         ("right", LOG_NEG, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
         ("right", LPAREN)
     )
@@ -876,6 +949,15 @@ class MLTLParser(sly.Parser):
             self.status = False
 
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
+    
+    @_("expr TL_TRIGGER interval expr")
+    def expr(self, p):
+        self.is_pt = True
+        if self.is_ft:
+            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            self.status = False
+
+        return cpt.TemporalOperator.Trigger(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
 
     # Parentheses
     @_("LPAREN expr RPAREN")

@@ -2,11 +2,6 @@
 
 Memory controllers define structures and functions representing higher-level data types used by engines during execution.
 
-## Box Queue
-The primary working memory of the past-time temporal engine, box queues are a FIFO with a double-ended pop.
-
-For operational semantics, see {footcite:p}`RFB13`.
-
 ## Contract Status
 Contract status allows the use of the `=>` operator in C2PO along with the `R2U2_TL_Contract_Status` feature flag to enable a tri-state output of assume-guarantee contracts.
 During formula compilation, each AGC is broken into three MLTL formulas, one for each state - inactive, verified, or violated.
@@ -48,7 +43,7 @@ This arrangement allows for either a few very large buffers or many small buffer
 
 If the SCQ memory domain is insufficient, the metadata "stack" will crash into the queue slot "heap" in the middle of the domain, but this is caught during initialization when DEBUG memory checks are enabled.
 
-For SCQ operational semantics and sizing, see {footcite:p}`KZJZR20`.
+For SCQ operational semantics and sizing, see {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---
 

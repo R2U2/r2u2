@@ -8,10 +8,7 @@ from typing import NamedTuple, Optional
 
 MAINTAINER_EMAIL: str = "cgjohann@iastate.edu"
 
-OUT = sys.stdout
-ERR = sys.stderr
-
-debug_level = 0
+log_level = 0
 enable_stat = False
 enable_quiet = False
 
@@ -34,12 +31,12 @@ class Color(enum.Enum):
     UNDERLINE = "\033[4m"
 
 
-def set_debug(level: int) -> None:
-    global debug_level
-    debug_level = level
+def set_log_level(level: int) -> None:
+    global log_level
+    log_level = level
 
 
-def set_stat() -> None:
+def set_report_stats() -> None:
     global enable_stat
     enable_stat = True
 
@@ -85,7 +82,7 @@ def stat(
     formatted_message = format(
         message, "STAT", None, module, location
     )
-    OUT.write(formatted_message)
+    sys.stdout.write(formatted_message)
 
 
 def debug(
@@ -94,13 +91,13 @@ def debug(
     message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    global debug_level
-    if level > debug_level or enable_quiet:
+    global log_level
+    if level > log_level or enable_quiet:
         return
     formatted_message = format(
         message, "DBG", Color.OKBLUE, module, location
     )
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def warning(
@@ -111,7 +108,7 @@ def warning(
     if enable_quiet:
         return
     formatted_message = format(message, "WRN", Color.WARN, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def error(
@@ -122,7 +119,7 @@ def error(
     if enable_quiet:
         return
     formatted_message = format(message, "ERR", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def internal(
@@ -133,4 +130,4 @@ def internal(
     if enable_quiet:
         return
     formatted_message = format(message, "BUG", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)

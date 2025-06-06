@@ -26,7 +26,6 @@ Each section has a keyword to denote its beginning:
 - `INPUT`: Input signals and their types
 - `STRUCT`: C-like structs
 - `DEFINE`: Macros
-- `ATOMIC`: Atomics used by the atomic checker. (*Must compile with `--atomic-checker` flag.*)
 - `FTSPEC`: Future-time MLTL specifications
 - `PTSPEC`: Past-time MLTL specifications
 
@@ -46,7 +45,7 @@ form
 
 The following words are reserved words and therefore cannot be used as identifiers:
 
-    STRUCT INPUT DEFINE ATOMIC FTSPEC PTSPEC
+    STRUCT INPUT DEFINE FTSPEC PTSPEC
     foreach forsome forexactly foratleast foratmost
     pow sqrt abs xor rate
     G F H O U R S M
@@ -190,18 +189,3 @@ operator of a specification. For example:
 
 R2U2 will output `inactive` if `p` is false, `invalid` if `p` is true and `q` is false, and
 `verified` if both `p` and `q` are true.
-
-## Atomic Checkers
-
-If the Atomic Checker engine is enabled, then `int` an `float` inputs can be transformed into `bool`
-values using "atomic checkers". An atomic checker is a structured expression of the form:
-
-    atomic := input <relational operator> constant;
-
-Atomic checkers are defined in the `ATOMIC` section of a file. For example:
-
-    ATOMIC
-        a0 := i > 5;
-        a1 := x <= 3.6;
-
-Atomic checkers are largely useful for the hardware version of R2U2.

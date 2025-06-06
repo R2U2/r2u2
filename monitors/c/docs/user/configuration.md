@@ -24,16 +24,12 @@ It is recommend to run with debug output after changing bounds to enable extra m
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
-: Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (AT or BZ) to the temporal logic engine
+: Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (BZ) to the temporal logic engine
 : Default: 256
 
 `R2U2_MAX_INST_LEN`
 : Total size of instruction memory, i.e., maximum specification binary size. Only used by default monitor constructor
 : Default: 8192
-
-`R2U2_MAX_AT_INSTRUCTIONS`
-: Maximum number of AT instructions, actually used to reserve filter memory for extended filters like rate and moving average. Only used by default monitor constructor
-: Default: 256
 
 `R2U2_MAX_BZ_INSTRUCTIONS`
 : Size of value buffer, used as working memory by BZ front end. Only used by default monitor constructor
@@ -86,24 +82,6 @@ See [building the monitor](./building.md) for details.
 
 `R2U2_CSV_Header_Mapping`
 : Enables reordering header imports to match signal vector mapping
-
-
-### Atomic-Checker Features
-
-`R2U2_AT_EXTRA_FILTERS`
-: Enables the Rate, Angle difference, and moving average AT filters
-
-`R2U2_AT_Signal_Sets`
-: Enables set aggregation filters
-
-`R2U2_AT_FFT_Filter`
-: :::{deprecated} 3.0
-: :::
-: Enables the discrete Fourier transform filter, but requires the fftw3 library
-
-`R2U2_AT_Prognostics`
-: :::{deprecated} 3.0
-: Enables the prognostics module
 
 
 ### Temporal Logic Features
