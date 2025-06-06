@@ -170,8 +170,7 @@ class CurrentTimestamp(Expression):
         if CurrentTimestamp.first_time_seen:
             log.warning(
                 MODULE_CODE,
-                "If using TAU, note that TAU will be stored as a signed 32-bit integer, but the timestamp is represented as an unsigned 32-bit integer (i.e., max of 4,294,967,295). " \
-                "If the timestamp is greater than the max that can be stored in a signed 32-bit integer, than TAU will remain equal to the largest signed 32-bit integer (i.e., 2,147,483,647)",
+                "If using TAU, note that by default `r2u2_time` is an unsigned 32-bit integer and `r2u2_int` is a signed 32-bit integer.",
                 loc,
             )
         CurrentTimestamp.first_time_seen = False
