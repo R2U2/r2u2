@@ -85,6 +85,12 @@
             "mltl":  "test0043.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0043_input0053.log"
+        },
+        {
+            "name": "timestamp",
+            "mltl":  "timestamp.c2po",
+            "trace":  "timestamp.csv",
+            "oracle":  "timestamp.log"
         }
     ]
 }
