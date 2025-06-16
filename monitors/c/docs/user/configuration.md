@@ -24,7 +24,7 @@ It is recommend to run with debug output after changing bounds to enable extra m
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
-: Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (AT or BZ) to the temporal logic engine
+: Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (BZ) to the temporal logic engine
 : Default: 256
 
 `R2U2_MAX_INST_LEN`

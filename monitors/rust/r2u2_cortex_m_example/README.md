@@ -24,7 +24,12 @@ To build embedded programs using this example you'll need:
   targets. Run:
 
 ``` console
-$ rustup target add thumbv6m-none-eabi thumbv7m-none-eabi thumbv7em-none-eabi thumbv7em-none-eabihf
+$ rustup target add thumbv7em-none-eabihf
+```
+
+- `flip-link` to add zero-cost stack overflow protection  (https://github.com/knurling-rs/flip-link). Run:
+``` console
+$ cargo install flip-link
 ```
 
 ## Using this example
@@ -76,7 +81,21 @@ target = "thumbv7em-none-eabihf" # Cortex-M4F and Cortex-M7F (with FPU)
 # target = "thumbv8m.main-none-eabihf" # Cortex-M33 (with FPU)
 ```
 
-2. Enter the memory region information into the `memory.x` file.
+2. Configure R2U2's memory in `.cargo/config.toml`. For this example, the following is required:
+
+``` toml
+[env]
+R2U2_MAX_SPECS = { value = "2", force = true }
+R2U2_MAX_SIGNALS = { value = "1", force = true }
+R2U2_MAX_ATOMICS = { value = "1", force = true }
+R2U2_MAX_BZ_INSTRUCTIONS = { value = "1", force = true }
+R2U2_MAX_TL_INSTRUCTIONS = { value = "8", force = true }
+R2U2_TOTAL_QUEUE_MEM = { value = "8", force = true }
+```
+
+**NOTE**: If these values are changed, run `$ cargo clean`.
+
+3. Enter the memory region information into the `memory.x` file.
 
 ``` file
 MEMORY

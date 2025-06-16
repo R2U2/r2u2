@@ -26,8 +26,12 @@ We'll use the following CSV file as simulated input (`agc.csv`):
 
 Then compile the specification using C2PO:
 
-    python compiler/r2u2prep.py agc.c2po agc.csv
+    python compiler/c2po.py agc.c2po agc.csv
 
-And finally run using R2U2:
+And finally run using R2U2 C version:
 
-    ./monitors/static/build/r2u2 spec.bin agc.csv
+    ./monitors/c/build/r2u2 spec.bin agc.csv
+
+Or R2U2 Rust version:
+
+    ./monitors/rust/r2u2_cli/target/release/r2u2_cli run spec.bin agc.csv

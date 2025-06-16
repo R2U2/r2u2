@@ -1,8 +1,8 @@
 # Output
 
 Results are given as a verdict stream. 
-As a CLI program this is written to standard out by default but can be re-directed to an output file with the `-\\\-output \<PATH>` option.
-As a library, `r2u2_core` provides the function `get_output_buffer`. More information on `r2u2_core` output function available at [https://docs.rs/r2u2_core/latest/r2u2_core/](https://docs.rs/r2u2_core/latest/r2u2_core/).
+As a CLI program this is written to standard out by default but can be re-directed to an output file with the -\\\-output \<PATH> option.
+As a library, `r2u2_core` provides the function `get_output_buffer` and `get_contract_buffer`. More information on `r2u2_core` output function available at [https://docs.rs/r2u2_core/latest/r2u2_core/](https://docs.rs/r2u2_core/latest/r2u2_core/).
 
 ## Verdict Stream
 

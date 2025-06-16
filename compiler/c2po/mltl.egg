@@ -1,5 +1,5 @@
 (sort IntervalSort)
-(function Interval (i64 i64) IntervalSort)
+(constructor Interval (i64 i64) IntervalSort)
 
 (datatype MLTL
   (Bool bool)

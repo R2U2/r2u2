@@ -13,8 +13,8 @@
 #define R2U2_MAX_AUX_STRINGS 1024
 
 // Future Time Memory
-//  DUOQ_BYTES: arena size in bytes
-#define R2U2_DUOQ_BYTES (256 * 1024)
+//  SCQ_BYTES: arena size in bytes
+#define R2U2_SCQ_BYTES (256 * 1024)
 
 #define R2U2_FLOAT_EPSILON 0.00001
 

@@ -1,16 +1,19 @@
 # Overview
 
 The Realizable, Reconfigurable, Unobtrusive Unit (R2U2) is a stream-based runtime verification
-framework based on Mission-time Linear Temporal Logic (MLTL) designed to monitor safety- or
+framework based on Mission-time Linear Temporal Logic (MLTL) designed to monitor safety-critical or
 mission-critical systems with constrained computational resources.
 
 Given a specification and input stream, R2U2 will output a stream of verdicts computing whether the
-specification with respect to the input stream. Specifications can be written and compiled using the
+specification holds with respect to the input stream. Specifications can be written and compiled using the
 Configuration Compiler for Property Organization (C2PO).
 
 To get started, go to the [Quick Start Guide (C Version)](Overview/quick_start_guide_c) or [Quick Start Guide (Rust Version)](Overview/quick_start_guide_rust).
 
-If you would like to cite R2U2, please use our [2023 CAV paper](https://link.springer.com/chapter/10.1007/978-3-031-37709-9_23). 
+If you would like to cite R2U2, please use our 2023 CAV paper {footcite:p}`JJKRZ23` and our 2025 NFM Paper {footcite:p}`AJR2025`. 
+
+:::{footbibliography}
+:::
 
 
 ```{toctree}
@@ -45,6 +48,7 @@ examples
 :hidden:
 :caption: 🛠 Developer Guides
 _collections/c2po_docs/dev/toc
+Implementation/impl
 _collections/r2u2_c_docs/dev/toc
 _collections/r2u2_rust_docs/dev/toc
 README

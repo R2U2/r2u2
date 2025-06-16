@@ -124,9 +124,6 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
         c2po_options.append("--float-width")
         c2po_options.append(options["float-width"])
 
-    if "atomic-checkers" in options and options["atomic-checkers"]:
-        c2po_options.append("--atomic-checkers")
-
     if "booleanizer" in options and options["booleanizer"]:
         c2po_options.append("--booleanizer")
 
@@ -135,6 +132,21 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
 
     if "extops" in options and options["extops"]:
         c2po_options.append("--extops")
+
+    if "disable-rewrite" in options and options["disable-rewrite"]:
+        c2po_options.append("--disable-rewrite")
+
+    return c2po_options
+
+def collect_c2po_options_rust(options: dict[str,str|bool]) -> list[str]:
+    """Filter all c2po options from suite and return options in a cli-suitable list."""
+    c2po_options = []
+
+    if "booleanizer" in options and not options["booleanizer"]:
+        c2po_options.append("--disable-booleanizer")
+
+    if "disable-cse" in options and options["disable-cse"]:
+        c2po_options.append("--disable-cse")
 
     if "disable-rewrite" in options and options["disable-rewrite"]:
         c2po_options.append("--disable-rewrite")
@@ -208,15 +220,25 @@ class TestCase():
         self.c2po_command_path = self.test_results_dir / self.c2po.with_suffix(".sh").name
         self.r2u2bin_command_path = self.test_results_dir / self.r2u2bin.with_suffix(".sh").name
 
-        self.c2po_cli_options = collect_c2po_options(self.c2po_options)
-        self.c2po_command =  ([
-            "python3", str(self.c2po)
-        ] + collect_c2po_options(self.c2po_options) + 
-        [
-            "--output", str(self.spec_bin_workdir_path), 
-            "--trace", str(self.trace_path),
-            str(self.mltl_path)
-        ])
+        if self.monitor == "rust" and ".py" not in str(self.c2po):
+            self.c2po_command = ([
+                str(self.c2po), 
+                "compile",
+            ] + collect_c2po_options_rust(self.c2po_options) + 
+            [
+                "--output", str(WORK_DIR),
+                str(self.mltl_path),
+                str(self.trace_path)
+            ])
+        else: 
+            self.c2po_command =  ([
+                "python3", str(self.c2po)
+            ] + collect_c2po_options(self.c2po_options) + 
+            [
+                "--output", str(self.spec_bin_workdir_path), 
+                "--trace", str(self.trace_path),
+                str(self.mltl_path)
+            ])
 
         if self.monitor == "c":
             self.r2u2_command = [
@@ -224,7 +246,7 @@ class TestCase():
             ]
         elif self.monitor == "rust":
             self.r2u2_command = [
-                "cargo", "run", "--manifest-path", str(self.r2u2bin), "run", str(self.spec_bin_workdir_path), str(self.trace_path)
+                str(self.r2u2bin), "run", str(self.spec_bin_workdir_path), str(self.trace_path)
             ]
 
     def clean(self) -> None:
@@ -269,17 +291,30 @@ class TestCase():
         with open(self.spec_asm_path, "wb") as f:
             f.write(self.asm)
 
-        c2po_command_new = [
-            "python3", str(self.c2po), "--debug"
-        ] + collect_c2po_options(self.c2po_options) + \
-        [
-            "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
-            "--trace", str(self.test_results_dir /self.trace_path.name),
-            str(self.test_results_dir /self.mltl_path.name)
-        ]
+
+        if self.monitor == "rust" and ".py" not in str(self.c2po):
+            c2po_command_new = ([
+                str(self.c2po), 
+                "compile",
+            ] + collect_c2po_options_rust(self.c2po_options) + 
+            [
+                "--output", str(self.spec_bin_workdir_path.name),
+                str(self.mltl_path),
+                str(self.trace_path)
+            ])
+        else:
+            c2po_command_new = [
+                "python3", str(self.c2po), "--debug"
+            ] + collect_c2po_options(self.c2po_options) + \
+            [
+                "--output", str(self.test_results_dir / self.spec_bin_workdir_path.name), 
+                "--trace", str(self.test_results_dir /self.trace_path.name),
+                str(self.test_results_dir /self.mltl_path.name)
+            ]
         with open(self.c2po_command_path, "w") as f:
             f.write(' '.join(c2po_command_new))
 
+        r2u2_command_new = []
         if self.monitor == "c":
             r2u2_command_new = [
                 str(self.r2u2bin), 
@@ -287,11 +322,13 @@ class TestCase():
                 str(self.test_results_dir / self.trace_path.name)
             ]
         elif self.monitor == "rust":
-            r2u2_command_new = ["cargo", "run", "--manifest_path",
-                    str(self.r2u2bin), 
+            r2u2_command_new = [
+                    str(self.r2u2bin), "run",
                     str(self.test_results_dir / self.spec_bin_workdir_path.name), 
                     str(self.test_results_dir / self.trace_path.name)
                 ]
+        else:
+            raise ValueError(f"Invalid monitor type {args.monitor}")
 
         with open(self.r2u2bin_command_path, "w") as f:
             f.write(' '.join(r2u2_command_new))
@@ -533,10 +570,11 @@ if __name__ == "__main__":
             r2u2bin = Path(args.r2u2)
     elif args.monitor == "rust":
         if args.r2u2 is None:
-            print("HERE")
-            r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/Cargo.toml"
+            r2u2bin = TEST_DIR / "../monitors/rust/r2u2_cli/target/release/r2u2_cli"
         else:
             r2u2bin = Path(args.r2u2)
+    else:
+        raise ValueError(f"Invalid monitor type '{args.monitor}' (options are 'c' or 'rust')")
     resultsdir = Path(args.resultsdir)
 
     retcode = main(c2po, r2u2bin, resultsdir, args.suites, args.copyback, args.monitor)

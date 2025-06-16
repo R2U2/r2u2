@@ -85,6 +85,12 @@
             "mltl":  "test0043.c2po",
             "trace":  "input0053.csv",
             "oracle":  "test0043_input0053.log"
+        },
+        {
+            "name": "event",
+            "mltl":  "event.c2po",
+            "trace":  "event.csv",
+            "oracle":  "event.log"
         }
     ]
 }

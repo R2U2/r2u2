@@ -31,7 +31,7 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             }
         }
         MLTL_OP_TYPE_DIRECT => {
-            if instr.opcode == MLTL_OP_PT_SINCE || instr.opcode == MLTL_OP_PT_TRIGGER {
+            if instr.opcode == MLTL_OP_SINCE || instr.opcode == MLTL_OP_TRIGGER {
                 let queue_ctrl = monitor.queue_arena.control_blocks[instr.memory_reference as usize];
                 return Some(r2u2_verdict{time: monitor.time_stamp.saturating_add(queue_ctrl.temporal_block.upper_bound), truth: value != 0});
             } else {
@@ -42,10 +42,6 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
             // Handled by the SCQ check function, just need to pass it the appropriate arguments
             let op_id = if op_num == 0 {instr.op1_value} else {instr.op2_value};
             return scq_read(monitor, instr.memory_reference, op_id, op_num);
-        }
-        MLTL_OP_TYPE_NOT_SET => {
-            // Error
-            return None;
         }
         _ => {
             // Error
@@ -69,10 +65,7 @@ fn push_result(instr: MLTLInstruction, monitor: &mut Monitor, verdict: r2u2_verd
 pub fn mltl_update(monitor: &mut Monitor){
     let instr = monitor.mltl_instruction_table[monitor.mltl_program_count.curr_program_count];
     match instr.opcode {
-        MLTL_OP_FT_NOP => {
-            return;
-        }
-        MLTL_OP_FT_LOAD => {
+        MLTL_OP_LOAD => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("LOAD");
             let verdict = check_operand_data(instr, monitor, 0);
@@ -82,7 +75,7 @@ pub fn mltl_update(monitor: &mut Monitor){
                 push_result(instr, monitor, verdict.unwrap());
             }
         }
-        MLTL_OP_FT_RETURN => {
+        MLTL_OP_RETURN => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("RETURN");
             let verdict = check_operand_data(instr, monitor, 0);
@@ -139,105 +132,81 @@ pub fn mltl_update(monitor: &mut Monitor){
                 }
             }
         }
-        MLTL_OP_FT_EVENTUALLY => {
+        MLTL_OP_EVENTUALLY => {
             return;
         }
-        MLTL_OP_FT_GLOBALLY => {
+        MLTL_OP_GLOBALLY => {
             return;
         }
-        MLTL_OP_FT_UNTIL => {
+        MLTL_OP_UNTIL => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("FT UNTIL");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match until_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = until_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_FT_RELEASE => {
+        MLTL_OP_RELEASE => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("FT RELEASE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match release_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = release_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_PT_ONCE => {
+        MLTL_OP_ONCE => {
             return;
         }
-        MLTL_OP_PT_HISTORICALLY => {
+        MLTL_OP_HISTORICALLY => {
             return;
         }
-        MLTL_OP_PT_SINCE => {
+        MLTL_OP_SINCE => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("PT SINCE");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match since_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = since_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_PT_TRIGGER => {
+        MLTL_OP_TRIGGER => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("PT TRIGGER");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match trigger_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = trigger_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_FT_NOT => {
+        MLTL_OP_NOT => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("NOT");
             let op = check_operand_data(instr, monitor, 0);
-            match not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = not_operator(op.is_some(), op.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_FT_AND => {
+        MLTL_OP_AND => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("AND");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = and_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_FT_OR => {
+        MLTL_OP_OR => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("OR");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match or_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = or_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
-        MLTL_OP_FT_IMPLIES => {
+        MLTL_OP_IMPLIES => {
             return;
         }
-        MLTL_OP_FT_PROB => {
+        MLTL_OP_PROB => {
             return;
         }
-        MLTL_OP_FT_XOR => {
+        MLTL_OP_XOR => {
             return;
         }
-        MLTL_OP_FT_EQUIVALENT => {
+        MLTL_OP_EQUIVALENT => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("EQUIVALENT");
             let op0 = check_operand_data(instr, monitor, 0);
             let op1 = check_operand_data(instr, monitor, 1);
-            match equivalent_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]){
-                Some(result) => push_result(instr, monitor, result),
-                None => (),
-            }
+            if let Some(result) = equivalent_operator(op0.is_some(), op0.unwrap_or_default(), op1.is_some(), op1.unwrap_or_default(), &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize]) { push_result(instr, monitor, result) }
         }
         _ => {
             return;
@@ -245,6 +214,7 @@ pub fn mltl_update(monitor: &mut Monitor){
     }
 }
 
+// Verus doesn't support saturating_sub; therefore, have to provide specification for it
 pub open spec fn saturating_sub(lhs: r2u2_time, rhs: r2u2_time) -> r2u2_time {
     if lhs - rhs < 0 {
         0
@@ -303,7 +273,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     ensures        
         // previous always gets updated when a result is returned
         result.is_some() ==> queue_ctrl.temporal_block.previous.time == result.unwrap().time,
-        !result.is_some() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
+        result.is_none() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
         
         // results are strictly increasing
         result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
@@ -325,7 +295,7 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             result.unwrap().time == value_op1.time - queue_ctrl.temporal_block.upper_bound),
 
         // queue_ctrl.next time doesn't change when neither side is ready or when we cannot evaluate early based on the rhs alone
-        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && !result.is_some()) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
+        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && result.is_none()) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
 
         // rhs true
         (ready_op1 && value_op1.truth && 
@@ -391,16 +361,16 @@ fn until_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
                 queue_ctrl.next_time == r2u2_time::MAX)),
 
         // not enough information to produce result
-        (ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
-        (!ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (ready_op0 && !ready_op1) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (!ready_op0 && !ready_op1) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time,
         (ready_op0 && ready_op1 && value_op0.truth && !value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
                 old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> 
-                !result.is_some() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
+                result.is_none() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
                 (value_op0.time >= value_op1.time && queue_ctrl.next_time == value_op1.time + 1) || queue_ctrl.next_time == r2u2_time::MAX),
         (!ready_op0 && !value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
@@ -468,7 +438,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
     ensures        
         // previous always gets updated when a result is returned
         result.is_some() ==> queue_ctrl.temporal_block.previous.time == result.unwrap().time,
-        !result.is_some() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
+        result.is_none() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
         
         // results are strictly increasing
         result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
@@ -490,7 +460,7 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
             result.unwrap().time == value_op1.time - queue_ctrl.temporal_block.upper_bound),
 
         // queue_ctrl.next time doesn't change when neither side is ready or when we cannot evaluate early based on the rhs alone
-        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && !result.is_some()) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
+        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && result.is_none()) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
 
         // rhs false
         (ready_op1 && !value_op1.truth && 
@@ -557,16 +527,16 @@ fn release_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
                 queue_ctrl.next_time == r2u2_time::MAX)),
 
         // not enough information to produce result
-        (ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
-        (!ready_op0 && !ready_op1) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (ready_op0 && !ready_op1) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time,
+        (!ready_op0 && !ready_op1) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time,
         (ready_op0 && ready_op1 && !value_op0.truth && value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
                 old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> 
-                !result.is_some() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
+                result.is_none() && ((value_op0.time < value_op1.time && queue_ctrl.next_time == value_op0.time + 1) || 
                 (value_op0.time >= value_op1.time && queue_ctrl.next_time == value_op1.time + 1) || queue_ctrl.next_time == r2u2_time::MAX),
         (!ready_op0 && value_op1.truth &&
             value_op1.time < old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound && 
-                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> !result.is_some() && old(queue_ctrl).next_time == queue_ctrl.next_time
+                old(queue_ctrl).temporal_block.previous.time + queue_ctrl.temporal_block.upper_bound <= r2u2_time::MAX) ==> result.is_none() && old(queue_ctrl).next_time == queue_ctrl.next_time
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op1 {
@@ -631,7 +601,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     ensures        
         // previous always gets updated when a result is returned
         result.is_some() ==> queue_ctrl.temporal_block.previous.time == result.unwrap().time,
-        !result.is_some() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
+        result.is_none() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
 
         // results are strictly increasing
         result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
@@ -732,7 +702,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
         // not enough information to produce result
         (!ready_op0 || value_op0.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
         (!ready_op1 || value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
-        (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) ==> !result.is_some(),
+        (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) ==> result.is_none(),
 
         // not enough information to produce result; lhs true from rhs but not to i-ub
         (ready_op1 && !value_op1.truth && value_op1.time >= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound &&
@@ -740,14 +710,14 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
             old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
             value_op0.time < old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
             (queue_ctrl.temporal_block.edge.truth && (queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound)))
-            ==> !result.is_some(),
+            ==> result.is_none(),
     
         // not enough information to produce result; rhs less than i-ub and currently no edge
         ((!ready_op1 || (ready_op1 && value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound)) &&
             old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
             queue_ctrl.temporal_block.edge.time > 0 &&
             (!queue_ctrl.temporal_block.edge.truth || queue_ctrl.temporal_block.edge.time <= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound))
-            ==> !result.is_some()
+            ==> result.is_none()
         
 {
     if !queue_ctrl.temporal_block.previous.truth && queue_ctrl.temporal_block.previous.time < queue_ctrl.temporal_block.lower_bound{
@@ -818,7 +788,7 @@ fn since_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2
     }
     let start_interval = queue_ctrl.temporal_block.previous.time.checked_sub(queue_ctrl.temporal_block.upper_bound);
     if ready_op0 && value_op0.truth && value_op0.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound) &&
-        ((queue_ctrl.temporal_block.edge.truth) && (!start_interval.is_some() || queue_ctrl.temporal_block.edge.time > start_interval.unwrap_or(0))){
+        ((queue_ctrl.temporal_block.edge.truth) && (start_interval.is_none() || queue_ctrl.temporal_block.edge.time > start_interval.unwrap_or(0))){
         verdict.time = min(value_op0.time.saturating_add(queue_ctrl.temporal_block.lower_bound), queue_ctrl.temporal_block.edge.time.saturating_add(queue_ctrl.temporal_block.upper_bound));
         verdict.truth = true;
 
@@ -845,7 +815,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
     ensures        
         // previous always gets updated when a result is returned
         result.is_some() ==> queue_ctrl.temporal_block.previous.time == result.unwrap().time,
-        !result.is_some() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
+        result.is_none() ==> queue_ctrl.temporal_block.previous.time == old(queue_ctrl).temporal_block.previous.time,
 
         // results are strictly increasing
         result.is_some() ==> (result.unwrap().time > old(queue_ctrl).temporal_block.previous.time || 
@@ -946,7 +916,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
         // not enough information to produce result
         (!ready_op0 || value_op0.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
         (!ready_op1 || value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound) &&
-        (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) ==> !result.is_some(),
+        (old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0) ==> result.is_none(),
 
         // not enough information to produce result; lhs false from rhs but not to i-ub
         (ready_op1 && value_op1.truth && value_op1.time >= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound &&
@@ -954,14 +924,14 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
             old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
             value_op0.time < old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound && 
             (queue_ctrl.temporal_block.edge.truth && (queue_ctrl.temporal_block.edge.time > old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound)))
-            ==> !result.is_some(),
+            ==> result.is_none(),
     
         // not enough information to produce result; rhs less than i-ub and currently no edge
         ((!ready_op1 || (ready_op1 && value_op1.time < old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.lower_bound)) &&
             old(queue_ctrl).temporal_block.previous.time-queue_ctrl.temporal_block.lower_bound >= 0 &&
             queue_ctrl.temporal_block.edge.time > 0 &&
             (!queue_ctrl.temporal_block.edge.truth || queue_ctrl.temporal_block.edge.time <= old(queue_ctrl).temporal_block.previous.time - queue_ctrl.temporal_block.upper_bound))
-            ==> !result.is_some()
+            ==> result.is_none()
         
 {
     if !queue_ctrl.temporal_block.previous.truth && queue_ctrl.temporal_block.previous.time < queue_ctrl.temporal_block.lower_bound{
@@ -1032,7 +1002,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
     }
     let start_interval = queue_ctrl.temporal_block.previous.time.checked_sub(queue_ctrl.temporal_block.upper_bound);
     if ready_op0 && !value_op0.truth && value_op0.time >= queue_ctrl.temporal_block.previous.time.saturating_sub(queue_ctrl.temporal_block.lower_bound) &&
-        ((queue_ctrl.temporal_block.edge.truth) && (!start_interval.is_some() || queue_ctrl.temporal_block.edge.time > start_interval.unwrap_or(0))){
+        ((queue_ctrl.temporal_block.edge.truth) && (start_interval.is_none() || queue_ctrl.temporal_block.edge.time > start_interval.unwrap_or(0))){
         verdict.time = min(value_op0.time.saturating_add(queue_ctrl.temporal_block.lower_bound), queue_ctrl.temporal_block.edge.time.saturating_add(queue_ctrl.temporal_block.upper_bound));
         verdict.truth = false;
 
@@ -1054,7 +1024,7 @@ fn trigger_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2
 fn not_operator(ready_op: r2u2_bool, value_op: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
     ensures
         result.is_some() ==> (result.unwrap().truth == !value_op.truth && (queue_ctrl.next_time == value_op.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
-        !ready_op ==> !result.is_some(),
+        !ready_op ==> result.is_none(),
 {
     if ready_op {
         queue_ctrl.next_time = value_op.time.saturating_add(1);
@@ -1070,7 +1040,7 @@ fn not_operator(ready_op: r2u2_bool, value_op: r2u2_verdict, queue_ctrl: &mut SC
 fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
     ensures
         // queue_ctrl.next time doesn't change when neither side is ready or when we cannot evaluate early based on the one side alone
-        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && !result.is_some() || (ready_op0 && !ready_op1 && !result.is_some())) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
+        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && result.is_none() || (ready_op0 && !ready_op1 && result.is_none())) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
 
         // lhs and rhs true
         (ready_op0 && value_op0.truth && ready_op1 && value_op1.truth &&
@@ -1090,9 +1060,9 @@ fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_b
         (!ready_op0 && ready_op1 && !value_op1.truth) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
             
         // not enough information to produce result
-        (!ready_op0 && !ready_op1) ==> !result.is_some(),
-        (ready_op0 && value_op0.truth && !ready_op1) ==> !result.is_some(),
-        (!ready_op0 && ready_op1 && value_op1.truth) ==> !result.is_some(),
+        (!ready_op0 && !ready_op1) ==> result.is_none(),
+        (ready_op0 && value_op0.truth && !ready_op1) ==> result.is_none(),
+        (!ready_op0 && ready_op1 && value_op1.truth) ==> result.is_none(),
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
@@ -1139,7 +1109,7 @@ fn and_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_b
 fn or_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bool, value_op1: r2u2_verdict, queue_ctrl: &mut SCQCtrlBlock) -> (result: Option<r2u2_verdict>) 
     ensures
         // queue_ctrl.next time doesn't change when neither side is ready or when we cannot evaluate early based on the one side alone
-        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && !result.is_some() || (ready_op0 && !ready_op1 && !result.is_some())) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
+        (!ready_op0 && !ready_op1) || (!ready_op0 && ready_op1 && result.is_none() || (ready_op0 && !ready_op1 && result.is_none())) ==> queue_ctrl.next_time == old(queue_ctrl).next_time,
 
         // lhs and rhs true
         (ready_op0 && value_op0.truth && ready_op1 && value_op1.truth &&
@@ -1159,9 +1129,9 @@ fn or_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1: r2u2_bo
         (!ready_op0 && ready_op1 && value_op1.truth) ==> (result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
         
         // not enough information to produce result
-        (!ready_op0 && !ready_op1) ==> !result.is_some(),
-        (ready_op0 && !value_op0.truth && !ready_op1) ==> !result.is_some(),
-        (!ready_op0 && ready_op1 && !value_op1.truth) ==> !result.is_some(),
+        (!ready_op0 && !ready_op1) ==> result.is_none(),
+        (ready_op0 && !value_op0.truth && !ready_op1) ==> result.is_none(),
+        (!ready_op0 && ready_op1 && !value_op1.truth) ==> result.is_none(),
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
@@ -1235,9 +1205,9 @@ fn equivalent_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1:
             value_op0.time >= value_op1.time) ==> (!result.unwrap().truth && result.unwrap().time == value_op1.time && (queue_ctrl.next_time == value_op1.time + 1 || queue_ctrl.next_time == r2u2_time::MAX)),
         
         // not enough information to produce result
-        (!ready_op0 && !ready_op1) ==> !result.is_some(),
-        (ready_op0 && !value_op0.truth && !ready_op1) ==> !result.is_some(),
-        (!ready_op0 && ready_op1 && !value_op1.truth) ==> !result.is_some(),
+        (!ready_op0 && !ready_op1) ==> result.is_none(),
+        (ready_op0 && !value_op0.truth && !ready_op1) ==> result.is_none(),
+        (!ready_op0 && ready_op1 && !value_op1.truth) ==> result.is_none(),
 {
     let mut verdict = r2u2_verdict::default();
     if ready_op0 && ready_op1 {
@@ -1248,16 +1218,14 @@ fn equivalent_operator(ready_op0: r2u2_bool, value_op0: r2u2_verdict, ready_op1:
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("Both {}", if value_op1.truth {"True"} else {"False"});
             verdict.truth = true;
-            queue_ctrl.next_time = verdict.time.saturating_add(1);
-            return Some(verdict);
         }
         else {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("{} not equivalant to {}", if value_op0.truth {"True"} else {"False"}, if value_op1.truth {"True"} else {"False"});
             verdict.truth = false;
-            queue_ctrl.next_time = verdict.time.saturating_add(1);
-            return Some(verdict);
         }
+        queue_ctrl.next_time = verdict.time.saturating_add(1);
+        return Some(verdict);
     }
     #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
     debug_print!("Waiting");

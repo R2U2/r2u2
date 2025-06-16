@@ -9,38 +9,38 @@ TL n7  return n6 2
 TL n8  release n0 n5
 TL n9  return n8 3
 TL n10 load   a0
-TL q11 trigger False n10
+TL n11 trigger False n10
 TL n12 return n11 4
-TL q13 since  True n10
+TL n13 since  True n10
 TL n14 return n13 5
 TL n15 load   a1
-TL q16 since  n10 n15
+TL n16 since  n10 n15
 TL n17 return n16 6
-CG TL DUOQ q0 |1|
-CG TL DUOQ q1 |5|
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |5|
 CG TL TEMP q1 [0, 5]
-CG TL DUOQ q2 |1|
-CG TL DUOQ q3 |5|
+CG TL SCQ q2 |1|
+CG TL SCQ q3 |5|
 CG TL TEMP q3 [0, 5]
-CG TL DUOQ q4 |1|
-CG TL DUOQ q5 |1|
-CG TL DUOQ q6 |5|
+CG TL SCQ q4 |1|
+CG TL SCQ q5 |1|
+CG TL SCQ q6 |5|
 CG TL TEMP q6 [0, 5]
-CG TL DUOQ q7 |1|
-CG TL DUOQ q8 |5|
+CG TL SCQ q7 |1|
+CG TL SCQ q8 |5|
 CG TL TEMP q8 [0, 5]
-CG TL DUOQ q9 |1|
-CG TL DUOQ q10 |1|
-CG TL DUOQ q11 |5|
+CG TL SCQ q9 |1|
+CG TL SCQ q10 |1|
+CG TL SCQ q11 |5|
 CG TL TEMP q11 [0, 5]
-CG TL DUOQ q12 |1|
-CG TL DUOQ q13 |5|
+CG TL SCQ q12 |1|
+CG TL SCQ q13 |5|
 CG TL TEMP q13 [0, 5]
-CG TL DUOQ q14 |1|
-CG TL DUOQ q15 |1|
-CG TL DUOQ q16 |5|
+CG TL SCQ q14 |1|
+CG TL SCQ q15 |1|
+CG TL SCQ q16 |5|
 CG TL TEMP q16 [0, 5]
-CG TL DUOQ q17 |1|
+CG TL SCQ q17 |1|
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

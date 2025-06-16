@@ -1,4 +1,4 @@
-use crate::instructions::{booleanizer::*, mltl::*};
+use crate::instructions::{booleanizer::BooleanizerInstruction, mltl::MLTLInstruction};
 use crate::internals::types::*;
 use crate::memory::scq::SCQMemoryArena;
 
