@@ -10,9 +10,10 @@ jobs:
       with:
         python-version: "3.9"
 
-    - name: Install Pyright
+    - name: Install Pyright and Z3 python package
       run: |
-        python -m pip install pyright
+        python -m pip install pyright 
+        python -m pip install z3-solver
 
     # Run this before installing z3 and egglog to check for type errors only in c2po
     - name: Run Pyright 
