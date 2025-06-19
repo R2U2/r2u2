@@ -47,6 +47,8 @@ DEFAULTS = {
     "only_parse": False,
     "only_type_check": False,
     "only_compile": False,
+    "simulate": False,
+    "simulate_k": 0,
     "enable_aux": True,
     "enable_booleanizer": False,
     "enable_extops": False,
@@ -92,6 +94,8 @@ class Options:
     only_parse: bool = DEFAULTS["only_parse"]
     only_type_check: bool = DEFAULTS["only_type_check"]
     only_compile: bool = DEFAULTS["only_compile"]
+    simulate: bool = DEFAULTS["simulate"]
+    simulate_k: int = DEFAULTS["simulate_k"]
     enable_aux: bool = DEFAULTS["enable_aux"]
     enable_booleanizer: bool = DEFAULTS["enable_booleanizer"]
     enable_extops: bool = DEFAULTS["enable_extops"]

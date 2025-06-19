@@ -21,7 +21,6 @@ from c2po import (
 
 MODULE_CODE = "MAIN"
 
-
 class ReturnCode(enum.Enum):
     SUCCESS = 0
     ERROR = 1
@@ -108,6 +107,17 @@ def compile(opts: options.Options) -> ReturnCode:
     for cpass in passes.pass_list:
         cpass(program, context)
         if not context.status:
+            return ReturnCode.ERROR
+
+    if opts.simulate:
+        try:
+            from c2po import simulate
+            trace = simulate.simulate(program, context, opts.simulate_k)
+            print("#", ",".join(trace[0]))
+            print("\n".join([",".join(t) for t in trace[1:]]))
+            return ReturnCode.SUCCESS
+        except ImportError:
+            log.error(MODULE_CODE, "z3 not found, skipping simulation")
             return ReturnCode.ERROR
 
     if opts.only_compile:
