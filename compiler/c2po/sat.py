@@ -697,10 +697,15 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT via UFLIA\n\t{expr}")
-            return ""
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len)))))))))"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.ONCE):
-            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and pi,i |= p
+            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
+            # and pi,i |= p
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
@@ -708,7 +713,8 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (and (< {lb} k) (< k len)) (exists ((i Int)) (and (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.HISTORICAL):
-            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it holds that pi,i |= p
+            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it
+            # holds that pi,i |= p
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
@@ -716,8 +722,8 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.SINCE):
-            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and 
-            #                               pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
+            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
+            # and pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
