@@ -1,0 +1,64 @@
+BootStrap: docker
+From: ubuntu:24.04
+Stage: build
+
+%files
+    ../../../compiler/* /home/compiler/
+
+%post
+    apt-get -y update
+    apt-get -y install python3 python3-pip ninja-build wget unzip git libgmp-dev cmake pkg-config
+
+    mkdir /home/deps
+    cd /home/deps
+
+    wget https://github.com/Z3Prover/z3/releases/download/z3-4.14.0/z3-4.14.0-x64-glibc-2.35.zip
+    unzip z3-4.14.0-x64-glibc-2.35.zip
+    mv z3-4.14.0-x64-glibc-2.35 z3
+    rm z3-4.14.0-x64-glibc-2.35.zip
+
+    wget https://yices.csl.sri.com/releases/2.6.5/yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+    tar -xvf yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+    mv yices-2.6.5 yices2
+    rm yices-2.6.5-x86_64-pc-linux-gnu-static-gmp.tar.gz
+
+    wget https://github.com/cvc5/cvc5/releases/download/cvc5-1.2.1/cvc5-Linux-x86_64-static.zip
+    unzip cvc5-Linux-x86_64-static.zip
+    mv cvc5-Linux-x86_64-static cvc5
+    rm cvc5-Linux-x86_64-static.zip
+
+    git clone https://github.com/bitwuzla/bitwuzla
+    cd bitwuzla
+    git checkout 0.7.0
+    pip3 install --break-system-packages meson
+    ./configure.py release
+    cd build && ninja
+
+
+BootStrap: docker
+From: python:3.11
+
+%files from build
+    /home/deps/z3/bin/z3 /home/deps/z3
+    /home/deps/yices2/bin/yices-smt2 /home/deps/yices
+    /home/deps/cvc5/bin/cvc5 /home/deps/cvc5
+    /home/deps/bitwuzla/build/src/main/bitwuzla /home/deps/bitwuzla
+    /home/compiler/* /home/compiler/
+
+%post
+    apt-get -y update
+    apt-get -y install parallel
+
+%environment
+    export PATH=$PATH:/home/deps
+
+%test
+    z3 --version
+    cvc5 --version
+    yices --version
+    bitwuzla --version
+    python3 /home/compiler/c2po.py -c --check-sat --extops /home/compiler/test/sat/sat_1.mltl --debug
+
+%runscript
+    echo "filename,encoding_time,solver_result,solver_time,num_calls"
+    cat $1 | parallel -j$2 python3 /home/compiler/c2po.py -c --extops --quiet --stats "%F,%se,%sr,%st,%sn" --check-sat --smt-encoding $3 --smt-solver $4 

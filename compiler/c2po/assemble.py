@@ -5,7 +5,7 @@ from enum import Enum
 from struct import Struct as CStruct
 from typing import Any, Optional, Union, cast
 
-from c2po import cpt, log, types, options
+from c2po import cpt, log, types
 
 # See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
@@ -97,8 +97,8 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_ADD, False): BZOperator.FADD,
     (cpt.OperatorKind.ARITHMETIC_SUBTRACT, True): BZOperator.ISUB,
     (cpt.OperatorKind.ARITHMETIC_SUBTRACT, False): BZOperator.FSUB,
-    (cpt.OperatorKind.ARITHMETIC_MULTPLY, True): BZOperator.IMUL,
-    (cpt.OperatorKind.ARITHMETIC_MULTPLY, False): BZOperator.FMUL,
+    (cpt.OperatorKind.ARITHMETIC_MULTIPLY, True): BZOperator.IMUL,
+    (cpt.OperatorKind.ARITHMETIC_MULTIPLY, False): BZOperator.FMUL,
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, True): BZOperator.IDIV,
     (cpt.OperatorKind.ARITHMETIC_DIVIDE, False): BZOperator.FDIV,
     (cpt.OperatorKind.ARITHMETIC_MODULO, True): BZOperator.MOD,
@@ -497,7 +497,7 @@ def gen_bz_instruction(
 
 
 def gen_tl_operand(
-    operand: Optional[cpt.Node], instructions: dict[cpt.Expression, TLInstruction]
+    operand: Optional[cpt.Expression], instructions: dict[cpt.Expression, TLInstruction]
 ) -> tuple[TLOperandType, Any]:
     if isinstance(operand, cpt.Constant):
         operand_type = TLOperandType.DIRECT
@@ -1003,6 +1003,40 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
     return (aliases, binary)
 
 
+def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction], binary: bytes) -> None:
+    """Computes values for bounds file, setting the values in `program.bounds_c` and `program.bounds_rs`."""
+    num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
+    num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
+    num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
+    num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
+    num_signals = len(context.signals)
+    num_atomics = len(context.atomic_id.values())
+    total_scq_size = sum([
+        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
+    ])
+
+    program.bounds_c["R2U2_MAX_INSTRUCTIONS"] = num_bz + num_tl
+    program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
+    program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
+    program.bounds_c["R2U2_MAX_INST_LEN"] = len(binary)
+    program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
+    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
+    program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
+
+    program.bounds_rs["R2U2_MAX_SPECS"] = sum(
+        [
+            spec.get_expr().wpd
+            for spec in program.get_specs()
+            if isinstance(spec, cpt.Formula)
+        ]
+    )
+    program.bounds_rs["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
+    program.bounds_rs["R2U2_MAX_ATOMICS"] = num_atomics
+    program.bounds_rs["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
+    program.bounds_rs["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
+    program.bounds_rs["R2U2_TOTAL_QUEUE_MEM"] = total_scq_size - (4 * num_temporal_instructions)
+
+
 def assemble(
     program: cpt.Program, context: cpt.Context
 ) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
@@ -1025,7 +1059,7 @@ def assemble(
 
     binary += b"\x00"
 
-    if options.enable_aux:
+    if context.options.enable_aux:
         (aliases, binary_aliases) = pack_aliases(program, context)
         assembly += aliases
         binary += binary_aliases
@@ -1033,5 +1067,7 @@ def assemble(
         binary += b"\x00"
 
     binary += b"\x00"
+
+    compute_bounds(program, context, assembly, binary) # type: ignore
 
     return (assembly, binary) #type: ignore

@@ -299,7 +299,7 @@ fn main() {
                 enable_sat.to_owned(),
                 if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
                 );
-        }
+            }
         _ => {}
     }
 

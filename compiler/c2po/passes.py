@@ -1,9 +1,8 @@
 from __future__ import annotations
-
+from copy import deepcopy
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat, options
-from copy import deepcopy
 
 MODULE_CODE = "PASS"
 
@@ -29,7 +28,8 @@ def expand_definitions(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def convert_function_calls_to_structs(program: cpt.Program, context: cpt.Context) -> None:
-    """Converts each function call in `program` that corresponds to a struct instantiation to a `ast.C2POStruct`."""
+    """Converts each function call in `program` that corresponds to a struct instantiation to a `cpt.Struct`."""
+    log.debug(MODULE_CODE, 1, "Converting function calls to structs")
     for expr in [
         expr
         for define in context.definitions.values()
@@ -87,6 +87,9 @@ def resolve_contracts(program: cpt.Program, context: cpt.Context) -> None:
             ),
         ]
 
+        for formula in new_formulas:
+            formula.get_expr().type = types.BoolType()
+
         new_formulas = cast("list[cpt.Specification]", new_formulas)
 
         program.replace_spec(contract, new_formulas)
@@ -101,17 +104,22 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, "Unrolling set aggregation expressions.")
 
     def resolve_struct_accesses(expr: cpt.Expression, context: cpt.Context) -> None:
-        for subexpr in cpt.postorder(expr, context):
-            if not isinstance(subexpr, cpt.StructAccess):
-                continue
+        if not isinstance(expr, cpt.StructAccess):
+            return
 
-            struct = subexpr.get_struct()
-            if not isinstance(struct, cpt.Struct):
-                continue
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            return
 
-            member = struct.get_member(subexpr.member)
-            if member:
-                subexpr.replace(member)
+        member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                             f"Please open an issue at {log.ISSUE_URL}.")
+
+        new_type = member.type
+        if member:
+            expr.replace(member)
+            member.type = new_type
 
     for expr in program.preorder(context):
         if not isinstance(expr, cpt.SetAggregation):
@@ -224,10 +232,19 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
         if not isinstance(expr, cpt.StructAccess):
             continue
 
-        s: cpt.Struct = expr.get_struct()
+        s = expr.get_struct()
+        if not isinstance(s, cpt.Struct):
+            continue
+
         member = s.get_member(expr.member)
+        if not member:
+            raise ValueError(f"Member {expr.member} not found in struct {s} --- issue with type checking\n"
+                             f"Please open an issue at {log.ISSUE_URL}.")
+
+        new_type = member.type
         if member:
             expr.replace(member)
+            member.type = new_type
 
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
@@ -1051,7 +1068,6 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
     """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
     atomic_map: dict[str, int] = {}
-    context.atomic_id = {}
     aid: int = 0
 
     for expr in program.postorder(context):
@@ -1066,10 +1082,10 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
             context.atomic_id[expr] = atomic_map[cpt.to_prefix_str(expr)]
             continue
 
-        # two cases where we just assert signals as atomics: when we have no frontend and when we're parsing an MLTL file
-        if options.frontend is types.R2U2Engine.NONE:
+        # we just cast signals as atomics when we have no frontend
+        if context.options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0 or not options.assembly_enabled:
+                if expr.signal_id < 0 or not context.options.assembly_enabled:
                     context.atomic_id[expr] = aid
                     atomic_map[cpt.to_prefix_str(expr)] = aid
                     aid += 1
@@ -1078,26 +1094,25 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
                 context.atomic_id[expr] = expr.signal_id
                 atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
                 continue
-        else:
-            for parent in [p for p in expr.parents if isinstance(p, cpt.Expression)]:
-                if parent.engine != types.R2U2Engine.TEMPORAL_LOGIC:
-                    continue
+        elif not isinstance(expr, cpt.Atomic):
+            # add atomic node between any TL and BZ nodes
+            tl_parents = [
+                p for p in expr.parents if p.engine == types.R2U2Engine.TEMPORAL_LOGIC
+            ]
 
-                if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
-                    # No cpt.Atomic expression between booleanizer and TL engine; therefore make one
-                    new = cpt.Atomic(
-                        expr.loc,
-                        deepcopy(expr))
-                    expr.replace(new)
-                    if cpt.to_prefix_str(new) in atomic_map:
-                        context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
-                    else:
-                        context.atomic_id[new] = aid
-                        atomic_map[cpt.to_prefix_str(new)] = aid
-                        aid += 1
-                elif isinstance(expr, cpt.Atomic) and expr not in context.atomic_id:
-                    context.atomic_id[expr] = aid
-                    atomic_map[cpt.to_prefix_str(expr)] = aid
+            if expr.engine == types.R2U2Engine.BOOLEANIZER and len(tl_parents) > 0:
+                new = cpt.Atomic(expr.loc, deepcopy(expr))
+                for parent in tl_parents:
+                    for i in range(0, len(parent.children)):
+                        if id(parent.children[i]) == id(expr):
+                            parent.children[i] = new
+                    new.parents.append(parent)
+
+                if cpt.to_prefix_str(new) in atomic_map:
+                    context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
+                else:
+                    context.atomic_id[new] = aid
+                    atomic_map[cpt.to_prefix_str(new)] = aid
                     aid += 1
 
     log.debug(
@@ -1110,9 +1125,6 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
     """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
     compute_scq_sizes(program, context)
 
-    log.stat(MODULE_CODE, f"old_scq_size={program.total_scq_size}")
-
-    log.warning(MODULE_CODE, "Equality saturation is an experimental feature")
     log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
 
     # flatten_multi_operators(program, context)
@@ -1145,16 +1157,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
             equiv_result = "unknown"
             old.replace(new)
             compute_scq_sizes(program, context)
-
-        log.stat(MODULE_CODE, f"equiv_result={equiv_result}")
-        log.stat(MODULE_CODE, f"new_scq_size={program.total_scq_size}")
+        
+        context.stats.eqsat_equiv_result = equiv_result
 
     log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
     """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
-    log.debug(MODULE_CODE, 1, "Checking FT formulas satisfiability")
+    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
     
     results = sat.check_sat(program, context)
 
@@ -1176,7 +1187,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         if isinstance(expr, cpt.Formula):
-            expr.scq_size = 1
+            expr.scq_size = 1 + context.options.scq_constant
             expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
 
             total_scq_size += expr.scq_size
@@ -1196,7 +1207,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
 
-        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1
+        expr.scq_size = max(max_wpd - expr.bpd, 0) + 1 + context.options.scq_constant
         expr.total_scq_size = (
             sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
             + expr.scq_size
@@ -1210,6 +1221,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
         )
 
     program.total_scq_size = total_scq_size
+    context.stats.total_scq_size = total_scq_size
 
     log.debug(MODULE_CODE, 1, f"Program SCQ size: {total_scq_size}")
 
@@ -1226,6 +1238,7 @@ pass_list: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
+    resolve_struct_accesses,
     unroll_set_aggregation,
     resolve_struct_accesses,
     resolve_array_accesses,
@@ -1244,20 +1257,30 @@ pass_list: list[Pass] = [
 ]
 
 
-def setup() -> None:
+def setup(opts: options.Options) -> None:
     """Sets up the passes for the compiler."""
     log.debug(MODULE_CODE, 1, "Setting up passes")
 
-    if not options.enable_rewrite:
+    if opts.spec_format == options.SpecFormat.MLTL:
+        pass_list.remove(expand_definitions)
+        pass_list.remove(convert_function_calls_to_structs)
+        pass_list.remove(resolve_contracts)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(unroll_set_aggregation)
+        pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(resolve_array_accesses)
+        pass_list.remove(resolve_struct_accesses)
+
+    if not opts.enable_rewrite:
         pass_list.remove(optimize_rewrite_rules)
 
-    if not options.enable_cse:
+    if not opts.enable_cse:
         pass_list.remove(optimize_cse)
 
-    if options.enable_extops:
+    if opts.enable_extops:
         pass_list.remove(remove_extended_operators)
 
-    if options.enable_eqsat:
+    if opts.enable_eqsat:
         if optimize_rewrite_rules in pass_list:
             pass_list.remove(optimize_rewrite_rules)
         if optimize_cse in pass_list:
@@ -1270,11 +1293,11 @@ def setup() -> None:
     else: # not enable_egraph
         pass_list.remove(optimize_eqsat)
         
-    if not options.enable_nnf:
+    if not opts.enable_nnf:
         pass_list.remove(to_nnf)
 
-    if not options.enable_bnf:
+    if not opts.enable_bnf:
         pass_list.remove(to_bnf)
 
-    if not options.enable_sat:
+    if not opts.enable_sat:
         pass_list.remove(check_sat)

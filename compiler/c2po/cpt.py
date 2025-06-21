@@ -7,7 +7,7 @@ import enum
 import pickle
 from typing import Iterator, Optional, Union, cast, Any
 
-from c2po import log, types
+from c2po import log, types, options, stats
 
 MODULE_CODE = "CPT"
 
@@ -74,23 +74,21 @@ class Expression(Node):
                 siblings.append(sibling)
 
         return siblings
-    
+
     def get_descendants(self) -> list[Expression]:
         prev_visited_children: list[Expression] = [self]
         visited_children: list[Expression] = []
         children: list[Expression] = []
-        while(True):  
+        while True:
             for node in prev_visited_children:
                 for child in node.children:
                     if not isinstance(child, SpecificationSet):
                         visited_children.append(child)
                         children.append(child)
-            if(len(visited_children) == 0):
+            if len(visited_children) == 0:
                 return children
             prev_visited_children = visited_children
             visited_children = []
-   
-
 
     def replace(self, new: Expression) -> None:
         """Replaces 'self' with 'new', setting the parents' children of 'self' to 'new'. Note that 'self' is orphaned as a result."""
@@ -110,6 +108,7 @@ class Expression(Node):
                 child.parents.remove(self)
 
         self.replacement = new
+        new.type = self.type
 
     def has_only_tl_parents(self) -> bool:
         """Returns True if all parents of this node are computed by the TL Engine (is a logical or temporal operator)."""
@@ -355,6 +354,7 @@ class SetAggregation(Expression):
 
         self.operator = operator
         self.bound_var = var
+        self.type = types.BoolType()
 
     @staticmethod
     def ForEach(
@@ -438,7 +438,7 @@ class OperatorKind(enum.Enum):
     # Arithmetic
     ARITHMETIC_ADD = "+"
     ARITHMETIC_SUBTRACT = "-"
-    ARITHMETIC_MULTPLY = "*"
+    ARITHMETIC_MULTIPLY = "*"
     ARITHMETIC_DIVIDE = "/"
     ARITHMETIC_MODULO = "%"
     ARITHMETIC_NEGATE = "-"  # same as ARITHMETIC_SUBTRACT
@@ -446,7 +446,6 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_SQRT = "sqrt"
     ARITHMETIC_ABS = "abs"
     ARITHMETIC_RATE = "rate"
-
 
     # Relational
     EQUAL = "=="
@@ -480,7 +479,6 @@ class OperatorKind(enum.Enum):
     COUNT = "count"
     PREVIOUS = "prev"
 
-
     def is_booleanizer_operator(self) -> bool:
         return self in {
             OperatorKind.BITWISE_AND,
@@ -491,7 +489,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.SHIFT_RIGHT,
             OperatorKind.ARITHMETIC_ADD,
             OperatorKind.ARITHMETIC_SUBTRACT,
-            OperatorKind.ARITHMETIC_MULTPLY,
+            OperatorKind.ARITHMETIC_MULTIPLY,
             OperatorKind.ARITHMETIC_DIVIDE,
             OperatorKind.ARITHMETIC_MODULO,
             OperatorKind.ARITHMETIC_NEGATE,
@@ -531,31 +529,45 @@ class Operator(Expression):
         children: list[Expression],
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.COUNT, [num] + children, type)
+        new = Operator(loc, OperatorKind.COUNT, [num] + children, type)
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseAnd(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_AND, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_AND, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseOr(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_OR, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_OR, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseXor(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_XOR, [lhs, rhs])
+        new = Operator(loc, OperatorKind.BITWISE_XOR, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def BitwiseNegate(loc: log.FileLocation, operand: Expression) -> Operator:
-        return Operator(loc, OperatorKind.BITWISE_NEGATE, [operand])
+        new = Operator(loc, OperatorKind.BITWISE_NEGATE, [operand])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ShiftLeft(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.SHIFT_LEFT, [lhs, rhs])
+        new = Operator(loc, OperatorKind.SHIFT_LEFT, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ShiftRight(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.SHIFT_RIGHT, [lhs, rhs])
+        new = Operator(loc, OperatorKind.SHIFT_RIGHT, [lhs, rhs])
+        new.type = types.IntType()
+        return new
 
     @staticmethod
     def ArithmeticAdd(
@@ -580,7 +592,7 @@ class Operator(Expression):
         operands: list[Expression],
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_MULTPLY, operands, type)
+        return Operator(loc, OperatorKind.ARITHMETIC_MULTIPLY, operands, type)
 
     @staticmethod
     def ArithmeticDivide(
@@ -598,8 +610,10 @@ class Operator(Expression):
         rhs: Expression,
         type: types.Type = types.NoType(),
     ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
-    
+        new = Operator(loc, OperatorKind.ARITHMETIC_MODULO, [lhs, rhs], type)
+        new.type = types.IntType()
+        return new
+
     @staticmethod
     def ArithmeticPower(
         loc: log.FileLocation,
@@ -608,63 +622,77 @@ class Operator(Expression):
         type: types.Type = types.NoType(),
     ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_POWER, [lhs, rhs], type)
-    
+
     @staticmethod
     def ArithmeticSqrt(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_SQRT, [operand])
-    
+
     @staticmethod
     def ArithmeticAbs(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_ABS, [operand])
 
-
     @staticmethod
     def ArithmeticNegate(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
-        
+
     @staticmethod
-    def RateFunction(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
+    def RateFunction(
+        loc: log.FileLocation, lhs: Expression, rhs: Expression
+    ) -> Operator:
         return Operator(loc, OperatorKind.ARITHMETIC_RATE, [lhs, rhs])
-    
+
     @staticmethod
     def PreviousFunction(loc: log.FileLocation, operand: Expression) -> Operator:
         return Operator(loc, OperatorKind.PREVIOUS, [operand])
 
     @staticmethod
     def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def NotEqual(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.NOT_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.NOT_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def GreaterThan(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.GREATER_THAN, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.GREATER_THAN, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LessThan(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        return Operator(loc, OperatorKind.LESS_THAN, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.LESS_THAN, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def GreaterThanOrEqual(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.GREATER_THAN_OR_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.GREATER_THAN_OR_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LessThanOrEqual(
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
-        return Operator(loc, OperatorKind.LESS_THAN_OR_EQUAL, [lhs, rhs])
+        operator = Operator(loc, OperatorKind.LESS_THAN_OR_EQUAL, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
 
     @staticmethod
     def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -672,6 +700,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -679,6 +708,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_XOR, operands)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -686,6 +716,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -695,6 +726,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_IMPLIES, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -702,6 +734,7 @@ class Operator(Expression):
         operator = Operator(loc, OperatorKind.LOGICAL_NEGATE, [operand])
         operator.bpd = operand.bpd
         operator.wpd = operand.wpd
+        operator.type = types.BoolType()
         return operator
 
     def __deepcopy__(self, memo) -> Operator:
@@ -709,13 +742,13 @@ class Operator(Expression):
         new = Operator(self.loc, self.operator, children)
         self.copy_attrs(new)
         return new
-    
+
+
 class Atomic(Expression):
-    def __init__(
-        self, loc: log.FileLocation, child: Expression
-    ) -> None:
+    def __init__(self, loc: log.FileLocation, child: Expression) -> None:
         super().__init__(loc, [child])
         self.engine = types.R2U2Engine.BOOLEANIZER
+        self.type = types.BoolType()
 
     def __deepcopy__(self, memo):
         new = Atomic(self.loc, self.children[0])
@@ -743,6 +776,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -753,6 +787,7 @@ class TemporalOperator(Operator):
         operator.bpd = operand.bpd + lb
         operator.wpd = operand.wpd + ub
         operator.symbol = f"F[{lb},{ub}]"
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -762,6 +797,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -771,6 +807,7 @@ class TemporalOperator(Operator):
         operator = TemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
+        operator.type = types.BoolType()
         return operator
 
     @staticmethod
@@ -778,6 +815,7 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.HISTORICAL, lb, ub, [operand])
+        operator.type = types.BoolType()
         operator.bpd = operand.bpd - ub
         operator.wpd = operand.bpd - lb
         return operator
@@ -787,6 +825,7 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.ONCE, lb, ub, [operand])
+        operator.type = types.BoolType()
         operator.bpd = operand.bpd - ub
         operator.wpd = operand.bpd - lb
         return operator
@@ -796,10 +835,11 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.SINCE, lb, ub, [lhs, rhs])
+        operator.type = types.BoolType()
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
         return operator
-    
+
     @staticmethod
     def Trigger(
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
@@ -834,7 +874,7 @@ def is_commutative_operator(expr) -> bool:
         OperatorKind.BITWISE_OR,
         OperatorKind.BITWISE_XOR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.EQUAL,
         OperatorKind.NOT_EQUAL,
     }
@@ -845,7 +885,7 @@ def is_multi_arity_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
         OperatorKind.ARITHMETIC_ADD,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
     }
 
 
@@ -863,7 +903,7 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_SUBTRACT,
         OperatorKind.ARITHMETIC_DIVIDE,
-        OperatorKind.ARITHMETIC_MULTPLY,
+        OperatorKind.ARITHMETIC_MULTIPLY,
         OperatorKind.ARITHMETIC_MODULO,
         OperatorKind.ARITHMETIC_NEGATE,
         OperatorKind.ARITHMETIC_POWER,
@@ -912,10 +952,12 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.TRIGGER,
     }
 
+
 def is_prev_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.PREVIOUS,
     }
+
 
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
@@ -1084,9 +1126,7 @@ class PastTimeSpecSection(SpecSection):
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
 
-ProgramSection = Union[
-    StructSection, InputSection, DefineSection, SpecSection
-]
+ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
 
 
 class Program(Node):
@@ -1106,6 +1146,54 @@ class Program(Node):
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
         self.total_scq_size = -1
+
+        # Minimum values for bounds in bounds.h and config.toml
+        self.bounds_c = {
+            "R2U2_MAX_INSTRUCTIONS": -1,
+            "R2U2_MAX_SIGNALS": -1,
+            "R2U2_MAX_ATOMICS": -1,
+            "R2U2_MAX_INST_LEN": -1,
+            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
+            "R2U2_MAX_AUX_STRINGS": -1,
+            "R2U2_SCQ_BYTES": -1,
+            "R2U2_FLOAT_EPSILON": 0.00001,
+        }
+
+        self.bounds_rs = {
+            "R2U2_MAX_SPECS": -1,
+            "R2U2_MAX_SIGNALS": -1,
+            "R2U2_MAX_ATOMICS": -1,
+            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
+            "R2U2_MAX_TL_INSTRUCTIONS": -1,
+            "R2U2_TOTAL_QUEUE_MEM": -1,
+        }
+
+    def get_bounds_c_file(self) -> str:
+        """Returns the contents of the bounds.h file."""
+        contents =  "#ifndef R2U2_BOUNDS_H\n"
+        contents += "#define R2U2_BOUNDS_H\n"
+        contents += "\n".join(
+            [
+                f"#define {key} {value:F}"
+                if type(value) is float
+                else f"#define {key} {value}"
+                for key, value in self.bounds_c.items()
+            ]
+        )
+        contents += "\n#endif\n"
+        return contents
+
+    def get_bounds_rs_file(self) -> str:
+        """Returns the contents of the config.toml file."""
+        contents =  "[env]\n"
+        contents += "\n".join(
+            [
+                f'{key} = {{ value = "{value}", force = true }}'
+                for key, value in self.bounds_rs.items()
+            ]
+        )
+        return contents
+
 
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
@@ -1146,7 +1234,8 @@ class Program(Node):
 
 
 class Context:
-    def __init__(self) -> None:
+    def __init__(self, opts: options.Options) -> None:
+        self.options = opts
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1155,6 +1244,7 @@ class Context:
         self.contracts: dict[str, Contract] = {}
         self.atomic_id: dict[Expression, int] = {}
         self.bound_vars: dict[str, ArrayExpression] = {}
+        self.stats = stats.Stats(filename=opts.spec_filename)
 
         self.is_ft = False
         self.has_future_time = False
@@ -1283,6 +1373,158 @@ def rename(
     for node in postorder(new, context):
         if target == node:
             node.replace(repl)
+
+    return new
+
+
+def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
+    """Unrolls the given expression `expr` using the given context `context`"""
+    new = copy.deepcopy(expr)
+
+    def unrolled_expr(expr: Expression) -> Expression:
+        if is_operator(expr, OperatorKind.FUTURE):
+            expr = cast(TemporalOperator, expr)
+            if expr.interval.lb == expr.interval.ub:
+                return expr
+            return Operator.LogicalOr(
+                expr.loc,
+                [
+                    TemporalOperator.Future(expr.loc, b, b, expr.children[0])
+                    for b in range(expr.interval.lb, expr.interval.ub + 1)
+                ],
+            )
+        elif is_operator(expr, OperatorKind.GLOBAL):
+            expr = cast(TemporalOperator, expr)
+            if expr.interval.lb == expr.interval.ub:
+                return expr
+            return Operator.LogicalAnd(
+                expr.loc,
+                [
+                    TemporalOperator.Global(expr.loc, b, b, expr.children[0])
+                    for b in range(expr.interval.lb, expr.interval.ub + 1)
+                ],
+            )
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+
+            repl = TemporalOperator.Future(expr.loc, ub, ub, expr.children[1])
+            for b in range(ub - 1, lb - 1, -1):
+                repl = TemporalOperator.LogicalOr(
+                    expr.loc,
+                    [
+                        TemporalOperator.Future(expr.loc, b, b, expr.children[1]),
+                        TemporalOperator.LogicalAnd(
+                            expr.loc,
+                            [
+                                TemporalOperator.Future(expr.loc, b, b, expr.children[0]),
+                                repl,
+                            ],
+                        ),
+                    ],
+                )
+
+            return repl
+        elif is_operator(expr, OperatorKind.RELEASE):
+            raise NotImplementedError(
+                "Release operator not yet supported for unrolling"
+            )
+
+        return expr
+
+    for subexpr in postorder(new, context):
+        new = unrolled_expr(subexpr)
+        subexpr.replace(new)
+
+    return new
+
+
+def decompose_intervals(expr: Expression, context: Context) -> Expression:
+    """Decomposes temporal operators in `start` to combinations of intervals with sizes that are
+    powers of 2. For example: F[2,22] p ==> F[2,2] F[0,15] F[0,3] F[0,1] F[0,1] p."""
+    new = copy.deepcopy(expr)
+
+    def decompose(expr: Expression) -> Expression:
+        if is_operator(expr, OperatorKind.FUTURE):
+            expr = cast(TemporalOperator, expr)
+            child = expr.children[0]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+
+            if lb == ub:
+                return expr
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(2**n - 1)
+                    s -= (2**n - 1)
+            
+            repl = child
+            for a in reversed(amounts):
+                repl = TemporalOperator.Future(expr.loc, 0, a, repl)
+
+            if lb > 0:
+                repl = TemporalOperator.Future(expr.loc, lb, lb, repl)
+                
+            return repl
+        elif is_operator(expr, OperatorKind.GLOBAL):
+            expr = cast(TemporalOperator, expr)
+            child = expr.children[0]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            
+            if lb == ub:
+                return expr
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(2**n - 1)
+                    s -= (2**n - 1)
+            
+            repl = child
+            for a in reversed(amounts):
+                repl = TemporalOperator.Global(expr.loc, 0, a, repl)
+
+            if lb > 0:
+                repl = TemporalOperator.Global(expr.loc, lb, lb, repl)
+                
+            return repl
+        elif is_operator(expr, OperatorKind.UNTIL):
+            expr = cast(TemporalOperator, expr)
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            
+            if lb == ub:
+                return expr
+
+            s = ub-lb
+            amounts = []
+            for n in reversed(range(1, (ub-lb+1).bit_length())):
+                while s >= (2**n - 1):
+                    amounts.append(2**n - 1)
+                    s -= (2**n - 1)
+            
+            repl = rhs
+            for a in reversed(amounts):
+                repl = TemporalOperator.Until(expr.loc, 0, a, lhs, repl)
+
+            if lb > 0:
+                repl = TemporalOperator.Until(expr.loc, lb, lb, lhs, repl)
+                
+            return repl
+
+        return expr
+
+    for subexpr in postorder(new, context):
+        new = decompose(subexpr)
+        subexpr.replace(new)
 
     return new
 

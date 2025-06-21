@@ -291,9 +291,7 @@ venv/
 __*
 
 # dependencies
-egg/
-egglog/
-
+deps/
 
 # Generated documentation files
 docs/_*

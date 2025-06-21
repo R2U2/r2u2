@@ -9,7 +9,7 @@ import dataclasses
 import json
 from typing import Optional, NewType, cast
 
-from c2po import cpt, log, types, util, options
+from c2po import cpt, log, types, util
 
 MODULE_CODE = "EQST"
 
@@ -17,13 +17,21 @@ INF = 1_000_000_000
 
 SRC_DIR = pathlib.Path(__file__).parent
 
-EGGLOG_PATH = SRC_DIR / "egglog" / "target" / "release" / "egglog"
 PRELUDE_PATH = SRC_DIR / "mltl.egg"
 
 PRELUDE_END = "(run-schedule (saturate mltl-rewrites))"
 
 ENodeID = NewType('ENodeID', str)
 EClassID = NewType('EClassID', str)
+
+
+def check_egglog(egglog: str) -> bool:
+    try:
+        proc = subprocess.run([egglog, "--version"], capture_output=True)
+        return proc.returncode == 0
+    except FileNotFoundError:
+        return False
+    
 
 @dataclasses.dataclass
 class ENode:
@@ -323,7 +331,7 @@ class EGraph:
             else:
                 raise ValueError(f"Invalid node type for PD computation {enode.op}")
 
-            log.debug(MODULE_CODE, 2, f"{enode.op}\n\t{max_bpd[enode.eclass_id]} {min_wpd[enode.eclass_id]}")
+            log.debug(MODULE_CODE, 2, f"{enode.op}: {max_bpd[enode.eclass_id]} {min_wpd[enode.eclass_id]}")
         # end _compute_pd
 
         for enode in self.traverse():
@@ -487,7 +495,7 @@ class EGraph:
             child_costs = sum([total_cost[rep[c][0].enode_id] for c in enode.child_eclass_ids]) 
             total_cost[enode.enode_id] = cost[enode.enode_id] + child_costs
 
-            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}\n\t{cost[enode.enode_id]}")
+            log.debug(MODULE_CODE, 2, f"{enode.enode_id} : cost({enode.op}) = {total_cost[enode.enode_id]}, {cost[enode.enode_id]}")
 
             if total_cost[enode.enode_id] < rep[enode.eclass_id][1]:
                 rep[enode.eclass_id] = (enode, total_cost[enode.enode_id])
@@ -548,31 +556,52 @@ def to_egglog(spec: cpt.Formula, context: cpt.Context) -> str:
 
 def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     """Encodes `spec` into an egglog query, runs egglog, then returns an EGraph if no error occurred during construction. Returns None otherwise."""
-    TMP_EGG_PATH = options.workdir / "__tmp__.egg"
+    TMP_EGG_PATH = context.options.workdir / "__tmp__.egg"
     EGGLOG_OUTPUT = TMP_EGG_PATH.with_suffix(".json")
 
     with open(PRELUDE_PATH, "r") as f:
         prelude = f.read()
     
+    start = util.get_rusage_time()
     egglog = prelude + to_egglog(spec, context) + PRELUDE_END
+    end = util.get_rusage_time()
+    context.stats.eqsat_encoding_time = end - start
 
     with open(TMP_EGG_PATH, "w") as f:
         f.write(egglog)
 
-    command = [str(EGGLOG_PATH), "--to-json", str(TMP_EGG_PATH)]
+    if not check_egglog(context.options.egglog_path):
+        log.error(
+            MODULE_CODE,
+            f"egglog not found at {context.options.egglog_path}\n\t"
+             "Try setting '--egglog-path' or adding egglog to your PATH",
+        )
+        return None
+
+    command = [context.options.egglog_path, "--to-json", str(TMP_EGG_PATH)]
     log.debug(MODULE_CODE, 1, f"Running command '{' '.join(command)}'")
 
     start = util.get_rusage_time()
-
+    proc = subprocess.Popen(
+        command,
+        preexec_fn=util.set_max_memory(context.options.eqsat_max_memory),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     try:
-        proc = subprocess.run(command, capture_output=True, timeout=options.timeout_eqsat)
+        (stdout, stderr) = proc.communicate(timeout=context.options.eqsat_max_time)
     except subprocess.TimeoutExpired:
-        log.warning(MODULE_CODE, f"egglog timeout after {options.timeout_eqsat}s")
-        log.stat(MODULE_CODE, "egraph_time=timeout")
+        proc.kill()
+        log.warning(MODULE_CODE, f"{context.options.egglog_path} timed out")
+        context.stats.eqsat_solver_time = -1.0
         return None
+    
+    end = util.get_rusage_time()
+    stdout = stdout.decode()
+    stderr = stderr.decode()
 
     if proc.returncode:
-        log.error(MODULE_CODE, f"Error running egglog\n{proc.stderr.decode()}")
+        log.error(MODULE_CODE, f"Error running egglog\n{stderr}")
         return None
 
     with open(EGGLOG_OUTPUT, "r") as f:
@@ -581,7 +610,6 @@ def run_egglog(spec: cpt.Formula, context: cpt.Context) -> Optional[EGraph]:
     egraph = EGraph.from_json(egglog_output, spec.get_expr(), context)
 
     end = util.get_rusage_time()
-    egraph_time = end - start
-    log.stat(MODULE_CODE, f"egraph_time={egraph_time}")
+    context.stats.eqsat_solver_time = end - start
 
     return egraph

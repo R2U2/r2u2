@@ -1,6 +1,6 @@
 [tool.ruff]
 logger-objects = ["c2po.log.logger"]
-exclude = ["parse.py"]
+exclude = ["parse_c2po.py", "parse_mltl.py"]
 
 # Same as Black.
 line-length = 88

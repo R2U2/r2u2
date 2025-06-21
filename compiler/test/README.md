@@ -25,9 +25,7 @@ options passed to C2PO, and some sort of expected output.
             "input": "path/to/input.c2po",
             "options": ["list", "of", "c2po", "options"],
             "expected_output": "path/to/output.expect",
-            "expected_prefix": "path/to/prefix.expect",
-            "expected_c2po": "path/to/c2po.expect",
-            "expected_mltl": "path/to/mltl.expect"
+            "expected_serialization": "path/to/serialized.expect"
         }
     ]
 }
@@ -36,6 +34,10 @@ options passed to C2PO, and some sort of expected output.
 The test script runs `c2po.py` over the input file and options, then compares the output of each
 expected file against the generated output:
 - `"expected_output"` compares stdout of the `c2po.py` call
-- `"expected_prefix"` compares `--write-prefix` output
-- `"expected_c2po"` compares `--write-c2po` output
-- `"expected_mltl"` compares `--write-mltl` output
+- `"expected_serialization"` compares contents of `tmp.out`
+
+The script assumes that `z3` and `egglog` are in `PATH`. To add these to `PATH` (assuming they are
+installed in `compiler/deps`):
+
+    export PATH=$PATH:/path/to/r2u2/compiler/deps/z3/bin
+    export PATH=$PATH:/path/to/r2u2/compiler/deps/egglog/target/release
