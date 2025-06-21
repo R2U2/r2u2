@@ -356,6 +356,9 @@ class SetAggregation(Expression):
         self.bound_var = var
         self.type = types.BoolType()
 
+        self.wpd = expr.wpd
+        self.bpd = expr.bpd
+
     @staticmethod
     def ForEach(
         loc: log.FileLocation, var: Variable, set: ArrayExpression, expr: Expression
@@ -971,6 +974,8 @@ class Formula(Expression):
         self.symbol: str = label
         self.formula_number: int = fnum
         self.engine = types.R2U2Engine.TEMPORAL_LOGIC
+        self.wpd = expr.wpd
+        self.bpd = expr.bpd
 
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
@@ -1002,6 +1007,8 @@ class Contract(Expression):
         super().__init__(loc, [assume, guarantee])
         self.symbol: str = label
         self.formula_numbers: tuple[int, int, int] = (fnum1, fnum2, fnum3)
+        self.wpd = max(fnum1, fnum2, fnum3)
+        self.bpd = min(fnum1, fnum2, fnum3)
 
     def get_assumption(self) -> Expression:
         return self.children[0]
@@ -1141,6 +1148,8 @@ class Program(Node):
                 ft_specs += section.specs
             elif isinstance(section, PastTimeSpecSection):
                 pt_specs += section.specs
+
+        self.max_wpd = max([spec.wpd for spec in ft_specs]) if ft_specs else 0
 
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)

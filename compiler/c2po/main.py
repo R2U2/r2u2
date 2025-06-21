@@ -109,10 +109,10 @@ def compile(opts: options.Options) -> ReturnCode:
         if not context.status:
             return ReturnCode.ERROR
 
-    if opts.simulate:
+    if opts.simulate_mode != options.SimulateMode.NONE:
         try:
             from c2po import simulate
-            trace = simulate.simulate(program, context, opts.simulate_k)
+            trace = simulate.simulate(program, context, opts.simulate_k, opts.simulate_mode)
             print("#", ",".join(trace[0]))
             print("\n".join([",".join(t) for t in trace[1:]]))
             return ReturnCode.SUCCESS
@@ -120,7 +120,7 @@ def compile(opts: options.Options) -> ReturnCode:
             log.error(MODULE_CODE, "z3 not found, skipping simulation")
             return ReturnCode.ERROR
 
-    if opts.only_compile:
+    if opts.only_compile:   
         wrap_up(program, context)
         return ReturnCode.SUCCESS
 

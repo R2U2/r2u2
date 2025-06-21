@@ -34,6 +34,12 @@ class CompilationStage(enum.Enum):
     PASSES = 2
     ASSEMBLE = 3
 
+class SimulateMode(enum.Enum):
+    NONE = "none"
+    RANDOM = "random"
+    SAT = "sat"
+    UNSAT = "unsat"
+
 DEFAULTS = {
     "trace_filename": None,
     "map_filename": None,
@@ -47,8 +53,9 @@ DEFAULTS = {
     "only_parse": False,
     "only_type_check": False,
     "only_compile": False,
-    "simulate": False,
-    "simulate_k": 0,
+    "simulate_mode_str": SimulateMode.NONE.value,
+    "simulate_k": -1,
+    "simulate_constraints": None,
     "enable_aux": True,
     "enable_booleanizer": False,
     "enable_extops": False,
@@ -94,8 +101,9 @@ class Options:
     only_parse: bool = DEFAULTS["only_parse"]
     only_type_check: bool = DEFAULTS["only_type_check"]
     only_compile: bool = DEFAULTS["only_compile"]
-    simulate: bool = DEFAULTS["simulate"]
+    simulate_mode_str: str = DEFAULTS["simulate_mode_str"]
     simulate_k: int = DEFAULTS["simulate_k"]
+    simulate_constraints: Optional[str] = DEFAULTS["simulate_constraints"]
     enable_aux: bool = DEFAULTS["enable_aux"]
     enable_booleanizer: bool = DEFAULTS["enable_booleanizer"]
     enable_extops: bool = DEFAULTS["enable_extops"]
@@ -135,6 +143,7 @@ class Options:
     final_stage: CompilationStage = CompilationStage.ASSEMBLE
     assembly_enabled: bool = True
     enabled_passes: set = field(default_factory=set)
+    simulate_mode: SimulateMode = SimulateMode.NONE
     smt_encoding: SMTTheories = SMTTheories.UFLIA
     write_c2po: bool = False
     write_prefix: bool = False
@@ -242,11 +251,15 @@ class Options:
                 "NNF and BNF incompatible without extended operators, output will not be in either normal form",
             )
 
+        self.simulate_mode = SimulateMode(self.simulate_mode_str)
+
         if self.only_parse:
             final_stage = CompilationStage.PARSE
         elif self.only_type_check:
             final_stage = CompilationStage.TYPE_CHECK
         elif self.only_compile:
+            final_stage = CompilationStage.PASSES
+        elif self.simulate_mode != SimulateMode.NONE:
             final_stage = CompilationStage.PASSES
         else:
             final_stage = CompilationStage.ASSEMBLE

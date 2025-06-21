@@ -122,17 +122,22 @@ parser.add_argument(
     help="run only the parser, type checker, and passes",
 )
 parser.add_argument(
-    "--simulate",
-    action="store_const",
-    const=True,
-    default=c2po.options.DEFAULTS["simulate"],
-    help="enable simulation of the specification",
+    "--simulate-mode",
+    type=str,
+    choices=[member.value for member in c2po.options.SimulateMode],
+    default=c2po.options.DEFAULTS["simulate_mode_str"],
+    help="simulation mode (default: %(default)s)",
 )
 parser.add_argument( 
     "--simulate-k",
     type=int,
     default=c2po.options.DEFAULTS["simulate_k"],
     help="simulate the specification for k time steps (default: %(default)s)",
+)
+parser.add_argument( 
+    "--simulate-constraints",
+    type=str,
+    help="filename to read simulation constraints from",
 )
 parser.add_argument(
     "--aux",
@@ -275,8 +280,9 @@ opts = c2po.options.Options(
     only_parse=args.parse,
     only_type_check=args.type_check,
     only_compile=args.compile,
-    simulate=args.simulate,
+    simulate_mode_str=args.simulate_mode,
     simulate_k=args.simulate_k,
+    simulate_constraints=args.simulate_constraints,
     enable_aux=args.aux,
     enable_booleanizer=args.booleanizer,
     enable_extops=args.extops,

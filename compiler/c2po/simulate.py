@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import cast, Callable
 
-from c2po import cpt, types, log
+from c2po import cpt, types, log, options
 
 MODULE_CODE = "SIM"
 
@@ -9,8 +9,6 @@ try:
     import z3
 except ImportError:
     raise ImportError("z3 not found")
-
-qid = 0
 
 def cpt_to_z3(
     expr: cpt.Expression,
@@ -21,7 +19,6 @@ def cpt_to_z3(
     Convert a CPT expression to a Z3 expression, which is a function that takes an integer and
     returns a Z3 expression representing the value of the expression at that time step.
     """
-    global qid
     if isinstance(expr, cpt.Signal):
         return z3_vars[expr.symbol]
     elif isinstance(expr, cpt.Atomic):
@@ -145,63 +142,28 @@ def cpt_to_z3(
         expr = cast(cpt.TemporalOperator, expr)
         lb = expr.interval.lb
         ub = expr.interval.ub
-        i = z3.Int(f"i{qid}")
-        qid += 1
-        return lambda k: z3.ForAll(
-            [i],
-            z3.Implies(
-                z3.And(i >= lb, i <= ub),
-                cpt_to_z3(expr.children[0], context, z3_vars)(k + i),
-            ),
-        )
+        if lb != ub:
+            raise ValueError(f"Global operator with non-singleton interval: {expr}, {type(expr)}, {expr.type}\n"  
+                              "\nWas the expression unrolled?")
+
+        return lambda k: cpt_to_z3(expr.children[0], context, z3_vars)(k + z3.IntVal(lb))
     elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
         expr = cast(cpt.TemporalOperator, expr)
         lb = expr.interval.lb
         ub = expr.interval.ub
-        i = z3.Int(f"i{qid}")
-        qid += 1
-        return lambda k: cast(
-            z3.ExprRef,
-            z3.Exists(
-                [i],
-                z3.And(
-                    z3.And(i >= lb, i <= ub),
-                    cpt_to_z3(expr.children[0], context, z3_vars)(k + i)
-                ),
-            ),
-        )
-    elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-        expr = cast(cpt.TemporalOperator, expr)
-        lb = expr.interval.lb
-        ub = expr.interval.ub
-        i = z3.Int(f"i{qid}")
-        qid += 1
-        j = z3.Int(f"i{qid}")
-        qid += 1
-        return lambda k: cast(
-            z3.ExprRef,
-            z3.Exists(
-                [i],
-                z3.And(
-                    z3.And(i >= lb, i <= ub), 
-                    cpt_to_z3(expr.children[1], context, z3_vars)(k + i),
-                    z3.ForAll(
-                        [j],
-                        z3.Implies(
-                            z3.And(j >= lb, j < i),
-                            cpt_to_z3(expr.children[0], context, z3_vars)(k + j)
-                        ),
-                    )
-                ),
-            )
-        )
+        if lb != ub:
+            raise ValueError(f"Future operator with non-singleton interval: {expr}, {type(expr)}, {expr.type}\n"  
+                              "\nWas the expression unrolled?")
+
+        return lambda k: cpt_to_z3(expr.children[0], context, z3_vars)(k + z3.IntVal(lb))
     else:
-        raise ValueError(f"Unsupported expression: {expr}, {type(expr)}, {expr.type}")
+        raise ValueError(f"Unsupported expression: {expr}, {type(expr)}, {expr.type}\n"  
+                          "\nWas the expression unrolled?")
 
 
-def simulate(program: cpt.Program, context: cpt.Context, k: int) -> list[list[str]]:
+def simulate_sat(program: cpt.Program, context: cpt.Context, k: int, sat: bool) -> list[list[str]]:
     """
-    Simulate a CPT program. The approach is naive:
+    Simulate a CPT program, returning a satisfying trace if `sat` is True. The approach is naive:
     - Generate an uninterpreted function for each signal.
     - Create a Z3 expression for each spec, which is a function that takes an integer and returns a
       Z3 expression representing the value of the spec at that time step.
@@ -238,9 +200,27 @@ def simulate(program: cpt.Program, context: cpt.Context, k: int) -> list[list[st
     for i in range(k):
         log.debug(MODULE_CODE, 1, f"k = {i}")
         s.push()
-        s.add(z3.And([z3_expr(z3.IntVal(i)) for z3_expr in z3_exprs]))
+
+        constraint = (
+            z3.And([z3_expr(z3.IntVal(i)) for z3_expr in z3_exprs])
+            if sat
+            else z3.Not(z3.And([z3_expr(z3.IntVal(i)) for z3_expr in z3_exprs]))
+        )
+        s.add(constraint)
+
+        # FIXME: Set the initial guesses for the signals to some random values.
+        # for sig, typ in z3_vars.items(): 
+        #     if isinstance(typ, types.BoolType):
+        #         s.set_initial_value(z3_vars[sig](z3.IntVal(i)), z3.BoolVal(random.random() < 0.5))
+        #     elif isinstance(typ, types.IntType):
+        #         s.set_initial_value(z3_vars[sig](z3.IntVal(i)), z3.IntVal(random.randint(0, 1000)))
+        #     elif isinstance(typ, types.FloatType):
+        #         s.set_initial_value(z3_vars[sig](z3.IntVal(i)), z3.RealVal(random.random()))
+        #     else:
+        #         raise ValueError(f"Unsupported signal type: {typ}")
+
         if s.check() != z3.sat:
-            log.debug(MODULE_CODE, 1, f"\tunsat at k = {i}")
+            log.warning(MODULE_CODE, f"unsat at k = {i}")
             s.pop()
             continue
 
@@ -253,3 +233,29 @@ def simulate(program: cpt.Program, context: cpt.Context, k: int) -> list[list[st
             ]
         )
     return trace
+
+def simulate_random(program: cpt.Program, context: cpt.Context, k: int) -> list[list[str]]:
+    """
+    Simulate a CPT program with random values.
+    """
+    trace = [[sig for sig in context.signals]]
+    # FIXME: Implement this
+    return trace
+
+def simulate(program: cpt.Program, context: cpt.Context, k: int, mode: options.SimulateMode) -> list[list[str]]:
+    """
+    Simulate a CPT program.
+
+    FIXME: Shall we consider a way to model the system
+    """
+    if k < 0:
+        k = program.max_wpd + 1
+
+    if mode == options.SimulateMode.SAT:
+        return simulate_sat(program, context, k, True)
+    elif mode == options.SimulateMode.UNSAT:
+        return simulate_sat(program, context, k, False)
+    elif mode == options.SimulateMode.RANDOM:
+        return simulate_random(program, context, k)
+    else:
+        raise ValueError(f"Invalid simulate mode: {mode}")
