@@ -262,10 +262,6 @@ parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon 
 
 args = parser.parse_args()
 
-if args.version:
-    print(f"C2PO v{c2po.log.VERSION}")
-    sys.exit(0)
-
 opts = c2po.options.Options(
     spec_filename=args.spec,
     trace_filename=args.trace,
