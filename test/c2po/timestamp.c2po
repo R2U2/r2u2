@@ -1,0 +1,6 @@
+INPUT
+    i0: int;
+
+FTSPEC
+    TAU == i0;
+    (TAU % 3) == i0;
