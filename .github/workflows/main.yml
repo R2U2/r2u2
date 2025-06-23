@@ -10,6 +10,16 @@ jobs:
       with:
         python-version: "3.9"
 
+    - name: Install Pyright
+      run: |
+        python -m pip install pyright
+
+    # Run this before installing z3 and egglog to check for type errors only in c2po
+    - name: Run Pyright 
+      run: |
+        cd compiler/c2po
+        pyright
+
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 

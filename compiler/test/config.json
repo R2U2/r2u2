@@ -294,6 +294,11 @@
             "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
+            "input": "sat/sat_9.mltl", 
+            "expected_output": "sat/sat_9.mltl.expect", 
+            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
             "input": "sat/unsat_1.mltl", 
             "expected_output": "sat/unsat_1.mltl.expect", 
             "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
@@ -326,6 +331,16 @@
         {
             "input": "sat/unsat_7.mltl", 
             "expected_output": "sat/unsat_7.mltl.expect", 
+            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/unsat_8.mltl", 
+            "expected_output": "sat/unsat_8.mltl.expect", 
+            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
+        },
+        {
+            "input": "sat/unsat_9.mltl", 
+            "expected_output": "sat/unsat_9.mltl.expect", 
             "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
         },
         {
