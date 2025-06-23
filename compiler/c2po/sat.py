@@ -34,15 +34,23 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
     """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
     log.debug(MODULE_CODE, 1, "Running SMT solver.")
 
-    if not check_solver(context.options.smt_solver):
-        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
-        return (SatResult.FAILURE, -1)
+    if not check_solver(context.options.smt_solver_path):
+        log.error(MODULE_CODE, f"{context.options.smt_solver_path} not found")
+        return (SatResult.FAILURE, -1.0)
 
     smt_file_path = context.options.workdir / "__tmp__.smt"
     with open(smt_file_path, "w") as f:
         f.write(smt_encoding)
 
-    command = [context.options.smt_solver, str(smt_file_path)] + [opt.replace('"', '') for opt in context.options.smt_options]
+    command = [context.options.smt_solver_path, str(smt_file_path)] + [opt.replace('"', '') for opt in context.options.smt_options]
+    if (
+        context.options.smt_encoding == options.SMTTheories.UFLIA
+        or context.options.smt_encoding == options.SMTTheories.QF_UFLIA
+    ) and "cvc5" in context.options.smt_solver_path:
+        # cvc5 requires the --finite-model-find option for UFLIA encoding
+        command.append("--finite-model-find")
+        command.append("--fmf-bound")
+
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
     start = util.get_rusage_time()
@@ -51,8 +59,8 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
         (stdout, stderr) = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         proc.kill()
-        log.warning(MODULE_CODE, f"{context.options.smt_solver} timed out")
-        return (SatResult.TIMEOUT, -1)
+        log.warning(MODULE_CODE, f"{context.options.smt_solver_path} timed out")
+        return (SatResult.TIMEOUT, -1.0)
     
     end = util.get_rusage_time()
     stdout = stdout.decode() if stdout else ""
@@ -63,52 +71,52 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
         #   stdout=
         #   stderr=(error "out of memory")
         #   returncode=101
-        if "z3" in context.options.smt_solver and "(error \"out of memory\")" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
-            return (SatResult.MEMOUT, -1)
+        if "z3" in context.options.smt_solver_path and "(error \"out of memory\")" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+            return (SatResult.MEMOUT, -1.0)
 
         # cvc5 memout: 
         #   stdout(error "std::bad_alloc")
         #   stderr=
         #   returncode=1
-        if "cvc5" in context.options.smt_solver and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
-            return (SatResult.MEMOUT, -1)
+        if "cvc5" in context.options.smt_solver_path and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+            return (SatResult.MEMOUT, -1.0)
 
         # yices memout:
         #   stdout=
         #   stderr=out of memory
         #   returncode=16
-        if "yices" in context.options.smt_solver and "Out of memory" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
-            return (SatResult.MEMOUT, -1)
+        if "yices" in context.options.smt_solver_path and "Out of memory" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+            return (SatResult.MEMOUT, -1.0)
 
         # mathsat memout
         #   stdout=
         #   stderr=
         #   returncode=6
-        if "mathsat" in context.options.smt_solver and proc.returncode == -6:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
-            return (SatResult.MEMOUT, -1)
+        if "mathsat" in context.options.smt_solver_path and proc.returncode == -6:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+            return (SatResult.MEMOUT, -1.0)
 
         # bitwuzla memout
         #   stdout=
         #   stderr=terminate called after throwing an instance of 'std::bad_alloc'
         #            what():  std::bad_alloc
         #   returncode=-6
-        if "bitwuzla" in context.options.smt_solver and "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver} ran out of memory")
-            return (SatResult.MEMOUT, -1)
+        if "bitwuzla" in context.options.smt_solver_path and "std::bad_alloc" in stderr:
+            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+            return (SatResult.MEMOUT, -1.0)
         
         log.error(
             MODULE_CODE,
-            f"{context.options.smt_solver} failed with return code {proc.returncode}",
+            f"{context.options.smt_solver_path} failed with return code {proc.returncode}",
         )
         log.debug(MODULE_CODE, 1, "stdout:")
         print(stdout[:-1])
         log.debug(MODULE_CODE, 1, "stderr:")
         print(stderr[:-1])
-        return (SatResult.FAILURE, -1)
+        return (SatResult.FAILURE, -1.0)
 
     if stdout.find("unsat") > -1:
         log.debug(MODULE_CODE, 1, "unsat")
@@ -689,10 +697,15 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            log.error(MODULE_CODE, f"Release not implemented for MLTL-SAT via UFLIA\n\t{expr}")
-            return ""
+            expr = cast(cpt.TemporalOperator, expr)
+            lb = expr.interval.lb
+            ub = expr.interval.ub
+            smt_commands.append(
+                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len)))))))))"
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.ONCE):
-            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and pi,i |= p
+            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
+            # and pi,i |= p
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
@@ -700,7 +713,8 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (and (< {lb} k) (< k len)) (exists ((i Int)) (and (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.HISTORICAL):
-            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it holds that pi,i |= p
+            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it
+            # holds that pi,i |= p
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
@@ -708,8 +722,8 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.SINCE):
-            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb and 
-            #                               pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
+            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
+            # and pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
             expr = cast(cpt.TemporalOperator, expr)
             lb = expr.interval.lb
             ub = expr.interval.ub
@@ -736,20 +750,13 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
     total_sat_time: float = 0
     total_enc_time: float = 0
-    num_sat_calls: int = 0
     trace_len: int = 1
 
-    def update_stats(sat_time: float) -> None:
-        nonlocal total_sat_time, num_sat_calls, trace_len
-        total_sat_time += sat_time
-        num_sat_calls += 1
-
-    def report_stats(result: SatResult) -> None:
-        nonlocal total_sat_time, total_enc_time, num_sat_calls
-        log.stat(MODULE_CODE, "smt_encoding_time", total_enc_time)
-        log.stat(MODULE_CODE, "sat_result", result.value)
-        log.stat(MODULE_CODE, "num_sat_calls", num_sat_calls)
-        log.stat(MODULE_CODE, "sat_time", total_sat_time)
+    def update_stats(enc_time: float, sat_time: float, result: SatResult) -> None:
+        context.stats.smt_num_calls += 1
+        context.stats.smt_solver_time += sat_time
+        context.stats.smt_encoding_time += enc_time
+        context.stats.smt_solver_result = result.value
 
     def done(result: SatResult) -> bool:
         # We know we are done when the result is sat, timeout, or failure or we have checked traces with length up to start.wpd + 1
@@ -774,11 +781,14 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
     enc_end = util.get_rusage_time()
-    total_enc_time += enc_end - enc_start
+    enc_time = enc_end - enc_start
+    total_enc_time += enc_time
+
     (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time, context)
-    update_stats(sat_time)
+
+    total_sat_time += sat_time
+    update_stats(enc_time, sat_time, result)
     if done(result):
-        report_stats(result)
         return result
 
     # if wpd is less than 256 then just go straight for it
@@ -787,10 +797,13 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         enc_start = util.get_rusage_time()
         smt = to_qfbv_smtlib2(start, context, trace_len)
         enc_end = util.get_rusage_time()
-        total_enc_time += enc_end - enc_start
+        enc_time = enc_end - enc_start
+        total_enc_time += enc_time
+
         (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
-        update_stats(sat_time)
-        report_stats(result)
+
+        total_sat_time += sat_time
+        update_stats(enc_time, sat_time, result)
         return result
 
     # otherwise wpd >= 256, so try its bpd first, then its wpd
@@ -798,22 +811,27 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
     enc_end = util.get_rusage_time()
-    total_enc_time += enc_end - enc_start
+    enc_time = enc_end - enc_start
+    total_enc_time += enc_time
+
     (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
-    update_stats(sat_time)
+
+    total_sat_time += sat_time
+    update_stats(enc_time, sat_time, result)
     if done(result):
-        report_stats(result)
         return result
     
     trace_len = start.wpd + 1
     enc_start = util.get_rusage_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
     enc_end = util.get_rusage_time()
-    total_enc_time += enc_end - enc_start
-    (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
-    update_stats(sat_time)
+    enc_time += enc_end - enc_start
+    total_enc_time += enc_time
 
-    report_stats(result)
+    (result, sat_time) = run_smt_solver(smt, context.options.smt_max_time - total_sat_time, context)
+
+    total_sat_time += sat_time
+    update_stats(enc_time, sat_time, result)
     return result
 
 
@@ -835,14 +853,14 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
         return SatResult.UNKNOWN
     end = util.get_rusage_time()
     encoding_time = end - start
-    log.stat(MODULE_CODE, "smt_encoding_time", encoding_time)
 
-    # log.debug(MODULE_CODE, 2, f"SMT encoding:\n{smt}")
+    (result, solving_time) = run_smt_solver(smt, context.options.smt_max_time, context)
 
-    (result, time) = run_smt_solver(smt, context.options.smt_max_time, context)
-    log.stat(MODULE_CODE, "sat_result", result.value)
-    log.stat(MODULE_CODE, "sat_time", time)
-    log.stat(MODULE_CODE, "num_sat_calls", 1)
+    context.stats.smt_encoding_time += encoding_time
+    context.stats.smt_solver_time += solving_time
+    context.stats.smt_num_calls += 1
+    context.stats.smt_solver_result = result.value
+
     return result
 
 
@@ -850,8 +868,8 @@ def check_sat(
     program: cpt.Program, context: cpt.Context
 ) -> "dict[cpt.Specification, SatResult]":
     """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver(context.options.smt_solver):
-        log.error(MODULE_CODE, f"{context.options.smt_solver} not found")
+    if not check_solver(context.options.smt_solver_path):
+        log.error(MODULE_CODE, f"{context.options.smt_solver_path} not found")
         return {}
 
     results: dict[cpt.Specification, SatResult] = {}
@@ -884,15 +902,12 @@ def check_equiv(
         expr1.loc, cpt.Operator.LogicalIff(expr1.loc, expr1, expr2)
     )
 
-    start = util.get_rusage_time()
     result = check_sat_expr(neg_equiv_expr, context)
-    end = util.get_rusage_time()
-    equiv_time = end - start
-    log.stat(MODULE_CODE, "equiv_check_result", result.value)
-    if result is SatResult.TIMEOUT:
-        log.stat(MODULE_CODE, "equiv_check_time", "timeout")
-    else:
-        log.stat(MODULE_CODE, "equiv_check_time", equiv_time)
+
+    context.stats.eqsat_equiv_encoding_time = context.stats.smt_encoding_time
+    context.stats.eqsat_equiv_solver_time = context.stats.smt_solver_time
+    context.stats.eqsat_equiv_result = result.value
+    context.stats.reset_smt_stats()
 
     if result is SatResult.SAT:
         log.debug(MODULE_CODE, 1, "Not equivalent")

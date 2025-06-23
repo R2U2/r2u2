@@ -3,11 +3,17 @@ import sys
 
 import c2po.main
 import c2po.options
+import c2po.log
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "spec", 
     help="specification file (either .c2po or .mltl)"
+)
+parser.add_argument(
+    "--version",
+    action="version",
+    version=f"C2PO v{c2po.log.VERSION}",
 )
 parser.add_argument(
     "--trace",
@@ -44,16 +50,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--stats",
-    action="store_const",
-    const=True,
     default=c2po.options.DEFAULTS["stats"],
-    help="enable stat output",
+    help="stats output format string",
 )
 parser.add_argument(
     "--impl",
     default=c2po.options.DEFAULTS["impl_str"],
     choices=["c", "rust", "cpp", "vhdl"],
-    help=f"target R2U2 implementation version (default: {c2po.options.DEFAULTS['impl_str']})",
+    help="target R2U2 implementation version (default: %(default)s)",
 )
 parser.add_argument(
     "-o",
@@ -65,19 +69,19 @@ parser.add_argument(
     "--int-width",
     default=c2po.options.DEFAULTS["int_width"],
     type=int,
-    help=f"bit width for integer types (default: {c2po.options.DEFAULTS['int_width']})",
+    help="bit width for integer types (default: %(default)s)",
 )
 parser.add_argument(
     "--int-signed",
     action="store_const",
     const=True,
     default=c2po.options.DEFAULTS["int_is_signed"],
-    help=f"signed-ness of int types (default: {c2po.options.DEFAULTS['int_is_signed']})",
+    help="signed-ness of int types (default: %(default)s)",
 )
 parser.add_argument(
     "--float-width",
     default=c2po.options.DEFAULTS["float_width"],
-    help=f"bit width for floating point types (default: {c2po.options.DEFAULTS['float_width']})",
+    help="bit width for floating point types (default: %(default)s)",
 )
 parser.add_argument(
     "--mission-time",
@@ -165,41 +169,41 @@ parser.add_argument(
     "--eqsat", 
     action=argparse.BooleanOptionalAction, 
     default=c2po.options.DEFAULTS["enable_eqsat"],
-    help=f"enable equality saturation (default: {c2po.options.DEFAULTS['enable_eqsat']})"
+    help="enable equality saturation (default: %(default)s)"
 )
 parser.add_argument(
     "--egglog-path", 
-    default=c2po.options.DEFAULTS["egglog"],
-    help=f"path to egglog executable, default assumes egglog is in PATH (default: {c2po.options.DEFAULTS['egglog']})"
+    default=c2po.options.DEFAULTS["egglog_path"],
+    help="path to egglog executable, default assumes egglog is in PATH (default: %(default)s)"
 )
 parser.add_argument(
     "--eqsat-max-time", 
     type=int, 
     default=c2po.options.DEFAULTS["eqsat_max_time"], 
-    help=f"set the maximum time to allow for egglog in seconds (default: {c2po.options.DEFAULTS['eqsat_max_time']})"
+    help="set the maximum time to allow for egglog in seconds (default: %(default)s)"
 )
 parser.add_argument(
     "--eqsat-max-memory", 
     type=int, 
     default=c2po.options.DEFAULTS["eqsat_max_memory"], 
-    help=f"set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['eqsat_max_memory']})"
+    help="set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: %(default)s)"
 )
 parser.add_argument(
     "--check-sat", 
     action=argparse.BooleanOptionalAction, 
     default=c2po.options.DEFAULTS["enable_sat"],
-    help=f"enable satisfiability checking of future-time formulas (default: {c2po.options.DEFAULTS['enable_sat']})"
+    help="enable satisfiability checking of future-time formulas (default: %(default)s)"
 )
 parser.add_argument(
     "--smt-solver", 
-    default=c2po.options.DEFAULTS["smt_solver"],
-    help=f"path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: {c2po.options.DEFAULTS['smt_solver']})"
+    default=c2po.options.DEFAULTS["smt_solver_path"],
+    help="path to SMTLIB2-compliant executable, default assumes z3 is in PATH (default: %(default)s)"
 )
 parser.add_argument(
     "--smt-encoding", 
     default=c2po.options.DEFAULTS["smt_encoding_str"], 
     choices=[member.value for member in c2po.options.SMTTheories],
-    help=f"specify the SMT encoding to use for satisfiability checking (default: {c2po.options.DEFAULTS['smt_encoding_str']})"
+    help="specify the SMT encoding to use for satisfiability checking (default: %(default)s)"
 )
 parser.add_argument(
     "--smt-option", 
@@ -211,13 +215,13 @@ parser.add_argument(
     "--smt-max-time", 
     type=int, 
     default=c2po.options.DEFAULTS["smt_max_time"], 
-    help=f"set the total maximum time to allow for SMT calls in seconds (default: {c2po.options.DEFAULTS['smt_max_time']})"
+    help="set the total maximum time to allow for SMT calls in seconds (default: %(default)s)"
 )
 parser.add_argument(
     "--smt-max-memory", 
     type=int, 
     default=c2po.options.DEFAULTS["smt_max_memory"], 
-    help=f"set the total maximum memory to allow for SMT calls in MB, use 0 for no maximum (default: {c2po.options.DEFAULTS['smt_max_memory']})"
+    help="set the total maximum memory to allow for SMT calls in MB, use 0 for no maximum (default: %(default)s)"
 )
 parser.add_argument(
     "--write-bounds",
@@ -258,6 +262,10 @@ parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon 
 
 args = parser.parse_args()
 
+if args.version:
+    print(f"C2PO v{c2po.log.VERSION}")
+    sys.exit(0)
+
 opts = c2po.options.Options(
     spec_filename=args.spec,
     trace_filename=args.trace,
@@ -282,10 +290,10 @@ opts = c2po.options.Options(
     enable_cse=args.cse,
     enable_sat=args.check_sat,
     write_bounds_filename=args.write_bounds,
-    egglog=args.egglog_path,
+    egglog_path=args.egglog_path,
     eqsat_max_time=args.eqsat_max_time,
     eqsat_max_memory=args.eqsat_max_memory,
-    smt_solver=args.smt_solver,
+    smt_solver_path=args.smt_solver,
     smt_encoding_str=args.smt_encoding,
     smt_options=args.smt_option,
     smt_max_time=args.smt_max_time,
@@ -297,7 +305,7 @@ opts = c2po.options.Options(
     write_smt_dirname=args.write_smt,
     write_hydra_filename=args.write_hydra,
     copyback_dirname=args.copyback,
-    stats=args.stats,
+    stats_format_str=args.stats,
     debug=args.debug,
     log_level=args.log_level,
     quiet=args.quiet,

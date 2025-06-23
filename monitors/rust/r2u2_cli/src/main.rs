@@ -280,28 +280,27 @@ fn main() {
                 }
             }
         },
-        // Some(Commands::Compile { spec, map, output,  disable_booleanizer, 
-        //     disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
-        //     let mut out_location: String;
-        //     if output.is_some(){
-        //         out_location = output.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(".").to_owned();
-        //         out_location.push_str("/spec.bin");
-        //     } else{
-        //         out_location = "spec.bin".to_owned();
-        //     }
-        //     compile::c2po_compile(spec.to_str().unwrap(),
-        //         if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
-        //         if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
-        //         &out_location,
-        //         !disable_booleanizer,
-        //         !disable_aux,
-        //         !disable_rewrite,
-        //         !disable_cse,
-        //         enable_sat.to_owned(),
-        //         if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
-        //         );
-        //         println!("Compiling");
-        //     }
+        Some(Commands::Compile { spec, map, output,  disable_booleanizer, 
+            disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
+            let mut out_location: String;
+            if output.is_some(){
+                out_location = output.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(".").to_owned();
+                out_location.push_str("/spec.bin");
+            } else{
+                out_location = "spec.bin".to_owned();
+            }
+            compile::c2po_compile(spec.to_str().unwrap(),
+                if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
+                if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
+                &out_location,
+                !disable_booleanizer,
+                !disable_aux,
+                !disable_rewrite,
+                !disable_cse,
+                enable_sat.to_owned(),
+                if timeout_sat.is_some() {timeout_sat.unwrap()} else {3600},
+                );
+            }
         _ => {}
     }
 

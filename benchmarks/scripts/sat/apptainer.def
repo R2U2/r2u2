@@ -1,23 +1,16 @@
 BootStrap: docker
-From: rust:1.84
+From: ubuntu:24.04
 Stage: build
 
 %files
-    ../../../compiler/* /opt/compiler/
-    mltlsat.py /opt/
+    ../../../compiler/* /home/compiler/
 
 %post
     apt-get -y update
-    apt-get -y install python3 python3-pip ninja-build
+    apt-get -y install python3 python3-pip ninja-build wget unzip git libgmp-dev cmake pkg-config
 
-    mkdir /opt/compiler/deps
-
-    git clone https://github.com/egraphs-good/egglog.git /opt/compiler/deps/egglog
-    cd /opt/compiler/deps/egglog
-    git checkout v0.4.0
-    cargo build --bin egglog --release
-
-    cd /opt/compiler/deps
+    mkdir /home/deps
+    cd /home/deps
 
     wget https://github.com/Z3Prover/z3/releases/download/z3-4.14.0/z3-4.14.0-x64-glibc-2.35.zip
     unzip z3-4.14.0-x64-glibc-2.35.zip
@@ -46,25 +39,26 @@ BootStrap: docker
 From: python:3.11
 
 %files from build
-    /opt/* /opt/
+    /home/deps/z3/bin/z3 /home/deps/z3
+    /home/deps/yices2/bin/yices-smt2 /home/deps/yices
+    /home/deps/cvc5/bin/cvc5 /home/deps/cvc5
+    /home/deps/bitwuzla/build/src/main/bitwuzla /home/deps/bitwuzla
+    /home/compiler/* /home/compiler/
+
+%post
+    apt-get -y update
+    apt-get -y install parallel
 
 %environment
-    export PATH=$PATH:/opt/compiler/deps/egglog/target/release
-    export PATH=$PATH:/opt/compiler/deps/z3/bin
-    export PATH=$PATH:/opt/compiler/deps/yices2/bin
-    export PATH=$PATH:/opt/compiler/deps/cvc5/bin
-    export PATH=$PATH:/opt/compiler/deps/bitwuzla/build/src/main
+    export PATH=$PATH:/home/deps
 
 %test
-    egglog --version
     z3 --version
     cvc5 --version
-    mathsat -version
+    yices --version
     bitwuzla --version
-    python3 /opt/compiler/c2po.py -bz -c --check-sat --eqsat --extops /opt/compiler/test/sat/sat_1.mltl --debug
+    python3 /home/compiler/c2po.py -c --check-sat --extops /home/compiler/test/sat/sat_1.mltl --debug
 
 %runscript
-    python3 /opt/mltlsat.py $*
-
-%labels
-    Author chris
+    echo "filename,encoding_time,solver_result,solver_time,num_calls"
+    cat $1 | parallel -j$2 python3 /home/compiler/c2po.py -c --extops --quiet --stats "%F,%se,%sr,%st,%sn" --check-sat --smt-encoding $3 --smt-solver $4 

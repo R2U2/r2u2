@@ -10,7 +10,9 @@ To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/in
 `setup_egglog.sh` script.
 
 To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based
-systems, this can be done via `sudo apt-get install z3`.
+systems, this can be done via `sudo apt-get install z3`. You can use any SMTLIB2-compatible by
+setting the executable path via the `--smt-solver` option. For example, using
+[Yices2](https://yices.csl.sri.com/) instead, you can set `--smt-solver path/to/yices-smt2`.
 
 ## Usage
 
@@ -57,3 +59,24 @@ See `../examples/cav.csv` for an example.
 ## Testing
 
 To run C2PO's test suite, see `test/README.md`.
+
+## Stats Format String
+
+C2PO supports outputting stats via a format string with the `--stats` option. The following are the valid specifiers in the format string:
+
+- %F = Input filename
+- %S = Total SCQ size
+- %sr = SMT solver result
+- %se = SMT encoding time
+- %st = SMT solver time
+- %sn = SMT solver number of calls
+- %ee = Eqsat encoding time
+- %et = Eqsat solver time
+- %eq = Eqsat equivalence result
+- %eq = Eqsat equivalence time
+- %es = Eqsat equivalence solver time
+- %ed = Eqsat equivalence encoding time
+
+For example, to report some statistics from a satisfiability check:
+
+    python3 c2po.py -c --check-sat --stats "%sr,%se,%st" test/sat/sat_5.mltl

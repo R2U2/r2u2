@@ -1,10 +1,12 @@
 import os
 
+NPROCS = 28
+
 template = """#!/bin/bash
 
 #SBATCH --time=120:00:00   # walltime limit (HH:MM:SS)
 #SBATCH --nodes=1   # number of nodes
-#SBATCH --ntasks-per-node=28   # 28 processor core(s) per node 
+#SBATCH --ntasks-per-node={}   # 28 processor core(s) per node 
 #SBATCH --mem=485G   # maximum memory per node
 #SBATCH --mail-user=cgjohann@iastate.edu   # email address
 #SBATCH --mail-type=END
@@ -16,7 +18,7 @@ template = """#!/bin/bash
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
 module load apptainer
 cd /work/kyrozier/cgjohann/mltlsat
-apptainer run container.sif random/{} {} {} results/{} --smt-max-time 1200 --smt-max-memory 16384 {} --nprocs 28
+apptainer run container.sif {} {} {} {} {}
 """
 
 benchmarks = [
@@ -67,11 +69,11 @@ configurations = [
         "encoding": "qf_bv_incr",
     },
     {
-        "solver": "yices-smt2",
+        "solver": "yices",
         "encoding": "qf_bv",
     },
     {
-        "solver": "yices-smt2",
+        "solver": "yices",
         "encoding": "qf_bv_incr",
     },
 ]
@@ -80,24 +82,26 @@ os.makedirs("slurm", exist_ok=True)
 
 for config in configurations:
     for benchmark in benchmarks:
-        if config["encoding"] == "qf_bv_incr" or config["encoding"] == "qf_bv_incr" and benchmark in {
-            "random-10",
-            "random-100",
-        }:
+        if (
+            (config["encoding"] == "qf_bv_incr"
+            or config["encoding"] == "qf_bv_incr")
+            and (benchmark == "random-10" or benchmark == "random-100")
+        ):
             continue
 
         experiment_name = f"{config['solver']}.{config['encoding']}.{benchmark}"
         with open(f"slurm/{experiment_name}.slurm", "w") as f:
             content = template.format(
+                NPROCS,
                 experiment_name,
                 f"{experiment_name}.out",
                 f"{experiment_name}.err",
-                benchmark,
-                config["solver"],
+                benchmark + ".txt",
+                NPROCS,
                 config["encoding"],
-                f"{experiment_name}.csv",
+                config["solver"],
                 " ".join(
-                    [f'--solver-option="{opt}"' for opt in config.get("options", [])]
-                ),
+                    [f'--smt-option="{opt}"' for opt in config.get("options", [])]
+                ) if "options" in config else "",
             )
             f.write(content)

@@ -46,8 +46,6 @@ def compute_cpu_wcet(
 
         total_wcet += wcet
 
-    log.stat(MODULE_CODE, "cpu_wcet", total_wcet)
-
     return total_wcet
 
 
@@ -104,7 +102,5 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
         log.debug(MODULE_CODE, 2, f"FPGA({instr}) = {wcet}")
 
         total_wcet += wcet
-
-    log.stat(MODULE_CODE, "fpga_wcet", total_wcet)
 
     return total_wcet

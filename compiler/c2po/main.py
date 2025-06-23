@@ -33,13 +33,23 @@ class ReturnCode(enum.Enum):
     FILE_IO_ERR = 6
 
 
+def wrap_up(program: cpt.Program, context: cpt.Context) -> None:
+    """Wrap up the program, including cleanup and finalization."""
+    log.debug(MODULE_CODE, 1, "Cleaning up")
+    serialize.write_outputs(program, context)
+    if context.options.copyback_enabled:
+        shutil.copytree(context.options.workdir, context.options.copyback_path)
+    if context.options.stats_format_str:
+        context.stats.print(context.options.stats_format_str)
+    log.debug(MODULE_CODE, 1, "Done")
+
+
 def compile(opts: options.Options) -> ReturnCode:
     """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
 
     Compilation stages:
-    1. Input validation
-    2. Parser
-    3. Type checker
+    2. Parse
+    3. Type check
     4. Required passes
     5. Option-based passes
     6. Optimizations
@@ -89,7 +99,7 @@ def compile(opts: options.Options) -> ReturnCode:
         return ReturnCode.TYPE_CHECK_ERR
 
     if opts.only_type_check:
-        serialize.write_outputs(program, context)
+        wrap_up(program, context)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
@@ -109,9 +119,7 @@ def compile(opts: options.Options) -> ReturnCode:
         return ReturnCode.SUCCESS
 
     if opts.only_compile:
-        serialize.write_outputs(program, context)
-        if opts.copyback_enabled:
-            shutil.copytree(opts.workdir, opts.copyback_path)
+        wrap_up(program, context)
         return ReturnCode.SUCCESS
 
     # ----------------------------------
@@ -131,11 +139,7 @@ def compile(opts: options.Options) -> ReturnCode:
     with open(opts.output_path, "wb") as f:
         f.write(binary)
 
-    serialize.write_outputs(program, context)
-
-    if opts.copyback_enabled:
-        shutil.copytree(opts.workdir, opts.copyback_path)
-
+    wrap_up(program, context)
     return ReturnCode.SUCCESS
 
 
