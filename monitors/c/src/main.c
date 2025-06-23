@@ -18,7 +18,7 @@
 // Provides example of library usage and "offline" monitoring
 //
 //
-#define PRINT_VERSION() fprintf(stderr, "R2U2 Version %d.%d.%d\n", \
+#define PRINT_VERSION() fprintf(stderr, "R2U2 v%d.%d.%d\n", \
         R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR, R2U2_C_VERSION_PATCH)
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
 const char *help = "<configuration> [trace]\n"

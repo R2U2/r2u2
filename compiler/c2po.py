@@ -3,11 +3,17 @@ import sys
 
 import c2po.main
 import c2po.options
+import c2po.log
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "spec", 
     help="specification file (either .c2po or .mltl)"
+)
+parser.add_argument(
+    "--version",
+    action="version",
+    version=f"C2PO v{c2po.log.VERSION}",
 )
 parser.add_argument(
     "--trace",
@@ -247,6 +253,10 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
+if args.version:
+    print(f"C2PO v{c2po.log.VERSION}")
+    sys.exit(0)
 
 opts = c2po.options.Options(
     spec_filename=args.spec,

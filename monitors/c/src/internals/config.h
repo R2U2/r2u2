@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 
-#define R2U2_C_VERSION_MAJOR 3
+#define R2U2_C_VERSION_MAJOR 4
 #define R2U2_C_VERSION_MINOR 0
 #define R2U2_C_VERSION_PATCH 0
 
