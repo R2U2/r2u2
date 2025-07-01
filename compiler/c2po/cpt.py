@@ -236,7 +236,7 @@ class ArraySlice(Expression):
     def get_array(self) -> Expression:
         return self.children[0]
 
-    def get_indices(self) -> Union[int, int]:
+    def get_indices(self):
         return (self.start, self.stop)
 
     def __deepcopy__(self, memo) -> ArraySlice:

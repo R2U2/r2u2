@@ -257,17 +257,16 @@ def unroll_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
             continue
 
         if isinstance(expr.children[0], cpt.ArrayExpression) and isinstance(expr.children[1], cpt.ArrayExpression):
-            if not cpt.is_relational_operator(expr): # Only relational operators supported for now
-                continue
-            new = cpt.Operator.LogicalAnd(
-                expr.loc,
-                [
-                    cpt.Operator(expr.loc, expr.operator, [expr.children[0].children[x],expr.children[1].children[x]])
-                    for x in range(len(expr.children[0].children))
-                ],
-            )
+            if cpt.is_relational_operator(expr) and isinstance(expr, cpt.Operator): # Only relational operators supported for now
+                new = cpt.Operator.LogicalAnd(
+                    expr.loc,
+                    [
+                        cpt.Operator(expr.loc, expr.operator, [expr.children[0].children[x],expr.children[1].children[x]])
+                        for x in range(len(expr.children[0].children))
+                    ],
+                )
 
-            expr.replace(new)
+                expr.replace(new)
 
     log.debug(MODULE_CODE, 1, f"Post array unrolling:\n{repr(program)}")
 
