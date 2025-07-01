@@ -3,7 +3,7 @@ use crate::internals::types::*;
 use crate::memory::scq::SCQMemoryArena;
 
 #[cfg(feature = "aux_string_specs")]
-use crate::instructions::aux::*;
+use crate::instructions::aux_info::*;
 
 
 use crate::internals::bounds::*;
@@ -20,7 +20,7 @@ pub struct ProgramCount{
     pub max_program_count: usize,
 }
 
-
+/// Struct to contain monitor information
 pub struct Monitor{
     pub time_stamp: r2u2_time,
     pub progress: MonitorProgressState,

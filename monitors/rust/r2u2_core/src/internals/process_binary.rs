@@ -3,7 +3,7 @@ use crate::{engines, memory};
 use crate::instructions::{booleanizer::*, mltl::*};
 
 #[cfg(feature = "aux_string_specs")]
-use crate::instructions::aux::AuxiliaryInfo;
+use crate::instructions::aux_info::AuxiliaryInfo;
 
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]

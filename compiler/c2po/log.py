@@ -7,7 +7,10 @@ import sys
 from typing import NamedTuple, Optional
 
 ISSUE_URL: str = "https://github.com/R2U2/r2u2/issues"
-VERSION: str = "1.0"
+MAJOR_VERSION: str = "4"
+MINOR_VERSION: str = "0"
+PATCH_VERSION: str = "0"
+VERSION: str = f"{MAJOR_VERSION}.{MINOR_VERSION}.{PATCH_VERSION}"
 
 log_level = 0
 enable_quiet = False
