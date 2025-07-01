@@ -3,10 +3,14 @@ STRUCT
 
 INPUT
     i0,i1,i2: int;
+    arr1: int[3];
+    arr2: int[5];
 
 DEFINE
     s := {i0,i1,i2};
     t := Test(s);
 
 FTSPEC
-    foreach(i:t.I)(i > 5);
+    foreach(i:t.I)(i > 5);    
+    arr1 == arr2[1..3];
+    forsome(a:arr1[0..1])(a >= 4); 

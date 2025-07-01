@@ -35,6 +35,11 @@
             "options": ["--map", "default.map", "-bz"]
         },
         {
+            "input": "set_agg/basic_arr2.c2po", 
+            "expected_output": "set_agg/basic_arr2.c2po.expect", 
+            "options": ["--map", "default.map", "-bz"]
+        },
+        {
             "input": "set_agg/struct_arr.c2po", 
             "expected_output": "set_agg/struct_arr.c2po.expect", 
             "options": ["--map", "default.map", "-bz"]
@@ -106,6 +111,11 @@
         {
             "input": "type_check/bad_array.c2po", 
             "expected_output": "type_check/bad_array.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_array2.c2po", 
+            "expected_output": "type_check/bad_array2.c2po.expect", 
             "options": ["-bz", "--map", "default.map"]
         },
         {

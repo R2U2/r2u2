@@ -16,7 +16,7 @@ class C2POLexer(sly.Lexer):
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, DDOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -66,6 +66,7 @@ class C2POLexer(sly.Lexer):
     # QUEST   = r"\?"
     SEMI    = r";"
     COLON   = r":"
+    DDOT     = r"\.\."
     DOT     = r"\."
     COMMA   = r","
     LBRACK  = r"\["
@@ -419,6 +420,11 @@ class C2POParser(sly.Parser):
     @_("expr LBRACK NUMERAL RBRACK")
     def expr(self, p):
         return cpt.ArrayIndex(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
+    
+    # Array slice access
+    @_("expr LBRACK NUMERAL DDOT NUMERAL RBRACK")
+    def expr(self, p):
+        return cpt.ArraySlice(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]), int(p[4]))
 
     # Unary expressions
     @_("LOG_NEG expr")

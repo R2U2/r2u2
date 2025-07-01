@@ -248,26 +248,71 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
 
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
+def unroll_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
+    """Unrolls array operators into equivalent engine-supported operations e.g., array1 == array2 is rewritten into a conjunction."""
+    log.debug(MODULE_CODE, 1, "Unrolling array expressions.")
+
+    for expr in program.preorder(context):
+        if (expr.engine != types.R2U2Engine.BOOLEANIZER) or (len(expr.children) != 2):
+            continue
+
+        if isinstance(expr.children[0], cpt.ArrayExpression) and isinstance(expr.children[1], cpt.ArrayExpression):
+            if not cpt.is_relational_operator(expr): # Only relational operators supported for now
+                continue
+            new = cpt.Operator.LogicalAnd(
+                expr.loc,
+                [
+                    cpt.Operator(expr.loc, expr.operator, [expr.children[0].children[x],expr.children[1].children[x]])
+                    for x in range(len(expr.children[0].children))
+                ],
+            )
+
+            expr.replace(new)
+
+    log.debug(MODULE_CODE, 1, f"Post array unrolling:\n{repr(program)}")
+
 
 def resolve_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
     """Resolves array access operations to the underlying member expression."""
     log.debug(MODULE_CODE, 1, "Resolving array accesses.")
 
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.ArrayIndex):
-            continue
+        if isinstance(expr, cpt.ArrayIndex):
 
-        # Not all out-of-bounds errors are checked during type checking
-        # Ex: a struct has an array member type of uninterpreted size,
-        # must check this case here
-        array_type = cast(types.ArrayType, expr.get_array().type)
-        if expr.get_index() >= array_type.size:
-            log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
-            context.status = False
-            continue
+            # Not all out-of-bounds errors are checked during type checking
+            # Ex: a struct has an array member type of uninterpreted size,
+            # must check this case here
+            array_type = cast(types.ArrayType, expr.get_array().type)
+            if expr.get_index() >= array_type.size:
+                log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+                context.status = False
+                continue
 
-        array = expr.get_array()
-        expr.replace(array.children[expr.get_index()])
+            array = expr.get_array()
+            expr.replace(array.children[expr.get_index()])
+
+        elif isinstance(expr, cpt.ArraySlice):
+
+            # Not all out-of-bounds errors are checked during type checking
+            # Ex: a struct has an array member type of uninterpreted size,
+            # must check this case here
+            array_type = cast(types.ArrayType, expr.get_array().type)
+            if expr.get_indices()[0] >= array_type.size or expr.get_indices()[1] >= array_type.size:
+                log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+                context.status = False
+                continue
+
+            array = expr.get_array()
+
+            new = cpt.ArrayExpression(
+                expr.loc,
+                [
+                    array.children[i]
+                    for i in range(expr.get_indices()[0], expr.get_indices()[1]+1)
+                ],
+            )
+            expr.replace(new)
+
 
     log.debug(MODULE_CODE, 1, f"Post array access resolution:\n{repr(program)}")
 
@@ -1239,9 +1284,10 @@ pass_list: list[Pass] = [
     convert_function_calls_to_structs,
     resolve_contracts,
     resolve_struct_accesses,
+    resolve_array_accesses,
     unroll_set_aggregation,
     resolve_struct_accesses,
-    resolve_array_accesses,
+    unroll_array_accesses,
     resolve_struct_accesses,
     compute_atomics, 
     optimize_rewrite_rules,
@@ -1268,6 +1314,7 @@ def setup(opts: options.Options) -> None:
         pass_list.remove(resolve_struct_accesses)
         pass_list.remove(unroll_set_aggregation)
         pass_list.remove(resolve_struct_accesses)
+        pass_list.remove(unroll_array_accesses)
         pass_list.remove(resolve_array_accesses)
         pass_list.remove(resolve_struct_accesses)
 

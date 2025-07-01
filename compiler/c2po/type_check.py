@@ -147,6 +147,31 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = types.ArrayType(
                 new_type, is_const=is_const, size=len(expr.children)
             )
+        elif isinstance(expr, cpt.ArraySlice):
+            array_type = expr.get_array().type
+            if not isinstance(array_type, types.ArrayType):
+                log.error(
+                    MODULE_CODE,
+                    f"Array access on a non-array expression ({expr})",
+                    expr.loc,
+                )
+                return False
+
+            if (abs(expr.start) > array_type.size or abs(expr.stop) > array_type.size) and array_type.size > -1:
+                log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+                return False
+
+            if expr.start < 0:
+                expr.start = -expr.start
+            if expr.stop < 0:
+                expr.stop = -expr.stop
+            if expr.start > expr.stop:
+                log.error(MODULE_CODE, f"Invalid array index ({expr}), {expr.start} is greater than {expr.stop}", expr.loc)
+                return False
+
+            expr.type = types.ArrayType(
+                array_type.member_type, is_const=expr.get_array().type.is_const, size=expr.stop - expr.start + 1
+            )
         elif isinstance(expr, cpt.ArrayIndex):
             array_type = expr.get_array().type
             if not isinstance(array_type, types.ArrayType):
@@ -367,7 +392,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 new_type.is_const = True
 
             for child in expr.children:
-                if child.type != new_type or not types.is_integer_type(child.type):
+                if isinstance(child, cpt.ArrayExpression) or isinstance(child, cpt.ArraySlice):
+                    log.error(
+                        MODULE_CODE,
+                        f"Bitwise operators not supported on arrays \n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                elif child.type != new_type or not types.is_integer_type(child.type):
                     log.error(
                         MODULE_CODE,
                         f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n\t{expr}",
@@ -446,7 +478,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                         return False
 
             for child in expr.children:
-                if child.type != new_type:
+                if isinstance(child, cpt.ArrayExpression) or isinstance(child, cpt.ArraySlice):
+                    log.error(
+                        MODULE_CODE,
+                        f"Arithmetic operators not supported on arrays \n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                elif child.type != new_type:
                     log.error(
                         MODULE_CODE,
                         f"Operand of '{expr}' must be of homogeneous type\n\t"

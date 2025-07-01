@@ -202,7 +202,27 @@ class ArrayExpression(Expression):
         new = ArrayExpression(self.loc, children)
         self.copy_attrs(new)
         return new
+    
+    
+class ArraySlice(Expression):
+    def __init__(self, loc: log.FileLocation, array: Expression, start: int, stop: int) -> None:
+        super().__init__(loc, [array])
+        self.start = start
+        self.stop = stop
+        self.symbol = "[]"
 
+    def get_array(self) -> Expression:
+        return self.children[0]
+
+    def get_indices(self) -> Union[int, int]:
+        return (self.start, self.stop)
+
+    def __deepcopy__(self, memo) -> ArraySlice:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = ArraySlice(self.loc, children[0], self.start, self.stop)
+        self.copy_attrs(new)
+        return new
+    
 
 class ArrayIndex(Expression):
     def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
@@ -1563,6 +1583,12 @@ def to_infix_str(start: Expression) -> str:
                 s += ","
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
+        elif isinstance(expr, ArraySlice):
+            if seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s += f"[{expr.start}..{expr.stop}]"
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):
@@ -1679,6 +1705,12 @@ def to_prefix_str(start: Expression) -> str:
                 stack.append((0, expr.children[0]))
             elif seen == 1:
                 s = s[:-1] + f"[{expr.index}] "
+        elif isinstance(expr, ArraySlice):
+            if seen == 0:
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            elif seen == 1:
+                s = s[:-1] + f"[{expr.start}..{expr.stop}] "
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
             expr, OperatorKind.COUNT
         ):

@@ -1,0 +1,41 @@
+BZ b0  iload  14 0
+BZ b1  iload  17 0
+BZ b2  ieq    0 1
+BZ b3  store  2 0
+BZ b4  iload  15 0
+BZ b5  iload  18 0
+BZ b6  ieq    4 5
+BZ b7  store  6 1
+BZ b8  iload  16 0
+BZ b9  iload  19 0
+BZ b10 ieq    8 9
+BZ b11 store  10 2
+BZ b12 iload  20 0
+BZ b13 iconst 1 0
+BZ b14 igt    12 13
+BZ b15 store  14 3
+BZ b16 iload  21 0
+BZ b17 igt    16 13
+BZ b18 store  17 4
+TL n0  load   a0
+TL n1  load   a1
+TL n2  and    n0 n1
+TL n3  load   a2
+TL n4  and    n2 n3
+TL n5  return n4 0
+TL n6  load   a3
+TL n7  load   a4
+TL n8  and    n6 n7
+TL n9  return n8 1
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |1|
+CG TL SCQ q2 |1|
+CG TL SCQ q3 |1|
+CG TL SCQ q4 |1|
+CG TL SCQ q5 |1|
+CG TL SCQ q6 |1|
+CG TL SCQ q7 |1|
+CG TL SCQ q8 |1|
+CG TL SCQ q9 |1|
+F __f0__ 0
+F __f1__ 1

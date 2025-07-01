@@ -58,19 +58,34 @@ def parse_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
 
     lines = content.splitlines()
     for line in lines:
-        if re.match(r"[a-zA-Z_][a-zA-Z0-9_\[\]]*:\d+", line):
+        if re.match(r"[a-zA-Z_][a-zA-Z0-9_\[\]\.]*:\d+", line):
             strs = line.split(":")
             id = strs[0]
             sid = int(strs[1])
+            # Special case where multiple indices of array are mapped in at once
+            # For example, 'arr[0..2]:0' gets expanded to 'arr[0]:0', 'arr[1]:1', and 'arr[2]:2'
+            if re.match(r"[a-zA-Z_][a-zA-Z0-9_]*\[\d..\d*\]", id):
+                indices = id[id.find("[")+1 : id.find("]")].split("..")
+                for i in range(int(indices[0]), int(indices[1])+1):
+                    id = id[:id.find("[")] + "[" + str(i) + "]"
+                    if id in mapping:
+                        log.warning(
+                            MODULE_CODE,
+                            f"Signal ID '{id}' found multiple times in map file, using latest value",
+                            log.FileLocation(map_path.name, lines.index(line) + 1),
+                        )
+                    mapping[id] = sid
+                    sid = sid + 1
 
-            if id in mapping:
-                log.warning(
-                    MODULE_CODE,
-                    f"Signal ID '{id}' found multiple times in map file, using latest value",
-                    log.FileLocation(map_path.name, lines.index(line) + 1),
-                )
+            else: 
+                if id in mapping:
+                    log.warning(
+                        MODULE_CODE,
+                        f"Signal ID '{id}' found multiple times in map file, using latest value",
+                        log.FileLocation(map_path.name, lines.index(line) + 1),
+                    )
 
-            mapping[id] = sid
+                mapping[id] = sid
         else:
             log.error(
                 MODULE_CODE,

@@ -1,0 +1,6 @@
+[TYPC][[91mERR[0m] bad_array2.c2po:6: Invalid operands for '>=', must be of same type (found 'int[3]' and 'int[5]')
+	(arr1)>=(arr2)
+[TYPC][[91mERR[0m] bad_array2.c2po:7: Invalid operands for '==', must be of same type (found 'int[3]' and 'int')
+	(arr1)==(1)
+[TYPC][[91mERR[0m] bad_array2.c2po:8: Invalid array index (arr2[5..2]), 5 is greater than 2
+[MAIN][[91mERR[0m] Failed type check

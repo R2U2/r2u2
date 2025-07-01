@@ -69,7 +69,7 @@ as follows:
         };
 
 Arrays in defined structs can be given either concrete or indeterminate sizes (as in `my_array` or
-`my_array_2`). 
+`my_array_2`). Array slices can also be defined within specifications (e.g., `my_array_2[2..4]` is equivalent to the slice containing `my_array_2[2]`, `my_array_2[3]`, and `my_array_2[4]`).
 
 ## Inputs
 
@@ -99,6 +99,8 @@ C2PO supports the following operators in the table below
 | Relational      | `==`, `!=`                              | `bool` $\times$ `bool` $\rightarrow$ `bool`                     | `p == q`           |
 |                 | `==`, `!=`, `>`, `<`, `>=`, `<=`        | `int` $\times$ `int` $\rightarrow$ `bool`                       | `i <= j`           |
 |                 |                                         | `float` $\times$ `float` $\rightarrow$ `bool`                   | `x >= y`           |
+|                 |                                         | `int[]` $\times$ `int[]` $\rightarrow$ `bool`                   | `i[0..2] > j[0..2]`|
+|                 |                                         | `float[]` $\times$ `float[]` $\rightarrow$ `bool`               | `x == y`           |
 | Arithmetic      | `-`, `sqrt`, `abs`                      | `int` $\rightarrow$ `int`                                       | `-i`, `abs(i)`     |
 |                 | `-`, `abs`                              | `float` $\rightarrow$ `float`                                   | `-x`, `sqrt(y)`    |
 |                 | `+`, `-`, `*`, `/`, `%`, `pow`          | `int` $\times$ `int` $\rightarrow$ `int`                        | `i + j`, `i pow j` |
@@ -118,7 +120,8 @@ i.e., `x == y` will be true if $\vert x - y \vert > \epsilon$. This value is set
 Some operators require their arguments to be constants. Division (`/`) requires the right-hand side
 to be constant to avoid division-by-zero errors at runtime and the power operator (`pow`) requires
 the right-hand side to be constant to avoid negative exponents. Array indexes must be a simple
-numeral, no compound, non-constant expressions are allowed.
+numeral, no compound, non-constant expressions are allowed. Comparing an array to another array will
+perform an index by index comparison.
 
 ### Set Aggregation
 
