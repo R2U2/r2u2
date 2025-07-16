@@ -1024,7 +1024,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
     program.bounds_c["R2U2_MAX_INST_LEN"] = len(binary)
     program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 251 # each alias string is at most 50 bytes + null terminator
+    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 141 # each alias string is at most 140 bytes + null terminator
     program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
 
     program.bounds_rs["R2U2_MAX_SPECS"] = sum(

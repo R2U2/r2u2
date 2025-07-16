@@ -42,6 +42,10 @@ It is recommend to run with debug output after changing bounds to enable extra m
 : Total characters (and nulls) of string arena used by auxiliary output (e.g., formula names, contract names, etc.) if enabled.
 : Default: 1024
 
+`R2U2_MAX_SIGNAL_LABEL`
+: Maximum length of any one element of the auxiliary output strings. Optionally used to determine `R2U2_MAX_AUX_STRINGS` size.
+: Default: 140
+
 `R2U2_MAX_BOXQ_BYTES`
 : Arena size in bytes used for past-time reasoning
 : Default: 256 * 1024
