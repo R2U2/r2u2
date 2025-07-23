@@ -97,6 +97,12 @@
             "mltl":  "event.c2po",
             "trace":  "event.csv",
             "oracle":  "event.log"
+        },
+        {
+            "name": "labellen",
+            "mltl": "labellen.c2po",
+            "trace": "labellen.csv",
+            "oracle": "labellen.log"
         }
     ]
 }
