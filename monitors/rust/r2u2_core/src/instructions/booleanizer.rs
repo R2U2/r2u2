@@ -47,6 +47,7 @@ pub const BZ_OP_FSQRT: u8 = 0b100100;
 pub const BZ_OP_IABS: u8 = 0b100101;
 pub const BZ_OP_FABS: u8 = 0b100110;
 pub const BZ_OP_PREV: u8 = 0b100111;
+pub const BZ_TS: u8 = 0b101000;
 
 #[derive(Copy, Clone)]
 pub struct BooleanizerInstruction {

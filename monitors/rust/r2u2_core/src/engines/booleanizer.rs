@@ -343,6 +343,13 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {}/{}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, monitor.value_buffer[instr.memory_reference as usize].f);
         }
+        BZ_TS => {
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            debug_print!("BZ TS");
+            monitor.value_buffer[instr.memory_reference as usize].i = if monitor.time_stamp > (r2u2_int::MAX as u32) {r2u2_int::MAX} else { monitor.time_stamp as i32 };
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            debug_print!("b{} = {}", instr.memory_reference, monitor.time_stamp);
+        }
         _ => {
             return;
         }
@@ -712,13 +719,12 @@ fn float_power(op0: r2u2_float, op1: r2u2_float) -> (result: r2u2_float)
 #[inline(always)]
 fn integer_square_root(op: r2u2_int) -> (result: r2u2_int)
 {
-    // match op.checked_isqrt() {
-    //     Some(n) => {return n;}
-    //     None => {
-    //         return 0;
-    //     }
-    // }
-    return sqrt(op as r2u2_float) as r2u2_int; //isqrt is currently unstable in this version of rust
+    match op.checked_isqrt() {
+        Some(n) => {return n;}
+        None => {
+            return 0;
+        }
+    }
 }
 
 #[verifier::external] // Verus doesn't support evaluation of floats 

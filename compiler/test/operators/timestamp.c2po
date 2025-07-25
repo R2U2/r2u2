@@ -1,0 +1,19 @@
+INPUT
+    i0: int;
+
+FTSPEC
+    (- TAU) > 0;
+    (i0 + TAU) > 0;
+    (i0 - TAU) > 0;
+    (i0 * TAU) > 0;
+    (i0 / TAU) > 0;
+    (i0 % TAU) > 0;
+    (i0 pow TAU) > 0;
+    (TAU + i0) > 0;
+    (TAU - i0) > 0;
+    (TAU * i0) > 0;
+    (TAU / i0) > 0;
+    (TAU % i0) > 0;
+    (TAU pow i0) > 0;
+    abs(TAU) > 0;
+    rate(TAU) > 0;

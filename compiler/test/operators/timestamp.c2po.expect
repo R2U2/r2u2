@@ -1,0 +1,125 @@
+[CPT][[93mWRN[0m] timestamp.c2po:5: If using TAU, note that by default `r2u2_time` is an unsigned 32-bit integer and `r2u2_int` is a signed 32-bit integer.
+BZ b0  ts     0 0
+BZ b1  ineg   0 0
+BZ b2  iconst 0 0
+BZ b3  igt    1 2
+BZ b4  store  3 0
+BZ b5  iload  8 0
+BZ b6  iadd   5 0
+BZ b7  igt    6 2
+BZ b8  store  7 1
+BZ b9  isub   5 0
+BZ b10 igt    9 2
+BZ b11 store  10 2
+BZ b12 imul   5 0
+BZ b13 igt    12 2
+BZ b14 store  13 3
+BZ b15 idiv   5 0
+BZ b16 igt    15 2
+BZ b17 store  16 4
+BZ b18 mod    5 0
+BZ b19 igt    18 2
+BZ b20 store  19 5
+BZ b21 ipow   5 0
+BZ b22 igt    21 2
+BZ b23 store  22 6
+BZ b24 iadd   0 5
+BZ b25 igt    24 2
+BZ b26 store  25 7
+BZ b27 isub   0 5
+BZ b28 igt    27 2
+BZ b29 store  28 8
+BZ b30 imul   0 5
+BZ b31 igt    30 2
+BZ b32 store  31 9
+BZ b33 idiv   0 5
+BZ b34 igt    33 2
+BZ b35 store  34 10
+BZ b36 mod    0 5
+BZ b37 igt    36 2
+BZ b38 store  37 11
+BZ b39 ipow   0 5
+BZ b40 igt    39 2
+BZ b41 store  40 12
+BZ b42 iabs   0 0
+BZ b43 igt    42 2
+BZ b44 store  43 13
+BZ b46 isub   0 45
+BZ b47 igt    46 2
+BZ b48 store  47 14
+BZ b45 prev   0 0
+TL n0  load   a0
+TL n1  return n0 0
+TL n2  load   a1
+TL n3  return n2 1
+TL n4  load   a2
+TL n5  return n4 2
+TL n6  load   a3
+TL n7  return n6 3
+TL n8  load   a4
+TL n9  return n8 4
+TL n10 load   a5
+TL n11 return n10 5
+TL n12 load   a6
+TL n13 return n12 6
+TL n14 load   a7
+TL n15 return n14 7
+TL n16 load   a8
+TL n17 return n16 8
+TL n18 load   a9
+TL n19 return n18 9
+TL n20 load   a10
+TL n21 return n20 10
+TL n22 load   a11
+TL n23 return n22 11
+TL n24 load   a12
+TL n25 return n24 12
+TL n26 load   a13
+TL n27 return n26 13
+TL n28 load   a14
+TL n29 return n28 14
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |1|
+CG TL SCQ q2 |1|
+CG TL SCQ q3 |1|
+CG TL SCQ q4 |1|
+CG TL SCQ q5 |1|
+CG TL SCQ q6 |1|
+CG TL SCQ q7 |1|
+CG TL SCQ q8 |1|
+CG TL SCQ q9 |1|
+CG TL SCQ q10 |1|
+CG TL SCQ q11 |1|
+CG TL SCQ q12 |1|
+CG TL SCQ q13 |1|
+CG TL SCQ q14 |1|
+CG TL SCQ q15 |1|
+CG TL SCQ q16 |1|
+CG TL SCQ q17 |1|
+CG TL SCQ q18 |1|
+CG TL SCQ q19 |1|
+CG TL SCQ q20 |1|
+CG TL SCQ q21 |1|
+CG TL SCQ q22 |1|
+CG TL SCQ q23 |1|
+CG TL SCQ q24 |1|
+CG TL SCQ q25 |1|
+CG TL SCQ q26 |1|
+CG TL SCQ q27 |1|
+CG TL SCQ q28 |1|
+CG TL SCQ q29 |1|
+F __f0__ 0
+F __f1__ 1
+F __f2__ 2
+F __f3__ 3
+F __f4__ 4
+F __f5__ 5
+F __f6__ 6
+F __f7__ 7
+F __f8__ 8
+F __f9__ 9
+F __f10__ 10
+F __f11__ 11
+F __f12__ 12
+F __f13__ 13
+F __f14__ 14

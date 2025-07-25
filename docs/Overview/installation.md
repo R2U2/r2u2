@@ -11,7 +11,7 @@ Most dependencies, especially development tooling, are installed via Pythons pac
 ## C2PO
 
 Usage:
-- Python >= 3.8
+- Python >= 9
 - `pip install typing-extensions`
 - (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3)
 
@@ -34,5 +34,5 @@ Development:
 ## R2U2 (Rust Version)
 
 Usage:
-- Python >= 3.8
+- Python >= 9
 - [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater 

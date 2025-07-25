@@ -8,7 +8,7 @@ The R2U2 monitor strives to minimize dependencies to ensure it can be targeted-a
 A standard build of the included R2U2 monitor CLI as provided requires:
 
 - Posix environment (Linux, MacOS, Etc.)
-- Python3 (version 3.8 or greater)
+- Python3 (version 3.9 or greater)
 - [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater
 
 :::{note}

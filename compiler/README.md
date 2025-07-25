@@ -4,7 +4,7 @@ C2PO (Configuration Compiler for Property Organization) is the formula compiler 
 
 ## Requirements
 
-C2PO requires Python 3.8 or newer.
+C2PO requires Python 3.9 or newer.
 
 To enable equality saturation, install [Rust](https://www.rust-lang.org/tools/install), then run the
 `setup_egglog.sh` script.
