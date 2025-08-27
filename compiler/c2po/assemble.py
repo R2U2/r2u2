@@ -1054,7 +1054,7 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
+        f"C2PO Version 4.0.0 for R2U2 V4.0 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
