@@ -76,9 +76,9 @@ DEFAULTS = {
     "debug": False,
     "log_level": 0,
     "quiet": False,
-    "enable_bvmon": False,
-    "bvmon_word_size": 8,
-    "bvmon_nsigs": -1,
+    "enable_sabre": False,
+    "sabre_word_size": 8,
+    "sabre_nsigs": -1,
 }
 
 @dataclass
@@ -125,9 +125,9 @@ class Options:
     debug: bool = DEFAULTS["debug"]
     log_level: int = DEFAULTS["log_level"]
     quiet: bool = DEFAULTS["quiet"]
-    enable_bvmon: bool = DEFAULTS["enable_bvmon"]
-    bvmon_word_size: int = DEFAULTS["bvmon_word_size"]
-    bvmon_nsigs: int = DEFAULTS["bvmon_nsigs"]
+    enable_sabre: bool = DEFAULTS["enable_sabre"]
+    sabre_word_size: int = DEFAULTS["sabre_word_size"]
+    sabre_nsigs: int = DEFAULTS["sabre_nsigs"]
 
     spec_format: SpecFormat = SpecFormat.C2PO
     workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)

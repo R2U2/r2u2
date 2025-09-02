@@ -35,12 +35,14 @@ for file in files:
                 spec = "Until"
 
             tool = row[0]
-            if tool == "bvmon":
-                tool = "BVMon"
+            if tool == "sabre":
+                tool = "SABRe"
             elif tool == "hydra":
                 tool = "Hydra"
             elif tool == "r2u2_c":
-                tool = "R2U2"
+                tool = "R2U2 (C)"
+            elif tool == "r2u2_rust":
+                tool = "R2U2 (Rust)"
             
             if spec not in results:
                 results[spec] = {}
@@ -53,7 +55,7 @@ fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
 # Prepare data for the bar graph
 specs = ["Future", "Until", "Min Duration", "Between", "Prec Chain"]
-tools = ["BVMon", "Hydra", "R2U2"]
+tools = ["SABRe", "Hydra", "R2U2 (C)", "R2U2 (Rust)"]
 bar_width = 0.25
 group_spacing = 0.3  # Add extra spacing between groups
 x = [i * (1 + group_spacing) for i in range(len(specs))]  # Add spacing between groups
@@ -73,9 +75,10 @@ for tool in tools:
         width=bar_width,
         label=tool,
         color=(
-            "red" if tool == "R2U2" else
+            "red" if tool == "R2U2 (C)" else
+            "firebrick" if tool == "R2U2 (Rust)" else
             "blue" if tool == "Hydra" else
-            "darkorchid" if tool == "BVMon" else
+            "darkorchid" if tool == "SABRe" else
             "gray"  # Default color for any other tool
         )
     )

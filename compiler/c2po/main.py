@@ -17,7 +17,7 @@ from c2po import (
     passes,
     serialize,
     options,
-    bvmon
+    sabre
 )
 
 MODULE_CODE = "MAIN"
@@ -111,11 +111,11 @@ def compile(opts: options.Options) -> ReturnCode:
         if not context.status:
             return ReturnCode.ERROR
     
-    if opts.enable_bvmon:
+    if opts.enable_sabre:
         passes.compute_accumulated_bounds(program, context)
         formula = program.ft_spec_set.get_specs()[0]
         assert isinstance(formula, cpt.Formula)
-        bvmon.gen_code(formula.get_expr(), context, opts.bvmon_word_size, opts.bvmon_nsigs)
+        sabre.gen_code(formula.get_expr(), context, opts.sabre_word_size, opts.sabre_nsigs)
         return ReturnCode.SUCCESS
 
     if opts.only_compile:

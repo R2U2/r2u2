@@ -256,9 +256,9 @@ parser.add_argument(
     help="location to write hydra encoding of FT formulas"
 )
 
-parser.add_argument("--bvmon", action="store_true", help="bvmon mode")
-parser.add_argument("--bvmon-word-size", type=int, default=c2po.options.DEFAULTS["bvmon_word_size"], help="bvmon word size")
-parser.add_argument("--bvmon-nsigs", type=int, help="number of signals in bvmon encoding")
+parser.add_argument("--sabre", action="store_true", help="sabre mode")
+parser.add_argument("--sabre-word-size", type=int, default=c2po.options.DEFAULTS["sabre_word_size"], help="sabre word size")
+parser.add_argument("--sabre-nsigs", type=int, help="number of signals in sabre encoding")
 
 args = parser.parse_args()
 
@@ -305,9 +305,9 @@ opts = c2po.options.Options(
     debug=args.debug,
     log_level=args.log_level,
     quiet=args.quiet,
-    enable_bvmon=args.bvmon,
-    bvmon_word_size=args.bvmon_word_size,
-    bvmon_nsigs=args.bvmon_nsigs
+    enable_sabre=args.sabre,
+    sabre_word_size=args.sabre_word_size,
+    sabre_nsigs=args.sabre_nsigs,
 )
 
 return_code = c2po.main.main(opts)

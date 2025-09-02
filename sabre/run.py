@@ -17,19 +17,19 @@ HYDRA_FILE = "hydra.mtl"
 HYDRA_TRACE = "traces/hydra.log"
 HYDRA_OUTPUT = "traces/hydra_output.log"
 R2U2_OUTPUT = "traces/r2u2_output.log"
-BVMON_OUTPUT = "traces/bvmon_output.log"
+SABRE_OUTPUT = "traces/sabre_output.log"
 TRACE_DIR = "traces/"
 R2U2_TRACE = "traces/r2u2.csv"
 SPEC_BIN = "spec.bin"
 SPEC_FILE = "spec.mltl"
 TIME = "gtime" if sys.platform == "darwin" else "/usr/bin/time"
 CC = "gcc"
-BVMON_FILE = "bvmon.c"
-BVMON_BIN = "bvmon"
+SABRE_FILE = "sabre.c"
+SABRE_BIN = "sabre"
 OUTPUT_DIR = "results/"
 PATTERN_OUTPUT_DIR = "results/pattern"
 FUTURE_OUTPUT_DIR = "results/future"
-BVMON_DEFAULT_WORD_SIZE = 8
+SABRE_DEFAULT_WORD_SIZE = 8
 COMPARE_OUTPUT_SCRIPT = "analysis/compare_output.py"
 
 def get_time_data(time_output: str) -> tuple[float, int]:
@@ -86,9 +86,9 @@ def benchmark_r2u2_c(n: int) -> tuple[float, float]:
     return (throughput_avg, mem_avg)
 
 
-def recompile_r2u2_rust(spec: str) -> None:
+def recompile_r2u2_rust(spec: str, scq_const: int = 0) -> None:
     print("Compiling r2u2 spec (Rust)")
-    command = ["python3", C2PO, spec, "-o", "spec.bin", "--impl", "rust", "--write-bounds", R2U2_RUST_CONFIG]
+    command = ["python3", C2PO, spec, "-o", "spec.bin", "--impl", "rust", "--write-bounds", R2U2_RUST_CONFIG, "--scq-constant", str(scq_const)]
     subprocess.run(command, capture_output=True)
 
     print("Rebuilding r2u2 (Rust)")
@@ -133,39 +133,39 @@ def benchmark_hydra(n: int) -> tuple[float, float]:
     return (throughput_avg, mem_avg)
 
 
-def recompile_bvmon(spec: str, nsigs: int, word_size: int) -> None:
-    print("Generating bvmon monitor")
+def recompile_sabre(spec: str, nsigs: int, word_size: int) -> None:
+    print("Generating sabre monitor")
     command = [
         "python3",
         C2PO,
         "--no-rewrite",
         "-c",
         "--extops",
-        "--bvmon",
-        "--bvmon-nsigs",
+        "--sabre",
+        "--sabre-nsigs",
         str(nsigs),
-        "--bvmon-word-size",
+        "--sabre-word-size",
         str(word_size),
         spec
     ]
     proc = subprocess.run(command, capture_output=True)
 
-    with open(BVMON_FILE, "w") as f:
+    with open(SABRE_FILE, "w") as f:
         f.write(proc.stdout.decode())
 
-    print("Compiling bvmon monitor")
-    command = [CC, "-O3", "-DOUTPUT", "-o", BVMON_BIN, BVMON_FILE]
+    print("Compiling sabre monitor")
+    command = [CC, "-O3", "-DOUTPUT", "-o", SABRE_BIN, SABRE_FILE]
     subprocess.run(command, capture_output=True)
 
 
-def benchmark_bvmon(n: int, word_size: int) -> tuple[float, float]:
-    print("Checking number verdicts computed by bvmon")
-    command = [f"./{BVMON_BIN}", R2U2_TRACE]
+def benchmark_sabre(n: int, word_size: int) -> tuple[float, float]:
+    print("Checking number verdicts computed by sabre")
+    command = [f"./{SABRE_BIN}", R2U2_TRACE]
     proc = subprocess.run(command, capture_output=True)
     num_verdicts = len(proc.stdout.decode().splitlines()) * word_size
 
-    print("Benchmarking bvmon")
-    command = [TIME, "-v", f"./{BVMON_BIN}", R2U2_TRACE]
+    print("Benchmarking sabre")
+    command = [TIME, "-v", f"./{SABRE_BIN}", R2U2_TRACE]
     time_avg, mem_avg = run_command_n(command, n)
     throughput_avg = num_verdicts / time_avg
     return (throughput_avg, mem_avg)
@@ -183,12 +183,12 @@ def compare_output() -> None:
     with open(HYDRA_OUTPUT, "w") as f:
         f.write(proc.stdout.decode())
 
-    command = [f"./{BVMON_BIN}", R2U2_TRACE]
+    command = [f"./{SABRE_BIN}", R2U2_TRACE]
     proc = subprocess.run(command, capture_output=True)
-    with open(BVMON_OUTPUT, "w") as f:
+    with open(SABRE_OUTPUT, "w") as f:
         f.write(proc.stdout.decode())
 
-    command = ["python3", COMPARE_OUTPUT_SCRIPT, R2U2_OUTPUT, HYDRA_OUTPUT, BVMON_OUTPUT]
+    command = ["python3", COMPARE_OUTPUT_SCRIPT, R2U2_OUTPUT, HYDRA_OUTPUT, SABRE_OUTPUT]
     proc = subprocess.run(command, capture_output=True)
     if proc.returncode != 0:
         print("Outputs do not match")
@@ -197,7 +197,7 @@ def compare_output() -> None:
         print("Outputs match")
 
 
-parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and bvmon")
+parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and sabre")
 parser.add_argument(
     "benchmark",
     choices=["pattern", "future"],
@@ -228,30 +228,35 @@ if args.benchmark == "pattern":
 
         if spec == "patterns/prec_chain.mltl":
             recompile_r2u2_c(spec, 10)
+            recompile_r2u2_rust(spec, 10)
         else:
             recompile_r2u2_c(spec)
+            recompile_r2u2_rust(spec)
         recompile_hydra(spec)
-        recompile_bvmon(spec, nsigs, BVMON_DEFAULT_WORD_SIZE)
+        recompile_sabre(spec, nsigs, SABRE_DEFAULT_WORD_SIZE)
         compare_output()
         data_r2u2_c = benchmark_r2u2_c(10)
+        data_r2u2_rust = benchmark_r2u2_rust(10)
         data_hydra = benchmark_hydra(10)
-        data_bvmon = benchmark_bvmon(10, BVMON_DEFAULT_WORD_SIZE)
+        data_sabre = benchmark_sabre(10, SABRE_DEFAULT_WORD_SIZE)
 
         print(f"r2u2 (C): {data_r2u2_c}")
+        print(f"r2u2 (Rust): {data_r2u2_rust}")
         print(f"hydra: {data_hydra}")
-        print(f"bvmon: {data_bvmon}")
+        print(f"sabre: {data_sabre}")
 
         with open(f"{PATTERN_OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
             f.write("tool,throughput,mem\n")
             f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
+            f.write(f"r2u2_rust,{data_r2u2_rust[0]},{data_r2u2_rust[1]}\n")
             f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
-            f.write(f"bvmon,{data_bvmon[0]},{data_bvmon[1]}\n")
+            f.write(f"sabre,{data_sabre[0]},{data_sabre[1]}\n")
 elif args.benchmark == "future":
     trace_len = 1_000_000
     nsigs = 1
 
-    future_data: dict[int, tuple[float, float, float]]  = {}
-
+    future_data: dict[int, tuple[float, float, float, float]]  = {}
+ 
     for ub in [
         1_000,
         1_024,
@@ -263,8 +268,9 @@ elif args.benchmark == "future":
             f.write(spec)
 
         recompile_r2u2_c(SPEC_FILE)
+        recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
-        recompile_bvmon(SPEC_FILE, nsigs, BVMON_DEFAULT_WORD_SIZE)
+        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE)
 
         for density in [
             10,
@@ -286,26 +292,29 @@ elif args.benchmark == "future":
             proc = subprocess.run(command, capture_output=True)
 
             time_avg_r2u2_c, _ = benchmark_r2u2_c(3)
+            time_avg_r2u2_rust, _ = benchmark_r2u2_rust(3)
             time_avg_hydra, _ = benchmark_hydra(3)
-            time_avg_bvmon, _ = benchmark_bvmon(3, BVMON_DEFAULT_WORD_SIZE)
+            time_avg_sabre, _ = benchmark_sabre(3, SABRE_DEFAULT_WORD_SIZE)
 
             future_data[density] = (
                 time_avg_r2u2_c,
+                time_avg_r2u2_rust,
                 time_avg_hydra,
-                time_avg_bvmon,
+                time_avg_sabre,
             )
             
         with open(f"{FUTURE_OUTPUT_DIR}/{ub}.csv", "w") as f:
-            f.write("density,r2u2_c,hydra,bvmon\n")
+            f.write("density,r2u2_c,r2u2_rust,hydra,sabre\n")
             for density, times in future_data.items():
-                f.write(f"{density},{times[0]},{times[1]},{times[2]}\n")
+                f.write(f"{density},{times[0]},{times[1]},{times[2]},{times[3]}\n")
 elif args.benchmark == "interval":
     trace_len = 5_000_000
     nsigs = 1
 
     data_r2u2_c_int: dict[int, tuple[float, float]] = {}
+    data_r2u2_rust_int: dict[int, tuple[float, float]] = {}
     data_hydra_int: dict[int, tuple[float, float]] = {}
-    data_bvmon_int: dict[int, tuple[float, float]] = {}
+    data_sabre_int: dict[int, tuple[float, float]] = {}
 
     print(f"Generating random trace of len={trace_len}, density=.5")
     command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), "0.5", TRACE_DIR]
@@ -317,26 +326,30 @@ elif args.benchmark == "interval":
             f.write(spec)
             
         recompile_r2u2_c(SPEC_FILE)
+        recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
-        recompile_bvmon(SPEC_FILE, nsigs, BVMON_DEFAULT_WORD_SIZE)
+        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE)
 
         data_r2u2_c_int[ub] = benchmark_r2u2_c(25)
+        data_r2u2_rust_int[ub] = benchmark_r2u2_rust(25)
         data_hydra_int[ub] = benchmark_hydra(25)
-        data_bvmon_int[ub] = benchmark_bvmon(25, BVMON_DEFAULT_WORD_SIZE)
+        data_sabre_int[ub] = benchmark_sabre(25, SABRE_DEFAULT_WORD_SIZE)
     
     with open(f"{OUTPUT_DIR}/interval.csv", "w") as f:
         f.write("tool,ub,time_avg,mem_avg\n")
         for ub, data in data_r2u2_c_int.items():
             f.write(f"r2u2_c,{ub},{data[0]},{data[1]}\n")
+        for ub, data in data_r2u2_rust_int.items():
+            f.write(f"r2u2_rust,{ub},{data[0]},{data[1]}\n")
         for ub, data in data_hydra_int.items():
             f.write(f"hydra,{ub},{data[0]},{data[1]}\n")
-        for ub, data in data_bvmon_int.items():
-            f.write(f"bvmon,{ub},{data[0]},{data[1]}\n")
+        for ub, data in data_sabre_int.items():
+            f.write(f"sabre,{ub},{data[0]},{data[1]}\n")
 elif args.benchmark == "word-size":
     trace_len = 5_000_000
     nsigs = 1
 
-    data_bvmon = {}
+    data_sabre = {}
 
     spec = "F[0,10] a0\n"
     with open(SPEC_FILE, "w") as f:
@@ -347,18 +360,18 @@ elif args.benchmark == "word-size":
         command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), str(0.5), TRACE_DIR]
         proc = subprocess.run(command, capture_output=True)
 
-        recompile_bvmon(SPEC_FILE, nsigs, word_size)
-        time_avg, mem_avg = benchmark_bvmon(25, word_size)
-        print(f"bvmon ({word_size}): {time_avg}, {mem_avg}")
+        recompile_sabre(SPEC_FILE, nsigs, word_size)
+        time_avg, mem_avg = benchmark_sabre(25, word_size)
+        print(f"sabre ({word_size}): {time_avg}, {mem_avg}")
 
-        data_bvmon[word_size] = (
+        data_sabre[word_size] = (
             time_avg,
             mem_avg,
         )
 
     with open(f"{OUTPUT_DIR}/word_size.csv", "w") as f:
         f.write("word_size,time_avg,mem_avg\n")
-        for word_size, data in data_bvmon.items():
+        for word_size, data in data_sabre.items():
             f.write(f"{word_size},{data[0]},{data[1]}\n")
 
             

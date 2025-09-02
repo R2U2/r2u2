@@ -19,17 +19,19 @@ results: dict[str, dict[str, dict[float, float]]] = {}
 
 for file in files:
     results[file] = {}
-    results[file]["R2U2"] = {}
+    results[file]["R2U2 (C)"] = {}
+    results[file]["R2U2 (Rust)"] = {}
     results[file]["Hydra"] = {}
-    results[file]["BVMon"] = {}
+    results[file]["SABRe"] = {}
     with open(file, newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader) # skip header
         for row in reader:
             density = float(row[0])
-            results[file]["R2U2"][density] = float(row[1]) / 1_000_000
-            results[file]["Hydra"][density] = float(row[2]) / 1_000_000
-            results[file]["BVMon"][density] = float(row[3]) / 1_000_000
+            results[file]["R2U2 (C)"][density] = float(row[1]) / 1_000_000
+            results[file]["R2U2 (Rust)"][density] = float(row[2]) / 1_000_000
+            results[file]["Hydra"][density] = float(row[3]) / 1_000_000
+            results[file]["SABRe"][density] = float(row[4]) / 1_000_000
 
 fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
@@ -52,8 +54,10 @@ for file in results.keys():
         marker = "^"
 
     for tool in results[file].keys():
-        if tool == "R2U2":
+        if tool == "R2U2 (C)":
             color = "red" 
+        elif tool == "R2U2 (Rust)":
+            color = "firebrick" 
         elif tool == "Hydra": 
             color = "blue"    
         elif tool == "SABRe":
