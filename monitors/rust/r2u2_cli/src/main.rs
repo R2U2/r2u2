@@ -18,43 +18,43 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Compiles .c2po or .mltl file to spec.bin for R2U2
-    // Compile {
-    //     /// Sets a specification .c2po or .mltl file
-    //     #[arg(value_parser = valid_spec_file)]
-    //     spec: PathBuf,
+    Compile {
+        /// Sets a specification .c2po or .mltl file
+        #[arg(value_parser = valid_spec_file)]
+        spec: PathBuf,
 
-    //     /// Sets a trace .csv or a map .map file
-    //     #[arg(value_parser = valid_map_file)]
-    //     map: PathBuf,
+        /// Sets a trace .csv or a map .map file
+        #[arg(value_parser = valid_map_file)]
+        map: PathBuf,
 
-    //     /// Sets location to save spec.bin file (default = current directory)
-    //     #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
-    //     output: Option<PathBuf>,
+        /// Sets location to save spec.bin file (default = current directory)
+        #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
+        output: Option<PathBuf>,
 
-    //     /// Disables booleanizer (default = booleanizer enabled)
-    //     #[arg(long,default_value_t=false)]
-    //     disable_booleanizer: bool,
+        /// Disables booleanizer (default = booleanizer enabled)
+        #[arg(long,default_value_t=false)]
+        disable_booleanizer: bool,
 
-    //     /// Disable Assume-Guarantee Contract (AGC) and auxiliary specification logging
-    //     #[arg(long,default_value_t=false)]
-    //     disable_aux: bool,
+        /// Disable Assume-Guarantee Contract (AGC) and auxiliary specification logging
+        #[arg(long,default_value_t=false)]
+        disable_aux: bool,
 
-    //     /// Disables rewrite rules (default = rewrite rules enabled)
-    //     #[arg(long,default_value_t=false)]
-    //     disable_rewrite: bool,
+        /// Disables rewrite rules (default = rewrite rules enabled)
+        #[arg(long,default_value_t=false)]
+        disable_rewrite: bool,
 
-    //     /// Disables common subexpression elimination (CSE) (default = CSE enabled)
-    //     #[arg(long,default_value_t=false)]
-    //     disable_cse: bool,
+        /// Disables common subexpression elimination (CSE) (default = CSE enabled)
+        #[arg(long,default_value_t=false)]
+        disable_cse: bool,
 
-    //     /// Enables SAT checking through Z3 -> Z3 must be installed (default = SAT disabled)
-    //     #[arg(long,default_value_t=false)]
-    //     enable_sat: bool,
+        /// Enables SAT checking through Z3 -> Z3 must be installed (default = SAT disabled)
+        #[arg(long,default_value_t=false)]
+        enable_sat: bool,
 
-    //     /// Set the timeout of SAT calls in seconds (default: 3600)
-    //     #[arg(long)]
-    //     timeout_sat: Option<i32>,
-    // },
+        /// Set the timeout of SAT calls in seconds (default: 3600)
+        #[arg(long)]
+        timeout_sat: Option<i32>,
+    },
 
     /// Runs R2U2 over a trace.csv file
     Run {
@@ -100,24 +100,24 @@ fn valid_spec_input_file(s: &str) -> Result<PathBuf, String> {
     }
 }
 
-// fn valid_spec_file(s: &str) -> Result<PathBuf, String> {
-//     let file : PathBuf = s
-//         .parse()
-//         .map_err(|_| format!("`{s}` isn't a file"))?;
-//     if !file.exists() {
-//         return Err(format!(
-//             "{} is not valid file",file.to_string_lossy()
-//         ))
-//     }
-//     if file.extension().and_then(OsStr::to_str) == Some("c2po") || 
-//     file.extension().and_then(OsStr::to_str) == Some("mltl") {
-//         Ok(file as PathBuf)
-//     } else {
-//         Err(format!(
-//             "{s} is not a .c2po or .mltl file"
-//         ))
-//     }
-// }
+fn valid_spec_file(s: &str) -> Result<PathBuf, String> {
+    let file : PathBuf = s
+        .parse()
+        .map_err(|_| format!("`{s}` isn't a file"))?;
+    if !file.exists() {
+        return Err(format!(
+            "{} is not valid file",file.to_string_lossy()
+        ))
+    }
+    if file.extension().and_then(OsStr::to_str) == Some("c2po") || 
+    file.extension().and_then(OsStr::to_str) == Some("mltl") {
+        Ok(file as PathBuf)
+    } else {
+        Err(format!(
+            "{s} is not a .c2po or .mltl file"
+        ))
+    }
+}
 
 fn valid_trace_file(s: &str) -> Result<PathBuf, String> {
     let file : PathBuf = s
@@ -137,24 +137,24 @@ fn valid_trace_file(s: &str) -> Result<PathBuf, String> {
     }
 }
 
-// fn valid_map_file(s: &str) -> Result<PathBuf, String> {
-//     let file : PathBuf = s
-//         .parse()
-//         .map_err(|_| format!("`{s}` isn't a file"))?;
-//     if !file.exists() {
-//         return Err(format!(
-//             "{} is not valid file",file.to_string_lossy()
-//         ))
-//     }
-//     if file.extension().and_then(OsStr::to_str) == Some("csv") || 
-//     file.extension().and_then(OsStr::to_str) == Some("map"){
-//         Ok(file as PathBuf)
-//     } else {
-//         Err(format!(
-//             "{s} is not a .csv or .map file"
-//         ))
-//     }
-// }
+fn valid_map_file(s: &str) -> Result<PathBuf, String> {
+    let file : PathBuf = s
+        .parse()
+        .map_err(|_| format!("`{s}` isn't a file"))?;
+    if !file.exists() {
+        return Err(format!(
+            "{} is not valid file",file.to_string_lossy()
+        ))
+    }
+    if file.extension().and_then(OsStr::to_str) == Some("csv") || 
+    file.extension().and_then(OsStr::to_str) == Some("map"){
+        Ok(file as PathBuf)
+    } else {
+        Err(format!(
+            "{s} is not a .csv or .map file"
+        ))
+    }
+}
 
 fn valid_location(s: &str) -> Result<PathBuf, String> {
     let path : PathBuf = s
@@ -175,28 +175,27 @@ fn main() {
     match &cli.command {
         Some(Commands::Run { spec, trace, output, disable_contracts, enable_aux}) => {
             let spec_file: Vec<u8>;
-            // if spec.extension().and_then(OsStr::to_str) == Some("c2po") || 
-            //     spec.extension().and_then(OsStr::to_str) == Some("mltl") {
-            //     let random_file = srfng::Generator::new().generate().as_str().to_owned();
-            //     compile::c2po_compile(spec.to_str().unwrap(),
-            //         trace.to_str().unwrap(),
-            //         "",
-            //         &random_file,
-            //         true,
-            //         *enable_aux || !disable_contracts,
-            //         true,
-            //         true,
-            //         false,
-            //         3600,
-            //         );
-            //     let new_spec = PathBuf::from("./".to_owned() + &random_file);
-            //     spec_file = fs::read(new_spec).expect("Error opening specification file");
-            //     let _ = fs::remove_file("./".to_owned() + &random_file);
-            // } else {
-            //     spec_file = fs::read(spec).expect("Error opening specification file");
-            // }
+            if spec.extension().and_then(OsStr::to_str) == Some("c2po") || 
+                spec.extension().and_then(OsStr::to_str) == Some("mltl") {
+                let random_file = srfng::Generator::new().generate().as_str().to_owned();
+                compile::c2po_compile(spec.to_str().unwrap(),
+                    trace.to_str().unwrap(),
+                    "",
+                    &random_file,
+                    true,
+                    *enable_aux || !disable_contracts,
+                    true,
+                    true,
+                    false,
+                    3600,
+                    );
+                let new_spec = PathBuf::from("./".to_owned() + &random_file);
+                spec_file = fs::read(new_spec).expect("Error opening specification file");
+                let _ = fs::remove_file("./".to_owned() + &random_file);
+            } else {
+                spec_file = fs::read(spec).expect("Error opening specification file");
+            }
 
-            spec_file = fs::read(spec).expect("Error opening specification file");
             let mut monitor = r2u2_core::get_monitor(&spec_file);
 
             let signal_file: fs::File = fs::File::open(trace).expect("Error opening signal CSV file");
@@ -305,4 +304,3 @@ fn main() {
     }
 
 }
-

@@ -1,6 +1,6 @@
-// use pyo3::prelude::*;
-// use pyo3::exceptions::PyTypeError;
-// use pyo3::ffi::c_str;
+use pyo3::prelude::*;
+use pyo3::exceptions::PyTypeError;
+use pyo3::ffi::c_str;
 
 pub fn c2po_compile(spec_filename: &str,
     trace_filename: &str,
