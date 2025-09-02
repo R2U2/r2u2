@@ -56,7 +56,7 @@ for file in results.keys():
             color = "red" 
         elif tool == "Hydra": 
             color = "blue"    
-        elif tool == "BVMon":
+        elif tool == "SABRe":
             color = "darkorchid" 
 
         ax.plot(
