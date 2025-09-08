@@ -5,8 +5,9 @@
 
 // A "Header-only" library, contains modification functions for associated type
 #include "internals/types.h"
+#include "instructions/booleanizer.h"
+#include "instructions/mltl.h"
 
-#include "memory/instruction.h"
 #include "memory/register.h"
 #include "memory/shared_connection_queue.h"
 
