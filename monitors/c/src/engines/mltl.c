@@ -1,6 +1,5 @@
-#include "r2u2.h"
-
 #include "mltl.h"
+
 
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
@@ -13,9 +12,9 @@
 /// @param[out] result The operand TnT - only vaid if return value is true
 /// @return     Boolean indicating if data is ready and `result` is valid
 static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_bool op_num, r2u2_tnt_t *result) {
-    r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
-    r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
-    r2u2_tnt_t *rd_ptr; // Hold off on this in case it doesn't exist...
+    r2u2_scq_arena_t arena = monitor->queue_arena;
+    r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+    r2u2_addr *rd_ptr; // Hold off on this in case it doesn't exist...
 
     // Get operand info based on `n` which indicates left/first v.s. right/second
     r2u2_mltl_operand_type_t op_type = (op_num == 0) ? (instr->op1_type) : (instr->op2_type);
@@ -25,6 +24,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_DIRECT:
         if (instr->opcode == R2U2_MLTL_OP_SINCE || instr->opcode == R2U2_MLTL_OP_TRIGGER){
+          r2u2_scq_temporal_block_t *temp = &(ctrl->temporal_block);
           *result = (monitor->time_stamp + temp->upper_bound) | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         } else {
           *result = monitor->time_stamp | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
@@ -33,12 +33,8 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_ATOMIC:
         // Only load in atomics on first loop of time step
-        // TODO(bckempa) This might remove the need for load...
-        #if R2U2_DEBUG
-          // TODO(bckempa) Add check for discarded top bit in timestamp
-        #endif
         // Assuming the cost of the bitops is cheaper than an if branch
-        *result = monitor->time_stamp | (((*(monitor->atomic_buffer))[value]) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
+        *result = monitor->time_stamp | (((monitor->atomic_buffer)[value]) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         return (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP);
 
       case R2U2_FT_OP_SUBFORMULA:
@@ -60,8 +56,8 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
 static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_tnt_t result) {
   // Pushes result to queue, sets tau, and flags progress if nedded
-  r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
-  r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+  r2u2_scq_arena_t arena = monitor->queue_arena;
+  r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
 
   r2u2_scq_write(arena, instr->memory_reference, result);
   R2U2_DEBUG_PRINT("\t(%d,%s)\n", result & R2U2_TNT_TIME, (result & R2U2_TNT_TRUE) ? "T" : "F" );
@@ -76,18 +72,18 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
 
 r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
 
-  // Copy to buffer to avoid alignment issues
-  // TODO(bckempa): Make this optional based on bin packing switch
-  r2u2_mltl_instruction_t inst_buff;
-  memcpy(&inst_buff, instr, sizeof(r2u2_mltl_instruction_t));
-  instr = &inst_buff;
+  // // Copy to buffer to avoid alignment issues
+  // // TODO(bckempa): Make this optional based on bin packing switch
+  // r2u2_mltl_instruction_t inst_buff;
+  // memcpy(&inst_buff, instr, sizeof(r2u2_mltl_instruction_t));
+  // instr = &inst_buff;
 
   r2u2_bool op0_rdy, op1_rdy;
   r2u2_tnt_t op0, op1, result;
   r2u2_status_t error_cond;
 
-  r2u2_scq_arena_t *arena = &(monitor->shared_connection_queue_mem);
-  r2u2_scq_control_block_t *ctrl = &(arena->blocks[instr->memory_reference]);
+  r2u2_scq_arena_t arena = monitor->queue_arena;
+  r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
   r2u2_scq_temporal_block_t *temp; // Only set this if using a temporal op
 
   switch (instr->opcode) {
@@ -145,7 +141,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
 
         if (monitor->out_func != NULL) {
           // TODO(bckempa): Migrate external function pointer interface to use r2u2_tnt_t
-          (monitor->out_func)((r2u2_instruction_t){ R2U2_ENG_TL, instr}, &((r2u2_verdict){op0 & R2U2_TNT_TIME, (op0 & R2U2_TNT_TRUE) ? true : false}));
+          (monitor->out_func)(*instr, &((r2u2_verdict){op0 & R2U2_TNT_TIME, (op0 & R2U2_TNT_TRUE) ? true : false}));
         }
 
         if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;}

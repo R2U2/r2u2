@@ -10,8 +10,9 @@
 // mem instead of having a separate, largely identical, blob array
 
 /// @brief      Populate inst table from inst memory, processing monitor cmds
+/// @param      spec Pointer to a vector or array of uint8_8 from the specification compiled by C2PO
 /// @param[in]  monitor  Pointer to monitor loaded with spec binary in inst mem
 /// @return     r2u2_status
-r2u2_status_t r2u2_process_binary(r2u2_monitor_t *monitor);
+r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t *monitor);
 
 #endif /* R2U2_ENGINES_BINARY_LOAD_H */

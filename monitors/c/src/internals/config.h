@@ -34,11 +34,6 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_TL_SCQ_Verdict_Aggregation
-    /* Compress SCQs with verdict aggregation */
-    #define R2U2_TL_Formula_Names EXHIBIT
-#endif
-
 #ifndef R2U2_TL_Formula_Names
     /* Enables named formula verdicts */
     #define R2U2_TL_Formula_Names INHIBIT

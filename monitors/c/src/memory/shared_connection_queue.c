@@ -3,12 +3,12 @@
 #include "shared_connection_queue.h"
 
 #if R2U2_DEBUG
-static void r2u2_scq_arena_print(r2u2_scq_arena_t *arena) {
-  R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena->blocks, arena->queues, ((void*)arena->queues) - ((void*)arena->blocks));
+static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
+  R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.blocks, arena.queues, ((void*)arena.queues) - ((void*)arena.blocks));
 }
 
-static void r2u2_scq_queue_print(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
+  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
   R2U2_DEBUG_PRINT("\t\t\tID: |");
   for (r2u2_time i = 0; i < ctrl->length; ++i) {
@@ -22,9 +22,8 @@ static void r2u2_scq_queue_print(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
 }
 #endif
 
-r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length) {
-
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_time queue_length) {
+  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
   ctrl->length = queue_length;
 
@@ -36,10 +35,10 @@ r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_
    */
   if (r2u2_unlikely(queue_id == 0)) {
     // First queue counts back from end of arena, inclusive
-    ctrl->queue = arena->queues - (queue_length - 1);
+    ctrl->queue = arena.queues;
   } else {
     // All subsuquent queues count back from previous queue, exclusive
-    ctrl->queue = (arena->blocks)[queue_id-1].queue - queue_length;
+    ctrl->queue = (arena.blocks)[queue_id-1].queue + (arena.blocks)[queue_id-1].length;
   }
 
   ctrl->queue[0] = r2u2_infinity;
@@ -58,7 +57,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
   r2u2_scq_queue_print(arena, queue_id);
   #endif
 
-  r2u2_tnt_t prev = ((ctrl->write) == 0) ? ctrl->length-1 : ctrl->write-1;
+  r2u2_addr prev = ((ctrl->write) == 0) ? ctrl->length-1 : ctrl->write-1;
 
   // Three checks:
   //    1: Is the new verdict the same as the previous? i.e. truth bit is clear
@@ -84,8 +83,8 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
   return R2U2_OK;
 }
 
-r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+r2u2_bool r2u2_scq_check(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value) {
+  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, queue_id);

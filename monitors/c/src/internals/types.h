@@ -20,8 +20,6 @@
 #endif
 
 #ifndef r2u2_int
-    // Meant to define a signal / AT or BZ int size
-    // TODO(bckempa): in use by Box Queues, to be changed....
     #define r2u2_int int32_t
 #endif
 
@@ -32,6 +30,10 @@
 #ifndef r2u2_time
     // R2U2 timestamp type, assumed to be an unsigned 32-bit integer
     #define r2u2_time uint32_t
+#endif
+
+#ifndef r2u2_addr
+    #define r2u2_addr uint32_t
 #endif
 
 #ifndef r2u2_infinity

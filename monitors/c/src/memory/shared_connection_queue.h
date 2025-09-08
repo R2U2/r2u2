@@ -17,11 +17,11 @@
 } r2u2_scq_temporal_block_t;
 
 typedef struct {
-  r2u2_tnt_t length;
-  r2u2_tnt_t write;
-  r2u2_tnt_t read1;
-  r2u2_tnt_t read2;
-  r2u2_tnt_t next_time;
+  r2u2_addr length;
+  r2u2_addr write;
+  r2u2_addr read1;
+  r2u2_addr read2;
+  r2u2_time next_time;
   /*
    *
    * Portable, architecture-agnostic pointer size detection from:
@@ -66,7 +66,7 @@ typedef struct {
 r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_time queue_length);
 
 /* SCQ Read and Write */
-r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value);
+r2u2_bool r2u2_scq_check(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value);
 
 #endif /* R2U2_MEMORY_SCQ_H */

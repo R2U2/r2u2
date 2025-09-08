@@ -1005,7 +1005,7 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
     return (aliases, binary)
 
 
-def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction], binary: bytes) -> None:
+def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction]) -> None:
     """Computes values for bounds file, setting the values in `program.bounds_c` and `program.bounds_rs`."""
     num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
     num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
@@ -1017,13 +1017,12 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
     ])
 
-    program.bounds_c["R2U2_MAX_INSTRUCTIONS"] = num_bz + num_tl
+    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
     program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
     program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds_c["R2U2_MAX_INST_LEN"] = len(binary)
     program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
-    program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
+    program.bounds_c["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
+    program.bounds_c["R2U2_TOTAL_QUEUE_SLOTS"] = total_scq_size
 
     program.bounds_rs["R2U2_MAX_SPECS"] = sum(
         [
@@ -1070,6 +1069,6 @@ def assemble(
 
     binary += b"\x00"
 
-    compute_bounds(program, context, assembly, binary) # type: ignore
+    compute_bounds(program, context, assembly) # type: ignore
 
     return (assembly, binary) #type: ignore

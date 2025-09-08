@@ -1171,14 +1171,12 @@ class Program(Node):
 
         # Minimum values for bounds in bounds.h and config.toml
         self.bounds_c = {
-            "R2U2_MAX_INSTRUCTIONS": -1,
+            "R2U2_MAX_AUX_STRINGS": -1,
             "R2U2_MAX_SIGNALS": -1,
             "R2U2_MAX_ATOMICS": -1,
-            "R2U2_MAX_INST_LEN": -1,
             "R2U2_MAX_BZ_INSTRUCTIONS": -1,
-            "R2U2_MAX_AUX_STRINGS": -1,
-            "R2U2_SCQ_BYTES": -1,
-            "R2U2_FLOAT_EPSILON": 0.00001,
+            "R2U2_MAX_TL_INSTRUCTIONS": -1,
+            "R2U2_TOTAL_QUEUE_SLOTS": -1,
         }
 
         self.bounds_rs = {
@@ -1193,16 +1191,23 @@ class Program(Node):
     def get_bounds_c_file(self) -> str:
         """Returns the contents of the bounds.h file."""
         contents =  "#ifndef R2U2_BOUNDS_H\n"
-        contents += "#define R2U2_BOUNDS_H\n"
-        contents += "\n".join(
-            [
-                f"#define {key} {value:F}"
-                if type(value) is float
-                else f"#define {key} {value}"
-                for key, value in self.bounds_c.items()
-            ]
-        )
-        contents += "\n#endif\n"
+        contents += "#define R2U2_BOUNDS_H\n\n"
+        contents += "// Size of string arena, in bytes, for auxillary output\n"
+        contents += "// Only reserved if used\n"
+        contents += f"#define R2U2_MAX_AUX_STRINGS {self.bounds_c.get("R2U2_MAX_AUX_STRINGS")}\n\n"
+        contents += "// Represents maximum number of input signals\n"
+        contents += f"#define R2U2_MAX_SIGNALS {self.bounds_c.get("R2U2_MAX_SIGNALS")}\n\n"
+        contents += "// Represents maximum number of Booleans passed from the front-end\n"
+        contents += "// (booleanizer or directly loaded atomics) to the temporal logic engine\n"
+        contents += f"#define R2U2_MAX_ATOMICS {self.bounds_c.get("R2U2_MAX_ATOMICS")}\n\n"
+        contents += "// Represents maximum number of booleanizer instructions\n"
+        contents += f"#define R2U2_MAX_BZ_INSTRUCTIONS {self.bounds_c.get("R2U2_MAX_BZ_INSTRUCTIONS")}\n\n"
+        contents += "// Represents maximum number of temporal logic instructions\n"
+        contents += f"#define R2U2_MAX_TL_INSTRUCTIONS {self.bounds_c.get("R2U2_MAX_TL_INSTRUCTIONS")}\n\n"
+        contents += "// Represents total number of SCQ slots for both future-time and past-time reasoning\n"
+        contents += f"#define R2U2_TOTAL_QUEUE_SLOTS {self.bounds_c.get("R2U2_TOTAL_QUEUE_SLOTS")}\n\n"
+        contents += f"#define R2U2_FLOAT_EPSILON 0.00001\n\n"
+        contents += "#endif /* R2U2_BOUNDS_H */\n"
         return contents
 
     def get_bounds_rs_file(self) -> str:

@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 
 #include "internals/errors.h"
-#include "memory/instruction.h"
 #include "memory/csv_trace.h"
 #if R2U2_TL_Contract_Status
 #include "memory/contract_status.h"
@@ -29,13 +28,10 @@ const char *help = "<configuration> [trace]\n"
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
 
-// Create Queue memory arena
-uint8_t *arena = &(uint8_t [R2U2_SCQ_BYTES]){0};
-
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
 r2u2_contract_status_reporter_t r2u2_contact_status = {0};
-r2u2_status_t contract_status_callback(r2u2_instruction_t inst, r2u2_verdict *res);
+r2u2_status_t contract_status_callback(r2u2_mltl_instruction_t inst, r2u2_verdict *res);
 #endif
 
 int main(int argc, char const *argv[]) {
@@ -60,14 +56,7 @@ int main(int argc, char const *argv[]) {
       return 1;
   }
 
-  // Load monitor
-  // R2U2's binary loader takes a pointer to the raw bytes and expects the
-  // caller to handle anything more advanced like file I/O which might
-  // allocate depending on the stdlib impl (e.g., grabs a buffer) so we mmap
-  // the file before passing the ptr
-  //
-  // Note: We're being lazy and using the R2U2_DEFAULT_MONITOR macro which
-  // allocates a buffer for the instuction mem, but we replace it with the file
+  uint8_t* spec;
   if (access(argv[1], F_OK) == 0) {
       // Use a raw open to get an unbuffered FD for mapping
       spec_file = open(argv[1], O_RDONLY, 0);
@@ -83,8 +72,8 @@ int main(int argc, char const *argv[]) {
         return 1;
       }
       // map read-only mirror of the file to memory - great for execution perf
-      r2u2_monitor.instruction_mem = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, spec_file, 0);
-      if (r2u2_monitor.instruction_mem == MAP_FAILED) {
+      spec = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, spec_file, 0);
+      if (spec == MAP_FAILED) {
         PRINT_USAGE();
         perror("Error memory mapping specification file");
         return 1;
@@ -100,18 +89,16 @@ int main(int argc, char const *argv[]) {
       return 1;
   }
 
-  // Connect monitor to queue memory arena
-  r2u2_monitor.shared_connection_queue_mem.blocks = (r2u2_scq_control_block_t*) arena;
-  r2u2_monitor.shared_connection_queue_mem.queues = (r2u2_tnt_t*) (arena + R2U2_SCQ_BYTES - 4);
-
   // Reset monitor and build instuction table from spec binary
-  r2u2_init(&r2u2_monitor);
+  r2u2_init(spec, &r2u2_monitor);
 
   // Open output File
   r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
     return 1;
+  if (munmap(spec, (size_t)fd_stat.st_size) != 0) {
+    perror("Spec memory mapping did not close cleanly");
   }
 
   // Configure contract status reporting, if enabled
@@ -151,7 +138,7 @@ int main(int argc, char const *argv[]) {
   // NOTE: This check will not behave properly if configuration is prepended
   // rather than appended to the instruction memory
   r2u2_status_t (*csv_load_func)(r2u2_csv_reader_t*, r2u2_monitor_t*);
-  if ((*r2u2_monitor.instruction_tbl)[0].engine_tag == R2U2_ENG_TL) {
+  if (r2u2_monitor.bz_program_count.max_program_count == 0) {
     csv_load_func = &r2u2_csv_load_next_atomics;
   } else {
     csv_load_func = &r2u2_csv_load_next_signals;
@@ -163,8 +150,8 @@ int main(int argc, char const *argv[]) {
 
     if ((err_cond != R2U2_OK)) break;
 
-    err_cond = r2u2_tic(&r2u2_monitor);
   } while (err_cond == R2U2_OK);
+      err_cond = r2u2_step(&r2u2_monitor);
 
   if (err_cond == R2U2_END_OF_TRACE) {
     // Traces are allowed to end, exit cleanly

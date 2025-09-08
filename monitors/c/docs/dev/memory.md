@@ -29,10 +29,6 @@ There are 4  major types of fields in the monitor structure:
 
 The macro `R2U2_DEFAULT_MONITOR` is also defined here which provides a .bss friendly instantiation of a monitor.
 
-## Register
-Traditionally, R2U2 differentiated between vectors, buffers, and registers.
-This nomenclature is now largely obsolete, but one remanent is the name "register" on the memory controller that contains typedefs for the signal, value, and atomic vectors as well as the vector flip function used to buffer the previous value of the atomic vector.
-
 ## Shared Connection Queue
 The primary working memory of the future-time temporal engine, shared connection queues are many-reader, single-writer, circular buffers.
 

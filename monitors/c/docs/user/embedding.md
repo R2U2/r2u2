@@ -43,11 +43,7 @@ As demonstrated in `main.c`, a standard life-cycle for an R2U2 monitor is:
 2. `r2u2_init` is called which resets the monitor (logical) clock and prepossesses the instructions
 3. The output file pointer is set
 4. The signal vector state is loaded
-5. An execution function is called to run the monitor, which can be one of the following:
-    - `r2u2_step` executes a single R2U2 instruction. Good for cooperative multitasking
-    - `r2u2_spin` after the first spin, all signal values are latched but the time-step might not be complete. Most time-steps require two spins
-    - `r2u2_tic` runs until one time-step is complete. Default for most cases as it provides all verdicts available with current knowledge and ends when the signal vector should be refreshed
-    - `r2u2_run` runs continuously, requires external refreshing of the signal vectors such as DMA or memory-mapped registers
+5. `r2u2_step` is called to run the monitor for a singlt time step
 6. Error conditions are checked
 7. The signal vector is updated if a time-step has completed
 8. Loop back to step 5 and continue executing until monitoring is complete

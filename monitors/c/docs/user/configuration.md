@@ -27,10 +27,6 @@ It is recommend to run with debug output after changing bounds to enable extra m
 : Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (BZ) to the temporal logic engine
 : Default: 256
 
-`R2U2_MAX_INST_LEN`
-: Total size of instruction memory, i.e., maximum specification binary size. Only used by default monitor constructor
-: Default: 8192
-
 `R2U2_MAX_BZ_INSTRUCTIONS`
 : Size of value buffer, used as working memory by BZ front end. Only used by default monitor constructor
 : Default: 256
@@ -85,9 +81,6 @@ See [building the monitor](./building.md) for details.
 
 
 ### Temporal Logic Features
-
-`R2U2_TL_SCQ_Verdict_Aggregation`
-: Compress SCQs with verdict aggregation
 
 `R2U2_TL_Formula_Names`
 : Enables named formula verdicts
