@@ -4,17 +4,17 @@
 #include "internals/types.h"
 #include "internals/errors.h"
 
-/*
- *
- * Why we use time for so many things - fits because it's max you can meaningfully address
- * for example, we can safely do write_ptr +1 then modulo becase if it was going to overflow there woun't be room for the queue with control block
- *
- * Length, Size, and Capacity:
- * The length is the number of _____ required by the queue and is ...
- * The size is the number of queue slots ...
- * The capacity is the number of elements ...
- *
- */
+ typedef struct {
+    /* 64 or 32-bit platform:
+     *   Size:     16 bytes
+     *   Padding:   0 bytes
+     *   Alignment: 4 bytes
+     */
+  r2u2_tnt_t edge;
+  r2u2_tnt_t previous;
+  r2u2_time lower_bound;
+  r2u2_time upper_bound;
+} r2u2_scq_temporal_block_t;
 
 typedef struct {
   r2u2_tnt_t length;
@@ -43,21 +43,9 @@ typedef struct {
   #else
      #error Shared Connection Queues are only aligned for 32 or 64 bit pointer sizes
   #endif
+  r2u2_scq_temporal_block_t temporal_block;
   r2u2_tnt_t *queue;
 } r2u2_scq_control_block_t;
-
-// Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
-typedef struct {
-    /* 64 or 32-bit platform:
-     *   Size:     16 bytes
-     *   Padding:   0 bytes
-     *   Alignment: 4 bytes
-     */
-  r2u2_tnt_t lower_bound;
-  r2u2_tnt_t upper_bound;
-  r2u2_tnt_t edge;
-  r2u2_tnt_t previous;
-} r2u2_scq_temporal_block_t;
 
 /* Shared Connection Queue Arena
  * Used by the monitor to track arena extents.
@@ -70,27 +58,12 @@ typedef struct {
   r2u2_tnt_t *queues;
 } r2u2_scq_arena_t;
 
-static inline r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return (r2u2_scq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
-}
-
 /*
  *
  * Assumption: Queues are loaded in sequential order, i.e. when configuring
  * queue `n`, taking the queue pointer + lenght of queue `n-1` yields the ...
  */
-r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length);
-
-/*
- *
- *
- * Since this moves the queue poninter but reduces the length by the same step
- *
- * Checking for a temporal block by comparing the queue pointer against the
- * previous queue's pointer + length isn't guarenteed but should be sufficent.
- */
-r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id);
+r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_time queue_length);
 
 /* SCQ Read and Write */
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);

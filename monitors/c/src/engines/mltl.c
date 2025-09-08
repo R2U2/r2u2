@@ -25,7 +25,6 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_DIRECT:
         if (instr->opcode == R2U2_MLTL_OP_SINCE || instr->opcode == R2U2_MLTL_OP_TRIGGER){
-          r2u2_scq_temporal_block_t *temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
           *result = (monitor->time_stamp + temp->upper_bound) | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
         } else {
           *result = monitor->time_stamp | ((value) ? R2U2_TNT_TRUE : R2U2_TNT_FALSE);
@@ -108,8 +107,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
           break;
         }
         case R2U2_FT_OP_SUBFORMULA: {
-          r2u2_scq_temporal_config(arena, instr->memory_reference);
-          temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
+          temp = &(ctrl->temporal_block);
           temp->lower_bound = instr->op1_value;
           temp->upper_bound = instr->op2_value;
           break;
@@ -171,7 +169,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
     }
     case R2U2_MLTL_OP_UNTIL: {
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
-      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
+      temp = &(ctrl->temporal_block);
       if (ctrl->next_time < temp->lower_bound){
         ctrl->next_time = temp->lower_bound;
       }
@@ -225,7 +223,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
     }
     case R2U2_MLTL_OP_RELEASE: {
       R2U2_DEBUG_PRINT("\tFT RELEASE\n");
-      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
+      temp = &(ctrl->temporal_block);
       if (ctrl->next_time < temp->lower_bound){
         ctrl->next_time = temp->lower_bound;
       }
@@ -290,7 +288,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
     }
     case R2U2_MLTL_OP_SINCE: {
       R2U2_DEBUG_PRINT("\tPT SINCE\n");
-      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
+      temp = &(ctrl->temporal_block);
       if (!(temp->previous & R2U2_TNT_TRUE) && (temp->previous & R2U2_TNT_TIME) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
         result = (temp->lower_bound - 1) | R2U2_TNT_FALSE;
@@ -380,7 +378,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
     }
     case R2U2_MLTL_OP_TRIGGER: {
       R2U2_DEBUG_PRINT("\tPT TRIGGER\n");
-      temp = r2u2_scq_temporal_get(arena, instr->memory_reference);
+      temp = &(ctrl->temporal_block);
       if (!(temp->previous & R2U2_TNT_TRUE) && (temp->previous & R2U2_TNT_TIME) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
         result = (temp->lower_bound - 1) | R2U2_TNT_TRUE;

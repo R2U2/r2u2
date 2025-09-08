@@ -51,26 +51,8 @@ r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-
-  #if R2U2_DEBUG
-    assert((arena->blocks)[queue_id].length > sizeof(r2u2_scq_temporal_block_t) / sizeof(r2u2_tnt_t));
-  #endif
-
-  // Reserve temporal block by shortening length of circular buffer
-  (arena->blocks)[queue_id].length -= sizeof(r2u2_scq_temporal_block_t) / sizeof(r2u2_tnt_t);
-
-  R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: Temp Rsvd, len = %u\n", queue_id, (arena->blocks)[queue_id].length);
-
-  #if R2U2_DEBUG
-  r2u2_scq_queue_print(arena, queue_id);
-  #endif
-
-  return R2U2_OK;
-}
-
-r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value) {
+  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, queue_id);

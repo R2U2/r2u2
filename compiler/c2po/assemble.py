@@ -656,8 +656,7 @@ def gen_ft_scq_instructions(
             instructions[expr].id,
             FTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
+            (expr.scq[1] - expr.scq[0]),
             TLOperandType.NONE,
             0,
         ),
@@ -715,8 +714,7 @@ def gen_pt_scq_instructions(
             instructions[expr].id,
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
+            (expr.scq[1] - expr.scq[0]),
             TLOperandType.NONE,
             0,
         ),
