@@ -1,9 +1,6 @@
 #ifndef BOOLEANIZER_INSTRUCTIONS_H
 #define BOOLEANIZER_INSTRUCTIONS_H
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #include "internals/types.h"
 
 enum r2u2_bz_opcode {
@@ -56,25 +53,17 @@ enum r2u2_bz_opcode {
     R2U2_BZ_TS         = 0b101000,
 };
 
-typedef uint8_t r2u2_bz_opcode_t;
-
-// Booleanizer parameters are one of:
-// (1) an address in Booleanizer memory
-// (2) a constant int
-// (3) a constant float
-typedef union r2u2_bz_param {
-    r2u2_addr bz_addr;
-    r2u2_int bz_int;
-    r2u2_float bz_float;
-} r2u2_bz_param_t;
-
 typedef struct r2u2_bz_instruction {
-    r2u2_bz_param_t param1;
+    uint32_t param1;
     uint32_t param2;
     uint32_t memory_reference;
-    r2u2_bz_opcode_t opcode;
+    uint8_t opcode;
 } r2u2_bz_instruction_t;
 
-typedef r2u2_bz_instruction_t (r2u2_bz_instruction_table_t)[];
+r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t* spec);
+
+r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t* spec);
+
+r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t* spec);
 
 #endif

@@ -2,6 +2,7 @@
 #include "internals/bounds.h"
 #include "internals/debug.h"
 #include "internals/errors.h"
+#include "instructions/booleanizer.h"
 #include "engines/booleanizer.h"
 #include "engines/mltl.h"
 #include "engines/engines.h"
@@ -58,31 +59,21 @@ r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t *monitor) {
       }
     } else {
       if(spec[offset+1] == R2U2_ENG_BZ){
-        r2u2_bz_instruction_t* instr = (r2u2_bz_instruction_t *) &(spec[offset+2]);
-        if (BIG_ENDIAN) {
-          // Big Endian target; therefore, swap bytes
-          if (instr->opcode == R2U2_BZ_OP_FCONST)
-            SwapBytes(&spec[offset+2], 8); // param1 - bz_float
-          else
-            SwapBytes(&spec[offset+2], 4); // param1 - bz_addr or bz_int
-            SwapBytes(&spec[offset+10], 4); // param2
-            SwapBytes(&spec[offset+14], 4); // memory_reference
-          // No need to swap bytes for opcode since it is only one byte
-        }
+        r2u2_bz_instruction_t instr = r2u2_bz_set_from_binary(&(spec[offset+2]));
         // Special case: ICONST and FCONST only need to be run once since they load constants
-        if (instr->opcode == R2U2_BZ_OP_ICONST){
-          (monitor->value_buffer)[instr->memory_reference].i = instr->param1.bz_int;
+        if (instr.opcode == R2U2_BZ_OP_ICONST){
+          (monitor->value_buffer)[instr.memory_reference].i = r2u2_bz_get_param1_int_from_binary(&(spec[offset+2]));
           R2U2_DEBUG_PRINT("\tBZ ICONST\n");
-          R2U2_DEBUG_PRINT("\tb%d = %d\n", instr->memory_reference, instr->param1.bz_int);
+          R2U2_DEBUG_PRINT("\tb%d = %d\n", instr.memory_reference, (monitor->value_buffer)[instr.memory_reference].i);
         }
-        else if (instr->opcode == R2U2_BZ_OP_FCONST) {
-          (monitor->value_buffer)[instr->memory_reference].f = instr->param1.bz_float;
+        else if (instr.opcode == R2U2_BZ_OP_FCONST) {
+          (monitor->value_buffer)[instr.memory_reference].f = r2u2_bz_get_param1_float_from_binary(&(spec[offset+2]));
           R2U2_DEBUG_PRINT("\tBZ FCONST\n");
-          R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr->memory_reference, instr->param1.bz_float);
+          R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr.memory_reference, (monitor->value_buffer)[instr.memory_reference].f);
         }
         else {
           // Store booleanizer instruction in table
-          (monitor->bz_instruction_tbl)[monitor->bz_program_count.max_program_count] = *instr;
+          (monitor->bz_instruction_tbl)[monitor->bz_program_count.max_program_count] = instr;
           monitor->bz_program_count.max_program_count++;
         }
       }
