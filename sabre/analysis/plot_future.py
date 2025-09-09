@@ -23,6 +23,7 @@ for file in files:
     results[file]["R2U2 (Rust)"] = {}
     results[file]["Hydra"] = {}
     results[file]["SABRe"] = {}
+    results[file]["SABRe (Decomposed)"] = {}
     with open(file, newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader) # skip header
@@ -32,6 +33,7 @@ for file in files:
             results[file]["R2U2 (Rust)"][density] = float(row[2]) / 1_000_000
             results[file]["Hydra"][density] = float(row[3]) / 1_000_000
             results[file]["SABRe"][density] = float(row[4]) / 1_000_000
+            results[file]["SABRe (Decomposed)"][density] = float(row[5]) / 1_000_000
 
 fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
@@ -62,6 +64,8 @@ for file in results.keys():
             color = "blue"    
         elif tool == "SABRe":
             color = "darkorchid" 
+        elif tool == "SABRe (Decomposed)":
+            color = "lime"
 
         ax.plot(
             list(results[file][tool].keys()), 
@@ -73,5 +77,5 @@ for file in results.keys():
 ax.set_xscale("log")
 plt.grid(axis="y")
 plt.xlabel("Trace Density")
-plt.ylabel("Throughput (10^6 verdicts/s)")
+plt.ylabel("Throughput ($10^6$ verdicts/s)")
 plt.savefig(args.output, dpi=300)

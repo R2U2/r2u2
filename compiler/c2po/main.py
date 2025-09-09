@@ -115,7 +115,7 @@ def compile(opts: options.Options) -> ReturnCode:
         passes.compute_accumulated_bounds(program, context)
         formula = program.ft_spec_set.get_specs()[0]
         assert isinstance(formula, cpt.Formula)
-        sabre.gen_code(formula.get_expr(), context, opts.sabre_word_size, opts.sabre_nsigs)
+        sabre.gen_code(formula.get_expr(), context, opts.sabre_word_size, opts.sabre_nsigs, opts.sabre_decompose)
         return ReturnCode.SUCCESS
 
     if opts.only_compile:

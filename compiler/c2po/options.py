@@ -79,6 +79,7 @@ DEFAULTS = {
     "enable_sabre": False,
     "sabre_word_size": 8,
     "sabre_nsigs": -1,
+    "sabre_decompose": False,
 }
 
 @dataclass
@@ -128,7 +129,7 @@ class Options:
     enable_sabre: bool = DEFAULTS["enable_sabre"]
     sabre_word_size: int = DEFAULTS["sabre_word_size"]
     sabre_nsigs: int = DEFAULTS["sabre_nsigs"]
-
+    sabre_decompose: bool = DEFAULTS["sabre_decompose"]
     spec_format: SpecFormat = SpecFormat.C2PO
     workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)

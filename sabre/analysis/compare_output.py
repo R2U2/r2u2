@@ -1,16 +1,18 @@
 import sys
 
-if len(sys.argv) != 4:
-    print(f"usage: python3 {sys.argv[0]} <r2u2-output-file> <hydra-output-file> <bvmon-output-file>")
+if len(sys.argv) != 5:
+    print(f"usage: python3 {sys.argv[0]} <r2u2-output-file> <hydra-output-file> <sabre-output-file> <sabre-output-decomposed-file>")
     exit(1)
 
 r2u2_filename = sys.argv[1]
 hydra_filename = sys.argv[2]
-bvmon_filename = sys.argv[3]
+sabre_filename = sys.argv[3]
+sabre_decomposed_filename = sys.argv[4]
 
 r2u2_trace: list[bool] = []
 hydra_trace: list[bool] = []
-bvmon_trace: list[bool] = []
+sabre_trace: list[bool] = []
+sabre_decomposed_trace: list[bool] = []
 
 # For the following, assume we have the following reference trace of length 16 for the examples:
 # [T, T, T, T, F, F, F, F, F, F, F, F, T, T, T, T]
@@ -70,22 +72,23 @@ for line in content.split("\n"):
 # Example:
 # E00F
 # (in binary: 111000000001111)
-with open(bvmon_filename, "r") as f:
+with open(sabre_filename, "r") as f:
     for line in f.readlines():
         for hex_digit in line[:-1]:
-            bvmon_trace.extend([bit == "1" for bit in f"{int(hex_digit, 16):04b}"])
+            sabre_trace.extend([bit == "1" for bit in f"{int(hex_digit, 16):04b}"])
 
 # print(f"R2U2 trace: {len(r2u2_trace)}")
 # print(f"Hydra trace: {len(hydra_trace)}")
 # print(f"BvMon trace: {len(bvmon_trace)}")
 
 status = 0
-for i in range(min(len(r2u2_trace), len(hydra_trace), len(bvmon_trace))):
+for i in range(min(len(r2u2_trace), len(hydra_trace), len(sabre_trace), len(sabre_decomposed_trace))):
     r2u2 = r2u2_trace[i]
     hydra = hydra_trace[i]
-    bvmon = bvmon_trace[i]
-    if r2u2 != hydra or r2u2 != bvmon or hydra != bvmon:
-        print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, Hydra={hydra}, BvMon={bvmon}")
+    sabre = sabre_trace[i]
+    sabre_decomposed = sabre_decomposed_trace[i]    
+    if r2u2 != hydra or r2u2 != sabre or hydra != sabre or sabre != sabre_decomposed:
+        print(f"Discrepancy at timestamp {i}: R2U2={r2u2}, Hydra={hydra}, Sabre={sabre}, Sabre Decomposed={sabre_decomposed}")
         status = 1
 
 sys.exit(status)

@@ -18,6 +18,7 @@ HYDRA_TRACE = "traces/hydra.log"
 HYDRA_OUTPUT = "traces/hydra_output.log"
 R2U2_OUTPUT = "traces/r2u2_output.log"
 SABRE_OUTPUT = "traces/sabre_output.log"
+SABRE_OUTPUT_DECOMPOSED = "traces/sabre_output_decomposed.log"
 TRACE_DIR = "traces/"
 R2U2_TRACE = "traces/r2u2.csv"
 SPEC_BIN = "spec.bin"
@@ -26,10 +27,12 @@ TIME = "gtime" if sys.platform == "darwin" else "/usr/bin/time"
 CC = "gcc"
 SABRE_FILE = "sabre.c"
 SABRE_BIN = "sabre"
+SABRE_FILE_DECOMPOSED = "sabre_decomposed.c"
+SABRE_BIN_DECOMPOSED = "sabre_decomposed"
 OUTPUT_DIR = "results/"
 PATTERN_OUTPUT_DIR = "results/pattern"
 FUTURE_OUTPUT_DIR = "results/future"
-SABRE_DEFAULT_WORD_SIZE = 8
+SABRE_DEFAULT_WORD_SIZE = 64
 COMPARE_OUTPUT_SCRIPT = "analysis/compare_output.py"
 
 def get_time_data(time_output: str) -> tuple[float, int]:
@@ -133,8 +136,8 @@ def benchmark_hydra(n: int) -> tuple[float, float]:
     return (throughput_avg, mem_avg)
 
 
-def recompile_sabre(spec: str, nsigs: int, word_size: int) -> None:
-    print("Generating sabre monitor")
+def recompile_sabre(spec: str, nsigs: int, word_size: int, decompose: bool) -> None:
+    print("Generating sabre monitor (decomposed)" if decompose else "Generating sabre monitor")
     command = [
         "python3",
         C2PO,
@@ -148,24 +151,26 @@ def recompile_sabre(spec: str, nsigs: int, word_size: int) -> None:
         str(word_size),
         spec
     ]
+    if decompose:
+        command.append("--sabre-decompose")
     proc = subprocess.run(command, capture_output=True)
 
-    with open(SABRE_FILE, "w") as f:
+    with open(SABRE_FILE if not decompose else SABRE_FILE_DECOMPOSED, "w") as f:
         f.write(proc.stdout.decode())
 
-    print("Compiling sabre monitor")
-    command = [CC, "-O3", "-DOUTPUT", "-o", SABRE_BIN, SABRE_FILE]
+    print("Compiling sabre monitor (decomposed)" if decompose else "Compiling sabre monitor")
+    command = [CC, "-O3", "-DOUTPUT", "-o", SABRE_BIN if not decompose else SABRE_BIN_DECOMPOSED, SABRE_FILE if not decompose else SABRE_FILE_DECOMPOSED]
     subprocess.run(command, capture_output=True)
 
 
-def benchmark_sabre(n: int, word_size: int) -> tuple[float, float]:
-    print("Checking number verdicts computed by sabre")
-    command = [f"./{SABRE_BIN}", R2U2_TRACE]
+def benchmark_sabre(n: int, word_size: int, decompose: bool) -> tuple[float, float]:
+    print("Checking number verdicts computed by sabre (decomposed)" if decompose else "Checking number verdicts computed by sabre")
+    command = [f"./{SABRE_BIN if not decompose else SABRE_BIN_DECOMPOSED}", R2U2_TRACE]
     proc = subprocess.run(command, capture_output=True)
     num_verdicts = len(proc.stdout.decode().splitlines()) * word_size
 
-    print("Benchmarking sabre")
-    command = [TIME, "-v", f"./{SABRE_BIN}", R2U2_TRACE]
+    print("Benchmarking sabre (decomposed)" if decompose else "Benchmarking sabre")
+    command = [TIME, "-v", f"./{SABRE_BIN if not decompose else SABRE_BIN_DECOMPOSED}", R2U2_TRACE]
     time_avg, mem_avg = run_command_n(command, n)
     throughput_avg = num_verdicts / time_avg
     return (throughput_avg, mem_avg)
@@ -188,7 +193,12 @@ def compare_output() -> None:
     with open(SABRE_OUTPUT, "w") as f:
         f.write(proc.stdout.decode())
 
-    command = ["python3", COMPARE_OUTPUT_SCRIPT, R2U2_OUTPUT, HYDRA_OUTPUT, SABRE_OUTPUT]
+    command = [f"./{SABRE_BIN_DECOMPOSED}", R2U2_TRACE]
+    proc = subprocess.run(command, capture_output=True)
+    with open(SABRE_OUTPUT_DECOMPOSED, "w") as f:
+        f.write(proc.stdout.decode())
+
+    command = ["python3", COMPARE_OUTPUT_SCRIPT, R2U2_OUTPUT, HYDRA_OUTPUT, SABRE_OUTPUT, SABRE_OUTPUT_DECOMPOSED]
     proc = subprocess.run(command, capture_output=True)
     if proc.returncode != 0:
         print("Outputs do not match")
@@ -200,7 +210,7 @@ def compare_output() -> None:
 parser = argparse.ArgumentParser(description="Benchmarking r2u2, hydra and sabre")
 parser.add_argument(
     "benchmark",
-    choices=["pattern", "future"],
+    choices=["pattern", "future", "interval", "word-size"],
     help="Benchmark to run",
 )
 args = parser.parse_args()
@@ -233,34 +243,41 @@ if args.benchmark == "pattern":
             recompile_r2u2_c(spec)
             recompile_r2u2_rust(spec)
         recompile_hydra(spec)
-        recompile_sabre(spec, nsigs, SABRE_DEFAULT_WORD_SIZE)
+        recompile_sabre(spec, nsigs, SABRE_DEFAULT_WORD_SIZE, decompose=True)
+        recompile_sabre(spec, nsigs, SABRE_DEFAULT_WORD_SIZE, decompose=False)
+        recompile_sabre(spec, nsigs, 64, decompose=False)
         compare_output()
-        data_r2u2_c = benchmark_r2u2_c(10)
+        data_r2u2_c = benchmark_r2u2_c(50)
         data_r2u2_rust = benchmark_r2u2_rust(10)
-        data_hydra = benchmark_hydra(10)
-        data_sabre = benchmark_sabre(10, SABRE_DEFAULT_WORD_SIZE)
+        data_hydra = benchmark_hydra(50)
+        data_sabre = benchmark_sabre(50, SABRE_DEFAULT_WORD_SIZE, decompose=False)
+        data_sabre_decomposed = benchmark_sabre(50, SABRE_DEFAULT_WORD_SIZE, decompose=True)
+        data_sabre_64 = benchmark_sabre(50, 64, decompose=False)
 
         print(f"r2u2 (C): {data_r2u2_c}")
         print(f"r2u2 (Rust): {data_r2u2_rust}")
         print(f"hydra: {data_hydra}")
+        print(f"sabre decomposed: {data_sabre_decomposed}")
         print(f"sabre: {data_sabre}")
-
+        print(f"sabre 64: {data_sabre_64}")
         with open(f"{PATTERN_OUTPUT_DIR}/{pathlib.Path(spec).stem}.csv", "w") as f:
             f.write("tool,throughput,mem\n")
             f.write(f"r2u2_c,{data_r2u2_c[0]},{data_r2u2_c[1]}\n")
             f.write(f"r2u2_rust,{data_r2u2_rust[0]},{data_r2u2_rust[1]}\n")
             f.write(f"hydra,{data_hydra[0]},{data_hydra[1]}\n")
             f.write(f"sabre,{data_sabre[0]},{data_sabre[1]}\n")
+            f.write(f"sabre_decomposed,{data_sabre_decomposed[0]},{data_sabre_decomposed[1]}\n")
+            f.write(f"sabre_64,{data_sabre_64[0]},{data_sabre_64[1]}\n")
 elif args.benchmark == "future":
     trace_len = 1_000_000
     nsigs = 1
 
-    future_data: dict[int, tuple[float, float, float, float]]  = {}
+    future_data: dict[int, tuple[float, float, float, float, float]]  = {}
  
     for ub in [
-        1_000,
-        1_024,
-        5_000,
+        # 1_000,
+        # 1_024,
+        # 5_000,
         10_000
     ]:
         spec = f"F[0,{ub}] a0\n"
@@ -270,7 +287,8 @@ elif args.benchmark == "future":
         recompile_r2u2_c(SPEC_FILE)
         recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
-        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE)
+        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE, decompose=False)
+        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE, decompose=True)
 
         for density in [
             10,
@@ -290,23 +308,26 @@ elif args.benchmark == "future":
             print(f"Generating random trace of len={trace_len}, density={density}")
             command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), str(density), TRACE_DIR]
             proc = subprocess.run(command, capture_output=True)
+            compare_output()
 
-            time_avg_r2u2_c, _ = benchmark_r2u2_c(3)
-            time_avg_r2u2_rust, _ = benchmark_r2u2_rust(3)
-            time_avg_hydra, _ = benchmark_hydra(3)
-            time_avg_sabre, _ = benchmark_sabre(3, SABRE_DEFAULT_WORD_SIZE)
+            time_avg_r2u2_c, _ = benchmark_r2u2_c(10)
+            time_avg_r2u2_rust, _ = benchmark_r2u2_rust(10)
+            time_avg_hydra, _ = benchmark_hydra(10)
+            time_avg_sabre, _ = benchmark_sabre(10, SABRE_DEFAULT_WORD_SIZE, decompose=False)
+            time_avg_sabre_decomposed, _ = benchmark_sabre(10, SABRE_DEFAULT_WORD_SIZE, decompose=True)
 
             future_data[density] = (
                 time_avg_r2u2_c,
                 time_avg_r2u2_rust,
                 time_avg_hydra,
                 time_avg_sabre,
+                time_avg_sabre_decomposed,
             )
             
         with open(f"{FUTURE_OUTPUT_DIR}/{ub}.csv", "w") as f:
-            f.write("density,r2u2_c,r2u2_rust,hydra,sabre\n")
+            f.write("density,r2u2_c,r2u2_rust,hydra,sabre,sabre_decomposed\n")
             for density, times in future_data.items():
-                f.write(f"{density},{times[0]},{times[1]},{times[2]},{times[3]}\n")
+                f.write(f"{density},{times[0]},{times[1]},{times[2]},{times[3]},{times[4]}\n")
 elif args.benchmark == "interval":
     trace_len = 5_000_000
     nsigs = 1
@@ -328,12 +349,12 @@ elif args.benchmark == "interval":
         recompile_r2u2_c(SPEC_FILE)
         recompile_r2u2_rust(SPEC_FILE)
         recompile_hydra(SPEC_FILE)
-        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE)
+        recompile_sabre(SPEC_FILE, nsigs, SABRE_DEFAULT_WORD_SIZE, decompose=False)
 
         data_r2u2_c_int[ub] = benchmark_r2u2_c(25)
         data_r2u2_rust_int[ub] = benchmark_r2u2_rust(25)
         data_hydra_int[ub] = benchmark_hydra(25)
-        data_sabre_int[ub] = benchmark_sabre(25, SABRE_DEFAULT_WORD_SIZE)
+        data_sabre_int[ub] = benchmark_sabre(25, SABRE_DEFAULT_WORD_SIZE, decompose=False)
     
     with open(f"{OUTPUT_DIR}/interval.csv", "w") as f:
         f.write("tool,ub,time_avg,mem_avg\n")
@@ -351,7 +372,7 @@ elif args.benchmark == "word-size":
 
     data_sabre = {}
 
-    spec = "F[0,10] a0\n"
+    spec = "F[0,1000] a0\n"
     with open(SPEC_FILE, "w") as f:
         f.write(spec)
 
@@ -360,8 +381,8 @@ elif args.benchmark == "word-size":
         command = ["python3", "gen_trace.py", str(trace_len), str(nsigs), str(0.5), TRACE_DIR]
         proc = subprocess.run(command, capture_output=True)
 
-        recompile_sabre(SPEC_FILE, nsigs, word_size)
-        time_avg, mem_avg = benchmark_sabre(25, word_size)
+        recompile_sabre(SPEC_FILE, nsigs, word_size, decompose=False)
+        time_avg, mem_avg = benchmark_sabre(10, word_size, decompose=False)
         print(f"sabre ({word_size}): {time_avg}, {mem_avg}")
 
         data_sabre[word_size] = (

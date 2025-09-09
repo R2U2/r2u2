@@ -37,6 +37,10 @@ for file in files:
             tool = row[0]
             if tool == "sabre":
                 tool = "SABRe"
+            elif tool == "sabre_decomposed":
+                tool = "SABRe (Decomposed)"
+            elif tool == "sabre_64":
+                tool = "SABRe (64)"
             elif tool == "hydra":
                 tool = "Hydra"
             elif tool == "r2u2_c":
@@ -55,7 +59,7 @@ fig, ax = plt.subplots(layout="tight", figsize=(6,3))
 
 # Prepare data for the bar graph
 specs = ["Future", "Until", "Min Duration", "Between", "Prec Chain"]
-tools = ["SABRe", "Hydra", "R2U2 (C)", "R2U2 (Rust)"]
+tools = ["SABRe", "SABRe (Decomposed)", "SABRe (64)", "Hydra", "R2U2 (C)", "R2U2 (Rust)"]
 bar_width = 0.25
 group_spacing = 0.3  # Add extra spacing between groups
 x = [i * (1 + group_spacing) for i in range(len(specs))]  # Add spacing between groups
@@ -79,8 +83,21 @@ for tool in tools:
             "firebrick" if tool == "R2U2 (Rust)" else
             "blue" if tool == "Hydra" else
             "darkorchid" if tool == "SABRe" else
+            "magenta" if tool == "SABRe (Decomposed)" else
+            "lime" if tool == "SABRe (64)" else
             "gray"  # Default color for any other tool
-        )
+        ),
+        # hatch=(
+        #     "///" if tool == "R2U2 (C)" else
+        #     "///" if tool == "R2U2 (Rust)" else
+        #     "\\\\\\" if tool == "Hydra" else
+        #     "xxx" if tool == "SABRe" else
+        #     "..." if tool == "SABRe (64)" else
+        #     "..." if tool == "SABRe (Decomposed)" else
+        #     "..."  # Default pattern for any other tool
+        # ),
+        # edgecolor="white",
+        # linewidth=0.3
     )
 
 # Set x-axis labels and legend
@@ -88,7 +105,7 @@ ax.set_xticks([i + (len(tools) - 1) * bar_width / 2 for i in x])  # Center label
 ax.set_xticklabels(specs)
 
 # Add labels and title
-plt.ylabel("Throughput (10^6 verdicts/s)")
+plt.ylabel("Throughput ($10^6$ verdicts/s)")
 plt.grid(axis="y")
 plt.tight_layout()
 

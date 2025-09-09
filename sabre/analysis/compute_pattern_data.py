@@ -37,38 +37,45 @@ for file in files:
 
             results[spec][tool] = float(row[1]), float(row[2])  # Store throughput and memory
 
-# Compute how many times faster "bvmon" is than the fastest of "R2U2 C" and "R2U2 Rust" in terms of throughput
+# Compute how many times faster "sabre" is than the fastest of "R2U2 C" and "R2U2 Rust" in terms of throughput
 # Also compute average times faster over all specs
 avg_times_faster_r2u2 = 0
 avg_times_faster_hydra = 0
+avg_times_faster_sabre_decomposed = 0
 avg_mem_r2u2 = 0
 avg_mem_hydra = 0
-avg_mem_bvmon = 0
+avg_mem_sabre = 0
+avg_mem_sabre_decomposed = 0
 n = 0
 for spec in results.keys():
-    if "bvmon" not in results[spec]:
+    if "sabre" not in results[spec]:
         continue
-    bvmon_tp = results[spec]["bvmon"][0]
+    sabre_tp = results[spec]["sabre"][0]
     r2u2_tp = results[spec]["r2u2_c"][0]
     hydra_tp = results[spec]["hydra"][0]
-    times_faster_r2u2 = bvmon_tp / r2u2_tp
-    times_faster_hydra = bvmon_tp / hydra_tp
+    times_faster_r2u2 = sabre_tp / r2u2_tp
+    times_faster_hydra = sabre_tp / hydra_tp
     avg_times_faster_r2u2 += times_faster_r2u2
     avg_times_faster_hydra += times_faster_hydra
-
+    avg_times_faster_sabre_decomposed += results[spec]["sabre_decomposed"][0] / results[spec]["sabre"][0]
     avg_mem_r2u2 += results[spec]["r2u2_c"][1] / 1024
     avg_mem_hydra += results[spec]["hydra"][1] / 1024
-    avg_mem_bvmon += results[spec]["bvmon"][1] / 1024
+    avg_mem_sabre += results[spec]["sabre"][1] / 1024
+    avg_mem_sabre_decomposed += results[spec]["sabre_decomposed"][1] / 1024
     n += 1
 
 avg_times_faster_r2u2 /= n
 avg_times_faster_hydra /= n
+avg_times_faster_sabre_decomposed /= n
 avg_mem_r2u2 /= n
 avg_mem_hydra /= n
-avg_mem_bvmon /= n
+avg_mem_sabre /= n
+avg_mem_sabre_decomposed /= n
 
-print(f"bvmon avg times thruput (r2u2): {avg_times_faster_r2u2:.2f}x")
-print(f"bvmon avg times thruput (hydra): {avg_times_faster_hydra:.2f}x")
+print(f"sabre avg times thruput (r2u2): {avg_times_faster_r2u2:.2f}x")
+print(f"sabre avg times thruput (hydra): {avg_times_faster_hydra:.2f}x")
+print(f"sabre decomposed avg times thruput (sabre): {avg_times_faster_sabre_decomposed:.2f}x")
 print(f"r2u2 avg mem: {avg_mem_r2u2:.2f} MB")
 print(f"hydra avg mem: {avg_mem_hydra:.2f} MB")
-print(f"bvmon avg mem: {avg_mem_bvmon:.2f} MB")
+print(f"sabre avg mem: {avg_mem_sabre:.2f} MB")
+print(f"sabre decomposed avg mem: {avg_mem_sabre_decomposed:.2f} MB")
