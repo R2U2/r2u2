@@ -17,7 +17,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
     r2u2_addr *rd_ptr; // Hold off on this in case it doesn't exist...
 
     // Get operand info based on `n` which indicates left/first v.s. right/second
-    r2u2_mltl_operand_type_t op_type = (op_num == 0) ? (instr->op1_type) : (instr->op2_type);
+    uint8_t op_type = (op_num == 0) ? (instr->op1_type) : (instr->op2_type);
     uint32_t value = (op_num == 0) ? (instr->op1_value) : (instr->op2_value);
 
     switch (op_type) {
@@ -91,29 +91,6 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
     /* Control Commands */
     case R2U2_MLTL_OP_NOP: {
       R2U2_DEBUG_PRINT("\tFT NOP\n");
-      error_cond = R2U2_OK;
-      break;
-    }
-    case R2U2_MLTL_OP_CONFIGURE: {
-      R2U2_DEBUG_PRINT("\tFT Configure\n");
-
-      switch (instr->op1_type) {
-        case R2U2_FT_OP_ATOMIC: {
-          r2u2_scq_config(arena, instr->memory_reference, instr->op1_value);
-          break;
-        }
-        case R2U2_FT_OP_SUBFORMULA: {
-          temp = &(ctrl->temporal_block);
-          temp->lower_bound = instr->op1_value;
-          temp->upper_bound = instr->op2_value;
-          break;
-        }
-        default: {
-          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
-          break;
-        }
-      }
-
       error_cond = R2U2_OK;
       break;
     }
@@ -580,4 +557,50 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
   }
 
   return error_cond;
+}
+
+r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr){
+    R2U2_DEBUG_PRINT("\tFT Configure\n");
+    r2u2_scq_arena_t arena = monitor->queue_arena;
+    r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+
+      switch (instr->op1_type) {
+        case R2U2_FT_OP_ATOMIC: {
+            ctrl->length = instr->op1_value;
+
+            R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: len = %u\n", instr->memory_reference, ctrl->length);
+
+            /* The first queue doesn't have a previous queue to offset from and can use
+            * the slot pointed to by the control block queue pointer, so if the queue id
+            * is zero, we use a different offset calculation.
+            */
+            if (r2u2_unlikely(instr->memory_reference == 0)) {
+                // First queue counts back from end of arena, inclusive
+                ctrl->queue = arena.queues;
+            } else {
+                // All subsuquent queues count back from previous queue, exclusive
+                r2u2_scq_control_block_t prev_ctrl = arena.blocks[instr->memory_reference - 1];
+                ctrl->queue = prev_ctrl.queue + prev_ctrl.length;
+            }
+
+            ctrl->queue[0] = r2u2_infinity;
+
+            #if R2U2_DEBUG
+            r2u2_scq_queue_print(arena, queue_id);
+            #endif
+
+            return R2U2_OK;
+        }
+        case R2U2_FT_OP_SUBFORMULA: {
+          ctrl->temporal_block.lower_bound = instr->op1_value;
+          ctrl->temporal_block.upper_bound = instr->op2_value;
+          break;
+        }
+        default: {
+          R2U2_DEBUG_PRINT("Warning: Bad OP Type\n");
+          break;
+        }
+      }
+
+      return R2U2_OK;
 }

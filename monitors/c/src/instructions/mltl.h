@@ -1,7 +1,7 @@
 #ifndef MLTL_INSTRUCTIONS_H
 #define MLTL_INSTRUCTIONS_H
+#include <stdint.h>
 
-#define R2U2_MLTL_TENSE_FUTURE 0b10000
 
 enum r2u2_mltl_opcode{
     // Future Tense: 1xxxx
@@ -24,7 +24,6 @@ enum r2u2_mltl_opcode{
     R2U2_MLTL_OP_XOR          = 0b10001,
     R2U2_MLTL_OP_EQUIVALENT   = 0b10000,
 
-
     // Past Tense: 0xxxx
 
     R2U2_MLTL_OP_ONCE         = 0b01011,
@@ -33,8 +32,6 @@ enum r2u2_mltl_opcode{
     R2U2_MLTL_OP_TRIGGER      = 0b01000,
 };
 
-typedef uint8_t r2u2_mltl_opcode_t;
-
 enum r2u2_mltl_operand_type{
     R2U2_FT_OP_DIRECT      = 0b01,
     R2U2_FT_OP_ATOMIC      = 0b00,
@@ -42,17 +39,15 @@ enum r2u2_mltl_operand_type{
     R2U2_FT_OP_NOT_SET     = 0b11
 };
 
-typedef uint8_t r2u2_mltl_operand_type_t;
-
 typedef struct {
-  uint32_t                   op1_value;
-  uint32_t                   op2_value;
-  uint32_t                   memory_reference;
-  r2u2_mltl_operand_type_t   op1_type;
-  r2u2_mltl_operand_type_t   op2_type;
-  r2u2_mltl_opcode_t         opcode;
+  uint32_t    op1_value;
+  uint32_t    op2_value;
+  uint32_t    memory_reference;
+  uint8_t     op1_type;
+  uint8_t     op2_type;
+  uint8_t     opcode;
 } r2u2_mltl_instruction_t;
 
-typedef r2u2_mltl_instruction_t (r2u2_mltl_instruction_table_t)[];
+r2u2_mltl_instruction_t r2u2_mltl_set_from_binary(uint8_t *);
 
 #endif

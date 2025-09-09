@@ -60,10 +60,10 @@ typedef struct r2u2_bz_instruction {
     uint8_t opcode;
 } r2u2_bz_instruction_t;
 
-r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t* spec);
+r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t *);
 
-r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t* spec);
+r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t *);
 
-r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t* spec);
+r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t *);
 
 #endif

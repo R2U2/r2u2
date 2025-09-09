@@ -6,4 +6,6 @@
 
 r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *, r2u2_mltl_instruction_t *);
 
+r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *, r2u2_mltl_instruction_t *);
+
 #endif /* R2U2_ENGINES_MLTL_H */
