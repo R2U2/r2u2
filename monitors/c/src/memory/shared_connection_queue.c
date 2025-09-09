@@ -1,6 +1,5 @@
-#include "r2u2.h"
-
 #include "shared_connection_queue.h"
+#include "internals/debug.h"
 
 #if R2U2_DEBUG
 static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
@@ -21,34 +20,6 @@ static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
   R2U2_DEBUG_PRINT("\n");
 }
 #endif
-
-r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_time queue_length) {
-  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
-
-  ctrl->length = queue_length;
-
-  R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: len = %u\n", queue_id, queue_length);
-
-  /* The first queue doesn't have a previous queue to offset from and can use
-   * the slot pointed to by the control block queue pointer, so if the queue id
-   * is zero, we use a different offset calculation.
-   */
-  if (r2u2_unlikely(queue_id == 0)) {
-    // First queue counts back from end of arena, inclusive
-    ctrl->queue = arena.queues;
-  } else {
-    // All subsuquent queues count back from previous queue, exclusive
-    ctrl->queue = (arena.blocks)[queue_id-1].queue + (arena.blocks)[queue_id-1].length;
-  }
-
-  ctrl->queue[0] = r2u2_infinity;
-
-  #if R2U2_DEBUG
-  r2u2_scq_queue_print(arena, queue_id);
-  #endif
-
-  return R2U2_OK;
-}
 
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value) {
   r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
