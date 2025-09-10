@@ -4,19 +4,36 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-/* Portable form of makring unused  */
+/* Portable form of marking unused  */
 // From: https://stackoverflow.com/a/3599170 [CC BY-SA 3.0]
 #define UNUSED(x) (void)(x)
 
 /* Debug Conditionals */
-// TODO(bckempa): Make R2U2_DEBUG with levels and add location info
-// e.g.: R2U2_DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, ##args)
-// Good reference: https://stackoverflow.com/questions/1644868/define-macro-for-debug-printing-in-c
 #if R2U2_DEBUG
     extern FILE* r2u2_debug_fptr;
     #define R2U2_DEBUG_PRINT(...) do{ if (r2u2_debug_fptr != NULL) {fprintf( r2u2_debug_fptr, __VA_ARGS__ );} } while( false )
 #else
     #define R2U2_DEBUG_PRINT(...)
+#endif
+
+#if R2U2_DEBUG
+    static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
+    R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.blocks, arena.queues, ((void*)arena.queues) - ((void*)arena.blocks));
+    }
+
+    static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
+    r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
+
+    R2U2_DEBUG_PRINT("\t\t\tID: |");
+    for (r2u2_time i = 0; i < ctrl->length; ++i) {
+        R2U2_DEBUG_PRINT(" <%p> |", (void*)&((ctrl->queue)[i]));
+    }
+    R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
+    for (r2u2_time i = 0; i < ctrl->length; ++i) {
+        R2U2_DEBUG_PRINT("  %s:%9d  |", ((ctrl->queue)[i] & R2U2_TNT_TRUE) ? "T" : "F", ((ctrl->queue)[i] & R2U2_TNT_TIME));
+    }
+    R2U2_DEBUG_PRINT("\n");
+    }
 #endif
 
 #if R2U2_TRACE

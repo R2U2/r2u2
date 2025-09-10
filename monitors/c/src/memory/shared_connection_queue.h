@@ -28,6 +28,6 @@ typedef struct {
 
 /* SCQ Read and Write */
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_scq_check(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value);
+r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value);
 
 #endif /* R2U2_MEMORY_SCQ_H */

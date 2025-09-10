@@ -41,7 +41,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
         // Handled by the shared_connection queue check function, just need the arguments
         rd_ptr = (op_num == 0) ? &(ctrl->read1) : &(ctrl->read2);
 
-        return r2u2_scq_check(arena, value, rd_ptr, ctrl->next_time, result);
+        return r2u2_scq_read(arena, value, rd_ptr, ctrl->next_time, result);
 
       case R2U2_FT_OP_NOT_SET:
         *result = 0;

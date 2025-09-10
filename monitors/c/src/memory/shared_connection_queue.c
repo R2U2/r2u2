@@ -1,26 +1,6 @@
 #include "shared_connection_queue.h"
 #include "internals/debug.h"
 
-#if R2U2_DEBUG
-static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
-  R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.blocks, arena.queues, ((void*)arena.queues) - ((void*)arena.blocks));
-}
-
-static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
-
-  R2U2_DEBUG_PRINT("\t\t\tID: |");
-  for (r2u2_time i = 0; i < ctrl->length; ++i) {
-    R2U2_DEBUG_PRINT(" <%p> |", (void*)&((ctrl->queue)[i]));
-  }
-  R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
-  for (r2u2_time i = 0; i < ctrl->length; ++i) {
-    R2U2_DEBUG_PRINT("  %s:%9d  |", ((ctrl->queue)[i] & R2U2_TNT_TRUE) ? "T" : "F", ((ctrl->queue)[i] & R2U2_TNT_TIME));
-  }
-  R2U2_DEBUG_PRINT("\n");
-}
-#endif
-
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value) {
   r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
@@ -54,7 +34,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
   return R2U2_OK;
 }
 
-r2u2_bool r2u2_scq_check(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value) {
+r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value) {
   r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
 
   #if R2U2_DEBUG
