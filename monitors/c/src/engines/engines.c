@@ -3,7 +3,6 @@
 
 
 #include <stdio.h>
-#include <string.h> // For memcpy
 
 #include "engines/engines.h"
 #include "engines/booleanizer.h"

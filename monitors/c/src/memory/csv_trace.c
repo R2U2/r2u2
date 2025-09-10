@@ -79,7 +79,7 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t *csv_reader, r2u2_mon
         R2U2_DEBUG_PRINT("Event: %u\n",monitor->time_stamp);
         signal = strtok_r(NULL, " ", &temp_var);
       }
-      (*(monitor->signal_vector))[i] = signal;
+      (monitor->signal_vector)[i] = signal;
     }
 
     #endif

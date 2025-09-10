@@ -23,10 +23,6 @@ typedef struct program_count {
 
 typedef void* r2u2_signal_t;
 
-typedef void* (r2u2_signal_vector_t)[];
-typedef r2u2_value_t (r2u2_value_buffer_t)[];
-typedef r2u2_bool (r2u2_atomic_buffer_t)[];
-
 // Monitor is defined with pointers to avoid forcing a size on arrays, but
 // hopefully you keep them close-by so the cache hits. By default this should
 // all end up in BBS
@@ -47,7 +43,7 @@ typedef struct r2u2_monitor {
   //  1) consistent monitor size independent of domain size
   //  2) allow uses like memory-mapped DMA regions
   // Queue arena is already just pairs of pointers, so we use those directly
-  r2u2_signal_vector_t    *signal_vector;
+  r2u2_signal_t    *signal_vector;
   r2u2_value_t     *value_buffer;
   r2u2_bool    *atomic_buffer;
   r2u2_scq_arena_t        queue_arena;
@@ -70,7 +66,7 @@ typedef struct r2u2_monitor {
     .mltl_instruction_tbl = (r2u2_mltl_instruction_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
     .out_file = NULL, \
     .out_func = NULL, \
-    .signal_vector = &(void*[R2U2_MAX_SIGNALS]){0}, \
+    .signal_vector = (void*[R2U2_MAX_SIGNALS]){0}, \
     .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
     .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
     .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_tnt_t [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \

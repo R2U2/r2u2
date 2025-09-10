@@ -20,14 +20,14 @@ r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_bz_inst
             break;
         /* Load */
         case R2U2_BZ_OP_ILOAD:
-            sscanf((*(monitor->signal_vector))[instr->param1], "%d", &i1);
+            sscanf((monitor->signal_vector)[instr->param1], "%d", &i1);
             (monitor->value_buffer)[instr->memory_reference].i = i1;
 
             R2U2_DEBUG_PRINT("\tBZ ILOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", instr->memory_reference, i1, instr->param1);
             break;
         case R2U2_BZ_OP_FLOAD:
-            sscanf((*(monitor->signal_vector))[instr->param1], "%lf", &f1);
+            sscanf((monitor->signal_vector)[instr->param1], "%lf", &f1);
 
             (monitor->value_buffer)[instr->memory_reference].f = f1;
 
