@@ -71,6 +71,13 @@ impl Default for Monitor{
 }
 
 impl Monitor{
+    pub fn clock_reset(&mut self) {
+        self.time_stamp = 0;
+        self.progress = MonitorProgressState::FirstLoop;
+        self.bz_program_count.curr_program_count = 0;
+        self.mltl_program_count.curr_program_count = 0;
+        self.queue_arena.queue_mem = [r2u2_verdict::default(); R2U2_TOTAL_QUEUE_SLOTS];
+    }
     pub fn reset(&mut self) {
         *self = Monitor::default();
     }

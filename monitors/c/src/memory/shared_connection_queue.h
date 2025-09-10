@@ -22,8 +22,8 @@ typedef struct {
 } r2u2_scq_control_block_t;
 
 typedef struct {
-  r2u2_scq_control_block_t *blocks;
-  r2u2_tnt_t *queues;
+  r2u2_scq_control_block_t *control_blocks;
+  r2u2_tnt_t *queue_mem;
 } r2u2_scq_arena_t;
 
 /* SCQ Read and Write */

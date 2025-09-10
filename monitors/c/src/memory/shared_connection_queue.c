@@ -2,7 +2,7 @@
 #include "internals/debug.h"
 
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value) {
-  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
+  r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, queue_id);
@@ -35,7 +35,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
 }
 
 r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value) {
-  r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
+  r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, queue_id);

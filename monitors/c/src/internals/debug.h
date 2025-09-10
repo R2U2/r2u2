@@ -18,11 +18,11 @@
 
 #if R2U2_DEBUG
     static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
-    R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.blocks, arena.queues, ((void*)arena.queues) - ((void*)arena.blocks));
+    R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.control_blocks, arena.queue_mem, ((void*)arena.queues) - ((void*)arena.control_blocks));
     }
 
     static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
-    r2u2_scq_control_block_t *ctrl = &((arena.blocks)[queue_id]);
+    r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
     R2U2_DEBUG_PRINT("\t\t\tID: |");
     for (r2u2_time i = 0; i < ctrl->length; ++i) {

@@ -13,7 +13,7 @@
 /// @return     Boolean indicating if data is ready and `result` is valid
 static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_bool op_num, r2u2_tnt_t *result) {
     r2u2_scq_arena_t arena = monitor->queue_arena;
-    r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+    r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
     r2u2_addr *rd_ptr; // Hold off on this in case it doesn't exist...
 
     // Get operand info based on `n` which indicates left/first v.s. right/second
@@ -57,7 +57,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_tnt_t result) {
   // Pushes result to queue, sets tau, and flags progress if nedded
   r2u2_scq_arena_t arena = monitor->queue_arena;
-  r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+  r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
 
   r2u2_scq_write(arena, instr->memory_reference, result);
   R2U2_DEBUG_PRINT("\t(%d,%s)\n", result & R2U2_TNT_TIME, (result & R2U2_TNT_TRUE) ? "T" : "F" );
@@ -83,7 +83,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
   r2u2_status_t error_cond;
 
   r2u2_scq_arena_t arena = monitor->queue_arena;
-  r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+  r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
   r2u2_scq_temporal_block_t *temp; // Only set this if using a temporal op
 
   switch (instr->opcode) {
@@ -562,7 +562,7 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
 r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr){
     R2U2_DEBUG_PRINT("\tFT Configure\n");
     r2u2_scq_arena_t arena = monitor->queue_arena;
-    r2u2_scq_control_block_t *ctrl = &(arena.blocks[instr->memory_reference]);
+    r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
 
       switch (instr->op1_type) {
         case R2U2_FT_OP_ATOMIC: {
@@ -576,10 +576,10 @@ r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *monitor, 
             */
             if (r2u2_unlikely(instr->memory_reference == 0)) {
                 // First queue counts back from end of arena, inclusive
-                ctrl->queue = arena.queues;
+                ctrl->queue = arena.queue_mem;
             } else {
                 // All subsuquent queues count back from previous queue, exclusive
-                r2u2_scq_control_block_t prev_ctrl = arena.blocks[instr->memory_reference - 1];
+                r2u2_scq_control_block_t prev_ctrl = arena.control_blocks[instr->memory_reference - 1];
                 ctrl->queue = prev_ctrl.queue + prev_ctrl.length;
             }
 

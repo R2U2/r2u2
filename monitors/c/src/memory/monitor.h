@@ -72,9 +72,14 @@ typedef struct r2u2_monitor {
     .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_tnt_t [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
   }
 
-/// @brief      Resets the monitors vector clock without changing other state
+/// @brief      Resets the monitors vector clock and SCQ slots without changing other state
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
 void r2u2_monitor_clock_reset(r2u2_monitor_t *monitor);
+
+/// @brief      Resets the monitors vector clock, SCQ slots, and instruction tables
+/// @param[in]  monitor  Pointer to r2u2_monitor_t
+/// @return     None
+void r2u2_monitor_reset(r2u2_monitor_t *monitor);
 
 #endif /* R2U2_MEMORY_MONITOR_H */

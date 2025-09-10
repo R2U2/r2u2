@@ -66,7 +66,7 @@ pub fn r2u2_step(monitor: &mut Monitor) -> r2u2_bool{
                     },
                     None => {
                         // timestamp overflowed; therefore reset entire monitor (simple safety measure, but could be improved)
-                        monitor.reset();
+                        monitor.clock_reset();
                     },
                 }
             }

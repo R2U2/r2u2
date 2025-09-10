@@ -13,7 +13,7 @@ r2u2_status_t r2u2_init(uint8_t* spec, r2u2_monitor_t *monitor) {
     /* Default config and run */
 
     // Memory resets....
-    r2u2_monitor_clock_reset(monitor);
+    r2u2_monitor_reset(monitor);
 
     // Populate instruction table from binary spec in instruction memory
     if (r2u2_process_binary(spec, monitor) != R2U2_OK) {
