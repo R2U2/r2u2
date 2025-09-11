@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include "internals/config.h"
 #include "internals/errors.h"
 #include "memory/csv_trace.h"
 #if R2U2_TL_Contract_Status
@@ -26,7 +27,6 @@ const char *help = "<configuration> [trace]\n"
 
 // Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
-r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
 
 // Contract status reporting, if enabled
 #if R2U2_TL_Contract_Status
@@ -89,8 +89,9 @@ int main(int argc, char const *argv[]) {
       return 1;
   }
 
-  // Reset monitor and build instuction table from spec binary
-  r2u2_init(spec, &r2u2_monitor);
+  // Configure R2U2 monitor
+  r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
+  r2u2_update_binary_file(spec, &r2u2_monitor);
 
   // Open output File
   r2u2_monitor.out_file = stdout;
@@ -151,7 +152,7 @@ int main(int argc, char const *argv[]) {
     if ((err_cond != R2U2_OK)) break;
 
   } while (err_cond == R2U2_OK);
-      err_cond = r2u2_step(&r2u2_monitor);
+      err_cond = r2u2_monitor_step(&r2u2_monitor);
 
   if (err_cond == R2U2_END_OF_TRACE) {
     // Traces are allowed to end, exit cleanly

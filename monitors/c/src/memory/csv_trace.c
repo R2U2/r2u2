@@ -1,7 +1,6 @@
-#include "r2u2.h"
-// We use a config flag and therefore must include the toplevel header first
-
+#include "internals/config.h"
 #include "csv_trace.h"
+#include "internals/debug.h"
 
 r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t *csv_reader, r2u2_monitor_t *monitor) {
 
