@@ -1,14 +1,10 @@
-#include "internals/errors.h"
-#include "r2u2.h"
-
-
-#include <stdio.h>
 
 #include "engines/engines.h"
 #include "engines/booleanizer.h"
 #include "engines/mltl.h"
+#include "internals/debug.h"
 
-r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
+r2u2_status_t r2u2_step(r2u2_monitor_t *monitor) {
     r2u2_status_t error_cond;
 
     R2U2_DEBUG_PRINT("%d.%zu.%d\n",monitor->time_stamp, monitor->prog_count, monitor->progress);
@@ -19,7 +15,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
     monitor->bz_program_count.curr_program_count = 0;
 
     r2u2_time start_time = monitor->time_stamp;
-    while(start_time == monitor-> time_stamp){
+    while(start_time == monitor->time_stamp){
        while(monitor->mltl_program_count.curr_program_count < monitor->mltl_program_count.max_program_count){
         error_cond = r2u2_mltl_instruction_dispatch(monitor, &(monitor->mltl_instruction_tbl)[monitor->mltl_program_count.curr_program_count]);
         monitor->mltl_program_count.curr_program_count++;
@@ -52,7 +48,7 @@ r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
 
           // Update Vector Clock for next timestep
           monitor->time_stamp++;
-          monitor->mltl_program_count.curr_program_count= 0;
+          monitor->mltl_program_count.curr_program_count = 0;
           monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
           break;
         }
