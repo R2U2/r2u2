@@ -74,12 +74,6 @@ See [building the monitor](./building.md) for details.
 : Enables very verbose memory trace printing to stderr
 
 
-### Input Handling Features
-
-`R2U2_CSV_Header_Mapping`
-: Enables reordering header imports to match signal vector mapping
-
-
 ### Temporal Logic Features
 
 `R2U2_TL_Formula_Names`

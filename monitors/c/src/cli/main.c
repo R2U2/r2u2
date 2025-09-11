@@ -1,5 +1,3 @@
-#include "r2u2.h"
-
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -8,7 +6,8 @@
 
 #include "internals/config.h"
 #include "internals/errors.h"
-#include "memory/csv_trace.h"
+#include "cli/csv_trace.h"
+#include "r2u2.h"
 #if R2U2_TL_Contract_Status
 #include "memory/contract_status.h"
 #endif

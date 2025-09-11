@@ -19,7 +19,7 @@ TST_PATH := test
 RPT_PATH := report
 DOC_PATH := doc
 
-SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/instructions $(SRC_PATH)/internals $(SRC_PATH)/engines $(SRC_PATH)/engines/booleanizer $(SRC_PATH)/engines/mltl $(SRC_PATH)/memory
+SRC_DIRS := $(SRC_PATH) $(SRC_PATH)/cli $(SRC_PATH)/internals $(SRC_PATH)/instructions $(SRC_PATH)/engines $(SRC_PATH)/engines/booleanizer $(SRC_PATH)/engines/mltl $(SRC_PATH)/memory
 INC_DIRS := $(SRC_DIRS)
 OBJ_DIRS := $(OBJ_PATH) $(addprefix $(OBJ_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
 DBG_DIRS := $(DBG_PATH) $(addprefix $(DBG_PATH), $(subst $(SRC_PATH),,$(SRC_DIRS)))
@@ -55,7 +55,7 @@ LIB_DBUG := $(BIN_PATH)/$(LIB_NAME)_debug
 
 # Target Bin
 BIN_NAME := r2u2
-BIN_MAIN := $(SRC_PATH)/main.c
+BIN_MAIN := $(SRC_PATH)/cli/main.c
 BIN_RELS := $(BIN_PATH)/$(BIN_NAME)
 BIN_DBUG := $(BIN_PATH)/$(BIN_NAME)_debug
 ifeq ($(OS),Windows_NT)

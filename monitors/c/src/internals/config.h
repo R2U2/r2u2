@@ -10,8 +10,6 @@
 /* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
 #define _POSIX_C_SOURCE 200112L
 
-#include <stdio.h>
-
 #define R2U2_C_VERSION_MAJOR 4
 #define R2U2_C_VERSION_MINOR 0
 #define R2U2_C_VERSION_PATCH 0
@@ -42,11 +40,6 @@
 #ifndef R2U2_TL_Contract_Status
     /* Enables printing tri-state reports of assume-guarantee contracts */
     #define R2U2_TL_Contract_Status INHIBIT
-#endif
-
-#ifndef R2U2_CSV_Header_Mapping
-    /* Enables reordering header imports to match signal vector mapping */
-    #define R2U2_CSV_Header_Mapping INHIBIT
 #endif
 
 #ifndef R2U2_DEBUG
