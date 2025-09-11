@@ -1,23 +1,16 @@
-#include "binary_load.h"
-#include "internals/bounds.h"
+#include "process_binary.h"
 #include "internals/debug.h"
-#include "internals/errors.h"
-#include "instructions/booleanizer.h"
 #include "engines/booleanizer.h"
 #include "engines/mltl.h"
 #include "engines/engines.h"
-
-#include <stdio.h>
 
 r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t *monitor) {
   size_t offset = 0;
 
   // Header Check:
-  // TODO(bckempa): Version checks, report hash, parity, etc.
   R2U2_DEBUG_PRINT("Spec Info:\n\t%s\n",  &(spec[1]));
   offset = spec[0];
 
-  // TODO(bckempa): Double check, size_t should always fit?
   for (size_t i=0; (spec[offset] != 0); offset += spec[offset]) {
     if ((spec[offset+1] == R2U2_ENG_CG) && (spec[offset+2] == R2U2_ENG_TL)) {
       // Process configuration command
@@ -51,6 +44,18 @@ r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t *monitor) {
           monitor->mltl_program_count.max_program_count++;
         }
     }
+  }
+
+  // Iterate through mltl table
+  r2u2_scq_control_block_t *ctrl;
+  for (size_t i=0; i < monitor->mltl_program_count.max_program_count; i++){
+    r2u2_mltl_instruction_t instr = (monitor->mltl_instruction_tbl)[i];
+    // For future time, we never need information from [0, lb]
+    if((monitor->mltl_instruction_tbl)[i].opcode == R2U2_MLTL_OP_UNTIL || 
+        (monitor->mltl_instruction_tbl)[i].opcode == R2U2_MLTL_OP_RELEASE){
+          ctrl = &(monitor->queue_arena.control_blocks[i]);
+          (*ctrl).next_time = (*ctrl).temporal_block.lower_bound;
+        }
   }
 
   return R2U2_OK;

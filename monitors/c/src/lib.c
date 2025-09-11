@@ -1,7 +1,7 @@
 #include "r2u2.h"
 
 #include "internals/debug.h"
-#include "engines/binary_load.h"
+#include "internals/process_binary.h"
 #include "engines/engines.h"
 
 #if R2U2_DEBUG
