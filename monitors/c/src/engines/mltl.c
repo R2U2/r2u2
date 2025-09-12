@@ -1,5 +1,7 @@
+#include "internals/config.h"
 #include "mltl.h"
-
+#include "engines/aux_info.h"
+#include "internals/debug.h"
 
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
@@ -70,20 +72,15 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr) {
+r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor) {
 
-  // // Copy to buffer to avoid alignment issues
-  // // TODO(bckempa): Make this optional based on bin packing switch
-  // r2u2_mltl_instruction_t inst_buff;
-  // memcpy(&inst_buff, instr, sizeof(r2u2_mltl_instruction_t));
-  // instr = &inst_buff;
+  r2u2_mltl_instruction_t *instr = &(monitor->mltl_instruction_tbl)[monitor->mltl_program_count.curr_program_count];
 
   r2u2_bool op0_rdy, op1_rdy;
   r2u2_tnt_t op0, op1, result;
   r2u2_status_t error_cond;
 
-  r2u2_scq_arena_t arena = monitor->queue_arena;
-  r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
+  r2u2_scq_control_block_t *ctrl = &(monitor->queue_arena.control_blocks[instr->memory_reference]);
   r2u2_scq_temporal_block_t *temp; // Only set this if using a temporal op
 
   switch (instr->opcode) {
@@ -113,7 +110,12 @@ r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor, r2u2_mltl_
         push_result(monitor, instr, op0);
 
         if (monitor->out_file != NULL) {
-          fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2_value, (op0 & R2U2_TNT_TIME), (op0 & R2U2_TNT_TRUE) ? "T" : "F");
+          #if R2U2_AUX_STRING_SPECS
+            r2u2_aux_formula_report(monitor, *instr, op0);
+            r2u2_aux_contract_report(monitor, *instr, op0);
+          #else
+            fprintf(monitor->out_file, "%d:%u,%s\n", instr->op2_value, (op0 & R2U2_TNT_TIME), (op0 & R2U2_TNT_TRUE) ? "T" : "F");
+          #endif
         }
 
         if (monitor->out_func != NULL) {
@@ -586,7 +588,7 @@ r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *monitor, 
             ctrl->queue[0] = r2u2_infinity;
 
             #if R2U2_DEBUG
-            r2u2_scq_queue_print(arena, queue_id);
+            r2u2_scq_queue_print(arena, instr->memory_reference);
             #endif
 
             return R2U2_OK;

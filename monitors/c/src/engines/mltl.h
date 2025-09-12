@@ -3,8 +3,10 @@
 
 #include "r2u2.h"
 #include "instructions/mltl.h"
+#include "memory/monitor.h"
+#include "internals/errors.h"
 
-r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *, r2u2_mltl_instruction_t *);
+r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *);
 
 r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t *, r2u2_mltl_instruction_t *);
 
