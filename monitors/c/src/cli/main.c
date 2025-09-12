@@ -136,8 +136,8 @@ int main(int argc, char const *argv[]) {
 
     if ((err_cond != R2U2_OK)) break;
 
+    err_cond = r2u2_monitor_step(&r2u2_monitor);
   } while (err_cond == R2U2_OK);
-      err_cond = r2u2_monitor_step(&r2u2_monitor);
 
   if (err_cond == R2U2_END_OF_TRACE) {
     // Traces are allowed to end, exit cleanly
