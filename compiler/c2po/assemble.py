@@ -1006,36 +1006,28 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
 
 
 def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction]) -> None:
-    """Computes values for bounds file, setting the values in `program.bounds_c` and `program.bounds_rs`."""
+    """Computes values for bounds file, setting the values in `program.bounds`."""
     num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
     num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
     num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
     num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
+    num_aliases_bytes = sum([
+        (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
+    ])
     num_signals = len(context.signals)
     num_atomics = len(context.atomic_id.values())
     total_scq_size = sum([
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
     ])
 
-    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
-    program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
-    program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_c["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    program.bounds_c["R2U2_TOTAL_QUEUE_SLOTS"] = total_scq_size
-
-    program.bounds_rs["R2U2_MAX_SPECS"] = sum(
-        [
-            spec.get_expr().wpd
-            for spec in program.get_specs()
-            if isinstance(spec, cpt.Formula)
-        ]
-    )
-    program.bounds_rs["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
-    program.bounds_rs["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds_rs["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_rs["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    program.bounds_rs["R2U2_TOTAL_QUEUE_MEM"] = total_scq_size - (4 * num_temporal_instructions)
+    program.bounds["R2U2_MAX_AUX_BYTES"] = num_aliases_bytes + num_aliases # each alias string + null terminator
+    program.bounds["R2U2_MAX_FORMULAS"] = len([i for i in program.get_specs() if isinstance(i, cpt.Formula)])
+    program.bounds["R2U2_MAX_CONTRACTS"] = len([i for i in context.contracts.items()])
+    program.bounds["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
+    program.bounds["R2U2_MAX_ATOMICS"] = num_atomics
+    program.bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
+    program.bounds["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
+    program.bounds["R2U2_TOTAL_QUEUE_SLOTS"] = total_scq_size
 
 
 def assemble(

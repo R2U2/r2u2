@@ -3,8 +3,11 @@
 
 #include <stdio.h> // Used for file type
 
-// A "Header-only" library, contains modification functions for associated type
+#include "internals/config.h"
 #include "internals/types.h"
+#if R2U2_AUX_STRING_SPECS
+#include "instructions/aux_info.h"
+#endif
 #include "instructions/booleanizer.h"
 #include "instructions/mltl.h"
 
@@ -46,6 +49,9 @@ typedef struct r2u2_monitor {
   r2u2_signal_t    *signal_vector;
   r2u2_value_t     *value_buffer;
   r2u2_bool    *atomic_buffer;
+  #if R2U2_AUX_STRING_SPECS
+  r2u2_aux_info_arena_t aux_info_arena;
+  #endif
   r2u2_scq_arena_t        queue_arena;
 
 } r2u2_monitor_t;
@@ -56,21 +62,40 @@ typedef struct r2u2_monitor {
 //     unless at file scope, where they get static lifetime
 //  2) Want to ensure placement in BBS program segment
 //
-#define R2U2_DEFAULT_MONITOR \
-  { \
-    .time_stamp = 0, \
-    .progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP, \
-    .bz_program_count = (program_count_t){0,0}, \
-    .bz_instruction_tbl = (r2u2_bz_instruction_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
-    .mltl_program_count = (program_count_t){0,0}, \
-    .mltl_instruction_tbl = (r2u2_mltl_instruction_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
-    .out_file = NULL, \
-    .out_func = NULL, \
-    .signal_vector = (void*[R2U2_MAX_SIGNALS]){0}, \
-    .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
-    .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
-    .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_tnt_t [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
-  }
+#if R2U2_AUX_STRING_SPECS
+  #define R2U2_DEFAULT_MONITOR \
+    { \
+      .time_stamp = 0, \
+      .progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP, \
+      .bz_program_count = (program_count_t){0,0}, \
+      .bz_instruction_tbl = (r2u2_bz_instruction_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
+      .mltl_program_count = (program_count_t){0,0}, \
+      .mltl_instruction_tbl = (r2u2_mltl_instruction_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
+      .out_file = NULL, \
+      .out_func = NULL, \
+      .signal_vector = (void*[R2U2_MAX_SIGNALS]){0}, \
+      .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
+      .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
+      .aux_info_arena = {(r2u2_formula_aux_info_t [R2U2_MAX_FORMULAS]){0}, (r2u2_contract_aux_info_t [R2U2_MAX_CONTRACTS]){0}, (char [R2U2_MAX_AUX_BYTES]) {0}, 0, 0}, \
+      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_tnt_t [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
+    }
+#else
+  #define R2U2_DEFAULT_MONITOR \
+    { \
+      .time_stamp = 0, \
+      .progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP, \
+      .bz_program_count = (program_count_t){0,0}, \
+      .bz_instruction_tbl = (r2u2_bz_instruction_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
+      .mltl_program_count = (program_count_t){0,0}, \
+      .mltl_instruction_tbl = (r2u2_mltl_instruction_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
+      .out_file = NULL, \
+      .out_func = NULL, \
+      .signal_vector = (void*[R2U2_MAX_SIGNALS]){0}, \
+      .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
+      .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
+      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_tnt_t [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
+    }
+#endif
 
 /// @brief      Resets the monitors vector clock and SCQ slots without changing other state
 /// @param[in]  monitor  Pointer to r2u2_monitor_t

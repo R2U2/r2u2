@@ -7,9 +7,9 @@
 r2u2_status_t r2u2_step(r2u2_monitor_t *monitor) {
     r2u2_status_t error_cond;
 
-    R2U2_DEBUG_PRINT("%d.%zu.%d\n",monitor->time_stamp, monitor->prog_count, monitor->progress);
+    R2U2_DEBUG_PRINT("(BZ) %d.%zu\n",monitor->time_stamp, monitor->bz_program_count.curr_program_count);
     while(monitor->bz_program_count.curr_program_count < monitor->bz_program_count.max_program_count){
-      error_cond = r2u2_bz_instruction_dispatch(monitor, &(monitor->bz_instruction_tbl)[monitor->bz_program_count.curr_program_count]);
+      error_cond = r2u2_bz_instruction_dispatch(monitor);
       monitor->bz_program_count.curr_program_count++;
     }
     monitor->bz_program_count.curr_program_count = 0;
@@ -17,7 +17,8 @@ r2u2_status_t r2u2_step(r2u2_monitor_t *monitor) {
     r2u2_time start_time = monitor->time_stamp;
     while(start_time == monitor->time_stamp){
        while(monitor->mltl_program_count.curr_program_count < monitor->mltl_program_count.max_program_count){
-        error_cond = r2u2_mltl_instruction_dispatch(monitor, &(monitor->mltl_instruction_tbl)[monitor->mltl_program_count.curr_program_count]);
+        R2U2_DEBUG_PRINT("(TL) %d.%zu.%d\n",monitor->time_stamp, monitor->mltl_program_count.curr_program_count, monitor->progress);
+        error_cond = r2u2_mltl_instruction_dispatch(monitor);
         monitor->mltl_program_count.curr_program_count++;
       }
       switch (monitor->progress) {

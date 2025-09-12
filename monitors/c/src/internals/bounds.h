@@ -2,8 +2,16 @@
 #define R2U2_BOUNDS_H
 
 // Size of string arena, in bytes, for auxillary output
-// Only reserved if used
-#define R2U2_MAX_AUX_STRINGS 1024
+// Only reserved if R2U2_AUX_STRING_SPECS is enabled
+#define R2U2_MAX_AUX_BYTES 1024
+
+// Represents maximum number of formulas being monitored
+// Only reserved if R2U2_AUX_STRING_SPECS is enabled
+#define R2U2_MAX_FORMULAS 128
+
+// Represents maximum number of assume-guarantee contracts being monitored
+// Only reserved if R2U2_AUX_STRING_SPECS is enabled
+#define R2U2_MAX_CONTRACTS 64
 
 // Represents maximum number of input signals
 #define R2U2_MAX_SIGNALS 256

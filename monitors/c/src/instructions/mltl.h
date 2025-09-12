@@ -2,7 +2,6 @@
 #define MLTL_INSTRUCTIONS_H
 #include <stdint.h>
 
-
 enum r2u2_mltl_opcode{
     // Future Tense: 1xxxx
 

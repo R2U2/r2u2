@@ -34,7 +34,7 @@ It is recommend to run with debug output after changing bounds to enable extra m
 
 ### Memory Arena Sizing
 
-`R2U2_MAX_AUX_STRINGS`
+`R2U2_MAX_AUX_BYTES`
 : Total characters (and nulls) of string arena used by auxiliary output (e.g., formula names, contract names, etc.) if enabled.
 : Default: 1024
 
@@ -79,6 +79,6 @@ See [building the monitor](./building.md) for details.
 `R2U2_TL_Formula_Names`
 : Enables named formula verdicts
 
-`R2U2_TL_Contract_Status`
+`R2U2_AUX_STRING_SPECS`
 : Enables printing tri-state reports of assume-guarantee contracts
 

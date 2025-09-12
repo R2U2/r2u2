@@ -11,6 +11,6 @@ static const uint8_t R2U2_ENG_CG = 2; // Immediate Configuration Directive
 static const uint8_t  R2U2_ENG_TL = 4; // MLTL Temporal logic engine
 static const uint8_t R2U2_ENG_BZ = 5; // Booleanizer
 
-r2u2_status_t r2u2_step(r2u2_monitor_t *monitor);
+r2u2_status_t r2u2_step(r2u2_monitor_t *);
 
 #endif /* R2U2_ENGINES_H */

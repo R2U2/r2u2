@@ -3,7 +3,7 @@
 Memory controllers define structures and functions representing higher-level data types used by engines during execution.
 
 ## Contract Status
-Contract status allows the use of the `=>` operator in C2PO along with the `R2U2_TL_Contract_Status` feature flag to enable a tri-state output of assume-guarantee contracts.
+Contract status allows the use of the `=>` operator in C2PO along with the `R2U2_AUX_STRING_SPECS` feature flag to enable a tri-state output of assume-guarantee contracts.
 During formula compilation, each AGC is broken into three MLTL formulas, one for each state - inactive, verified, or violated.
 This forms a "one-hot" encoding where the truth value of each formula corresponds to one of the three states.
 

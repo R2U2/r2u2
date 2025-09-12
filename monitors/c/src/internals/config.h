@@ -32,14 +32,9 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_TL_Formula_Names
-    /* Enables named formula verdicts */
-    #define R2U2_TL_Formula_Names INHIBIT
-#endif
-
-#ifndef R2U2_TL_Contract_Status
-    /* Enables printing tri-state reports of assume-guarantee contracts */
-    #define R2U2_TL_Contract_Status INHIBIT
+#ifndef R2U2_AUX_STRING_SPECS
+    /* Enables named formula verdicts and  tri-state reports of assume-guarantee contracts*/
+    #define R2U2_AUX_STRING_SPECS EXHIBIT
 #endif
 
 #ifndef R2U2_DEBUG
