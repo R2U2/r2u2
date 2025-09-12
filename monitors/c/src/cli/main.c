@@ -6,6 +6,7 @@
 
 #include "r2u2.h"
 #include "internals/config.h"
+#include "internals/debug.h"
 #include "internals/errors.h"
 #include "cli/csv_trace.h"
 
@@ -29,11 +30,10 @@ int main(int argc, char const *argv[]) {
   r2u2_status_t err_cond;
   int spec_file = -1;
   struct stat fd_stat;
-  // TODO(bckempa): fstat size is off_t, but we need size_t for mmap
-  //                convert and check for overflow on downcast
 
   // TODO(bckempa): Move this somewhere more visible
   #if R2U2_DEBUG
+    extern FILE* r2u2_debug_fptr;
     r2u2_debug_fptr = stderr;
   #endif
 
@@ -83,15 +83,16 @@ int main(int argc, char const *argv[]) {
   r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
   r2u2_update_binary_file(spec, &r2u2_monitor);
 
+  if (munmap(spec, (size_t)fd_stat.st_size) != 0) {
+    perror("Spec memory mapping did not close cleanly");
+  }
+
   // Open output File
   r2u2_monitor.out_file = stdout;
   if(r2u2_monitor.out_file == NULL) {
     perror("Cannot open output log");
     return 1;
-  if (munmap(spec, (size_t)fd_stat.st_size) != 0) {
-    perror("Spec memory mapping did not close cleanly");
   }
-
 
   // Select CSV reader input file
   if (argc > 2) {
@@ -154,15 +155,10 @@ int main(int argc, char const *argv[]) {
     //                if and only if it is zero
   }
 
-  if (munmap(r2u2_monitor.instruction_mem, (size_t)fd_stat.st_size) != 0) {
-    perror("Spec memory mapping did not close cleanly");
+  if (err_cond != R2U2_OK) {
+    /* Prints R2U2 Status string if built with debugging enabled */
+    R2U2_DEBUG_PRINT("%s\n", r2u2_status_string(err_cond));
   }
-
-  // if (err_cond != R2U2_OK) {
-  //   /* Prints R2U2 Status string if built with debugging enabled */
-  //   r2u2_debug_fptr = stderr;
-  //   R2U2_DEBUG_PRINT("%s\n", r2u2_status_string(err_cond));
-  // }
 
   return (int) err_cond;
 }

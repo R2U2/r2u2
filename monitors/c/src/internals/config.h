@@ -34,7 +34,7 @@
 
 #ifndef R2U2_AUX_STRING_SPECS
     /* Enables named formula verdicts and  tri-state reports of assume-guarantee contracts*/
-    #define R2U2_AUX_STRING_SPECS EXHIBIT
+    #define R2U2_AUX_STRING_SPECS INHIBIT
 #endif
 
 #ifndef R2U2_DEBUG
