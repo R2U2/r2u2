@@ -17,29 +17,29 @@ TL n15 and    n13 n14
 TL n16 global n15
 TL n17 return n16 5
 CG TL SCQ q0 |1|
-CG TL SCQ q1 |5|
+CG TL SCQ q1 |1|
 CG TL TEMP q1 [0, 5]
 CG TL SCQ q2 |1|
 CG TL SCQ q3 |1|
-CG TL SCQ q4 |5|
+CG TL SCQ q4 |1|
 CG TL TEMP q4 [0, 8]
 CG TL SCQ q5 |1|
 CG TL SCQ q6 |1|
-CG TL SCQ q7 |10|
+CG TL SCQ q7 |6|
 CG TL TEMP q7 [0, 0]
 CG TL SCQ q8 |1|
-CG TL SCQ q9 |5|
+CG TL SCQ q9 |1|
 CG TL TEMP q9 [2, 5]
 CG TL SCQ q10 |1|
-CG TL SCQ q11 |5|
+CG TL SCQ q11 |1|
 CG TL TEMP q11 [0, 5]
 CG TL SCQ q12 |1|
-CG TL SCQ q13 |5|
+CG TL SCQ q13 |1|
 CG TL TEMP q13 [1, 1]
-CG TL SCQ q14 |6|
+CG TL SCQ q14 |2|
 CG TL TEMP q14 [0, 1]
 CG TL SCQ q15 |1|
-CG TL SCQ q16 |5|
+CG TL SCQ q16 |1|
 CG TL TEMP q16 [1, 3]
 CG TL SCQ q17 |1|
 F __f0__ 0

@@ -8,7 +8,7 @@ CG TL SCQ q0 |1|
 CG TL SCQ q1 |1|
 CG TL SCQ q2 |1|
 CG TL SCQ q3 |1|
-CG TL SCQ q4 |5|
+CG TL SCQ q4 |1|
 CG TL TEMP q4 [2, 8]
 CG TL SCQ q5 |1|
 F __f0__ 0

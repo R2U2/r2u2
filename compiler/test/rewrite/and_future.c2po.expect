@@ -4,10 +4,10 @@ TL n2  return n1 0
 TL n3  eventually n0
 TL n4  return n3 1
 CG TL SCQ q0 |1|
-CG TL SCQ q1 |5|
+CG TL SCQ q1 |1|
 CG TL TEMP q1 [2, 3]
 CG TL SCQ q2 |1|
-CG TL SCQ q3 |5|
+CG TL SCQ q3 |1|
 CG TL TEMP q3 [2, 4]
 CG TL SCQ q4 |1|
 F __f0__ 0
