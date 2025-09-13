@@ -1,11 +1,9 @@
 #ifndef R2U2_TYPES_H
 #define R2U2_TYPES_H
 
-#include <stddef.h>   // For size_t (used elsewhere but assumed in types.h)
-#include <stdbool.h>  // For booleans
+#include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <string.h> // memcpy
-#include <limits.h> // CHAR_BIT
 
 #include "internals/bounds.h"
 
@@ -42,32 +40,40 @@
     #define r2u2_infinity ((r2u2_time)-1)
 #endif
 
-// TODO(bckempa): Need a type gurenteed for indexing
-//                (see binary_load.c)
-
-// Consistency Checks
-// https://stackoverflow.com/questions/174356/ways-to-assert-expressions-at-build-time-in-c
-
 // Common Derived Types
 
-/* Truth-n'-Time (TNT)
- * Combines truth (as the MSB) and the timestamp into a single value.
- * Typdefed seperatly to ensure differentiation from pure timestamps.
+/* Verdict-timestamp tuple in single r2u2_time value.
+ * Combines truth (as the MSB) and the timestamp (as the other 31 bits) into a single value.
+ * Typdefed separately to ensure differentiation from pure timestamps.
  * This signficantly improves queue memory effiency since booleans took full
  * bytes and then required additioanl padding wasting about 31 bits per queue
  * slot depending on the platform and timestep width.
  */
-typedef r2u2_time r2u2_tnt_t;
-static const size_t R2U2_TNT_BITS = sizeof(r2u2_tnt_t) * CHAR_BIT;
-static const r2u2_tnt_t R2U2_TNT_TIME = (((r2u2_tnt_t)-1) >> 1);
-static const r2u2_tnt_t R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
-static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
+typedef r2u2_time r2u2_verdict;
+static const r2u2_verdict R2U2_TNT_TIME = (((r2u2_verdict)-1) >> 1);
+static const r2u2_verdict R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 
-typedef struct {
-    // Time & Truth
-    r2u2_time time;
-    r2u2_bool truth;
-} r2u2_verdict;
+// Returns truth bit of verdict-timestamp tuple
+static inline bool get_verdict_truth(r2u2_verdict res){
+    return res & R2U2_TNT_TRUE;
+}
+
+// Returns timestamp of verdict-timestamp tuple
+static inline r2u2_time get_verdict_time(r2u2_verdict res){
+    return res & R2U2_TNT_TIME;
+}
+
+// Given a previous verdict-timestamp tuple (or just a timestamp),
+// sets the verdict bit to true and returns tuple
+static inline r2u2_verdict set_verdict_true(r2u2_verdict time){
+    return time | R2U2_TNT_TRUE;
+}
+
+// Given a previous verdict-timestamp tuple (or just a timestamp),
+// sets the verdict bit to false and returns tuple
+static inline r2u2_verdict set_verdict_false(r2u2_verdict time){
+    return time & R2U2_TNT_TIME;
+}
 
 typedef union r2u2_value {
     // Notice that we store booleans as integers so we do not require 

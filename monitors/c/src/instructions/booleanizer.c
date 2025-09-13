@@ -1,4 +1,5 @@
 #include "booleanizer.h"
+#include <string.h>
 
 r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t* spec) {
     return (r2u2_int)(spec[0] + (spec[1] << 8) + (spec[2] << 16) + (spec[3] << 24));

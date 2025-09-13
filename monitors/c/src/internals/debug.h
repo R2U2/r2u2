@@ -30,7 +30,7 @@
     }
     R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
     for (r2u2_time i = 0; i < ctrl->length; ++i) {
-        R2U2_DEBUG_PRINT("  %s:%9d  |", ((ctrl->queue)[i] & R2U2_TNT_TRUE) ? "T" : "F", ((ctrl->queue)[i] & R2U2_TNT_TIME));
+        R2U2_DEBUG_PRINT("  %s:%9d  |", (get_verdict_truth((ctrl->queue)[i])) ? "T" : "F", get_verdict_time((ctrl->queue)[i]));
     }
     R2U2_DEBUG_PRINT("\n");
     }

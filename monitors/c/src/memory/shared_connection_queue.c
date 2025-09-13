@@ -1,7 +1,7 @@
 #include "shared_connection_queue.h"
 #include "internals/debug.h"
 
-r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tnt_t value) {
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_verdict value) {
   r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
   #if R2U2_DEBUG
@@ -17,7 +17,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
   //       pointer, either this is the first write or we're in an incoherent
   //       state, write to the next cell instead.
   //.   3: Cell is not empty, i.e., not `r2u2_infinity`
-  if ((((ctrl->queue)[prev] ^ value) <= R2U2_TNT_TIME) && \
+  if ((get_verdict_truth((ctrl->queue)[prev]) == get_verdict_truth(value)) && \
       ((ctrl->queue)[prev] != (ctrl->queue)[ctrl->write]) && \
       ((ctrl->queue)[ctrl->write] != r2u2_infinity)) {
     R2U2_DEBUG_PRINT("\t\tCompacting write\n");
@@ -34,7 +34,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_tn
   return R2U2_OK;
 }
 
-r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_tnt_t *value) {
+r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *read, r2u2_addr next_time, r2u2_verdict *value) {
   r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
   #if R2U2_DEBUG
@@ -51,9 +51,9 @@ r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_addr *r
 
   do {
     // Check if time pointed to is >= desired time by discarding truth bits
-    if (((ctrl->queue)[*read] & R2U2_TNT_TIME) >= next_time) {
+    if (get_verdict_time((ctrl->queue)[*read]) >= next_time) {
       // Return value
-      R2U2_DEBUG_PRINT("New data found after scanning t=%d\n", (ctrl->queue)[*read] & R2U2_TNT_TIME);
+      R2U2_DEBUG_PRINT("New data found after scanning t=%d\n", get_verdict_time((ctrl->queue)[*read]));
       *value = (ctrl->queue)[*read];
       return true;
     }
