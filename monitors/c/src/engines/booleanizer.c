@@ -4,7 +4,7 @@
 #include "booleanizer.h"
 #include "internals/debug.h"
 
-r2u2_status_t r2u2_bz_instruction_dispatch(r2u2_monitor_t *monitor)
+r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
 {
     r2u2_bz_instruction_t *instr = &(monitor->bz_instruction_tbl)[monitor->bz_program_count.curr_program_count];
     r2u2_int i1, i2;

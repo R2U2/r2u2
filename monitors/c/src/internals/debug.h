@@ -18,21 +18,21 @@
 
 #if R2U2_DEBUG
     static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
-    R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.control_blocks, arena.queue_mem, ((void*)arena.queue_mem) - ((void*)arena.control_blocks));
+        R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.control_blocks, arena.queue_mem, ((void*)arena.queue_mem) - ((void*)arena.control_blocks));
     }
 
     static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
-    r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
+        r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
 
-    R2U2_DEBUG_PRINT("\t\t\tID: |");
-    for (r2u2_time i = 0; i < ctrl->length; ++i) {
-        R2U2_DEBUG_PRINT(" <%p> |", (void*)&((ctrl->queue)[i]));
-    }
-    R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
-    for (r2u2_time i = 0; i < ctrl->length; ++i) {
-        R2U2_DEBUG_PRINT("  %s:%9d  |", (get_verdict_truth((ctrl->queue)[i])) ? "T" : "F", get_verdict_time((ctrl->queue)[i]));
-    }
-    R2U2_DEBUG_PRINT("\n");
+        R2U2_DEBUG_PRINT("\t\t\tID: |");
+        for (r2u2_time i = 0; i < ctrl->length; ++i) {
+            R2U2_DEBUG_PRINT(" <%p> |", (void*)&((ctrl->queue)[i]));
+        }
+        R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
+        for (r2u2_time i = 0; i < ctrl->length; ++i) {
+            R2U2_DEBUG_PRINT("  %s:%9d  |", (get_verdict_truth((ctrl->queue)[i])) ? "T" : "F", get_verdict_time((ctrl->queue)[i]));
+        }
+        R2U2_DEBUG_PRINT("\n");
     }
 #endif
 

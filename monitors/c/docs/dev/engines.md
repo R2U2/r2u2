@@ -17,7 +17,7 @@ The `r2u2_instruction_dispatch` function contains the primary control flow of th
 using the state of the vector clock variables, the next instruction is selected from memory and executed if appropriate.
 Rollover behavior (such as reaching the end of the program and resetting the program counter) is also handled here.
 
-If an instruction is accepted, the engine tag is used to call the respective instruction dispatch function (for example `r2u2_mltl_instruction_dispatch`) and advancing ht program counter for the next instruction.
+If an instruction is accepted, the engine tag is used to call the respective instruction dispatch function (for example `r2u2_mltl_update`) and advancing ht program counter for the next instruction.
 
 ## Booleanizer (BZ)
 

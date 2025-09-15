@@ -40,8 +40,7 @@ fn check_operand_data(instr: MLTLInstruction, monitor: &mut Monitor, op_num: u8)
         }
         MLTL_OP_TYPE_SUBFORMULA => {
             // Handled by the SCQ check function, just need to pass it the appropriate arguments
-            let op_id = if op_num == 0 {instr.op1_value} else {instr.op2_value};
-            return scq_read(monitor, instr.memory_reference, op_id, op_num);
+            return scq_read(monitor, instr.memory_reference, value, op_num);
         }
         _ => {
             // Error

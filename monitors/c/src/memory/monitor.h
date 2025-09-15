@@ -100,11 +100,11 @@ typedef struct r2u2_monitor {
 /// @brief      Resets the monitors vector clock and SCQ slots without changing other state
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
-void r2u2_monitor_clock_reset(r2u2_monitor_t *monitor);
+void r2u2_monitor_clock_reset(r2u2_monitor_t* monitor);
 
 /// @brief      Resets the monitors vector clock, SCQ slots, and instruction tables
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
-void r2u2_monitor_reset(r2u2_monitor_t *monitor);
+void r2u2_monitor_reset(r2u2_monitor_t* monitor);
 
 #endif /* R2U2_MEMORY_MONITOR_H */

@@ -4,21 +4,23 @@
 #include "engines/mltl.h"
 #include "internals/debug.h"
 
-r2u2_status_t r2u2_step(r2u2_monitor_t *monitor) {
+r2u2_status_t r2u2_step(r2u2_monitor_t* monitor) {
     r2u2_status_t error_cond;
 
+    // Operate over all BZ instructions first and only once on each step forward
     R2U2_DEBUG_PRINT("(BZ) %d.%zu\n",monitor->time_stamp, monitor->bz_program_count.curr_program_count);
     while(monitor->bz_program_count.curr_program_count < monitor->bz_program_count.max_program_count){
-      error_cond = r2u2_bz_instruction_dispatch(monitor);
+      error_cond = r2u2_bz_update(monitor);
       monitor->bz_program_count.curr_program_count++;
     }
     monitor->bz_program_count.curr_program_count = 0;
 
+    // Operate over all MLTL instructions until no further progress is made
     r2u2_time start_time = monitor->time_stamp;
     while(start_time == monitor->time_stamp){
        while(monitor->mltl_program_count.curr_program_count < monitor->mltl_program_count.max_program_count){
         R2U2_DEBUG_PRINT("(TL) %d.%zu.%d\n",monitor->time_stamp, monitor->mltl_program_count.curr_program_count, monitor->progress);
-        error_cond = r2u2_mltl_instruction_dispatch(monitor);
+        error_cond = r2u2_mltl_update(monitor);
         monitor->mltl_program_count.curr_program_count++;
       }
       switch (monitor->progress) {
@@ -47,7 +49,7 @@ r2u2_status_t r2u2_step(r2u2_monitor_t *monitor) {
           R2U2_DEBUG_PRINT("%d]\n", (monitor->atomic_buffer)[R2U2_MAX_ATOMICS-1]);
           #endif
 
-          // Update Vector Clock for next timestep
+          // Update clock for next timestep
           monitor->time_stamp++;
           monitor->mltl_program_count.curr_program_count = 0;
           monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;

@@ -6,7 +6,7 @@
 #endif
 
 // TODO(bckempa): Namespace these values: R2U2_STATUS_ or R2U2_ERR_
-typedef enum r2u2_status {
+typedef enum {
   R2U2_OK = 0,
   R2U2_ERR_OTHER,
   R2U2_STATUS_COUNT,

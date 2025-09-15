@@ -10,16 +10,12 @@
 #define sub_min_zero(x,y) (((x)<(y))?(0):((x)-(y)))
 
 /// @brief      Check for and retrieve an instruction operand's next value
-/// @param[in]  monitor A pointer to the R2U2 monitor
-/// @param[in]  instr A pointer to the instruction
-/// @param[in]  n Operand to check, 0 for left/first, anything else for right
-/// @param[out] result The operand TnT - only vaid if return value is true
-/// @return     Boolean indicating if data is ready and `result` is valid
-static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_bool op_num, r2u2_verdict *result) {
-    r2u2_scq_arena_t arena = monitor->queue_arena;
-    r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
-    r2u2_addr *rd_ptr; // Hold off on this in case it doesn't exist...
-
+/// @param[in]  monitor Pointer to r2u2_monitor_t
+/// @param[in]  instr Pointer to r2u2_mltl_instruction_t (i.e., the parent node)
+/// @param[in]  op_num Indicating left (op_num = 0) or right (op_num = 1) child
+/// @param[out] result Verdict-timestamp tuple that was read from SCQ (passed-by-reference)
+/// @return     r2u2_bool Indicates if data is ready and `result` is valid
+static r2u2_bool check_operand_data(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t* instr, r2u2_bool op_num, r2u2_verdict *result) {
     // Get operand info based on `n` which indicates left/first v.s. right/second
     uint8_t op_type = (op_num == 0) ? (instr->op1_type) : (instr->op2_type);
     uint32_t value = (op_num == 0) ? (instr->op1_value) : (instr->op2_value);
@@ -28,7 +24,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_DIRECT:
         if (instr->opcode == R2U2_MLTL_OP_SINCE || instr->opcode == R2U2_MLTL_OP_TRIGGER){
-          r2u2_scq_temporal_block_t *temp = &(ctrl->temporal_block);
+          r2u2_scq_temporal_block_t *temp = &(monitor->queue_arena.control_blocks[instr->memory_reference].temporal_block);
           if (value) {
             *result = set_verdict_true(monitor->time_stamp + temp->upper_bound);
           } else {
@@ -55,9 +51,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
 
       case R2U2_FT_OP_SUBFORMULA:
         // Handled by the shared_connection queue check function, just need the arguments
-        rd_ptr = (op_num == 0) ? &(ctrl->read1) : &(ctrl->read2);
-
-        return r2u2_scq_read(arena, value, rd_ptr, ctrl->next_time, result);
+        return r2u2_scq_read(monitor->queue_arena, instr->memory_reference, value, op_num, result);
 
       case R2U2_FT_OP_NOT_SET:
         *result = 0;
@@ -70,8 +64,13 @@ static r2u2_bool check_operand_data(r2u2_monitor_t *monitor, r2u2_mltl_instructi
     }
 }
 
-static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t *instr, r2u2_verdict result) {
-  // Pushes result to queue, sets tau, and flags progress if nedded
+/// @brief      Push new result to SCQ
+/// @param[in]  monitor Pointer to r2u2_monitor_t
+/// @param[in]  instr Pointer to r2u2_mltl_instruction_t (i.e., the node being written to)
+/// @param[out] result Verdict-timestamp tuple to be written to SCQ
+/// @return     r2u2_status_t
+static r2u2_status_t push_result(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t* instr, r2u2_verdict result) {
+  // Pushes result to queue, sets next_time, and flags progress if needed
   r2u2_scq_arena_t arena = monitor->queue_arena;
   r2u2_scq_control_block_t *ctrl = &(arena.control_blocks[instr->memory_reference]);
 
@@ -87,7 +86,7 @@ static r2u2_status_t push_result(r2u2_monitor_t *monitor, r2u2_mltl_instruction_
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_mltl_instruction_dispatch(r2u2_monitor_t *monitor) {
+r2u2_status_t r2u2_mltl_update(r2u2_monitor_t *monitor) {
 
   r2u2_mltl_instruction_t *instr = &(monitor->mltl_instruction_tbl)[monitor->mltl_program_count.curr_program_count];
 

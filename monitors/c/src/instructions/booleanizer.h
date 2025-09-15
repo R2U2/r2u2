@@ -53,17 +53,26 @@ enum r2u2_bz_opcode {
     R2U2_BZ_TS         = 0b101000,
 };
 
-typedef struct r2u2_bz_instruction {
+typedef struct {
     uint32_t param1;
     uint32_t param2;
     uint32_t memory_reference;
     uint8_t opcode;
 } r2u2_bz_instruction_t;
 
-r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t *);
+/// @brief      Parse param1 of BZ instruction as an r2u2_int
+/// @param[in]  spec  Pointer to uint8_t binary starting at the param1 field
+/// @return     r2u2_int
+r2u2_int r2u2_bz_get_param1_int_from_binary(uint8_t* spec);
 
-r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t *);
+/// @brief      Parse param1 of BZ instruction as an r2u2_float
+/// @param[in]  spec  Pointer to uint8_t binary starting at the param1 field
+/// @return     r2u2_float
+r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t* spec);
 
-r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t *);
+/// @brief      Parse BZ instruction as r2u2_bz_instruction_t
+/// @param[in]  spec  Pointer to uint8_t binary starting at the param1 field
+/// @return     r2u2_bz_instruction_t
+r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t* spec);
 
 #endif

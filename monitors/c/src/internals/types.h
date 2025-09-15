@@ -54,13 +54,13 @@ static const r2u2_verdict R2U2_TNT_TIME = (((r2u2_verdict)-1) >> 1);
 static const r2u2_verdict R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 
 // Returns truth bit of verdict-timestamp tuple
-static inline __attribute__((always_inline)) bool get_verdict_truth(r2u2_verdict res){
-    return res & R2U2_TNT_TRUE;
+static inline __attribute__((always_inline)) bool get_verdict_truth(r2u2_verdict result){
+    return result & R2U2_TNT_TRUE;
 }
 
 // Returns timestamp of verdict-timestamp tuple
-static inline __attribute__((always_inline)) r2u2_time get_verdict_time(r2u2_verdict res){
-    return res & R2U2_TNT_TIME;
+static inline __attribute__((always_inline)) r2u2_time get_verdict_time(r2u2_verdict result){
+    return result & R2U2_TNT_TIME;
 }
 
 // Given a previous verdict-timestamp tuple (or just a timestamp),

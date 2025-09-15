@@ -47,6 +47,9 @@ typedef struct {
   uint8_t     opcode;
 } r2u2_mltl_instruction_t;
 
-r2u2_mltl_instruction_t r2u2_mltl_set_from_binary(uint8_t *);
+/// @brief      Parse MLTL instruction as r2u2_mltl_instruction_t
+/// @param[in]  spec  Pointer to uint8_t binary starting at the op1_value field
+/// @return     r2u2_mltl_instruction_t
+r2u2_mltl_instruction_t r2u2_mltl_set_from_binary(uint8_t* spec);
 
 #endif

@@ -7,7 +7,7 @@
 #include "engines/engines.h"
 #include <string.h>
 
-r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t *monitor) {
+r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t* monitor) {
   size_t offset = 0;
 
   // Header Check:
