@@ -12,27 +12,52 @@ pub fn c2po_compile(spec_filename: &str,
     enable_cse: bool,
     enable_sat: bool,
     timeout_sat: i32) {
-    let c2po_code = c_str!(include_str!("../compiler/c2po/__init__.py"));
-    let sly_code = c_str!(include_str!("../compiler/c2po/sly/__init__.py"));
-    let lex_code = c_str!(include_str!("../compiler/c2po/sly/lex.py"));
-    let yacc_code = c_str!(include_str!("../compiler/c2po/sly/yacc.py"));
-    let main_code = c_str!(include_str!("../compiler/c2po/main.py"));
-    let assemble_code = c_str!(include_str!("../compiler/c2po/assemble.py"));
-    let cpt_code = c_str!(include_str!("../compiler/c2po/cpt.py"));
-    let options_code = c_str!(include_str!("../compiler/c2po/options.py"));
-    let eqsat_code = c_str!(include_str!("../compiler/c2po/eqsat.py"));
-    let log_code = c_str!(include_str!("../compiler/c2po/log.py"));
-    let parse_utils_code= c_str!(include_str!("../compiler/c2po/parse_utils.py"));
-    let parse_mltl_code= c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
-    let parse_c2po_code= c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
-    let passes_code = c_str!(include_str!("../compiler/c2po/passes.py"));
-    let sat_code = c_str!(include_str!("../compiler/c2po/sat.py"));
-    let serialize_code = c_str!(include_str!("../compiler/c2po/serialize.py"));
-    let type_check_code = c_str!(include_str!("../compiler/c2po/type_check.py"));
-    let types_code = c_str!(include_str!("../compiler/c2po/types.py"));
-    let stats_code = c_str!(include_str!("../compiler/c2po/stats.py"));
-    let util_code = c_str!(include_str!("../compiler/c2po/util.py"));
-
+    let c2po_code; let sly_code; let lex_code; let yacc_code; let main_code; let assemble_code; let cpt_code; let eqsat_code;
+    let log_code; let options_code; let parse_utils_code; let parse_mltl_code; let parse_c2po_code; let passes_code; 
+    let sat_code; let serialize_code; let type_check_code; let types_code; let stats_code; let util_code;
+    if cfg!(target_os = "windows"){
+        c2po_code = c_str!(include_str!("..\\compiler\\c2po\\__init__.py"));
+        sly_code = c_str!(include_str!("..\\compiler\\c2po\\sly\\__init__.py"));
+        lex_code = c_str!(include_str!("..\\compiler\\c2po\\sly\\lex.py"));
+        yacc_code = c_str!(include_str!("..\\compiler\\c2po\\sly\\yacc.py"));
+        main_code = c_str!(include_str!("..\\compiler\\c2po\\main.py"));
+        assemble_code = c_str!(include_str!("..\\compiler\\c2po\\assemble.py"));
+        cpt_code = c_str!(include_str!("..\\compiler\\c2po\\cpt.py"));
+        options_code = c_str!(include_str!("..\\compiler\\c2po\\options.py"));
+        eqsat_code = c_str!(include_str!("..\\compiler\\c2po\\eqsat.py"));
+        log_code = c_str!(include_str!("..\\compiler\\c2po\\log.py"));
+        parse_utils_code= c_str!(include_str!("..\\compiler\\c2po\\parse_utils.py"));
+        parse_mltl_code= c_str!(include_str!("..\\compiler\\c2po\\parse_mltl.py"));
+        parse_c2po_code= c_str!(include_str!("..\\compiler\\c2po\\parse_c2po.py"));
+        passes_code = c_str!(include_str!("..\\compiler\\c2po\\passes.py"));
+        sat_code = c_str!(include_str!("..\\compiler\\c2po\\sat.py"));
+        serialize_code = c_str!(include_str!("..\\compiler\\c2po\\serialize.py"));
+        type_check_code = c_str!(include_str!("..\\compiler\\c2po\\type_check.py"));
+        types_code = c_str!(include_str!("..\\compiler\\c2po\\types.py"));
+        stats_code = c_str!(include_str!("..\\compiler\\c2po\\stats.py"));
+        util_code = c_str!(include_str!("..\\compiler\\c2po\\util.py"));
+    } else{
+        c2po_code = c_str!(include_str!("../compiler/c2po/__init__.py"));
+        sly_code = c_str!(include_str!("../compiler/c2po/sly/__init__.py"));
+        lex_code = c_str!(include_str!("../compiler/c2po/sly/lex.py"));
+        yacc_code = c_str!(include_str!("../compiler/c2po/sly/yacc.py"));
+        main_code = c_str!(include_str!("../compiler/c2po/main.py"));
+        assemble_code = c_str!(include_str!("../compiler/c2po/assemble.py"));
+        cpt_code = c_str!(include_str!("../compiler/c2po/cpt.py"));
+        options_code = c_str!(include_str!("../compiler/c2po/options.py"));
+        eqsat_code = c_str!(include_str!("../compiler/c2po/eqsat.py"));
+        log_code = c_str!(include_str!("../compiler/c2po/log.py"));
+        parse_utils_code= c_str!(include_str!("../compiler/c2po/parse_utils.py"));
+        parse_mltl_code= c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
+        parse_c2po_code= c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
+        passes_code = c_str!(include_str!("../compiler/c2po/passes.py"));
+        sat_code = c_str!(include_str!("../compiler/c2po/sat.py"));
+        serialize_code = c_str!(include_str!("../compiler/c2po/serialize.py"));
+        type_check_code = c_str!(include_str!("../compiler/c2po/type_check.py"));
+        types_code = c_str!(include_str!("../compiler/c2po/types.py"));
+        stats_code = c_str!(include_str!("../compiler/c2po/stats.py"));
+        util_code = c_str!(include_str!("../compiler/c2po/util.py"));
+    }
     let from_python  = Python::with_gil(|py| -> PyResult<()>{
         PyModule::from_code(py, c2po_code, c_str!("c2po/__init__.py"), c_str!("c2po"))?;
         PyModule::from_code(py, stats_code, c_str!("c2po/stats.py"), c_str!("c2po.stats"))?;

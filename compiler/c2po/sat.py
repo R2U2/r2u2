@@ -53,7 +53,7 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
 
     log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
 
-    start = util.get_rusage_time()
+    start = util.get_resource_time()
     proc = subprocess.Popen(command, preexec_fn=util.set_max_memory_offset(context.options.smt_max_memory), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         (stdout, stderr) = proc.communicate(timeout=timeout)
@@ -62,7 +62,7 @@ def run_smt_solver(smt_encoding: str, timeout: float, context: cpt.Context) -> t
         log.warning(MODULE_CODE, f"{context.options.smt_solver_path} timed out")
         return (SatResult.TIMEOUT, -1.0)
     
-    end = util.get_rusage_time()
+    end = util.get_resource_time()
     stdout = stdout.decode() if stdout else ""
     stderr = stderr.decode() if stderr else ""
 
@@ -778,9 +778,9 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         return SatResult.UNKNOWN
 
     # start with a quick check
-    enc_start = util.get_rusage_time()
+    enc_start = util.get_resource_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    enc_end = util.get_rusage_time()
+    enc_end = util.get_resource_time()
     enc_time = enc_end - enc_start
     total_enc_time += enc_time
 
@@ -794,9 +794,9 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
     # if wpd is less than 256 then just go straight for it
     if start.wpd <= 255:
         trace_len = start.wpd + 1
-        enc_start = util.get_rusage_time()
+        enc_start = util.get_resource_time()
         smt = to_qfbv_smtlib2(start, context, trace_len)
-        enc_end = util.get_rusage_time()
+        enc_end = util.get_resource_time()
         enc_time = enc_end - enc_start
         total_enc_time += enc_time
 
@@ -808,9 +808,9 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
 
     # otherwise wpd >= 256, so try its bpd first, then its wpd
     trace_len = start.bpd + 1
-    enc_start = util.get_rusage_time()
+    enc_start = util.get_resource_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    enc_end = util.get_rusage_time()
+    enc_end = util.get_resource_time()
     enc_time = enc_end - enc_start
     total_enc_time += enc_time
 
@@ -822,9 +822,9 @@ def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResul
         return result
     
     trace_len = start.wpd + 1
-    enc_start = util.get_rusage_time()
+    enc_start = util.get_resource_time()
     smt = to_qfbv_smtlib2(start, context, trace_len)
-    enc_end = util.get_rusage_time()
+    enc_end = util.get_resource_time()
     enc_time += enc_end - enc_start
     total_enc_time += enc_time
 
@@ -839,7 +839,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
-    start = util.get_rusage_time()
+    start = util.get_resource_time()
     if context.options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
     elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
@@ -851,7 +851,7 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     else:
         log.error(MODULE_CODE, f"Unsupported SMT theory {context.options.smt_encoding}")
         return SatResult.UNKNOWN
-    end = util.get_rusage_time()
+    end = util.get_resource_time()
     encoding_time = end - start
 
     (result, solving_time) = run_smt_solver(smt, context.options.smt_max_time, context)

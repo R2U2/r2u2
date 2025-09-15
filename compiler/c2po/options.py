@@ -2,7 +2,11 @@ from dataclasses import dataclass, field
 from typing import Optional
 import pathlib
 import enum
-import resource
+import os
+
+if os.name == "posix":
+    import resource
+    """See https://docs.python.org/3/library/resource.html."""
 
 from c2po import types, log, parse_utils
 
@@ -259,12 +263,14 @@ class Options:
             self.frontend = types.R2U2Engine.NONE
 
         if self.eqsat_max_memory == 0:
-            self.eqsat_max_memory = resource.RLIM_INFINITY
+            if os.name == "posix":
+                self.eqsat_max_memory = resource.RLIM_INFINITY
         else:
             self.eqsat_max_memory = self.eqsat_max_memory * 1024 * 1024
 
         if self.smt_max_memory == 0:
-            self.smt_max_memory = resource.RLIM_INFINITY
+            if os.name == "posix":
+                self.smt_max_memory = resource.RLIM_INFINITY
         else:
             self.smt_max_memory = self.smt_max_memory * 1024 * 1024
             
