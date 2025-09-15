@@ -40,10 +40,10 @@ r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time parent_queue_id, r2u2_
   r2u2_addr *read = (read_num == 0) ? &(parent_ctrl->read1) : &(parent_ctrl->read2);
 
   #if R2U2_DEBUG
-  r2u2_scq_queue_print(arena, queue_id);
+  r2u2_scq_queue_print(arena, child_queue_id);
   #endif
 
-  R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tWrite: %u\n", *read, parent_ctrl->next_time, ctrl->write);
+  R2U2_DEBUG_PRINT("\t\t\tRead: %u\n\t\t\tTime: %u,\n\t\t\tWrite: %u\n", *read, parent_ctrl->next_time, child_ctrl->write);
 
   if ((child_ctrl->queue)[*read] == r2u2_infinity){
       //Empty Queue

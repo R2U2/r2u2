@@ -1,11 +1,8 @@
 #ifndef R2U2_ERRORS_H
 #define R2U2_ERRORS_H
 
-#if R2U2_DEBUG
-#include <assert.h>
-#endif
+#include "internals/config.h"
 
-// TODO(bckempa): Namespace these values: R2U2_STATUS_ or R2U2_ERR_
 typedef enum {
   R2U2_OK = 0,
   R2U2_ERR_OTHER,
@@ -18,7 +15,10 @@ typedef enum {
 
 #if R2U2_DEBUG
 
-// Only exists in debug
+/// @brief      Get descriptive string for an r2u2_status_t
+/// @param[in]  status  A valid r2u2_status_t enum value
+/// @return     A pointer to the C string describing the given status enum,
+///             crashes with assert if status is out of range.
 const char *r2u2_status_string(r2u2_status_t status);
 
 #endif
