@@ -47,7 +47,6 @@
     #define R2U2_TRACE INHIBIT
 #endif
 
-// TODO(bckempa): Require a flag for unsupported platform builds?
 /* Platform compatibility enforcement, this will intentionally cause a
  * pre-processor warning a feature status is changed due to platform
  */
@@ -59,9 +58,9 @@
     // No known feature incompatibilities
 #elif defined(_WIN32)
     // No known feature incompatibilities
-    // #warning Windows is an unsupported platform
+    #warning Windows is an unsupported platform
 #else
-    // #warning Unknown, unsupported platform
+    #warning Unknown, unsupported platform
 #endif
 
 #endif /* R2U2_CONFIG_H */
