@@ -1,14 +1,14 @@
+#include "internals/config.h"
+#include "r2u2.h"
+#include "internals/debug.h"
+#include "internals/errors.h"
+#include "cli/csv_trace.h"
+
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-
-#include "r2u2.h"
-#include "internals/config.h"
-#include "internals/debug.h"
-#include "internals/errors.h"
-#include "cli/csv_trace.h"
 
 
 // R2U2 Reference Implementation
@@ -18,20 +18,19 @@
 #define PRINT_VERSION() fprintf(stderr, "R2U2 v%d.%d.%d\n", \
         R2U2_C_VERSION_MAJOR, R2U2_C_VERSION_MINOR, R2U2_C_VERSION_PATCH)
 #define PRINT_USAGE() fprintf(stderr, "Usage: %s %s", argv[0], help)
-const char *help = "<configuration> [trace]\n"
+const char* help = "<configuration> [trace]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
                    "\ttrace: optional path to input CSV\n";
 
 // Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char const* argv[]) {
 
   r2u2_status_t err_cond;
   int spec_file = -1;
   struct stat fd_stat;
 
-  // TODO(bckempa): Move this somewhere more visible
   #if R2U2_DEBUG
     extern FILE* r2u2_debug_fptr;
     r2u2_debug_fptr = stderr;
@@ -115,28 +114,14 @@ int main(int argc, char const *argv[]) {
   }
   // Debug assert - input_file != Null
 
-  // CSV Load Destination
-  // To support operations without a front-end, check if the first instruction
-  // is to the TL engine and if so, load signals direct to the atomic buffer.
-  // This is a stronger assumption than the underlying engines make but is only
-  // present in this reference monitor implementation.
-  //
-  // NOTE: This check will not behave properly if configuration is prepended
-  // rather than appended to the instruction memory
-  r2u2_status_t (*csv_load_func)(r2u2_csv_reader_t*, r2u2_monitor_t*);
-  if (r2u2_monitor.bz_program_count.max_program_count == 0) {
-    csv_load_func = &r2u2_csv_load_next_atomics;
-  } else {
-    csv_load_func = &r2u2_csv_load_next_signals;
-  }
-
   // Main processing loop
   do {
-    err_cond = (*csv_load_func)(&r2u2_csv_reader, &r2u2_monitor);
+    err_cond = r2u2_csv_load_next_signals(&r2u2_csv_reader, &r2u2_monitor);
 
     if ((err_cond != R2U2_OK)) break;
 
     err_cond = r2u2_monitor_step(&r2u2_monitor);
+
   } while (err_cond == R2U2_OK);
 
   if (err_cond == R2U2_END_OF_TRACE) {
@@ -149,10 +134,6 @@ int main(int argc, char const *argv[]) {
     // We didn't close the output file sucessfully
     // handling this is out of scope but we should notify the user
     perror("Output file did not close cleanly");
-    // We don't want to clober what is probably a more interesting error cond
-    // so don't modify err_cond or return non-zero here, just fall though
-    // TODO(bckempa): We could overcomplicate this by setting err_cond
-    //                if and only if it is zero
   }
 
   if (err_cond != R2U2_OK) {

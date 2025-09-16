@@ -1,6 +1,6 @@
 [package]
 name = "r2u2_cli"
-version = "4.0.0"
+version = "4.1.0"
 authors = ["Alexis Aurandt <lexaurandt@gmail.com>"]
 description = "R2U2 CLI: A stream-based runtime monitor command-line interface"
 edition = "2021"
@@ -19,7 +19,7 @@ pyo3 = {version = "0.24.1", features = ["auto-initialize"]}
 # Uncomment the following dependency for the local version of r2u2_core
 r2u2_core = {path = "../r2u2_core", features = ["aux_string_specs"]}
 # Uncomment the following dependency for the public crates.io version of r2u2_core
-# r2u2_core = {version = "4.0.0", features = ["aux_string_specs"]}
+# r2u2_core = {version = "4.1.0", features = ["aux_string_specs"]}
 srfng = "1.0.1"
 
 # this lets you use `cargo fix`!

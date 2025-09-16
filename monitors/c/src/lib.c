@@ -64,7 +64,7 @@ void r2u2_load_float_value(r2u2_monitor_t* monitor, size_t index, r2u2_float val
 
 void r2u2_load_string_value(r2u2_monitor_t* monitor, size_t index, char* value){
   if (monitor->bz_program_count.max_program_count == 0) {
-    monitor->atomic_buffer[index] = strcmp(value,"0") == 0;
+    monitor->atomic_buffer[index] = (strcmp(value,"0") != 0);
   } else {
     //Note that to be interpreted as a float, the string value must include a decimal point
     if (strchr(value, '.') != NULL){

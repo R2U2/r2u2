@@ -9,13 +9,8 @@ typedef struct {
   char in_buf[BUFSIZ];
 } r2u2_csv_reader_t;
 
-/// @brief      Sets the R2U2 monitor's atomic_vector based on next line in CSV
-/// @param[in]  csv_reader  Pointer to r2u2_csv_reader_t
-/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
-/// @return     r2u2_status_t
-r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t* csv_reader, r2u2_monitor_t* monitor);
-
-/// @brief      Sets the R2U2 monitor's signal_vector based on next line in CSV
+/// @brief      Sets the R2U2 monitor's signal_vector (or atomic_vector if booleanizer is not enabled)
+///             based on next line in CSV
 /// @param[in]  csv_reader  Pointer to r2u2_csv_reader_t
 /// @param[in]  monitor  Pointer to (configured) R2U2 monitor
 /// @return     r2u2_status_t
