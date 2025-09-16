@@ -6,7 +6,7 @@ The feature flags are set according to the procedure in the [User's Guide](./con
 
 ## `R2U2_DEBUG`
 
-This flag enable debug printing to the file pointer `r2u2_debug_fptr` which must be declared linked (usually by the provided `lib.c` or `main.c`) as well as enabling various additional checks.
+This flag enable debug printing to the file pointer `r2u2_debug_fptr` which must be declared linked (usually by the provided `lib.c` or `cli/main.c`) as well as enabling various additional checks.
 
 In general, the philosophy is that belt-and-suspenders checks and verification of assumptions should live behind the debug flag while a pure release build can assume the configuration has been thoroughly vetted and should target raw performance.
 
@@ -25,13 +25,13 @@ Debug printing is done via the `R2U2_DEBUG_PRINT` and `R2U2_TRACE_PRINT` macros 
     extern FILE* r2u2_debug_fptr;
     #define R2U2_DEBUG_PRINT(...) do{ if (r2u2_debug_fptr != NULL) {fprintf( r2u2_debug_fptr, __VA_ARGS__ );} } while( false )
 #else
-    #define R2U2_DEBUG_PRINT(...) do{ } while ( false )
+    #define R2U2_DEBUG_PRINT(...)
 #endif
 
 #if R2U2_TRACE
     #define R2U2_TRACE_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
-    #define R2U2_TRACE_PRINT(...) do{ } while ( false )
+    #define R2U2_TRACE_PRINT(...)
 #endif
 ```
 

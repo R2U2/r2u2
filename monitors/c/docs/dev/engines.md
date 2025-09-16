@@ -13,11 +13,12 @@ Of these three values, only two are "real" (BZ and TL), while CG is used interna
 
 ## Instruction Dispatch
 
-The `r2u2_instruction_dispatch` function contains the primary control flow of the monitor.
-using the state of the vector clock variables, the next instruction is selected from memory and executed if appropriate.
-Rollover behavior (such as reaching the end of the program and resetting the program counter) is also handled here.
 
-If an instruction is accepted, the engine tag is used to call the respective instruction dispatch function (for example `r2u2_mltl_update`) and advancing ht program counter for the next instruction.
+The `r2u2_step` function contains the primary control flow of the monitor. All booleanizer instructions are executed first and 
+only once. Then the temporal logic instructions are sequentially iterated over until no more progress can be made based on the
+currently observed data.
+
+Booleanizer instructions are handled by `bz_update` and temporal_logic instructions are handled by `mltl_update`.
 
 ## Booleanizer (BZ)
 
@@ -33,6 +34,17 @@ Past-time and future-time logic uses [shared connection queues](./memory.md#shar
 The queue sizing is the primary reason the monitor might need to walk the program instructions multiple times per time-step and is the source of the progress checks.
 
 The internal architecture of the monitors is described in {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
+
+## Auxiliary Info
+An optional engine to print assume-guarantee contract status and formula names when reporting verdicts. Option is
+enabled with the `R2U2_AUX_STRING_SPECS` feature flag.
+
+Contract status allows the use of the `=>` operator in C2PO to enable a tri-state output of assume-guarantee contracts.
+During formula compilation, each AGC is broken into three MLTL formulas, one for each state - inactive, verified, or violated.
+This forms a "one-hot" encoding where the truth value of each formula corresponds to one of the three states.
+
+The `r2u2_aux_info_arena_t` provides the memory backing for the additional auxilary instruction storage (defined in `instructions/aux_info.h`).
+Then, `r2u2_aux_formula_report` is used to report verdict status based on formula string name, and `r2u2_aux_contract_report` is used to check if newly produced verdicts also correspond to a contract status.
 
 ---
 

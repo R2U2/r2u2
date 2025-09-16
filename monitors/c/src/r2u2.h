@@ -10,9 +10,9 @@
 /// @return     r2u2_monitor_t The configured monitor
 r2u2_monitor_t r2u2_get_monitor(uint8_t* spec, r2u2_status_t* status);
 
-/// @brief      Get a default monitor from spec file
+/// @brief      Update monitor with new spec file
 /// @param[in]  spec  Pointer to binary spec file
-/// @param[in]  monitor  Pointer to r2u2_monitor_t
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
 /// @return     r2u2_status_t
 r2u2_status_t r2u2_update_binary_file(uint8_t* spec, r2u2_monitor_t* monitor);
 
