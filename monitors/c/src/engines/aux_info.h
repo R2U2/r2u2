@@ -1,5 +1,5 @@
-#ifndef AUX_INFO_H
-#define AUX_INFO_H
+#ifndef R2U2_ENGINES_AUX_INFO_H
+#define R2U2_ENGINES_AUX_INFO_H
 
 #include "memory/monitor.h"
 #include "instructions/aux_info.h"
@@ -18,4 +18,4 @@ r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t* monitor, r2u2_mltl_instruc
 /// @return     r2u2_status_t
 r2u2_status_t r2u2_aux_contract_report(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result);
 
-#endif
+#endif /* R2U2_ENGINES_AUX_INFO_H */

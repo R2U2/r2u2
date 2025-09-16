@@ -2,7 +2,7 @@
 #include "internals/debug.h"
 
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_verdict value) {
-  r2u2_scq_control_block_t *ctrl = &((arena.control_blocks)[queue_id]);
+  r2u2_scq_control_block_t* ctrl = &((arena.control_blocks)[queue_id]);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, queue_id);
@@ -11,8 +11,7 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_ve
   r2u2_addr prev = ((ctrl->write) == 0) ? ctrl->length-1 : ctrl->write-1;
 
   // Three checks:
-  //    1: Is the new verdict the same as the previous? i.e. truth bit is clear
-  //       in an xor and therefore the value is less than max time
+  //    1: Is the new verdict the same as the previous?
   //    2: Coherence, if the previous timestamp matches the one under the write
   //       pointer, either this is the first write or we're in an incoherent
   //       state, write to the next cell instead.
@@ -35,9 +34,9 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_ve
 }
 
 r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time parent_queue_id, r2u2_time child_queue_id, r2u2_bool read_num, r2u2_verdict* result) {
-  r2u2_scq_control_block_t *child_ctrl = &((arena.control_blocks)[child_queue_id]);
-  r2u2_scq_control_block_t *parent_ctrl = &(arena.control_blocks[parent_queue_id]);
-  r2u2_addr *read = (read_num == 0) ? &(parent_ctrl->read1) : &(parent_ctrl->read2);
+  r2u2_scq_control_block_t* child_ctrl = &((arena.control_blocks)[child_queue_id]);
+  r2u2_scq_control_block_t* parent_ctrl = &(arena.control_blocks[parent_queue_id]);
+  r2u2_addr* read = (read_num == 0) ? &(parent_ctrl->read1) : &(parent_ctrl->read2);
 
   #if R2U2_DEBUG
   r2u2_scq_queue_print(arena, child_queue_id);

@@ -7,7 +7,7 @@
 
 #include "internals/bounds.h"
 
-// Use with care! Much better leave off than be wrong, really only for one-off
+// Use with care! Much better to leave off than be wrong; really only for one-off
 // branches, like first time checks.
 #define r2u2_likely(x)       __builtin_expect(!!(x), 1)
 #define r2u2_unlikely(x)     __builtin_expect(!!(x), 0)
@@ -53,24 +53,30 @@ typedef r2u2_time r2u2_verdict;
 static const r2u2_verdict R2U2_TNT_TIME = (((r2u2_verdict)-1) >> 1);
 static const r2u2_verdict R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 
-// Returns truth bit of verdict-timestamp tuple
-static inline __attribute__((always_inline)) bool get_verdict_truth(r2u2_verdict result){
+/// @brief      Inline function that returns truth bit of verdict-timestamp tuple
+/// @param[in]  result  Verdict-timestamp tuple of type r2u2_verdict
+/// @return     r2u2_bool Boolean representing truth bit (MSB)
+static inline __attribute__((always_inline)) r2u2_bool get_verdict_truth(r2u2_verdict result){
     return result & R2U2_TNT_TRUE;
 }
 
-// Returns timestamp of verdict-timestamp tuple
+/// @brief      Inline function that returns timestamp of verdict-timestamp tuple
+/// @param[in]  result  Verdict-timestamp tuple of type r2u2_verdict
+/// @return     r2u2_time Integer representing the timestamp (31 LSBs)
 static inline __attribute__((always_inline)) r2u2_time get_verdict_time(r2u2_verdict result){
     return result & R2U2_TNT_TIME;
 }
 
-// Given a previous verdict-timestamp tuple (or just a timestamp),
-// sets the verdict bit to true and returns tuple
+/// @brief      Inline function that sets the truth bit to true and returns tuple
+/// @param[in]  time  Verdict-timestamp tuple (or just a timestamp) of type r2u2_verdict
+/// @return     r2u2_verdict Verdict-timestamp tuple with the truth bit set to true
 static inline __attribute__((always_inline)) r2u2_verdict set_verdict_true(r2u2_verdict time){
     return time | R2U2_TNT_TRUE;
 }
 
-// Given a previous verdict-timestamp tuple (or just a timestamp),
-// sets the verdict bit to false and returns tuple
+/// @brief      Inline function that sets the truth bit to false and returns tuple
+/// @param[in]  time  Verdict-timestamp tuple (or just a timestamp) of type r2u2_verdict
+/// @return     r2u2_verdict Verdict-timestamp tuple with the truth bit set to false
 static inline __attribute__((always_inline)) r2u2_verdict set_verdict_false(r2u2_verdict time){
     return time & R2U2_TNT_TIME;
 }

@@ -1,5 +1,5 @@
-#ifndef BOOLEANIZER_INSTRUCTIONS_H
-#define BOOLEANIZER_INSTRUCTIONS_H
+#ifndef R2U2_BOOLEANIZER_INSTRUCTIONS_H
+#define R2U2_BOOLEANIZER_INSTRUCTIONS_H
 
 #include "internals/types.h"
 
@@ -75,4 +75,4 @@ r2u2_float r2u2_bz_get_param1_float_from_binary(uint8_t* spec);
 /// @return     r2u2_bz_instruction_t
 r2u2_bz_instruction_t r2u2_bz_set_from_binary(uint8_t* spec);
 
-#endif
+#endif /* R2U2_BOOLEANIZER_INSTRUCTIONS_H */

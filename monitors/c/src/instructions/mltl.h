@@ -1,5 +1,5 @@
-#ifndef MLTL_INSTRUCTIONS_H
-#define MLTL_INSTRUCTIONS_H
+#ifndef R2U2_MLTL_INSTRUCTIONS_H
+#define R2U2_MLTL_INSTRUCTIONS_H
 #include <stdint.h>
 
 enum r2u2_mltl_opcode{
@@ -52,4 +52,4 @@ typedef struct {
 /// @return     r2u2_mltl_instruction_t
 r2u2_mltl_instruction_t r2u2_mltl_set_from_binary(uint8_t* spec);
 
-#endif
+#endif /* R2U2_MLTL_INSTRUCTIONS_H */

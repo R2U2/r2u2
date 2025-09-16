@@ -33,12 +33,12 @@ typedef struct r2u2_monitor {
   r2u2_time time_stamp;
   r2u2_monitor_progress_state_t progress;
   program_count_t bz_program_count;
-  r2u2_bz_instruction_t *bz_instruction_tbl;
+  r2u2_bz_instruction_t* bz_instruction_tbl;
   program_count_t mltl_program_count;
-  r2u2_mltl_instruction_t *mltl_instruction_tbl;
+  r2u2_mltl_instruction_t* mltl_instruction_tbl;
 
   // Output handlers
-  FILE *out_file;         // R2U2 Logfile pointer, always written if not NULL
+  FILE* out_file;         // R2U2 Logfile pointer, always written if not NULL
   r2u2_status_t (*out_func)(r2u2_mltl_instruction_t, r2u2_verdict*); // R2U2 output callback pointer, used if not NULL
 
   // Memory domain pointers
@@ -46,9 +46,9 @@ typedef struct r2u2_monitor {
   //  1) consistent monitor size independent of domain size
   //  2) allow uses like memory-mapped DMA regions
   // Queue arena is already just pairs of pointers, so we use those directly
-  r2u2_signal_t    *signal_vector;
-  r2u2_value_t     *value_buffer;
-  r2u2_bool    *atomic_buffer;
+  r2u2_signal_t* signal_vector;
+  r2u2_value_t* value_buffer;
+  r2u2_bool* atomic_buffer;
   #if R2U2_AUX_STRING_SPECS
   r2u2_aux_info_arena_t aux_info_arena;
   #endif

@@ -2,7 +2,7 @@
 #include "internals/config.h"
 #include <stdio.h>
 
-r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){
+r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){
 #if R2U2_AUX_STRING_SPECS
   r2u2_aux_info_arena_t aux_arena = monitor->aux_info_arena;
   for (size_t i = 0; i < aux_arena.max_aux_formula; i++) {
@@ -15,7 +15,7 @@ r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t *monitor, r2u2_mltl_instruc
   return R2U2_OK;
 }
 
-r2u2_status_t r2u2_aux_contract_report(r2u2_monitor_t *monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){
+r2u2_status_t r2u2_aux_contract_report(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){
 #if R2U2_AUX_STRING_SPECS
   r2u2_aux_info_arena_t aux_arena = monitor->aux_info_arena;
   for (size_t i = 0; i < aux_arena.max_aux_contract; i++) {

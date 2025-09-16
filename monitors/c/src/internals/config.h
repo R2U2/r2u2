@@ -11,7 +11,7 @@
 #define _POSIX_C_SOURCE 200112L
 
 #define R2U2_C_VERSION_MAJOR 4
-#define R2U2_C_VERSION_MINOR 0
+#define R2U2_C_VERSION_MINOR 1
 #define R2U2_C_VERSION_PATCH 0
 
 /* Target and feature flags */

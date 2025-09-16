@@ -1205,6 +1205,7 @@ class Program(Node):
         contents += f"#define R2U2_MAX_TL_INSTRUCTIONS {self.bounds.get('R2U2_MAX_TL_INSTRUCTIONS')}\n\n"
         contents += "// Represents total number of SCQ slots for both future-time and past-time reasoning\n"
         contents += f"#define R2U2_TOTAL_QUEUE_SLOTS {self.bounds.get('R2U2_TOTAL_QUEUE_SLOTS')}\n\n"
+        contents += "// Represents amount of inaccuracy allowed when comparing floats\n"
         contents += f"#define R2U2_FLOAT_EPSILON 0.00001\n\n"
         contents += "#endif /* R2U2_BOUNDS_H */\n"
         return contents

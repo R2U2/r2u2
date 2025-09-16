@@ -19,7 +19,7 @@ typedef enum {
 /// @param[in]  status  A valid r2u2_status_t enum value
 /// @return     A pointer to the C string describing the given status enum,
 ///             crashes with assert if status is out of range.
-const char *r2u2_status_string(r2u2_status_t status);
+const char* r2u2_status_string(r2u2_status_t status);
 
 #endif
 

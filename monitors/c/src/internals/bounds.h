@@ -29,6 +29,7 @@
 // Represents total number of SCQ slots for both future-time and past-time reasoning
 #define R2U2_TOTAL_QUEUE_SLOTS 1024
 
+// Represents amount of inaccuracy allowed when comparing floats
 #define R2U2_FLOAT_EPSILON 0.00001
 
 #endif /* R2U2_BOUNDS_H */

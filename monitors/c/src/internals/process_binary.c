@@ -50,7 +50,7 @@ r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t* monitor) {
   }
 
   // Iterate through mltl table
-  r2u2_scq_control_block_t *ctrl;
+  r2u2_scq_control_block_t* ctrl;
   for (size_t i=0; i < monitor->mltl_program_count.max_program_count; i++){
     r2u2_mltl_instruction_t instr = (monitor->mltl_instruction_tbl)[i];
     // For future time, we never need information from [0, lb]
@@ -66,7 +66,7 @@ r2u2_status_t r2u2_process_binary(uint8_t* spec, r2u2_monitor_t* monitor) {
     size_t aux_formula_num = 0;
     size_t aux_contract_num = 0;
     int length = 0;
-    r2u2_aux_info_arena_t *aux_arena = &(monitor->aux_info_arena);
+    r2u2_aux_info_arena_t* aux_arena = &(monitor->aux_info_arena);
     (aux_arena->formula_control_blocks)[0].spec_str = aux_arena->aux_mem;
 
     do {

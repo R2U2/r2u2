@@ -89,8 +89,7 @@ pub fn scq_write(monitor: &mut Monitor, queue_id: u32, verdict: r2u2_verdict){
 
 
     // Three checks:
-    //    1: Is the new verdict the same as the previous? i.e. truth bit is clear
-    //       in an xor and therefore the value is less than max time
+    //    1: Is the new verdict the same as the previous?
     //    2: Coherence, if the previous timestamp matches the one under the write
     //       pointer, either this is the first write or we're in an incoherent
     //       state, write to the next cell instead.
