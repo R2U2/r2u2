@@ -1,5 +1,6 @@
 #include "internals/config.h"
 #include "csv_trace.h"
+#include "r2u2.h"
 #include "internals/debug.h"
 #include <stdio.h>
 #include <string.h>
@@ -30,8 +31,12 @@ r2u2_status_t r2u2_csv_load_next_atomics(r2u2_csv_reader_t* csv_reader, r2u2_mon
     }
 
     r2u2_int i1;
-    if(sscanf(signal, "%d", &i1) != 1) return R2U2_END_OF_TRACE;
-    else ((monitor->atomic_buffer)[i]) = (r2u2_bool)i1;
+    if(sscanf(signal, "%d", &i1) != 1){
+      return R2U2_END_OF_TRACE;
+    }
+    else {
+      r2u2_load_int_value(monitor, i, i1);
+    }
   }
 
   return R2U2_OK;
@@ -64,7 +69,7 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t* csv_reader, r2u2_mon
       R2U2_DEBUG_PRINT("Event: %u\n",monitor->time_stamp);
       signal = strtok_r(NULL, " ", &temp_var);
     }
-    (monitor->signal_vector)[i] = signal;
+    r2u2_load_string_value(monitor, i, signal);
   }
 
   return R2U2_OK;

@@ -10,7 +10,7 @@
 #define sub_min_zero(x,y) (((x)<(y))?(0):((x)-(y)))
 
 /// @brief      Check for and retrieve an instruction operand's next value
-/// @param[in]  monitor Pointer to r2u2_monitor_t
+/// @param[in]  monitor Pointer to (configured) R2U2 monitor
 /// @param[in]  instr Pointer to r2u2_mltl_instruction_t (i.e., the parent node)
 /// @param[in]  op_num Indicating left (op_num = 0) or right (op_num = 1) child
 /// @param[out] result Verdict-timestamp tuple that was read from SCQ (passed-by-reference)
@@ -67,7 +67,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t* monitor, r2u2_mltl_instructi
 }
 
 /// @brief      Push new result to SCQ
-/// @param[in]  monitor Pointer to r2u2_monitor_t
+/// @param[in]  monitor Pointer to (configured) R2U2 monitor
 /// @param[in]  instr Pointer to r2u2_mltl_instruction_t (i.e., the node being written to)
 /// @param[out] result Verdict-timestamp tuple to be written to SCQ
 /// @return     r2u2_status_t

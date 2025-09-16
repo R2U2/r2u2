@@ -1,8 +1,6 @@
-#include <stdio.h>
-#include <math.h>
-
 #include "booleanizer.h"
 #include "internals/debug.h"
+#include <math.h>
 
 r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
 {
@@ -15,15 +13,13 @@ r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
             break;
         /* Load */
         case R2U2_BZ_OP_ILOAD:
-            sscanf((monitor->signal_vector)[instr->param1], "%d", &i1);
-            (monitor->value_buffer)[instr->memory_reference].i = i1;
+            (monitor->value_buffer)[instr->memory_reference].i = (monitor->signal_vector)[instr->param1].i;
 
             R2U2_DEBUG_PRINT("\tBZ ILOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %d (s%d)\n", instr->memory_reference, i1, instr->param1);
             break;
         case R2U2_BZ_OP_FLOAD:
-            sscanf((monitor->signal_vector)[instr->param1], "%lf", &f1);
-            (monitor->value_buffer)[instr->memory_reference].f = f1;
+            (monitor->value_buffer)[instr->memory_reference].f = (monitor->signal_vector)[instr->param1].f;
 
             R2U2_DEBUG_PRINT("\tBZ FLOAD\n");
             R2U2_DEBUG_PRINT("\tb%d = %lf (s%d)\n", instr->memory_reference, f1, instr->param1);

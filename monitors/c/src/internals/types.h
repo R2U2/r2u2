@@ -81,7 +81,7 @@ static inline __attribute__((always_inline)) r2u2_verdict set_verdict_false(r2u2
     return time & R2U2_TNT_TIME;
 }
 
-typedef union r2u2_value {
+typedef union {
     // Notice that we store booleans as integers so we do not require 
     // boolean specific instructions (e.g., BLOAD or BADD)
     r2u2_int i;
