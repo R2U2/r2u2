@@ -3,7 +3,7 @@
 ## Dependencies
 
 - Posix environment (Linux, MacOS, Etc.)
-- Python3 (version 3.8 or greater)
+- Python3 (version 3.9 or greater)
 - C99 std compiler (gcc or clang)
 - Make
 

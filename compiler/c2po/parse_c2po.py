@@ -10,7 +10,7 @@ MODULE_CODE = "PRSC"
 class C2POLexer(sly.Lexer):
 
     tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
-               KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST,
+               KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST, KW_TIMESTAMP,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
@@ -86,10 +86,11 @@ class C2POLexer(sly.Lexer):
     SYMBOL["forexactly"] = KW_FOREXACTLY
     SYMBOL["foratleast"] = KW_FORATLEAST
     SYMBOL["foratmost"]  = KW_FORATMOST
-    SYMBOL["pow"] = ARITH_POW
+    SYMBOL["TAU"]  = KW_TIMESTAMP
+    SYMBOL["pow"]  = ARITH_POW
     SYMBOL["sqrt"] = ARITH_SQRT
-    SYMBOL["abs"] = ARITH_ABS
-    SYMBOL["xor"] = LOG_XOR
+    SYMBOL["abs"]  = ARITH_ABS
+    SYMBOL["xor"]  = LOG_XOR
     SYMBOL['G'] = TL_GLOBAL
     SYMBOL['F'] = TL_FUTURE
     SYMBOL['H'] = TL_HIST
@@ -594,6 +595,10 @@ class C2POParser(sly.Parser):
             if self.literals[p[0]] is cpt.Signal:
                 return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
         return cpt.Variable(log.FileLocation(self.filename, p.lineno), p[0])
+
+    @_("KW_TIMESTAMP")
+    def expr(self, p):
+        return cpt.CurrentTimestamp(log.FileLocation(self.filename, p.lineno))
 
     # Integer
     @_("NUMERAL")

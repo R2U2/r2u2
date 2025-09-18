@@ -54,7 +54,7 @@
         {
             "input": "operators/arithmetic_invalid.c2po", 
             "expected_output": "operators/arithmetic_invalid.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "options": ["-bz", "--map", "default.map", "--int-signed"]
         },
         {
             "input": "operators/bitwise.c2po", 
@@ -80,6 +80,11 @@
             "input": "operators/temporal.c2po", 
             "expected_output": "operators/temporal.c2po.expect", 
             "options": ["--map", "default.map"]
+        },
+        {
+            "input": "operators/timestamp.c2po", 
+            "expected_output": "operators/timestamp.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
         }
     ],
     "type_check": [
