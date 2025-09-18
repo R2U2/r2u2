@@ -73,15 +73,13 @@ static r2u2_bool check_operand_data(r2u2_monitor_t* monitor, r2u2_mltl_instructi
 /// @return     r2u2_status_t
 static r2u2_status_t push_result(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t* instr, r2u2_verdict result) {
   // Pushes result to queue, sets next_time, and flags progress if needed
-  
-  r2u2_scq_write(monitor->queue_arena, instr->memory_reference, result);
-  R2U2_DEBUG_PRINT("\t(%d,%s)\n", get_verdict_time(result), (get_verdict_truth(result)) ? "T" : "F" );
-
-  monitor->queue_arena.control_blocks[instr->memory_reference].next_time = get_verdict_time(result)+1;
 
   if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {
     monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;
   }
+
+  r2u2_scq_write(monitor->queue_arena, instr->memory_reference, result);
+  R2U2_DEBUG_PRINT("\t(%d,%s)\n", get_verdict_time(result), (get_verdict_truth(result)) ? "T" : "F" );
 
   return R2U2_OK;
 }
@@ -109,6 +107,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
 
       if (check_operand_data(monitor, instr, 0, &op0)) {
         push_result(monitor, instr, op0);
+        ctrl->next_time = get_verdict_time(op0)+1;
       }
 
       error_cond = R2U2_OK;
@@ -120,7 +119,8 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (check_operand_data(monitor, instr, 0, &op0)) {
         R2U2_DEBUG_PRINT("\t(%d,%s)\n", get_verdict_time(op0), (get_verdict_truth(op0)) ? "T" : "F");
 
-        push_result(monitor, instr, op0);
+        //push_result(monitor, instr, op0);
+        ctrl->next_time = get_verdict_time(op0)+1;
 
         if (monitor->out_file != NULL) {
           #if R2U2_AUX_STRING_SPECS
@@ -458,8 +458,10 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (check_operand_data(monitor, instr, 0, &op0)) {
         if (get_verdict_truth(op0)) {
           push_result(monitor, instr, set_verdict_false(op0));
+          ctrl->next_time = get_verdict_time(op0)+1;
         } else {
           push_result(monitor, instr, set_verdict_true(op0));
+          ctrl->next_time = get_verdict_time(op0)+1;
         }
       }
 
@@ -478,12 +480,16 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
         R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", get_verdict_time(op0), get_verdict_truth(op0), get_verdict_time(op1), get_verdict_truth(op1));
         if (get_verdict_truth(op0) && get_verdict_truth(op1)){
           R2U2_DEBUG_PRINT("\tBoth True\n");
-          push_result(monitor, instr, set_verdict_true(min(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_true(min(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
           error_cond = R2U2_OK;
           break;
         } else if (!(get_verdict_truth(op0)) && !(get_verdict_truth(op1))) {
           R2U2_DEBUG_PRINT("\tBoth False\n");
-          push_result(monitor, instr, set_verdict_false(max(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_false(max(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
           error_cond = R2U2_OK;
           break;
         }
@@ -491,9 +497,11 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op0_rdy && !(get_verdict_truth(op0))) {
         R2U2_DEBUG_PRINT("\tLeft False\n");
         push_result(monitor, instr, set_verdict_false(op0));
+        ctrl->next_time = get_verdict_time(op0)+1;
       } else if (op1_rdy && !(get_verdict_truth(op1))) {
         R2U2_DEBUG_PRINT("\tRight False\n");
         push_result(monitor, instr, set_verdict_false(op1));
+        ctrl->next_time = get_verdict_time(op1)+1;
       }
 
       error_cond = R2U2_OK;
@@ -510,12 +518,16 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
         R2U2_DEBUG_PRINT("\tLeft & Right Ready: (%d, %d) (%d, %d)\n", get_verdict_time(op0), get_verdict_truth(op0), get_verdict_time(op1), get_verdict_truth(op1));
         if (get_verdict_truth(op0) && get_verdict_truth(op1)){
           R2U2_DEBUG_PRINT("\tBoth True\n");
-          push_result(monitor, instr, set_verdict_true(max(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_true(max(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
           error_cond = R2U2_OK;
           break;
         } else if (!(get_verdict_truth(op0)) && !(get_verdict_truth(op1))) {
           R2U2_DEBUG_PRINT("\tBoth False\n");
-          push_result(monitor, instr, set_verdict_false(min(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_false(min(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
           error_cond = R2U2_OK;
           break;
         } 
@@ -523,9 +535,11 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op0_rdy && get_verdict_truth(op0)) {
         R2U2_DEBUG_PRINT("\tLeft True\n");
         push_result(monitor, instr, set_verdict_true(op0));
+        ctrl->next_time = get_verdict_time(op0)+1;
       } else if (op1_rdy && get_verdict_truth(op1)) {
         R2U2_DEBUG_PRINT("\tRight True\n");
         push_result(monitor, instr, set_verdict_true(op1));
+        ctrl->next_time = get_verdict_time(op1)+1;
       }
 
       error_cond = R2U2_OK;
@@ -553,10 +567,14 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
         if ((get_verdict_truth(op0) && get_verdict_truth(op1)) || \
           (!(get_verdict_truth(op0)) && !(get_verdict_truth(op1)))){
           R2U2_DEBUG_PRINT("\tBoth %s\n", (get_verdict_truth(op0)) ? "T" : "F");
-          push_result(monitor, instr, set_verdict_true(min(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_true(min(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
         } else {
           R2U2_DEBUG_PRINT("\t%s not equivalent to %s\n", (get_verdict_truth(op0)) ? "T" : "F", (get_verdict_truth(op1)) ? "T" : "F");
-          push_result(monitor, instr, set_verdict_false(min(get_verdict_time(op0), get_verdict_time(op1))));
+          result = set_verdict_false(min(get_verdict_time(op0), get_verdict_time(op1)));
+          push_result(monitor, instr, result);
+          ctrl->next_time = get_verdict_time(result)+1;
         }
       }
 
