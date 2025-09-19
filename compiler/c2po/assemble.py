@@ -827,12 +827,12 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
 
     # Move all CG TEMP instructions to the end (i.e., always completely configure the SCQ size
     # for all SCQ's before configuring temporal metadata)
-    cg_instructions = [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+    cg_instructions_ordered = [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
     idx = 0
-    end_of_instructions = len(cg_instructions)
+    end_of_instructions = len(cg_instructions_ordered)
     while idx < end_of_instructions:
-        if cg_instructions[idx].type is CGType.TEMP:
-            cg_instructions.append(cg_instructions.pop(idx))
+        if cg_instructions_ordered[idx].type is CGType.TEMP:
+            cg_instructions_ordered.append(cg_instructions_ordered.pop(idx))
             end_of_instructions -= 1
         else:
             idx += 1
@@ -841,7 +841,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         list(bz_instructions.values())
         + list(ft_instructions.values())
         + list(pt_instructions.values())
-        + cg_instructions
+        + cg_instructions_ordered
     )
 
 
