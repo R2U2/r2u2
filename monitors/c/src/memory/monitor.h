@@ -54,6 +54,9 @@ typedef struct r2u2_monitor {
 
 } r2u2_monitor_t;
 
+// Indicates the required storage size of the temporal metadata block arena in the SCQ arena memory
+#define R2U2_TEMPORAL_METADATA_SIZE sizeof(r2u2_scq_temporal_block_t) / sizeof(r2u2_verdict)
+
 // Shortcut for getting a monitor of predefined extents
 // Should only be used at file scope because:
 //  1) C99 compound literals are used for memory domains and adopt enclosing scope
@@ -75,7 +78,8 @@ typedef struct r2u2_monitor {
       .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
       .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
       .aux_info_arena = {(r2u2_formula_aux_info_t [R2U2_MAX_FORMULAS]){0}, (r2u2_contract_aux_info_t [R2U2_MAX_CONTRACTS]){0}, (char [R2U2_MAX_AUX_BYTES]) {0}, 0, 0}, \
-      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_verdict [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
+      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
+                      (r2u2_verdict [R2U2_MAX_QUEUE_SLOTS + (R2U2_MAX_TEMPORAL_OPERATORS * R2U2_TEMPORAL_METADATA_SIZE)]){0}}, \
     }
 #else
   #define R2U2_DEFAULT_MONITOR \
@@ -91,7 +95,8 @@ typedef struct r2u2_monitor {
       .signal_vector = (r2u2_value_t [R2U2_MAX_SIGNALS]){0}, \
       .value_buffer = (r2u2_value_t [R2U2_MAX_BZ_INSTRUCTIONS]){0}, \
       .atomic_buffer = (r2u2_bool [R2U2_MAX_ATOMICS]){0}, \
-      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, (r2u2_verdict [R2U2_TOTAL_QUEUE_SLOTS]){0}}, \
+      .queue_arena = {(r2u2_scq_control_block_t [R2U2_MAX_TL_INSTRUCTIONS]){0}, \
+                      (r2u2_verdict [R2U2_MAX_QUEUE_SLOTS + (R2U2_MAX_TEMPORAL_OPERATORS * R2U2_TEMPORAL_METADATA_SIZE)]){0}}, \
     }
 #endif
 

@@ -1178,7 +1178,8 @@ class Program(Node):
             "R2U2_MAX_ATOMICS": -1,
             "R2U2_MAX_BZ_INSTRUCTIONS": -1,
             "R2U2_MAX_TL_INSTRUCTIONS": -1,
-            "R2U2_TOTAL_QUEUE_SLOTS": -1,
+            "R2U2_MAX_TEMPORAL_OPERATORS": -1,
+            "R2U2_MAX_QUEUE_SLOTS": -1,
         }
 
     def get_bounds_c_file(self) -> str:
@@ -1203,8 +1204,10 @@ class Program(Node):
         contents += f"#define R2U2_MAX_BZ_INSTRUCTIONS {self.bounds.get('R2U2_MAX_BZ_INSTRUCTIONS')}\n\n"
         contents += "// Represents maximum number of temporal logic instructions\n"
         contents += f"#define R2U2_MAX_TL_INSTRUCTIONS {self.bounds.get('R2U2_MAX_TL_INSTRUCTIONS')}\n\n"
+        contents += "// Represents maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)\n"
+        contents += f"#define R2U2_MAX_TEMPORAL_OPERATORS {self.bounds.get('R2U2_MAX_TEMPORAL_OPERATORS')}\n\n"
         contents += "// Represents total number of SCQ slots for both future-time and past-time reasoning\n"
-        contents += f"#define R2U2_TOTAL_QUEUE_SLOTS {self.bounds.get('R2U2_TOTAL_QUEUE_SLOTS')}\n\n"
+        contents += f"#define R2U2_MAX_QUEUE_SLOTS {self.bounds.get('R2U2_MAX_QUEUE_SLOTS')}\n\n"
         contents += "// Represents amount of inaccuracy allowed when comparing floats\n"
         contents += f"#define R2U2_FLOAT_EPSILON 0.00001\n\n"
         contents += "#endif /* R2U2_BOUNDS_H */\n"

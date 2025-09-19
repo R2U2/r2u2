@@ -26,8 +26,11 @@
 // Represents maximum number of temporal logic instructions
 #define R2U2_MAX_TL_INSTRUCTIONS 256
 
+// Represents maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)
+#define R2U2_MAX_TEMPORAL_OPERATORS 128
+
 // Represents total number of SCQ slots for both future-time and past-time reasoning
-#define R2U2_TOTAL_QUEUE_SLOTS 1024
+#define R2U2_MAX_QUEUE_SLOTS 1024
 
 // Represents amount of inaccuracy allowed when comparing floats
 #define R2U2_FLOAT_EPSILON 0.00001

@@ -3,6 +3,7 @@
 
 #include "internals/types.h"
 #include "internals/errors.h"
+#include <stdio.h>
 
  typedef struct {
   r2u2_verdict edge;
@@ -17,13 +18,12 @@ typedef struct {
   r2u2_addr read1;
   r2u2_addr read2;
   r2u2_time next_time;
-  r2u2_scq_temporal_block_t temporal_block;
-  r2u2_verdict *queue; // Pointer to slice in queue_mem
+  r2u2_verdict* queue; // Pointer to slice in queue_mem
 } r2u2_scq_control_block_t;
 
 typedef struct {
-  r2u2_scq_control_block_t *control_blocks; // Array of control blocks
-  r2u2_verdict *queue_mem; // Array that stores all SCQ slots
+  r2u2_scq_control_block_t* control_blocks; // Array of control blocks
+  r2u2_verdict* queue_mem; // Array that stores all SCQ slots + Temporal Block metadata
 } r2u2_scq_arena_t;
 
 /// @brief      Write SCQ slot
@@ -41,5 +41,9 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_ve
 /// @param[in]  result  Verdict-timestamp tuple that was read from SCQ (passed-by-reference)
 /// @return     r2u2_bool Indicates if data is ready and `result` is valid
 r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time parent_queue_id, r2u2_time child_queue_id, r2u2_bool read_num, r2u2_verdict* result);
+
+static inline __attribute__((always_inline)) r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t arena, r2u2_time queue_id) {
+  return (r2u2_scq_temporal_block_t*) (&(arena.control_blocks[queue_id].queue[arena.control_blocks[queue_id].length]));
+}
 
 #endif /* R2U2_MEMORY_SCQ_H */

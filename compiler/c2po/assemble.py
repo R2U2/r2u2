@@ -401,8 +401,6 @@ class CGInstruction:
         if self.type == CGType.SCQ:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"|{self.instruction.operand1_value}|")
-            if self.instruction.operand2_type == TLOperandType.ATOMIC:
-                field_strs.append(f"<{self.instruction.operand2_value}>")
         elif self.type == CGType.TEMP:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"[{self.instruction.operand1_value}, "
@@ -657,7 +655,7 @@ def gen_ft_scq_instructions(
             FTOperator.CONFIG,
             TLOperandType.ATOMIC,
             (expr.scq[1] - expr.scq[0]),
-            TLOperandType.NONE,
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -715,7 +713,7 @@ def gen_pt_scq_instructions(
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
             (expr.scq[1] - expr.scq[0]),
-            TLOperandType.NONE,
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -827,11 +825,23 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if bz_instructions[key].operator is BZOperator.PREV:
             bz_instructions[key] = bz_instructions.pop(key)
 
+    # Move all CG TEMP instructions to the end (i.e., always completely configure the SCQ size
+    # for all SCQ's before configuring temporal metadata)
+    cg_instructions = [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+    idx = 0
+    end_of_instructions = len(cg_instructions)
+    while idx < end_of_instructions:
+        if cg_instructions[idx].type is CGType.TEMP:
+            cg_instructions.append(cg_instructions.pop(idx))
+            end_of_instructions -= 1
+        else:
+            idx += 1
+
     return (
         list(bz_instructions.values())
         + list(ft_instructions.values())
         + list(pt_instructions.values())
-        + [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+        + cg_instructions
     )
 
 
@@ -1009,7 +1019,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     """Computes values for bounds file, setting the values in `program.bounds`."""
     num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
     num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
-    num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
+    num_temporal_instructions = len([i for i in assembly if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
     num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
     num_aliases_bytes = sum([
         (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
@@ -1027,7 +1037,8 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     program.bounds["R2U2_MAX_ATOMICS"] = num_atomics
     program.bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
     program.bounds["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    program.bounds["R2U2_TOTAL_QUEUE_SLOTS"] = total_scq_size
+    program.bounds["R2U2_MAX_TEMPORAL_OPERATORS"] = num_temporal_instructions
+    program.bounds["R2U2_MAX_QUEUE_SLOTS"] = total_scq_size
 
 
 def assemble(

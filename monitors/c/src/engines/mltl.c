@@ -23,7 +23,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t* monitor, r2u2_mltl_instructi
     switch (op_type) {
       case R2U2_FT_OP_DIRECT:
         if (instr->opcode == R2U2_MLTL_OP_SINCE || instr->opcode == R2U2_MLTL_OP_TRIGGER){
-          r2u2_scq_temporal_block_t* temp = &(monitor->queue_arena.control_blocks[instr->memory_reference].temporal_block);
+          r2u2_scq_temporal_block_t* temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
           if (value) {
             *result = set_verdict_true(monitor->time_stamp + temp->upper_bound);
           } else {
@@ -93,6 +93,7 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
   r2u2_status_t error_cond;
 
   r2u2_scq_control_block_t* ctrl = &(monitor->queue_arena.control_blocks[instr->memory_reference]);
+  r2u2_scq_temporal_block_t* temp; // Only utilized for temporal operators
 
   switch (instr->opcode) {
 
@@ -157,8 +158,9 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
     }
     case R2U2_MLTL_OP_UNTIL: {
       R2U2_DEBUG_PRINT("\tFT UNTIL\n");
-      if (ctrl->next_time < ctrl->temporal_block.lower_bound){
-        ctrl->next_time = ctrl->temporal_block.lower_bound;
+      temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
+      if (ctrl->next_time < temp->lower_bound){
+        ctrl->next_time = temp->lower_bound;
       }
       op0_rdy = check_operand_data(monitor, instr, 0, &op0);
       op1_rdy = check_operand_data(monitor, instr, 1, &op1);
@@ -166,10 +168,10 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op1_rdy) {
         if (get_verdict_truth(op1)) {
           R2U2_DEBUG_PRINT("\tRight Op True\n");
-          result = set_verdict_true(get_verdict_time(op1) - ctrl->temporal_block.lower_bound);
+          result = set_verdict_true(get_verdict_time(op1) - temp->lower_bound);
           push_result(monitor, instr, result);
           ctrl->next_time = get_verdict_time(op1)+1;
-          ctrl->temporal_block.previous = result;
+          temp->previous = result;
           error_cond = R2U2_OK;
           break;
         }
@@ -178,29 +180,29 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
           ctrl->next_time = tau+1;
           if (!(get_verdict_truth(op0))){
             R2U2_DEBUG_PRINT("\tLeft and Right Op False\n");
-            result = set_verdict_false(tau - ctrl->temporal_block.lower_bound);
+            result = set_verdict_false(tau - temp->lower_bound);
             push_result(monitor, instr, result);
             ctrl->next_time = tau+1;
-            ctrl->temporal_block.previous = set_verdict_true(result);
+            temp->previous = set_verdict_true(result);
             error_cond = R2U2_OK;
             break;
           }
         }
-        if (get_verdict_time(op1) >= get_verdict_time(ctrl->temporal_block.previous) + ctrl->temporal_block.upper_bound){
-          result = set_verdict_false(get_verdict_time(op1) - ctrl->temporal_block.upper_bound);
+        if (get_verdict_time(op1) >= get_verdict_time(temp->previous) + temp->upper_bound){
+          result = set_verdict_false(get_verdict_time(op1) - temp->upper_bound);
           // To handle startup behavior, the truth bit of the previous result
           // storage is used to flag that an ouput has been produced, which can
           // differentiate between a value of 0 for no output vs output produced.
           // Note: Since only the timestamp of the previous result is ever checked,
           // this overloading of the truth bit doesn't cause confict with other logic 
           // and preserves startup behavior.
-          if ((get_verdict_time(result) > get_verdict_time(ctrl->temporal_block.previous)) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
-            r2u2_time next = max(ctrl->next_time, get_verdict_time(result) + ctrl->temporal_block.lower_bound + 1);
+          if ((get_verdict_time(result) > get_verdict_time(temp->previous)) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
+            r2u2_time next = max(ctrl->next_time, get_verdict_time(result) + temp->lower_bound + 1);
             R2U2_DEBUG_PRINT("\tRight Op False and Time elapsed\n");
             push_result(monitor, instr, result);
             ctrl->next_time = next;
-            ctrl->temporal_block.previous = set_verdict_true(result);
+            temp->previous = set_verdict_true(result);
           }
         }
       }
@@ -210,8 +212,9 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
     }
     case R2U2_MLTL_OP_RELEASE: {
       R2U2_DEBUG_PRINT("\tFT RELEASE\n");
-      if (ctrl->next_time < ctrl->temporal_block.lower_bound){
-        ctrl->next_time = ctrl->temporal_block.lower_bound;
+      temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
+      if (ctrl->next_time < temp->lower_bound){
+        ctrl->next_time = temp->lower_bound;
       }
       op0_rdy = check_operand_data(monitor, instr, 0, &op0);
       op1_rdy = check_operand_data(monitor, instr, 1, &op1);
@@ -219,10 +222,10 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op1_rdy) {
         if (!(get_verdict_truth(op1))) {
           R2U2_DEBUG_PRINT("\tRight Op False\n");
-          result = set_verdict_false(get_verdict_time(op1) - ctrl->temporal_block.lower_bound);
+          result = set_verdict_false(get_verdict_time(op1) - temp->lower_bound);
           push_result(monitor, instr, result);
           ctrl->next_time = get_verdict_time(op1)+1;
-          ctrl->temporal_block.previous = set_verdict_true(result);
+          temp->previous = set_verdict_true(result);
           error_cond = R2U2_OK;
           break;
         }
@@ -231,29 +234,29 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
           ctrl->next_time = tau+1;
           if (get_verdict_truth(op0)){
             R2U2_DEBUG_PRINT("\tLeft and Right Op True\n");
-            result = set_verdict_true(tau - ctrl->temporal_block.lower_bound);
+            result = set_verdict_true(tau - temp->lower_bound);
             push_result(monitor, instr, result);
             ctrl->next_time = tau+1;
-            ctrl->temporal_block.previous = result;
+            temp->previous = result;
             error_cond = R2U2_OK;
             break;
           }
         }
-        if (get_verdict_time(op1) >= (get_verdict_time(ctrl->temporal_block.previous)) + ctrl->temporal_block.upper_bound){
-          result = set_verdict_true(get_verdict_time(op1) - ctrl->temporal_block.upper_bound);
+        if (get_verdict_time(op1) >= (get_verdict_time(temp->previous)) + temp->upper_bound){
+          result = set_verdict_true(get_verdict_time(op1) - temp->upper_bound);
           // To handle startup behavior, the truth bit of the previous result
           // storage is used to flag that an ouput has been produced, which can
           // differentiate between a value of 0 for no output vs output produced.
           // Note: Since only the timestamp of the previous result is ever checked,
           // this overloading of the truth bit doesn't cause confict with other logic 
           // and preserves startup behavior.
-          if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
-            r2u2_time next = max(ctrl->next_time, get_verdict_time(result) + ctrl->temporal_block.lower_bound + 1);
+          if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
+            r2u2_time next = max(ctrl->next_time, get_verdict_time(result) + temp->lower_bound + 1);
             R2U2_DEBUG_PRINT("\tRight Op True and Time elapsed\n");
             push_result(monitor, instr, result);
             ctrl->next_time = next;
-            ctrl->temporal_block.previous = result;
+            temp->previous = result;
           }
         }
       }
@@ -274,12 +277,13 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
     }
     case R2U2_MLTL_OP_SINCE: {
       R2U2_DEBUG_PRINT("\tPT SINCE\n");
-      if (!(get_verdict_truth(ctrl->temporal_block.previous)) && (get_verdict_time(ctrl->temporal_block.previous)) < ctrl->temporal_block.lower_bound){
+      temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
+      if (!(get_verdict_truth(temp->previous)) && (get_verdict_time(temp->previous)) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
-        result = set_verdict_false(ctrl->temporal_block.lower_bound - 1);
+        result = set_verdict_false(temp->lower_bound - 1);
         push_result(monitor, instr, result);
         ctrl->next_time = 0;
-        ctrl->temporal_block.previous = set_verdict_true(result);
+        temp->previous = set_verdict_true(result);
         error_cond = R2U2_OK;
         break;
       }
@@ -290,36 +294,36 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op1_rdy) {
         if (get_verdict_truth(op1)) {
           R2U2_DEBUG_PRINT("\tRight Op True\n");
-          ctrl->temporal_block.edge = set_verdict_true(op1);
+          temp->edge = set_verdict_true(op1);
           ctrl->next_time = get_verdict_time(op1) + 1;
-          if (get_verdict_time(op1) >=  sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), (ctrl->temporal_block.lower_bound))){
-            result = set_verdict_true(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
+          if (get_verdict_time(op1) >=  sub_min_zero((get_verdict_time(temp->previous)), (temp->lower_bound))){
+            result = set_verdict_true(get_verdict_time(op1) + temp->lower_bound);
             // To handle startup behavior, the truth bit of the previous result
             // storage is used to flag that an ouput has been produced, which can
             // differentiate between a value of 0 for no output vs output produced.
             // Note: Since only the timestamp of the previous result is ever checked,
             // this overloading of the truth bit doesn't cause confict with other logic 
             // and preserves startup behavior.
-            if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
               push_result(monitor, instr, result);
               ctrl->next_time = get_verdict_time(op1) + 1;
-              ctrl->temporal_block.previous = result;
+              temp->previous = result;
               error_cond = R2U2_OK;
               break;
             }
           }
         } else {
-          if (!(get_verdict_truth(ctrl->temporal_block.edge)) || (get_verdict_time(ctrl->temporal_block.edge)) <= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.upper_bound) && (get_verdict_time(ctrl->temporal_block.previous)) >= ctrl->temporal_block.upper_bound){
+          if (!(get_verdict_truth(temp->edge)) || (get_verdict_time(temp->edge)) <= sub_min_zero((get_verdict_time(temp->previous)), temp->upper_bound) && (get_verdict_time(temp->previous)) >= temp->upper_bound){
             ctrl->next_time = get_verdict_time(op1) + 1;
-            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound)){
-              result = set_verdict_false(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
-              if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-              ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound)){
+              result = set_verdict_false(get_verdict_time(op1) + temp->lower_bound);
+              if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+              ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
                 R2U2_DEBUG_PRINT("\tRight Op never true from [i-ub,i-lb]\n");
                 push_result(monitor, instr, result);
                 ctrl->next_time = get_verdict_time(op1) + 1;
-                ctrl->temporal_block.previous = set_verdict_true(result);
+                temp->previous = set_verdict_true(result);
                 error_cond = R2U2_OK;
                 break;
               }
@@ -327,14 +331,14 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
           }
           if (op0_rdy && !(get_verdict_truth(op0))){
             ctrl->next_time = get_verdict_time(op1) + 1;
-            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound)){
-              result = set_verdict_false(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
-              if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-              ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound)){
+              result = set_verdict_false(get_verdict_time(op1) + temp->lower_bound);
+              if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+              ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
                 R2U2_DEBUG_PRINT("\tBoth False\n");
                 push_result(monitor, instr, result);
                 ctrl->next_time = get_verdict_time(op1) + 1;
-                ctrl->temporal_block.previous = set_verdict_true(result);
+                temp->previous = set_verdict_true(result);
                 error_cond = R2U2_OK;
                 break;
               }
@@ -343,16 +347,16 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
         }
       }
       if (op0_rdy && get_verdict_truth(op0) && \
-        get_verdict_time(op0) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound) && get_verdict_truth(ctrl->temporal_block.edge) && \
-        ((get_verdict_time(ctrl->temporal_block.edge)) > sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.upper_bound) || (get_verdict_time(ctrl->temporal_block.previous)) < ctrl->temporal_block.upper_bound)) {
-        result = set_verdict_true(min(get_verdict_time(op0) + ctrl->temporal_block.lower_bound, (get_verdict_time(ctrl->temporal_block.edge)) + ctrl->temporal_block.upper_bound));
-          if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+        get_verdict_time(op0) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound) && get_verdict_truth(temp->edge) && \
+        ((get_verdict_time(temp->edge)) > sub_min_zero((get_verdict_time(temp->previous)), temp->upper_bound) || (get_verdict_time(temp->previous)) < temp->upper_bound)) {
+        result = set_verdict_true(min(get_verdict_time(op0) + temp->lower_bound, (get_verdict_time(temp->edge)) + temp->upper_bound));
+          if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
               R2U2_DEBUG_PRINT("\tLeft Op True Since Right Op True\n");
-              r2u2_time next = max(ctrl->next_time, sub_min_zero(get_verdict_time(result), ctrl->temporal_block.upper_bound) + 1);
+              r2u2_time next = max(ctrl->next_time, sub_min_zero(get_verdict_time(result), temp->upper_bound) + 1);
               push_result(monitor, instr, result);
               ctrl->next_time = next;
-              ctrl->temporal_block.previous = result;
+              temp->previous = result;
               error_cond = R2U2_OK;
               break;
           }
@@ -363,12 +367,13 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
     }
     case R2U2_MLTL_OP_TRIGGER: {
       R2U2_DEBUG_PRINT("\tPT TRIGGER\n");
-      if (!(get_verdict_truth(ctrl->temporal_block.previous)) && (get_verdict_time(ctrl->temporal_block.previous)) < ctrl->temporal_block.lower_bound){
+      temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
+      if (!(get_verdict_truth(temp->previous)) && (get_verdict_time(temp->previous)) < temp->lower_bound){
         R2U2_DEBUG_PRINT("Not enough data to evaluate at beginning of trace");
-        result = set_verdict_true(ctrl->temporal_block.lower_bound - 1);
+        result = set_verdict_true(temp->lower_bound - 1);
         push_result(monitor, instr, result);
         ctrl->next_time = 0;
-        ctrl->temporal_block.previous = result;
+        temp->previous = result;
         error_cond = R2U2_OK;
         break;
       }
@@ -379,36 +384,36 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
       if (op1_rdy) {
         if (!(get_verdict_truth(op1))) {
           R2U2_DEBUG_PRINT("\tRight Op False\n");
-          ctrl->temporal_block.edge = set_verdict_true(op1);
+          temp->edge = set_verdict_true(op1);
           ctrl->next_time = get_verdict_time(op1) + 1;
-          if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), (ctrl->temporal_block.lower_bound))){
-            result = set_verdict_false(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
+          if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(temp->previous)), (temp->lower_bound))){
+            result = set_verdict_false(get_verdict_time(op1) + temp->lower_bound);
             // To handle startup behavior, the truth bit of the previous result
             // storage is used to flag that an ouput has been produced, which can
             // differentiate between a value of 0 for no output vs output produced.
             // Note: Since only the timestamp of the previous result is ever checked,
             // this overloading of the truth bit doesn't cause confict with other logic 
             // and preserves startup behavior.
-            if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
               push_result(monitor, instr, result);
               ctrl->next_time = get_verdict_time(op1) + 1;
-              ctrl->temporal_block.previous = set_verdict_true(result);
+              temp->previous = set_verdict_true(result);
               error_cond = R2U2_OK;
               break;
             }
           }
         } else {
-          if (!(get_verdict_truth(ctrl->temporal_block.edge)) || (get_verdict_time(ctrl->temporal_block.edge)) <= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)),ctrl->temporal_block.upper_bound) && (get_verdict_time(ctrl->temporal_block.previous)) >= ctrl->temporal_block.upper_bound){
+          if (!(get_verdict_truth(temp->edge)) || (get_verdict_time(temp->edge)) <= sub_min_zero((get_verdict_time(temp->previous)),temp->upper_bound) && (get_verdict_time(temp->previous)) >= temp->upper_bound){
             ctrl->next_time = get_verdict_time(op1) + 1;
-            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound)){
-              result = set_verdict_true(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
-              if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-              ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound)){
+              result = set_verdict_true(get_verdict_time(op1) + temp->lower_bound);
+              if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+              ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
                 R2U2_DEBUG_PRINT("\tRight Op true from [i-ub,i-lb]\n");
                 push_result(monitor, instr, result);
                 ctrl->next_time = get_verdict_time(op1) + 1;
-                ctrl->temporal_block.previous = result;
+                temp->previous = result;
                 error_cond = R2U2_OK;
                 break;
               }
@@ -416,14 +421,14 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
           }
           if (op0_rdy && get_verdict_truth(op0)){
             ctrl->next_time = get_verdict_time(op1) + 1;
-            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound)){
-              result = set_verdict_true(get_verdict_time(op1) + ctrl->temporal_block.lower_bound);
-              if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-              ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+            if (get_verdict_time(op1) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound)){
+              result = set_verdict_true(get_verdict_time(op1) + temp->lower_bound);
+              if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+              ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
                 R2U2_DEBUG_PRINT("\tBoth True\n");
                 push_result(monitor, instr, result);
                 ctrl->next_time = get_verdict_time(op1) + 1;
-                ctrl->temporal_block.previous = result;
+                temp->previous = result;
                 error_cond = R2U2_OK;
                 break;
               }
@@ -432,17 +437,17 @@ r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor) {
         }
       }
       if (op0_rdy && !(get_verdict_truth(op0)) && \
-        get_verdict_time(op0) >= sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.lower_bound) && get_verdict_truth(ctrl->temporal_block.edge) && \
-        ((get_verdict_time(ctrl->temporal_block.edge)) > sub_min_zero((get_verdict_time(ctrl->temporal_block.previous)), ctrl->temporal_block.upper_bound) || (get_verdict_time(ctrl->temporal_block.previous)) < ctrl->temporal_block.upper_bound)) {
+        get_verdict_time(op0) >= sub_min_zero((get_verdict_time(temp->previous)), temp->lower_bound) && get_verdict_truth(temp->edge) && \
+        ((get_verdict_time(temp->edge)) > sub_min_zero((get_verdict_time(temp->previous)), temp->upper_bound) || (get_verdict_time(temp->previous)) < temp->upper_bound)) {
         R2U2_DEBUG_PRINT("We are here!\n");
-        result = set_verdict_false(min(get_verdict_time(op0) + ctrl->temporal_block.lower_bound, (get_verdict_time(ctrl->temporal_block.edge)) + ctrl->temporal_block.upper_bound));
-        if ((get_verdict_time(result) > (get_verdict_time(ctrl->temporal_block.previous))) || \
-            ((get_verdict_time(result) == 0) && !(get_verdict_truth(ctrl->temporal_block.previous)))) {
+        result = set_verdict_false(min(get_verdict_time(op0) + temp->lower_bound, (get_verdict_time(temp->edge)) + temp->upper_bound));
+        if ((get_verdict_time(result) > (get_verdict_time(temp->previous))) || \
+            ((get_verdict_time(result) == 0) && !(get_verdict_truth(temp->previous)))) {
               R2U2_DEBUG_PRINT("\tLeft Op False Since Right Op False\n");
-              r2u2_time next = max(ctrl->next_time, sub_min_zero(get_verdict_time(result), ctrl->temporal_block.upper_bound) + 1);
+              r2u2_time next = max(ctrl->next_time, sub_min_zero(get_verdict_time(result), temp->upper_bound) + 1);
               push_result(monitor, instr, result);
               ctrl->next_time = next;
-              ctrl->temporal_block.previous = set_verdict_true(result);
+              temp->previous = set_verdict_true(result);
               error_cond = R2U2_OK;
               break;
             }
@@ -615,6 +620,14 @@ r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t* monitor, 
                 ctrl->queue = prev_ctrl.queue + prev_ctrl.length;
             }
 
+            if(instr->op2_type == R2U2_FT_OP_ATOMIC){ // Indicates that this is a temporal operator
+              // Temporally reserve space for the temporal block metadata
+              ctrl->length += R2U2_TEMPORAL_METADATA_SIZE;
+
+              R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: Temp Rsvd Temporal Metadata, len = %u\n", instr->memory_reference, ctrl->length);
+
+            }
+
             ctrl->queue[0] = r2u2_infinity;
 
             #if R2U2_DEBUG
@@ -624,8 +637,13 @@ r2u2_status_t r2u2_mltl_configure_instruction_dispatch(r2u2_monitor_t* monitor, 
             return R2U2_OK;
         }
         case R2U2_FT_OP_SUBFORMULA: {
-          ctrl->temporal_block.lower_bound = instr->op1_value;
-          ctrl->temporal_block.upper_bound = instr->op2_value;
+          // Now that the temporal metadata is reserved (from previous SCQ configure size instruction)
+          // shortening length of SCQ to the correct length
+          ctrl->length -= R2U2_TEMPORAL_METADATA_SIZE;
+          R2U2_DEBUG_PRINT("\t\tCfg SCQ %u: Reset SCQ length, len = %u\n", instr->memory_reference, ctrl->length);
+          r2u2_scq_temporal_block_t* temp = r2u2_scq_temporal_get(monitor->queue_arena, instr->memory_reference);
+          temp->lower_bound = instr->op1_value;
+          temp->upper_bound = instr->op2_value;
           break;
         }
         default: {
