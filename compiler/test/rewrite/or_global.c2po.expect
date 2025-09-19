@@ -5,10 +5,10 @@ TL n3  global n0
 TL n4  return n3 1
 CG TL SCQ q0 |1|
 CG TL SCQ q1 |1|
-CG TL TEMP q1 [0, 5]
 CG TL SCQ q2 |1|
 CG TL SCQ q3 |1|
-CG TL TEMP q3 [0, 8]
 CG TL SCQ q4 |1|
+CG TL TEMP q1 [0, 5]
+CG TL TEMP q3 [0, 8]
 F __f0__ 0
 F __f1__ 1
