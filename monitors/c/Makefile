@@ -123,7 +123,7 @@ $(BIN_DBUG): $(BIN_OBJ_DEBUG) $(LIB_DBUG).a | $(BIN_PATH)
 
 # Object Build Rules
 $(OBJ_PATH)/%.o: src/%.c* | $(OBJ_PATH)
-	$(CC) $(CCOBJFLAG) -o $@ $<
+	$(CC) $(CCOBJFLAG) -O3 -o $@ $<
 
 $(DBG_PATH)/%.o: src/%.c* | $(DBG_PATH)
 	$(CC) $(CCOBJFLAG) $(DBGFLAG) -o $@ $<
