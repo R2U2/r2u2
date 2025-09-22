@@ -42,6 +42,10 @@ r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_ve
 /// @return     r2u2_bool Indicates if data is ready and `result` is valid
 r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time parent_queue_id, r2u2_time child_queue_id, r2u2_bool read_num, r2u2_verdict* result);
 
+/// @brief      Inline function that returns temporal metadata block (assumes correct configuration)
+/// @param[in]  arena  R2U2 SCQ arena (since this is a struct to 2 pointers, this is pass-by-reference)
+/// @param[in]  queue_id  ID of SCQ to retrieve temporal metadata for
+/// @return     r2u2_scq_temporal_block_t* Pointer to temporal metadata block
 static inline __attribute__((always_inline)) r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t arena, r2u2_time queue_id) {
   return (r2u2_scq_temporal_block_t*) (&(arena.control_blocks[queue_id].queue[arena.control_blocks[queue_id].length]));
 }
