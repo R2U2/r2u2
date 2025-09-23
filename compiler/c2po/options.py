@@ -12,8 +12,6 @@ EMPTY_FILENAME = ""
 
 R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
-    "cpp": types.R2U2Implementation.CPP,
-    "vhdl": types.R2U2Implementation.VHDL,
     "rust": types.R2U2Implementation.RUST,
 }
 
@@ -220,13 +218,6 @@ class Options:
         self.impl = R2U2_IMPL_MAP[self.impl_str]
         types.configure_types(self.impl, self.int_width, self.int_is_signed, self.float_width)
 
-        if self.impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
-            if self.enable_extops:
-                log.error(
-                    MODULE_CODE, "Extended operators only support for C implementation"
-                )
-                status = False
-
         if self.enable_nnf and self.enable_bnf:
             log.warning(
                 MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
@@ -249,8 +240,8 @@ class Options:
 
         self.assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
 
-        if self.enable_booleanizer and self.impl != types.R2U2Implementation.C:
-            log.error(MODULE_CODE, "Booleanizer only available for C implementation")
+        if self.enable_booleanizer and self.impl != types.R2U2Implementation.C and self.impl != types.R2U2Implementation.RUST:
+            log.error(MODULE_CODE, "Booleanizer only available for C and Rust implementation")
             status = False
 
         if self.enable_booleanizer:

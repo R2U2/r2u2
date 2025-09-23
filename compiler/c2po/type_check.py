@@ -18,7 +18,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-
+            
+            if context.options.impl == types.R2U2Implementation.RUST and context.options.enable_aux and len(expr.symbol) > 50:
+                log.error(
+                    MODULE_CODE,
+                    f"Specification identifier name '{expr.symbol}' is too long for the Rust version, please choose a shorter name (limit 50 characters)", 
+                    expr.loc,
+                )
+                return False
             context.add_formula(expr.symbol, expr)
 
             expr.type = types.BoolType()
@@ -38,6 +45,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
+            
+            if context.options.impl == types.R2U2Implementation.RUST and context.options.enable_aux and len(expr.symbol) > 50:
+                log.error(
+                    MODULE_CODE,
+                    f"Specification identifier name '{expr.symbol}' is too long for the Rust version, please choose a shorter name (limit 50 characters)", 
+                    expr.loc,
+                )
+                return False
+
 
             context.add_contract(expr.symbol, expr)
 
@@ -317,7 +333,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 ):
                     log.error(
                         MODULE_CODE,
-                        f"Past-time operators only support in C version of R2U2\n\t{expr}",
+                        f"Past-time operators only support in C and Rust versions of R2U2\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -358,7 +374,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             ):
                 log.error(
                     MODULE_CODE,
-                    f"Bitwise operators only support in C version of R2U2.\n\t{expr}",
+                    f"Bitwise operators only support in C and Rust versions of R2U2.\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -396,7 +412,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             ):
                 log.error(
                     MODULE_CODE,
-                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
+                    f"Arithmetic operators only support in C and Rust versions of R2U2\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -471,10 +487,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             lhs: cpt.Expression = expr.children[0]
             rhs: cpt.Expression = expr.children[1]
 
-            if context.options.impl != types.R2U2Implementation.C:
+            if (
+                context.options.impl != types.R2U2Implementation.C
+                and context.options.impl != types.R2U2Implementation.RUST
+            ):
                 log.error(
                     MODULE_CODE,
-                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
+                    f"Arithmetic operators only support in C and Rust versions of R2U2\n\t{expr}",
                     expr.loc,
                 )
                 return False

@@ -56,7 +56,7 @@ parser.add_argument(
 parser.add_argument(
     "--impl",
     default=c2po.options.DEFAULTS["impl_str"],
-    choices=["c", "rust", "cpp", "vhdl"],
+    choices=["c", "rust"],
     help="target R2U2 implementation version (default: %(default)s)",
 )
 parser.add_argument(
