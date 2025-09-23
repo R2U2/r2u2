@@ -4,7 +4,7 @@ The following is the usage of C2PO:
     usage: c2po.py [-h] [--trace TRACE] [--map MAP] [-q] [--debug [DEBUG]] [--stats] [--impl {c,rust}] [-o OUTPUT] [--int-width INT_WIDTH]
                [--int-signed] [--float-width FLOAT_WIDTH] [--mission-time MISSION_TIME] [--endian {native,network,big,little}] [-at] [-bz] [-p] [-tc]
                [-c] [-dc] [-dr] [--extops] [-nnf] [-bnf] [-eq] [-sat] [--timeout-eqsat TIMEOUT_EQSAT] [--timeout-sat TIMEOUT_SAT]
-               [--write-c2po [WRITE_C2PO]] [--write-mltl [WRITE_MLTL]] [--write-prefix [WRITE_PREFIX]] [--write-pickle [WRITE_PICKLE]]
+               [--write-bounds [WRITE_BOUNDS]] [--write-c2po [WRITE_C2PO]] [--write-mltl [WRITE_MLTL]] [--write-prefix [WRITE_PREFIX]] [--write-pickle [WRITE_PICKLE]]
                [--write-smt [WRITE_SMT]] [--copyback COPYBACK]
                mltl
 
@@ -46,6 +46,8 @@ The following is the usage of C2PO:
                             set the timeout of equality saturation calls in seconds (default: 3600)
     --timeout-sat TIMEOUT_SAT
                             set the timeout of sat calls in seconds (default: 3600)
+    --write-bounds [WRITE_BOUNDS]
+                            write either bounds.h or config.toml file (depending on impl)                       
     --write-c2po [WRITE_C2PO]
                             write final program in C2PO input format
     --write-mltl [WRITE_MLTL]
