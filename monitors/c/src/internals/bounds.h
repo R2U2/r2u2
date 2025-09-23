@@ -30,7 +30,7 @@
 #define R2U2_MAX_TEMPORAL_OPERATORS 128
 
 // Represents total number of SCQ slots for both future-time and past-time reasoning
-#define R2U2_MAX_QUEUE_SLOTS 1024
+#define R2U2_MAX_QUEUE_SLOTS 2048
 
 // Represents amount of inaccuracy allowed when comparing floats
 #define R2U2_FLOAT_EPSILON 0.00001

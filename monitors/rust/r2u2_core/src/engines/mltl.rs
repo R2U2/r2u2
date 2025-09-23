@@ -89,16 +89,13 @@ pub fn mltl_update(monitor: &mut Monitor){
                 
                 #[cfg(feature = "aux_string_specs")]
                 // Set auxiliary data for function output
-                for aux_data_idx in 0..monitor.aux_string_table.len() {
-                    if monitor.aux_string_table[aux_data_idx].spec_str.is_empty() {
+                for aux_data_idx in 0..monitor.formula_aux_string_table.len() {
+                    if monitor.formula_aux_string_table[aux_data_idx].spec_str.is_empty() {
                         monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: ztr64::from(""), verdict: verdict.unwrap()};
                         break; // Reached end of aux_string_table
                     }
-                    if monitor.aux_string_table[aux_data_idx].spec_1 != 0 && monitor.aux_string_table[aux_data_idx].spec_2 != 0 {
-                        continue; // This is a contract (i.e., not a function)
-                    }
-                    if monitor.aux_string_table[aux_data_idx].spec_0 == instr.op2_value {
-                        monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: monitor.aux_string_table[aux_data_idx].spec_str, verdict: verdict.unwrap()};
+                    if monitor.formula_aux_string_table[aux_data_idx].spec == instr.op2_value {
+                        monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: monitor.formula_aux_string_table[aux_data_idx].spec_str, verdict: verdict.unwrap()};
                         break;
                     }
                 }
@@ -108,23 +105,20 @@ pub fn mltl_update(monitor: &mut Monitor){
                 monitor.output_buffer_idx += 1;
                 #[cfg(feature = "aux_string_specs")]
                 // Set auxiliary data for contract output
-                for aux_data_idx in 0..monitor.aux_string_table.len(){
-                    if monitor.aux_string_table[aux_data_idx].spec_str.is_empty() {
+                for aux_data_idx in 0..monitor.contract_aux_string_table.len(){
+                    if monitor.contract_aux_string_table[aux_data_idx].spec_str.is_empty() {
                         break; // Reached end of aux_string_table
                     }
-                    if monitor.aux_string_table[aux_data_idx].spec_1 == 0 && monitor.aux_string_table[aux_data_idx].spec_2 == 0 {
-                        continue; // This is a function (i.e., not a contract)
-                    }
-                    if monitor.aux_string_table[aux_data_idx].spec_0 == instr.op2_value && !verdict.unwrap().truth{ // AGC Inactive
-                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_INACTIVE};
+                    if monitor.contract_aux_string_table[aux_data_idx].spec_0 == instr.op2_value && !verdict.unwrap().truth{ // AGC Inactive
+                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.contract_aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_INACTIVE};
                         monitor.contract_buffer_idx += 1;
                         break;
-                    } else if monitor.aux_string_table[aux_data_idx].spec_1 == instr.op2_value && !verdict.unwrap().truth{ // AGC Invalid
-                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_INVALID};
+                    } else if monitor.contract_aux_string_table[aux_data_idx].spec_1 == instr.op2_value && !verdict.unwrap().truth{ // AGC Invalid
+                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.contract_aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_INVALID};
                         monitor.contract_buffer_idx += 1;
                         break;
-                    } else if monitor.aux_string_table[aux_data_idx].spec_2 == instr.op2_value && verdict.unwrap().truth{ // AGC Verified
-                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_VERIFIED};
+                    } else if monitor.contract_aux_string_table[aux_data_idx].spec_2 == instr.op2_value && verdict.unwrap().truth{ // AGC Verified
+                        monitor.contract_buffer[monitor.contract_buffer_idx] = r2u2_contract{spec_str: monitor.contract_aux_string_table[aux_data_idx].spec_str, time: verdict.unwrap().time, status: AGC_VERIFIED};
                         monitor.contract_buffer_idx += 1;
                         break;
                     }

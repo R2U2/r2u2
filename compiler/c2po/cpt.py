@@ -1172,6 +1172,8 @@ class Program(Node):
         # Minimum values for bounds in bounds.h and config.toml
         self.bounds = {
             "R2U2_MAX_AUX_BYTES": -1,
+            "R2U2_MAX_OUTPUT_VERDICTS": -1,
+            "R2U2_MAX_OUTPUT_CONTRACTS": -1,
             "R2U2_MAX_FORMULAS": -1,
             "R2U2_MAX_CONTRACTS": -1,
             "R2U2_MAX_SIGNALS": -1,
@@ -1213,15 +1215,28 @@ class Program(Node):
         contents += "#endif /* R2U2_BOUNDS_H */\n"
         return contents
 
-    def get_bounds_rs_file(self) -> str: #To-Do
+    def get_bounds_rs_file(self) -> str:
         """Returns the contents of the config.toml file."""
         contents =  "[env]\n"
-        contents += "\n".join(
-            [
-                f'{key} = {{ value = "{value}", force = true }}'
-                for key, value in self.bounds.items()
-            ]
-        )
+        contents += "# Represents maximum number of output verdicts that can be returned at a single timestamp\n"
+        contents += f'R2U2_MAX_OUTPUT_VERDICTS = {{ value = "{self.bounds.get("R2U2_MAX_OUTPUT_VERDICTS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)\n"
+        contents += f'R2U2_MAX_OUTPUT_CONTRACTS = {{ value = "{self.bounds.get("R2U2_MAX_OUTPUT_CONTRACTS")}", force = true }}\n\n'
+        contents += "# # Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)\n"
+        contents += f'R2U2_MAX_FORMULAS = {{ value = "{self.bounds.get("R2U2_MAX_FORMULAS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)\n"
+        contents += f'R2U2_MAX_CONTRACTS = {{ value = "{self.bounds.get("R2U2_MAX_CONTRACTS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of input signals\n"
+        contents += f'R2U2_MAX_SIGNALS = {{ value = "{self.bounds.get("R2U2_MAX_SIGNALS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of Booleans passed from the front-end (booleanizer or directly loaded atomics) to the temporal logic engine\n"
+        contents += f'R2U2_MAX_ATOMICS = {{ value = "{self.bounds.get("R2U2_MAX_ATOMICS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of booleanizer instructions\n"
+        contents += f'R2U2_MAX_BZ_INSTRUCTIONS = {{ value = "{self.bounds.get("R2U2_MAX_BZ_INSTRUCTIONS")}", force = true }}\n\n'
+        contents += "# Represents maximum number of temporal logic instructions\n"
+        contents += f'R2U2_MAX_TL_INSTRUCTIONS = {{ value = "{self.bounds.get("R2U2_MAX_TL_INSTRUCTIONS")}", force = true }}\n\n'
+        contents += "# Represents total number of SCQ slots for both future-time and past-time reasoning\n"
+        contents += f'R2U2_MAX_QUEUE_SLOTS = {{ value = "{self.bounds.get("R2U2_MAX_QUEUE_SLOTS")}", force = true }}'
+        
         return contents
 
 

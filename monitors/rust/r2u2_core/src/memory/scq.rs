@@ -2,7 +2,7 @@ use crate::internals::types::*;
 use crate::memory::monitor::Monitor;
 
 
-use crate::internals::bounds::{R2U2_MAX_TL_INSTRUCTIONS, R2U2_TOTAL_QUEUE_SLOTS};
+use crate::internals::bounds::{R2U2_MAX_TL_INSTRUCTIONS, R2U2_MAX_QUEUE_SLOTS};
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
 use crate::internals::debug::*;
@@ -64,7 +64,7 @@ impl Default for SCQTemporalBlock {
 
 pub struct SCQMemoryArena {
     pub control_blocks: [SCQCtrlBlock; R2U2_MAX_TL_INSTRUCTIONS],
-    pub queue_mem: [r2u2_verdict; R2U2_TOTAL_QUEUE_SLOTS],
+    pub queue_mem: [r2u2_verdict; R2U2_MAX_QUEUE_SLOTS],
 }
 
 
@@ -72,7 +72,7 @@ impl SCQMemoryArena{
     pub fn initialize() -> SCQMemoryArena{
         return SCQMemoryArena {
             control_blocks: [SCQCtrlBlock::default(); R2U2_MAX_TL_INSTRUCTIONS],
-            queue_mem: [r2u2_verdict::default(); R2U2_TOTAL_QUEUE_SLOTS]
+            queue_mem: [r2u2_verdict::default(); R2U2_MAX_QUEUE_SLOTS]
         }
     }
 }

@@ -47,8 +47,8 @@ pub use memory::monitor::Monitor;
 #[cfg(feature = "aux_string_specs")]
 pub use internals::types::{r2u2_contract, AGC_INACTIVE, AGC_INVALID, AGC_VERIFIED};
 #[cfg(feature = "aux_string_specs")]
-pub use internals::bounds::{R2U2_MAX_OUTPUT_CONTRACTS, R2U2_MAX_SPECS};
-pub use internals::bounds::{R2U2_MAX_OUTPUT_VERDICTS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_TOTAL_QUEUE_SLOTS,R2U2_FLOAT_EPSILON};
+pub use internals::bounds::{R2U2_MAX_OUTPUT_CONTRACTS, R2U2_MAX_FORMULAS, R2U2_MAX_CONTRACTS};
+pub use internals::bounds::{R2U2_MAX_OUTPUT_VERDICTS,R2U2_MAX_SIGNALS,R2U2_MAX_ATOMICS,R2U2_MAX_BZ_INSTRUCTIONS,R2U2_MAX_TL_INSTRUCTIONS,R2U2_MAX_QUEUE_SLOTS,R2U2_FLOAT_EPSILON};
 
 /// Get runtime monitor
 /// 

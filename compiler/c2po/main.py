@@ -171,5 +171,6 @@ def main_rs(
         enable_cse=enable_cse,
         enable_sat=enable_sat,
         smt_max_time=timeout_sat,
+        impl_str="rust",
     )
     return main(opts)
