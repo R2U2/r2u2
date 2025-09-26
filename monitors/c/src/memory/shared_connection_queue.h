@@ -1,8 +1,8 @@
 #ifndef R2U2_MEMORY_SCQ_H
 #define R2U2_MEMORY_SCQ_H
 
-#include "internals/types.h"
-#include "internals/errors.h"
+#include "../internals/types.h"
+#include "../internals/errors.h"
 #include <stdio.h>
 
  typedef struct {

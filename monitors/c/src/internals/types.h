@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "internals/bounds.h"
+#include "bounds.h"
 
 // Use with care! Much better to leave off than be wrong; really only for one-off
 // branches, like first time checks.

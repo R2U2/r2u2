@@ -1,10 +1,10 @@
 #ifndef R2U2_AUX_INFO_INSTRUCTIONS_H
 #define R2U2_AUX_INFO_INSTRUCTIONS_H
 
-#include "internals/errors.h"
-#include "internals/types.h"
-#include "instructions/mltl.h"
-#include "memory/monitor.h"
+#include "../internals/errors.h"
+#include "../internals/types.h"
+#include "mltl.h"
+#include "../memory/monitor.h"
 
 typedef struct {
     char* spec_str;

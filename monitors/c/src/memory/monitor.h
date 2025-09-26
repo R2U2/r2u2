@@ -3,15 +3,15 @@
 
 #include <stdio.h> // Used for file type
 
-#include "internals/config.h"
-#include "internals/types.h"
+#include "../internals/config.h"
+#include "../internals/types.h"
 #if R2U2_AUX_STRING_SPECS
-#include "instructions/aux_info.h"
+#include "../instructions/aux_info.h"
 #endif
-#include "instructions/booleanizer.h"
-#include "instructions/mltl.h"
+#include "../instructions/booleanizer.h"
+#include "../instructions/mltl.h"
 
-#include "memory/shared_connection_queue.h"
+#include "shared_connection_queue.h"
 
 typedef enum {
   R2U2_MONITOR_PROGRESS_FIRST_LOOP,

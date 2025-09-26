@@ -1,9 +1,9 @@
 #ifndef R2U2_ENGINES_MLTL_H
 #define R2U2_ENGINES_MLTL_H
 
-#include "instructions/mltl.h"
-#include "memory/monitor.h"
-#include "internals/errors.h"
+#include "../instructions/mltl.h"
+#include "../memory/monitor.h"
+#include "../internals/errors.h"
 
 /// @brief      Updates the BZ engine based on current instruction in table
 /// @param[in]  monitor  Pointer to (configured) R2U2 monitor

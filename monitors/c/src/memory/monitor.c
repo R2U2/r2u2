@@ -1,4 +1,4 @@
-#include "memory/monitor.h"
+#include "monitor.h"
 #include <string.h>
 
 void r2u2_monitor_clock_reset(r2u2_monitor_t* monitor) {

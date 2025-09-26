@@ -1,7 +1,7 @@
 #ifndef R2U2_BOOLEANIZER_INSTRUCTIONS_H
 #define R2U2_BOOLEANIZER_INSTRUCTIONS_H
 
-#include "internals/types.h"
+#include "../internals/types.h"
 
 enum r2u2_bz_opcode {
     R2U2_BZ_OP_NONE    = 0b000000,

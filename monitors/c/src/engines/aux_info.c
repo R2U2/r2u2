@@ -1,5 +1,5 @@
 #include "aux_info.h"
-#include "internals/config.h"
+#include "../internals/config.h"
 #include <stdio.h>
 
 r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){

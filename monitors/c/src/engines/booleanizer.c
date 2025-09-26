@@ -1,5 +1,5 @@
 #include "booleanizer.h"
-#include "internals/debug.h"
+#include "../internals/debug.h"
 #include <math.h>
 
 r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)

@@ -1,7 +1,7 @@
 #ifndef R2U2_ERRORS_H
 #define R2U2_ERRORS_H
 
-#include "internals/config.h"
+#include "../internals/config.h"
 
 typedef enum {
   R2U2_OK = 0,

@@ -1,8 +1,8 @@
 
-#include "engines/engines.h"
-#include "engines/booleanizer.h"
-#include "engines/mltl.h"
-#include "internals/debug.h"
+#include "engines.h"
+#include "booleanizer.h"
+#include "mltl.h"
+#include "../internals/debug.h"
 
 r2u2_status_t r2u2_step(r2u2_monitor_t* monitor) {
     r2u2_status_t error_cond;

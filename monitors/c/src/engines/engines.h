@@ -1,8 +1,8 @@
 #ifndef R2U2_ENGINES_H
 #define R2U2_ENGINES_H
 
-#include "internals/errors.h"
-#include "memory/monitor.h"
+#include "../internals/errors.h"
+#include "../memory/monitor.h"
 
 // static const uint8_t R2U2_ENG_NA = 0; // Null instruction tag - acts as ENDSEQ
 // static const uint8_t R2U2_ENG_SY = 1; // System commands - reserved for monitor control
