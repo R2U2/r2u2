@@ -1,6 +1,6 @@
 use crate::instructions::{booleanizer::BooleanizerInstruction, mltl::MLTLInstruction};
 use crate::internals::types::*;
-use crate::memory::scq::SCQMemoryArena;
+use crate::memory::scq::{SCQMemoryArena, SCQCtrlBlock};
 
 #[cfg(feature = "aux_string_specs")]
 use crate::instructions::aux_info::*;
@@ -80,9 +80,22 @@ impl Monitor{
         self.progress = MonitorProgressState::FirstLoop;
         self.bz_program_count.curr_program_count = 0;
         self.mltl_program_count.curr_program_count = 0;
-        self.queue_arena.queue_mem = [r2u2_verdict::default(); R2U2_MAX_QUEUE_SLOTS];
+        for elem in self.queue_arena.queue_mem.iter_mut() {
+            *elem = r2u2_verdict::default()
+        }
     }
     pub fn reset(&mut self) {
-        *self = Monitor::default();
+        self.time_stamp = 0;
+        self.progress = MonitorProgressState::FirstLoop;
+        self.bz_program_count.curr_program_count = 0;
+        self.bz_program_count.max_program_count = 0;
+        self.mltl_program_count.curr_program_count = 0;
+        self.bz_program_count.max_program_count = 0;
+        for elem in self.queue_arena.queue_mem.iter_mut() {
+            *elem = r2u2_verdict::default();
+        }
+        for elem in self.queue_arena.control_blocks.iter_mut() {
+            *elem = SCQCtrlBlock::default();
+        }
     }
 }
