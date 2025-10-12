@@ -897,10 +897,10 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
                 p = lhs.children[0]
                 q = rhs.children[0]
-                lb1 = lhs.interval.lb
-                ub1 = lhs.interval.ub
-                lb2 = rhs.interval.lb
-                ub2 = rhs.interval.ub
+                lb1: int = lhs.interval.lb
+                ub1: int = lhs.interval.ub
+                lb2: int = rhs.interval.lb
+                ub2: int = rhs.interval.ub
 
                 if str(p) == str(q):
                     # F[lb1,lb2]p || F[lb2,ub2]p
@@ -1179,18 +1179,38 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
-    """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
+    """Checks that each specification individually and the conjunction of all specifications in
+    `program` is satisfiable and sends a warning if any are either unsat or unknown."""
     log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
-    
-    results = sat.check_sat(program, context)
 
-    for spec,result in results.items():
+    exprs = []
+    for spec in program.get_specs():
+        if isinstance(spec, cpt.Contract):
+            log.warning(MODULE_CODE, "Found contract, skipping")
+            continue
+
+        expr = spec.get_expr()
+        exprs.append(expr)
+        result = sat.check_sat_expr(expr, context)
         if result is sat.SatResult.SAT:
             log.debug(MODULE_CODE, 1, f"{spec.symbol} is sat")
         elif result is sat.SatResult.UNSAT:
             log.warning(MODULE_CODE, f"{spec.symbol} is unsat")
         elif result is sat.SatResult.UNKNOWN:
             log.warning(MODULE_CODE, f"{spec.symbol} is unknown")
+            
+    # we only check the conjunction of all specifications if there are more than one
+    if len(exprs) <= 1:
+        return
+
+    formula = cpt.Operator.LogicalAnd(program.loc, exprs)
+    result = sat.check_sat_expr(formula, context)
+    if result is sat.SatResult.SAT:
+        log.debug(MODULE_CODE, 1, "Program is satisfiable")
+    elif result is sat.SatResult.UNSAT:
+        log.warning(MODULE_CODE, "Program is unsatisfiable")
+    elif result is sat.SatResult.UNKNOWN:
+        log.warning(MODULE_CODE, "Program satisfiability is unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
