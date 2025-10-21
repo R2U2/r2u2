@@ -276,13 +276,18 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
     """Removes extended operators (Global, Future, Historically, Once, xor, implies) from each specification in `program`."""
     log.debug(MODULE_CODE, 1, "Removing extended operators.")
 
+    lhs: cpt.Expression
+    rhs: cpt.Expression
+    operand: cpt.Expression
+    interval: types.Interval
+
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
             continue
 
         if expr.operator is cpt.OperatorKind.LOGICAL_XOR:
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
             # p xor q = !(p <-> q)
             expr.replace(
                 cpt.Operator.LogicalNegate(
@@ -295,8 +300,8 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
                 )
             )
         elif expr.operator is cpt.OperatorKind.LOGICAL_IMPLIES:
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
             # p -> q = !p || q)
             expr.replace(
                 cpt.Operator.LogicalOr(
@@ -306,7 +311,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         elif expr.operator is cpt.OperatorKind.FUTURE:
             expr = cast(cpt.TemporalOperator, expr)
 
-            operand: cpt.Expression = expr.children[0]
+            operand = expr.children[0]
 
             interval = expr.interval
             # F p = True U p
@@ -322,7 +327,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         elif expr.operator is cpt.OperatorKind.GLOBAL:
             expr = cast(cpt.TemporalOperator, expr)
 
-            operand: cpt.Expression = expr.children[0]
+            operand = expr.children[0]
 
             interval = expr.interval
             # G p = False R p
@@ -338,7 +343,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         elif expr.operator is cpt.OperatorKind.ONCE:
             expr = cast(cpt.TemporalOperator, expr)
 
-            operand: cpt.Expression = expr.children[0]
+            operand = expr.children[0]
 
             interval = expr.interval
             # O p = True S p
@@ -354,7 +359,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
         elif expr.operator is cpt.OperatorKind.HISTORICAL:
             expr = cast(cpt.TemporalOperator, expr)
 
-            operand: cpt.Expression = expr.children[0]
+            operand = expr.children[0]
 
             interval = expr.interval
             # H p = False T p
@@ -375,6 +380,11 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
     log.debug(MODULE_CODE, 1, "Converting to BNF")
 
+    lhs: cpt.Expression
+    rhs: cpt.Expression
+    operand: cpt.Expression
+    bounds: types.Interval
+
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
             continue
@@ -391,8 +401,8 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
         elif expr.operator is cpt.OperatorKind.LOGICAL_IMPLIES:
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
             # p -> q = !(p && !q)
             expr.replace(
                 cpt.Operator.LogicalNegate(
@@ -403,8 +413,8 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
         elif expr.operator is cpt.OperatorKind.LOGICAL_XOR:
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
             # p xor q = !(!p && !q) && !(p && q)
             expr.replace(
                 cpt.Operator.LogicalAnd(
@@ -428,8 +438,8 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
             )
         elif expr.operator is cpt.OperatorKind.FUTURE:
             expr = cast(cpt.TemporalOperator, expr)
-            operand: cpt.Expression = expr.children[0]
-            bounds: types.Interval = expr.interval
+            operand = expr.children[0]
+            bounds = expr.interval
             # F p = True U p
             expr.replace(
                 cpt.TemporalOperator.Until(
@@ -442,8 +452,8 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
             )
         elif expr.operator is cpt.OperatorKind.GLOBAL:
             expr = cast(cpt.TemporalOperator, expr)
-            operand: cpt.Expression = expr.children[0]
-            bounds: types.Interval = expr.interval
+            operand = expr.children[0]
+            bounds = expr.interval
             # G p = !(True U !p)
             expr.replace(
                 cpt.Operator.LogicalNegate(
@@ -459,9 +469,9 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
             )
         elif expr.operator is cpt.OperatorKind.RELEASE:
             expr = cast(cpt.TemporalOperator, expr)
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-            bounds: types.Interval = expr.interval
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            bounds = expr.interval
             # p R q = !(!p U !q)
             expr.replace(
                 cpt.Operator.LogicalNegate(
@@ -482,6 +492,11 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
 def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
     """Converts program to Negative Normal Form (NNF). An MLTL formula in NNF has all MLTL operators, but negations are only applied to literals."""
     log.debug(MODULE_CODE, 1, "Converting to NNF")
+
+    lhs: cpt.Expression
+    rhs: cpt.Expression
+    operand: cpt.Expression
+    bounds: types.Interval
 
     for expr in program.preorder(context):
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
@@ -513,8 +528,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_IMPLIES):
-                lhs: cpt.Expression = operand.children[0]
-                rhs: cpt.Expression = operand.children[1]
+                lhs = operand.children[0]
+                rhs = operand.children[1]
 
                 # ! (p -> q) |-> ! (!p || q) |-> p && !q
                 expr.replace(
@@ -523,8 +538,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_XOR):
-                lhs: cpt.Expression = operand.children[0]
-                rhs: cpt.Expression = operand.children[1]
+                lhs = operand.children[0]
+                rhs = operand.children[1]
                 
                 # ! (p xor q) |-> ! ((p && !q) || (!p && q)) |-> !(p && !q) && ! (!p && q) |-> (!p || q) && (p || !q)
                 expr.replace(
@@ -541,8 +556,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     )
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.LOGICAL_EQUIV):
-                lhs: cpt.Expression = operand.children[0]
-                rhs: cpt.Expression = operand.children[1]
+                lhs = operand.children[0]
+                rhs = operand.children[1]
                 
                 # ! (p <-> q) |-> ! ((p -> q) && (q -> p)) |-> !(p -> q) || !(q -> p) |-> (p && !q) || (q && !p)
                 expr.replace(
@@ -560,7 +575,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.FUTURE):
                 operand = cast(cpt.TemporalOperator, operand)
-                bounds: types.Interval = operand.interval
+                bounds = operand.interval
 
                 # !F p = G !p
                 expr.replace(
@@ -573,7 +588,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             elif cpt.is_operator(operand, cpt.OperatorKind.GLOBAL):
                 operand = cast(cpt.TemporalOperator, operand)
-                bounds: types.Interval = operand.interval
+                bounds = operand.interval
 
                 # !G p = F !p
                 expr.replace(
@@ -587,10 +602,10 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
             elif cpt.is_operator(operand, cpt.OperatorKind.UNTIL):
                 operand = cast(cpt.TemporalOperator, operand)
 
-                lhs: cpt.Expression = operand.children[0]
-                rhs: cpt.Expression = operand.children[1]
+                lhs = operand.children[0]
+                rhs = operand.children[1]
                 
-                bounds: types.Interval = operand.interval
+                bounds = operand.interval
 
                 # !(p U q) = !p R !q
                 expr.replace(
@@ -605,10 +620,10 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
             elif cpt.is_operator(operand, cpt.OperatorKind.RELEASE):
                 operand = cast(cpt.TemporalOperator, operand)
 
-                lhs: cpt.Expression = operand.children[0]
-                rhs: cpt.Expression = operand.children[1]
+                lhs = operand.children[0]
+                rhs = operand.children[1]
 
-                bounds: types.Interval = operand.interval
+                bounds = operand.interval
 
                 # !(p R q) = !p U !q
                 expr.replace(
@@ -621,8 +636,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                     )
                 )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
 
             # p -> q = !p || q
             expr.replace(
@@ -631,8 +646,8 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
                 )
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_XOR):
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
             
             # p xor q = (p && !q) || (!p && q)
             expr.replace(
@@ -726,21 +741,21 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # G[l1,u1](G[l2,u2]p) = G[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
-                lb: int = expr.interval.lb + opnd1.interval.lb
-                ub: int = expr.interval.ub + opnd1.interval.ub
+                lb = expr.interval.lb + opnd1.interval.lb
+                ub = expr.interval.ub + opnd1.interval.ub
                 new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.FUTURE):
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 opnd2 = opnd1.children[0]
                 if expr.interval.lb == expr.interval.ub:
                     # G[a,a](F[l,u]p) = F[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb = expr.interval.lb + opnd1.interval.lb
+                    ub = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
                 elif opnd1.interval.lb == opnd1.interval.ub:
                     # G[l,u](F[a,a]p) = G[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb = expr.interval.lb + opnd1.interval.lb
+                    ub = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             expr = cast(cpt.TemporalOperator, expr)
@@ -762,21 +777,21 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 # F[l1,u1](F[l2,u2]p) = F[l1+l2,u1+u2]p
                 opnd2 = opnd1.children[0]
-                lb: int = expr.interval.lb + opnd1.interval.lb
-                ub: int = expr.interval.ub + opnd1.interval.ub
+                lb = expr.interval.lb + opnd1.interval.lb
+                ub = expr.interval.ub + opnd1.interval.ub
                 new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
             elif cpt.is_operator(opnd1, cpt.OperatorKind.GLOBAL):
                 opnd1 = cast(cpt.TemporalOperator, opnd1)
                 opnd2 = opnd1.children[0]
                 if expr.interval.lb == expr.interval.ub:
                     # F[a,a](G[l,u]p) = G[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb = expr.interval.lb + opnd1.interval.lb
+                    ub = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Global(expr.loc, lb, ub, opnd2)
                 elif opnd1.interval.lb == opnd1.interval.ub:
                     # F[l,u](G[a,a]p) = F[l+a,u+a]p
-                    lb: int = expr.interval.lb + opnd1.interval.lb
-                    ub: int = expr.interval.ub + opnd1.interval.ub
+                    lb = expr.interval.lb + opnd1.interval.lb
+                    ub = expr.interval.ub + opnd1.interval.ub
                     new = cpt.TemporalOperator.Future(expr.loc, lb, ub, opnd2)
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
             # Assume binary for now
@@ -791,10 +806,10 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
 
                 p = lhs.children[0]
                 q = rhs.children[0]
-                lb1: int = lhs.interval.lb
-                ub1: int = lhs.interval.ub
-                lb2: int = rhs.interval.lb
-                ub2: int = rhs.interval.ub
+                lb1 = lhs.interval.lb
+                ub1 = lhs.interval.ub
+                lb2 = rhs.interval.lb
+                ub2 = rhs.interval.ub
 
                 if str(p) == str(q):  # check syntactic equivalence
                     # G[lb1,lb2]p && G[lb2,ub2]p
@@ -811,8 +826,8 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                         # lb2 <= lb1 <= ub2+1
                         new = cpt.TemporalOperator.Global(expr.loc, lb2, max(ub1, ub2), p)
                 else:
-                    lb3: int = min(lb1, lb2)
-                    ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
+                    lb3 = min(lb1, lb2)
+                    ub3 = lb3 + min(ub1 - lb1, ub2 - lb2)
 
                     new = cpt.TemporalOperator.Global(
                         expr.loc,
@@ -904,8 +919,8 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context) -> None:
                 else:
                     # TODO: check for when lb==ub==0
                     # (F[l1,u1]p) || (F[l2,u2]q) = F[l3,u3](F[l1-l3,u1-u3]p || F[l2-l3,u2-u3]q)
-                    lb3: int = min(lb1, lb2)
-                    ub3: int = lb3 + min(ub1 - lb1, ub2 - lb2)
+                    lb3 = min(lb1, lb2)
+                    ub3 = lb3 + min(ub1 - lb1, ub2 - lb2)
 
                     new = cpt.TemporalOperator.Future(
                         expr.loc,
@@ -1164,18 +1179,38 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def check_sat(program: cpt.Program, context: cpt.Context) -> None:
-    """Checks that each specification in `program` is satisfiable and send a warning if any are either unsat or unknown."""
+    """Checks that each specification individually and the conjunction of all specifications in
+    `program` is satisfiable and sends a warning if any are either unsat or unknown."""
     log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
-    
-    results = sat.check_sat(program, context)
 
-    for spec,result in results.items():
+    exprs = []
+    for spec in program.get_specs():
+        if isinstance(spec, cpt.Contract):
+            log.warning(MODULE_CODE, "Found contract, skipping")
+            continue
+
+        expr = spec.get_expr()
+        exprs.append(expr)
+        result = sat.check_sat_expr(expr, context)
         if result is sat.SatResult.SAT:
             log.debug(MODULE_CODE, 1, f"{spec.symbol} is sat")
         elif result is sat.SatResult.UNSAT:
             log.warning(MODULE_CODE, f"{spec.symbol} is unsat")
         elif result is sat.SatResult.UNKNOWN:
             log.warning(MODULE_CODE, f"{spec.symbol} is unknown")
+            
+    # we only check the conjunction of all specifications if there are more than one
+    if len(exprs) <= 1:
+        return
+
+    formula = cpt.Operator.LogicalAnd(program.loc, exprs)
+    result = sat.check_sat_expr(formula, context)
+    if result is sat.SatResult.SAT:
+        log.debug(MODULE_CODE, 1, "Program is satisfiable")
+    elif result is sat.SatResult.UNSAT:
+        log.warning(MODULE_CODE, "Program is unsatisfiable")
+    elif result is sat.SatResult.UNKNOWN:
+        log.warning(MODULE_CODE, "Program satisfiability is unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
