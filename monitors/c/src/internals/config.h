@@ -51,6 +51,8 @@
     #define ALWAYS_INLINE __attribute__((always_inline))
 #elif defined( __llvm__)
     #define ALWAYS_INLINE __attribute__((always_inline))
+#else
+    #define ALWAYS_INLINE
 #endif
 
 /* Platform compatibility enforcement, this will intentionally cause a

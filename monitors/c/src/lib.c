@@ -9,19 +9,6 @@
 FILE* r2u2_debug_fptr = NULL;
 #endif
 
-r2u2_monitor_t r2u2_get_monitor(uint8_t* spec, r2u2_status_t* status) {
-    /* Default config */
-    r2u2_monitor_t monitor = R2U2_DEFAULT_MONITOR;
-
-    // Populate instruction table from binary spec in instruction memory
-    if (r2u2_process_binary(&monitor, spec) != R2U2_OK) {
-      *status = R2U2_BAD_SPEC;
-    } else {
-      *status = R2U2_OK;
-    }
-    return monitor;
-}
-
 r2u2_status_t r2u2_load_specification(uint8_t* spec, r2u2_monitor_t* monitor) {
     // Memory resets....
     r2u2_monitor_reset(monitor);
