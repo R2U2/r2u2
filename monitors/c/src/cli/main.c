@@ -22,7 +22,6 @@ const char* help = "<configuration> [trace]\n"
                    "\tconfiguration: path to monitor configuration binary\n"
                    "\ttrace: optional path to input CSV\n";
 
-// Create CSV reader and monitor with default extents using macro
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 
 int main(int argc, char const* argv[]) {
@@ -60,6 +59,7 @@ int main(int argc, char const* argv[]) {
         perror("Error reading specification file");
         return 1;
       }
+
       // map read-only mirror of the file to memory - great for execution perf
       spec = mmap(NULL, (size_t)fd_stat.st_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, spec_file, 0);
       if (spec == MAP_FAILED) {
@@ -80,7 +80,7 @@ int main(int argc, char const* argv[]) {
 
   // Configure R2U2 monitor
   r2u2_monitor_t r2u2_monitor = R2U2_DEFAULT_MONITOR;
-  r2u2_update_binary_file(spec, &r2u2_monitor);
+  r2u2_load_specification(spec, &r2u2_monitor);
 
   if (munmap(spec, (size_t)fd_stat.st_size) != 0) {
     perror("Spec memory mapping did not close cleanly");

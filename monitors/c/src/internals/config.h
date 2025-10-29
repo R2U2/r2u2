@@ -47,6 +47,12 @@
     #define R2U2_TRACE INHIBIT
 #endif
 
+#if defined(__GNUC__)
+    #define ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( __llvm__)
+    #define ALWAYS_INLINE __attribute__((always_inline))
+#endif
+
 /* Platform compatibility enforcement, this will intentionally cause a
  * pre-processor warning a feature status is changed due to platform
  */

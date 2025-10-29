@@ -5,7 +5,7 @@
 #include "../memory/monitor.h"
 #include "../internals/errors.h"
 
-/// @brief      Updates the BZ engine based on current instruction in table
+/// @brief      Updates the TL engine based on current instruction in table
 /// @param[in]  monitor  Pointer to (configured) R2U2 monitor
 /// @return     r2u2_status_t
 r2u2_status_t r2u2_mltl_update(r2u2_monitor_t* monitor);

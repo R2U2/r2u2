@@ -240,10 +240,6 @@ class Options:
 
         self.assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
 
-        if self.enable_booleanizer and self.impl != types.R2U2Implementation.C and self.impl != types.R2U2Implementation.RUST:
-            log.error(MODULE_CODE, "Booleanizer only available for C and Rust implementation")
-            status = False
-
         if self.enable_booleanizer:
             self.frontend = types.R2U2Engine.BOOLEANIZER
         else:

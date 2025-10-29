@@ -14,7 +14,7 @@ Alternatively, the required memory can be set aside by the user and referenced b
 
 ## C2PO Specification Input
 Each R2U2 static monitor monitors its own specifications that have been specified utilizing C2PO. It is the user's responsibility to set the C2PO binary correctly. The specification binary must be passed as a uint8_t array memory
-to `r2u2_get_monitor` or `r2u2_update_binary_file` as defined in `r2u2.h`.
+to `r2u2_load_specification` as defined in `r2u2.h`.
 
 :::{note}
 The `xxd -i [file path to C2PO binary]` terminal command will dump the binary compiled by C2PO into a byte array.
@@ -37,7 +37,7 @@ See [](./output.md) for more details.
 
 As demonstrated in `cli/main.c`, a standard life-cycle for an R2U2 monitor is:
 
-1. A monitor must be created utilizing `r2u2_get_monitor`, where the specification file from C2PO may be passed into this function. The specifications can later be updated with `r2u2_update_binary_file`; this will also reset the monitor to its intial state.
+1. A monitor must be first defined (e.g., `r2u2_monitor_t monitor = R2U2_DEFAULT_MONITOR;`). The specifications can loaded or even later updated with `r2u2_load_specification`; this will also reset the monitor to its intial state.
 2. The output file pointer is set
 3. Signals must be loaded in according to the mapping specified when compiling the specification file through `load_bool_signal`, `load_float_signal`, `load_int_signal`, and `load_string_signal`.
 4. `r2u2_step` is called to run the monitor for a singlt time step

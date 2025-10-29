@@ -85,15 +85,9 @@ impl Monitor{
         }
     }
     pub fn reset(&mut self) {
-        self.time_stamp = 0;
-        self.progress = MonitorProgressState::FirstLoop;
-        self.bz_program_count.curr_program_count = 0;
+        self.clock_reset();
         self.bz_program_count.max_program_count = 0;
-        self.mltl_program_count.curr_program_count = 0;
         self.bz_program_count.max_program_count = 0;
-        for elem in self.queue_arena.queue_mem.iter_mut() {
-            *elem = r2u2_verdict::default();
-        }
         for elem in self.queue_arena.control_blocks.iter_mut() {
             *elem = SCQCtrlBlock::default();
         }

@@ -19,7 +19,7 @@ typedef enum {
   R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS,
 } r2u2_monitor_progress_state_t;
 
-typedef struct program_count {
+typedef struct {
   size_t curr_program_count;
   size_t max_program_count;
 } program_count_t;
@@ -27,7 +27,7 @@ typedef struct program_count {
 // Monitor is defined with pointers to avoid forcing a size on arrays, but
 // hopefully you keep them close-by so the cache hits. By default this should
 // all end up in BBS
-typedef struct r2u2_monitor {
+typedef struct {
   r2u2_time time_stamp;
   r2u2_monitor_progress_state_t progress;
   program_count_t bz_program_count;
@@ -100,12 +100,13 @@ typedef struct r2u2_monitor {
     }
 #endif
 
-/// @brief      Resets the monitors vector clock and SCQ slots without changing other state
+/// @brief      Resets the monitors vector clock without changing other state
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
 void r2u2_monitor_clock_reset(r2u2_monitor_t* monitor);
 
 /// @brief      Resets the monitors vector clock, SCQ slots, and instruction tables
+/// @warning    Assumes use of R2U2_DEFAULT_MONITOR
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
 void r2u2_monitor_reset(r2u2_monitor_t* monitor);

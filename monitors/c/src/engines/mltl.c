@@ -72,7 +72,7 @@ static r2u2_bool check_operand_data(r2u2_monitor_t* monitor, r2u2_mltl_instructi
 /// @param[out] result Verdict-timestamp tuple to be written to SCQ
 /// @return     r2u2_status_t
 static r2u2_status_t push_result(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t* instr, r2u2_verdict result) {
-  // Pushes result to queue, sets next_time, and flags progress if needed
+  // Pushes result to queue and flags progress if needed
 
   if (monitor->progress == R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS) {
     monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS;
