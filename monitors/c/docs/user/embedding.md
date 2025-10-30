@@ -40,7 +40,7 @@ As demonstrated in `cli/main.c`, a standard life-cycle for an R2U2 monitor is:
 1. A monitor must be first defined (e.g., `r2u2_monitor_t monitor = R2U2_DEFAULT_MONITOR;`). The specifications can loaded or even later updated with `r2u2_load_specification`; this will also reset the monitor to its intial state.
 2. The output file pointer is set
 3. Signals must be loaded in according to the mapping specified when compiling the specification file through `load_bool_signal`, `load_float_signal`, `load_int_signal`, and `load_string_signal`.
-4. `r2u2_step` is called to run the monitor for a singlt time step
+4. `r2u2_step` is called to run the monitor for a single time step
 5. Error conditions are checked
 6. The signal vector is updated if a time-step has completed
 7. Loop back to step 4 and continue executing until monitoring is complete

@@ -15,7 +15,7 @@ Of these three values, only two are "real" (BZ and TL), while CG is used interna
 
 ## Instruction Dispatch
 
-The `r2u2_step` function contains the primary control flow of the monitor. All booleanizer instructions are executed first and 
+The `monitor_step` function contains the primary control flow of the monitor. All booleanizer instructions are executed first and 
 only once. Then the temporal logic instructions are sequentially iterated over until no more progress can be made based on the
 currently observed data.
 

@@ -29,7 +29,7 @@
 
 use internals::types::*;
 use internals::process_binary::process_binary_file;
-use engines::r2u2_step;
+use engines::r2u2_engine_step;
 
 #[cfg(feature = "debug_print_semihosting")]
 use cortex_m_semihosting::hprintln;
@@ -96,7 +96,7 @@ pub fn update_binary_file(spec_file: &[u8], monitor: &mut Monitor){
 /// A `bool` indicating if successful (true) or overflow occured (false)
 /// 
 pub fn monitor_step(monitor: &mut Monitor) -> r2u2_bool{
-    r2u2_step(monitor)
+    r2u2_engine_step(monitor)
 }
 
 /// Load boolean signal

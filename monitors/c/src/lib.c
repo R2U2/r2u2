@@ -21,11 +21,11 @@ r2u2_status_t r2u2_load_specification(uint8_t* spec, r2u2_monitor_t* monitor) {
     return R2U2_OK;
 }
 
-r2u2_status_t r2u2_monitor_step(r2u2_monitor_t* monitor){
-  return r2u2_step(monitor);
+r2u2_status_t r2u2_step(r2u2_monitor_t* monitor){
+  return r2u2_engine_step(monitor);
 }
 
-void r2u2_load_bool_value(r2u2_monitor_t* monitor, size_t index, r2u2_bool value){
+void r2u2_load_bool_signal(r2u2_monitor_t* monitor, size_t index, r2u2_bool value){
   if (monitor->bz_program_count.max_program_count == 0) {
     monitor->atomic_buffer[index] = value;
   } else {
@@ -33,7 +33,7 @@ void r2u2_load_bool_value(r2u2_monitor_t* monitor, size_t index, r2u2_bool value
   }
 }
 
-void r2u2_load_int_value(r2u2_monitor_t* monitor, size_t index, r2u2_int value){
+void r2u2_load_int_signal(r2u2_monitor_t* monitor, size_t index, r2u2_int value){
   if (monitor->bz_program_count.max_program_count == 0) {
     monitor->atomic_buffer[index] = value != 0;
   } else {
@@ -41,7 +41,7 @@ void r2u2_load_int_value(r2u2_monitor_t* monitor, size_t index, r2u2_int value){
   }
 }
 
-void r2u2_load_float_value(r2u2_monitor_t* monitor, size_t index, r2u2_float value){
+void r2u2_load_float_signal(r2u2_monitor_t* monitor, size_t index, r2u2_float value){
   if (monitor->bz_program_count.max_program_count == 0) {
     monitor->atomic_buffer[index] = value >= R2U2_FLOAT_EPSILON || value <= -R2U2_FLOAT_EPSILON;
   } else {
@@ -49,7 +49,7 @@ void r2u2_load_float_value(r2u2_monitor_t* monitor, size_t index, r2u2_float val
   }
 }
 
-void r2u2_load_string_value(r2u2_monitor_t* monitor, size_t index, char* value){
+void r2u2_load_string_signal(r2u2_monitor_t* monitor, size_t index, char* value){
   if (monitor->bz_program_count.max_program_count == 0) {
     monitor->atomic_buffer[index] = (strcmp(value,"0") != 0);
   } else {

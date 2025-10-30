@@ -15,6 +15,6 @@ static const uint8_t R2U2_ENG_BZ = 5; // Booleanizer
 /// @brief      Executes the R2U2 engine for a single time step
 /// @param[in]  monitor  Pointer to (configured) R2U2 monitor
 /// @return     r2u2_status_t
-r2u2_status_t r2u2_step(r2u2_monitor_t* monitor);
+r2u2_status_t r2u2_engine_step(r2u2_monitor_t* monitor);
 
 #endif /* R2U2_ENGINES_H */

@@ -32,7 +32,7 @@ r2u2_status_t r2u2_csv_load_next_signals(r2u2_csv_reader_t* csv_reader, r2u2_mon
       R2U2_DEBUG_PRINT("Event: %u\n",monitor->time_stamp);
       signal = strtok_r(NULL, " ", &temp_var);
     }
-    r2u2_load_string_value(monitor, i, signal);
+    r2u2_load_string_signal(monitor, i, signal);
   }
 
   return R2U2_OK;

@@ -4,7 +4,7 @@
 #include "mltl.h"
 #include "../internals/debug.h"
 
-r2u2_status_t r2u2_step(r2u2_monitor_t* monitor) {
+r2u2_status_t r2u2_engine_step(r2u2_monitor_t* monitor) {
     r2u2_status_t error_cond;
 
     // Operate over all BZ instructions first and only once on each step forward

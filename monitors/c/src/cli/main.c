@@ -120,7 +120,7 @@ int main(int argc, char const* argv[]) {
 
     if ((err_cond != R2U2_OK)) break;
 
-    err_cond = r2u2_monitor_step(&r2u2_monitor);
+    err_cond = r2u2_step(&r2u2_monitor);
 
   } while (err_cond == R2U2_OK);
 
