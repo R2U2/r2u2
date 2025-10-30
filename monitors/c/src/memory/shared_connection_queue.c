@@ -1,5 +1,4 @@
 #include "shared_connection_queue.h"
-#include "../internals/debug.h"
 
 r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_verdict value) {
   r2u2_scq_control_block_t* ctrl = &((arena.control_blocks)[queue_id]);

@@ -5,10 +5,12 @@
 // Only reserved if R2U2_AUX_STRING_SPECS is enabled
 #define R2U2_MAX_AUX_BYTES 1024
 
+// Number of formula auxilary information metadata blocks 
 // Represents maximum number of formulas being monitored
 // Only reserved if R2U2_AUX_STRING_SPECS is enabled
 #define R2U2_MAX_FORMULAS 128
 
+// Number of assume-guarantee contract (AGC) auxilary information metadata blocks
 // Represents maximum number of assume-guarantee contracts being monitored
 // Only reserved if R2U2_AUX_STRING_SPECS is enabled
 #define R2U2_MAX_CONTRACTS 64

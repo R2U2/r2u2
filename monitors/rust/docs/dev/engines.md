@@ -3,6 +3,8 @@
 Each engine is identified by a constant value:
 
 ```Rust
+// pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ - not utilized since v4.0
+// pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control - not utilized since v4.0
 pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
 // Original Atomic Checker was 3, but has been removed since v4.0
 pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine

@@ -19,10 +19,6 @@ The primary working memory of the temporal engine, shared connection queues are 
 The SCQ memory arena consists of two arrays. The first holding control metadata information for each SCQ (e.g., lower bound, upper bound, scq location, etc.),
 and the second consisting of all SCQ slots (which each SCQ reserves a portion by setting the appropriate control metadata).
 
-:::{note}
-If the SCQ memory domain is insufficient, the metadata "stack" will crash into the queue slot "heap" in the middle of the domain.
-:::
-
 For SCQ operational semantics and sizing, see {footcite:p}`AJR2025` and {footcite:p}`KZJZR20`.
 
 ---

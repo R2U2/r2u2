@@ -28,6 +28,7 @@ pub const R2U2_MAX_OUTPUT_VERDICTS: usize = 256;
 #[from_env]
 pub const R2U2_MAX_OUTPUT_CONTRACTS: usize = 128;
 
+/// Number of formula auxilary information metadata blocks
 /// Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)
 /// 
 /// Adjust by setting in .cargo/config.toml of parent project
@@ -42,6 +43,7 @@ pub const R2U2_MAX_OUTPUT_CONTRACTS: usize = 128;
 #[from_env]
 pub const R2U2_MAX_FORMULAS: usize = 128;
 
+/// Number of assume-guarantee contract (AGC) auxilary information metadata blocks
 /// Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)
 /// 
 /// Adjust by setting in .cargo/config.toml of parent project

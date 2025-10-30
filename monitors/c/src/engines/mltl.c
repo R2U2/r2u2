@@ -1,9 +1,9 @@
 #include "../internals/config.h"
+#include "../internals/debug.h"
 #include "mltl.h"
 #if R2U2_AUX_STRING_SPECS
 #include "aux_info.h"
 #endif
-#include "../internals/debug.h"
 
 #define max(x,y) (((x)>(y))?(x):(y))
 #define min(x,y) (((x)<(y))?(x):(y))
