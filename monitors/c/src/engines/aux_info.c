@@ -5,11 +5,10 @@
 r2u2_status_t r2u2_aux_formula_report(r2u2_monitor_t* monitor, r2u2_mltl_instruction_t instr, r2u2_verdict result){
 #if R2U2_AUX_STRING_SPECS
   r2u2_aux_info_arena_t aux_arena = monitor->aux_info_arena;
-  for (size_t i = 0; i < aux_arena.max_aux_formula; i++) {
-    if (instr.op2_value == aux_arena.formula_control_blocks[i].spec && !(get_verdict_truth(result))){
-      fprintf(monitor->out_file, "%s:%u,%s\n", aux_arena.formula_control_blocks[i].spec_str, get_verdict_time(result), get_verdict_truth(result) ? "T" : "F");
-      break;
-    }
+  if (instr.op2_value < aux_arena.max_aux_formula){
+    fprintf(monitor->out_file, "%s:%u,%s\n", aux_arena.formula_control_blocks[instr.op2_value].spec_str, get_verdict_time(result), get_verdict_truth(result) ? "T" : "F");
+  } else {
+    fprintf(monitor->out_file, "%u:%u,%s\n", instr.op2_value, get_verdict_time(result), get_verdict_truth(result) ? "T" : "F");
   }
 #endif
   return R2U2_OK;

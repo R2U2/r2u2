@@ -89,15 +89,10 @@ pub fn mltl_update(monitor: &mut Monitor){
                 
                 #[cfg(feature = "aux_string_specs")]
                 // Set auxiliary data for function output
-                for aux_data_idx in 0..monitor.formula_aux_string_table.len() {
-                    if monitor.formula_aux_string_table[aux_data_idx].spec_str.is_empty() {
-                        monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: ztr64::from(""), verdict: verdict.unwrap()};
-                        break; // Reached end of aux_string_table
-                    }
-                    if monitor.formula_aux_string_table[aux_data_idx].spec == instr.op2_value {
-                        monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: monitor.formula_aux_string_table[aux_data_idx].spec_str, verdict: verdict.unwrap()};
-                        break;
-                    }
+                if (instr.op2_value as usize) < monitor.formula_aux_string_table.len(){
+                    monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: monitor.formula_aux_string_table[instr.op2_value as usize].spec_str, verdict: verdict.unwrap()};
+                } else { // Reached end of aux_string_table
+                    monitor.output_buffer[monitor.output_buffer_idx] = r2u2_output{spec_num: instr.op2_value, spec_str: ztr64::from(""), verdict: verdict.unwrap()};
                 }
                 #[cfg(all(any(feature = "debug_print_semihosting", feature = "debug_print_std"), feature = "aux_string_specs"))]
                 debug_print!("{} ({}):{},{}",  monitor.output_buffer[monitor.output_buffer_idx].spec_str, instr.op2_value, verdict.unwrap().time, if verdict.unwrap().truth {"T"} else {"F"});
