@@ -36,12 +36,12 @@ pub const R2U2_MAX_OUTPUT_CONTRACTS: usize = 128;
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_MAX_FORMULAS = { value = "32", force = true }
+/// R2U2_AUX_MAX_FORMULAS = { value = "32", force = true }
 /// ```
 /// 
 #[cfg(feature = "aux_string_specs")]
 #[from_env]
-pub const R2U2_MAX_FORMULAS: usize = 128;
+pub const R2U2_AUX_MAX_FORMULAS: usize = 128;
 
 /// Number of assume-guarantee contract (AGC) auxilary information metadata blocks
 /// Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)
@@ -51,12 +51,12 @@ pub const R2U2_MAX_FORMULAS: usize = 128;
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_MAX_CONTRACTS = { value = "32", force = true }
+/// R2U2_AUX_MAX_CONTRACTS = { value = "32", force = true }
 /// ```
 /// 
 #[cfg(feature = "aux_string_specs")]
 #[from_env]
-pub const R2U2_MAX_CONTRACTS: usize = 64;
+pub const R2U2_AUX_MAX_CONTRACTS: usize = 64;
 
 /// Represents maximum number of input signals
 /// 

@@ -80,7 +80,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t* monitor, uint8_t* spec) {
               (aux_arena->contract_control_blocks)[0].spec_str = (aux_arena->formula_control_blocks)[aux_formula_num-1].spec_str + strlen((aux_arena->formula_control_blocks)[aux_formula_num-1].spec_str) + 1; // Leave a Null
             }
             sscanf((char*)&(spec[offset]), "%*c %s %u %u %u%n", (aux_arena->contract_control_blocks)[aux_contract_num].spec_str, &(aux_arena->contract_control_blocks[aux_contract_num].spec_0), &(aux_arena->contract_control_blocks[aux_contract_num].spec_1), &(aux_arena->contract_control_blocks[aux_contract_num].spec_2), &length);
-            if (R2U2_MAX_CONTRACTS > (aux_contract_num + 1)){
+            if (R2U2_AUX_MAX_CONTRACTS > (aux_contract_num + 1)){
               (aux_arena->contract_control_blocks)[aux_contract_num+1].spec_str = (aux_arena->contract_control_blocks)[aux_contract_num].spec_str + strlen((aux_arena->contract_control_blocks)[aux_contract_num].spec_str) + 1; // Leave a Null
               R2U2_DEBUG_PRINT("Mapping contract: %s\n", (aux_arena->contract_control_blocks)[aux_contract_num].spec_str);
             } else {
@@ -93,7 +93,7 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t* monitor, uint8_t* spec) {
           }
           case 'F': {
             sscanf((char*)&(spec[offset]), "%*c %s %u%n", (aux_arena->formula_control_blocks)[aux_formula_num].spec_str, &(aux_arena->formula_control_blocks[aux_formula_num].spec), &length);
-            if (R2U2_MAX_FORMULAS > (aux_formula_num + 1)){
+            if (R2U2_AUX_MAX_FORMULAS > (aux_formula_num + 1)){
               (aux_arena->formula_control_blocks)[aux_formula_num+1].spec_str = (aux_arena->formula_control_blocks)[aux_formula_num].spec_str + strlen((aux_arena->formula_control_blocks)[aux_formula_num].spec_str) + 1; // Leave a Null
               R2U2_DEBUG_PRINT("Mapping formula: %s\n", (aux_arena->formula_control_blocks)[aux_formula_num].spec_str);
             } // Note: If bound is exceeded, we keep iterating to find contracts section of binary

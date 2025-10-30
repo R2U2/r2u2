@@ -1033,8 +1033,8 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     program.bounds["R2U2_MAX_AUX_BYTES"] = num_aliases_bytes + num_aliases # each alias string + null terminator
     program.bounds["R2U2_MAX_OUTPUT_VERDICTS"] = 2 * len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]) #To-Do: This is currently just an estimate
     program.bounds["R2U2_MAX_OUTPUT_CONTRACTS"] = 2 * len([i for i in context.contracts.items()]) #To-Do: This is currently just an estimate
-    program.bounds["R2U2_MAX_FORMULAS"] = len([i for i in program.get_specs() if isinstance(i, cpt.Formula)])
-    program.bounds["R2U2_MAX_CONTRACTS"] = len([i for i in context.contracts.items()])
+    program.bounds["R2U2_AUX_MAX_FORMULAS"] = len([i for i in program.get_specs() if isinstance(i, cpt.Formula)])
+    program.bounds["R2U2_AUX_MAX_CONTRACTS"] = len([i for i in context.contracts.items()])
     program.bounds["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
     program.bounds["R2U2_MAX_ATOMICS"] = num_atomics
     program.bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz

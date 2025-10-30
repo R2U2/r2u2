@@ -15,11 +15,11 @@ It is recommend to run with debug output after changing bounds to enable extra m
 
 ### Array Extents
 
-`R2U2_MAX_FORMULAS`
+`R2U2_AUX_MAX_FORMULAS`
 : Number of formula auxilary information metadata blocks; only utilized when `R2U2_AUX_SPEC_STRINGS` feature is enabled. 
 : Default: 128
 
-`R2U2_MAX_CONTRACTS`
+`R2U2_AUX_MAX_CONTRACTS`
 : Number of assume-guarantee contract (AGC) auxilary information metadata blocks; only utilized when `R2U2_AUX_SPEC_STRINGS` feature is enabled. 
 : Default: 64
 

@@ -29,9 +29,9 @@ pub struct Monitor{
     pub mltl_program_count: ProgramCount,
     pub mltl_instruction_table: [MLTLInstruction; R2U2_MAX_TL_INSTRUCTIONS],
     #[cfg(feature = "aux_string_specs")]
-    pub formula_aux_string_table: [FormulaAuxiliaryInfo; R2U2_MAX_FORMULAS],
+    pub formula_aux_string_table: [FormulaAuxiliaryInfo; R2U2_AUX_MAX_FORMULAS],
     #[cfg(feature = "aux_string_specs")]
-    pub contract_aux_string_table: [ContractAuxiliaryInfo; R2U2_MAX_CONTRACTS],
+    pub contract_aux_string_table: [ContractAuxiliaryInfo; R2U2_AUX_MAX_CONTRACTS],
     pub queue_arena: SCQMemoryArena,
     pub signal_buffer: [r2u2_value; R2U2_MAX_SIGNALS],
     pub value_buffer: [r2u2_value; R2U2_MAX_BZ_INSTRUCTIONS],
@@ -56,9 +56,9 @@ impl Default for Monitor{
             mltl_program_count: ProgramCount{curr_program_count: 0, max_program_count: 0},
             mltl_instruction_table: [MLTLInstruction::empty_instr(); R2U2_MAX_TL_INSTRUCTIONS],
             #[cfg(feature = "aux_string_specs")]
-            formula_aux_string_table: [FormulaAuxiliaryInfo::default(); R2U2_MAX_FORMULAS],
+            formula_aux_string_table: [FormulaAuxiliaryInfo::default(); R2U2_AUX_MAX_FORMULAS],
             #[cfg(feature = "aux_string_specs")]
-            contract_aux_string_table: [ContractAuxiliaryInfo::default(); R2U2_MAX_CONTRACTS],
+            contract_aux_string_table: [ContractAuxiliaryInfo::default(); R2U2_AUX_MAX_CONTRACTS],
             queue_arena: SCQMemoryArena::initialize(),
             signal_buffer: [r2u2_value::default(); R2U2_MAX_SIGNALS],
             value_buffer: [r2u2_value::default(); R2U2_MAX_BZ_INSTRUCTIONS],

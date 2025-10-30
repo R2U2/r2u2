@@ -1174,8 +1174,8 @@ class Program(Node):
             "R2U2_MAX_AUX_BYTES": -1,
             "R2U2_MAX_OUTPUT_VERDICTS": -1,
             "R2U2_MAX_OUTPUT_CONTRACTS": -1,
-            "R2U2_MAX_FORMULAS": -1,
-            "R2U2_MAX_CONTRACTS": -1,
+            "R2U2_AUX_MAX_FORMULAS": -1,
+            "R2U2_AUX_MAX_CONTRACTS": -1,
             "R2U2_MAX_SIGNALS": -1,
             "R2U2_MAX_ATOMICS": -1,
             "R2U2_MAX_BZ_INSTRUCTIONS": -1,
@@ -1193,10 +1193,10 @@ class Program(Node):
         contents += f"#define R2U2_MAX_AUX_BYTES {self.bounds.get('R2U2_MAX_AUX_BYTES')}\n\n"
         contents += "// Represents maximum number of formulas being monitored\n"
         contents += "// Only reserved if R2U2_AUX_STRING_SPECS is enabled\n"
-        contents += f"#define R2U2_MAX_FORMULAS {self.bounds.get('R2U2_MAX_FORMULAS')}\n\n"
+        contents += f"#define R2U2_AUX_MAX_FORMULAS {self.bounds.get('R2U2_AUX_MAX_FORMULAS')}\n\n"
         contents += "// Represents maximum number of assume-guarantee contracts being monitored\n"
         contents += "// Only reserved if R2U2_AUX_STRING_SPECS is enabled\n"
-        contents += f"#define R2U2_MAX_CONTRACTS {self.bounds.get('R2U2_MAX_CONTRACTS')}\n\n"
+        contents += f"#define R2U2_AUX_MAX_CONTRACTS {self.bounds.get('R2U2_AUX_MAX_CONTRACTS')}\n\n"
         contents += "// Represents maximum number of input signals\n"
         contents += f"#define R2U2_MAX_SIGNALS {self.bounds.get('R2U2_MAX_SIGNALS')}\n\n"
         contents += "// Represents maximum number of Booleans passed from the front-end\n"
@@ -1223,9 +1223,9 @@ class Program(Node):
         contents += "# Represents maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)\n"
         contents += f'R2U2_MAX_OUTPUT_CONTRACTS = {{ value = "{self.bounds.get("R2U2_MAX_OUTPUT_CONTRACTS")}", force = true }}\n\n'
         contents += "# # Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)\n"
-        contents += f'R2U2_MAX_FORMULAS = {{ value = "{self.bounds.get("R2U2_MAX_FORMULAS")}", force = true }}\n\n'
+        contents += f'R2U2_AUX_MAX_FORMULAS = {{ value = "{self.bounds.get("R2U2_AUX_MAX_FORMULAS")}", force = true }}\n\n'
         contents += "# Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)\n"
-        contents += f'R2U2_MAX_CONTRACTS = {{ value = "{self.bounds.get("R2U2_MAX_CONTRACTS")}", force = true }}\n\n'
+        contents += f'R2U2_AUX_MAX_CONTRACTS = {{ value = "{self.bounds.get("R2U2_AUX_MAX_CONTRACTS")}", force = true }}\n\n'
         contents += "# Represents maximum number of input signals\n"
         contents += f'R2U2_MAX_SIGNALS = {{ value = "{self.bounds.get("R2U2_MAX_SIGNALS")}", force = true }}\n\n'
         contents += "# Represents maximum number of Booleans passed from the front-end (booleanizer or directly loaded atomics) to the temporal logic engine\n"
