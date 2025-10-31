@@ -19,7 +19,7 @@ cortex-m-semihosting = {version = "0.5.0", optional = true}
 libc-print = {version = "0.1.23", optional = true}
 const_env = "0.1.2"
 fixedstr = {version = "0.5.8", features=["no-alloc"], optional = true}
-vstd = { git = "https://github.com/verus-lang/verus.git", rev = "5d67ff0eadb0577ea23a9805f360c93ce8ea93a8", default-features = false }
+vstd = {version = "0.0.0-2025-08-12-1837", default-features = false}
 
 [features]
 aux_string_specs = ["dep:fixedstr"]
