@@ -11,7 +11,10 @@ FILE* r2u2_debug_fptr = NULL;
 
 r2u2_status_t r2u2_load_specification(uint8_t* spec, r2u2_monitor_t* monitor) {
     // Memory resets....
-    r2u2_monitor_reset(monitor);
+    r2u2_monitor_soft_reset(monitor); // NOTE: Does not reset SCQ arena.
+    // Optional: Use the following hard reset instead to also reset SCQ arena, 
+    // but the monitor MUST be R2U2_DEFAULT_MONITOR
+    // r2u2_monitor_hard_reset(monitor);
 
     // Populate instruction table from binary spec in instruction memory
     if (r2u2_process_binary(monitor, spec) != R2U2_OK) {

@@ -105,10 +105,15 @@ typedef struct {
 /// @return     None
 void r2u2_monitor_clock_reset(r2u2_monitor_t* monitor);
 
+/// @brief      Resets the monitors vector clock and instruction tables without resetting SCQ arena
+/// @param[in]  monitor  Pointer to r2u2_monitor_t
+/// @return     None
+void r2u2_monitor_soft_reset(r2u2_monitor_t* monitor);
+
 /// @brief      Resets the monitors vector clock, SCQ slots, and instruction tables
 /// @warning    Assumes use of R2U2_DEFAULT_MONITOR
 /// @param[in]  monitor  Pointer to r2u2_monitor_t
 /// @return     None
-void r2u2_monitor_reset(r2u2_monitor_t* monitor);
+void r2u2_monitor_hard_reset(r2u2_monitor_t* monitor);
 
 #endif /* R2U2_MEMORY_MONITOR_H */
