@@ -401,8 +401,6 @@ class CGInstruction:
         if self.type == CGType.SCQ:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"|{self.instruction.operand1_value}|")
-            if self.instruction.operand2_type == TLOperandType.ATOMIC:
-                field_strs.append(f"<{self.instruction.operand2_value}>")
         elif self.type == CGType.TEMP:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"[{self.instruction.operand1_value}, "
@@ -656,9 +654,8 @@ def gen_ft_scq_instructions(
             instructions[expr].id,
             FTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
+            (expr.scq[1] - expr.scq[0]),
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -715,9 +712,8 @@ def gen_pt_scq_instructions(
             instructions[expr].id,
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
+            (expr.scq[1] - expr.scq[0]),
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -829,11 +825,23 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if bz_instructions[key].operator is BZOperator.PREV:
             bz_instructions[key] = bz_instructions.pop(key)
 
+    # Move all CG TEMP instructions to the end (i.e., always completely configure the SCQ size
+    # for all SCQ's before configuring temporal metadata)
+    cg_instructions_ordered = [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+    idx = 0
+    end_of_instructions = len(cg_instructions_ordered)
+    while idx < end_of_instructions:
+        if cg_instructions_ordered[idx].type is CGType.TEMP:
+            cg_instructions_ordered.append(cg_instructions_ordered.pop(idx))
+            end_of_instructions -= 1
+        else:
+            idx += 1
+
     return (
         list(bz_instructions.values())
         + list(ft_instructions.values())
         + list(pt_instructions.values())
-        + [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+        + cg_instructions_ordered
     )
 
 
@@ -1007,38 +1015,32 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
     return (aliases, binary)
 
 
-def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction], binary: bytes) -> None:
-    """Computes values for bounds file, setting the values in `program.bounds_c` and `program.bounds_rs`."""
+def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction]) -> None:
+    """Computes values for bounds file, setting the values in `program.bounds`."""
     num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
     num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
-    num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
+    num_temporal_instructions = len([i for i in assembly if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
     num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
+    num_aliases_bytes = sum([
+        (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
+    ])
     num_signals = len(context.signals)
-    num_atomics = len(context.atomic_id.values())
+    num_atomics = len(set(context.atomic_id.values()))
     total_scq_size = sum([
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
     ])
 
-    program.bounds_c["R2U2_MAX_INSTRUCTIONS"] = num_bz + num_tl
-    program.bounds_c["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
-    program.bounds_c["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds_c["R2U2_MAX_INST_LEN"] = len(binary)
-    program.bounds_c["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_c["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
-    program.bounds_c["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
-
-    program.bounds_rs["R2U2_MAX_SPECS"] = sum(
-        [
-            spec.get_expr().wpd
-            for spec in program.get_specs()
-            if isinstance(spec, cpt.Formula)
-        ]
-    )
-    program.bounds_rs["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
-    program.bounds_rs["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds_rs["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds_rs["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    program.bounds_rs["R2U2_TOTAL_QUEUE_MEM"] = total_scq_size - (4 * num_temporal_instructions)
+    program.bounds["R2U2_MAX_AUX_BYTES"] = num_aliases_bytes + num_aliases # each alias string + null terminator
+    program.bounds["R2U2_MAX_OUTPUT_VERDICTS"] = 2 * len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]) #To-Do: This is currently just an estimate
+    program.bounds["R2U2_MAX_OUTPUT_CONTRACTS"] = 2 * len([i for i in context.contracts.items()]) #To-Do: This is currently just an estimate
+    program.bounds["R2U2_AUX_MAX_FORMULAS"] = len([i for i in program.get_specs() if isinstance(i, cpt.Formula)])
+    program.bounds["R2U2_AUX_MAX_CONTRACTS"] = len([i for i in context.contracts.items()])
+    program.bounds["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
+    program.bounds["R2U2_MAX_ATOMICS"] = num_atomics
+    program.bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
+    program.bounds["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
+    program.bounds["R2U2_MAX_TEMPORAL_OPERATORS"] = num_temporal_instructions
+    program.bounds["R2U2_MAX_QUEUE_SLOTS"] = total_scq_size
 
 
 def assemble(
@@ -1054,7 +1056,7 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
+        f"C2PO Version 4.1.0 for R2U2 V4.1.0 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
@@ -1072,6 +1074,6 @@ def assemble(
 
     binary += b"\x00"
 
-    compute_bounds(program, context, assembly, binary) # type: ignore
+    compute_bounds(program, context, assembly) # type: ignore
 
     return (assembly, binary) #type: ignore

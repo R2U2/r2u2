@@ -839,6 +839,10 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     """Returns result of running SMT solver on the SMT encoding of `expr`."""
     log.debug(MODULE_CODE, 1, f"Checking satisfiability:\n\t{repr(expr)}")
 
+    if not check_solver(context.options.smt_solver_path):
+        log.error(MODULE_CODE, f"{context.options.smt_solver_path} not found")
+        return SatResult.FAILURE
+
     start = util.get_rusage_time()
     if context.options.smt_encoding == options.SMTTheories.UFLIA:
         smt = to_uflia_smtlib2(expr, context)
@@ -862,27 +866,6 @@ def check_sat_expr(expr: cpt.Expression, context: cpt.Context) -> SatResult:
     context.stats.smt_solver_result = result.value
 
     return result
-
-
-def check_sat(
-    program: cpt.Program, context: cpt.Context
-) -> "dict[cpt.Specification, SatResult]":
-    """Runs an SMT solver on the SMT encoding of the MLTL formulas in `program`."""
-    if not check_solver(context.options.smt_solver_path):
-        log.error(MODULE_CODE, f"{context.options.smt_solver_path} not found")
-        return {}
-
-    results: dict[cpt.Specification, SatResult] = {}
-
-    for spec in program.get_specs():
-        if isinstance(spec, cpt.Contract):
-            log.warning(MODULE_CODE, "Found contract, skipping")
-            continue
-
-        expr = spec.get_expr()
-        results[spec] = check_sat_expr(expr, context)
-
-    return results
 
 
 def check_equiv(

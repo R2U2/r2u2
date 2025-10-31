@@ -28,19 +28,35 @@ pub const R2U2_MAX_OUTPUT_VERDICTS: usize = 256;
 #[from_env]
 pub const R2U2_MAX_OUTPUT_CONTRACTS: usize = 128;
 
-/// Represents maximum number of specifications being monitored (only utilized when aux_string_specs feature is enabled)
+/// Number of formula auxilary information metadata blocks
+/// Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)
 /// 
 /// Adjust by setting in .cargo/config.toml of parent project
 /// 
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_MAX_SPECS = { value = "32", force = true }
+/// R2U2_AUX_MAX_FORMULAS = { value = "32", force = true }
 /// ```
 /// 
 #[cfg(feature = "aux_string_specs")]
 #[from_env]
-pub const R2U2_MAX_SPECS: usize = 256;
+pub const R2U2_AUX_MAX_FORMULAS: usize = 128;
+
+/// Number of assume-guarantee contract (AGC) auxilary information metadata blocks
+/// Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)
+/// 
+/// Adjust by setting in .cargo/config.toml of parent project
+/// 
+/// # Examples
+/// ```
+/// [env]
+/// R2U2_AUX_MAX_CONTRACTS = { value = "32", force = true }
+/// ```
+/// 
+#[cfg(feature = "aux_string_specs")]
+#[from_env]
+pub const R2U2_AUX_MAX_CONTRACTS: usize = 64;
 
 /// Represents maximum number of input signals
 /// 
@@ -101,10 +117,10 @@ pub const R2U2_MAX_TL_INSTRUCTIONS: usize = 256;
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_TOTAL_QUEUE_SLOTS = { value = "1024", force = true }
+/// R2U2_MAX_QUEUE_SLOTS = { value = "1024", force = true }
 /// ```
 /// 
 #[from_env]
-pub const R2U2_TOTAL_QUEUE_SLOTS: usize = 2048;
+pub const R2U2_MAX_QUEUE_SLOTS: usize = 2048;
 
 pub const R2U2_FLOAT_EPSILON: r2u2_float =  0.00001;

@@ -12,8 +12,6 @@ EMPTY_FILENAME = ""
 
 R2U2_IMPL_MAP = {
     "c": types.R2U2Implementation.C,
-    "cpp": types.R2U2Implementation.CPP,
-    "vhdl": types.R2U2Implementation.VHDL,
     "rust": types.R2U2Implementation.RUST,
 }
 
@@ -56,7 +54,6 @@ DEFAULTS = {
     "enable_eqsat": False,
     "enable_cse": True,
     "enable_sat": False,
-    "write_bounds_filename": None,
     "egglog_path": "egglog",
     "eqsat_max_time": 3600,
     "eqsat_max_memory": 0,
@@ -65,6 +62,7 @@ DEFAULTS = {
     "smt_encoding_str": "uflia",
     "smt_max_time": 3600,
     "smt_max_memory": 0,
+    "write_bounds_filename": None,
     "write_c2po_filename": None,
     "write_prefix_filename": None,
     "write_mltl_filename": None,
@@ -101,7 +99,6 @@ class Options:
     enable_eqsat: bool = DEFAULTS["enable_eqsat"]
     enable_cse: bool = DEFAULTS["enable_cse"]
     enable_sat: bool = DEFAULTS["enable_sat"]
-    write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
     egglog_path: str = DEFAULTS["egglog_path"]
     eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
     eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
@@ -110,6 +107,7 @@ class Options:
     smt_encoding_str: str = DEFAULTS["smt_encoding_str"]
     smt_max_time: int = DEFAULTS["smt_max_time"]
     smt_max_memory: int = DEFAULTS["smt_max_memory"]
+    write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
     write_c2po_filename: Optional[str] = DEFAULTS["write_c2po_filename"]
     write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
     write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
@@ -220,13 +218,6 @@ class Options:
         self.impl = R2U2_IMPL_MAP[self.impl_str]
         types.configure_types(self.impl, self.int_width, self.int_is_signed, self.float_width)
 
-        if self.impl in {types.R2U2Implementation.CPP, types.R2U2Implementation.VHDL}:
-            if self.enable_extops:
-                log.error(
-                    MODULE_CODE, "Extended operators only support for C implementation"
-                )
-                status = False
-
         if self.enable_nnf and self.enable_bnf:
             log.warning(
                 MODULE_CODE, "Attempting rewrite to both NNF and BNF, defaulting to NNF"
@@ -248,10 +239,6 @@ class Options:
             final_stage = CompilationStage.ASSEMBLE
 
         self.assembly_enabled = (final_stage == CompilationStage.ASSEMBLE)
-
-        if self.enable_booleanizer and self.impl != types.R2U2Implementation.C:
-            log.error(MODULE_CODE, "Booleanizer only available for C implementation")
-            status = False
 
         if self.enable_booleanizer:
             self.frontend = types.R2U2Engine.BOOLEANIZER

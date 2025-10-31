@@ -8,9 +8,7 @@ MODULE_CODE = "TYPE"
 
 class R2U2Implementation(enum.Enum):
     C = 0
-    CPP = 1
-    VHDL = 2
-    RUST = 3
+    RUST = 1
 
 
 class R2U2Engine(enum.Enum):
@@ -187,13 +185,13 @@ def configure_types(
             " Invalid float width, must be a multiple of 8 for byte-alignment.",
         )
 
-    if impl == R2U2Implementation.C or impl == R2U2Implementation.CPP:
+    if impl == R2U2Implementation.C or impl == R2U2Implementation.RUST:
         if int_width == 8 or int_width == 16 or int_width == 32 or int_width == 64:
             IntType.width = int_width
         else:
             log.error(
                 MODULE_CODE,
-                " Invalid int width, must correspond to a C standard int width (8, 16, 32, or 64).",
+                " Invalid int width, must correspond to a C/Rust standard int width (8, 16, 32, or 64).",
             )
 
         if float_width == 32 or float_width == 64:
@@ -201,7 +199,7 @@ def configure_types(
         else:
             log.error(
                 MODULE_CODE,
-                " Invalid float width, must correspond to a C standard float width (32 or 64).",
+                " Invalid float width, must correspond to a C/Rust standard float width (32 or 64).",
             )
     else:
         IntType.width = int_width

@@ -10,12 +10,12 @@ CG TL SCQ q0 |1|
 CG TL SCQ q1 |1|
 CG TL SCQ q2 |1|
 CG TL SCQ q3 |1|
-CG TL SCQ q4 |5|
-CG TL TEMP q4 [5, 10]
+CG TL SCQ q4 |1|
 CG TL SCQ q5 |1|
-CG TL SCQ q6 |5|
-CG TL TEMP q6 [5, 10]
+CG TL SCQ q6 |1|
 CG TL SCQ q7 |1|
+CG TL TEMP q4 [5, 10]
+CG TL TEMP q6 [5, 10]
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

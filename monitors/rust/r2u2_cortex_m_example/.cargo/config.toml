@@ -8,13 +8,8 @@
 runner = "arm-none-eabi-gdb -q -x openocd.gdb"
 # runner = "gdb-multiarch -q -x openocd.gdb"
 # runner = "gdb -q -x openocd.gdb"
-linker = "flip-link" #https://github.com/knurling-rs/flip-link
 
 rustflags = [
-  # Previously, the linker arguments --nmagic and -Tlink.x were set here.
-  # They are now set by build.rs instead. The linker argument can still
-  # only be set here, if a custom linker is needed.
-
   # By default, the LLD linker is used, which is shipped with the Rust
   # toolchain. If you run into problems with LLD, you can switch to the
   # GNU linker by uncommenting this line:
@@ -25,6 +20,15 @@ rustflags = [
   # "-C", "linker=arm-none-eabi-gcc",
   # "-C", "link-arg=-Wl,-Tlink.x",
   # "-C", "link-arg=-nostartfiles",
+
+  # Stack Overflow protection
+  # See https://github.com/knurling-rs/flip-link
+  "-C", "linker=flip-link",
+  # Set the linker script to the one provided by cortex-m-rt.
+  "-C", "link-arg=-Tlink.x",
+  # `--nmagic` is required if memory section addresses are not aligned to 0x10000,
+  # for example the FLASH and RAM sections in your `memory.x`.
+  "-C", "link-arg=--nmagic",
 ]
 
 [build]
@@ -39,9 +43,9 @@ target = "thumbv7em-none-eabihf"     # Cortex-M4F and Cortex-M7F (with FPU) -> S
 
 # Set the static memory allocated for R2U2 (run `$ cargo clean` if these values are changed)
 [env]
-R2U2_MAX_OUTPUT_VERDICTS = { value = "2", force = true }
-R2U2_MAX_SIGNALS = { value = "1", force = true }
+R2U2_MAX_OUTPUT_VERDICTS = { value = "4", force = true }
+R2U2_MAX_SIGNALS = { value = "0", force = true }
 R2U2_MAX_ATOMICS = { value = "1", force = true }
-R2U2_MAX_BZ_INSTRUCTIONS = { value = "1", force = true }
-R2U2_MAX_TL_INSTRUCTIONS = { value = "8", force = true }
-R2U2_TOTAL_QUEUE_SLOTS = { value = "8", force = true }
+R2U2_MAX_BZ_INSTRUCTIONS = { value = "0", force = true }
+R2U2_MAX_TL_INSTRUCTIONS = { value = "6", force = true }
+R2U2_MAX_QUEUE_SLOTS = { value = "6", force = true }

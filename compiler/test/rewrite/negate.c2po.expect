@@ -14,12 +14,12 @@ CG TL SCQ q2 |1|
 CG TL SCQ q3 |1|
 CG TL SCQ q4 |1|
 CG TL SCQ q5 |1|
-CG TL SCQ q6 |5|
-CG TL TEMP q6 [0, 5]
+CG TL SCQ q6 |1|
 CG TL SCQ q7 |1|
-CG TL SCQ q8 |5|
-CG TL TEMP q8 [0, 5]
+CG TL SCQ q8 |1|
 CG TL SCQ q9 |1|
+CG TL TEMP q6 [0, 5]
+CG TL TEMP q8 [0, 5]
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2
