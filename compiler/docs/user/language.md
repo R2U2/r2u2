@@ -181,7 +181,7 @@ the ID. For example:
 
 ### Assume-Guarantee Contracts
 
-*(R2U2 must be compiled with the `R2U2_TL_Contract_Status` option enabled)*
+*(R2U2 must be compiled with the `R2U2_AUX_STRING_SPECS` option enabled)*
 
 Specifications can also be in the form of assume guarantee contracts (AGCs). AGCs are required to
 have a label and are of the form `assume => guarantee`. They are only allowed to be the top-level

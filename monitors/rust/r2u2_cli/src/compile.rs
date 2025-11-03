@@ -5,7 +5,9 @@ use pyo3::ffi::c_str;
 pub fn c2po_compile(spec_filename: &str,
     trace_filename: &str,
     map_filename: &str,
+    impl_str: &str,
     output_filename: &str,
+    write_bounds_filename: &str,
     enable_booleanizer: bool,
     enable_aux: bool,
     enable_rewrite: bool,
@@ -33,7 +35,7 @@ pub fn c2po_compile(spec_filename: &str,
     let stats_code = c_str!(include_str!("../compiler/c2po/stats.py"));
     let util_code = c_str!(include_str!("../compiler/c2po/util.py"));
 
-    let from_python  = Python::with_gil(|py| -> PyResult<()>{
+    let from_python  = Python::attach(|py| -> PyResult<()>{
         PyModule::from_code(py, c2po_code, c_str!("c2po/__init__.py"), c_str!("c2po"))?;
         PyModule::from_code(py, stats_code, c_str!("c2po/stats.py"), c_str!("c2po.stats"))?;
         PyModule::from_code(py, log_code, c_str!("c2po/log.py"), c_str!("c2po.log"))?;
@@ -57,7 +59,9 @@ pub fn c2po_compile(spec_filename: &str,
         let args = (spec_filename,
             trace_filename,
             map_filename,
+            impl_str,
             output_filename,
+            write_bounds_filename,
             enable_booleanizer,
             enable_aux,
             enable_rewrite,

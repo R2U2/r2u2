@@ -58,6 +58,11 @@ def write_outputs(
 
     if context.options.write_bounds_filename is not None:
         write_bounds_path = pathlib.Path(context.options.write_bounds_filename)
+        if write_bounds_path.is_dir():
+            if context.options.impl == types.R2U2Implementation.C:
+                write_bounds_path = write_bounds_path / 'bounds.h'
+            elif context.options.impl == types.R2U2Implementation.RUST:
+                write_bounds_path = write_bounds_path / 'config.toml'
         if write_bounds_path.is_file():
             log.warning(MODULE_CODE, f"File {write_bounds_path} already exists. Overwriting.")
         elif write_bounds_path.exists():

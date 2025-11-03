@@ -17,30 +17,30 @@ TL n15 load   a1
 TL n16 since  n10 n15
 TL n17 return n16 6
 CG TL SCQ q0 |1|
-CG TL SCQ q1 |5|
-CG TL TEMP q1 [0, 5]
+CG TL SCQ q1 |1|
 CG TL SCQ q2 |1|
-CG TL SCQ q3 |5|
-CG TL TEMP q3 [0, 5]
+CG TL SCQ q3 |1|
 CG TL SCQ q4 |1|
 CG TL SCQ q5 |1|
-CG TL SCQ q6 |5|
-CG TL TEMP q6 [0, 5]
+CG TL SCQ q6 |1|
 CG TL SCQ q7 |1|
-CG TL SCQ q8 |5|
-CG TL TEMP q8 [0, 5]
+CG TL SCQ q8 |1|
 CG TL SCQ q9 |1|
 CG TL SCQ q10 |1|
-CG TL SCQ q11 |5|
-CG TL TEMP q11 [0, 5]
+CG TL SCQ q11 |1|
 CG TL SCQ q12 |1|
-CG TL SCQ q13 |5|
-CG TL TEMP q13 [0, 5]
+CG TL SCQ q13 |1|
 CG TL SCQ q14 |1|
 CG TL SCQ q15 |1|
-CG TL SCQ q16 |5|
-CG TL TEMP q16 [0, 5]
+CG TL SCQ q16 |1|
 CG TL SCQ q17 |1|
+CG TL TEMP q1 [0, 5]
+CG TL TEMP q3 [0, 5]
+CG TL TEMP q6 [0, 5]
+CG TL TEMP q8 [0, 5]
+CG TL TEMP q11 [0, 5]
+CG TL TEMP q13 [0, 5]
+CG TL TEMP q16 [0, 5]
 F __f0__ 0
 F __f1__ 1
 F __f2__ 2

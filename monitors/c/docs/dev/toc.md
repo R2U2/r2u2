@@ -2,9 +2,10 @@
 
 ```{toctree}
 architecture
+engines
+instructions
 internals
 memory
-engines
 debug
 testing
 ```

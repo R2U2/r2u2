@@ -14,8 +14,43 @@ fn convert_ascii_to_decimal(ascii: &[u8]) -> u32 {
 
 #[cfg(feature = "aux_string_specs")]
 #[derive(Copy, Clone)]
-pub struct AuxiliaryInfo {
-    // Spec String and Spec Number(s)
+pub struct FormulaAuxiliaryInfo {
+    // Spec String and Spec Number
+    pub spec_str: ztr64,
+    pub spec: u32, 
+}
+
+#[cfg(feature = "aux_string_specs")]
+impl Default for FormulaAuxiliaryInfo {
+    fn default() -> Self {
+        return FormulaAuxiliaryInfo {
+            spec_str: ztr64::from(""),
+            spec: 0, 
+        }
+    }
+}
+
+#[cfg(feature = "aux_string_specs")]
+impl FormulaAuxiliaryInfo {
+    pub fn set_function(instr: &[u8]) -> (FormulaAuxiliaryInfo, usize) {
+        let mut contract = FormulaAuxiliaryInfo::default();
+        let aux_data = ztr128::from_raw(&instr[2..]);
+
+        let mut start = 0;
+        let mut end = aux_data.find(' ').unwrap_or(64);
+        contract.spec_str = aux_data.substr(start, end).resize();
+
+        start = end + 1;
+        end = aux_data.len();
+        contract.spec = convert_ascii_to_decimal(&instr[start+2..end+2]);
+        return (contract, aux_data.len() + 2);
+    }
+}
+
+#[cfg(feature = "aux_string_specs")]
+#[derive(Copy, Clone)]
+pub struct ContractAuxiliaryInfo {
+    // Spec String and Spec Numbers
     pub spec_str: ztr64,
     pub spec_0: u32, 
     pub spec_1: u32,
@@ -23,9 +58,9 @@ pub struct AuxiliaryInfo {
 }
 
 #[cfg(feature = "aux_string_specs")]
-impl Default for AuxiliaryInfo {
+impl Default for ContractAuxiliaryInfo {
     fn default() -> Self {
-        return AuxiliaryInfo {
+        return ContractAuxiliaryInfo {
             spec_str: ztr64::from(""),
             spec_0: 0, 
             spec_1: 0,
@@ -35,9 +70,9 @@ impl Default for AuxiliaryInfo {
 }
 
 #[cfg(feature = "aux_string_specs")]
-impl AuxiliaryInfo {
-    pub fn set_contract(instr: &[u8]) -> (AuxiliaryInfo, usize) {
-        let mut contract = AuxiliaryInfo::default();
+impl ContractAuxiliaryInfo {
+    pub fn set_contract(instr: &[u8]) -> (ContractAuxiliaryInfo, usize) {
+        let mut contract = ContractAuxiliaryInfo::default();
         let aux_data = ztr128::from_raw(&instr[2..]);
 
         let mut start = 0;
@@ -57,19 +92,6 @@ impl AuxiliaryInfo {
         end = aux_data.len();
         
         contract.spec_2 = convert_ascii_to_decimal(&instr[start+2..end+2]);
-        return (contract, aux_data.len() + 2);
-    }
-    pub fn set_function(instr: &[u8]) -> (AuxiliaryInfo, usize) {
-        let mut contract = AuxiliaryInfo::default();
-        let aux_data = ztr128::from_raw(&instr[2..]);
-
-        let mut start = 0;
-        let mut end = aux_data.find(' ').unwrap_or(64);
-        contract.spec_str = aux_data.substr(start, end).resize();
-
-        start = end + 1;
-        end = aux_data.len();
-        contract.spec_0 = convert_ascii_to_decimal(&instr[start+2..end+2]);
         return (contract, aux_data.len() + 2);
     }
 }

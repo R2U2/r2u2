@@ -3,6 +3,8 @@
 Each engine is identified by a constant value:
 
 ```Rust
+// pub const R2U2_ENG_NA: u8 = 0; // Null instruction tag - acts as ENDSEQ - not utilized since v4.0
+// pub const R2U2_ENG_SY: u8 = 1; // System commands - reserved for monitor control - not utilized since v4.0
 pub const R2U2_ENG_CG: u8 = 2; // Immediate Configuration Directive
 // Original Atomic Checker was 3, but has been removed since v4.0
 pub const R2U2_ENG_TL: u8 = 4; // MLTL Temporal logic engine
@@ -13,7 +15,7 @@ Of these three values, only two are "real" (BZ and TL), while CG is used interna
 
 ## Instruction Dispatch
 
-The `r2u2_step` function contains the primary control flow of the monitor. All booleanizer instructions are executed first and 
+The `monitor_step` function contains the primary control flow of the monitor. All booleanizer instructions are executed first and 
 only once. Then the temporal logic instructions are sequentially iterated over until no more progress can be made based on the
 currently observed data.
 

@@ -1,9 +1,27 @@
 [env]
+# Represents maximum number of output verdicts that can be returned at a single timestamp
 R2U2_MAX_OUTPUT_VERDICTS = { value = "256", force = true }
+
+#  Represents maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)
 R2U2_MAX_OUTPUT_CONTRACTS = { value = "256", force = true }
-R2U2_MAX_SPECS = { value = "256", force = true }
+
+# Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)
+R2U2_AUX_MAX_FORMULAS = { value = "256", force = true }
+
+# Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)
+R2U2_AUX_MAX_CONTRACTS = { value = "128", force = true }
+
+# Represents maximum number of input signals
 R2U2_MAX_SIGNALS = { value = "256", force = true }
+
+# Represents maximum number of Booleans passed from the front-end (booleanizer or directly loaded atomics) to the temporal logic engine
 R2U2_MAX_ATOMICS = { value = "256", force = true }
+
+# Represents maximum number of booleanizer instructions
 R2U2_MAX_BZ_INSTRUCTIONS = { value = "512", force = true }
+
+# Represents maximum number of temporal logic instructions
 R2U2_MAX_TL_INSTRUCTIONS = { value = "512", force = true }
-R2U2_TOTAL_QUEUE_SLOTS = { value = "4096", force = true }
+
+# Represents total number of SCQ slots for both future-time and past-time reasoning
+R2U2_MAX_QUEUE_SLOTS = { value = "4096", force = true }

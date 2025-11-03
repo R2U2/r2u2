@@ -322,13 +322,6 @@ class C2POParser(sly.Parser):
     # Labeled specification
     @_("SYMBOL COLON expr SEMI")
     def spec(self, p):
-        if len(p[0]) > 50:
-            log.error(
-                MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
-                log.FileLocation(self.filename, p.lineno)
-            )
-            self.status = False
         formula =  cpt.Formula(log.FileLocation(self.filename, p.lineno), p[0], self.spec_num, p[2])
         self.spec_num += 1
         return formula
@@ -336,13 +329,6 @@ class C2POParser(sly.Parser):
     # Contract
     @_("SYMBOL COLON expr CONTRACT_ASSIGN expr SEMI")
     def spec(self, p):
-        if len(p[0]) > 50:
-            log.error(
-                MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
-                log.FileLocation(self.filename, p.lineno)
-            )
-            self.status = False
         contract = cpt.Contract(
             log.FileLocation(self.filename, p.lineno), 
             p[0], 
