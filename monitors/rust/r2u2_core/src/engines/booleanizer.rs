@@ -338,10 +338,10 @@ pub fn bz_update(monitor: &mut Monitor){
         BZ_OP_PREV => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ PREV");
-            let op = monitor.value_buffer[instr.param1 as usize];
+            let op = monitor.value_buffer[instr.param2 as usize];
             monitor.value_buffer[instr.memory_reference as usize] = op;
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
-            debug_print!("b{} = {}/{}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, monitor.value_buffer[instr.memory_reference as usize].f);
+            debug_print!("b{} = (b{})", instr.memory_reference, instr.param2);
         }
         BZ_TS => {
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]

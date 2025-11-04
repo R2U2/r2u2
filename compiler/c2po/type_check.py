@@ -532,6 +532,29 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = types.BoolType(is_const)
         elif cpt.is_prev_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            lhs: cpt.Expression = expr.children[0]
+            rhs: cpt.Expression = expr.children[1]
+
+            if lhs.type != rhs.type:
+                log.error(
+                    MODULE_CODE,
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            
+            child_expr = expr.children[0]
+            if child_expr.symbol in context.definitions: # Check if definition is constant
+                child_expr = context.definitions[child_expr.symbol]
+            
+            if not isinstance(child_expr, cpt.Constant):
+                log.error(
+                    MODULE_CODE,
+                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{expr.children[0]}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
             for child in expr.get_descendants():
                 if cpt.is_prev_operator(child):
                     log.error(

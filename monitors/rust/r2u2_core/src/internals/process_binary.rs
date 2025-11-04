@@ -45,6 +45,14 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f);
                 }
                 _ => {
+                    // Special case: PREV instructions need to load initial value before R2U2 starts
+                    if instr.opcode == BZ_OP_PREV {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+                        debug_print!("BZ PREV");
+                        monitor.value_buffer[instr.memory_reference as usize] = monitor.value_buffer[instr.param1 as usize];
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+                        debug_print!("b{} = (b{})", instr.memory_reference, instr.param1);
+                    }                    
                     // Store instruction in table
                     monitor.bz_instruction_table[monitor.bz_program_count.max_program_count] = instr;
                     monitor.bz_program_count.max_program_count += 1;

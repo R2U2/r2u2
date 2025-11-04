@@ -487,7 +487,6 @@ class OperatorKind(enum.Enum):
     ARITHMETIC_POWER = "pow"
     ARITHMETIC_SQRT = "sqrt"
     ARITHMETIC_ABS = "abs"
-    ARITHMETIC_RATE = "rate"
 
     # Relational
     EQUAL = "=="
@@ -538,7 +537,6 @@ class OperatorKind(enum.Enum):
             OperatorKind.ARITHMETIC_POWER,
             OperatorKind.ARITHMETIC_SQRT,
             OperatorKind.ARITHMETIC_ABS,
-            OperatorKind.ARITHMETIC_RATE,
             OperatorKind.GREATER_THAN,
             OperatorKind.GREATER_THAN_OR_EQUAL,
             OperatorKind.LESS_THAN,
@@ -678,14 +676,8 @@ class Operator(Expression):
         return Operator(loc, OperatorKind.ARITHMETIC_NEGATE, [operand])
 
     @staticmethod
-    def RateFunction(
-        loc: log.FileLocation, lhs: Expression, rhs: Expression
-    ) -> Operator:
-        return Operator(loc, OperatorKind.ARITHMETIC_RATE, [lhs, rhs])
-
-    @staticmethod
-    def PreviousFunction(loc: log.FileLocation, operand: Expression) -> Operator:
-        return Operator(loc, OperatorKind.PREVIOUS, [operand])
+    def PreviousFunction(loc: log.FileLocation, initial: Expression, operand: Expression) -> Operator:
+        return Operator(loc, OperatorKind.PREVIOUS, [initial, operand])
 
     @staticmethod
     def Equal(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
@@ -951,7 +943,6 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_POWER,
         OperatorKind.ARITHMETIC_SQRT,
         OperatorKind.ARITHMETIC_ABS,
-        OperatorKind.ARITHMETIC_RATE,
     }
 
 
@@ -1667,11 +1658,17 @@ def to_infix_str(start: Expression) -> str:
                 s += ")"
         elif isinstance(expr, Operator) and len(expr.children) == 2:
             if seen == 0:
-                s += "("
+                if is_prev_operator(expr):
+                    s += f"{expr.symbol}("
+                else:
+                    s += "("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             elif seen == 1:
-                s += f"){expr.symbol}("
+                if is_prev_operator(expr):
+                    s += f","
+                else:
+                    s += f"){expr.symbol}("
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[1]))
             else:

@@ -69,6 +69,8 @@ All formulas auxilary statements (specified with 'F') always appear in-order bef
 
 All CG TL SCQ instructions must be placed before CG TL TEMP instructions to always completely configure the SCQ size for all SCQ's before configuring temporal metadata
 
+All PREV booleanizer instructions are at the end of the booleanizer instruction list to always update the 'previous value' after current iteration.
+
 ## Decoding Hints
 ```
 Header: data[1] to data[data[0] - 1]

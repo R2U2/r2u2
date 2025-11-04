@@ -47,7 +47,7 @@ BZ b44 store  43 13
 BZ b46 isub   0 45
 BZ b47 igt    46 2
 BZ b48 store  47 14
-BZ b45 prev   0 0
+BZ b45 prev   2 0
 TL n0  load   a0
 TL n1  return n0 0
 TL n2  load   a1

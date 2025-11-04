@@ -59,8 +59,8 @@ BZ b58 store  57 16
 BZ b60 fsub   32 59
 BZ b61 fgt    60 34
 BZ b62 store  61 17
-BZ b28 prev   0 0
-BZ b59 prev   32 0
+BZ b28 prev   2 0
+BZ b59 prev   34 32
 TL n0  load   a0
 TL n1  return n0 0
 TL n2  load   a1

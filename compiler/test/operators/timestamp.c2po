@@ -16,4 +16,4 @@ FTSPEC
     (TAU % i0) > 0;
     (TAU pow i0) > 0;
     abs(TAU) > 0;
-    rate(TAU) > 0;
+    TAU - prev(0, TAU) > 0;

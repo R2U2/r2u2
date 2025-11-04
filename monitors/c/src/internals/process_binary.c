@@ -36,6 +36,12 @@ r2u2_status_t r2u2_process_binary(r2u2_monitor_t* monitor, uint8_t* spec) {
           R2U2_DEBUG_PRINT("\tb%d = %lf\n", instr.memory_reference, (monitor->value_buffer)[instr.memory_reference].f);
         }
         else {
+          // Special case: PREV instructions need to load initial value before R2U2 starts
+          if (instr.opcode == R2U2_BZ_OP_PREV){
+            (monitor->value_buffer)[instr.memory_reference] = (monitor->value_buffer)[instr.param1];
+            R2U2_DEBUG_PRINT("\tBZ PREV\n");
+            R2U2_DEBUG_PRINT("\tb%d = (b%d)\n", instr.memory_reference, instr.param1);
+          }
           // Store booleanizer instruction in table
           (monitor->bz_instruction_tbl)[monitor->bz_program_count.max_program_count] = instr;
           monitor->bz_program_count.max_program_count++;

@@ -110,8 +110,6 @@ BZ_OPERATOR_MAP: dict[tuple[cpt.OperatorKind, bool], BZOperator] = {
     (cpt.OperatorKind.ARITHMETIC_ABS, False): BZOperator.FABS,
     (cpt.OperatorKind.PREVIOUS, True): BZOperator.PREV,
     (cpt.OperatorKind.PREVIOUS, False): BZOperator.PREV,
-    (cpt.OperatorKind.ARITHMETIC_RATE, True): BZOperator.ISUB,
-    (cpt.OperatorKind.ARITHMETIC_RATE, False): BZOperator.FSUB,
     (cpt.OperatorKind.EQUAL, True): BZOperator.IEQ,
     (cpt.OperatorKind.EQUAL, False): BZOperator.FEQ,
     (cpt.OperatorKind.NOT_EQUAL, True): BZOperator.INEQ,
