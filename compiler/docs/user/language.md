@@ -48,7 +48,7 @@ The following words are reserved words and therefore cannot be used as identifie
 
     STRUCT ENUM INPUT DEFINE FTSPEC PTSPEC
     foreach forsome forexactly foratleast foratmost
-    pow sqrt abs xor rate
+    pow sqrt abs xor prev
     G F H O U R S M
     true false
 
@@ -123,16 +123,20 @@ C2PO supports the following operators in the table below
 | Past-time       | `H`, `O`                                | `interval` $\times$ `bool` $\rightarrow$ `bool`                 | `H[2,6] p`         |
 |                 | `S`                                     | `bool` $\times$ `interval` $\times$ `bool` $\rightarrow$ `bool` | `p S[0,5] q`       |
 | Array Index     | `[]`                                    | `array` $\times$ `int` $\rightarrow$ `array element type`       | `A[4]`             |
+| Other           | `prev`                                  | `bool` $\times$ `bool` $\rightarrow$ `bool`                     | `prev(false, p)`   |
+|                 |                                         | `int` $\times$ `int` $\rightarrow$ `bool`                       | `prev(0, i)`       |
+|                 |                                         | `float` $\times$ `float` $\rightarrow$ `bool`                   | `prev(0.0, j)`     |
 
 Equality/inequality checks between floats are performed in R2U2 with respect to a value $\epsilon$,
 i.e., `x == y` will be true if $\vert x - y \vert > \epsilon$. This value is set in R2U2 in
-`bounds.h` via `R2U2_FLOAT_EPSILON`.
+`bounds.h` and `bounds.rs` via `R2U2_FLOAT_EPSILON`.
 
 Some operators require their arguments to be constants. Division (`/`) requires the right-hand side
 to be constant to avoid division-by-zero errors at runtime and the power operator (`pow`) requires
 the right-hand side to be constant to avoid negative exponents. Array indexes must be a simple
 numeral, no compound, non-constant expressions are allowed. Comparing an array to another array will
-perform an index by index comparison.
+perform an index by index comparison. Previous values (`prev`) also requires the initial value (i.e., the 
+first argument) to be a constant.
 
 ### Set Aggregation
 
@@ -146,8 +150,7 @@ During compilation this is expanded to (where `n` is the size of `A`):
 
     (A[0] > 0) && (A[2] > 0) && ... && (A[n] > 0);
 
-C2PO supports `foreach` and `forsome` operators. `forexactly`, `foratleast`, and `foratmost` are
-reserved words for future use.
+C2PO supports `foreach` and `forsome`, `forexactly`, `foratleast`, and `foratmost` operators.
 
 ## Definitions
 
@@ -192,7 +195,8 @@ the ID. For example:
 
 ### Assume-Guarantee Contracts
 
-*(R2U2 must be compiled with the `R2U2_AUX_STRING_SPECS` option enabled)*
+*(R2U2 must be compiled with the `R2U2_AUX_STRING_SPECS` option enabled in C and the `aux_string_specs` 
+feature enabled in Rust)*
 
 Specifications can also be in the form of assume guarantee contracts (AGCs). AGCs are required to
 have a label and are of the form `assume => guarantee`. They are only allowed to be the top-level
