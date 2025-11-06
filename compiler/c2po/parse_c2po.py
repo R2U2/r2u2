@@ -9,7 +9,7 @@ MODULE_CODE = "PRSC"
 
 class C2POLexer(sly.Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
+    tokens = { KW_STRUCT, KW_ENUM, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST, KW_TIMESTAMP,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
@@ -78,6 +78,7 @@ class C2POLexer(sly.Lexer):
 
     # Keywords
     SYMBOL["STRUCT"]     = KW_STRUCT
+    SYMBOL["ENUM"]       = KW_ENUM
     SYMBOL["INPUT"]      = KW_INPUT
     SYMBOL["DEFINE"]     = KW_DEFINE
     SYMBOL["FTSPEC"]     = KW_FTSPEC
@@ -172,6 +173,10 @@ class C2POParser(sly.Parser):
     @_("section struct_section")
     def section(self, p):
         return p[0] + [p[1]]
+    
+    @_("section enum_section")
+    def section(self, p):
+        return p[0] + [p[1]]
 
     @_("section input_section")
     def section(self, p):
@@ -209,6 +214,56 @@ class C2POParser(sly.Parser):
             #     members[v] = type
 
         return cpt.StructDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("KW_ENUM enum enum_list")
+    def enum_section(self, p):
+        return cpt.EnumSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
+
+    @_("enum_list enum")
+    def enum_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_list(self, p):
+        return []
+
+    @_("SYMBOL COLON LBRACE enum_declaration_list enum_declaration_last RBRACE SEMI")
+    def enum(self, p):
+        members = []
+        index = 0
+        for var in p[3]+[p[4]]:
+            (ln, variable, value) = var
+            if value is None:
+                value = cpt.Constant(log.FileLocation(self.filename, p.lineno), int(index))
+                index += 1
+            member_def = cpt.Definition(ln, variable, value)
+            members.append(member_def)
+
+        return cpt.EnumDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("enum_declaration_list enum_declaration")
+    def enum_declaration_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_declaration_list(self, p):
+        return []
+
+    @_("SYMBOL COLON expr COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COLON expr")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
+    
+    @_("SYMBOL")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
 
     @_("KW_INPUT variable_declaration variable_declaration_list")
     def input_section(self, p):

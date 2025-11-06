@@ -42,6 +42,12 @@
             "mltl": "struct.c2po",
             "trace": "struct.csv",
             "oracle": "struct.log"
+        },
+        {
+            "name": "enum",
+            "mltl": "enum.c2po",
+            "trace": "enum.csv",
+            "oracle": "enum.log"
         }
     ]
 }

@@ -41,6 +41,7 @@ class BaseType(enum.Enum):
     ARRAY = 4
     STRUCT = 5
     CONTRACT = 6
+    ENUM = 7
 
 
 class Type:
@@ -106,6 +107,17 @@ class StructType(Type):
         if isinstance(arg, StructType):
             return self.symbol == arg.symbol
         return False
+    
+class EnumType(Type):
+    """Structured date C2PO type represented via a name."""
+
+    def __init__(self, symbol: str):
+        super().__init__(BaseType.ENUM, True, symbol)
+
+    def __eq__(self, arg: object) -> bool:
+        if isinstance(arg, EnumType):
+            return self.symbol == arg.symbol
+        return False
 
 
 class ContractValueType(Type):
@@ -143,7 +155,7 @@ def is_bool_type(t: Type) -> bool:
 
 
 def is_integer_type(t: Type) -> bool:
-    return isinstance(t, IntType) or isinstance(t, BoolType)
+    return isinstance(t, IntType) or isinstance(t, BoolType) or isinstance(t, EnumType)
 
 
 def is_float_type(t: Type) -> bool:
@@ -156,6 +168,8 @@ def is_struct_type(t: Type, symbol: Optional[str] = None) -> bool:
         return isinstance(t, StructType) and t.symbol == symbol
     return isinstance(t, StructType)
 
+def is_enum_type(t: Type) -> bool:
+    return isinstance(t, EnumType)
 
 def is_array_type(t: Type) -> bool:
     return isinstance(t, ArrayType)

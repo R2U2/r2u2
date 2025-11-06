@@ -14,10 +14,11 @@ MODULE_CODE = "CPT"
 
 class C2POSection(enum.Enum):
     STRUCT = 0
-    INPUT = 1
-    DEFINE = 2
-    FTSPEC = 3
-    PTSPEC = 4
+    ENUM = 1
+    INPUT = 2
+    DEFINE = 3
+    FTSPEC = 4
+    PTSPEC = 5
 
 
 class CompilationStage(enum.Enum):
@@ -1081,7 +1082,21 @@ class StructDefinition(Node):
     def __str__(self) -> str:
         members_str_list = [str(s) + ";" for s in self.var_decls]
         return self.symbol + ": {" + " ".join(members_str_list) + "}"
+    
+class EnumDefinition(Node):
+    def __init__(
+        self, loc: log.FileLocation, symbol: str, var_defs: list[Definition]
+    ) -> None:
+        super().__init__(loc)
+        self.symbol = symbol
+        self.var_defs = var_defs
+        self.members = {}
+        for var_def in var_defs:
+                self.members[var_def.symbol] = var_def.expr
 
+    def __str__(self) -> str:
+        members_str_list = [str(s) + "," for s in self.var_defs]
+        return self.symbol + ": {" + " ".join(members_str_list) + "}"
 
 class VariableDeclaration(Node):
     def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:
@@ -1113,7 +1128,17 @@ class StructSection(Node):
     def __str__(self) -> str:
         structs_str_list = [str(s) + ";" for s in self.struct_defs]
         return "STRUCT\n\t" + "\n\t".join(structs_str_list)
+    
+class EnumSection(Node):
+    def __init__(
+        self, loc: log.FileLocation, enum_defs: list[EnumDefinition]
+    ) -> None:
+        super().__init__(loc)
+        self.enum_defs = enum_defs
 
+    def __str__(self) -> str:
+        enums_str_list = [str(s) + ";" for s in self.enum_defs]
+        return "ENUM\n\t" + "\n\t".join(enums_str_list)
 
 class InputSection(Node):
     def __init__(
@@ -1159,7 +1184,7 @@ class PastTimeSpecSection(SpecSection):
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
 
-ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
+ProgramSection = Union[StructSection, EnumSection, InputSection, DefineSection, SpecSection]
 
 
 class Program(Node):
@@ -1294,6 +1319,7 @@ class Context:
         self.options = opts
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
+        self.enums: dict[str, dict[str, Expression]] = {}
         self.signals: dict[str, types.Type] = {}
         self.variables: dict[str, types.Type] = {}
         self.specifications: dict[str, Formula] = {}
@@ -1310,6 +1336,7 @@ class Context:
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]
         symbols += [s for s in self.structs.keys()]
+        symbols += [s for s in self.enums.keys()]
         symbols += [s for s in self.signals.keys()]
         symbols += [s for s in self.variables.keys()]
         symbols += [s for s in self.specifications.keys()]
@@ -1341,6 +1368,9 @@ class Context:
 
     def add_struct(self, symbol: str, m: dict[str, types.Type]) -> None:
         self.structs[symbol] = m
+
+    def add_enum(self, symbol: str, m: dict[str, Expression]) -> None:
+        self.enums[symbol] = m
 
     def add_formula(self, symbol, s: Formula) -> None:
         self.specifications[symbol] = s

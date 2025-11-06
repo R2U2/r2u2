@@ -248,6 +248,21 @@ def resolve_struct_accesses(program: cpt.Program, context: cpt.Context) -> None:
 
     log.debug(MODULE_CODE, 1, f"Post struct access resolution:\n{repr(program)}")
 
+def resolve_enum_references(program: cpt.Program, context: cpt.Context) -> None:
+    """Resolves enum references to the underlying member expression."""
+    log.debug(MODULE_CODE, 1, "Resolving enum references.")
+
+    for expr in program.postorder(context):
+        if not types.is_enum_type(expr.type):
+            continue
+
+        if  expr.symbol not in [name for enum in context.enums.values() for name in enum.keys()]:
+            continue
+
+        expr.replace(context.enums[expr.type.symbol][expr.symbol])
+
+    log.debug(MODULE_CODE, 1, f"Post enum member resolution:\n{repr(program)}")
+
 def unroll_array_accesses(program: cpt.Program, context: cpt.Context) -> None:
     """Unrolls array operators into equivalent engine-supported operations e.g., array1 == array2 is rewritten into a conjunction."""
     log.debug(MODULE_CODE, 1, "Unrolling array expressions.")
@@ -1317,6 +1332,7 @@ pass_list: list[Pass] = [
     expand_definitions,
     convert_function_calls_to_structs,
     resolve_contracts,
+    resolve_enum_references,
     resolve_struct_accesses,
     resolve_array_accesses,
     unroll_set_aggregation,

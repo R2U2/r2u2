@@ -1,0 +1,7 @@
+[TYPC][[91mERR[0m] bad_prev.c2po:5: Invalid operands for 'prev', must be of same type (found 'float' and 'bool')
+	prev(0.0,b1)
+[TYPC][[91mERR[0m] bad_prev.c2po:6: Invalid initial value for 'prev', must be of constant type (found 'b0')
+	prev(b0,b1)
+[TYPC][[91mERR[0m] bad_prev.c2po:7: Invalid nested previous statements, (prev(False,b1)).
+	prev(False,prev(False,b1))
+[MAIN][[91mERR[0m] Failed type check

@@ -15,21 +15,22 @@ remove passes as necessary in the function `validate_input` in `main.py`.
 1. Expand out all definitions from the `DEFINE` block
 2. Change all valid "function calls" to struct instantiations
 3. Replace assume-guarantee contracts with a three formula encoding
-4. Expand out all set aggregation operators
-5. Change each struct access to its referenced data
-6. Change each array index to its referenced data
-7. Change each struct access to its referenced data again (in the case that a struct is an element
+4. Expand out all enum member references to its referenced value
+5. Expand out all set aggregation operators
+6. Change each struct access to its referenced data
+7. Change each array index to its referenced data
+8. Change each struct access to its referenced data again (in the case that a struct is an element
    of an array and an array is a member of a struct)
-8. Compute which nodes in the CPT are interfaces between the BZ/AT engines and the TL engine
-9. Perform single-pass of rewrite rules
-10. Perform equality saturation
-11. Rewrite to negative normal form
-12. Rewrite to Boolean normal form
-13. Rewrite extended operators
-14. Convert all multi-arity operators to binary (ex: `&&`)
-15. Perform common sub-expression elimination
-16. Check satisfiability of each specification
-17. Compute the sizes of each node's SCQ
+9. Compute which nodes in the CPT are interfaces between the BZ/AT engines and the TL engine
+10. Perform single-pass of rewrite rules
+11. Perform equality saturation
+12. Rewrite to negative normal form
+13. Rewrite to Boolean normal form
+14. Rewrite extended operators
+15. Convert all multi-arity operators to binary (ex: `&&`)
+16. Perform common sub-expression elimination
+17. Check satisfiability of each specification
+18. Compute the sizes of each node's SCQ
 
 ## Serialization
 

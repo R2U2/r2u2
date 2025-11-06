@@ -1,0 +1,21 @@
+[TYPC][[91mERR[0m] bad_enum.c2po:3: Symbol 'RequestState' already in use
+[TYPC][[91mERR[0m] bad_enum.c2po:3: Enum member Rejected must be a constant integer, found float
+[TYPC][[91mERR[0m] bad_enum.c2po:4: Symbol 'RequestState2' already in use
+[TYPC][[91mERR[0m] bad_enum.c2po:11: Defined enums may not be used as variables, try utilizing the members of the enum
+[TYPC][[91mERR[0m] bad_enum.c2po:12: Invalid operands for '==', Grant is not a member of RequestState
+	(Grant)==(i0)
+[TYPC][[91mERR[0m] bad_enum.c2po:13: Invalid operands for '==', Grant is not a member of RequestState
+	(i0)==(Grant)
+[TYPC][[91mERR[0m] bad_enum.c2po:14: Invalid operands for '==', cannot both be enum members
+	(Rejected)==(Rejected)
+[TYPC][[91mERR[0m] bad_enum.c2po:15: Invalid operands for '==', Waiting is not a member of RequestState2
+	(prev(Reject,i1))==(Waiting)
+[TYPC][[91mERR[0m] bad_enum.c2po:16: Invalid operands for 'prev', Rejected is not a member of RequestState2
+	prev(Rejected,i1)
+[TYPC][[91mERR[0m] bad_enum.c2po:17: Invalid operands for 'prev', cannot both be enum members
+	prev(Rejected,Rejected)
+[TYPC][[91mERR[0m] bad_enum.c2po:18: Invalid initial value for 'prev', must be of constant type (found 'i1')
+	prev(i1,i0)
+[TYPC][[91mERR[0m] bad_enum.c2po:19: Invalid operands for '==', must be of same type (found 'RequestState' and 'RequestState2')
+	(i0)==(i1)
+[MAIN][[91mERR[0m] Failed type check

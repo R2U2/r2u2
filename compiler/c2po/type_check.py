@@ -141,6 +141,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
+            elif symbol in context.enums:
+                log.error(
+                    MODULE_CODE,
+                    "Defined enums may not be used as variables, try utilizing the members of the enum",
+                    expr.loc,
+                )
+                return False
             elif symbol in context.specifications:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
@@ -150,6 +157,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
+            elif symbol in [name for enum in context.enums.values() for name in enum.keys()]:
+                expr.type = types.EnumType(symbol)
             else:
                 log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
                 return False
@@ -506,6 +515,33 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
+            
+            if types.is_enum_type(lhs.type) and lhs.type.symbol not in context.enums and rhs.type.symbol in context.enums:
+                if lhs.type.symbol not in context.enums[rhs.type.symbol]:
+                    log.error(
+                    MODULE_CODE,
+                    f"Invalid operands for '{expr.symbol}', {lhs.type.symbol} is not a member of {rhs.type.symbol}\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                lhs.type = rhs.type
+            elif types.is_enum_type(rhs.type) and rhs.type.symbol not in context.enums and lhs.type.symbol in context.enums:
+                if rhs.type.symbol not in context.enums[lhs.type.symbol]:
+                    log.error(
+                    MODULE_CODE,
+                    f"Invalid operands for '{expr.symbol}', {rhs.type.symbol} is not a member of {lhs.type.symbol}\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                rhs.type = lhs.type
+            elif types.is_enum_type(lhs.type) and lhs.type.symbol not in context.enums and \
+                types.is_enum_type(rhs.type) and rhs.type.symbol not in context.enums:
+                    log.error(
+                        MODULE_CODE,
+                        f"Invalid operands for '{expr.symbol}', cannot both be enum members\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
 
             if lhs.type != rhs.type:
                 log.error(
@@ -533,37 +569,61 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = types.BoolType(is_const)
         elif cpt.is_prev_operator(expr):
             expr = cast(cpt.Operator, expr)
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
-
-            if lhs.type != rhs.type:
+            
+            initial_expr = expr.children[0]
+            prev_expr = expr.children[1]
+            if types.is_enum_type(initial_expr.type) and initial_expr.type.symbol not in context.enums \
+                and prev_expr.type.symbol in context.enums:
+                    if initial_expr.type.symbol not in context.enums[prev_expr.type.symbol]:
+                        log.error(
+                        MODULE_CODE,
+                        f"Invalid operands for '{expr.symbol}', {initial_expr.type.symbol} is not a member of {prev_expr.type.symbol}\n\t{expr}",
+                            expr.loc,
+                        )
+                        return False
+                    initial_expr.type = prev_expr.type
+            elif initial_expr.type.symbol in context.enums:
                 log.error(
                     MODULE_CODE,
-                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{initial_expr}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            elif types.is_enum_type(initial_expr.type) and initial_expr.type.symbol not in context.enums \
+                and types.is_enum_type(prev_expr.type) and prev_expr.type.symbol not in context.enums:
+                    log.error(
+                        MODULE_CODE,
+                        f"Invalid operands for '{expr.symbol}', cannot both be enum members\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+            elif initial_expr.type != prev_expr.type:
+                log.error(
+                    MODULE_CODE,
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{initial_expr.type}' and '{prev_expr.type}')\n\t{expr}",
                     expr.loc,
                 )
                 return False
             
-            child_expr = expr.children[0]
-            if child_expr.symbol in context.definitions: # Check if definition is constant
-                child_expr = context.definitions[child_expr.symbol]
+            if initial_expr.symbol in context.definitions: # Check if definition is constant
+                initial_expr = context.definitions[initial_expr.symbol]
             
-            if not isinstance(child_expr, cpt.Constant):
+            if not isinstance(initial_expr, cpt.Constant) and not types.is_enum_type(initial_expr.type):
                 log.error(
                     MODULE_CODE,
-                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{expr.children[0]}')\n\t{expr}",
+                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{initial_expr}')\n\t{expr}",
                     expr.loc,
                 )
                 return False
             for child in expr.get_descendants():
                 if cpt.is_prev_operator(child):
                     log.error(
-                        f"Invalid nested previous statements, ({child}).\n\t{expr}",
                         MODULE_CODE,
-                        location=expr.loc,
+                        f"Invalid nested previous statements, ({child}).\n\t{expr}",
+                        expr.loc,
                     )
                     return False
-            expr.type = expr.children[0].type
+            expr.type = initial_expr.type
 
         else:
             log.error(
@@ -589,6 +649,9 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                         f"Symbol '{signal}' already in use",
                         declaration.loc,
                     )
+
+                if declaration.type.symbol in context.enums:
+                    declaration.type = types.EnumType(declaration.type.symbol)
 
                 context.add_signal(signal, declaration.type)
 
@@ -638,6 +701,31 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 )
 
             context.add_struct(struct.symbol, struct.members)
+    elif isinstance(section, cpt.EnumSection):
+        for enum in section.enum_defs:
+            if enum.symbol in context.get_symbols():
+                status = False
+                log.error(
+                    MODULE_CODE,
+                    f"Symbol '{enum.symbol}' already in use",
+                    enum.loc,
+                )
+            for member_name, member_expr in enum.members.items():
+                if (not isinstance(member_expr, cpt.Constant)) or (not types.is_integer_type(member_expr.type)):
+                    status = False
+                    log.error(
+                        MODULE_CODE,
+                        f"Enum member {member_name} must be a constant integer, found {member_expr.type}",
+                        enum.loc,
+                    )
+                if member_name in context.get_symbols() or member_name == enum.symbol:
+                    status = False
+                    log.error(
+                        MODULE_CODE,
+                        f"Symbol '{member_name}' already in use",
+                        enum.loc,
+                    )
+            context.add_enum(enum.symbol, enum.members)
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
             context.set_future_time()

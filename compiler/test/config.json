@@ -11,6 +11,11 @@
             "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
         },
         {
+            "input": "cav/enum.c2po", 
+            "expected_serialization": "cav/enum.prefix.c2po.expect", 
+            "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+        },
+        {
             "input": "cav/struct.c2po", 
             "expected_serialization": "cav/struct.prefix.c2po.expect", 
             "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
@@ -132,6 +137,16 @@
             "input": "type_check/array_index_prec.c2po", 
             "expected_serialization": "type_check/array_index_prec.prefix.c2po.expect", 
             "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+        },
+        {
+            "input": "type_check/bad_enum.c2po", 
+            "expected_output": "type_check/bad_enum.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
+        },
+        {
+            "input": "type_check/bad_prev.c2po", 
+            "expected_output": "type_check/bad_prev.c2po.expect", 
+            "options": ["-bz", "--map", "default.map"]
         }
     ],
     "serialize": [

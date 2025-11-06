@@ -25,6 +25,7 @@ Each section has a keyword to denote its beginning:
 
 - `INPUT`: Input signals and their types
 - `STRUCT`: C-like structs
+- `ENUM`: C-like enums
 - `DEFINE`: Macros
 - `FTSPEC`: Future-time MLTL specifications
 - `PTSPEC`: Past-time MLTL specifications
@@ -38,14 +39,14 @@ and parsing rules are found in the `C2POParser`.
 
 ## Identifiers
 
-Identifiers are the name of any variable, struct, definition, or formula label. They must be of the
+Identifiers are the name of any variable, struct, enum, definition, or formula label. They must be of the
 form
 
     [a-zA-Z_][a-zA-Z0-9_]*
 
 The following words are reserved words and therefore cannot be used as identifiers:
 
-    STRUCT INPUT DEFINE FTSPEC PTSPEC
+    STRUCT ENUM INPUT DEFINE FTSPEC PTSPEC
     foreach forsome forexactly foratleast foratmost
     pow sqrt abs xor rate
     G F H O U R S M
@@ -70,6 +71,16 @@ as follows:
 
 Arrays in defined structs can be given either concrete or indeterminate sizes (as in `my_array` or
 `my_array_2`). Array slices can also be defined within specifications (e.g., `my_array_2[2..4]` is equivalent to the slice containing `my_array_2[2]`, `my_array_2[3]`, and `my_array_2[4]`).
+
+C2PO also supports user-definable C-style enums. We can define an enum with members as follows:
+
+    ENUM 
+        RequestState: {Waiting: 0, Granted: 1, Rejected: 2};
+
+We can also define enums without specifying the value such that the first value is equal to 1, the second value is equal to 2, etc.
+Therefore, the following is equivalent to the enum above:
+    ENUM 
+        RequestState: {Waiting, Granted, Rejected};
 
 ## Inputs
 
