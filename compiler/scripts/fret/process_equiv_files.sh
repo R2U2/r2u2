@@ -19,7 +19,7 @@ if [ ! -d "$MLTL_DIR" ]; then
 fi
 
 # Check if the c2po.py script exists
-C2PO_SCRIPT="$SCRIPT_DIR/../c2po.py"
+C2PO_SCRIPT="$SCRIPT_DIR/../../c2po.py"
 if [ ! -f "$C2PO_SCRIPT" ]; then
     echo "Error: $C2PO_SCRIPT does not exist"
     exit 1

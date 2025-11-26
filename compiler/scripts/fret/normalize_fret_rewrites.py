@@ -287,7 +287,7 @@ def test_mltl_parser():
     mltl_dir = MLTLDIR
     
     # Path to the c2po.py script (go up to project root, then to compiler)
-    project_root = script_dir.parent.parent
+    project_root = script_dir.parent.parent.parent
     c2po_script = project_root / "compiler" / "c2po.py"
     
     # Check if directories and files exist
