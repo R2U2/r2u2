@@ -21,13 +21,15 @@ class SpecFormat(enum.Enum):
     C2PO = ".c2po"
     MLTL = ".mltl"
     PICKLE = ".pickle"
+    EQUIV = ".equiv"
 
 class SMTTheories(enum.Enum):
     UFLIA = "uflia"
     QF_UFLIA = "qf_uflia"
     QF_BV = "qf_bv"
     QF_BV_INCR = "qf_bv_incr"
-
+    UFLIA_INF = "uflia_inf"
+    
 class CompilationStage(enum.Enum):
     PARSE = 0
     TYPE_CHECK = 1
@@ -165,6 +167,8 @@ class Options:
             self.spec_format = SpecFormat.MLTL
         elif self.spec_path.suffix == SpecFormat.PICKLE.value:
             self.spec_format = SpecFormat.PICKLE
+        elif self.spec_path.suffix == SpecFormat.EQUIV.value:
+            self.spec_format = SpecFormat.EQUIV
         else:
             log.error(MODULE_CODE, f"Input file '{self.spec_filename}' has an invalid format.")
             status = False
@@ -276,6 +280,8 @@ class Options:
             self.smt_encoding = SMTTheories.QF_BV
         elif self.smt_encoding_str == "qf_bv_incr":
             self.smt_encoding = SMTTheories.QF_BV_INCR
+        elif self.smt_encoding_str == "uflia_inf":
+            self.smt_encoding = SMTTheories.UFLIA_INF
         else:
             log.error(MODULE_CODE, f"Invalid SMT theory '{self.smt_encoding_str}'")
             status = False

@@ -1,11 +1,10 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
-
 from __future__ import annotations
 
 import copy
 import enum
 import pickle
-from typing import Iterator, Optional, Union, cast, Any
+from typing import Iterator, Optional, Union, cast, Any, NamedTuple
 
 from c2po import log, types, options, stats
 
@@ -158,6 +157,25 @@ class Constant(Expression):
         return new
 
 
+class MissionTime(Expression):
+    """MissionTime is a special variable that represents the symbolic mission time. This is only
+    used in equivalence checking when the input format is .equiv. It is not used in any other
+    context.
+    
+    For other contexts, users set the mission time using the '--mission-time' option and is expanded
+    to a constant during parsing."""
+
+    def __init__(self, loc: log.FileLocation) -> None:
+        super().__init__(loc, [])
+        self.symbol = "M"
+        self.type = types.IntType(True)
+
+    def __deepcopy__(self, memo):
+        new = MissionTime(self.loc)
+        self.copy_attrs(new)
+        return new
+
+
 class CurrentTimestamp(Expression):
     first_time_seen = True
 
@@ -181,6 +199,7 @@ class CurrentTimestamp(Expression):
 
 
 class Variable(Expression):
+    """Variables represent bound variables in set aggregations."""
     def __init__(self, loc: log.FileLocation, s: str) -> None:
         super().__init__(loc, [])
         self.symbol: str = s
@@ -212,6 +231,32 @@ class Signal(Expression):
         self.copy_attrs(new)
         new.signal_id = self.signal_id
         return new
+
+
+class SymbolicIntervalVariable(Expression):
+    """SymbolicIntervalVariables are used when defining symbolic intervals and their constraints. They
+    are only used in the context of equivalence checking when the input format is .equiv."""
+    def __init__(self, loc: log.FileLocation, s: str) -> None:
+        super().__init__(loc, [])
+        self.symbol: str = s
+        self.type = types.IntType(True)
+
+    def __deepcopy__(self, memo) -> SymbolicIntervalVariable:
+        new = SymbolicIntervalVariable(self.loc, self.symbol)
+        self.copy_attrs(new)
+        return new
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, SymbolicIntervalVariable) and __o.symbol == self.symbol
+
+    def __hash__(self) -> int:
+        return hash(self.symbol)
+
+    def __str__(self) -> str:
+        return self.symbol
+
+    def __repr__(self) -> str:
+        return f"IntervalBoundVariable({self.symbol})"
 
 
 class ArrayExpression(Expression):
@@ -500,6 +545,8 @@ class OperatorKind(enum.Enum):
     # Other
     COUNT = "count"
     PREVIOUS = "prev"
+    MIN = "min"
+    MAX = "max"
 
     def is_booleanizer_operator(self) -> bool:
         return self in {
@@ -543,6 +590,18 @@ class Operator(Expression):
             self.engine = types.R2U2Engine.TEMPORAL_LOGIC
         else:
             self.engine = types.R2U2Engine.BOOLEANIZER
+
+    @staticmethod
+    def Min(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        new = Operator(loc, OperatorKind.MIN, operands)
+        new.type = types.IntType()
+        return new
+
+    @staticmethod
+    def Max(loc: log.FileLocation, operands: list[Expression]) -> Operator:
+        new = Operator(loc, OperatorKind.MAX, operands)
+        new.type = types.IntType()
+        return new  
 
     @staticmethod
     def Count(
@@ -788,7 +847,7 @@ class TemporalOperator(Operator):
         children: list[Expression],
     ) -> None:
         super().__init__(loc, operator, children)
-        self.interval = types.Interval(lb, ub)
+        self.interval = ConcreteInterval(lb, ub)
         self.symbol = f"{operator.value}[{lb},{ub}]"
 
     @staticmethod
@@ -874,6 +933,94 @@ class TemporalOperator(Operator):
     def __deepcopy__(self, memo) -> Operator:
         children = [copy.deepcopy(c, memo) for c in self.children]
         new = TemporalOperator(
+            self.loc, self.operator, self.interval.lb, self.interval.ub, children
+        )
+        self.copy_attrs(new)
+        return new
+
+
+class SymbolicTemporalOperator(Operator):
+    """SymbolicTemporalOperators are the same as TemporalOperators, but their interval is symbolic.
+    
+    They are only used in the context of equivalence checking when the input format is .equiv."""
+    def __init__(
+        self,
+        loc: log.FileLocation,
+        operator: OperatorKind,
+        lb: Expression,
+        ub: Expression,
+        children: list[Expression],
+    ) -> None:
+        super().__init__(loc, operator, children)
+        self.interval = SymbolicInterval(lb, ub)
+        self.symbol = f"{operator.value}[{lb},{ub}]"
+
+    @staticmethod
+    def Global(
+        loc: log.FileLocation, lb: Expression, ub: Expression, operand: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
+        operator.type = types.BoolType()   
+        return operator
+
+    @staticmethod
+    def Future(
+        loc: log.FileLocation, lb: Expression, ub: Expression, operand: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.FUTURE, lb, ub, [operand])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Until(
+        loc: log.FileLocation, lb: Expression, ub: Expression, lhs: Expression, rhs: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Release(
+        loc: log.FileLocation, lb: Expression, ub: Expression, lhs: Expression, rhs: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Historical(
+        loc: log.FileLocation, lb: Expression, ub: Expression, operand: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.HISTORICAL, lb, ub, [operand])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Once(
+        loc: log.FileLocation, lb: Expression, ub: Expression, operand: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.ONCE, lb, ub, [operand])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Since(
+        loc: log.FileLocation, lb: Expression, ub: Expression, lhs: Expression, rhs: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.SINCE, lb, ub, [lhs, rhs])
+        operator.type = types.BoolType()
+        return operator
+
+    @staticmethod
+    def Trigger(
+        loc: log.FileLocation, lb: Expression, ub: Expression, lhs: Expression, rhs: Expression
+    ) -> SymbolicTemporalOperator:
+        operator = SymbolicTemporalOperator(loc, OperatorKind.TRIGGER, lb, ub, [lhs, rhs])
+        return operator
+
+    def __deepcopy__(self, memo) -> SymbolicTemporalOperator:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = SymbolicTemporalOperator(
             self.loc, self.operator, self.interval.lb, self.interval.ub, children
         )
         self.copy_attrs(new)
@@ -981,8 +1128,35 @@ def is_prev_operator(expr: Expression) -> bool:
     }
 
 
+def is_min_max_operator(expr: Expression) -> bool:
+    return isinstance(expr, Operator) and expr.operator in {
+        OperatorKind.MIN,
+        OperatorKind.MAX,
+    }
+
+
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
+
+
+class ConcreteInterval(NamedTuple):
+    lb: int
+    ub: int
+
+    def __eq__(self, __value: object) -> bool:
+        return isinstance(__value, ConcreteInterval) and self.lb == __value.lb and self.ub == __value.ub
+
+
+class SymbolicInterval(NamedTuple):
+    lb: Expression
+    ub: Expression
+
+    def __eq__(self, __value: object) -> bool:
+        return (
+            isinstance(__value, SymbolicInterval)
+            and str(self.lb) == str(__value.lb)
+            and str(self.ub) == str(__value.ub)
+        )
 
 
 class Formula(Expression):
@@ -1560,7 +1734,7 @@ def to_infix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime)):
             s += expr.symbol
         elif isinstance(expr, ArrayIndex):
             if seen == 0:
@@ -1680,7 +1854,7 @@ def to_prefix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime)):
             s += expr.symbol + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:

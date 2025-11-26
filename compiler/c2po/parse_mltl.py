@@ -248,12 +248,12 @@ class MLTLParser(sly.Parser):
     # Shorthand interval
     @_("LBRACK bound RBRACK")
     def interval(self, p):
-        return types.Interval(0, p[1])
+        return cpt.ConcreteInterval(0, p[1])
 
     # Standard interval
     @_("LBRACK bound COMMA bound RBRACK")
     def interval(self, p):
-        return types.Interval(p[1], p[3])
+        return cpt.ConcreteInterval(p[1], p[3])
 
     @_("NUMERAL")
     def bound(self, p):

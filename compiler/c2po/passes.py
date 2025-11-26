@@ -279,7 +279,7 @@ def remove_extended_operators(program: cpt.Program, context: cpt.Context) -> Non
     lhs: cpt.Expression
     rhs: cpt.Expression
     operand: cpt.Expression
-    interval: types.Interval
+    interval: cpt.ConcreteInterval
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -383,7 +383,7 @@ def to_bnf(program: cpt.Program, context: cpt.Context) -> None:
     lhs: cpt.Expression
     rhs: cpt.Expression
     operand: cpt.Expression
-    bounds: types.Interval
+    bounds: cpt.ConcreteInterval
 
     for expr in program.postorder(context):
         if not isinstance(expr, cpt.Operator):
@@ -496,7 +496,7 @@ def to_nnf(program: cpt.Program, context: cpt.Context) -> None:
     lhs: cpt.Expression
     rhs: cpt.Expression
     operand: cpt.Expression
-    bounds: types.Interval
+    bounds: cpt.ConcreteInterval
 
     for expr in program.preorder(context):
         if cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
@@ -1158,7 +1158,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
         old = formula.get_expr()
         new = e_graph.extract(context)
 
-        sat_result = sat.check_equiv(old, new, context)
+        sat_result = sat.check_equiv_exprs(old, new, context)
 
         if sat_result is sat.SatResult.UNSAT:
             equiv_result = "equiv"

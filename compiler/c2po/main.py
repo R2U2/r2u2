@@ -13,10 +13,12 @@ from c2po import (
     log,
     parse_c2po,
     parse_mltl,
+    parse_equiv,
     type_check,
     passes,
     serialize,
     options,
+    sat
 )
 
 MODULE_CODE = "MAIN"
@@ -49,6 +51,7 @@ def compile(opts: options.Options) -> ReturnCode:
     Compilation stages:
     2. Parse
     3. Type check
+    3a. Equivalence check (if input is an equivalence specification)
     4. Required passes
     5. Option-based passes
     6. Optimizations
@@ -57,6 +60,8 @@ def compile(opts: options.Options) -> ReturnCode:
     # ----------------------------------
     # Parse
     # ----------------------------------
+    bounds: list[cpt.SymbolicIntervalVariable] = []
+    constraints: list[cpt.Expression] = []
     if opts.spec_format == options.SpecFormat.C2PO:
         program: Optional[cpt.Program] = parse_c2po.parse_c2po(
             opts.spec_path, opts.mission_time
@@ -82,6 +87,20 @@ def compile(opts: options.Options) -> ReturnCode:
         if not isinstance(program, cpt.Program):
             log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
+    elif opts.spec_format == options.SpecFormat.EQUIV:
+        equiv_parse_output = parse_equiv.parse_equiv(opts.spec_path)
+
+        if not equiv_parse_output:
+            log.error(MODULE_CODE, "Failed parsing")
+            return ReturnCode.PARSE_ERR
+
+        (program, bounds, constraints) = equiv_parse_output
+
+        # Equivalence checking requires booleanizer expressions, so we enable it here so that the
+        # type checker can pass
+        opts.enable_booleanizer = True
+        opts.assembly_enabled = False
+        opts.smt_encoding = options.SMTTheories.UFLIA_INF # Equivalence checking requires UFLIA_INF encoding
     else:
         return ReturnCode.INVALID_INPUT
 
@@ -100,6 +119,27 @@ def compile(opts: options.Options) -> ReturnCode:
     if opts.only_type_check:
         wrap_up(program, context)
         return ReturnCode.SUCCESS
+
+    if opts.spec_format == options.SpecFormat.EQUIV:
+        # Then we just do the equivalence check and return
+        sat_result = sat.check_equiv(program, bounds, constraints, context)
+        if sat_result is sat.SatResult.SAT:
+            log.error(MODULE_CODE, "Equivalence check failed")
+            return ReturnCode.ERROR
+        elif sat_result is sat.SatResult.UNSAT:
+            return ReturnCode.SUCCESS
+        elif sat_result is sat.SatResult.TIMEOUT:
+            log.error(MODULE_CODE, "Equivalence check timed out")
+            return ReturnCode.ERROR
+        elif sat_result is sat.SatResult.UNKNOWN:
+            log.error(MODULE_CODE, "Equivalence check unknown")
+            return ReturnCode.ERROR
+        elif sat_result is sat.SatResult.MEMOUT:
+            log.error(MODULE_CODE, "Equivalence check memory out")
+            return ReturnCode.ERROR
+        elif sat_result is sat.SatResult.FAILURE:
+            log.error(MODULE_CODE, "Equivalence check internal failure")
+            return ReturnCode.ERROR
 
     # ----------------------------------
     # Transforms
