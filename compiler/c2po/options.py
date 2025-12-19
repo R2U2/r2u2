@@ -77,6 +77,7 @@ DEFAULTS = {
     "debug": False,
     "log_level": 0,
     "quiet": False,
+    "print_equiv_smt": False,
 }
 
 @dataclass
@@ -122,7 +123,7 @@ class Options:
     debug: bool = DEFAULTS["debug"]
     log_level: int = DEFAULTS["log_level"]
     quiet: bool = DEFAULTS["quiet"]
-
+    print_equiv_smt: bool = DEFAULTS["print_equiv_smt"]
     spec_format: SpecFormat = SpecFormat.C2PO
     workdir: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
     spec_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)

@@ -1000,7 +1000,6 @@ def to_uflia_cplen(
 
                 smt_commands.append(f"(assert (<= {lb} {ub}))")
             else: 
-                print("here")
                 expr = cast(cpt.TemporalOperator, expr)
                 lb = expr.interval.lb
                 ub = expr.interval.ub
@@ -1129,7 +1128,8 @@ def to_uflia_cplen(
 
     smt = "\n".join(smt_commands)
 
-    print(smt)
+    if context.options.print_equiv_smt:
+        print(smt)
 
     return smt
 
