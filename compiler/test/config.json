@@ -496,5 +496,27 @@
             "expected_serialization": "eqsat/r4_global_4.prefix.c2po.expect",
             "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
         }
+    ],
+    "equiv": [
+        {
+            "input": "equiv/fret_0.equiv",
+            "expected_output": "equiv/fret_0.equiv.expect",
+            "options": []
+        },
+        {
+            "input": "equiv/fret_43.equiv",
+            "expected_output": "equiv/fret_43.equiv.expect",
+            "options": []
+        },
+        {
+            "input": "equiv/R4F.equiv",
+            "expected_output": "equiv/R4F.equiv.expect",
+            "options": []
+        },
+        {
+            "input": "equiv/fail.equiv",
+            "expected_output": "equiv/fail.equiv.expect",
+            "options": []
+        }
     ]
 }

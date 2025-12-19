@@ -37,7 +37,7 @@ def check_egglog(egglog: str) -> bool:
 class ENode:
     enode_id: ENodeID
     op: str
-    interval: Optional[types.Interval]
+    interval: Optional[cpt.ConcreteInterval]
     string: Optional[str]
     value: Optional[bool]
     child_eclass_ids: list[EClassID]
@@ -73,7 +73,7 @@ class ENode:
             lb = int(content[lb_id]["op"])
             ub = int(content[ub_id]["op"])
 
-            return ENode(ENodeID(id), enode_content["op"], types.Interval(lb,ub), None, None, child_eclass_ids, enode_content["eclass"])
+            return ENode(ENodeID(id), enode_content["op"], cpt.ConcreteInterval(lb,ub), None, None, child_eclass_ids, enode_content["eclass"])
         elif enode_content["op"][0:3] == "Var":
             # Var "a0" should look like:
             # "Var-abc":   {"op"="Var","children"=["String-def"],...}

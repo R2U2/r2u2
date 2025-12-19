@@ -251,6 +251,12 @@ parser.add_argument(
     "--copyback", 
     help="location of directory to copy workdir contents upon termination"
 )
+parser.add_argument(
+    "--print-equiv-smt",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["print_equiv_smt"],
+    help="print the SMT encoding of the equivalence check formulas"
+)
 
 args = parser.parse_args()
 
@@ -296,6 +302,7 @@ opts = c2po.options.Options(
     debug=args.debug,
     log_level=args.log_level,
     quiet=args.quiet,
+    print_equiv_smt=args.print_equiv_smt,
 )
 
 return_code = c2po.main.main(opts)

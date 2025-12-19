@@ -55,7 +55,9 @@ def write_outputs(
                     f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
                 elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
                     log.warning(MODULE_CODE, "qf_bv_log_incr encoding writes multiple files incrementally depending on SMT results, not writing")
-
+                elif context.options.smt_encoding == options.SMTTheories.UFLIA_INF:
+                    f.write(sat.to_uflia_cplen(expr, context))
+                    
     if context.options.write_bounds_filename is not None:
         write_bounds_path = pathlib.Path(context.options.write_bounds_filename)
         if write_bounds_path.is_file():

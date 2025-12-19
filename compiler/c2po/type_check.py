@@ -137,9 +137,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             else:
                 log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
                 return False
+        elif isinstance(expr, cpt.SymbolicIntervalVariable):
+            expr.type = types.IntType(True)
+        elif isinstance(expr, cpt.MissionTime):
+            expr.type = types.IntType(True)
         elif isinstance(expr, cpt.ArrayExpression):
-            new_type: types.Type = types.NoType()
-            is_const: bool = True
+            new_type = types.NoType()
+            is_const = True
 
             for member in expr.children:
                 is_const = is_const and member.type.is_const
@@ -289,7 +293,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             expr.type = types.BoolType(expr.type.is_const and s.type.is_const)
         elif isinstance(expr, cpt.TemporalOperator):
-            is_const: bool = True
+            is_const = True
 
             for child in expr.children:
                 is_const = is_const and child.type.is_const
@@ -348,9 +352,38 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 return False
 
             expr.type = types.BoolType(is_const)
+        elif isinstance(expr, cpt.SymbolicTemporalOperator):
+            is_const = True
+
+            for child in expr.children:
+                is_const = is_const and child.type.is_const
+                if child.type != types.BoolType():
+                    log.error(
+                        MODULE_CODE,
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+
+            expr.type = types.BoolType(is_const)
+        elif cpt.is_min_max_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            is_const = True
+
+            for child in expr.children:
+                is_const = is_const and child.type.is_const
+                if child.type != types.IntType():
+                    log.error(
+                        MODULE_CODE,
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+
+            expr.type = types.IntType(is_const)
         elif cpt.is_bitwise_operator(expr):
             expr = cast(cpt.Operator, expr)
-            is_const: bool = True
+            is_const = True
 
             if (
                 context.options.impl != types.R2U2Implementation.C
@@ -371,7 +404,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            new_type: types.Type = expr.children[0].type
+            new_type = expr.children[0].type
 
             if all([c.type.is_const for c in expr.children]):
                 new_type.is_const = True
@@ -388,7 +421,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = new_type
         elif cpt.is_arithmetic_operator(expr):
             expr = cast(cpt.Operator, expr)
-            is_const: bool = True
+            is_const = True
 
             if (
                 context.options.impl != types.R2U2Implementation.C
@@ -409,13 +442,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 )
                 return False
 
-            new_type: types.Type = expr.children[0].type
+            new_type = expr.children[0].type
 
             if all([c.type.is_const for c in expr.children]):
                 new_type.is_const = True
 
             if expr.operator is cpt.OperatorKind.ARITHMETIC_DIVIDE:
-                rhs: cpt.Expression = expr.children[1]
+                rhs = expr.children[1]
                 # TODO: disallow division by non-const expression entirely
                 if isinstance(rhs, cpt.Constant) and rhs.value == 0:
                     log.error(
@@ -426,7 +459,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
                 
             if expr.operator is cpt.OperatorKind.ARITHMETIC_SQRT:
-                rhs: cpt.Expression = expr.children[0]
+                rhs = expr.children[0]
                 if rhs.type == types.IntType():
                     log.error(
                         MODULE_CODE,
@@ -436,8 +469,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     return False
             
             if expr.operator is cpt.OperatorKind.ARITHMETIC_POWER:
-                lhs: cpt.Expression = expr.children[0]
-                rhs: cpt.Expression = expr.children[1]
+                lhs = expr.children[0]
+                rhs = expr.children[1]
                 if lhs.type == types.IntType():
                     if isinstance(rhs, cpt.Constant):
                         if rhs.value < 0:
@@ -468,8 +501,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = new_type
         elif cpt.is_relational_operator(expr):
             expr = cast(cpt.Operator, expr)
-            lhs: cpt.Expression = expr.children[0]
-            rhs: cpt.Expression = expr.children[1]
+            lhs = expr.children[0]
+            rhs = expr.children[1]
 
             if context.options.impl != types.R2U2Implementation.C:
                 log.error(
@@ -503,7 +536,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr.type = types.BoolType(lhs.type.is_const and rhs.type.is_const)
         elif cpt.is_logical_operator(expr):
             expr = cast(cpt.Operator, expr)
-            is_const: bool = True
+            is_const = True
 
             for child in expr.children:
                 is_const = is_const and child.type.is_const
@@ -526,7 +559,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     )
                     return False
             expr.type = expr.children[0].type
-
         else:
             log.error(
                 MODULE_CODE,

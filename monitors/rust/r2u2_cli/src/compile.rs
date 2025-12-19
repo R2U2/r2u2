@@ -25,6 +25,7 @@ pub fn c2po_compile(spec_filename: &str,
     let parse_utils_code= c_str!(include_str!("../compiler/c2po/parse_utils.py"));
     let parse_mltl_code= c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
     let parse_c2po_code= c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
+    let parse_equiv_code= c_str!(include_str!("../compiler/c2po/parse_equiv.py"));
     let passes_code = c_str!(include_str!("../compiler/c2po/passes.py"));
     let sat_code = c_str!(include_str!("../compiler/c2po/sat.py"));
     let serialize_code = c_str!(include_str!("../compiler/c2po/serialize.py"));
@@ -52,6 +53,7 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, passes_code, c_str!("c2po/passes.py"), c_str!("c2po.passes"))?;
         PyModule::from_code(py, parse_mltl_code, c_str!("c2po/parse_mltl.py"), c_str!("c2po.parse_mltl"))?;
         PyModule::from_code(py, parse_c2po_code, c_str!("c2po/parse_c2po.py"), c_str!("c2po.parse_c2po"))?;
+        PyModule::from_code(py, parse_equiv_code, c_str!("c2po/parse_equiv.py"), c_str!("c2po.parse_equiv"))?;
         PyModule::from_code(py, serialize_code, c_str!("c2po/serialize.py"), c_str!("c2po.serialize"))?;
         let main_py = PyModule::from_code(py, main_code, c_str!("c2po/main.py"), c_str!("c2po.main"))?;
         let args = (spec_filename,

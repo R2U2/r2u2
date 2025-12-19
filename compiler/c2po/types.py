@@ -1,5 +1,5 @@
 import enum
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, Optional
 
 from c2po import log
 
@@ -20,14 +20,6 @@ class R2U2Engine(enum.Enum):
     # Original Atomic Checker was 3, but has been removed since v4.0
     TEMPORAL_LOGIC = 4
     BOOLEANIZER = 5
-
-
-class Interval(NamedTuple):
-    lb: int
-    ub: int
-
-    def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, Interval) and self.lb == __value.lb and self.ub == __value.ub
 
 
 SignalMapping = Dict[str, int]
