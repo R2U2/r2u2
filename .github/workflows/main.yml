@@ -48,7 +48,7 @@ jobs:
       run: |
         mkdir -p deps/
         cd deps/
-        git clone git@github.com:egraphs-good/egglog-experimental.git
+        git clone https://github.com/egraphs-good/egglog-experimental.git
         cd egglog-experimental
         git checkout fb6401e252a4971b6cca808dec8f3c9c650ea552
         cargo build --bin egglog-experimental --release
