@@ -267,7 +267,7 @@ class MLTLParser(sly.Parser):
         return self.mission_time
 
 
-def parse_mltl(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
+def parse(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
     

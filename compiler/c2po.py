@@ -172,9 +172,51 @@ parser.add_argument(
     help="enable equality saturation (default: %(default)s)"
 )
 parser.add_argument(
+    "--eqsat-equiv-check",  
+    action=argparse.BooleanOptionalAction, 
+    default=c2po.options.DEFAULTS["enable_eqsat_equiv_check"],
+    help="enable equivalence checking of equality saturation results (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-const-folding",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_const_folding"],
+    help="enable const folding rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-associative",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_associative"],
+    help="enable associative rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-commutative",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_commutative"],
+    help="enable commutative rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-multi-arity",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_multi_arity"],
+    help="enable multi-arity rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-logical",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_logical"],
+    help="enable logical rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
+    "--eqsat-temporal",
+    action=argparse.BooleanOptionalAction,
+    default=c2po.options.DEFAULTS["enable_eqsat_temporal"],
+    help="enable temporal rewrite rule for equality saturation (default: %(default)s)"
+)
+parser.add_argument(
     "--egglog-path", 
-    default=c2po.options.DEFAULTS["egglog_path"],
-    help="path to egglog executable, default assumes egglog is in PATH (default: %(default)s)"
+    default=None,
+    help="path to egglog executable, if not set will search PATH then compiler/deps/egglog-experimental/target/release"
 )
 parser.add_argument(
     "--eqsat-max-time", 
@@ -244,8 +286,20 @@ parser.add_argument(
     help="location to write pickled final program",
 )
 parser.add_argument(
-    "--write-smt",
-    help="location to write SMT encoding of FT formulas",
+    "--write-sat",
+    help="location to write SMT encoding of satisfiability of FT formulas",
+)
+parser.add_argument(
+    "--write-equiv",
+    help="location to write SMT encoding of equivalence between FT formulas",
+)
+parser.add_argument(
+    "--write-eqsat-equiv-smt",
+    help="location to write SMT encoding of equivalence between original and optimized EQSat formulas",
+)
+parser.add_argument(
+    "--write-eqsat-egglog",
+    help="location to write egglog encoding of formulas",
 )
 parser.add_argument(
     "--copyback", 
@@ -255,7 +309,7 @@ parser.add_argument(
     "--print-equiv-smt",
     action=argparse.BooleanOptionalAction,
     default=c2po.options.DEFAULTS["print_equiv_smt"],
-    help="print the SMT encoding of the equivalence check formulas"
+    help="print the SMT encoding of the equivalence check formulas and quit"
 )
 
 args = parser.parse_args()
@@ -280,11 +334,18 @@ opts = c2po.options.Options(
     enable_nnf=args.nnf,
     enable_bnf=args.bnf,
     enable_rewrite=args.rewrite,
-    enable_eqsat=args.eqsat,
+    enable_eqsat=args.eqsat,    
+    enable_eqsat_equiv_check=args.eqsat_equiv_check,
+    enable_eqsat_const_folding=args.eqsat_const_folding,
+    enable_eqsat_associative=args.eqsat_associative,
+    enable_eqsat_commutative=args.eqsat_commutative,
+    enable_eqsat_multi_arity=args.eqsat_multi_arity,
+    enable_eqsat_logical=args.eqsat_logical,
+    enable_eqsat_temporal=args.eqsat_temporal,
     enable_cse=args.cse,
     enable_sat=args.check_sat,
     write_bounds_filename=args.write_bounds,
-    egglog_path=args.egglog_path,
+    egglog_bin_path=args.egglog_path,  # None if not set, will be resolved in options.setup()
     eqsat_max_time=args.eqsat_max_time,
     eqsat_max_memory=args.eqsat_max_memory,
     smt_solver_path=args.smt_solver,
@@ -296,7 +357,10 @@ opts = c2po.options.Options(
     write_prefix_filename=args.write_prefix,
     write_mltl_filename=args.write_mltl,
     write_pickle_filename=args.write_pickle,
-    write_smt_dirname=args.write_smt,
+    write_sat_name=args.write_sat,
+    write_equiv_name=args.write_equiv,
+    write_eqsat_equiv_smt_name=args.write_eqsat_equiv_smt,
+    write_eqsat_egglog_name=args.write_eqsat_egglog,
     copyback_dirname=args.copyback,
     stats_format_str=args.stats,
     debug=args.debug,

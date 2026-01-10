@@ -1,0 +1,49 @@
+(rewrite
+  (Not (Bool true))
+  (Bool false)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Not (Bool false))
+  (Bool true)
+  :ruleset const-folding
+)
+
+(rewrite
+  (And2 (Bool true) a0)
+  a0
+  :ruleset const-folding
+)
+
+(rewrite
+  (And2 (Bool false) a0)
+  (Bool false)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Or2 (Bool true) a0)
+  (Bool true)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Or2 (Bool false) a0)
+  a0
+  :ruleset const-folding
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) (Not a0)) (Future (Interval b2 b3) a0))
+  (Bool false)
+  :when ((<= b0 b2) (<= b3 b1))
+  :ruleset const-folding
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) a0) (Future (Interval b2 b3) (Not a0)))
+  (Bool false)
+  :when ((<= b0 b2) (<= b3 b1))
+  :ruleset const-folding
+)

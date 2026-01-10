@@ -15,6 +15,7 @@ class Stats:
 
     eqsat_encoding_time: float = 0.0
     eqsat_solver_time: float = 0.0
+    eqsat_pre_size: int = 0
     eqsat_equiv_result: str = "none"
     eqsat_equiv_encoding_time: float = 0.0
     eqsat_equiv_solver_time: float = 0.0
@@ -30,15 +31,15 @@ class Stats:
         """Prints the statistics in the according to the given format string.
         The format string can contain the following placeholders:
         - %F = Input Filename
-        - %S = Total SCQ size
+        - %S = Final total SCQ size
         - %sr = SMT solver result
         - %se = SMT encoding time
         - %st = SMT solver time
         - %sn = SMT solver number of calls
         - %ee = Eqsat encoding time
+        - %eS = Pre Eqsat SCQ size 
         - %et = Eqsat solver time
         - %eq = Eqsat equivalence result
-        - %eq = Eqsat equivalence time
         - %es = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
         """
@@ -50,7 +51,8 @@ class Stats:
         format_str = format_str.replace("%sn", str(self.smt_num_calls))
         format_str = format_str.replace("%ee", str(self.eqsat_encoding_time))
         format_str = format_str.replace("%et", str(self.eqsat_solver_time))
+        format_str = format_str.replace("%eS", str(self.eqsat_pre_size))
         format_str = format_str.replace("%eq", self.eqsat_equiv_result)
-        format_str = format_str.replace("%es", str(self.eqsat_equiv_encoding_time))
-        format_str = format_str.replace("%ed", str(self.eqsat_equiv_solver_time))
+        format_str = format_str.replace("%es", str(self.eqsat_equiv_solver_time))
+        format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))
         print(format_str)

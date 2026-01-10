@@ -39,7 +39,7 @@ def wrap_up(program: cpt.Program, context: cpt.Context) -> None:
     log.debug(MODULE_CODE, 1, "Cleaning up")
     serialize.write_outputs(program, context)
     if context.options.copyback_enabled:
-        shutil.copytree(context.options.workdir, context.options.copyback_path)
+        shutil.copytree(context.options.workdir, context.options.copyback_path, dirs_exist_ok=True)
     if context.options.stats_format_str:
         context.stats.print(context.options.stats_format_str)
     log.debug(MODULE_CODE, 1, "Done")
@@ -63,7 +63,7 @@ def compile(opts: options.Options) -> ReturnCode:
     bounds: list[cpt.SymbolicIntervalVariable] = []
     constraints: list[cpt.Expression] = []
     if opts.spec_format == options.SpecFormat.C2PO:
-        program: Optional[cpt.Program] = parse_c2po.parse_c2po(
+        program: Optional[cpt.Program] = parse_c2po.parse(
             opts.spec_path, opts.mission_time
         )
 
@@ -72,7 +72,7 @@ def compile(opts: options.Options) -> ReturnCode:
             return ReturnCode.PARSE_ERR
 
     elif opts.spec_format == options.SpecFormat.MLTL:
-        parse_output = parse_mltl.parse_mltl(opts.spec_path, opts.mission_time)
+        parse_output = parse_mltl.parse(opts.spec_path, opts.mission_time)
 
         if not parse_output:
             log.error(MODULE_CODE, "Failed parsing")
@@ -88,7 +88,7 @@ def compile(opts: options.Options) -> ReturnCode:
             log.error(MODULE_CODE, "Bad pickle file")
             return ReturnCode.PARSE_ERR
     elif opts.spec_format == options.SpecFormat.EQUIV:
-        equiv_parse_output = parse_equiv.parse_equiv(opts.spec_path)
+        equiv_parse_output = parse_equiv.parse(opts.spec_path)
 
         if not equiv_parse_output:
             log.error(MODULE_CODE, "Failed parsing")
@@ -123,6 +123,7 @@ def compile(opts: options.Options) -> ReturnCode:
     if opts.spec_format == options.SpecFormat.EQUIV:
         # Then we just do the equivalence check and return
         sat_result = sat.check_equiv(program, bounds, constraints, context)
+        wrap_up(program, context)
         if sat_result is sat.SatResult.SAT:
             log.error(MODULE_CODE, "Equivalence check failed")
             return ReturnCode.ERROR
@@ -159,8 +160,7 @@ def compile(opts: options.Options) -> ReturnCode:
     # ----------------------------------
     if not opts.output_path:
         log.error(MODULE_CODE, f"Output path invalid: {opts.output_path}")
-        if opts.copyback_enabled:
-            shutil.copytree(opts.workdir, opts.copyback_path)
+        wrap_up(program, context)
         return ReturnCode.INVALID_INPUT
 
     (assembly, binary) = assemble.assemble(program, context)

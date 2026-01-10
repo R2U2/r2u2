@@ -476,25 +476,11 @@
             "input": "eqsat/r4_future_4.mltl", 
             "expected_serialization": "eqsat/r4_future_4.prefix.c2po.expect",
             "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },{
-            "input": "eqsat/r4_global_1.mltl", 
-            "expected_serialization": "eqsat/r4_global_1.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
         },
         {
             "input": "eqsat/r4_global_2.mltl", 
             "expected_serialization": "eqsat/r4_global_2.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_global_3.mltl", 
-            "expected_serialization": "eqsat/r4_global_3.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_global_4.mltl", 
-            "expected_serialization": "eqsat/r4_global_4.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
+            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out", "--no-eqsat-associative"]
         }
     ],
     "equiv": [

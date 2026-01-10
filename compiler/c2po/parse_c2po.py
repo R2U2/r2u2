@@ -125,6 +125,7 @@ class C2POParser(sly.Parser):
         ("left", LOG_OR),
         ("left", LOG_AND),
         ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
+        ("left", TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
         ("left", BW_OR),
         ("left", BW_XOR),
         ("left", BW_AND),
@@ -133,7 +134,7 @@ class C2POParser(sly.Parser):
         ("left", BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
-        ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
+        ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB),
         ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
     )
 
@@ -158,6 +159,7 @@ class C2POParser(sly.Parser):
             )
 
     def fresh_label(self) -> str:
+        # TODO: Change this to a more compact name
         return f"__f{self.spec_num}__"
 
     @_("section ft_spec_section")
@@ -640,7 +642,7 @@ class C2POParser(sly.Parser):
         return self.mission_time
 
 
-def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
+def parse(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
 

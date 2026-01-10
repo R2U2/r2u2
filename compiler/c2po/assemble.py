@@ -453,7 +453,7 @@ def gen_bz_instruction(
         operator = BZOperator.TS
     elif isinstance(expr, cpt.Atomic):
         operand1 = instructions[expr.children[0]].id
-        operand2 = 0 if expr not in context.atomic_id else context.atomic_id[expr]
+        operand2 = 0 if expr not in context.atomic_id_map else context.atomic_id_map[expr]
         operator = BZOperator.STORE
     elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id
@@ -758,14 +758,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.ft_spec_set:
             continue
 
-        if expr in context.atomic_id:
+        if expr in context.atomic_id_map:
             ftid = len(ft_instructions)
             ft_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ftid,
                 FTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                context.atomic_id[expr],
+                context.atomic_id_map[expr],
                 TLOperandType.NONE,
                 0,
             )
@@ -794,14 +794,14 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.pt_spec_set:
             continue
 
-        if expr in context.atomic_id:
+        if expr in context.atomic_id_map:
             ptid = len(pt_instructions)
             pt_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ptid + ft_scqs,
                 PTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                context.atomic_id[expr],
+                context.atomic_id_map[expr],
                 TLOperandType.NONE,
                 0,
             )
@@ -1014,7 +1014,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[In
     num_temporal_instructions = len([i for i in assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
     num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
     num_signals = len(context.signals)
-    num_atomics = len(context.atomic_id.values())
+    num_atomics = len(context.atomic_id_map.values())
     total_scq_size = sum([
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
     ])

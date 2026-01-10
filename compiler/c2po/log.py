@@ -86,8 +86,9 @@ def warning(
     module: str,
     message: str,
     location: Optional[FileLocation] = None,
+    enable: bool = True,
 ) -> None:
-    if enable_quiet:
+    if enable_quiet or not enable:
         return
     formatted_message = format(message, "WRN", Color.WARN, module, location)
     sys.stderr.write(formatted_message)
@@ -97,8 +98,9 @@ def error(
     module: str,
     message: str,
     location: Optional[FileLocation] = None,
+    enable: bool = True,
 ) -> None:
-    if enable_quiet:
+    if enable_quiet or not enable:
         return
     formatted_message = format(message, "ERR", Color.FAIL, module, location)
     sys.stderr.write(formatted_message)

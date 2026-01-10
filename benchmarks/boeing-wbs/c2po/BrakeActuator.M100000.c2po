@@ -1,6 +1,0 @@
-INPUT
-	LiVar805,LiVar905: bool;
-
-FTSPEC
-	(true ->  G[99053,100000] (LiVar905 <-> LiVar805)) && true
-;

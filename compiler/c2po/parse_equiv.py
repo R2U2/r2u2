@@ -302,7 +302,7 @@ class MLTLEquivParser(sly.Parser):
         return cpt.SymbolicInterval(p[1], p[3])
 
 
-def parse_equiv(input_path: Path) -> Optional[tuple[cpt.Program, list[cpt.SymbolicIntervalVariable], list[cpt.Expression]]]:
+def parse(input_path: Path) -> Optional[tuple[cpt.Program, list[cpt.SymbolicIntervalVariable], list[cpt.Expression]]]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
     

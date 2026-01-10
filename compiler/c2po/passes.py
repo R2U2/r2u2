@@ -1,5 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
+import pathlib
 from typing import Callable, Optional, cast
 
 from c2po import cpt, log, types, sat, eqsat, options
@@ -1000,10 +1001,10 @@ def optimize_cse(program: cpt.Program, context: cpt.Context) -> None:
         nonlocal expr_map
 
         if repr(expr) in expr_map:
-            log.debug(MODULE_CODE, 2, f"Replacing ---- {repr(expr)[:25]}")
+            log.debug(MODULE_CODE, 2, f"Replacing -- {repr(expr)}")
             expr.replace(expr_map[repr(expr)])
         else:
-            log.debug(MODULE_CODE, 2, f"Visiting ----- {repr(expr)[:25]}")
+            log.debug(MODULE_CODE, 2, f"Visiting --- {repr(expr)}")
             expr_map[repr(expr)] = expr
 
     expr_map = {}
@@ -1081,33 +1082,39 @@ def sort_operands_by_pd(program: cpt.Program, context: cpt.Context) -> None:
 
 
 def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
-    """Compute atomics and store them in `context`. An atomic is any expression that is *not* computed by the TL engine, but has at least one parent that is computed by the TL engine. Syntactically equivalent expressions share the same atomic ID."""
-    atomic_map: dict[str, int] = {}
+    """Compute atomics and store them in `context`. An atomic is any expression that is *not*
+    computed by the TL engine, but has at least one parent that is computed by the TL engine.
+    Syntactically equivalent expressions share the same atomic ID."""
+    atomic_id_map: dict[str, int] = {}
     aid: int = 0
 
     for expr in program.postorder(context):
         if (
             expr.engine == types.R2U2Engine.TEMPORAL_LOGIC 
             or isinstance(expr, cpt.Constant) 
-            or expr in context.atomic_id
+            or expr in context.atomic_id_map
         ):
             continue
 
-        if cpt.to_prefix_str(expr) in atomic_map:
-            context.atomic_id[expr] = atomic_map[cpt.to_prefix_str(expr)]
+        if cpt.to_prefix_str(expr) in atomic_id_map:
+            atomic_id = atomic_id_map[cpt.to_prefix_str(expr)]
+            context.atomic_id_map[expr] = atomic_id
+            context.atomic_expr_map[atomic_id] = expr
             continue
 
         # we just cast signals as atomics when we have no frontend
         if context.options.frontend is types.R2U2Engine.NONE:
             if isinstance(expr, cpt.Signal):
-                if expr.signal_id < 0 or not context.options.assembly_enabled:
-                    context.atomic_id[expr] = aid
-                    atomic_map[cpt.to_prefix_str(expr)] = aid
+                if expr.signal_id < 0:
+                    context.atomic_id_map[expr] = aid
+                    atomic_id_map[cpt.to_prefix_str(expr)] = aid
+                    context.atomic_expr_map[aid] = expr
                     aid += 1
                     continue
 
-                context.atomic_id[expr] = expr.signal_id
-                atomic_map[cpt.to_prefix_str(expr)] = expr.signal_id
+                context.atomic_id_map[expr] = expr.signal_id
+                context.atomic_expr_map[expr.signal_id] = expr
+                atomic_id_map[cpt.to_prefix_str(expr)] = expr.signal_id
                 continue
         elif not isinstance(expr, cpt.Atomic):
             # add atomic node between any TL and BZ nodes
@@ -1121,96 +1128,141 @@ def compute_atomics(program: cpt.Program, context: cpt.Context) -> None:
                     for i in range(0, len(parent.children)):
                         if id(parent.children[i]) == id(expr):
                             parent.children[i] = new
-                    new.parents.append(parent)
+                    new.parents.add(parent)
 
-                if cpt.to_prefix_str(new) in atomic_map:
-                    context.atomic_id[new] = atomic_map[cpt.to_prefix_str(new)]
+                if cpt.to_prefix_str(new) in atomic_id_map:
+                    context.atomic_id_map[new] = atomic_id_map[cpt.to_prefix_str(new)]
+                    context.atomic_expr_map[atomic_id_map[cpt.to_prefix_str(new)]] = new
                 else:
-                    context.atomic_id[new] = aid
-                    atomic_map[cpt.to_prefix_str(new)] = aid
+                    context.atomic_id_map[new] = aid
+                    atomic_id_map[cpt.to_prefix_str(new)] = aid
+                    context.atomic_expr_map[aid] = new
                     aid += 1
 
     log.debug(
         MODULE_CODE, 1,
-        f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id.items())}]",
+        f"Computed atomics:\n\t[{', '.join(f'({a},{i})' for a,i in context.atomic_id_map.items())}]",
     )
 
 
-def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
-    """Performs equality saturation over the future-time specs in `program` via egglog. See eqsat.py"""
-    compute_scq_sizes(program, context)
+def write_encoding(
+    encoding_str: str,
+    encoding_path: pathlib.Path,
+) -> None:
+    """Writes the encoding to the given path."""
+    log.debug(MODULE_CODE, 1, f"Writing encoding to {encoding_path}")
+    with open(encoding_path, "w") as f:
+        f.write(encoding_str)
 
-    log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
 
-    # flatten_multi_operators(program, context)
-    sort_operands_by_pd(program, context)
+def encode_eqsat(program: cpt.Program, context: cpt.Context) -> None:
+    """Encodes the future-time specs in `program` into egglog and stores them in `context`."""
+    log.debug(MODULE_CODE, 1, "Encoding EQSat")
 
-    if len(program.ft_spec_set.children) == 0:
-        return
-    
-    for formula in program.ft_spec_set.children:
-        formula =  cast(cpt.Formula, formula)
-        e_graph = eqsat.run_egglog(formula, context)
-
-        if not e_graph:
+    for formula in program.ft_spec_set.get_specs():
+        if isinstance(formula, cpt.Contract):
+            log.debug(MODULE_CODE, 2, "Found contract, skipping")
             continue
 
-        old = formula.get_expr()
-        new = e_graph.extract(context)
+        log.debug(MODULE_CODE, 2, f"Encoding EQSat for {formula.symbol}")
+        egglog_encoding = eqsat.to_egglog(formula.get_expr(), context)
+        encoding_path = context.options.workdir / f"{formula.symbol}.egg"
+        write_encoding(egglog_encoding, encoding_path)
+        context.eqsat_egglog_map[formula] = encoding_path
 
-        sat_result = sat.check_equiv_exprs(old, new, context)
+
+def optimize_eqsat(program: cpt.Program, context: cpt.Context) -> None:
+    """Performs equality saturation using the egglog encodings stored in `context`. See eqsat.py"""
+    log.debug(MODULE_CODE, 1, "Optimizing via EQSat")
+
+    compute_scq_sizes(program, context)
+    context.stats.eqsat_pre_size = program.total_scq_size
+
+    if len(context.eqsat_egglog_map) == 0:
+        return
+    
+    for formula, egglog_encoding_path in context.eqsat_egglog_map.items():
+        old = formula.get_expr()
+        new = eqsat.run_egglog(egglog_encoding_path, context)
+
+        if not new:
+            log.warning(MODULE_CODE, f"EQSat failed for {formula.symbol}, skipping")
+            continue
+
+        log.debug(MODULE_CODE, 1, f"EQSat result: {new}")
+
+        eqsat_smt_encoding = sat.to_smt_equiv_exprs(old, new, context)
+        encoding_path = context.options.workdir / f"{formula.symbol}.eqsat.equiv.smt2"
+        write_encoding(eqsat_smt_encoding, encoding_path)
+        context.eqsat_smt_map[formula] = encoding_path
+
+        if not context.options.enable_eqsat_equiv_check:
+            old.replace(new)
+            continue
+        
+        sat_result = sat.run_smt_solver(encoding_path, context)
 
         if sat_result is sat.SatResult.UNSAT:
+            log.debug(MODULE_CODE, 1, "Equality saturation produced equivalent formula")
             equiv_result = "equiv"
             old.replace(new)
-            compute_scq_sizes(program, context)
         elif sat_result is sat.SatResult.SAT:
             log.warning(MODULE_CODE, "Equality saturation produced non-equivalent formula, defaulting to non-optimized formula")
             equiv_result = "not-equiv"
         else:
-            log.warning(MODULE_CODE, "Equality saturation could not be validated, still using optimized formula")
+            if context.options.enable_eqsat_equiv_check:
+                log.warning(MODULE_CODE, "Equality saturation could not be validated, still using optimized formula")
             equiv_result = "unknown"
             old.replace(new)
-            compute_scq_sizes(program, context)
         
         context.stats.eqsat_equiv_result = equiv_result
 
     log.debug(MODULE_CODE, 1, f"Post EQSat:\n{repr(program)}")
 
 
-def check_sat(program: cpt.Program, context: cpt.Context) -> None:
-    """Checks that each specification individually and the conjunction of all specifications in
-    `program` is satisfiable and sends a warning if any are either unsat or unknown."""
-    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
+def encode_sat(program: cpt.Program, context: cpt.Context) -> None:
+    """Encodes the future-time specs in `program` into SMT-LIB2 and stores them in `context`."""
+    log.debug(MODULE_CODE, 1, "Encoding SAT")
 
     exprs = []
     for spec in program.get_specs():
         if isinstance(spec, cpt.Contract):
             log.warning(MODULE_CODE, "Found contract, skipping")
             continue
+        log.debug(MODULE_CODE, 2, f"Encoding SAT for {spec.symbol}")
 
         expr = spec.get_expr()
         exprs.append(expr)
-        result = sat.check_sat_expr(expr, context)
-        if result is sat.SatResult.SAT:
-            log.debug(MODULE_CODE, 1, f"{spec.symbol} is sat")
-        elif result is sat.SatResult.UNSAT:
-            log.warning(MODULE_CODE, f"{spec.symbol} is unsat")
-        elif result is sat.SatResult.UNKNOWN:
-            log.warning(MODULE_CODE, f"{spec.symbol} is unknown")
-            
+
+        sat_smt_encoding = sat.to_smt(expr, context)
+        encoding_path = context.options.workdir / f"{spec.symbol}.sat.smt2"
+        write_encoding(sat_smt_encoding, encoding_path)
+        context.sat_smt_map[spec] = encoding_path
+
     # we only check the conjunction of all specifications if there are more than one
     if len(exprs) <= 1:
         return
 
-    formula = cpt.Operator.LogicalAnd(program.loc, exprs)
-    result = sat.check_sat_expr(formula, context)
-    if result is sat.SatResult.SAT:
-        log.debug(MODULE_CODE, 1, "Program is satisfiable")
-    elif result is sat.SatResult.UNSAT:
-        log.warning(MODULE_CODE, "Program is unsatisfiable")
-    elif result is sat.SatResult.UNKNOWN:
-        log.warning(MODULE_CODE, "Program satisfiability is unknown")
+    formula = cpt.Operator.LogicalAnd(program.loc, exprs, set_parents=False)
+    sat_smt_encoding = sat.to_smt(formula, context)
+    encoding_path = context.options.workdir / "program.sat.smt2"
+    write_encoding(sat_smt_encoding, encoding_path)
+    context.sat_smt_map[cpt.Formula(program.loc, "program", len(exprs), formula)] = encoding_path
+
+
+def check_sat(program: cpt.Program, context: cpt.Context) -> None:
+    """If check_sat is enabled, this function checks that each specification individually and the conjunction of all specifications in
+    `program` is satisfiable and sends a warning if any are either unsat or unknown."""
+    log.debug(MODULE_CODE, 1, "Checking formulas satisfiability")
+
+    for formula, encoding_path in context.sat_smt_map.items():
+        result = sat.run_smt_solver(encoding_path, context)
+        if result is sat.SatResult.SAT:
+            log.debug(MODULE_CODE, 1, f"{formula.symbol} is sat")
+        elif result is sat.SatResult.UNSAT:
+            log.warning(MODULE_CODE, f"{formula.symbol} is unsat")
+        elif result is sat.SatResult.UNKNOWN:
+            log.warning(MODULE_CODE, f"{formula.symbol} is unknown")
 
 
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
@@ -1223,40 +1275,36 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context) -> None:
 
         if isinstance(expr, cpt.Formula):
             expr.scq_size = 1 + context.options.scq_constant
-            expr.total_scq_size = expr.get_expr().total_scq_size + expr.scq_size
-
             total_scq_size += expr.scq_size
-
             expr.scq = (
                 total_scq_size - expr.scq_size,
                 total_scq_size,
             )
-
             continue
 
         if (
             expr.engine != types.R2U2Engine.TEMPORAL_LOGIC
-            and expr not in context.atomic_id
+            and expr not in context.atomic_id_map
         ):
             continue
 
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
-
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 1 + context.options.scq_constant
-        expr.total_scq_size = (
-            sum([c.total_scq_size for c in expr.children if c.scq_size > -1])
-            + expr.scq_size
-        )
-
         total_scq_size += expr.scq_size
-
         expr.scq = (
             total_scq_size - expr.scq_size,
             total_scq_size,
         )
 
+        log.debug(MODULE_CODE, 2, f"Expr: {repr(expr)} : {expr.scq_size}")
+        log.debug(MODULE_CODE, 2, f"\t{expr.get_siblings()}")
+
+
     program.total_scq_size = total_scq_size
     context.stats.total_scq_size = total_scq_size
+
+    for expr in program.postorder(context):
+        log.debug(MODULE_CODE, 2, f"Expr: {repr(expr)} : {expr.scq_size}")
 
     log.debug(MODULE_CODE, 1, f"Program SCQ size: {total_scq_size}")
 
@@ -1280,13 +1328,15 @@ pass_list: list[Pass] = [
     resolve_struct_accesses,
     compute_atomics, 
     optimize_rewrite_rules,
+    optimize_cse,
+    encode_eqsat,
     optimize_eqsat,
-    compute_atomics, 
     to_nnf,
     to_bnf,
     remove_extended_operators,
     multi_operators_to_binary,
     optimize_cse,
+    encode_sat,
     check_sat,
     compute_scq_sizes, 
 ]
@@ -1311,6 +1361,7 @@ def setup(opts: options.Options) -> None:
 
     if not opts.enable_cse:
         pass_list.remove(optimize_cse)
+        pass_list.remove(optimize_cse)
 
     if opts.enable_extops:
         pass_list.remove(remove_extended_operators)
@@ -1318,8 +1369,6 @@ def setup(opts: options.Options) -> None:
     if opts.enable_eqsat:
         if optimize_rewrite_rules in pass_list:
             pass_list.remove(optimize_rewrite_rules)
-        if optimize_cse in pass_list:
-            pass_list.remove(optimize_cse)
         if remove_extended_operators in pass_list:
             pass_list.remove(remove_extended_operators)
 

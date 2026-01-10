@@ -78,14 +78,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     expr.loc,
                 )
                 return False
-            
+
             if (
                 context.options.frontend is not types.R2U2Engine.BOOLEANIZER
-                and expr.type in {types.IntType(), types.FloatType()}
+                and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
             ):
                 log.error(
                     MODULE_CODE,
-                    f"Non-bool type found '{expr.symbol}' ({expr.type})\n\t"
+                    f"Non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n\t"
                     f"Did you mean to enable the Booleanizer?",
                     expr.loc,
                 )
@@ -137,6 +137,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             else:
                 log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
                 return False
+        elif isinstance(expr, cpt.Atomic):
+            expr.type = types.BoolType()
         elif isinstance(expr, cpt.SymbolicIntervalVariable):
             expr.type = types.IntType(True)
         elif isinstance(expr, cpt.MissionTime):

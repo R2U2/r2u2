@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import enum
 import pickle
+import pathlib
 from typing import Iterator, Optional, Union, cast, Any, NamedTuple
 
 from c2po import log, types, options, stats
@@ -41,10 +42,10 @@ class Expression(Node):
         loc: log.FileLocation,
         children: list[Expression],
         type: types.Type = types.NoType(),
+        set_parents: bool = True
     ) -> None:
         super().__init__(loc)
         self.engine = types.R2U2Engine.NONE
-        self.total_scq_size: int = -1
         self.scq_size: int = -1
         self.bpd: int = 0
         self.wpd: int = 0
@@ -52,25 +53,27 @@ class Expression(Node):
         self.type: types.Type = type
 
         self.children: list[Expression] = []
-        self.parents: list[Expression] = []
+        self.parents: set[Expression] = set()
 
+        # If set_parents is False, we don't want to set parents when adding children.
+        # This is used when an expression is a "dummy" expression used for the SAT encoding
+        # or generally any expression that is not part of the final program.
         for child in children:
             self.children.append(child)
-            child.parents.append(self)
+            if set_parents:
+                child.parents.add(self)
 
         # Used for pre-order traversal, if this has been replaced during traversal
         self.replacement: Optional[Expression] = None
 
-    def get_siblings(self) -> list[Expression]:
-        siblings = []
+    def get_siblings(self) -> set[Expression]:
+        siblings = set()
 
         for parent in self.parents:
             for sibling in [s for s in parent.children]:
-                if sibling in siblings:
-                    continue
                 if sibling == self:
                     continue
-                siblings.append(sibling)
+                siblings.add(sibling)
 
         return siblings
 
@@ -100,7 +103,7 @@ class Expression(Node):
                 if id(parent.children[i]) == id(self):
                     parent.children[i] = new
 
-            new.parents.append(parent)
+            new.parents.add(parent)
 
         for child in self.children:
             if self in child.parents:
@@ -122,7 +125,6 @@ class Expression(Node):
         new.symbol = self.symbol
         new.engine = self.engine
         new.scq_size = self.scq_size
-        new.total_scq_size = self.total_scq_size
         new.bpd = self.bpd
         new.wpd = self.wpd
         new.scq = self.scq
@@ -581,8 +583,9 @@ class Operator(Expression):
         op_kind: OperatorKind,
         children: list[Expression],
         type: types.Type = types.NoType(),
+        set_parents: bool = True
     ) -> None:
-        super().__init__(loc, children, type)
+        super().__init__(loc, children, type, set_parents)
         self.operator: OperatorKind = op_kind
         self.symbol: str = op_kind.value
 
@@ -769,8 +772,10 @@ class Operator(Expression):
         return operator
 
     @staticmethod
-    def LogicalAnd(loc: log.FileLocation, operands: list[Expression]) -> Operator:
-        operator = Operator(loc, OperatorKind.LOGICAL_AND, operands)
+    def LogicalAnd(loc: log.FileLocation, operands: list[Expression], set_parents: bool = True) -> Operator:
+        # We use LogicalAnd in the SAT encoding (for encoding the conjunction of all
+        # specifications), so we may not want to set parents
+        operator = Operator(loc, OperatorKind.LOGICAL_AND, operands, set_parents=set_parents)
         operator.bpd = min([opnd.bpd for opnd in operands])
         operator.wpd = max([opnd.wpd for opnd in operands])
         operator.type = types.BoolType()
@@ -793,8 +798,16 @@ class Operator(Expression):
         return operator
 
     @staticmethod
-    def LogicalIff(loc: log.FileLocation, lhs: Expression, rhs: Expression) -> Operator:
-        operator = Operator(loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs])
+    def LogicalIff(
+        loc: log.FileLocation,
+        lhs: Expression,
+        rhs: Expression,
+        set_parents: bool = True,
+    ) -> Operator:
+        # We use LogicalIff in the SAT encoding, so we may not want to set parents
+        operator = Operator(
+            loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs], set_parents=set_parents
+        )
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
         operator.type = types.BoolType()
@@ -811,8 +824,13 @@ class Operator(Expression):
         return operator
 
     @staticmethod
-    def LogicalNegate(loc: log.FileLocation, operand: Expression) -> Operator:
-        operator = Operator(loc, OperatorKind.LOGICAL_NEGATE, [operand])
+    def LogicalNegate(
+        loc: log.FileLocation, operand: Expression, set_parents: bool = True
+    ) -> Operator:
+        # We use LogicalNegate in the SAT encoding, so we may not want to set parents
+        operator = Operator(
+            loc, OperatorKind.LOGICAL_NEGATE, [operand], set_parents=set_parents
+        )
         operator.bpd = operand.bpd
         operator.wpd = operand.wpd
         operator.type = types.BoolType()
@@ -1364,6 +1382,7 @@ class Program(Node):
             "R2U2_TOTAL_QUEUE_MEM": -1,
         }
 
+
     def get_bounds_c_file(self) -> str:
         """Returns the contents of the bounds.h file."""
         contents =  "#ifndef R2U2_BOUNDS_H\n"
@@ -1438,9 +1457,15 @@ class Context:
         self.variables: dict[str, types.Type] = {}
         self.specifications: dict[str, Formula] = {}
         self.contracts: dict[str, Contract] = {}
-        self.atomic_id: dict[Expression, int] = {}
+        self.atomic_id_map: dict[Expression, int] = {}
+        self.atomic_expr_map: dict[int, Expression] = {}
         self.bound_vars: dict[str, ArrayExpression] = {}
         self.stats = stats.Stats(filename=opts.spec_filename)
+
+        self.sat_smt_map: dict[Formula, pathlib.Path] = {} # Maps from formula to SMT encoding
+        self.eqsat_smt_map: dict[Formula, pathlib.Path] = {} # Maps from formula to EQSat equivalence SMT encoding
+        self.eqsat_egglog_map: dict[Formula, pathlib.Path] = {} # Maps from formula to EQSat egglog encoding
+        self.equiv_smt_path: pathlib.Path = pathlib.Path(options.EMPTY_FILENAME) # Path to equivalence SMT encoding. Only used when input is a .equiv file
 
         self.is_ft = False
         self.has_future_time = False
@@ -1554,6 +1579,37 @@ def preorder(
 
         for child in reversed(cur.children):
             stack.append(child)
+
+
+def postorder_repeats(
+    start: Union[Expression, list[Expression]], context: Context
+) -> Iterator[Expression]:
+    """Performs a postorder traversal of `start`, treating repeated expressions as distinct. If `start` is a list of `Expression`s, then initializes the stack to `start`. Uses `context` to handle local context (for example, variable binding in set aggregation expressions)."""
+    stack: list[tuple[bool, Expression]] = []
+
+    if isinstance(start, Expression):
+        stack.append((False, start))
+    else:
+        [stack.append((False, expr)) for expr in start]
+
+    while len(stack) > 0:
+        (seen, expr) = stack.pop()
+
+        if seen and isinstance(expr, SetAggregation):
+            del context.bound_vars[expr.bound_var.symbol]
+            yield expr
+            continue
+        elif seen and isinstance(expr, Bind):
+            context.bound_vars[expr.bound_var.symbol] = expr.get_set()
+            continue
+        elif seen:
+            yield expr
+            continue
+
+        stack.append((True, expr))
+
+        for child in reversed(expr.children):
+            stack.append((False, child))
 
 
 def rename(
@@ -1954,8 +2010,8 @@ def to_mltl_std(program: Program, context: Context) -> str:
 
             if isinstance(expr, Constant):
                 mltl += expr.symbol + " "
-            elif expr in context.atomic_id:
-                mltl += f"a{context.atomic_id[expr]}"
+            elif expr in context.atomic_id_map:
+                mltl += f"a{context.atomic_id_map[expr]}"
             elif len(expr.children) == 1 and (
                 is_temporal_operator(expr) or is_logical_operator(expr)
             ):

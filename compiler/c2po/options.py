@@ -3,6 +3,7 @@ from typing import Optional
 import pathlib
 import enum
 import resource
+import shutil
 
 from c2po import types, log, parse_utils
 
@@ -36,6 +37,29 @@ class CompilationStage(enum.Enum):
     PASSES = 2
     ASSEMBLE = 3
 
+
+def find_egglog() -> str:
+    """Find egglog executable by checking PATH first, then compiler/deps/egglog-experimental/target/release.
+    
+    Returns the path to egglog-experimental if found, otherwise returns the default "egglog-experimental" string.
+    """
+    # First, check if 'egglog' is in PATH
+    egglog_in_path = shutil.which("egglog-experimental")
+    if egglog_in_path:
+        return egglog_in_path
+    
+    # If not in PATH, check in compiler/deps/egglog-experimental/target/release
+    # Get the compiler directory (parent of c2po directory)
+    compiler_dir = pathlib.Path(__file__).parent.parent
+    deps_path = compiler_dir / "deps" / "egglog-experimental" / "target" / "release" / "egglog-experimental"
+    
+    if deps_path.exists() and deps_path.is_file():
+        return str(deps_path)
+    
+    # Return default if not found
+    return "egglog-experimental"
+
+
 DEFAULTS = {
     "trace_filename": None,
     "map_filename": None,
@@ -56,22 +80,32 @@ DEFAULTS = {
     "enable_bnf": False,
     "enable_rewrite": True,
     "enable_eqsat": False,
+    "enable_eqsat_equiv_check": False,
+    "enable_eqsat_const_folding": True,
+    "enable_eqsat_associative": True,
+    "enable_eqsat_commutative": True,
+    "enable_eqsat_multi_arity": True,
+    "enable_eqsat_logical": True,
+    "enable_eqsat_temporal": True,
     "enable_cse": True,
     "enable_sat": False,
     "write_bounds_filename": None,
-    "egglog_path": "egglog",
+    "egglog_path": "egglog-experimental",
     "eqsat_max_time": 3600,
     "eqsat_max_memory": 0,
     "smt_solver_path": "z3",
     "smt_options": [],
-    "smt_encoding_str": "uflia",
+    "smt_encoding_str": "uflia_inf",
     "smt_max_time": 3600,
     "smt_max_memory": 0,
     "write_c2po_filename": None,
     "write_prefix_filename": None,
     "write_mltl_filename": None,
     "write_pickle_filename": None,
-    "write_smt_dirname": None,
+    "write_sat_name": None,
+    "write_equiv_name": None,
+    "write_eqsat_equiv_smt_name": None,
+    "write_eqsat_egglog_name": None,
     "copyback_dirname": None,
     "stats": None,
     "debug": False,
@@ -102,10 +136,18 @@ class Options:
     enable_bnf: bool = DEFAULTS["enable_bnf"]
     enable_rewrite: bool = DEFAULTS["enable_rewrite"]
     enable_eqsat: bool = DEFAULTS["enable_eqsat"]
+    enable_eqsat_equiv_check: bool = DEFAULTS["enable_eqsat_equiv_check"]
+    enable_eqsat_const_folding: bool = DEFAULTS["enable_eqsat_const_folding"]
+    enable_eqsat_associative: bool = DEFAULTS["enable_eqsat_associative"]
+    enable_eqsat_commutative: bool = DEFAULTS["enable_eqsat_commutative"]
+    enable_eqsat_multi_arity: bool = DEFAULTS["enable_eqsat_multi_arity"]
+    enable_eqsat_logical: bool = DEFAULTS["enable_eqsat_logical"]
+    enable_eqsat_temporal: bool = DEFAULTS["enable_eqsat_temporal"]
+    eqsat_enabled_rewrites: list[str] = field(default_factory=list)
     enable_cse: bool = DEFAULTS["enable_cse"]
     enable_sat: bool = DEFAULTS["enable_sat"]
     write_bounds_filename: Optional[str] = DEFAULTS["write_bounds_filename"]
-    egglog_path: str = DEFAULTS["egglog_path"]
+    egglog_bin_path: Optional[str] = None  # None means user didn't set it, will be resolved in setup()
     eqsat_max_time: int = DEFAULTS["eqsat_max_time"]
     eqsat_max_memory: int = DEFAULTS["eqsat_max_memory"]
     smt_solver_path: str = DEFAULTS["smt_solver_path"]
@@ -117,7 +159,10 @@ class Options:
     write_prefix_filename: Optional[str] = DEFAULTS["write_prefix_filename"]
     write_mltl_filename: Optional[str] = DEFAULTS["write_mltl_filename"]
     write_pickle_filename: Optional[str] = DEFAULTS["write_pickle_filename"]
-    write_smt_dirname: Optional[str] = DEFAULTS["write_smt_dirname"]
+    write_sat_name: Optional[str] = DEFAULTS["write_sat_name"]
+    write_equiv_name: Optional[str] = DEFAULTS["write_equiv_name"]
+    write_eqsat_equiv_smt_name: Optional[str] = DEFAULTS["write_eqsat_equiv_smt_name"]
+    write_eqsat_egglog_name: Optional[str] = DEFAULTS["write_eqsat_egglog_name"]
     copyback_dirname: Optional[str] = DEFAULTS["copyback_dirname"]
     stats_format_str: Optional[str] = DEFAULTS["stats"]
     debug: bool = DEFAULTS["debug"]
@@ -135,11 +180,6 @@ class Options:
     assembly_enabled: bool = True
     enabled_passes: set = field(default_factory=set)
     smt_encoding: SMTTheories = SMTTheories.UFLIA
-    write_c2po: bool = False
-    write_prefix: bool = False
-    write_mltl: bool = False
-    write_pickle: bool = False
-    write_smt: bool = False
     copyback_enabled: bool = False
     copyback_path: pathlib.Path = pathlib.Path(EMPTY_FILENAME)
 
@@ -192,9 +232,7 @@ class Options:
 
         if self.copyback_dirname is not None:
             self.copyback_path = pathlib.Path(self.copyback_dirname)
-            if self.copyback_path.exists():
-                log.error(MODULE_CODE, f"Directory already exists '{self.copyback_path}'")
-                status = False
+            self.copyback_path.mkdir(parents=True, exist_ok=True)
             self.copyback_enabled = True
 
         tmp_signal_mapping = None
@@ -286,5 +324,25 @@ class Options:
         else:
             log.error(MODULE_CODE, f"Invalid SMT theory '{self.smt_encoding_str}'")
             status = False
+
+        # Resolve egglog path if user hasn't manually set it (None means not set)
+        if self.egglog_bin_path is None:
+            resolved_path = find_egglog()
+            if resolved_path != "egglog":
+                log.debug(MODULE_CODE, 1, f"Found egglog at: {resolved_path}")
+            self.egglog_bin_path = resolved_path
+
+        if self.enable_eqsat_const_folding:
+            self.eqsat_enabled_rewrites.append("const_folding")
+        if self.enable_eqsat_associative:
+            self.eqsat_enabled_rewrites.append("associative")
+        if self.enable_eqsat_commutative:
+            self.eqsat_enabled_rewrites.append("commutative")
+        if self.enable_eqsat_multi_arity:
+            self.eqsat_enabled_rewrites.append("multi_arity")
+        if self.enable_eqsat_logical:
+            self.eqsat_enabled_rewrites.append("logical")
+        if self.enable_eqsat_temporal:
+            self.eqsat_enabled_rewrites.append("temporal")
 
         return status
