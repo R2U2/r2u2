@@ -39,10 +39,10 @@ jobs:
       if: steps.cache-z3-4-15-0.outputs.cache-hit != 'true'
 
     - uses: actions/cache@v3
-      id: cache-egglog-0-4-0
+      id: cache-egglog-experimental
       with:
-        path: deps/egglog-0.4.0
-        key: ${{ runner.os }}-egglog-0-4-0
+        path: deps/egglog-experimental
+        key: ${{ runner.os }}-egglog-experimental
 
     - name: Install Egglog
       run: |
@@ -52,7 +52,7 @@ jobs:
         cd egglog-experimental
         git checkout fb6401e252a4971b6cca808dec8f3c9c650ea552
         cargo build --bin egglog-experimental --release
-      if: steps.cache-egglog-0-4-0.outputs.cache-hit != 'true'
+      if: steps.cache-egglog-experimental.outputs.cache-hit != 'true'
       
     - name: Add dependencies to PATH
       run: |
