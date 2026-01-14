@@ -1,11 +1,8 @@
 #type: ignore
 from __future__ import annotations
-from typing import Optional
-from pathlib import Path
-
-from c2po import sly, types, cpt, log
-
-MODULE_CODE = "PRSC"
+from typing import Optional, Any
+from c2po import sly
+from c2po import types, cpt, log, command, util
 
 class C2POLexer(sly.Lexer):
 
@@ -112,7 +109,7 @@ class C2POLexer(sly.Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, self.lineno))
+        log.error(f"illegal character '{t.value[0]}'", log.FileLocation(self.filename, self.lineno))
         self.index += 1
 
 
@@ -150,11 +147,11 @@ class C2POParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
+            log.error(f"syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(MODULE_CODE, f"Syntax error, token is 'None' (EOF)",
+            log.error(f"syntax error, token is 'None' (EOF)",
                       log.FileLocation(self.filename, lineno)
             )
 
@@ -272,7 +269,6 @@ class C2POParser(sly.Parser):
         size = int(p[2])
         if size < 0:
             log.error(
-                MODULE_CODE, 
                 f"Array sizes must be greater than zero (found '{size}')", 
                 log.FileLocation(self.filename, p.lineno)
             )
@@ -325,8 +321,7 @@ class C2POParser(sly.Parser):
     def spec(self, p):
         if len(p[0]) > 50:
             log.error(
-                MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
+                f"specification label '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False
@@ -339,8 +334,7 @@ class C2POParser(sly.Parser):
     def spec(self, p):
         if len(p[0]) > 50:
             log.error(
-                MODULE_CODE, 
-                f"Specification identifier name '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
+                f"specification label '{p[0]}' is too long, please chose a shorter name (limit 50 characters)", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False
@@ -627,8 +621,7 @@ class C2POParser(sly.Parser):
         num = int(p[0])
         if int(p[0]) < 0:
             log.error(
-                MODULE_CODE, 
-                f"Interval bounds must be greater than zero (found '{num}')", 
+                f"interval bounds must be greater than zero (found '{num}')", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False
@@ -637,20 +630,31 @@ class C2POParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
+            log.error(
+                f"mission time used but not set. Set using the 'set_mission_time' command or the '--mission-time' option.", 
+                log.FileLocation(self.filename, p.lineno)
+            )
             self.status = False
         return self.mission_time
 
 
-def parse(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
+def parse_c2po(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Program]:
+    """Parse contents of input and returns corresponding program.
+    
+    `options` is a dictionary containing the following key:
+        - `filename`: The path to the C2PO input file
 
-    with open(input_path, "r") as f:
-        contents = f.read()
+    Returns:
+        A C2PO program on success, else returns None.
+    """
+    contents = util.read_file(options["filename"])
+    if contents is None:
+        return None
+        
+    context.set_spec_filename(options["filename"])
 
-    lexer: C2POLexer = C2POLexer(input_path.name)
-    parser: C2POParser = C2POParser(input_path.name, mission_time)
+    lexer: C2POLexer = C2POLexer(options["filename"])
+    parser: C2POParser = C2POParser(options["filename"], context.mission_time)
     sections: list[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
@@ -658,3 +662,28 @@ def parse(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
 
     return cpt.Program(0, sections)
 
+parse_c2po_command = command.Command(
+    name="parse_c2po",
+    description="Parse a C2PO input file and return a program",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the C2PO input file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+        {
+            "name": "mission-time",
+            "description": "The mission time",
+            "required": False,
+            "type": int,
+            "default": -1,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: parse_c2po(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_c2po_command)

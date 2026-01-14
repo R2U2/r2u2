@@ -1,10 +1,19 @@
 import resource
 import sys
-
+import re
+from typing import Optional
 from c2po import log
 
-MODULE_CODE = "UTIL"
-
+def read_file(filename: str) -> Optional[str]:
+    """Read the contents of a file and return it as a string."""
+    try:
+        with open(filename, "r") as f:
+            return f.read()
+    except OSError as e:
+        message = re.sub(r"\[Errno \d+\] ", "", str(e))
+        message = re.sub(r"No", r"no", message)
+        log.error(message)
+        return None
 
 def format_bytes(bytes: int) -> str:
     """Return the given number of bytes in a human-readable format."""
@@ -34,25 +43,21 @@ def set_max_memory(bytes: int) -> None:
     """Set the maximum memory in bytes."""
     if sys.platform == "darwin":
         log.debug(
-            MODULE_CODE,
-            1,
-            "macOS does not support setrlimit for RLIMIT_AS, ignoring max memory limit",
+            1, "macOS does not support setrlimit for RLIMIT_AS, ignoring max memory limit",
         )
         return
     
-    log.debug(MODULE_CODE, 1, f"Setting max memory to {format_bytes(bytes)}")
+    log.debug(1, f"setting max memory to {format_bytes(bytes)}")
 
     try:
         resource.setrlimit(resource.RLIMIT_AS, (bytes, resource.RLIM_INFINITY))
     except ValueError:
         log.warning(
-            MODULE_CODE,
-            "Failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
+            "failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
         )
     except OverflowError:
         log.warning(
-            MODULE_CODE,
-            "Failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
+            "failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
         )
 
 
@@ -69,7 +74,7 @@ def set_max_memory_offset(bytes: int) -> None:
         # macOS returns memory usage in bytes
         current_memory = current_memory // 1024
 
-    log.debug(MODULE_CODE, 1, f"Current memory usage: {format_bytes(current_memory * 1024)}")
+    log.debug(1, f"current memory usage: {format_bytes(current_memory * 1024)}")
 
     new_memory = bytes + current_memory
     set_max_memory(new_memory)

@@ -1,191 +1,314 @@
 from __future__ import annotations
-
-import enum
+import code 
+import sys
 import pathlib
-import pickle
 import tempfile
-import shutil
+import os
 from typing import Optional
-
+from types import ModuleType
 from c2po import (
-    assemble,
     cpt,
     log,
+    type_check,
+    transform,
+    eqsat,
+    sat,
+    atomics,
+    cse,
+    desugar,
+    scq,
+    assemble,
+    rewrite,
+    command,
+    serialize,
     parse_c2po,
     parse_mltl,
     parse_equiv,
-    type_check,
-    passes,
-    serialize,
-    options,
-    sat
+    parse_utils,
+    util,
 )
 
-MODULE_CODE = "MAIN"
+# Try and import readline for better REPL experience
+readline: Optional[ModuleType]
+try:
+    import readline
+except ImportError:
+    readline = None
 
+sys.ps1 = "c2po> "
+sys.ps2 = "    "
 
-class ReturnCode(enum.Enum):
-    SUCCESS = 0
-    ERROR = 1
-    PARSE_ERR = 2
-    TYPE_CHECK_ERR = 3
-    ASM_ERR = 4
-    INVALID_INPUT = 5
-    FILE_IO_ERR = 6
+compile_command = command.CompositeCommand(
+    name="compile",
+    description="Compile a program after parsing with basic optimizations. No dependencies on external tools.",
+    commands=[
+        type_check.type_check_command,
+        desugar.desugar_command,
+        rewrite.optimize_rewrite_rules_command,
+        transform.remove_extended_operators_command,
+        transform.multi_operators_to_binary_command,
+        cse.optimize_cse_command,
+        assemble.assemble_command,
+    ],
+    guards=[]
+)
+command.CommandRegistry.register(compile_command)
 
+# A dictionary of failed guard conditions to the command that will likely fix them
+FAILED_GUARD_SUGGESTIONS: dict[command.CommandGuard, list[command.Command]] = {
+    command.VALID_PROGRAM: [parse_c2po.parse_c2po_command],
+    command.VALID_SIGNAL_MAPPING: [parse_utils.parse_map_command, parse_utils.parse_trace_command],
+    command.WELL_TYPED: [type_check.type_check_command],
+    command.DESUGARED: [desugar.desugar_command],
+    command.VALID_SCQ_SIZES: [scq.compute_scq_sizes_command],
+    command.COMPUTED_ATOMICS: [atomics.compute_atomics_command],
+    command.ONLY_BINARY_OPERATORS: [transform.multi_operators_to_binary_command],
+    command.NO_EXTENDED_OPERATORS: [transform.remove_extended_operators_command],
+    command.ASSEMBLED: [assemble.assemble_command]
+}
 
-def wrap_up(program: cpt.Program, context: cpt.Context) -> None:
-    """Wrap up the program, including cleanup and finalization."""
-    log.debug(MODULE_CODE, 1, "Cleaning up")
-    serialize.write_outputs(program, context)
-    if context.options.copyback_enabled:
-        shutil.copytree(context.options.workdir, context.options.copyback_path, dirs_exist_ok=True)
-    if context.options.stats_format_str:
-        context.stats.print(context.options.stats_format_str)
-    log.debug(MODULE_CODE, 1, "Done")
+class CommandConsole(code.InteractiveConsole):
+    """Interactive console that supports custom Commands.
 
-
-def compile(opts: options.Options) -> ReturnCode:
-    """Compile a C2PO input file, output generated R2U2 binaries and return error/success code.
-
-    Compilation stages:
-    2. Parse
-    3. Type check
-    3a. Equivalence check (if input is an equivalence specification)
-    4. Required passes
-    5. Option-based passes
-    6. Optimizations
-    7. Assembly
+    This class extends code.InteractiveConsole to handle custom commands (as defined
+    in command.py). Commands are checked first and executed if found.
     """
-    # ----------------------------------
-    # Parse
-    # ----------------------------------
-    bounds: list[cpt.SymbolicIntervalVariable] = []
-    constraints: list[cpt.Expression] = []
-    if opts.spec_format == options.SpecFormat.C2PO:
-        program: Optional[cpt.Program] = parse_c2po.parse(
-            opts.spec_path, opts.mission_time
+    
+    def __init__(self, filename: str = "<console>"):
+        """Initialize the CommandConsole with a list of Commands.
+        
+        Args:
+            filename: Optional filename for error reporting
+        """
+        super().__init__(filename=filename)
+        self.program: cpt.Program = cpt.Program.dummy()
+        self.context: cpt.Context = cpt.Context()
+        self.commands = command.CommandRegistry.commands
+        self.command_dict = {command.name: command for command in self.commands}
+        self.last_return_code = command.ReturnCode.SUCCESS
+
+    def runsource(self, source: str, filename: str = "<input>", symbol: str = "single") -> bool:
+        """Execute a source string, checking for commands first, then falling back to Python execution.
+        
+        Args:
+            source: The command to execute 
+            filename: The filename for error reporting
+            symbol: The symbol type ('single' for single statement, 'exec' for compound)
+        
+        Returns:
+            True if the input was incomplete (needs more input), False otherwise
+        """
+        source = source.strip()
+        
+        # Check if the input matches a command
+        if not source:
+            log.error(f"{source}")
+            return False
+
+        # Split the input to get the command name and arguments
+        parts = source.split(None, 1)
+        command_name = parts[0] if parts else ""
+        command_args = parts[1] if len(parts) > 1 else ""
+
+        if command_name == "exit" or command_name == "quit":
+            sys.exit(0) 
+        elif command_name == "help":
+            print("Available commands:")
+            for cmd in self.commands:
+                print(f"  - {cmd.name}: {cmd.description}")
+            print("Use '<command> -h' or '<command> --help' for more information about a specific command.")
+            self.last_return_code = command.ReturnCode.SUCCESS
+            return False
+        if command_name not in self.command_dict:
+            log.error(f"unknown command: {command_name}\nUse 'help' to see all available commands.")
+            self.last_return_code = command.ReturnCode.ERROR
+            return False
+        
+        cur_command = self.command_dict[command_name]
+
+        try:
+            # Parse the command arguments (for validation and --help) and add the global options
+            options = cur_command.parse_args(command_args.split() if command_args else [])
+
+            failed_guard = cur_command.check_guards(self.program, self.context)
+            if failed_guard is None:
+                result = cur_command.execute(self.program, self.context, options)
+            elif failed_guard in FAILED_GUARD_SUGGESTIONS:
+                failed_guard_suggestions = FAILED_GUARD_SUGGESTIONS[failed_guard]
+                failed_guard_suggestion_names = [suggestion.name for suggestion in failed_guard_suggestions]
+                log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}\n" + \
+                          f"    consider trying one of the following commands: {', '.join(failed_guard_suggestion_names)}")
+                self.last_return_code = command.ReturnCode.GUARD_CONDITION_NOT_MET
+                return False
+            else:
+                log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}")
+                self.last_return_code = command.ReturnCode.GUARD_CONDITION_NOT_MET
+                return False
+
+            # Parse functions return a program or None, all other functions return a ReturnCode
+            if isinstance(result, cpt.Program):
+                self.program = result
+                self.last_return_code = command.ReturnCode.SUCCESS
+            elif result is None: # parse functions return None on error
+                self.last_return_code = command.ReturnCode.PARSE_ERROR
+            elif isinstance(result, command.ReturnCode):
+                self.last_return_code = result
+            else:
+                log.internal(f"'{command_name}' returned unexpected result type {type(result)}")
+                self.last_return_code = command.ReturnCode.ERROR
+
+        except SystemExit:
+            # argparse calls sys.exit() on --help or errors, catch it
+            self.last_return_code = command.ReturnCode.ERROR
+            return False
+
+        return False
+
+def interactive() -> command.ReturnCode:
+    """Start an interactive REPL loop using the code library.
+    
+    This function creates an interactive console that waits for user input
+    and executes commands in a REPL loop.
+    """
+    console = CommandConsole()
+    console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)")
+    return console.last_return_code
+
+def script(script_filename: str) -> command.ReturnCode:
+    """Execute REPL commands from a script file using the code library.
+    
+    This function reads commands from script_filename, executes them in a REPL context, then exits.
+    """
+    console = CommandConsole()
+    console.context.script_filename = script_filename
+
+    contents = util.read_file(script_filename)
+    if contents is None:
+        return command.ReturnCode.FILE_NOT_FOUND
+
+    # Set current working directory to the directory of the script file so that all paths are
+    # relative to the script file
+    script_path = pathlib.Path(script_filename)
+    os.chdir(script_path.parent)
+
+    for line in contents.splitlines():
+        console.runsource(line.strip())
+
+    return console.last_return_code
+
+def cli(
+    spec_filename: str,
+    trace_filename: Optional[str],
+    map_filename: Optional[str],
+    output_filename: Optional[str],
+    quiet: bool,
+    debug: bool,
+    only_parse: bool,
+    only_type_check: bool,
+    only_compile: bool,
+    mission_time: int,
+    scq_constant: int,
+    enable_booleanizer: bool,
+    enable_aux: bool,
+    enable_cse: bool,
+    enable_rewrite: bool,
+    enable_extops: bool,
+    enable_eqsat: bool,
+    enable_eqsat_equiv_check: bool,
+    enable_eqsat_const_folding: bool,
+    enable_eqsat_associative: bool, 
+    enable_eqsat_commutative: bool,
+    enable_eqsat_multi_arity: bool,
+    enable_eqsat_logical: bool,
+    enable_eqsat_temporal: bool,
+    eqsat_max_time: int,
+    eqsat_max_memory: int,
+    egglog_path: Optional[str],
+    check_sat: bool,
+    smt_theory: str,
+    smt_max_time: int,
+    smt_max_memory: int,
+    smt_solver_path: Optional[str],
+) -> command.ReturnCode:
+    """Command line interface for the C2PO compiler."""
+    script_lines: list[str] = []
+
+    if enable_booleanizer:
+        script_lines.append("enable_booleanizer")
+    if mission_time > -1:
+        script_lines.append(f"set_mission_time {mission_time}")
+    if debug:
+        script_lines.append("set_debug")
+
+    spec_path = pathlib.Path(spec_filename)
+    if spec_path.suffix == ".c2po":
+        script_lines.append(f"parse_c2po {spec_path}")
+    elif spec_path.suffix == ".mltl":
+        script_lines.append(f"parse_mltl {spec_path}")
+    elif spec_path.suffix == ".equiv":
+        script_lines.append(f"parse_equiv {spec_path}")
+    else:
+        log.error(f"invalid specification file: {spec_path}")
+        return command.ReturnCode.FILE_NOT_FOUND
+
+    if trace_filename:
+        script_lines.append(f"parse_trace {trace_filename}")
+    if map_filename:
+        script_lines.append(f"parse_map {map_filename}")
+
+    if only_parse:
+        script_lines.append("exit")
+
+    script_lines.append("type_check")
+    if only_type_check:
+        script_lines.append("exit")
+
+    script_lines.append("desugar")
+    
+    if enable_eqsat:
+        cmd = f"optimize_eqsat --egglog-max-time {eqsat_max_time} --egglog-max-memory {eqsat_max_memory} " \
+                  f"--theory {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory} " \
+                  f"--{'no-' if not enable_eqsat_equiv_check else ''}check-equiv " \
+                  f"--{'no-' if not enable_eqsat_const_folding else ''}const-folding " \
+                  f"--{'no-' if not enable_eqsat_associative else ''}associative " \
+                  f"--{'no-' if not enable_eqsat_commutative else ''}commutative " \
+                  f"--{'no-' if not enable_eqsat_multi_arity else ''}multi-arity " \
+                  f"--{'no-' if not enable_eqsat_logical else ''}logical " \
+                  f"--{'no-' if not enable_eqsat_temporal else ''}temporal" \
+                  f"{f'--egglog-bin {egglog_path}' if egglog_path else ''} " \
+                  f"{f'--smt-solver-path {smt_solver_path}' if smt_solver_path else ''}"
+        script_lines.append(cmd)
+    elif enable_rewrite:
+        script_lines.append("optimize_rewrite_rules")
+
+    if not enable_extops:
+        script_lines.append("remove_extended_operators")
+
+    if enable_cse:
+        script_lines.append("optimize_cse")
+
+    if check_sat:
+        script_lines.append(
+            f"check_sat --theory {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory}"
         )
 
-        if not program:
-            log.error(MODULE_CODE, "Failed parsing")
-            return ReturnCode.PARSE_ERR
+    if only_compile:
+        script_lines.append("exit")
 
-    elif opts.spec_format == options.SpecFormat.MLTL:
-        parse_output = parse_mltl.parse(opts.spec_path, opts.mission_time)
+    script_lines.append("multi_operators_to_binary")
+    script_lines.append("remove_extended_operators")
 
-        if not parse_output:
-            log.error(MODULE_CODE, "Failed parsing")
-            return ReturnCode.PARSE_ERR
+    if output_filename:
+        script_lines.append(f"assemble {'--aux' if enable_aux else ''} {'--print' if not quiet else ''} --scq-constant {scq_constant} {output_filename}")
 
-        (program, signal_mapping) = parse_output
-        opts.signal_mapping = signal_mapping
-    elif opts.spec_format == options.SpecFormat.PICKLE:
-        with open(str(opts.spec_path), "rb") as f:
-            program = pickle.load(f)
-
-        if not isinstance(program, cpt.Program):
-            log.error(MODULE_CODE, "Bad pickle file")
-            return ReturnCode.PARSE_ERR
-    elif opts.spec_format == options.SpecFormat.EQUIV:
-        equiv_parse_output = parse_equiv.parse(opts.spec_path)
-
-        if not equiv_parse_output:
-            log.error(MODULE_CODE, "Failed parsing")
-            return ReturnCode.PARSE_ERR
-
-        (program, bounds, constraints) = equiv_parse_output
-
-        # Equivalence checking requires booleanizer expressions, so we enable it here so that the
-        # type checker can pass
-        opts.enable_booleanizer = True
-        opts.assembly_enabled = False
-        opts.smt_encoding = options.SMTTheories.UFLIA_INF # Equivalence checking requires UFLIA_INF encoding
-    else:
-        return ReturnCode.INVALID_INPUT
-
-    if opts.only_parse:
-        return ReturnCode.SUCCESS
-    
-    # ----------------------------------
-    # Type check
-    # ----------------------------------
-    (well_typed, context) = type_check.type_check(program, opts)
-
-    if not well_typed:
-        log.error(MODULE_CODE, "Failed type check")
-        return ReturnCode.TYPE_CHECK_ERR
-
-    if opts.only_type_check:
-        wrap_up(program, context)
-        return ReturnCode.SUCCESS
-
-    if opts.spec_format == options.SpecFormat.EQUIV:
-        # Then we just do the equivalence check and return
-        sat_result = sat.check_equiv(program, bounds, constraints, context)
-        wrap_up(program, context)
-        if sat_result is sat.SatResult.SAT:
-            log.error(MODULE_CODE, "Equivalence check failed")
-            return ReturnCode.ERROR
-        elif sat_result is sat.SatResult.UNSAT:
-            return ReturnCode.SUCCESS
-        elif sat_result is sat.SatResult.TIMEOUT:
-            log.error(MODULE_CODE, "Equivalence check timed out")
-            return ReturnCode.ERROR
-        elif sat_result is sat.SatResult.UNKNOWN:
-            log.error(MODULE_CODE, "Equivalence check unknown")
-            return ReturnCode.ERROR
-        elif sat_result is sat.SatResult.MEMOUT:
-            log.error(MODULE_CODE, "Equivalence check memory out")
-            return ReturnCode.ERROR
-        elif sat_result is sat.SatResult.FAILURE:
-            log.error(MODULE_CODE, "Equivalence check internal failure")
-            return ReturnCode.ERROR
-
-    # ----------------------------------
-    # Transforms
-    # ----------------------------------
-    log.debug(MODULE_CODE, 1, "Performing passes")
-    for cpass in passes.pass_list:
-        cpass(program, context)
-        if not context.status:
-            return ReturnCode.ERROR
-
-    if opts.only_compile:
-        wrap_up(program, context)
-        return ReturnCode.SUCCESS
-
-    # ----------------------------------
-    # Assembly
-    # ----------------------------------
-    if not opts.output_path:
-        log.error(MODULE_CODE, f"Output path invalid: {opts.output_path}")
-        wrap_up(program, context)
-        return ReturnCode.INVALID_INPUT
-
-    (assembly, binary) = assemble.assemble(program, context)
-
-    if not opts.quiet:
-        [print(instr) for instr in assembly]
-
-    with open(opts.output_path, "wb") as f:
-        f.write(binary)
-
-    wrap_up(program, context)
-    return ReturnCode.SUCCESS
-
-
-def main(opts: options.Options) -> ReturnCode:
-    status = opts.setup()
-    passes.setup(opts)
-    if not status:
-        return ReturnCode.ERROR
-
-    with tempfile.TemporaryDirectory() as workdir:
-        workdir_path = pathlib.Path(workdir)
-        opts.workdir = workdir_path
-        return compile(opts)
-
+    try:
+        with tempfile.NamedTemporaryFile() as temp_file:
+            temp_file.write("\n".join(script_lines).encode('utf-8'))
+            temp_file.flush()
+            return script(temp_file.name)
+    except OSError:
+        log.error("problem writing temporary script file")
+        return command.ReturnCode.FILE_NOT_FOUND
 
 def main_rs(
     spec_filename: str,
@@ -200,16 +323,37 @@ def main_rs(
     timeout_sat: int
 ):
     """Wrapper for main function to allow for easier interfacing with Rust CLI tool and playground."""
-    opts = options.Options(
+    return cli(
         spec_filename=spec_filename,
         trace_filename=trace_filename if trace_filename != "" else None,
         map_filename=map_filename if map_filename != "" else None,
-        output_filename=output_filename,
+        output_filename=output_filename if output_filename != "" else None,
         enable_aux=enable_aux,
         enable_booleanizer=enable_booleanizer,
-        enable_rewrite=enable_rewrite,
         enable_cse=enable_cse,
-        enable_sat=enable_sat,
+        check_sat=enable_sat,
         smt_max_time=timeout_sat,
+        quiet=False,
+        debug=False,
+        only_parse=False,
+        only_type_check=False,
+        only_compile=False,
+        mission_time=-1,
+        scq_constant=0,
+        enable_extops=False,
+        enable_rewrite=enable_rewrite,
+        enable_eqsat=False,
+        enable_eqsat_equiv_check=False,
+        enable_eqsat_const_folding=False,
+        enable_eqsat_associative=False,
+        enable_eqsat_commutative=False,
+        enable_eqsat_multi_arity=False,
+        enable_eqsat_logical=False,
+        enable_eqsat_temporal=False,
+        eqsat_max_time=5,
+        eqsat_max_memory=0,
+        egglog_path="",
+        smt_theory="uflia_inf",
+        smt_max_memory=0,
+        smt_solver_path="",
     )
-    return main(opts)

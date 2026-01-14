@@ -1,61 +1,98 @@
-import pathlib
-from typing import Optional
 import re
-
-from c2po import types, log
-
-MODULE_CODE = "PRSO"
+from typing import Any
+from c2po import types, log, command, cpt, util
 
 def parse_trace_file(
-    trace_path: pathlib.Path, map_file_provided: bool
-) -> tuple[int, Optional[types.SignalMapping]]:
-    """Given `trace_path`, return the inferred length of the trace and, if `return_mapping` is enabled, a signal mapping."""
-    with open(trace_path, "r") as f:
-        content: str = f.read()
+    context: cpt.Context,
+    options: dict[str, Any]
+) -> command.ReturnCode:
+    """
+    Parse a trace file and store the signal mapping and trace length in the context.
+
+    `options` is a dictionary of options that must contain the following key:
+    - `filename`: The path to the trace file
+
+    Returns:
+        A ReturnCode.SUCCESS if the trace file was parsed successfully, ReturnCode.ERROR otherwise. 
+        If the trace file was parsed successfully, the signal mapping and trace length will be stored in the context.
+    """
+    content = util.read_file(options["filename"])
+    if content is None:
+        return command.ReturnCode.ERROR
+        
+    context.trace_filename = options["filename"]
 
     lines: list[str] = content.splitlines()
-
     if len(lines) < 1:
-        return (-1, None)
+        log.error(
+            "trace file is empty",
+            log.FileLocation(options['filename'], 1)
+        )
+        return command.ReturnCode.ERROR
 
     cnt: int = 0
     signal_mapping: types.SignalMapping = {}
-
     if lines[0][0] == "#":
         # then there is a header
         header = lines[0][1:]
 
-        if map_file_provided:
+        if options.get('map_filename') is not None:
             log.warning(
-                MODULE_CODE,
-                "Map file given and header included in trace file; header will be ignored"
+                "map file given and header included in trace file; header will be ignored",
             )
 
         for id in [s.strip() for s in header.split(",")]:
             if id in signal_mapping:
                 log.warning(
-                    MODULE_CODE,
-                    f"Signal ID '{id}' found multiple times in csv, using right-most value",
-                    log.FileLocation(trace_path.name, 1)
+                    f"signal '{id}' found multiple times in csv, using right-most value",
+                    log.FileLocation(options['trace_filename'], 1)
                 )
             signal_mapping[id] = cnt
             cnt += 1
 
-        trace_length = len(lines) - 1
+        context.signal_mapping = signal_mapping
+        context.trace_length = len(lines) - 1
+        return command.ReturnCode.SUCCESS
 
-        return (trace_length, signal_mapping)
+    # no header, so just set trace length
+    context.trace_length = len(lines)
+    return command.ReturnCode.SUCCESS
 
-    # no header, so just return number of lines in file (i.e., number of time steps in trace)
-    return (len(lines), None)
+parse_trace_command = command.Command(
+    name="parse_trace",
+    description="Parse a trace file and add the signal mapping and trace length to the context",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the trace file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: parse_trace_file(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_trace_command)
 
+def parse_map_file(context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Parse a map file and add the signal mapping to the context.
 
-def parse_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
-    """Return the signal mapping from `map_path`."""
-    with open(map_path, "r") as f:
-        content: str = f.read()
+    `options` is a dictionary of options that must contain the following keys:
+    - `filename`: The path to the map file
+
+    Returns:
+        A ReturnCode.SUCCESS if the map file was parsed successfully, ReturnCode.ERROR otherwise. If the map file was parsed successfully, the signal mapping will be stored in the context.
+    """
+    content = util.read_file(options["filename"])
+    if content is None:
+        return command.ReturnCode.ERROR
+
+    context.map_filename = options["filename"]
 
     mapping: types.SignalMapping = {}
-
     lines = content.splitlines()
     for line in lines:
         if re.match(r"[a-zA-Z_][a-zA-Z0-9_\[\]]*:\d+", line):
@@ -65,27 +102,36 @@ def parse_map_file(map_path: pathlib.Path) -> Optional[types.SignalMapping]:
 
             if id in mapping:
                 log.warning(
-                    MODULE_CODE,
-                    f"Signal ID '{id}' found multiple times in map file, using latest value",
-                    log.FileLocation(map_path.name, lines.index(line) + 1),
+                    f"signal '{id}' found multiple times in map file, using latest value",
+                    log.FileLocation(options['filename'], lines.index(line) + 1),
                 )
 
             mapping[id] = sid
         else:
             log.error(
-                MODULE_CODE,
-                f"Invalid format for map line (found {line})"
-                "\n\t Should be of the form SYMBOL ':' NUMERAL",
-                log.FileLocation(map_path.name, lines.index(line)),
+                f"invalid format for map line (found {line}), should be of the form SYMBOL ':' NUMERAL",
+                log.FileLocation(options['filename'], lines.index(line) + 1),
             )
-            return None
+            return command.ReturnCode.ERROR
 
-    return mapping
+    context.signal_mapping = mapping
+    options['map_filename'] = options['filename']
+    return command.ReturnCode.SUCCESS
 
-
-def parse_bounds_c(bounds_path: pathlib.Path) -> None:
-    pass
-
-
-def parse_bounds_rust(bounds_path: pathlib.Path) -> None:
-    pass
+parse_map_command = command.Command(
+    name="parse_map",
+    description="Parse a map file and add the signal mapping to the context",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the map file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        } 
+    ],
+    func=lambda program, context, options: parse_map_file(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_map_command)

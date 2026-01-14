@@ -1,11 +1,8 @@
 #type: ignore
 from __future__ import annotations
-from typing import Optional
-from pathlib import Path
-
-from c2po import sly, types, cpt, log
-
-MODULE_CODE = "PRSM"
+from typing import Optional, Any
+from c2po import sly
+from c2po import types, cpt, log, command, util
 
 class MLTLLexer(sly.Lexer):
 
@@ -58,7 +55,7 @@ class MLTLLexer(sly.Lexer):
         self.filename = filename
 
     def error(self, t):
-        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, t.lineno))
+        log.error(f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, t.lineno))
         self.index += 1
 
 
@@ -89,11 +86,11 @@ class MLTLParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
+            log.error(f"syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(MODULE_CODE, f"Syntax error, token is 'None'"
+            log.error(f"syntax error, token is 'None' (EOF)"
                       f"\n\tDid you forget to end the last formula with a newline?", 
                       log.FileLocation(self.filename, lineno)
             )
@@ -116,7 +113,7 @@ class MLTLParser(sly.Parser):
         # ...
         signal_mapping = { a:int(a[1:]) for a in self.atomics }
 
-        return ([input_section, spec_section], signal_mapping)
+        return (cpt.Program(0, [input_section, spec_section]), signal_mapping)
 
     @_("spec_list spec")
     def spec_list(self, p):
@@ -158,7 +155,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Global(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -167,7 +164,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Future(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -176,7 +173,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Historical(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -185,7 +182,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Once(log.FileLocation(self.filename, p.lineno), p[1].lb, p[1].ub, p[2])
@@ -195,7 +192,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Until(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -204,7 +201,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_ft = True
         if self.is_pt:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Release(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -213,7 +210,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Since(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -222,7 +219,7 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.is_pt = True
         if self.is_ft:
-            log.error(MODULE_CODE, f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mixing past and future time formula not allowed.", log.FileLocation(self.filename, p.lineno))
             self.status = False
 
         return cpt.TemporalOperator.Trigger(log.FileLocation(self.filename, p.lineno), p[2].lb, p[2].ub, p[0], p[3])
@@ -262,28 +259,52 @@ class MLTLParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
+            log.error(f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
             self.status = False
         return self.mission_time
 
 
-def parse(input_path: Path, mission_time: int) -> Optional[tuple[cpt.Program, dict[str, int]]]:
+def parse_mltl(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Program]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
-    
-    with open(input_path, "r") as f:
-        contents = f.read()
+    contents = util.read_file(options["filename"])
+    if contents is None:
+        return None
+        
+    context.set_spec_filename(options["filename"])
 
-    lexer: MLTLLexer = MLTLLexer(str(input_path))
-    parser: MLTLParser = MLTLParser(str(input_path), mission_time)
-    output: tuple[list[cpt.C2POSection], dict[str, int]] = parser.parse(lexer.tokenize(contents))
-
-    if output:
-        sections, signal_mapping = output
+    lexer: MLTLLexer = MLTLLexer(options["filename"])
+    parser: MLTLParser = MLTLParser(options["filename"], options["mission_time"])
+    output: tuple[cpt.Program, types.SignalMapping] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
         return None
 
-    sections, signal_mapping = output
+    program, signal_mapping = output
+    context.signal_mapping = signal_mapping
+    return program
 
-    return (cpt.Program(0, sections), signal_mapping)
+parse_mltl_command = command.Command(
+    name="parse_mltl",
+    description="Parse an MLTL input file and return a program",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the MLTL input file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+        {
+            "name": "mission-time",
+            "description": "The mission time",
+            "required": False,
+            "type": int,
+            "default": -1,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: parse_mltl(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_mltl_command)

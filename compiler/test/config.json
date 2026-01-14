@@ -1,508 +1,210 @@
 {
-    "cav": [
+    "desugar": [
         {
-            "input": "cav/array_1.c2po", 
-            "expected_serialization": "cav/array_1.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+            "script": "desugar/array_1.cmd", 
+            "output": "desugar/array_1.expect"
         },
         {
-            "input": "cav/array_2.c2po", 
-            "expected_serialization": "cav/array_2.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+            "script": "desugar/array_2.cmd", 
+            "output": "desugar/array_2.expect"
         },
         {
-            "input": "cav/struct.c2po", 
-            "expected_serialization": "cav/struct.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+            "script": "desugar/struct.cmd", 
+            "output": "desugar/struct.expect"
         }
     ],
     "cse": [
         {
-            "input": "cse/basic.c2po", 
-            "expected_output": "cse/basic.c2po.expect", 
-            "options": ["--map", "default.map"]
+            "script": "cse/basic.cmd", 
+            "output": "cse/basic.expect"
         }
     ],
     "set-agg": [
         {
-            "input": "set_agg/basic.c2po", 
-            "expected_output": "set_agg/basic.c2po.expect", 
-            "options": ["--map", "default.map", "-bz"]
+            "script": "set_agg/basic.cmd", 
+            "output": "set_agg/basic.expect"
         },
         {
-            "input": "set_agg/basic_arr.c2po", 
-            "expected_output": "set_agg/basic_arr.c2po.expect", 
-            "options": ["--map", "default.map", "-bz"]
+            "script": "set_agg/basic_arr.cmd", 
+            "output": "set_agg/basic_arr.expect"
         },
         {
-            "input": "set_agg/struct_arr.c2po", 
-            "expected_output": "set_agg/struct_arr.c2po.expect", 
-            "options": ["--map", "default.map", "-bz"]
+            "script": "set_agg/struct_arr.cmd", 
+            "output": "set_agg/struct_arr.expect"
         },
         {
-            "input": "set_agg/var_arr.c2po", 
-            "expected_output": "set_agg/var_arr.c2po.expect", 
-            "options": ["--map", "default.map", "-bz"]
+            "script": "set_agg/var_arr.cmd", 
+            "output": "set_agg/var_arr.expect"
         }
     ],
     "operators": [
         {
-            "input": "operators/arithmetic.c2po", 
-            "expected_output": "operators/arithmetic.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "operators/arithmetic.cmd", 
+            "output": "operators/arithmetic.expect"
         },
         {
-            "input": "operators/arithmetic_invalid.c2po", 
-            "expected_output": "operators/arithmetic_invalid.c2po.expect", 
-            "options": ["-bz", "--map", "default.map", "--int-signed"]
+            "script": "operators/arithmetic_invalid.cmd", 
+            "output": "operators/arithmetic_invalid.expect"
         },
         {
-            "input": "operators/bitwise.c2po", 
-            "expected_output": "operators/bitwise.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "operators/bitwise.cmd", 
+            "output": "operators/bitwise.expect"
         },
         {
-            "input": "operators/logic.c2po", 
-            "expected_output": "operators/logic.c2po.expect", 
-            "options": ["--map", "default.map"]
+            "script": "operators/logic.cmd", 
+            "output": "operators/logic.expect"
         },
         {
-            "input": "operators/logic.c2po", 
-            "expected_output": "operators/logic.c2po.extops.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "operators/relational.cmd", 
+            "output": "operators/relational.expect"
         },
         {
-            "input": "operators/relational.c2po", 
-            "expected_output": "operators/relational.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "operators/temporal.cmd", 
+            "output": "operators/temporal.expect"
         },
         {
-            "input": "operators/temporal.c2po", 
-            "expected_output": "operators/temporal.c2po.expect", 
-            "options": ["--map", "default.map"]
+            "script": "operators/timestamp.cmd", 
+            "output": "operators/timestamp.expect"
         },
         {
-            "input": "operators/timestamp.c2po", 
-            "expected_output": "operators/timestamp.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "operators/array_index_prec.cmd", 
+            "output": "operators/array_index_prec.expect"
         }
     ],
-    "type_check": [
+    "type-check": [
         {
-            "input": "type_check/unmapped_input.c2po", 
-            "expected_output": "type_check/unmapped_input.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "type_check/bad_array.cmd", 
+            "output": "type_check/bad_array.expect"
         },
         {
-            "input": "type_check/unmapped_input.c2po", 
-            "expected_output": "type_check/unmapped_input.c2po.compile.expect", 
-            "options": ["-bz", "-c", "--map", "default.map"]
+            "script": "type_check/bad_array_index.cmd", 
+            "output": "type_check/bad_array_index.expect"
         },
         {
-            "input": "type_check/bad_int_width.c2po", 
-            "expected_output": "type_check/bad_int_width.c2po.expect", 
-            "options": ["-bz", "--int-width", "8", "--map", "default.map"]
+            "script": "type_check/unmapped_input.cmd", 
+            "output": "type_check/unmapped_input.expect"
         },
         {
-            "input": "type_check/bad_struct.c2po", 
-            "expected_output": "type_check/bad_struct.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
+            "script": "type_check/bad_int_width.cmd", 
+            "output": "type_check/bad_int_width.expect"
         },
         {
-            "input": "type_check/bad_array.c2po", 
-            "expected_output": "type_check/bad_array.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
-        },
-        {
-            "input": "type_check/bad_array_index.c2po", 
-            "expected_output": "type_check/bad_array_index.c2po.expect", 
-            "options": ["-bz", "--map", "default.map"]
-        },
-        {
-            "input": "type_check/array_index_prec.c2po", 
-            "expected_serialization": "type_check/array_index_prec.prefix.c2po.expect", 
-            "options": ["-bz", "--write-prefix", "tmp.out", "-c"]
+            "script": "type_check/bad_struct.cmd", 
+            "output": "type_check/bad_struct.expect"
         }
     ],
     "serialize": [
         {
-            "input": "serialize/cav.c2po", 
-            "expected_serialization": "serialize/cav.c2po.expect", 
-            "options": ["-bz", "--write-c2po", "tmp.out", "-c"]
+            "script": "serialize/arbiter.cmd", 
+            "output": "serialize/arbiter.expect"
         },
         {
-            "input": "serialize/simple.c2po", 
-            "expected_serialization": "serialize/simple.c2po.expect", 
-            "options": ["--write-c2po", "tmp.out", "-c"]
+            "script": "serialize/simple_c2po.cmd", 
+            "output": "serialize/simple_c2po.expect"
         },
         {
-            "input": "serialize/simple.c2po", 
-            "expected_serialization": "serialize/simple.mltl.expect", 
-            "options": ["--write-mltl", "tmp.out", "-c"]
+            "script": "serialize/simple_mltl.cmd", 
+            "output": "serialize/simple_mltl.expect"
         },
         {
-            "input": "serialize/simple.c2po", 
-            "expected_serialization": "serialize/simple.prefix.c2po.expect", 
-            "options": ["--write-prefix", "tmp.out", "-c"]
+            "script": "serialize/simple_prefix.cmd", 
+            "output": "serialize/simple_prefix.expect"
         },
         {
-            "input": "serialize/multi_arity.c2po", 
-            "expected_serialization": "serialize/multi_arity.mltl.expect", 
-            "options": ["--write-mltl", "tmp.out", "-c"]
+            "script": "serialize/multi_arity_c2po.cmd", 
+            "output": "serialize/multi_arity_c2po.expect"
         },
         {
-            "input": "serialize/multi_arity.c2po", 
-            "expected_serialization": "serialize/multi_arity.prefix.c2po.expect", 
-            "options": ["--write-prefix", "tmp.out", "-c"]
+            "script": "serialize/multi_arity_mltl.cmd", 
+            "output": "serialize/multi_arity_mltl.expect"
         },
         {
-            "input": "serialize/multi_arity.c2po", 
-            "expected_serialization": "serialize/multi_arity.c2po.expect", 
-            "options": ["--write-c2po", "tmp.out", "-c"]
+            "script": "serialize/multi_arity_prefix.cmd", 
+            "output": "serialize/multi_arity_prefix.expect"
         }
     ],
     "mltl": [
         {
-            "input": "mltl/atomics.mltl", 
-            "expected_output": "mltl/atomics.mltl.expect", 
-            "options": []
+            "script": "mltl/atomics.cmd", 
+            "output": "mltl/atomics.expect"
         },
         {
-            "input": "mltl/future.mltl", 
-            "expected_output": "mltl/future.mltl.expect", 
-            "options": []
+            "script": "mltl/future.cmd", 
+            "output": "mltl/future.expect"
         },
         {
-            "input": "mltl/past.mltl", 
-            "expected_output": "mltl/past.mltl.expect", 
-            "options": []
+            "script": "mltl/past.cmd", 
+            "output": "mltl/past.expect"
         },
         {
-            "input": "mltl/tense_mixing.mltl", 
-            "expected_output": "mltl/tense_mixing.mltl.expect", 
-            "options": []
+            "script": "mltl/tense_mixing.cmd", 
+            "output": "mltl/tense_mixing.expect"
         }
     ],
     "normal_forms": [
         {
-            "input": "normal_forms/nnf_logic.c2po", 
-            "expected_output": "normal_forms/nnf_logic.c2po.expect", 
-            "options": ["--map", "default.map", "--extops", "--nnf"]
+            "script": "normal_forms/nnf_logic.cmd", 
+            "output": "normal_forms/nnf_logic.expect"
         },
         {
-            "input": "normal_forms/nnf_logic.c2po", 
-            "expected_output": "normal_forms/nnf_logic.c2po.noextops.expect", 
-            "options": ["--map", "default.map", "--nnf"]
-        },
-        {
-            "input": "normal_forms/nnf_temporal.c2po", 
-            "expected_output": "normal_forms/nnf_temporal.c2po.expect", 
-            "options": ["--map", "default.map", "--extops", "--nnf"]
+            "script": "normal_forms/nnf_temporal.cmd", 
+            "output": "normal_forms/nnf_temporal.expect"
         }
     ],
-    "rewrite": [
+    "rewrites": [
         {
-            "input": "rewrite/and_future.c2po", 
-            "expected_output": "rewrite/and_future.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/and_future.cmd", 
+            "output": "rewrites/and_future.expect"
         },
         {
-            "input": "rewrite/and_global.c2po", 
-            "expected_output": "rewrite/and_global.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/and_global.cmd", 
+            "output": "rewrites/and_global.expect"
         },
         {
-            "input": "rewrite/and_until.c2po", 
-            "expected_output": "rewrite/and_until.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/and_until.cmd", 
+            "output": "rewrites/and_until.expect"
         },
         {
-            "input": "rewrite/equality.c2po", 
-            "expected_output": "rewrite/equality.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/equality.cmd", 
+            "output": "rewrites/equality.expect"
         },
         {
-            "input": "rewrite/future.c2po", 
-            "expected_output": "rewrite/future.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/future.cmd", 
+            "output": "rewrites/future.expect"
+        },  
+        {
+            "script": "rewrites/global.cmd", 
+            "output": "rewrites/global.expect"
         },
         {
-            "input": "rewrite/global.c2po", 
-            "expected_output": "rewrite/global.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/negate.cmd", 
+            "output": "rewrites/negate.expect"
         },
         {
-            "input": "rewrite/negate.c2po", 
-            "expected_output": "rewrite/negate.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
+            "script": "rewrites/or_future.cmd", 
+            "output": "rewrites/or_future.expect"
         },
         {
-            "input": "rewrite/or_future.c2po", 
-            "expected_output": "rewrite/or_future.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
-        },
-        {
-            "input": "rewrite/or_global.c2po", 
-            "expected_output": "rewrite/or_global.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
-        },
-        {
-            "input": "rewrite/until.c2po", 
-            "expected_output": "rewrite/until.c2po.expect", 
-            "options": ["--map", "default.map", "--extops"]
-        }
-    ],
-    "sat-uflia": [
-        {
-            "input": "sat/sat_1.mltl", 
-            "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_2.mltl", 
-            "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_3.mltl", 
-            "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_4.mltl", 
-            "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_5.mltl", 
-            "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_6.mltl", 
-            "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_7.mltl", 
-            "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_8.mltl", 
-            "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/sat_9.mltl", 
-            "expected_output": "sat/sat_9.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_1.mltl", 
-            "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_2.mltl", 
-            "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_3.mltl", 
-            "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_4.mltl", 
-            "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_5.mltl", 
-            "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_6.mltl", 
-            "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_7.mltl", 
-            "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_8.mltl", 
-            "expected_output": "sat/unsat_8.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/unsat_9.mltl", 
-            "expected_output": "sat/unsat_9.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_sat_1.c2po", 
-            "expected_output": "sat/bz_sat_1.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_sat_2.c2po", 
-            "expected_output": "sat/bz_sat_2.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_sat_3.c2po", 
-            "expected_output": "sat/bz_sat_3.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_unsat_1.c2po", 
-            "expected_output": "sat/bz_unsat_1.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_unsat_2.c2po", 
-            "expected_output": "sat/bz_unsat_2.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        },
-        {
-            "input": "sat/bz_unsat_3.c2po", 
-            "expected_output": "sat/bz_unsat_3.c2po.expect", 
-            "options": ["-bz", "-c", "--check-sat", "--extops", "--smt-encoding", "uflia"]
-        }
-    ],
-    "sat-qf-bv": [
-        {
-            "input": "sat/sat_1.mltl", 
-            "expected_output": "sat/sat_1.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_2.mltl", 
-            "expected_output": "sat/sat_2.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_3.mltl", 
-            "expected_output": "sat/sat_3.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_4.mltl", 
-            "expected_output": "sat/sat_4.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_5.mltl", 
-            "expected_output": "sat/sat_5.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_6.mltl", 
-            "expected_output": "sat/sat_6.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_7.mltl", 
-            "expected_output": "sat/sat_7.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/sat_8.mltl", 
-            "expected_output": "sat/sat_8.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_1.mltl", 
-            "expected_output": "sat/unsat_1.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_2.mltl", 
-            "expected_output": "sat/unsat_2.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_3.mltl", 
-            "expected_output": "sat/unsat_3.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_4.mltl", 
-            "expected_output": "sat/unsat_4.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_5.mltl", 
-            "expected_output": "sat/unsat_5.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_6.mltl", 
-            "expected_output": "sat/unsat_6.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/unsat_7.mltl", 
-            "expected_output": "sat/unsat_7.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        },
-        {
-            "input": "sat/hard_unsat.mltl", 
-            "expected_output": "sat/hard_unsat.mltl.expect", 
-            "options": ["-c", "--check-sat", "--extops", "--smt-encoding", "qf_bv"]
-        }
-    ],
-    "eqsat": [
-        {
-            "input": "eqsat/r4_future_1.mltl", 
-            "expected_serialization": "eqsat/r4_future_1.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_future_2.mltl", 
-            "expected_serialization": "eqsat/r4_future_2.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_future_3.mltl", 
-            "expected_serialization": "eqsat/r4_future_3.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_future_4.mltl", 
-            "expected_serialization": "eqsat/r4_future_4.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out"]
-        },
-        {
-            "input": "eqsat/r4_global_2.mltl", 
-            "expected_serialization": "eqsat/r4_global_2.prefix.c2po.expect",
-            "options": ["-c", "--eqsat", "--extops", "--write-prefix", "tmp.out", "--no-eqsat-associative"]
+            "script": "rewrites/or_global.cmd", 
+            "output": "rewrites/or_global.expect"
         }
     ],
     "equiv": [
         {
-            "input": "equiv/fret_0.equiv",
-            "expected_output": "equiv/fret_0.equiv.expect",
-            "options": []
+            "script": "equiv/fret_0.cmd",
+            "output": "equiv/fret_0.expect"
         },
         {
-            "input": "equiv/fret_43.equiv",
-            "expected_output": "equiv/fret_43.equiv.expect",
-            "options": []
+            "script": "equiv/fret_43.cmd",
+            "output": "equiv/fret_43.expect"
         },
         {
-            "input": "equiv/R4F.equiv",
-            "expected_output": "equiv/R4F.equiv.expect",
-            "options": []
+            "script": "equiv/R4F.cmd",
+            "output": "equiv/R4F.expect"
         },
         {
-            "input": "equiv/fail.equiv",
-            "expected_output": "equiv/fail.equiv.expect",
-            "options": []
+            "script": "equiv/fail.cmd",
+            "output": "equiv/fail.expect"
         }
     ]
 }

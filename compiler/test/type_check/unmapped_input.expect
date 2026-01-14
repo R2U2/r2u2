@@ -1,0 +1,2 @@
+error: guard condition not met for type_check: valid signal mapping
+    consider trying one of the following commands: parse_map, parse_trace

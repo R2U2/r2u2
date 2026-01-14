@@ -1,0 +1,1 @@
+type_check: error: bad_int_width.c2po:5: constant '2147483648' not representable in configured int type (32 bits, signed)

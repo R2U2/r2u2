@@ -1,10 +1,9 @@
 #type: ignore
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Any
 
-from c2po import sly, types, cpt, log, type_check
-
-MODULE_CODE = "PRSE"
+from c2po import sly
+from c2po import types, cpt, log, type_check
 
 class EgglogOutputLexer(sly.Lexer):
     tokens = { 
@@ -56,7 +55,7 @@ class EgglogOutputLexer(sly.Lexer):
         self.filename = filename
 
     def error(self, t):
-        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, t.lineno))
+        log.error(f"illegal character '{t.value[0]}'", log.FileLocation(self.filename, t.lineno))
         self.index += 1
 
 
@@ -73,11 +72,11 @@ class EgglogOutputParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
+            log.error(f"syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(MODULE_CODE, "Syntax error, token is 'None'"
+            log.error(f"syntax error, token is 'None' (EOF)"
                       "\n\tDid you forget to end the expression?", 
                       log.FileLocation(self.filename, lineno)
             )
@@ -159,9 +158,13 @@ class EgglogOutputParser(sly.Parser):
         return [p[0]]
 
 
-def parse(egglog_output: str, context: cpt.Context) -> Optional[cpt.Expression]:
-    """Parse egglog output string and returns corresponding expression on success, else returns None."""
-    log.debug(MODULE_CODE, 1, "Parsing egglog output")
+def parse(egglog_output: str, context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Expression]:
+    """Parse egglog output string and returns corresponding expression on success, else returns None.
+    
+    `options` is a dictionary of options that must contain the following key (same as those needed for type checking):
+    - `spec_filename`: The path to the specification file
+    """
+    log.debug(1, "parsing egglog output")
     
     contents = egglog_output.strip()
 
@@ -194,8 +197,8 @@ def parse(egglog_output: str, context: cpt.Context) -> Optional[cpt.Expression]:
             new_expr.parents.remove(parent)
 
     # Compute types for the new expression
-    if not type_check.type_check_expr(output, context):
-        log.error(MODULE_CODE, "Failed to type check egglog output")
+    if not type_check.type_check_expr(output, context, options):
+        log.error("failed to type check egglog output")
         return None
 
     return output

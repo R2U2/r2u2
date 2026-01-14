@@ -1,20 +1,16 @@
-from __future__ import annotations
-
-from typing import cast
-
-from c2po import cpt, log, types, options
-
-MODULE_CODE = "TYPC"
+from typing import cast, Any
+from c2po import cpt, log, types, command
 
 
-def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
+def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[str, Any]) -> bool:
     """Returns True `start` is well-typed."""
+    log.debug(2, f"type checking: {repr(start)}")
+
     for expr in cpt.postorder(start, context):
         if isinstance(expr, cpt.Formula):
             if not types.is_bool_type(expr.get_expr().type):
                 log.error(
-                    MODULE_CODE,
-                    f"Formula must be a bool, found {expr.get_expr().type}",
+                    f"formula must be a bool, found '{expr.get_expr().type}'",
                     expr.loc,
                 )
                 return False
@@ -25,16 +21,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.Contract):
             if not types.is_bool_type(expr.children[0].type):
                 log.error(
-                    MODULE_CODE,
-                    f"Assume of AGC must be a bool, found {expr.children[0].type}",
+                    f"assume of AGC must be a bool, found '{expr.children[0].type}'",
                     expr.loc,
                 )
                 return False
 
             if not types.is_bool_type(expr.children[1].type):
                 log.error(
-                    MODULE_CODE,
-                    f"Guarantee of AGC must be a bool, found {expr.children[1].type}",
+                    f"guarantee of AGC must be a bool, found '{expr.children[1].type}'",
                     expr.loc,
                 )
                 return False
@@ -45,11 +39,10 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
         elif isinstance(expr, cpt.Constant):
             if (
                 isinstance(expr.value, int)
-                and expr.value.bit_length() > types.IntType.width
+                and expr.value.bit_length() > (types.IntType.width - (1 if types.IntType.is_signed else 0))
             ):
                 log.error(
-                    MODULE_CODE,
-                    f"Constant '{expr.value}' not representable in configured int width ('{types.IntType.width}')",
+                    f"constant '{expr.value}' not representable in configured int type ({types.IntType.width} bits, {'signed' if types.IntType.is_signed else 'unsigned'})",
                     expr.loc,
                 )
                 return False
@@ -59,43 +52,36 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             #     ...
         elif isinstance(expr, cpt.CurrentTimestamp):
             if types.IntType.is_signed:
-                log.error(
-                    MODULE_CODE,
-                    "To use the current timestamp, the integer type must be unsigned",
+                log.warning(
+                    "int type is signed but TAU is unsigned",
                     expr.loc,
                 )
-                return False
 
             expr.type = types.IntType()
         elif isinstance(expr, cpt.Signal):
-            if (
-                context.options.assembly_enabled
-                and expr.symbol not in context.options.signal_mapping
-            ):
+            if expr.symbol not in context.signal_mapping:
                 log.error(
-                    MODULE_CODE,
-                    f"Mapping does not contain signal '{expr.symbol}'",
+                    f"mapping does not contain signal '{expr.symbol}'",
                     expr.loc,
                 )
                 return False
 
             if (
-                context.options.frontend is not types.R2U2Engine.BOOLEANIZER
+                not context.enable_booleanizer
                 and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
             ):
                 log.error(
-                    MODULE_CODE,
-                    f"Non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n\t"
-                    f"Did you mean to enable the Booleanizer?",
+                    f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n\t"
+                    "Did you mean to enable the booleanizer?",
                     expr.loc,
                 )
                 return False
 
-            if context.options.frontend is types.R2U2Engine.BOOLEANIZER:
+            if context.enable_booleanizer:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
 
-            if expr.symbol in context.options.signal_mapping:
-                expr.signal_id = context.options.signal_mapping[expr.symbol]
+            if expr.symbol in context.signal_mapping:
+                expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.Variable):
@@ -105,10 +91,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 set_expr = context.bound_vars[symbol]
                 if not types.is_array_type(set_expr.type):
                     log.internal(
-                        MODULE_CODE,
-                        f"Set aggregation set not assigned to type 'set', found '{set_expr.type}'\n\t"
+                        f"set aggregation set not assigned to type 'set', found '{set_expr.type}'\n\t"
                         f"{expr}",
-                        expr.loc,
                     )
                     return False
 
@@ -120,8 +104,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = context.definitions[symbol].type
             elif symbol in context.structs:
                 log.error(
-                    MODULE_CODE,
-                    "Defined structs may not be used as variables, try declaring the struct first",
+                    "defined structs may not be used as variables, try declaring the struct first\n\t",
                     expr.loc,
                 )
                 return False
@@ -129,13 +112,12 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
                 log.error(
-                    MODULE_CODE,
-                    f"Contracts not allowed as sub-expressions ('{symbol}')",
+                    f"contracts not allowed as sub-expressions ('{symbol}')",
                     expr.loc,
                 )
                 return False
             else:
-                log.error(MODULE_CODE, f"Symbol '{symbol}' not recognized", expr.loc)
+                log.error(f"symbol '{symbol}' not recognized", expr.loc)
                 return False
         elif isinstance(expr, cpt.Atomic):
             expr.type = types.BoolType()
@@ -154,8 +136,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             for member in expr.children:
                 if member.type != new_type:
                     log.error(
-                        MODULE_CODE,
-                        f"Set '{expr}' must be of homogeneous type (found '{member.type}' and '{new_type}')",
+                        f"set '{expr}' must be of homogeneous type (found '{member.type}' and '{new_type}')",
                         expr.loc,
                     )
                     return False
@@ -167,14 +148,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             array_type = expr.get_array().type
             if not isinstance(array_type, types.ArrayType):
                 log.error(
-                    MODULE_CODE,
-                    f"Array access on a non-array expression ({expr})",
+                    f"array access on a non-array expression ({expr})",
                     expr.loc,
                 )
                 return False
 
             if abs(expr.index) > array_type.size and array_type.size > -1:
-                log.error(MODULE_CODE, f"Out-of-bounds array index ({expr})", expr.loc)
+                log.error(f"out-of-bounds array index ({expr})", expr.loc)
                 return False
 
             if expr.index < 0:
@@ -185,7 +165,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if isinstance(expr.get_array(), cpt.Variable):
                 tmp_signal = cpt.Signal(expr.loc, str(expr), array_type.member_type)
                 context.signals[str(expr)] = types.NoType()
-                status = type_check_expr(tmp_signal, context)
+                status = type_check_expr(tmp_signal, context, options)
                 del context.signals[str(expr)]
                 if not status:
                     return False
@@ -195,8 +175,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             struct_symbol = expr.get_struct().type.symbol
             if struct_symbol not in context.structs:
                 log.error(
-                    MODULE_CODE,
-                    f"Struct '{struct_symbol}' not defined ({expr})",
+                    f"struct '{struct_symbol}' not defined ({expr})",
                     expr.loc,
                 )
                 return False
@@ -209,8 +188,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if not valid_member:
                 log.error(
-                    MODULE_CODE,
-                    f"Member '{expr.member}' invalid for struct '{struct_symbol}'",
+                    f"member '{expr.member}' invalid for struct '{struct_symbol}'",
                     expr.loc,
                 )
                 return False
@@ -218,8 +196,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
-                    MODULE_CODE,
-                    f"General functions unsupported\n\t{expr}",
+                    f"general functions unsupported\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -234,8 +211,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 ]
             ):
                 log.error(
-                    MODULE_CODE,
-                    f"Struct instantiation/function call does not match signature."
+                    f"struct instantiation/function call does not match signature."
                     f"\n\tFound:    {expr.symbol}({', '.join([str(t) for t in actual_types])})"
                     f"\n\tExpected: {expr.symbol}({', '.join([str(t) for t in target_types])})",
                     expr.loc,
@@ -255,8 +231,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 context.add_variable(boundvar.symbol, s.type.member_type)
             else:
                 log.error(
-                    MODULE_CODE,
-                    f"Set aggregation set must be Set type (found '{s.type}')",
+                    f"set aggregation set must be Set type (found '{s.type}')",
                     expr.loc,
                 )
                 return False
@@ -266,10 +241,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 cpt.SetAggregationKind.FOR_AT_MOST,
                 cpt.SetAggregationKind.FOR_AT_LEAST,
             }:
-                if context.options.frontend is not types.R2U2Engine.BOOLEANIZER:
+                if not context.enable_booleanizer:
                     log.error(
-                        MODULE_CODE,
-                        "Parameterized set aggregation operators require Booleanizer, but Booleanizer not enabled",
+                        "parameterized set aggregation operators require Booleanizer\n\tDid you mean to enable the booleanizer?",
                         expr.loc,
                     )
                     return False
@@ -277,8 +251,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 n = cast(cpt.Expression, expr.get_num())
                 if not types.is_integer_type(n.type):
                     log.error(
-                        MODULE_CODE,
-                        f"Parameter for set aggregation must be integer type (found '{n.type}')",
+                        f"parameter for set aggregation must be integer type (found '{n.type}')",
                         expr.loc,
                     )
                     return False
@@ -287,8 +260,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
 
             if e.type != types.BoolType():
                 log.error(
-                    MODULE_CODE,
-                    f"Set aggregation expression must be 'bool' (found '{expr.type}')",
+                    f"set aggregation expression must be 'bool' (found '{expr.type}')",
                     expr.loc,
                 )
                 return False
@@ -301,8 +273,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        MODULE_CODE,
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -311,26 +282,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             if cpt.is_future_time_operator(expr):
                 if context.is_past_time():
                     log.error(
-                        MODULE_CODE,
-                        f"Mixed-time formulas unsupported, found FT formula in PTSPEC\n\t{expr}",
+                        f"mixed-time formulas unsupported, found FT formula in PTSPEC\n\t{expr}",
                         expr.loc,
                     )
                     return False
             elif cpt.is_past_time_operator(expr):
-                if (
-                    context.options.impl != types.R2U2Implementation.C
-                    and context.options.impl != types.R2U2Implementation.RUST
-                ):
-                    log.error(
-                        MODULE_CODE,
-                        f"Past-time operators only support in C version of R2U2\n\t{expr}",
-                        expr.loc,
-                    )
-                    return False
                 if context.is_future_time():
                     log.error(
-                        MODULE_CODE,
-                        f"Mixed-time formulas unsupported, found PT formula in FTSPEC\n\t{expr}",
+                        f"mixed-time formulas unsupported, found PT formula in FTSPEC\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -338,17 +297,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             interval = expr.interval
             if not interval:
                 log.internal(
-                    MODULE_CODE,
-                    "Interval not set for temporal operator\n\t" f"{expr}",
-                    expr.loc,
+                    f"interval not set for temporal operator\n\t{expr}",
                 )
                 return False
 
             if interval.lb > interval.ub:
                 log.error(
-                    MODULE_CODE,
-                    "Time interval invalid, lower bound must less than or equal to upper bound\n\t"
-                    f"[{interval.lb},{interval.ub}]",
+                    f"time interval invalid, lower bound must less than or equal to upper bound [{interval.lb},{interval.ub}]",
                     expr.loc,
                 )
                 return False
@@ -361,8 +316,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        MODULE_CODE,
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -376,8 +330,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 is_const = is_const and child.type.is_const
                 if child.type != types.IntType():
                     log.error(
-                        MODULE_CODE,
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -387,21 +340,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const = True
 
-            if (
-                context.options.impl != types.R2U2Implementation.C
-                and context.options.impl != types.R2U2Implementation.RUST
-            ):
+            if not context.enable_booleanizer:
                 log.error(
-                    MODULE_CODE,
-                    f"Bitwise operators only support in C version of R2U2.\n\t{expr}",
-                    expr.loc,
-                )
-                return False
-
-            if context.options.frontend is not types.R2U2Engine.BOOLEANIZER:
-                log.error(
-                    MODULE_CODE,
-                    f"Found context.booleanizer_enabled expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -414,8 +355,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             for child in expr.children:
                 if child.type != new_type or not types.is_integer_type(child.type):
                     log.error(
-                        MODULE_CODE,
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -425,21 +365,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             expr = cast(cpt.Operator, expr)
             is_const = True
 
-            if (
-                context.options.impl != types.R2U2Implementation.C
-                and context.options.impl != types.R2U2Implementation.RUST
-            ):
+            if not context.enable_booleanizer:
                 log.error(
-                    MODULE_CODE,
-                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
-                    expr.loc,
-                )
-                return False
-
-            if context.options.frontend is not types.R2U2Engine.BOOLEANIZER:
-                log.error(
-                    MODULE_CODE,
-                    f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -454,8 +382,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 # TODO: disallow division by non-const expression entirely
                 if isinstance(rhs, cpt.Constant) and rhs.value == 0:
                     log.error(
-                        MODULE_CODE,
-                        f"Divide by zero found\n\t{expr}",
+                        f"divide by zero\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -464,8 +391,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 rhs = expr.children[0]
                 if rhs.type == types.IntType():
                     log.error(
-                        MODULE_CODE,
-                        f"Square root invalid for integer expressions ({rhs}).\n\t{expr}",
+                        f"square root invalid for integer expressions ({rhs}).\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -477,15 +403,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                     if isinstance(rhs, cpt.Constant):
                         if rhs.value < 0:
                             log.error(
-                                MODULE_CODE,
-                                f"Power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
+                                f"power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
                                 expr.loc,
                             )
                             return False
                     elif types.IntType.is_signed:
                         log.error(
-                            MODULE_CODE,
-                            f"Power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
+                            f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
                             expr.loc,
                         )
                         return False
@@ -493,8 +417,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             for child in expr.children:
                 if child.type != new_type:
                     log.error(
-                        MODULE_CODE,
-                        f"Operand of '{expr}' must be of homogeneous type\n\t"
+                        f"operand of '{expr}' must be of homogeneous type\n\t"
                         f"Found {child.type} and {new_type}",
                         expr.loc,
                     )
@@ -506,31 +429,19 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             lhs = expr.children[0]
             rhs = expr.children[1]
 
-            if context.options.impl != types.R2U2Implementation.C:
-                log.error(
-                    MODULE_CODE,
-                    f"Arithmetic operators only support in C version of R2U2\n\t{expr}",
-                    expr.loc,
-                )
-                return False
-
-            if context.options.frontend not in {
-                types.R2U2Engine.BOOLEANIZER,
-            } and expr.operator not in {
+            if not context.enable_booleanizer and expr.operator not in {
                 cpt.OperatorKind.EQUAL,
                 cpt.OperatorKind.NOT_EQUAL,
             }:
                 log.error(
-                    MODULE_CODE,
-                    f"Found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
                     expr.loc,
                 )
                 return False
 
             if lhs.type != rhs.type:
                 log.error(
-                    MODULE_CODE,
-                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    f"invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
                     expr.loc,
                 )
                 return False
@@ -544,8 +455,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        MODULE_CODE,
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
                         expr.loc,
                     )
                     return False
@@ -555,16 +465,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
             for child in expr.get_descendants():
                 if cpt.is_prev_operator(child):
                     log.error(
-                        f"Invalid nested previous statements, ({child}).\n\t{expr}",
-                        MODULE_CODE,
+                        f"nested previous statements not allowed ({child}).\n\t{expr}",
                         location=expr.loc,
                     )
                     return False
             expr.type = expr.children[0].type
         else:
             log.error(
-                MODULE_CODE,
-                f"Invalid expression ({type(expr)})\n\t{expr}",
+                f"invalid expression of type '{type(expr)}'\n\t{expr}",
                 expr.loc,
             )
             return False
@@ -572,7 +480,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context) -> bool:
     return True
 
 
-def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> bool:
+def type_check_section(section: cpt.ProgramSection, context: cpt.Context, options: dict[str, Any]) -> bool:
     status = True
 
     if isinstance(section, cpt.InputSection):
@@ -581,8 +489,7 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                 if signal in context.get_symbols():
                     status = False
                     log.error(
-                        MODULE_CODE,
-                        f"Symbol '{signal}' already in use",
+                        f"symbol '{signal}' already in use",
                         declaration.loc,
                     )
 
@@ -606,33 +513,28 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
                     context.add_signal(f"{signal}[{i}]", declaration.type.member_type)
                     for i in range(0, declaration.type.size)
                 ]
-                [type_check_expr(sig, context) for sig in signals]
+                [type_check_expr(sig, context, options) for sig in signals]
     elif isinstance(section, cpt.DefineSection):
         for definition in section.defines:
             if definition.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    MODULE_CODE,
-                    f"Symbol '{definition.symbol}' already in use",
-                    definition.loc,
+                    f"symbol '{definition.symbol}' already in use",
+                    definition.loc, 
                 )
 
-            is_good_def = type_check_expr(definition.expr, context)
-
+            is_good_def = type_check_expr(definition.expr, context, options)
             if is_good_def:
                 context.add_definition(definition.symbol, definition.expr)
-
             status = status and is_good_def
     elif isinstance(section, cpt.StructSection):
         for struct in section.struct_defs:
             if struct.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    MODULE_CODE,
-                    f"Symbol '{struct.symbol}' already in use",
+                    f"symbol '{struct.symbol}' already in use",
                     struct.loc,
                 )
-
             context.add_struct(struct.symbol, struct.members)
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
@@ -644,24 +546,42 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context) -> boo
             if spec.symbol != "" and spec.symbol in context.get_symbols():
                 status = False
                 log.error(
-                    MODULE_CODE,
-                    f"Symbol '{spec.symbol}' already in use",
+                    f"symbol '{spec.symbol}' already in use",
                     spec.loc,
                 )
 
-            is_good_spec = type_check_expr(spec, context)
+            is_good_spec = type_check_expr(spec, context, options)
             status = status and is_good_spec
 
     return status
 
+def type_check(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Type check a program and return a context object that contains the type information for the program.
 
-def type_check(program: cpt.Program, opts: options.Options) -> tuple[bool, cpt.Context]:
-    log.debug(MODULE_CODE, 1, "Type checking")
+    `options` is a dictionary of options that must contain the following keys (should be defined as global options in the main module):
+    - `spec_filename`: The path to the specification file
+    - `enable_booleanizer`: Whether to enable the booleanizer
 
-    status: bool = True
-    context = cpt.Context(opts)
-
+    Returns:
+        None if type checking fails, the context object otherwise.
+    """
+    context.clear()
+    
+    status = True
     for section in program.sections:
-        status = type_check_section(section, context) and status
+        is_good = type_check_section(section, context, options)
+        status = status and is_good
 
-    return (status, context)
+    log.debug(1, f"type checking result: {status}")
+    program.is_well_typed = status
+    return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
+
+type_check_command = command.Command(
+    name="type_check",
+    description="Type check the program and construct a context.",
+    options=[],
+    func=type_check,
+    guards=[command.VALID_PROGRAM, command.VALID_SIGNAL_MAPPING],
+)
+command.CommandRegistry.register(type_check_command)

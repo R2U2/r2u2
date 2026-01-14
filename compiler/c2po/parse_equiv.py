@@ -1,11 +1,8 @@
 #type: ignore
 from __future__ import annotations
-from typing import Optional
-from pathlib import Path
-
-from c2po import sly, types, cpt, log
-
-MODULE_CODE = "PRS"
+from typing import Optional, Any
+from c2po import sly
+from c2po import types, cpt, log, command, util
 
 class MLTLEquivLexer(sly.Lexer):
 
@@ -83,7 +80,7 @@ class MLTLEquivLexer(sly.Lexer):
         self.filename = filename
 
     def error(self, t):
-        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, t.lineno))
+        log.error(f"illegal character '{t.value[0]}'", log.FileLocation(self.filename, t.lineno))
         self.index += 1
 
 
@@ -118,11 +115,11 @@ class MLTLEquivParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
+            log.error(f"syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(MODULE_CODE, f"Syntax error, token is 'None'"
+            log.error(f"syntax error, token is 'None' (EOF)"
                       f"\n\tDid you forget to end the last formula with a newline?", 
                       log.FileLocation(self.filename, lineno)
             )
@@ -136,7 +133,13 @@ class MLTLEquivParser(sly.Parser):
         declaration = [cpt.VariableDeclaration(0, list(self.atomics), types.BoolType())]
         input_section = cpt.InputSection(0, declaration)
         spec_section = cpt.FutureTimeSpecSection(0, p[1])
-        return cpt.Program(log.FileLocation(self.filename, 0), [input_section, spec_section])
+
+        # "a0" -> 0
+        # "a1" -> 1
+        # ...
+        signal_mapping = { a:int(a[1:]) for a in self.atomics }
+
+        return cpt.Program(log.FileLocation(self.filename, 0), [input_section, spec_section]), signal_mapping
 
     @_("constraint_list constraint")
     def constraint_list(self, p):
@@ -302,18 +305,45 @@ class MLTLEquivParser(sly.Parser):
         return cpt.SymbolicInterval(p[1], p[3])
 
 
-def parse(input_path: Path) -> Optional[tuple[cpt.Program, list[cpt.SymbolicIntervalVariable], list[cpt.Expression]]]:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
-    
-    with open(input_path, "r") as f:
-        contents = f.read()
+def parse_equiv(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Program]:
+    """Parse contents of equivalence specification and returns corresponding program on success, else returns None."""
+    contents = util.read_file(options["filename"])
+    if contents is None:
+        return None
+        
+    context.set_spec_filename(options["filename"])
 
-    lexer: MLTLEquivLexer = MLTLEquivLexer(str(input_path))
-    parser: MLTLEquivParser = MLTLEquivParser(str(input_path))
-    output: cpt.Program = parser.parse(lexer.tokenize(contents))
+    lexer: MLTLEquivLexer = MLTLEquivLexer(options["filename"])
+    parser: MLTLEquivParser = MLTLEquivParser(options["filename"])
+    output: tuple[cpt.Program, types.SignalMapping] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
         return None
 
-    return (output, parser.bounds, parser.constraints)
+    program, signal_mapping = output
+    context.bounds = parser.bounds
+    context.constraints = parser.constraints
+    context.signal_mapping = signal_mapping
+
+    log.debug(1, f"constraints: {context.constraints}")
+    log.debug(1, f"bounds: {context.bounds}")
+
+    return program
+
+parse_equiv_command = command.Command(
+    name="parse_equiv",
+    description="Parse a MLTL equivalence specification and return a program",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the MLTL equivalence specification file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: parse_equiv(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_equiv_command)

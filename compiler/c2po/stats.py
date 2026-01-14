@@ -5,7 +5,7 @@ class Stats:
     """
     A class to store statistics for the compiler.
     """
-    filename: str = ""
+    spec_filename: str = ""
     total_scq_size: int = 0
 
     smt_encoding_time: float = 0.0
@@ -16,9 +16,14 @@ class Stats:
     eqsat_encoding_time: float = 0.0
     eqsat_solver_time: float = 0.0
     eqsat_pre_size: int = 0
+    eqsat_post_size: int = 0
     eqsat_equiv_result: str = "none"
     eqsat_equiv_encoding_time: float = 0.0
     eqsat_equiv_solver_time: float = 0.0
+
+    def set_spec_filename(self, filename: str) -> None:
+        """Sets the specification filename of the statistics."""
+        self.spec_filename = filename
 
     def reset_smt_stats(self) -> None:
         """Resets the SMT statistics."""
@@ -27,8 +32,8 @@ class Stats:
         self.smt_solver_result = "none"
         self.smt_num_calls = 0
 
-    def print(self, format_str: str) -> None:
-        """Prints the statistics in the according to the given format string.
+    def format(self, format_str: str) -> str:
+        """Formats the statistics according to the given format string.
         The format string can contain the following placeholders:
         - %F = Input Filename
         - %S = Final total SCQ size
@@ -43,7 +48,7 @@ class Stats:
         - %es = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
         """
-        format_str = format_str.replace("%F", str(self.filename))
+        format_str = format_str.replace("%F", str(self.spec_filename))
         format_str = format_str.replace("%S", str(self.total_scq_size))
         format_str = format_str.replace("%se", str(self.smt_encoding_time))
         format_str = format_str.replace("%st", str(self.smt_solver_time))
@@ -52,7 +57,8 @@ class Stats:
         format_str = format_str.replace("%ee", str(self.eqsat_encoding_time))
         format_str = format_str.replace("%et", str(self.eqsat_solver_time))
         format_str = format_str.replace("%eS", str(self.eqsat_pre_size))
+        format_str = format_str.replace("%eP", str(self.eqsat_post_size))
         format_str = format_str.replace("%eq", self.eqsat_equiv_result)
         format_str = format_str.replace("%es", str(self.eqsat_equiv_solver_time))
         format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))
-        print(format_str)
+        return format_str

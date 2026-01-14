@@ -1,16 +1,11 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
 from __future__ import annotations
-
 import copy
 import enum
 import pickle
-import pathlib
+import re
 from typing import Iterator, Optional, Union, cast, Any, NamedTuple
-
-from c2po import log, types, options, stats
-
-MODULE_CODE = "CPT"
-
+from c2po import log, types, stats
 
 class C2POSection(enum.Enum):
     STRUCT = 0
@@ -19,13 +14,11 @@ class C2POSection(enum.Enum):
     FTSPEC = 3
     PTSPEC = 4
 
-
 class CompilationStage(enum.Enum):
     PARSE = 0
     TYPE_CHECK = 1
     PASSES = 2
     ASSEMBLE = 3
-
 
 class Node:
     def __init__(self, loc: log.FileLocation) -> None:
@@ -34,7 +27,6 @@ class Node:
 
     def __str__(self) -> str:
         return self.symbol
-
 
 class Expression(Node):
     def __init__(
@@ -102,7 +94,6 @@ class Expression(Node):
             for i in range(0, len(parent.children)):
                 if id(parent.children[i]) == id(self):
                     parent.children[i] = new
-
             new.parents.add(parent)
 
         for child in self.children:
@@ -136,7 +127,6 @@ class Expression(Node):
     def __repr__(self) -> str:
         return to_prefix_str(self)
 
-
 class Constant(Expression):
     def __init__(self, loc: log.FileLocation, value: Any) -> None:
         super().__init__(loc, [])
@@ -158,7 +148,6 @@ class Constant(Expression):
         self.copy_attrs(new)
         return new
 
-
 class MissionTime(Expression):
     """MissionTime is a special variable that represents the symbolic mission time. This is only
     used in equivalence checking when the input format is .equiv. It is not used in any other
@@ -177,7 +166,6 @@ class MissionTime(Expression):
         self.copy_attrs(new)
         return new
 
-
 class CurrentTimestamp(Expression):
     first_time_seen = True
 
@@ -186,10 +174,9 @@ class CurrentTimestamp(Expression):
         self.engine = types.R2U2Engine.BOOLEANIZER
         self.symbol = "TAU"
         
-        if CurrentTimestamp.first_time_seen:
+        if CurrentTimestamp.first_time_seen and types.IntType.is_signed:
             log.warning(
-                MODULE_CODE,
-                "If using TAU, note that by default `r2u2_time` is an unsigned 32-bit integer and `r2u2_int` is a signed 32-bit integer.",
+                "by default, r2u2_time is an _unsigned_ 32-bit integer and r2u2_int is a _signed_ 32-bit integer in R2U2",
                 loc,
             )
         CurrentTimestamp.first_time_seen = False
@@ -198,7 +185,6 @@ class CurrentTimestamp(Expression):
         new = CurrentTimestamp(self.loc)
         self.copy_attrs(new)
         return new
-
 
 class Variable(Expression):
     """Variables represent bound variables in set aggregations."""
@@ -234,7 +220,6 @@ class Signal(Expression):
         new.signal_id = self.signal_id
         return new
 
-
 class SymbolicIntervalVariable(Expression):
     """SymbolicIntervalVariables are used when defining symbolic intervals and their constraints. They
     are only used in the context of equivalence checking when the input format is .equiv."""
@@ -260,7 +245,6 @@ class SymbolicIntervalVariable(Expression):
     def __repr__(self) -> str:
         return f"IntervalBoundVariable({self.symbol})"
 
-
 class ArrayExpression(Expression):
     def __init__(self, loc: log.FileLocation, members: list[Expression]) -> None:
         super().__init__(loc, members)
@@ -271,7 +255,6 @@ class ArrayExpression(Expression):
         new = ArrayExpression(self.loc, children)
         self.copy_attrs(new)
         return new
-
 
 class ArrayIndex(Expression):
     def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
@@ -291,7 +274,6 @@ class ArrayIndex(Expression):
         self.copy_attrs(new)
         return new
 
-
 class Struct(Expression):
     def __init__(
         self, loc: log.FileLocation, s: str, m: dict[str, int], c: list[Expression]
@@ -306,9 +288,7 @@ class Struct(Expression):
     def get_member(self, name: str) -> Optional[Expression]:
         if name not in self.members:
             log.internal(
-                MODULE_CODE,
-                f"Member '{name}' not in members of '{self.symbol}'",
-                self.loc,
+                f"member '{name}' not in members of '{self.symbol}'",
             )
             return None
 
@@ -316,9 +296,7 @@ class Struct(Expression):
 
         if member is None:
             log.internal(
-                MODULE_CODE,
-                f"Member '{name}' not in members of '{self.symbol}'",
-                self.loc,
+                f"member '{name}' not in members of '{self.symbol}'",
             )
             return None
 
@@ -329,7 +307,6 @@ class Struct(Expression):
         new = Struct(self.loc, self.symbol, self.members, children)
         self.copy_attrs(new)
         return new
-
 
 class StructAccess(Expression):
     def __init__(self, loc: log.FileLocation, struct: Expression, member: str) -> None:
@@ -346,7 +323,6 @@ class StructAccess(Expression):
         self.copy_attrs(new)
         return new
 
-
 class FunctionCall(Expression):
     def __init__(
         self, loc: log.FileLocation, s: str, operands: list[Expression]
@@ -360,7 +336,6 @@ class FunctionCall(Expression):
             self.symbol,
             copy.deepcopy(cast("list[Expression]", self.children), memo),
         )
-
 
 class Bind(Expression):
     """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
@@ -386,14 +361,12 @@ class Bind(Expression):
         self.copy_attrs(new)
         return new
 
-
 class SetAggregationKind(enum.Enum):
     FOR_EACH = "foreach"
     FOR_SOME = "forsome"
     FOR_EXACTLY = "forexactly"
     FOR_AT_LEAST = "foratleast"
     FOR_AT_MOST = "foratmost"
-
 
 class SetAggregation(Expression):
     """`SetAggregation` tree structure looks like:
@@ -424,6 +397,7 @@ class SetAggregation(Expression):
         self.operator = operator
         self.bound_var = var
         self.type = types.BoolType()
+        self.symbol = operator.value
 
     @staticmethod
     def ForEach(
@@ -493,7 +467,6 @@ class SetAggregation(Expression):
         )
         self.copy_attrs(new)
         return new
-
 
 class OperatorKind(enum.Enum):
     # Bitwise
@@ -574,7 +547,6 @@ class OperatorKind(enum.Enum):
             OperatorKind.LESS_THAN_OR_EQUAL,
             OperatorKind.COUNT,
         }
-
 
 class Operator(Expression):
     def __init__(
@@ -842,7 +814,6 @@ class Operator(Expression):
         self.copy_attrs(new)
         return new
 
-
 class Atomic(Expression):
     def __init__(self, loc: log.FileLocation, child: Expression) -> None:
         super().__init__(loc, [child])
@@ -854,6 +825,8 @@ class Atomic(Expression):
         self.copy_attrs(new)
         return new
 
+    def __repr__(self) -> str:
+        return f"Atomic({repr(self.children[0])})"
 
 class TemporalOperator(Operator):
     def __init__(
@@ -956,7 +929,6 @@ class TemporalOperator(Operator):
         self.copy_attrs(new)
         return new
 
-
 class SymbolicTemporalOperator(Operator):
     """SymbolicTemporalOperators are the same as TemporalOperators, but their interval is symbolic.
     
@@ -1044,12 +1016,10 @@ class SymbolicTemporalOperator(Operator):
         self.copy_attrs(new)
         return new
 
-
 # Helpful predicates -- especially for type checking
 def is_operator(expr: Expression, operator: OperatorKind) -> bool:
     """Returns True if `expr` is an `Operator` of type `operator`."""
     return isinstance(expr, Operator) and expr.operator is operator
-
 
 def is_commutative_operator(expr) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
@@ -1066,7 +1036,6 @@ def is_commutative_operator(expr) -> bool:
         OperatorKind.NOT_EQUAL,
     }
 
-
 def is_multi_arity_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.LOGICAL_AND,
@@ -1075,7 +1044,6 @@ def is_multi_arity_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_MULTIPLY,
     }
 
-
 def is_bitwise_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.BITWISE_AND,
@@ -1083,7 +1051,6 @@ def is_bitwise_operator(expr: Expression) -> bool:
         OperatorKind.BITWISE_XOR,
         OperatorKind.BITWISE_NEGATE,
     }
-
 
 def is_arithmetic_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
@@ -1099,7 +1066,6 @@ def is_arithmetic_operator(expr: Expression) -> bool:
         OperatorKind.ARITHMETIC_RATE,
     }
 
-
 def is_relational_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.EQUAL,
@@ -1109,7 +1075,6 @@ def is_relational_operator(expr: Expression) -> bool:
         OperatorKind.GREATER_THAN_OR_EQUAL,
         OperatorKind.LESS_THAN_OR_EQUAL,
     }
-
 
 def is_logical_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
@@ -1121,7 +1086,6 @@ def is_logical_operator(expr: Expression) -> bool:
         OperatorKind.LOGICAL_NEGATE,
     }
 
-
 def is_future_time_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.GLOBAL,
@@ -1129,7 +1093,6 @@ def is_future_time_operator(expr: Expression) -> bool:
         OperatorKind.UNTIL,
         OperatorKind.RELEASE,
     }
-
 
 def is_past_time_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
@@ -1139,12 +1102,10 @@ def is_past_time_operator(expr: Expression) -> bool:
         OperatorKind.TRIGGER,
     }
 
-
 def is_prev_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.PREVIOUS,
     }
-
 
 def is_min_max_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
@@ -1152,10 +1113,8 @@ def is_min_max_operator(expr: Expression) -> bool:
         OperatorKind.MAX,
     }
 
-
 def is_temporal_operator(expr: Expression) -> bool:
     return is_future_time_operator(expr) or is_past_time_operator(expr)
-
 
 class ConcreteInterval(NamedTuple):
     lb: int
@@ -1163,7 +1122,6 @@ class ConcreteInterval(NamedTuple):
 
     def __eq__(self, __value: object) -> bool:
         return isinstance(__value, ConcreteInterval) and self.lb == __value.lb and self.ub == __value.ub
-
 
 class SymbolicInterval(NamedTuple):
     lb: Expression
@@ -1175,7 +1133,6 @@ class SymbolicInterval(NamedTuple):
             and str(self.lb) == str(__value.lb)
             and str(self.ub) == str(__value.ub)
         )
-
 
 class Formula(Expression):
     def __init__(
@@ -1189,18 +1146,14 @@ class Formula(Expression):
     def get_expr(self) -> Expression:
         return cast(Expression, self.children[0])
 
+    def is_default_label(self) -> bool:
+        return re.match(r'__f\d+__', self.symbol) is not None
+
     def __deepcopy__(self, memo) -> Formula:
         children = [copy.deepcopy(c, memo) for c in self.children]
         new = Formula(self.loc, self.symbol, self.formula_number, children[0])
         self.copy_attrs(new)
         return new
-
-    def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, Formula) and self.symbol == __value.symbol
-
-    def __hash__(self) -> int:
-        return hash(self.symbol)
-
 
 class Contract(Expression):
     def __init__(
@@ -1232,9 +1185,7 @@ class Contract(Expression):
     def __str__(self) -> str:
         return f"{self.symbol}: ({self.get_assumption()})=>({self.get_guarantee()})"
 
-
 Specification = Union[Formula, Contract]
-
 
 class SpecificationSet(Expression):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
@@ -1245,7 +1196,6 @@ class SpecificationSet(Expression):
 
     def __str__(self) -> str:
         return "spec_set"
-
 
 class StructDefinition(Node):
     def __init__(
@@ -1263,7 +1213,6 @@ class StructDefinition(Node):
         members_str_list = [str(s) + ";" for s in self.var_decls]
         return self.symbol + ": {" + " ".join(members_str_list) + "}"
 
-
 class VariableDeclaration(Node):
     def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:
         super().__init__(loc)
@@ -1273,7 +1222,6 @@ class VariableDeclaration(Node):
     def __str__(self) -> str:
         return f"{','.join(self.variables)}: {str(self.type)}"
 
-
 class Definition(Node):
     def __init__(self, loc: log.FileLocation, symbol: str, expr: Expression) -> None:
         super().__init__(loc)
@@ -1282,7 +1230,6 @@ class Definition(Node):
 
     def __str__(self) -> str:
         return f"{self.symbol} := {self.expr}"
-
 
 class StructSection(Node):
     def __init__(
@@ -1295,7 +1242,6 @@ class StructSection(Node):
         structs_str_list = [str(s) + ";" for s in self.struct_defs]
         return "STRUCT\n\t" + "\n\t".join(structs_str_list)
 
-
 class InputSection(Node):
     def __init__(
         self, loc: log.FileLocation, signal_decls: list[VariableDeclaration]
@@ -1307,7 +1253,6 @@ class InputSection(Node):
         signals_str_list = [str(s) + ";" for s in self.signal_decls]
         return "INPUT\n\t" + "\n\t".join(signals_str_list)
 
-
 class DefineSection(Node):
     def __init__(self, loc: log.FileLocation, defines: list[Definition]) -> None:
         super().__init__(loc)
@@ -1317,12 +1262,10 @@ class DefineSection(Node):
         defines_str_list = [str(s) + ";" for s in self.defines]
         return "DEFINE\n\t" + "\n\t".join(defines_str_list)
 
-
 class SpecSection(Node):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc)
         self.specs = specs
-
 
 class FutureTimeSpecSection(SpecSection):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
@@ -1331,7 +1274,6 @@ class FutureTimeSpecSection(SpecSection):
     def __str__(self) -> str:
         return "FTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
-
 class PastTimeSpecSection(SpecSection):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc, specs)
@@ -1339,11 +1281,11 @@ class PastTimeSpecSection(SpecSection):
     def __str__(self) -> str:
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
-
 ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
 
-
 class Program(Node):
+    """A Program is a collection of sections that make up a C2PO program."""
+
     def __init__(self, loc: log.FileLocation, sections: list[ProgramSection]) -> None:
         super().__init__(loc)
         self.sections = sections
@@ -1360,55 +1302,15 @@ class Program(Node):
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
         self.total_scq_size = -1
+        self.is_dummy = False
+        self.is_well_typed = False
 
-        # Minimum values for bounds in bounds.h and config.toml
-        self.bounds_c = {
-            "R2U2_MAX_INSTRUCTIONS": -1,
-            "R2U2_MAX_SIGNALS": -1,
-            "R2U2_MAX_ATOMICS": -1,
-            "R2U2_MAX_INST_LEN": -1,
-            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
-            "R2U2_MAX_AUX_STRINGS": -1,
-            "R2U2_SCQ_BYTES": -1,
-            "R2U2_FLOAT_EPSILON": 0.00001,
-        }
-
-        self.bounds_rs = {
-            "R2U2_MAX_SPECS": -1,
-            "R2U2_MAX_SIGNALS": -1,
-            "R2U2_MAX_ATOMICS": -1,
-            "R2U2_MAX_BZ_INSTRUCTIONS": -1,
-            "R2U2_MAX_TL_INSTRUCTIONS": -1,
-            "R2U2_TOTAL_QUEUE_MEM": -1,
-        }
-
-
-    def get_bounds_c_file(self) -> str:
-        """Returns the contents of the bounds.h file."""
-        contents =  "#ifndef R2U2_BOUNDS_H\n"
-        contents += "#define R2U2_BOUNDS_H\n"
-        contents += "\n".join(
-            [
-                f"#define {key} {value:F}"
-                if type(value) is float
-                else f"#define {key} {value}"
-                for key, value in self.bounds_c.items()
-            ]
-        )
-        contents += "\n#endif\n"
-        return contents
-
-    def get_bounds_rs_file(self) -> str:
-        """Returns the contents of the config.toml file."""
-        contents =  "[env]\n"
-        contents += "\n".join(
-            [
-                f'{key} = {{ value = "{value}", force = true }}'
-                for key, value in self.bounds_rs.items()
-            ]
-        )
-        return contents
-
+    @staticmethod
+    def dummy() -> Program:
+        """Create a dummy Program for use in commands that require a program but don't have one yet."""
+        program = Program(log.FileLocation("<dummy>", 1), [])
+        program.is_dummy = True
+        return program
 
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
@@ -1421,6 +1323,15 @@ class Program(Node):
 
     def get_specs(self) -> list[Specification]:
         return self.ft_spec_set.get_specs() + self.pt_spec_set.get_specs()
+
+    def get_spec(self, symbol: str) -> Specification | None:
+        for spec in self.ft_spec_set.get_specs():
+            if spec.symbol == symbol:
+                return spec
+        for spec in self.pt_spec_set.get_specs():
+            if spec.symbol == symbol:
+                return spec
+        return None
 
     def postorder(self, context: Context):
         """Performs a postorder traversal of each FT and PT specification in this `Program`."""
@@ -1447,10 +1358,8 @@ class Program(Node):
     def __repr__(self) -> str:
         return "\n".join([repr(s) for s in self.get_specs()])
 
-
 class Context:
-    def __init__(self, opts: options.Options) -> None:
-        self.options = opts
+    def __init__(self) -> None:
         self.definitions: dict[str, Expression] = {}
         self.structs: dict[str, dict[str, types.Type]] = {}
         self.signals: dict[str, types.Type] = {}
@@ -1460,13 +1369,63 @@ class Context:
         self.atomic_id_map: dict[Expression, int] = {}
         self.atomic_expr_map: dict[int, Expression] = {}
         self.bound_vars: dict[str, ArrayExpression] = {}
-        self.stats = stats.Stats(filename=opts.spec_filename)
+        self.signal_mapping: types.SignalMapping = {}
 
-        self.sat_smt_map: dict[Formula, pathlib.Path] = {} # Maps from formula to SMT encoding
-        self.eqsat_smt_map: dict[Formula, pathlib.Path] = {} # Maps from formula to EQSat equivalence SMT encoding
-        self.eqsat_egglog_map: dict[Formula, pathlib.Path] = {} # Maps from formula to EQSat egglog encoding
-        self.equiv_smt_path: pathlib.Path = pathlib.Path(options.EMPTY_FILENAME) # Path to equivalence SMT encoding. Only used when input is a .equiv file
+        # Assembly and binary (we attach to context since we need to access it in write_bounds functions)
+        self.assembly: list = []
+        self.binary: bytes = bytes()
 
+        # Used in equivalence checking
+        self.bounds: list[SymbolicIntervalVariable] = []
+        self.constraints: list[Expression] = []
+
+        # Statistics
+        self.stats: stats.Stats = stats.Stats()
+
+        # Status flags
+        self.is_ft = False
+        self.has_future_time = False
+        self.has_past_time = False
+        self.status = True
+
+        # Globally-accessible options
+        self.trace_length: int = -1
+        self.mission_time: int = -1
+        self.enable_booleanizer: bool = False
+        self.script_filename: str = ""
+        self.spec_filename: str = ""
+        self.trace_filename: str = ""
+        self.map_filename: str = ""
+        self.egglog_path: str = ""
+        self.smt_solver_path: str = ""
+
+    def set_mission_time(self, mission_time: int) -> None:
+        """Sets the mission time for the context."""
+        self.mission_time = mission_time
+
+    def set_spec_filename(self, filename: str) -> None:
+        """Sets the specification filename for the statistics."""
+        self.spec_filename = filename
+        self.stats.set_spec_filename(filename)
+
+    def clear(self) -> None:
+        """
+        Clears the context except for the signal mapping, bounds, and constraints.
+        These are reset upon parsing.
+        """
+        self.definitions.clear()
+        self.structs.clear()
+        self.signals.clear()
+        self.variables.clear()
+        self.specifications.clear()
+        self.contracts.clear()
+        self.atomic_id_map.clear()
+        self.atomic_expr_map.clear()
+        self.bound_vars.clear()
+        self.assembly.clear()
+        self.binary = bytes()
+        self.stats = stats.Stats()
+        self.trace_length = -1
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
@@ -1516,7 +1475,6 @@ class Context:
     def remove_variable(self, symbol) -> None:
         del self.variables[symbol]
 
-
 def postorder(
     start: Union[Expression, list[Expression]], context: Context
 ) -> Iterator[Expression]:
@@ -1551,7 +1509,6 @@ def postorder(
         for child in reversed(expr.children):
             stack.append((False, child))
 
-
 def preorder(
     start: Union[Expression, list[Expression]], context: Context
 ) -> Iterator[Expression]:
@@ -1580,38 +1537,6 @@ def preorder(
         for child in reversed(cur.children):
             stack.append(child)
 
-
-def postorder_repeats(
-    start: Union[Expression, list[Expression]], context: Context
-) -> Iterator[Expression]:
-    """Performs a postorder traversal of `start`, treating repeated expressions as distinct. If `start` is a list of `Expression`s, then initializes the stack to `start`. Uses `context` to handle local context (for example, variable binding in set aggregation expressions)."""
-    stack: list[tuple[bool, Expression]] = []
-
-    if isinstance(start, Expression):
-        stack.append((False, start))
-    else:
-        [stack.append((False, expr)) for expr in start]
-
-    while len(stack) > 0:
-        (seen, expr) = stack.pop()
-
-        if seen and isinstance(expr, SetAggregation):
-            del context.bound_vars[expr.bound_var.symbol]
-            yield expr
-            continue
-        elif seen and isinstance(expr, Bind):
-            context.bound_vars[expr.bound_var.symbol] = expr.get_set()
-            continue
-        elif seen:
-            yield expr
-            continue
-
-        stack.append((True, expr))
-
-        for child in reversed(expr.children):
-            stack.append((False, child))
-
-
 def rename(
     target: Expression, repl: Expression, expr: Expression, context: Context
 ) -> Expression:
@@ -1627,7 +1552,6 @@ def rename(
             node.replace(repl)
 
     return new
-
 
 def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
     """Unrolls the given expression `expr` using the given context `context`"""
@@ -1690,7 +1614,6 @@ def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
         subexpr.replace(new)
 
     return new
-
 
 def decompose_intervals(expr: Expression, context: Context) -> Expression:
     """Decomposes temporal operators in `start` to combinations of intervals with sizes that are
@@ -1780,7 +1703,6 @@ def decompose_intervals(expr: Expression, context: Context) -> Expression:
 
     return new
 
-
 def to_infix_str(start: Expression) -> str:
     s = ""
 
@@ -1812,7 +1734,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s += ","
+                s += ", "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, (Struct, FunctionCall)) or is_operator(
@@ -1825,12 +1747,12 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s += ","
+                s += ", "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
-                s += f"{expr.symbol}({expr.bound_var}:"
+                s += f"{expr.symbol}({expr.bound_var} : "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_set()))
             elif seen == 1:
@@ -1841,7 +1763,7 @@ def to_infix_str(start: Expression) -> str:
                 s += ")"
         elif isinstance(expr, Operator) and len(expr.children) == 1:
             if seen == 0:
-                s += f"{expr.symbol}("
+                s += f"({expr.symbol} "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
@@ -1852,7 +1774,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             elif seen == 1:
-                s += f"){expr.symbol}("
+                s += f" {expr.symbol} "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[1]))
             else:
@@ -1865,41 +1787,35 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
             else:
-                s += f"){expr.symbol}("
+                s += f" {expr.symbol} "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, Atomic):
-            if seen == 0:
-                s += "("
-                stack.append((seen + 1, expr))
-                stack.append((0, expr.children[0]))
-            else:
-                s += ")"
+            stack.append((0, expr.children[0]))
         elif isinstance(expr, Formula):
             if seen == 0:
-                s += str(expr.formula_number) if expr.symbol[0] == "#" else expr.symbol
-                s += ":"
+                if not expr.is_default_label():
+                    s += f"{expr.symbol}: "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_expr()))
             else:
                 s += ";"
         elif isinstance(expr, Contract):
             if seen == 0:
-                s += f"{expr.symbol}: ("
+                s += f"{expr.symbol}: "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
-                s += ")=>("
+                s += " => "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
-                s += ")"
+                s += ";"
         else:
-            log.error(MODULE_CODE, f"Bad str ({expr})")
+            log.error(f"bad str ({expr})")
             return ""
 
     return s
-
 
 def to_prefix_str(start: Expression) -> str:
     s = ""
@@ -1937,24 +1853,23 @@ def to_prefix_str(start: Expression) -> str:
             if seen == len(expr.children):
                 s = s[:-1] + ") "
             elif seen == 0:
-                s += f"{expr.symbol}("
+                s += f"({expr.symbol} "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[0]))
             else:
-                s += ","
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[seen]))
         elif isinstance(expr, SetAggregation):
             if seen == 0:
-                s += f"{expr.symbol}({expr.bound_var}:"
+                s += f"({expr.symbol} ({expr.bound_var} : "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_set()))
             elif seen == 1:
-                s = s[:-1] + ")("
+                s = s[:-1] + ") "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_expr()))
             else:
-                s = s[:-1] + ")"
+                s = s[:-1] + ") "  
         elif isinstance(expr, Operator):
             if seen == 0:
                 s += f"({expr.symbol} "
@@ -1963,35 +1878,29 @@ def to_prefix_str(start: Expression) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Atomic):
-            if seen == 0:
-                s += "("
-                stack.append((seen + 1, expr))
-                [stack.append((0, child)) for child in reversed(expr.children)]
-            else:
-                s = s[:-1] + ") "
+            stack.append((0, expr.children[0]))
         elif isinstance(expr, Formula):
-            s += expr.symbol
-            s += ": "
+            if not expr.is_default_label():
+                s += f"{expr.symbol}: "
             stack.append((0, expr.get_expr()))
         elif isinstance(expr, Contract):
             if seen == 0:
-                s += f"{expr.symbol}: ("
+                s += f"{expr.symbol}: "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_assumption()))
             elif seen == 1:
-                s += ") => ("
+                s += " => "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.get_guarantee()))
             else:
-                s = s[:-1] + ")"
+                s = s[:-1] + ";"
         elif isinstance(expr, SpecificationSet):
             [stack.append((0, spec)) for spec in reversed(expr.get_specs())]
         else:
-            log.error(MODULE_CODE, f"Bad repr ({expr})")
+            log.error(f"bad repr ({expr})")
             return ""
 
     return s[:-1]
-
 
 def to_mltl_std(program: Program, context: Context) -> str:
     mltl = ""
@@ -2000,7 +1909,7 @@ def to_mltl_std(program: Program, context: Context) -> str:
 
     for spec in program.get_specs():
         if isinstance(spec, Contract):
-            log.warning(MODULE_CODE, "Cannot express AGCs in MLTL standard, skipping")
+            log.warning("cannot express AGCs in MLTL standard, skipping")
             continue
 
         stack.append((0, spec.get_expr()))
@@ -2016,7 +1925,7 @@ def to_mltl_std(program: Program, context: Context) -> str:
                 is_temporal_operator(expr) or is_logical_operator(expr)
             ):
                 if seen == 0:
-                    mltl += f"{expr.symbol}("
+                    mltl += f"({expr.symbol} "
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[0]))
                 else:
@@ -2036,15 +1945,104 @@ def to_mltl_std(program: Program, context: Context) -> str:
                     else:
                         symbol = expr.symbol
 
-                    mltl += f"){symbol}("
+                    mltl += f" {symbol} "
                     stack.append((seen + 1, expr))
                     stack.append((0, expr.children[seen]))
             else:
                 log.error(
-                    MODULE_CODE, f"Expression incompatible with MLTL standard ({expr})"
+                    f"expression incompatible with MLTL standard ({expr} {type(expr)})"
                 )
                 return ""
 
         mltl += "\n"
 
     return mltl
+
+def is_valid_program(program: Program, context: Context) -> bool:
+    return not program.is_dummy
+
+def has_valid_signal_mapping(program: Program, context: Context) -> bool:
+    return all(
+        expr.symbol in context.signal_mapping
+        for expr in program.postorder(context)
+        if isinstance(expr, Signal)
+    )
+
+def is_well_typed_program(program: Program, context: Context) -> bool:
+    return is_valid_program(program, context) and program.is_well_typed
+
+def is_desugared(program: Program, context: Context) -> bool:
+    """Returns True if the program is desugared."""
+    for expr in program.postorder(context):
+        if isinstance(
+            expr,
+            (
+                Struct,
+                FunctionCall,
+                ArrayExpression,
+                StructAccess,
+                ArrayIndex,
+                SetAggregation,
+                Contract,
+                Variable,
+            ),
+        ):
+            return False
+    return True
+
+def has_valid_scq_sizes(program: Program, context: Context) -> bool:
+    """Returns True if the program is SCQ sized. All temporal logic and atomic expressions must have a valid SCQ size."""
+    return all(
+        expr.scq_size >= 0
+        for expr in program.postorder(context)
+        if isinstance(expr, Expression)
+        and (expr.engine == types.R2U2Engine.TEMPORAL_LOGIC or expr in context.atomic_id_map)
+    )
+
+def is_assembled(program: Program, context: Context) -> bool:
+    """Returns True if the program is assembled."""
+    return len(context.assembly) > 0
+
+def is_only_binary_operators(program: Program, context: Context) -> bool:
+    """Returns True if the program contains only binary or unary operators."""
+    return all(
+        len(expr.children) <= 2 and len(expr.children) >= 0
+        for expr in program.postorder(context)
+        if isinstance(expr, Expression) and not isinstance(expr, SpecificationSet)
+    )
+
+def has_no_extended_operators(program: Program, context: Context) -> bool:
+    """Returns True if the program contains no extended operators (xor, ->, F, G, O, H)."""
+    return all(
+        expr.operator
+        not in [
+            OperatorKind.LOGICAL_XOR,
+            OperatorKind.LOGICAL_IMPLIES,
+            OperatorKind.FUTURE,
+            OperatorKind.GLOBAL,
+            OperatorKind.HISTORICAL,
+            OperatorKind.ONCE,
+        ]
+        for expr in program.postorder(context)
+        if isinstance(expr, Operator)
+    )
+
+def has_computed_atomics(program: Program, context: Context) -> bool:
+    """Returns True if the program contains computed atomics. Computed atomics should be present for all Atomics and Signals with TL parents."""
+    return all(
+        expr in context.atomic_id_map
+        for expr in program.postorder(context)
+        if isinstance(expr, Expression)
+        and (
+            isinstance(expr, Atomic)
+            or (
+                isinstance(expr, Signal)
+                and len(expr.parents) > 0
+                and any(
+                    parent.engine == types.R2U2Engine.TEMPORAL_LOGIC
+                    for parent in expr.parents
+                )
+            )
+        )
+    )
+

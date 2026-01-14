@@ -1,0 +1,5 @@
+type_check: error: bad_array.c2po:9: struct instantiation/function call does not match signature.
+	Found:    Test(int[3])
+	Expected: Test(int[2])
+type_check: error: bad_array.c2po:12: symbol 't' not recognized
+type_check: error: bad_array.c2po:13: symbol 't' not recognized

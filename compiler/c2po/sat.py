@@ -3,10 +3,10 @@ import enum
 import sys
 import math
 import pathlib
-from typing import cast
-from c2po import cpt, log, util, types, options
-
-MODULE_CODE = "SAT"
+import shutil
+import tempfile
+from typing import cast, Any, Optional
+from c2po import cpt, log, util, types, stats, command
 
 PREAMBLE = f"""(set-info :source |SMT encoding for satisfiability checking of Mission-time Linear Temporal Logic (MLTL) formulas.
 Encoded by C2PO v{log.VERSION}, see https://github.com/R2U2/r2u2/tree/develop/compiler.|)"""
@@ -19,6 +19,29 @@ class SatResult(enum.Enum):
     MEMOUT = "memout"
     FAILURE = "fail"
 
+def check_sat_result(result: SatResult, symbol: str = "", quiet: bool = False) -> bool:
+    """Checks the result of a SAT solver and returns True if the result is SAT, False otherwise.
+    
+    If `quiet` is False, the result will be printed.
+
+    Args:
+        `result`: The result of the SAT solver
+        `symbol`: The symbol of the formula for printing, defaults to empty string
+        `quiet`: Whether to print the result
+
+    Returns:
+        True if the result is SAT, UNSAT, or UNKNOWN, False otherwise
+    """
+    if not quiet:
+        print(f"{symbol} : {result.value}" if symbol else result.value)
+    return result in [SatResult.SAT, SatResult.UNSAT, SatResult.UNKNOWN]
+
+class SMTTheory(enum.Enum):
+    UFLIA = "uflia"
+    QF_UFLIA = "qf_uflia"
+    QF_BV = "qf_bv"
+    QF_BV_INCR = "qf_bv_incr"
+    UFLIA_INF = "uflia_inf"
 
 def check_solver(smt_solver: str) -> bool:
     try:
@@ -28,42 +51,62 @@ def check_solver(smt_solver: str) -> bool:
     except FileNotFoundError:
         return False
 
+def find_smt_solver() -> Optional[str]:
+    """Finds the SMT solver in the PATH. Returns the path to the SMT solver if found, otherwise returns None."""
+    for solver in ["z3", "cvc5", "yices-smt2", "mathsat", "bitwuzla"]:
+        smt_solver_path = shutil.which(solver)
+        if smt_solver_path is not None:
+            return smt_solver_path if check_solver(smt_solver_path) else None
+    return None
 
-def run_smt_solver(smt_encoding_path: pathlib.Path, context: cpt.Context) -> SatResult:
-    """Runs the SMT solver on the given SMT-LIB2 encoding and returns the result."""
-    log.debug(MODULE_CODE, 1, "Running SMT solver.")
+def run_smt_solver(
+    smt_encoding: str,
+    theory: SMTTheory,
+    max_time: int,
+    max_memory: int,
+    stats: stats.Stats,
+) -> SatResult:
+    """Runs the SMT solver on the given SMT-LIB2 encoding string and returns the result."""
+    log.debug(1, "running SMT solver.")
 
-    if not check_solver(context.options.smt_solver_path):
-        log.error(MODULE_CODE, f"{context.options.smt_solver_path} not found")
+    smt_solver_path = find_smt_solver()
+    if smt_solver_path is None:
+        log.error("could not find SMT solver")
         return SatResult.FAILURE
 
-    command = [context.options.smt_solver_path] + [opt.replace('"', '') for opt in context.options.smt_options]
+    # TODO: Add options to the command, will have to address list[str] type for command parser
+    # command = [smt_solver_path] + [opt.replace('"', '') for opt in smt_options]
+    command = [smt_solver_path]
     
     if (
-        context.options.smt_encoding == options.SMTTheories.UFLIA
-        or context.options.smt_encoding == options.SMTTheories.QF_UFLIA
-        or context.options.smt_encoding == options.SMTTheories.UFLIA_INF
-    ) and "cvc5" in context.options.smt_solver_path:
+        theory == SMTTheory.UFLIA
+        or theory == SMTTheory.QF_UFLIA
+        or theory == SMTTheory.UFLIA_INF
+    ) and "cvc5" in smt_solver_path:
         # cvc5 requires the --finite-model-find option for UFLIA encoding
         command += ["--finite-model-find", "--fmf-bound"]
     
-    command += [str(smt_encoding_path)]
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_file = f"{temp_dir}/smt.smt2"
+        with open(temp_file, "w") as f:
+            f.write(smt_encoding)
+        command += [temp_file]
 
-    log.debug(MODULE_CODE, 1, f"Running '{' '.join(command)}'")
+        log.debug(1, f"running '{' '.join(command)}'")
 
-    start_time = util.get_rusage_time()
-    proc = subprocess.Popen(
-        command,
-        preexec_fn=util.set_max_memory_offset(context.options.smt_max_memory),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        (stdout, stderr) = proc.communicate(timeout=context.options.smt_max_time)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        log.warning(MODULE_CODE, f"{context.options.smt_solver_path} timed out")
-        return SatResult.TIMEOUT
+        start_time = util.get_rusage_time()
+        proc = subprocess.Popen(
+            command,
+            preexec_fn=util.set_max_memory_offset(max_memory),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            (stdout, stderr) = proc.communicate(timeout=max_time)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            log.warning(f"{smt_solver_path} timed out")
+            return SatResult.TIMEOUT
     
     end_time = util.get_rusage_time()
     stdout = stdout.decode() if stdout else ""
@@ -74,32 +117,32 @@ def run_smt_solver(smt_encoding_path: pathlib.Path, context: cpt.Context) -> Sat
         #   stdout=
         #   stderr=(error "out of memory")
         #   returncode=101
-        if "z3" in context.options.smt_solver_path and "(error \"out of memory\")" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+        if "z3" in smt_solver_path and "(error \"out of memory\")" in stderr:
+            log.warning(f"{smt_solver_path} ran out of memory")
             return SatResult.MEMOUT
 
         # cvc5 memout: 
         #   stdout(error "std::bad_alloc")
         #   stderr=
         #   returncode=1
-        if "cvc5" in context.options.smt_solver_path and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+        if "cvc5" in smt_solver_path and "std::bad_alloc" in stdout or "std::bad_alloc" in stderr:
+            log.warning(f"{smt_solver_path} ran out of memory")
             return SatResult.MEMOUT
 
         # yices memout:
         #   stdout=
         #   stderr=out of memory
         #   returncode=16
-        if "yices" in context.options.smt_solver_path and "Out of memory" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+        if "yices" in smt_solver_path and "Out of memory" in stderr:
+            log.warning(f"{smt_solver_path} ran out of memory")
             return SatResult.MEMOUT
 
         # mathsat memout
         #   stdout=
         #   stderr=
         #   returncode=6
-        if "mathsat" in context.options.smt_solver_path and proc.returncode == -6:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+        if "mathsat" in smt_solver_path and proc.returncode == -6:
+            log.warning(f"{smt_solver_path} ran out of memory")
             return SatResult.MEMOUT
 
         # bitwuzla memout
@@ -107,40 +150,46 @@ def run_smt_solver(smt_encoding_path: pathlib.Path, context: cpt.Context) -> Sat
         #   stderr=terminate called after throwing an instance of 'std::bad_alloc'
         #            what():  std::bad_alloc
         #   returncode=-6
-        if "bitwuzla" in context.options.smt_solver_path and "std::bad_alloc" in stderr:
-            log.warning(MODULE_CODE, f"{context.options.smt_solver_path} ran out of memory")
+        if "bitwuzla" in smt_solver_path and "std::bad_alloc" in stderr:
+            log.warning(f"{smt_solver_path} ran out of memory")
             return SatResult.MEMOUT
         
         log.error(
-            MODULE_CODE,
-            f"{context.options.smt_solver_path} failed with return code {proc.returncode}",
+            f"{smt_solver_path} failed with return code {proc.returncode}",
         )
-        log.debug(MODULE_CODE, 1, "stdout:" + stdout[:-1])
-        log.debug(MODULE_CODE, 1, "stderr:" + stderr[:-1])
+        log.debug(1, "stdout:" + stdout[:-1])
+        log.debug(1, "stderr:" + stderr[:-1])
         return SatResult.FAILURE
 
     if stdout.find("unsat") > -1:
-        log.debug(MODULE_CODE, 1, "unsat")
+        log.debug(1, "unsat")
         result = SatResult.UNSAT
     elif stdout.find("sat") > -1:
-        log.debug(MODULE_CODE, 1, "sat")
+        log.debug(1, "sat")
         result = SatResult.SAT
     else:
-        log.debug(MODULE_CODE, 1, "unknown")
+        log.debug(1, "unknown")
         result = SatResult.UNKNOWN
 
-    context.stats.smt_solver_time += end_time - start_time
-    context.stats.smt_num_calls += 1
-    context.stats.smt_solver_result = result.value
+    stats.smt_solver_time += end_time - start_time
+    stats.smt_num_calls += 1
+    stats.smt_solver_result = result.value
 
     return result
 
+def to_smt_type(t: types.Type) -> str:
+    """Convert a C2PO type to an SMT type."""
+    if isinstance(t, types.BoolType):
+        return "Bool"
+    if isinstance(t, types.IntType):
+        return "Int"
+    if isinstance(t, types.FloatType):
+        return "Real"
+    return "NoType"
 
 def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
     log.debug(
-        MODULE_CODE,
-        1,
-        f"Encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}",
+        1, f"encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}",
     )
 
     bv_width = trace_len
@@ -187,7 +236,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
         expr_map[expr] = expr_id
 
         if expr.type != types.BoolType():
-            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            log.error(f"unsupported type '{expr.type}' ({expr})")
             return ""
 
         fun_signature = "define-fun {0} () " + bv_sort
@@ -344,7 +393,7 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
                 f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'})"
             )
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            log.error(f"unsupported operator ({expr})")
             return ""
 
     smt_commands.append(f"(assert (bvugt {expr_map[decomposed_expr]} {zeros()}))")
@@ -354,11 +403,10 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
 
     return smt
 
-
 def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_UFLIA logic."""
     log.debug(
-        MODULE_CODE, 1, f"Encoding MLTL formula in QF_UFLIA logic:\n\t{repr(start)}"
+        1, f"encoding MLTL formula in QF_UFLIA logic:\n\t{repr(start)}"
     )
 
     is_nonlinear: bool = False
@@ -371,11 +419,11 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     atomic_map: dict[str, str] = {}
     for signal, typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
-        smt_commands.append(f"(declare-fun f_{signal} (Int) {types.to_smt_type(typ)})")
+        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
 
     for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
-            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            log.error(f"unsupported type '{expr.type}' ({expr})")
             return ""
         
         if expr in expr_map:
@@ -390,7 +438,7 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         expr_map[expr] = expr_id
 
         fun_signature = (
-            f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+            f"define-fun {expr_id} ((k Int) (len Int)) {to_smt_type(expr.type)}"
         )
 
         if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and expr.value:
@@ -520,11 +568,11 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             )
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             log.error(
-                MODULE_CODE, f"Release not implemented for MLTL-SAT via QF_UFLIA\n\t{expr}"
+                f"release not implemented for MLTL-SAT via QF_UFLIA\n\t{expr}"
             )
             return ""
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({expr})")
+            log.error(f"unsupported operator ({expr})")
             return ""
 
     smt_commands.append("(declare-fun len () Int)")
@@ -532,13 +580,12 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     smt_commands.append("(check-sat)")
 
     if is_nonlinear:
-        log.warning(MODULE_CODE, "Nonlinear arithmetic detected, setting logic to QF_UFNIA")
+        log.warning("nonlinear arithmetic detected, setting logic to QF_UFNIA")
         smt_commands[1] = "(set-logic QF_UFNIA)"
 
     smt = "\n".join(smt_commands)
 
     return smt
-
 
 def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
@@ -574,7 +621,7 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have
     an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`.
     """
-    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
+    log.debug(1, f"encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
 
     is_nonlinear: bool = False 
     smt_commands: list[str] = [PREAMBLE]
@@ -584,14 +631,14 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
     atomic_map: dict[str, str] = {}
     for signal, typ in context.signals.items():
         atomic_map[signal] = f"f_{signal}"
-        smt_commands.append(f"(declare-fun f_{signal} (Int) {types.to_smt_type(typ)})")
+        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
 
     expr_map: dict[cpt.Expression, str] = {}
     cnt = 0
 
     for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
-            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})")
+            log.error(f"unsupported type '{expr.type}' ({expr})")
             return ""
 
         if expr in expr_map:
@@ -606,7 +653,7 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         expr_map[expr] = expr_id
 
         fun_signature = (
-            f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+            f"define-fun {expr_id} ((k Int) (len Int)) {to_smt_type(expr.type)}"
         )
 
         if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and expr.value:
@@ -750,40 +797,29 @@ def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
                 f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
             )
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({expr} {type(expr)})")
+            log.error(f"unsupported operator ({expr} {type(expr)})")
             return ""
 
     smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
     smt_commands.append("(check-sat)")
 
     if is_nonlinear:
-        log.warning(MODULE_CODE, "Nonlinear arithmetic detected, setting logic to UFNIA")
+        log.warning("nonlinear arithmetic detected, setting logic to UFNIA")
         smt_commands[1] = "(set-logic UFNIA)"
 
     smt = "\n".join(smt_commands)
 
     return smt
 
-
 def to_uflia_cplen(
     start: cpt.Expression,
     context: cpt.Context,
-    bounds: list[cpt.SymbolicIntervalVariable] = [],
-    constraints: list[cpt.Expression] = [],
 ) -> str:
-    log.debug(MODULE_CODE, 1, f"Encoding MLTL formula in UFLIA logic (infinite-trace semantics):\n\t{repr(start)}\n\tBounds: {bounds}\n\tConstraints: {constraints}")
+    log.debug(1, f"encoding MLTL formula in UFLIA logic (infinite-trace semantics):\n\t{repr(start)}")
+    log.debug(1, f"bounds: {context.bounds}")
+    log.debug(1, f"constraints: {context.constraints}")
     is_nonlinear: bool = False
     has_mission_time: bool = False
-
-    # We only want to print error and warning messages if SAT checking is enabled or we are writing
-    # the SAT or EQSat encodings to files
-    enable_err_warn: bool = (
-        context.options.enable_sat
-        or context.options.enable_eqsat_equiv_check
-        or (context.options.write_equiv_name is not None)
-        or (context.options.write_sat_name is not None)
-        or (context.options.write_eqsat_equiv_smt_name is not None)
-    )
 
     def smt_min_expr(expr1: str, expr2: str) -> str:
         return f"(ite (<= {expr1} {expr2}) {expr1} {expr2})"
@@ -834,7 +870,7 @@ def to_uflia_cplen(
             elif cpt.is_operator(expr, cpt.OperatorKind.MAX):
                 cache[expr] = smt_max_expr(cache[expr.children[0]], cache[expr.children[1]])
             else:
-                log.error(MODULE_CODE, f"Unsupported constraint expression {expr} {type(expr)}", enable=enable_err_warn)
+                log.error(f"unsupported constraint expression {expr} {type(expr)}")
                 return ""
 
         return cache[constraint]
@@ -847,22 +883,21 @@ def to_uflia_cplen(
     smt_commands.append("(assert (>= M 0))")
 
     # Declare symbolic interval variables and constraints on them
-    for bound in bounds:
+    for bound in context.bounds:
         smt_commands.append(f"(declare-fun {bound.symbol} () Int)")
         smt_commands.append(f"(assert (>= {bound.symbol} 0))")
-        # smt_commands.append(f"(assert (<= {bound.symbol} M))")
 
     constr_cache: dict[cpt.Expression, str] = {}
-    for constraint in constraints:
+    for constraint in context.constraints:
         smt_commands.append(f"(assert {interval_constraint_to_smt(constraint, constr_cache)})")
 
     atomic_map: dict[str, str] = {}
     for signal, typ in context.signals.items():
         if typ != types.BoolType() and typ != types.IntType():
-            log.error(MODULE_CODE, f"Unsupported type {typ} ({signal})", enable=enable_err_warn)
+            log.error(f"unsupported type '{typ}' ({signal})")
             return ""
         atomic_map[signal] = f"f_{signal}"
-        smt_commands.append(f"(declare-fun f_{signal} (Int) {types.to_smt_type(typ)})")
+        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
 
     expr_map: dict[cpt.Expression, str] = {}
     expr_cache: dict[str, cpt.Expression] = {}
@@ -870,7 +905,7 @@ def to_uflia_cplen(
 
     for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
-            log.error(MODULE_CODE, f"Unsupported type {expr.type} ({expr})", enable=enable_err_warn)
+            log.error(f"unsupported type '{expr.type}' ({expr})")
             return ""
 
         if str(expr) in expr_cache:
@@ -883,7 +918,7 @@ def to_uflia_cplen(
         expr_cache[str(expr)] = expr
 
         fun_signature = (
-            f"define-fun {expr_id} ((k Int) (len Int)) {types.to_smt_type(expr.type)}"
+            f"define-fun {expr_id} ((k Int) (len Int)) {to_smt_type(expr.type)}"
         )
 
         if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and expr.value:
@@ -1060,7 +1095,7 @@ def to_uflia_cplen(
                 f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len))))))))"
             )
         else:
-            log.error(MODULE_CODE, f"Unsupported operator ({repr(expr)} {type(expr)})", enable=enable_err_warn)
+            log.error(f"unsupported operator ({repr(expr)} {type(expr)})")
             return ""
 
     def expr_to_cplen(expr_: cpt.Expression, constr_cache: dict[cpt.Expression, str], cplen_cache: dict[cpt.Expression, str]) -> str:
@@ -1134,7 +1169,7 @@ def to_uflia_cplen(
                     ub = expr.interval.ub
                 cplen = f"(+ (ite (> (- {cplen_cache[expr.children[0]]} 1) {cplen_cache[expr.children[1]]}) {cplen_cache[expr.children[0]]} {cplen_cache[expr.children[1]]}) {ub})"
             else:
-                log.error(MODULE_CODE, f"Unsupported operator ({expr} {type(expr)})", enable=enable_err_warn)
+                log.error(f"unsupported operator ({expr} {type(expr)})")   
                 return ""
 
             cplen_cache[expr] = cplen
@@ -1148,13 +1183,409 @@ def to_uflia_cplen(
     smt_commands.append("(check-sat)")
 
     if is_nonlinear:
-        log.warning(MODULE_CODE, "Nonlinear arithmetic detected, setting logic to UFNIA", enable=enable_err_warn)
+        log.warning("nonlinear arithmetic detected, setting logic to UFNIA")
         smt_commands[1] = "(set-logic UFNIA)"
 
     smt = "\n".join(smt_commands)
 
     return smt
 
+def to_smt(
+    expr: cpt.Expression,
+    context: cpt.Context,
+    theory: SMTTheory,
+) -> Optional[str]:
+    """Encodes the given expression into an SMT encoding and returns it. Returns None if the encoding fails."""
+    log.debug(1, f"encoding expression:\n\t{repr(expr)}")
+
+    start = util.get_rusage_time()
+    if theory == SMTTheory.UFLIA:
+        smt = to_uflia_smtlib2(expr, context)
+    elif theory == SMTTheory.QF_UFLIA:
+        smt = to_qfuflia_smtlib2(expr, context)
+    elif theory == SMTTheory.QF_BV:
+        smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
+    # elif context.smt_encoding == SMTTheories.QF_BV_INCR:
+    #     return None
+    elif theory == SMTTheory.UFLIA_INF:
+        smt = to_uflia_cplen(expr, context)
+    else:
+        log.error(f"unsupported SMT theory '{theory}'")
+        return None
+
+    end = util.get_rusage_time()
+    encoding_time = end - start
+    context.stats.smt_encoding_time += encoding_time
+
+    return smt
+
+def write_smt_encoding(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """Writes the SMT encoding for the program to the given file.
+    
+    `options` is a dictionary of options for the writing.
+    - `location`: The path to write the SMT encoding to
+    - `theory`: The SMT theory to use
+
+    Returns:
+        a ReturnCode.SUCCESS if the encoding was written successfully, ReturnCode.ERROR otherwise
+    """
+    def write_smt(formula: cpt.Formula, theory: SMTTheory, location: pathlib.Path, output_is_dir: bool) -> command.ReturnCode:
+        smt_encoding = to_smt(formula.get_expr(), context, theory)
+        if smt_encoding is None:
+            log.error(f"failed to write SMT encoding for {formula.symbol}", formula.loc)
+            return command.ReturnCode.ERROR
+        smt_path = location / f"{formula.symbol}.smt2" if output_is_dir else location
+        with open(smt_path, "w") as f:
+            f.write(smt_encoding)
+        return command.ReturnCode.SUCCESS
+
+    # Setup the output location
+    # If the location is a file, we will overwrite it
+    # If the location is a directory and already exists, we will write the encodings to it
+    # If we only have one encoding and the location is not a directory, we will write it to the location as a file
+    location = pathlib.Path(options["location"])
+    output_is_dir = False
+    if location.is_file():
+        location.unlink()
+    elif location.is_dir():
+        output_is_dir = True
+
+    theory = SMTTheory(options["theory"])
+
+    if options["formula"] is not None:
+        formula = program.get_spec(options["formula"])
+        if formula is None:
+            log.error(f"formula '{options['formula']}' not found")
+            return command.ReturnCode.ERROR
+        elif isinstance(formula, cpt.Contract):
+            log.error(f"formula '{options['formula']}' is a contract")
+            return command.ReturnCode.ERROR
+        return write_smt(formula, theory, location, output_is_dir)
+
+    if len(program.ft_spec_set.get_specs()) > 1:
+        output_is_dir = True
+
+    if output_is_dir:
+        location.mkdir(parents=True, exist_ok=True)
+
+    for formula in program.ft_spec_set.get_specs():
+        if isinstance(formula, cpt.Contract):
+            log.debug(2, f"found contract '{formula.symbol}', skipping")
+            continue
+        result = write_smt(formula, theory, location, output_is_dir)
+        if result != command.ReturnCode.SUCCESS:
+            return result
+
+    return command.ReturnCode.SUCCESS
+
+write_smt_encoding_command = command.Command(
+    name="write_smt_encoding",
+    description="Write the SMT encoding for the program or formula to the given location",
+    options=[{
+        "name": "location",
+        "description": "The path to write the SMT encoding to",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": None
+    }, {
+        "name": "theory",
+        "description": "The SMT theory to use",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": [member.value for member in SMTTheory]
+    }, {
+        "name": "formula",
+        "description": "The formula to write the SMT encoding for. If not provided, all formulas will be written",
+        "required": False,
+        "type": str,
+        "default": None,
+        "choices": None
+    }],
+    func=write_smt_encoding,
+    guards=[command.DESUGARED],
+)
+command.CommandRegistry.register(write_smt_encoding_command)
+
+def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """Checks the satisfiability of the program using the SMT encoding.
+    
+    `options` is a dictionary of options for the checking.
+    - `theory`: The SMT theory to use
+    - `quiet`: Whether to print output
+    - `smt_max_time`: The maximum time to allow for the SMT solver in seconds
+    - `smt_max_memory`: The maximum memory to allow for the SMT solver in MB, use 0 for no maximum
+
+    Returns:
+        a ReturnCode.SUCCESS if the satisfiability was checked successfully, ReturnCode.ERROR otherwise
+    """
+    theory = SMTTheory(options["theory"]) # We have to cast to SMTTheory since the command parser will return a string
+
+    status = True
+    exprs = []
+    for spec in program.get_specs():
+        if isinstance(spec, cpt.Contract):
+            log.warning("found contract, skipping")
+            continue
+        log.debug(2, f"encoding SAT for '{spec.symbol}'")
+
+        expr = spec.get_expr()
+        exprs.append(expr)
+
+        sat_smt_encoding = to_smt(expr, context, theory)
+        if sat_smt_encoding is None:
+            log.error("failed to generate SMT encoding for specification", spec.loc)
+            return command.ReturnCode.ERROR
+        result = run_smt_solver(
+            sat_smt_encoding,
+            theory,
+            options["smt_max_time"],
+            options["smt_max_memory"],
+            context.stats,
+        )
+        status = status and check_sat_result(result, symbol=spec.symbol, quiet=options["quiet"])
+
+    # we only check the conjunction of all specifications if there are more than one
+    if len(exprs) <= 1:
+        return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
+
+    formula = cpt.Operator.LogicalAnd(program.loc, exprs, set_parents=False)
+    sat_smt_encoding = to_smt(formula, context, theory)
+    if sat_smt_encoding is None:
+        log.error("failed to generate SMT encoding for program", program.loc)
+        return command.ReturnCode.ERROR
+    result = run_smt_solver(
+        sat_smt_encoding,
+        theory,
+        options["smt_max_time"],
+        options["smt_max_memory"],
+        context.stats,
+    )
+    status = status and check_sat_result(result, symbol="program", quiet=options["quiet"])
+    return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
+
+check_sat_command = command.Command(
+    name="check_sat",
+    description="Check the satisfiability of the program using the SMT encoding",
+    options=[{
+        "name": "theory",
+        "description": "The SMT theory to use",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": [member.value for member in SMTTheory]
+    }, {
+        "name": "quiet",
+        "description": "Whether to print output",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
+    }, {
+        "name": "smt-max-time",
+        "description": "The maximum time to allow for the SMT solver in seconds",
+        "required": False,
+        "type": int,
+        "default": 5,
+        "choices": None
+    }, {
+        "name": "smt-max-memory",
+        "description": "The maximum memory to allow for the SMT solver in MB, use 0 for no maximum",
+        "required": False,
+        "type": int,
+        "default": 0,
+        "choices": None
+    }],
+    func=check_sat,
+    guards=[command.DESUGARED],
+)
+command.CommandRegistry.register(check_sat_command)
+
+def to_smt_equiv(
+    expr1: cpt.Expression,
+    expr2: cpt.Expression,
+    context: cpt.Context,
+    theory: SMTTheory,
+) -> Optional[str]:
+    log.debug(
+        1, f"encoding equivalence SMT encoding for:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}",
+    )
+
+    neg_equiv_expr = cpt.Operator.LogicalNegate(
+        expr1.loc,
+        cpt.Operator.LogicalIff(expr1.loc, expr1, expr2, set_parents=False),
+        set_parents=False,
+    )
+
+    return to_smt(neg_equiv_expr, context, theory)
+
+def write_equiv_smt(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Writes the SMT encoding for the equivalence of all formulas in the program to the given file.
+
+    `options` is a dictionary of options for the writing.
+    - `location`: The path to write the SMT encoding(s) to
+    - `theory`: The SMT theory to use
+
+    Returns:
+        a ReturnCode.SUCCESS if the encoding was written successfully, ReturnCode.ERROR otherwise
+    """
+    # Setup the output location
+    # If the location is a file, we will overwrite it
+    # If the location is a directory and already exists, we will write the encodings to it
+    # If we only have one encoding and the location is not a directory, we will write it to the location as a file
+    location = pathlib.Path(options["location"])
+    output_is_dir = False
+    if location.is_file():
+        location.unlink()
+    elif location.is_dir():
+        output_is_dir = True
+
+    theory = SMTTheory(options["theory"])
+
+    if len(program.ft_spec_set.get_specs()) == 1:
+        log.warning("only one formula in the program, nothing to do")
+        return command.ReturnCode.SUCCESS
+
+    if len(program.ft_spec_set.get_specs()) > 2:
+        output_is_dir = True
+
+    if output_is_dir:
+        location.mkdir(parents=True, exist_ok=True) 
+
+    for formula1, formula2 in zip(program.ft_spec_set.get_specs(), program.ft_spec_set.get_specs()[1:]):
+        if isinstance(formula1, cpt.Contract):
+            log.debug(2, f"found contract '{formula1.symbol}', skipping")
+            continue
+        if isinstance(formula2, cpt.Contract):
+            log.debug(2, f"found contract '{formula2.symbol}', skipping")
+            continue
+
+        equiv_smt = to_smt_equiv(formula1.get_expr(), formula2.get_expr(), context, theory)
+        if not equiv_smt:
+            log.error("failed to generate SMT encoding for equivalence", formula1.loc)
+            return command.ReturnCode.ERROR
+
+        smt_path = location / f"equiv_{formula1.symbol}_{formula2.symbol}.smt2" if output_is_dir else location
+        with open(smt_path, "w") as f:
+            f.write(equiv_smt)
+
+    return command.ReturnCode.SUCCESS
+
+write_equiv_smt_command = command.Command(
+    name="write_equiv_smt_encoding",
+    description="Write the SMT encoding(s) for the equivalence of all formulas in the program to the given location. If there are more than two formulas, the encodings will be written to a directory.",
+    options=[{
+        "name": "location",
+        "description": "The path to write the SMT encoding(s) to",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": None
+    }, {
+        "name": "theory",
+        "description": "The SMT theory to use",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": [member.value for member in SMTTheory]
+    }],
+    func=write_equiv_smt,
+    guards=[command.DESUGARED],
+)
+command.CommandRegistry.register(write_equiv_smt_command)
+
+def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """Check that all formulas in the program are equivalent.
+    
+    `options` is a dictionary of options for the checking.
+    - `theory`: The SMT theory to use
+    - `smt_max_time`: The maximum time to allow for the SMT solver in seconds
+    - `smt_max_memory`: The maximum memory to allow for the SMT solver in MB, use 0 for no maximum
+
+    Returns:
+        a ReturnCode.SUCCESS if the equivalence was checked successfully, ReturnCode.ERROR otherwise
+    """
+    theory = SMTTheory(options["theory"]) # We have to cast to SMTTheory since the command parser will return a string
+
+    log.debug(1, "checking equivalence of program")
+    
+    for spec1, spec2 in zip(program.get_specs(), program.get_specs()[1:]):
+        if isinstance(spec1, cpt.Contract):
+            log.warning("found contract, skipping")
+            continue
+
+        if isinstance(spec2, cpt.Contract):
+            log.warning("found contract, skipping")
+            continue
+            
+        expr1 = spec1.get_expr()
+        expr2 = spec2.get_expr()
+        equiv_smt = to_smt_equiv(expr1, expr2, context, theory)
+        if equiv_smt is None:
+            log.error("failed to generate SMT encoding for equivalence", spec1.loc)
+            return command.ReturnCode.ERROR
+
+        result = run_smt_solver(
+            equiv_smt,
+            theory,
+            options["smt_max_time"],
+            options["smt_max_memory"],
+            context.stats,
+        )
+        if not check_sat_result(result, quiet=True):
+            return command.ReturnCode.ERROR
+        elif result == SatResult.SAT:
+            print("not equivalent") if not options["quiet"] else None
+            return command.ReturnCode.ERROR
+        elif result == SatResult.UNSAT:
+            print("equivalent") if not options["quiet"] else None
+            return command.ReturnCode.SUCCESS
+        else:
+            print("unknown") if not options["quiet"] else None
+            return command.ReturnCode.ERROR
+
+    return command.ReturnCode.SUCCESS
+
+check_equiv_command = command.Command(
+    name="check_equiv",
+    description="Check that all formulas in the program are equivalent using the SMT encoding",
+    options=[{
+        "name": "theory",
+        "description": "The SMT theory to use",
+        "required": True,
+        "type": str,
+        "default": None,
+        "choices": [member.value for member in SMTTheory]
+    }, 
+    {
+        "name": "quiet",
+        "description": "Whether to print output",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
+    },
+    {
+        "name": "smt-max-time",
+        "description": "The maximum time to allow for the SMT solver in seconds",
+        "required": False,
+        "type": int,
+        "default": 5,
+        "choices": None
+    }, {
+        "name": "smt-max-memory",
+        "description": "The maximum memory to allow for the SMT solver in MB, use 0 for no maximum",
+        "required": False,
+        "type": int,
+        "default": 0,
+        "choices": None
+    }],
+    func=check_equiv,
+    guards=[command.DESUGARED],
+)   
+command.CommandRegistry.register(check_equiv_command)
 
 # def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResult:
 #     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
@@ -1179,7 +1610,7 @@ def to_uflia_cplen(
 #         f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}",
 #     )
 
-#     if context.options.enable_booleanizer:
+#     if context.enable_booleanizer:
 #         log.warning(
 #             MODULE_CODE,
 #             "Booleanizer enabled, skipping QF_BV sat check.\n\t"
@@ -1194,10 +1625,10 @@ def to_uflia_cplen(
 #     enc_time = enc_end - enc_start
 #     total_enc_time += enc_time
 
-#     smt_path = context.options.workdir / "qfbv_incr_1.smt2"
+#     smt_path = context.workdir / "qfbv_incr_1.smt2"
 #     with open(smt_path, "w") as f:
 #         f.write(smt)
-#     (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.options.smt_max_time)
+#     (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.smt_max_time)
 
 #     total_sat_time += sat_time
 #     update_stats(enc_time, sat_time, result)
@@ -1213,10 +1644,10 @@ def to_uflia_cplen(
 #         enc_time = enc_end - enc_start
 #         total_enc_time += enc_time
 
-#         smt_path = context.options.workdir / "qfbv_incr_2.smt2"
+#         smt_path = context.workdir / "qfbv_incr_2.smt2"
 #         with open(smt_path, "w") as f:
 #             f.write(smt)
-#         (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.options.smt_max_time)
+#         (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.smt_max_time)
 
 #         total_sat_time += sat_time
 #         update_stats(enc_time, sat_time, result)
@@ -1230,7 +1661,7 @@ def to_uflia_cplen(
 #     enc_time = enc_end - enc_start
 #     total_enc_time += enc_time
 
-#     smt_path = context.options.workdir / "qfbv_incr_3.smt2"
+#     smt_path = context.workdir / "qfbv_incr_3.smt2"
 #     with open(smt_path, "w") as f:
 #         f.write(smt)
 #     (result, sat_time) = run_smt_solver(smt_path, context)
@@ -1247,7 +1678,7 @@ def to_uflia_cplen(
 #     enc_time += enc_end - enc_start
 #     total_enc_time += enc_time
 
-#     smt_path = context.options.workdir / "qfbv_incr_4.smt2"
+#     smt_path = context.workdir / "qfbv_incr_4.smt2"
 #     with open(smt_path, "w") as f:
 #         f.write(smt)
 #     (result, sat_time) = run_smt_solver(smt_path, context)
@@ -1255,103 +1686,3 @@ def to_uflia_cplen(
 #     total_sat_time += sat_time
 #     update_stats(enc_time, sat_time, result)
 #     return result
-
-
-def to_smt(
-    expr: cpt.Expression,
-    context: cpt.Context,
-    bounds: list[cpt.SymbolicIntervalVariable] = [],
-    constraints: list[cpt.Expression] = [],
-) -> str:
-    """Encodes the given expression into an SMT encoding and returns it. Returns an empty string if the encoding fails."""
-    log.debug(MODULE_CODE, 1, f"Encoding expression:\n\t{repr(expr)}")
-
-    start = util.get_rusage_time()
-    if context.options.smt_encoding == options.SMTTheories.UFLIA:
-        smt = to_uflia_smtlib2(expr, context)
-    elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
-        smt = to_qfuflia_smtlib2(expr, context)
-    elif context.options.smt_encoding == options.SMTTheories.QF_BV:
-        smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
-    # elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
-    #     return ""
-    elif context.options.smt_encoding == options.SMTTheories.UFLIA_INF:
-        smt = to_uflia_cplen(expr, context, bounds, constraints)
-    else:
-        log.error(MODULE_CODE, f"Unsupported SMT theory {context.options.smt_encoding}")
-        return ""
-
-    end = util.get_rusage_time()
-    encoding_time = end - start
-    context.stats.smt_encoding_time += encoding_time
-
-    return smt
-
-
-def to_smt_equiv_exprs(
-    expr1: cpt.Expression,
-    expr2: cpt.Expression,
-    context: cpt.Context,
-    bounds: list[cpt.SymbolicIntervalVariable] = [],
-    constraints: list[cpt.Expression] = [],
-) -> str:
-    log.debug(
-        MODULE_CODE,
-        1,
-        f"Encoding equivalence SMT encoding for:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}",
-    )
-
-    neg_equiv_expr = cpt.Operator.LogicalNegate(
-        expr1.loc,
-        cpt.Operator.LogicalIff(expr1.loc, expr1, expr2, set_parents=False),
-        set_parents=False,
-    )
-
-    return to_smt(neg_equiv_expr, context, bounds, constraints)
-
-
-def check_equiv(
-    program: cpt.Program,
-    bounds: list[cpt.SymbolicIntervalVariable],
-    constraints: list[cpt.Expression],
-    context: cpt.Context,
-) -> SatResult:
-    """For each formula in the program, we check if it is equivalent to the next formula in the program.
-    If any of the checks are unsatisfiable, we return UNSAT.
-    If all of the checks are satisfiable, we return SAT.
-    If the check times out or fails in some other way, we return UNKNOWN.
-
-    `bounds` is the set of symbolic interval variables that are used in the program.
-    `constraints` is the set of constraints on symbolic intervals that are used in the program.
-    """
-    log.debug(MODULE_CODE, 1, "Checking equivalence of program")
-    
-    for spec1, spec2 in zip(program.get_specs(), program.get_specs()[1:]):
-        if isinstance(spec1, cpt.Contract):
-            log.warning(MODULE_CODE, "Found contract, skipping")
-            continue
-
-        if isinstance(spec2, cpt.Contract):
-            log.warning(MODULE_CODE, "Found contract, skipping")
-            continue
-            
-        expr1 = spec1.get_expr()
-        expr2 = spec2.get_expr()
-        equiv_smt = to_smt_equiv_exprs(expr1, expr2, context, bounds, constraints)
-
-        equiv_path = context.options.workdir / f"{spec1.symbol}_{spec2.symbol}.equiv.smt2"
-        with open(equiv_path, "w") as f:
-            f.write(equiv_smt)
-        context.equiv_smt_path = equiv_path
-
-        result = run_smt_solver(equiv_path, context)
-        if result is SatResult.SAT:
-            log.debug(MODULE_CODE, 1, "Not equivalent")
-            return SatResult.SAT
-        elif result is SatResult.UNSAT:
-            log.debug(MODULE_CODE, 1, "Equivalent")
-        else:
-            log.debug(MODULE_CODE, 1, "Unknown")
-            return SatResult.UNKNOWN
-
-    return SatResult.UNSAT

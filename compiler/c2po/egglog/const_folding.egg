@@ -23,6 +23,12 @@
 )
 
 (rewrite
+  (And2 a0 (Not a0))
+  (Bool false)
+  :ruleset const-folding
+)
+
+(rewrite
   (Or2 (Bool true) a0)
   (Bool true)
   :ruleset const-folding
@@ -31,6 +37,36 @@
 (rewrite
   (Or2 (Bool false) a0)
   a0
+  :ruleset const-folding
+)
+
+(rewrite
+  (Or2 a0 (Not a0))
+  (Bool true)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Global (Interval b0 b1) (Bool false))
+  (Bool false)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Global (Interval b0 b1) (Bool true))
+  (Bool true)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Future (Interval b0 b1) (Bool false))
+  (Bool false)
+  :ruleset const-folding
+)
+
+(rewrite
+  (Future (Interval b0 b1) (Bool true))
+  (Bool true)
   :ruleset const-folding
 )
 
