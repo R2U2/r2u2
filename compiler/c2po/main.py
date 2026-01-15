@@ -4,6 +4,7 @@ import sys
 import pathlib
 import tempfile
 import os
+import copy
 from typing import Optional
 from types import ModuleType
 from c2po import (
@@ -86,6 +87,7 @@ class CommandConsole(code.InteractiveConsole):
         self.commands = command.CommandRegistry.commands
         self.command_dict = {command.name: command for command in self.commands}
         self.last_return_code = command.ReturnCode.SUCCESS
+        self.state_stack: list[tuple[cpt.Program, cpt.Context]] = []
 
     def runsource(self, source: str, filename: str = "<input>", symbol: str = "single") -> bool:
         """Execute a source string, checking for commands first, then falling back to Python execution.
@@ -101,8 +103,7 @@ class CommandConsole(code.InteractiveConsole):
         source = source.strip()
         
         # Check if the input matches a command
-        if not source:
-            log.error(f"{source}")
+        if source == "":
             return False
 
         # Split the input to get the command name and arguments
@@ -112,12 +113,21 @@ class CommandConsole(code.InteractiveConsole):
 
         if command_name == "exit":
             sys.exit(0)
-
-        if command_name not in self.command_dict:
+        elif command_name == "push":
+            self.push_state()
+            return False
+        elif command_name == "pop":
+            if len(self.state_stack) == 0:
+                log.error("no state to pop, use 'push' to create a new state")
+                self.last_return_code = command.ReturnCode.ERROR
+                return False
+            self.pop_state()
+            return False
+        elif command_name not in self.command_dict:
             log.error(f"unknown command: {command_name}\nUse 'help' to see all available commands.")
             self.last_return_code = command.ReturnCode.ERROR
             return False
-        
+
         cur_command = self.command_dict[command_name]
 
         try:
@@ -157,6 +167,17 @@ class CommandConsole(code.InteractiveConsole):
             return False
 
         return False
+
+    def push_state(self) -> None:
+        """Push the current state onto the state stack."""
+        self.state_stack.append(
+            (copy.deepcopy(self.program), copy.deepcopy(self.context))
+        )
+
+    def pop_state(self) -> None:
+        """Pop the current state from the state stack."""
+        self.program, self.context = self.state_stack.pop()
+
 
 def interactive() -> command.ReturnCode:
     """Start an interactive REPL loop using the code library.

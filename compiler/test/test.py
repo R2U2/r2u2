@@ -3,13 +3,13 @@ import json
 import difflib
 import subprocess
 import sys
+import os
 import argparse
 
 TEST_DIR = pathlib.Path(__file__).parent
 
 C2PO_PATH = TEST_DIR / ".." / "c2po.py"
 CONFIG_PATH = TEST_DIR / "config.json"
-
 
 class Color:
     HEADER = "\033[95m"
@@ -125,6 +125,8 @@ if __name__ == "__main__":
     # tests is an array of JSON objects
     with open(str(CONFIG_PATH), "r") as f:
         config = json.load(f)
+
+    os.chdir(TEST_DIR)
 
     if args.subset == "":
         # no subset given, so concatenate all the tests together

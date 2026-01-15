@@ -1187,6 +1187,20 @@ class Contract(Expression):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
+    def __deepcopy__(self, memo) -> Contract:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = Contract(
+            self.loc,
+            self.symbol,
+            self.formula_numbers[0],
+            self.formula_numbers[1],
+            self.formula_numbers[2],
+            children[0],
+            children[1],
+        )
+        self.copy_attrs(new)
+        return new
+
 Specification = Union[Formula, Contract]
 
 def get_spec_str_reference(spec: Specification) -> str:
@@ -1205,6 +1219,12 @@ class SpecificationSet(Expression):
     def __str__(self) -> str:
         return "spec_set"
 
+    def __deepcopy__(self, memo) -> SpecificationSet:
+        children = [copy.deepcopy(c, memo) for c in self.children]
+        new = SpecificationSet(self.loc, cast("list[Specification]", children))
+        self.copy_attrs(new)
+        return new
+
 class StructDefinition(Node):
     def __init__(
         self, loc: log.FileLocation, symbol: str, var_decls: list[VariableDeclaration]
@@ -1221,6 +1241,11 @@ class StructDefinition(Node):
         members_str_list = [str(s) + ";" for s in self.var_decls]
         return self.symbol + ": {" + " ".join(members_str_list) + "}"
 
+    def __deepcopy__(self, memo) -> StructDefinition:
+        var_decls = [copy.deepcopy(v, memo) for v in self.var_decls]
+        new = StructDefinition(self.loc, self.symbol, var_decls)
+        return new
+
 class VariableDeclaration(Node):
     def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:
         super().__init__(loc)
@@ -1230,6 +1255,11 @@ class VariableDeclaration(Node):
     def __str__(self) -> str:
         return f"{','.join(self.variables)}: {str(self.type)}"
 
+    def __deepcopy__(self, memo) -> VariableDeclaration:
+        variables = [copy.deepcopy(v, memo) for v in self.variables]
+        new = VariableDeclaration(self.loc, variables, self.type)
+        return new
+
 class Definition(Node):
     def __init__(self, loc: log.FileLocation, symbol: str, expr: Expression) -> None:
         super().__init__(loc)
@@ -1238,6 +1268,10 @@ class Definition(Node):
 
     def __str__(self) -> str:
         return f"{self.symbol} := {self.expr}"
+
+    def __deepcopy__(self, memo) -> Definition:
+        new = Definition(self.loc, self.symbol, copy.deepcopy(self.expr, memo))
+        return new
 
 class StructSection(Node):
     def __init__(
@@ -1250,6 +1284,11 @@ class StructSection(Node):
         structs_str_list = [str(s) + ";" for s in self.struct_defs]
         return "STRUCT\n\t" + "\n\t".join(structs_str_list)
 
+    def __deepcopy__(self, memo) -> StructSection:
+        struct_defs = [copy.deepcopy(s, memo) for s in self.struct_defs]
+        new = StructSection(self.loc, struct_defs)
+        return new
+
 class InputSection(Node):
     def __init__(
         self, loc: log.FileLocation, signal_decls: list[VariableDeclaration]
@@ -1261,6 +1300,11 @@ class InputSection(Node):
         signals_str_list = [str(s) + ";" for s in self.signal_decls]
         return "INPUT\n\t" + "\n\t".join(signals_str_list)
 
+    def __deepcopy__(self, memo) -> InputSection:
+        signal_decls = [copy.deepcopy(s, memo) for s in self.signal_decls]
+        new = InputSection(self.loc, signal_decls)
+        return new
+
 class DefineSection(Node):
     def __init__(self, loc: log.FileLocation, defines: list[Definition]) -> None:
         super().__init__(loc)
@@ -1270,10 +1314,20 @@ class DefineSection(Node):
         defines_str_list = [str(s) + ";" for s in self.defines]
         return "DEFINE\n\t" + "\n\t".join(defines_str_list)
 
+    def __deepcopy__(self, memo) -> DefineSection:
+        defines = [copy.deepcopy(d, memo) for d in self.defines]
+        new = DefineSection(self.loc, defines)
+        return new
+
 class SpecSection(Node):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc)
         self.specs = specs
+
+    def __deepcopy__(self, memo) -> SpecSection:
+        specs = [copy.deepcopy(s, memo) for s in self.specs]
+        new = SpecSection(self.loc, specs)
+        return new
 
 class FutureTimeSpecSection(SpecSection):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
@@ -1282,12 +1336,22 @@ class FutureTimeSpecSection(SpecSection):
     def __str__(self) -> str:
         return "FTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
+    def __deepcopy__(self, memo) -> FutureTimeSpecSection:
+        specs = [copy.deepcopy(s, memo) for s in self.specs]
+        new = FutureTimeSpecSection(self.loc, specs)
+        return new
+
 class PastTimeSpecSection(SpecSection):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc, specs)
 
     def __str__(self) -> str:
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
+
+    def __deepcopy__(self, memo) -> PastTimeSpecSection:
+        specs = [copy.deepcopy(s, memo) for s in self.specs]
+        new = PastTimeSpecSection(self.loc, specs)
+        return new
 
 ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
 
@@ -1365,6 +1429,14 @@ class Program(Node):
 
     def __repr__(self) -> str:
         return "\n".join([repr(s) for s in self.get_specs()])
+
+    def __deepcopy__(self, memo) -> Program:
+        sections = [copy.deepcopy(s, memo) for s in self.sections]
+        new = Program(self.loc, sections)
+        new.total_scq_size = self.total_scq_size
+        new.is_dummy = self.is_dummy
+        new.is_well_typed = self.is_well_typed
+        return new
 
 class Context:
     def __init__(self) -> None:
@@ -1485,6 +1557,38 @@ class Context:
 
     def remove_variable(self, symbol) -> None:
         del self.variables[symbol]
+
+    def __deepcopy__(self, memo) -> Context:
+        new = Context()
+        new.definitions = copy.deepcopy(self.definitions, memo)
+        new.structs = copy.deepcopy(self.structs, memo)
+        new.signals = copy.deepcopy(self.signals, memo)
+        new.variables = copy.deepcopy(self.variables, memo)
+        new.specifications = copy.deepcopy(self.specifications, memo)
+        new.contracts = copy.deepcopy(self.contracts, memo)
+        new.atomic_id_map = copy.deepcopy(self.atomic_id_map, memo)
+        new.atomic_expr_map = copy.deepcopy(self.atomic_expr_map, memo)
+        new.bound_vars = copy.deepcopy(self.bound_vars, memo)
+        new.signal_mapping = copy.deepcopy(self.signal_mapping, memo)
+        new.assembly = copy.deepcopy(self.assembly, memo)
+        new.binary = self.binary
+        new.bounds = copy.deepcopy(self.bounds, memo)
+        new.constraints = copy.deepcopy(self.constraints, memo)
+        new.stats = copy.deepcopy(self.stats, memo)
+        new.trace_length = self.trace_length
+        new.is_ft = self.is_ft
+        new.has_future_time = self.has_future_time
+        new.has_past_time = self.has_past_time
+        new.status = self.status
+        new.spec_filename = self.spec_filename
+        new.trace_filename = self.trace_filename
+        new.map_filename = self.map_filename
+        new.egglog_path = self.egglog_path
+        new.smt_solver_path = self.smt_solver_path
+        new.mission_time = self.mission_time
+        new.enable_booleanizer = self.enable_booleanizer
+        new.script_filename = self.script_filename
+        return new
 
 def postorder(
     start: Union[Expression, list[Expression]], context: Context

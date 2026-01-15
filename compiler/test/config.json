@@ -13,6 +13,12 @@
             "output": "desugar/struct.expect"
         }
     ],
+    "push-pop": [
+        {
+            "script": "push_pop/push_pop.cmd", 
+            "output": "push_pop/push_pop.expect"
+        }
+    ],
     "cse": [
         {
             "script": "cse/basic.cmd", 
