@@ -262,6 +262,23 @@ class CommandRegistry:
         CommandRegistry.commands.sort(key=lambda x: x.name)
         return True
 
+def help() -> ReturnCode:
+    """Command to print the help message."""
+    print("Available commands:")
+    for cmd in CommandRegistry.commands:
+        print(f"  - {cmd.name}: {cmd.description}")
+    print("Use '<command> -h' or '<command> --help' for more information about a specific command.")
+    return ReturnCode.SUCCESS
+
+help_command = Command(
+    name="help",
+    description="Print the help message",
+    options=[],
+    func=lambda program, context, options: help(),
+    guards=[],
+)
+CommandRegistry.register(help_command)
+
 def set_log_level(options: dict[str, Any]) -> ReturnCode:
     """Command to set the log level.
 
@@ -402,3 +419,56 @@ print_program_prefix_command = Command(
     guards=[],
 )
 CommandRegistry.register(print_program_prefix_command)
+
+def print_stats(context: cpt.Context, options: dict[str, Any]) -> ReturnCode:
+    """Command to print the statistics. Does not print a newline at the end.
+
+    `context` is the context object.
+    `options` is a dictionary containing the following key:
+        - `format`: The format string to use for the statistics
+    """
+    print(context.stats.format(options["format"]), end="")
+    return ReturnCode.SUCCESS
+
+print_stats_command = Command(
+    name="print_stats",
+    description="Print the statistics according to the given format string",
+    options=[
+        {
+            "name": "format",
+            "description": "The format string to use for the statistics. Run `print_stats_format` to see the valid placeholders and escape sequences.",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+    ],
+    func=lambda program, context, options: print_stats(context, options),
+    guards=[],
+)
+CommandRegistry.register(print_stats_command)
+
+def print_stats_format() -> ReturnCode:
+    print("""The format string can contain the following placeholders and escape sequences:
+    - \\n = Newline
+    - %F = Input Filename
+    - %S = Total SCQ size
+    - %sr = SMT solver result
+    - %se = SMT encoding time
+    - %st = SMT solver time
+    - %sn = SMT solver number of calls
+    - %ee = Eqsat encoding time
+    - %et = Eqsat solver time
+    - %eq = Eqsat equivalence result
+    - %es = Eqsat equivalence solver time
+    - %ed = Eqsat equivalence encoding time""")
+    return ReturnCode.SUCCESS
+
+print_stats_format_command = Command(
+    name="print_stats_format",
+    description="Print the possible placeholders and escape sequences in the format string for the statistics",
+    options=[],
+    func=lambda program, context, options: print_stats_format(),
+    guards=[],
+)
+CommandRegistry.register(print_stats_format_command)

@@ -311,6 +311,7 @@ def parse_equiv(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.P
     if contents is None:
         return None
         
+    context.clear() 
     context.set_spec_filename(options["filename"])
 
     lexer: MLTLEquivLexer = MLTLEquivLexer(options["filename"])

@@ -110,15 +110,9 @@ class CommandConsole(code.InteractiveConsole):
         command_name = parts[0] if parts else ""
         command_args = parts[1] if len(parts) > 1 else ""
 
-        if command_name == "exit" or command_name == "quit":
-            sys.exit(0) 
-        elif command_name == "help":
-            print("Available commands:")
-            for cmd in self.commands:
-                print(f"  - {cmd.name}: {cmd.description}")
-            print("Use '<command> -h' or '<command> --help' for more information about a specific command.")
-            self.last_return_code = command.ReturnCode.SUCCESS
-            return False
+        if command_name == "exit":
+            sys.exit(0)
+
         if command_name not in self.command_dict:
             log.error(f"unknown command: {command_name}\nUse 'help' to see all available commands.")
             self.last_return_code = command.ReturnCode.ERROR
@@ -171,7 +165,7 @@ def interactive() -> command.ReturnCode:
     and executes commands in a REPL loop.
     """
     console = CommandConsole()
-    console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)")
+    console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)", exitmsg="")
     return console.last_return_code
 
 def script(script_filename: str) -> command.ReturnCode:

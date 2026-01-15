@@ -566,8 +566,6 @@ def type_check(program: cpt.Program, context: cpt.Context, options: dict[str, An
     Returns:
         None if type checking fails, the context object otherwise.
     """
-    context.clear()
-    
     status = True
     for section in program.sections:
         is_good = type_check_section(section, context, options)

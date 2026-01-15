@@ -49,6 +49,8 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
     log.debug(1, f"program SCQ size: {total_scq_size}")
 
     program.total_scq_size = total_scq_size
+    context.stats.total_scq_size = total_scq_size
+
     return command.ReturnCode.SUCCESS
 
 compute_scq_sizes_command = command.Command(

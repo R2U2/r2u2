@@ -1418,8 +1418,8 @@ class Context:
 
     def clear(self) -> None:
         """
-        Clears the context except for the signal mapping, bounds, and constraints.
-        These are reset upon parsing.
+        Clears the context except for the signal mapping and most global options.
+        Called when parsing a new program.
         """
         self.definitions.clear()
         self.structs.clear()
@@ -1432,12 +1432,15 @@ class Context:
         self.bound_vars.clear()
         self.assembly.clear()
         self.binary = bytes()
+        self.bounds.clear()
+        self.constraints.clear()
         self.stats = stats.Stats()
         self.trace_length = -1
         self.is_ft = False
         self.has_future_time = False
         self.has_past_time = False
         self.status = True
+        self.spec_filename = ""
 
     def get_symbols(self) -> list[str]:
         symbols = [s for s in self.definitions.keys()]

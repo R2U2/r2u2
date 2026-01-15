@@ -651,6 +651,7 @@ def parse_c2po(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Pr
     if contents is None:
         return None
         
+    context.clear() 
     context.set_spec_filename(options["filename"])
 
     lexer: C2POLexer = C2POLexer(options["filename"])
