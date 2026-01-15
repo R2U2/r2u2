@@ -106,32 +106,11 @@ def collect_c2po_options(options: dict[str,str|bool]) -> list[str]:
     """Filter all c2po options from suite and return options in a cli-suitable list."""
     c2po_options = []
 
-    if "quiet" in options and options["quiet"]:
-        c2po_options.append("--quiet")
-
-    if "impl" in options:
-        c2po_options.append("--impl")
-        c2po_options.append(options["impl"])
-
-    if "int-width" in options:
-        c2po_options.append("--int-width")
-        c2po_options.append(options["int-width"])
-
-    if "int-signed" in options and options["int-signed"]:
-        c2po_options.append("--int-signed")
-
-    if "float-width" in options:
-        c2po_options.append("--float-width")
-        c2po_options.append(options["float-width"])
-
     if "booleanizer" in options and options["booleanizer"]:
         c2po_options.append("--booleanizer")
 
     if "disable-cse" in options and options["disable-cse"]:
         c2po_options.append("--no-cse")
-
-    if "extops" in options and options["extops"]:
-        c2po_options.append("--extops")
 
     if "disable-rewrite" in options and options["disable-rewrite"]:
         c2po_options.append("--no-rewrite")
@@ -237,7 +216,7 @@ class TestCase():
             [
                 "--output", str(self.spec_bin_workdir_path), 
                 "--trace", str(self.trace_path),
-                str(self.mltl_path)
+                "--spec", str(self.mltl_path)
             ])
 
         if self.monitor == "c":
@@ -399,8 +378,6 @@ class TestCase():
 
         for f in glob(f"{WORK_DIR}/*"):
             os.remove(f)
-
-        
 
 
 class TestSuite():

@@ -297,7 +297,7 @@ def cli(
     script_lines.append("remove_extended_operators")
 
     if output_filename:
-        script_lines.append(f"assemble {'--aux' if enable_aux else ''} {'--print' if not quiet else ''} --scq-constant {scq_constant} {output_filename}")
+        script_lines.append(f"assemble {'--aux' if enable_aux else ''} {'--print' if not quiet else ''} {'--scq-constant ' + str(scq_constant) if scq_constant > 0 else ''} {output_filename}")
 
     try:
         with tempfile.NamedTemporaryFile() as temp_file:
