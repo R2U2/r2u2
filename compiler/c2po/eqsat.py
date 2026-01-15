@@ -382,7 +382,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
 
         # Otherwise, we check if the new expression is equivalent to the old expression
         theory = sat.SMTTheory(options["theory"])
-        eqsat_smt_encoding = sat.to_smt_equiv(old, new, context, theory)
+        eqsat_smt_encoding = sat.to_smt_equiv(old, new, context, theory, strict=False)
         if eqsat_smt_encoding is None:
             log.error("failed to generate SMT encoding for equivalence", formula.loc)
             return command.ReturnCode.ERROR
@@ -515,7 +515,7 @@ optimize_eqsat_command = command.Command(
             "description": "The SMT theory to use if `check-equiv` is enabled",
             "required": False,
             "type": str,
-            "default": sat.SMTTheory.UFLIA_INF.value,
+            "default": sat.SMTTheory.UFLIA.value,
             "choices": [member.value for member in sat.SMTTheory],
         },
         {

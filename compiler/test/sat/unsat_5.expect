@@ -1,0 +1,1 @@
+check_sat: warning: specification '(F[0,1] (! True))' is unsat

@@ -1,0 +1,16 @@
+check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
+check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
+check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
+check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
+(F[0,10] ((i0 + i1) == 0)) : sat
+(F[0,10] ((i0 - i1) == 0)) : sat
+(F[0,10] ((i0 * i1) == 0)) : sat
+(F[0,10] ((i0 / i1) == 0)) : sat
+(F[0,10] ((i0 % i1) == 0)) : sat
+(F[0,10] (i0 > i1)) : sat
+(F[0,10] (i0 < i1)) : sat
+(F[0,10] (i0 >= i1)) : sat
+(F[0,10] (i0 <= i1)) : sat
+(F[0,10] (i0 == i1)) : sat
+(F[0,10] (i0 != i1)) : sat
+program : sat

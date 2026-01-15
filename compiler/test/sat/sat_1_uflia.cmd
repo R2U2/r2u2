@@ -1,3 +1,3 @@
 parse_mltl sat_1.mltl
 type_check
-check_sat uflia
+check_sat uflia --print

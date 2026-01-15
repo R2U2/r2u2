@@ -143,8 +143,8 @@
     ],
     "normal_forms": [
         {
-            "script": "normal_forms/nnf_logic.cmd", 
-            "output": "normal_forms/nnf_logic.expect"
+            "script": "normal_forms/nnf_prop.cmd", 
+            "output": "normal_forms/nnf_prop.expect"
         },
         {
             "script": "normal_forms/nnf_temporal.cmd", 
@@ -206,5 +206,182 @@
             "script": "equiv/fail.cmd",
             "output": "equiv/fail.expect"
         }
+    ],
+    "uflia-sat": [
+        {
+            "script": "sat/sat_1_uflia.cmd",
+            "output": "sat/sat_1.expect"
+        },
+        {
+            "script": "sat/sat_2_uflia.cmd",
+            "output": "sat/sat_2.expect"
+        },
+        {
+            "script": "sat/sat_3_uflia.cmd",
+            "output": "sat/sat_3.expect"
+        },
+        {
+            "script": "sat/sat_4_uflia.cmd",
+            "output": "sat/sat_4.expect"
+        },
+        {
+            "script": "sat/sat_5_uflia.cmd",
+            "output": "sat/sat_5.expect"
+        },
+        {
+            "script": "sat/sat_6_uflia.cmd",
+            "output": "sat/sat_6.expect"
+        },
+        {
+            "script": "sat/sat_7_uflia.cmd",
+            "output": "sat/sat_7.expect"
+        },
+        {
+            "script": "sat/unsat_1_uflia.cmd",
+            "output": "sat/unsat_1.expect"
+        },
+        {
+            "script": "sat/unsat_2_uflia.cmd",
+            "output": "sat/unsat_2.expect"
+        },
+        {
+            "script": "sat/unsat_3_uflia.cmd",
+            "output": "sat/unsat_3.expect"
+        },
+        {
+            "script": "sat/unsat_4_uflia.cmd",
+            "output": "sat/unsat_4.expect"
+        },
+        {
+            "script": "sat/unsat_5_uflia.cmd",
+            "output": "sat/unsat_5.expect"
+        },
+        {
+            "script": "sat/unsat_6_uflia.cmd",
+            "output": "sat/unsat_6.expect"
+        },
+        {
+            "script": "sat/unsat_7_uflia.cmd",
+            "output": "sat/unsat_7.expect"
+        },
+        {
+            "script": "sat/unsat_8_uflia.cmd",
+            "output": "sat/unsat_8.expect"
+        },
+        {
+            "script": "sat/unsat_9_uflia.cmd",
+            "output": "sat/unsat_9.expect"
+        },
+        {
+            "script": "sat/bz_sat_1.cmd",
+            "output": "sat/bz_sat_1.expect"
+        },
+        {
+            "script": "sat/bz_sat_2.cmd",
+            "output": "sat/bz_sat_2.expect"
+        },
+        {
+            "script": "sat/bz_sat_3.cmd",
+            "output": "sat/bz_sat_3.expect"
+        },
+        {
+            "script": "sat/bz_sat_4.cmd",
+            "output": "sat/bz_sat_4.expect"
+        },
+        {
+            "script": "sat/bz_unsat_1.cmd",
+            "output": "sat/bz_unsat_1.expect"
+        },
+        {
+            "script": "sat/bz_unsat_2.cmd",
+            "output": "sat/bz_unsat_2.expect"
+        },
+        {
+            "script": "sat/bz_unsat_3.cmd",
+            "output": "sat/bz_unsat_3.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_uflia.cmd",
+            "output": "sat/strict_sat_1.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_uflia_no_strict.cmd",
+            "output": "sat/strict_sat_1_no_strict.expect"
+        },
+        {
+            "script": "sat/strict_sat_2_uflia.cmd",
+            "output": "sat/strict_sat_2.expect"
+        },
+        {
+            "script": "sat/sat_1_qf_uflia.cmd",
+            "output": "sat/sat_1.expect"
+        }
+    ],
+    "qf-bv-sat": [
+        {
+            "script": "sat/sat_1_qf_bv.cmd",
+            "output": "sat/sat_1.expect"
+        },
+        {
+            "script": "sat/sat_2_qf_bv.cmd",
+            "output": "sat/sat_2.expect"
+        },
+        {
+            "script": "sat/sat_3_qf_bv.cmd",
+            "output": "sat/sat_3.expect"
+        },
+        {
+            "script": "sat/sat_4_qf_bv.cmd",
+            "output": "sat/sat_4.expect"
+        },
+        {
+            "script": "sat/sat_5_qf_bv.cmd",
+            "output": "sat/sat_5.expect"
+        },
+        {
+            "script": "sat/sat_6_qf_bv.cmd",
+            "output": "sat/sat_6.expect"
+        },
+        {
+            "script": "sat/unsat_1_qf_bv.cmd",
+            "output": "sat/unsat_1.expect"
+        },
+        {
+            "script": "sat/unsat_2_qf_bv.cmd",
+            "output": "sat/unsat_2.expect"
+        },
+        {
+            "script": "sat/unsat_3_qf_bv.cmd",
+            "output": "sat/unsat_3.expect"
+        },
+        {
+            "script": "sat/unsat_4_qf_bv.cmd",
+            "output": "sat/unsat_4.expect"
+        },
+        {
+            "script": "sat/unsat_5_qf_bv.cmd",
+            "output": "sat/unsat_5.expect"
+        },
+        {
+            "script": "sat/unsat_6_qf_bv.cmd",
+            "output": "sat/unsat_6.expect"
+        },
+        {
+            "script": "sat/unsat_7_qf_bv.cmd",
+            "output": "sat/unsat_7.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_qf_bv.cmd",
+            "output": "sat/strict_sat_1.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_qf_bv_no_strict.cmd",
+            "output": "sat/strict_sat_1_no_strict.expect"
+        },
+        {
+            "script": "sat/strict_sat_2_qf_bv.cmd",
+            "output": "sat/strict_sat_2.expect"
+        }
+
     ]
 }

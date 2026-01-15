@@ -1,7 +1,7 @@
 from typing import Optional, cast, Any
 from c2po import cpt, log, command
 
-def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+def optimize_rewrites(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """
     Applies MLTL rewrite rules to reduce required SCQ memory.
     Rewrites are applied in a single pass of the expression tree.
@@ -301,11 +301,11 @@ def optimize_rewrite_rules(program: cpt.Program, context: cpt.Context, options: 
     log.debug(1, f"post rewrite:\n{repr(program)}")
     return command.ReturnCode.SUCCESS
 
-optimize_rewrite_rules_command = command.Command(
-    name="optimize_rewrite_rules",
+optimize_rewrites_command = command.Command(
+    name="optimize_rewrites",
     description="Applies MLTL rewrite rules in a single pass of the expression tree to reduce required SCQ memory.",
     options=[],
-    func=optimize_rewrite_rules,
+    func=optimize_rewrites,
     guards=[command.DESUGARED],
 )
-command.CommandRegistry.register(optimize_rewrite_rules_command)
+command.CommandRegistry.register(optimize_rewrites_command)

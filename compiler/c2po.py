@@ -207,7 +207,7 @@ parser.add_argument(
 parser.add_argument(
     "--smt-encoding", 
     type=str,
-    default=c2po.sat.SMTTheory.UFLIA_INF.value, 
+    default=c2po.sat.SMTTheory.UFLIA.value, 
     choices=[v.value for v in c2po.sat.SMTTheory],
     help="specify the SMT encoding to use for satisfiability checking (default: %(default)s)"
 )

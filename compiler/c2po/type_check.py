@@ -71,8 +71,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
             ):
                 log.error(
-                    f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n\t"
-                    "Did you mean to enable the booleanizer?",
+                    f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n"
+                    "    Did you mean to enable the booleanizer?",
                     expr.loc,
                 )
                 return False
@@ -91,7 +91,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 set_expr = context.bound_vars[symbol]
                 if not types.is_array_type(set_expr.type):
                     log.internal(
-                        f"set aggregation set not assigned to type 'set', found '{set_expr.type}'\n\t"
+                        f"set aggregation set not assigned to type 'set', found '{set_expr.type}'\n    "
                         f"{expr}",
                     )
                     return False
@@ -104,7 +104,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 expr.type = context.definitions[symbol].type
             elif symbol in context.structs:
                 log.error(
-                    "defined structs may not be used as variables, try declaring the struct first\n\t",
+                    "defined structs may not be used as variables, try declaring the struct first\n    ",
                     expr.loc,
                 )
                 return False
@@ -196,7 +196,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
-                    f"general functions unsupported\n\t{expr}",
+                    f"general functions unsupported\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -212,8 +212,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             ):
                 log.error(
                     f"struct instantiation/function call does not match signature."
-                    f"\n\tFound:    {expr.symbol}({', '.join([str(t) for t in actual_types])})"
-                    f"\n\tExpected: {expr.symbol}({', '.join([str(t) for t in target_types])})",
+                    f"\n    Found:    {expr.symbol}({', '.join([str(t) for t in actual_types])})"
+                    f"\n    Expected: {expr.symbol}({', '.join([str(t) for t in target_types])})",
                     expr.loc,
                 )
                 return False
@@ -243,7 +243,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             }:
                 if not context.enable_booleanizer:
                     log.error(
-                        "parameterized set aggregation operators require Booleanizer\n\tDid you mean to enable the booleanizer?",
+                        "parameterized set aggregation operators require Booleanizer\n    Did you mean to enable the booleanizer?",
                         expr.loc,
                     )
                     return False
@@ -273,7 +273,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -282,14 +282,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             if cpt.is_future_time_operator(expr):
                 if context.is_past_time():
                     log.error(
-                        f"mixed-time formulas unsupported, found FT formula in PTSPEC\n\t{expr}",
+                        f"mixed-time formulas unsupported, found FT formula in PTSPEC\n    {expr}",
                         expr.loc,
                     )
                     return False
             elif cpt.is_past_time_operator(expr):
                 if context.is_future_time():
                     log.error(
-                        f"mixed-time formulas unsupported, found PT formula in FTSPEC\n\t{expr}",
+                        f"mixed-time formulas unsupported, found PT formula in FTSPEC\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -297,7 +297,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             interval = expr.interval
             if not interval:
                 log.internal(
-                    f"interval not set for temporal operator\n\t{expr}",
+                    f"interval not set for temporal operator\n    {expr}",
                 )
                 return False
 
@@ -316,7 +316,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -330,7 +330,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.IntType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -342,7 +342,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if not context.enable_booleanizer:
                 log.error(
-                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -355,7 +355,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             for child in expr.children:
                 if child.type != new_type or not types.is_integer_type(child.type):
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -367,7 +367,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if not context.enable_booleanizer:
                 log.error(
-                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -382,7 +382,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 # TODO: disallow division by non-const expression entirely
                 if isinstance(rhs, cpt.Constant) and rhs.value == 0:
                     log.error(
-                        f"divide by zero\n\t{expr}",
+                        f"divide by zero\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -391,7 +391,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 rhs = expr.children[0]
                 if rhs.type == types.IntType():
                     log.error(
-                        f"square root invalid for integer expressions ({rhs}).\n\t{expr}",
+                        f"square root invalid for integer expressions ({rhs}).\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -403,13 +403,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     if isinstance(rhs, cpt.Constant):
                         if rhs.value < 0:
                             log.error(
-                                f"power function invalid for integer expressions with negative exponents ({rhs}).\n\t{expr}",
+                                f"power function invalid for integer expressions with negative exponents ({rhs}).\n    {expr}",
                                 expr.loc,
                             )
                             return False
                     elif types.IntType.is_signed:
                         log.error(
-                            f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n\t{expr}",
+                            f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n    {expr}",
                             expr.loc,
                         )
                         return False
@@ -417,7 +417,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             for child in expr.children:
                 if child.type != new_type:
                     log.error(
-                        f"operand of '{expr}' must be of homogeneous type\n\t"
+                        f"operand of '{expr}' must be of homogeneous type\n    "
                         f"Found {child.type} and {new_type}",
                         expr.loc,
                     )
@@ -434,14 +434,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 cpt.OperatorKind.NOT_EQUAL,
             }:
                 log.error(
-                    f"found Booleanizer expression, but Booleanizer expressions disabled\n\t{expr}",
+                    f"found Booleanizer expression, but Booleanizer expressions disabled\n    {expr}",
                     expr.loc,
                 )
                 return False
 
             if lhs.type != rhs.type:
                 log.error(
-                    f"invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n\t{expr}",
+                    f"invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -455,7 +455,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n\t{expr}",
+                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -465,14 +465,14 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             for child in expr.get_descendants():
                 if cpt.is_prev_operator(child):
                     log.error(
-                        f"nested previous statements not allowed ({child}).\n\t{expr}",
+                        f"nested previous statements not allowed ({child}).\n    {expr}",
                         location=expr.loc,
                     )
                     return False
             expr.type = expr.children[0].type
         else:
             log.error(
-                f"invalid expression of type '{type(expr)}'\n\t{expr}",
+                f"invalid expression of type '{type(expr)}'\n    {expr}",
                 expr.loc,
             )
             return False

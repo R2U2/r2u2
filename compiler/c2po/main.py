@@ -11,8 +11,8 @@ from c2po import (
     log,
     type_check,
     transform,
-    eqsat,
-    sat,
+    eqsat, # noqa: F401
+    sat, # noqa: F401
     atomics,
     cse,
     desugar,
@@ -20,10 +20,10 @@ from c2po import (
     assemble,
     rewrite,
     command,
-    serialize,
+    serialize, # noqa: F401 
     parse_c2po,
-    parse_mltl,
-    parse_equiv,
+    parse_mltl, # noqa: F401
+    parse_equiv, # noqa: F401
     parse_utils,
     util,
 )
@@ -44,7 +44,7 @@ compile_command = command.CompositeCommand(
     commands=[
         type_check.type_check_command,
         desugar.desugar_command,
-        rewrite.optimize_rewrite_rules_command,
+        rewrite.optimize_rewrites_command,
         transform.remove_extended_operators_command,
         transform.multi_operators_to_binary_command,
         cse.optimize_cse_command,
@@ -245,8 +245,6 @@ def cli(
         script_lines.append(f"parse_c2po {spec_path}")
     elif spec_path.suffix == ".mltl":
         script_lines.append(f"parse_mltl {spec_path}")
-    elif spec_path.suffix == ".equiv":
-        script_lines.append(f"parse_equiv {spec_path}")
     else:
         log.error(f"invalid specification file: {spec_path}")
         return command.ReturnCode.FILE_NOT_FOUND
@@ -279,7 +277,7 @@ def cli(
                   f"{f'--smt-solver-path {smt_solver_path}' if smt_solver_path else ''}"
         script_lines.append(cmd)
     elif enable_rewrite:
-        script_lines.append("optimize_rewrite_rules")
+        script_lines.append("optimize_rewrites")
 
     if not enable_extops:
         script_lines.append("remove_extended_operators")

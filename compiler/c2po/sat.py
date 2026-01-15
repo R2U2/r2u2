@@ -19,29 +19,14 @@ class SatResult(enum.Enum):
     MEMOUT = "memout"
     FAILURE = "fail"
 
-def check_sat_result(result: SatResult, symbol: str = "", quiet: bool = False) -> bool:
-    """Checks the result of a SAT solver and returns True if the result is SAT, False otherwise.
-    
-    If `quiet` is False, the result will be printed.
-
-    Args:
-        `result`: The result of the SAT solver
-        `symbol`: The symbol of the formula for printing, defaults to empty string
-        `quiet`: Whether to print the result
-
-    Returns:
-        True if the result is SAT, UNSAT, or UNKNOWN, False otherwise
-    """
-    if not quiet:
-        print(f"{symbol} : {result.value}" if symbol else result.value)
+def check_sat_result(result: SatResult) -> bool:
+    """Checks the result of a SMT solver and returns True if the result is SAT, UNSAT, or UNKNOWN, False otherwise."""
     return result in [SatResult.SAT, SatResult.UNSAT, SatResult.UNKNOWN]
 
 class SMTTheory(enum.Enum):
     UFLIA = "uflia"
     QF_UFLIA = "qf_uflia"
     QF_BV = "qf_bv"
-    QF_BV_INCR = "qf_bv_incr"
-    UFLIA_INF = "uflia_inf"
 
 def check_solver(smt_solver: str) -> bool:
     try:
@@ -81,7 +66,6 @@ def run_smt_solver(
     if (
         theory == SMTTheory.UFLIA
         or theory == SMTTheory.QF_UFLIA
-        or theory == SMTTheory.UFLIA_INF
     ) and "cvc5" in smt_solver_path:
         # cvc5 requires the --finite-model-find option for UFLIA encoding
         command += ["--finite-model-find", "--fmf-bound"]
@@ -187,12 +171,17 @@ def to_smt_type(t: types.Type) -> str:
         return "Real"
     return "NoType"
 
-def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int) -> str:
+def to_qf_bv_smtlib2(start: cpt.Expression, context: cpt.Context, strict: bool) -> Optional[str]:
+    """Encodes the given expression into an SMT encoding using the QF_BV theory and returns it. Returns None if the encoding fails."""
     log.debug(
-        1, f"encoding MLTL formula in QF_BV logic (up to length {trace_len}):\n\t{repr(start)}",
+        1, f"encoding MLTL formula in QF_BV logic (strict: {strict}):\n\t{repr(start)}",
     )
 
-    bv_width = trace_len
+    if len(context.bounds) > 0 or len(context.constraints) > 0:
+        log.error("symbolic bounds and constraints are not supported for QF_BV encoding")
+        return None
+
+    bv_width = start.wpd + 1 # proxy for cplen
     bv_sort = f"(_ BitVec {bv_width})"
 
     # Need to set this in case bv literals have more than 4300 digits (in decimal) for to_bv
@@ -222,7 +211,10 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
 
+    # TODO: Remove since we do not need to decompose intervals for QF_BV encoding
     decomposed_expr = cpt.decompose_intervals(start, context)
+
+    status = True
     for expr in cpt.postorder(decomposed_expr, context):
         if expr in expr_map:
             continue
@@ -236,8 +228,9 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
         expr_map[expr] = expr_id
 
         if expr.type != types.BoolType():
-            log.error(f"unsupported type '{expr.type}' ({expr})")
-            return ""
+            log.error(f"unsupported type '{expr.type}' for expression {expr}")
+            status = False
+            continue
 
         fun_signature = "define-fun {0} () " + bv_sort
 
@@ -393,21 +386,33 @@ def to_qfbv_smtlib2(start: cpt.Expression, context: cpt.Context, trace_len: int)
                 f"({fun_signature.format(expr_id)} {f'{expr_id}_R_{i-1}'})"
             )
         else:
-            log.error(f"unsupported operator ({expr})")
-            return ""
+            log.error(f"unsupported expression {expr}")
+            status = False
+            continue
 
-    smt_commands.append(f"(assert (bvugt {expr_map[decomposed_expr]} {zeros()}))")
+    if not status:
+        return None
+
+    if strict:
+        smt_commands.append(f"(assert (bvugt {expr_map[decomposed_expr]} {zeros()}))")
+    else:
+        smt_commands.append(f"(assert (= ((_ extract {start.wpd} {start.wpd}) {expr_map[decomposed_expr]}) (_ bv1 1)))")
+
     smt_commands.append("(check-sat)")
 
     smt = "\n".join(smt_commands)
 
     return smt
 
-def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
+def to_qf_uflia_smtlib2(start: cpt.Expression, context: cpt.Context, strict: bool) -> Optional[str]:
     """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem using the QF_UFLIA logic."""
     log.debug(
-        1, f"encoding MLTL formula in QF_UFLIA logic:\n\t{repr(start)}"
+        1, f"encoding MLTL formula in QF_UFLIA logic (strict: {strict}):\n\t{repr(start)}"
     )
+
+    if len(context.bounds) > 0 or len(context.constraints) > 0:
+        log.error("symbolic bounds and constraints are not supported for QF_UFLIA encoding")
+        return None
 
     is_nonlinear: bool = False
     smt_commands: list[str] = [PREAMBLE]
@@ -421,10 +426,12 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
 
+    status = True
     for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
-            log.error(f"unsupported type '{expr.type}' ({expr})")
-            return ""
+            log.error(f"unsupported type '{expr.type}' for expression {expr}")
+            status = False
+            continue
         
         if expr in expr_map:
             continue
@@ -570,13 +577,23 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
             log.error(
                 f"release not implemented for MLTL-SAT via QF_UFLIA\n\t{expr}"
             )
-            return ""
+            status = False
+            continue
         else:
-            log.error(f"unsupported operator ({expr})")
-            return ""
+            log.error(f"unsupported expression {expr}")
+            status = False
+            continue
 
-    smt_commands.append("(declare-fun len () Int)")
-    smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
+    if not status:
+        return None
+
+    if strict:
+        smt_commands.append("(declare-fun len () Int)")
+        smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
+    else:
+        # wpd proxy for cplen (okay since wpd >= cplen)
+        smt_commands.append(f"(assert ({expr_map[start]} 0 {start.wpd}))")
+
     smt_commands.append("(check-sat)")
 
     if is_nonlinear:
@@ -587,239 +604,17 @@ def to_qfuflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
 
     return smt
 
-def to_uflia_smtlib2(start: cpt.Expression, context: cpt.Context) -> str:
-    """Returns a string representing an SMT-LIB2 encoding of the MLTL sat problem.
-
-    See https://link.springer.com/chapter/10.1007/978-3-030-25543-5_1
-
-    The paper's implementation is actually incorrect because of the way that duals are defined,
-    especially with regard to the end-of-trace semantics. In the semantics for `p U[lb,ub] q`, where
-    we evaluate `pi` at time `i`, both:
-
-        1) `pi` must be as least as long so as to have data at index `lower_bound + i` (`|pi| >
-           i+lb`) and
-
-        2) there is some `j` where `i+lb <= j <= i+ub` such that `pi` models `q` at `j` and for all
-           `k` where `i+lb <= k < j` we have that `pi` models `p` at `k`.
-
-    Assuming that `(p U[lb,ub] q) = !(!p R[lb,ub] !q)`, then, the semantics of `p R[lb,ub] q` must
-    be such that EITHER 1 fails to hold or the negation of 2 holds. For example, `!(p U[lb,ub] q) =
-    (!p R[lb,ub] !q)` could be true for trace `pi` at time `i` because `|pi| >= i+lb` (this is
-    easier to see when we read the Until expression as "it's NOT the case that `p U[lb,ub] q`
-    holds"). The implementation does not handle the case with `pi` not being long enough correctly.
-    This is only a problem because the operators are defined as duals.
-
-    The same goes for future and global -- `F[l,u] p = ! G[l,u] !p`, where the expression `G[l,u]
-    !p` could be true because `!p` held from `l` to `u` starting at `i`, or because the trace had a
-    length shorter than or equal to `i+l`.
-
-    mltlsat translates all `! G[lb,ub] p` to `True U[lb,ub] !p` and `! F[lb,ub] p` to `False
-    R[lb,ub] !p`
-
-    For atomics, the mltlsat implementation assumes only boolean atomic propositions, which is not a
-    limitation of the approach. Instead of having an uninterpreted function for each atomic, we have
-    an uninterpreted function for each input signal. For example, if `i0` is an `int`, it will have
-    an uninterpreted function `f_i0` that takes an `Int` and returns an `Int`.
-    """
-    log.debug(1, f"encoding MLTL formula in UFLIA logic:\n\t{repr(start)}")
-
-    is_nonlinear: bool = False 
-    smt_commands: list[str] = [PREAMBLE]
-
-    smt_commands.append("(set-logic UFLIA)")
-
-    atomic_map: dict[str, str] = {}
-    for signal, typ in context.signals.items():
-        atomic_map[signal] = f"f_{signal}"
-        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
-
-    expr_map: dict[cpt.Expression, str] = {}
-    cnt = 0
-
-    for expr in cpt.postorder(start, context):
-        if expr.type != types.BoolType() and expr.type != types.IntType():
-            log.error(f"unsupported type '{expr.type}' ({expr})")
-            return ""
-
-        if expr in expr_map:
-            continue
-
-        if isinstance(expr, cpt.Atomic):
-            expr_map[expr] = expr_map[expr.children[0]]
-            continue
-
-        expr_id = f"f_e{cnt}"
-        cnt += 1
-        expr_map[expr] = expr_id
-
-        fun_signature = (
-            f"define-fun {expr_id} ((k Int) (len Int)) {to_smt_type(expr.type)}"
-        )
-
-        if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and expr.value:
-            smt_commands.append(f"({fun_signature} true)")
-        elif isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and not expr.value:
-            smt_commands.append(f"({fun_signature} false)")
-        elif isinstance(expr, cpt.Constant):
-            smt_commands.append(f"({fun_signature} {expr.value})")
-        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
-            )
-        elif isinstance(expr, cpt.Signal):
-            smt_commands.append(f"({fun_signature} ({atomic_map[expr.symbol]} k))")
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
-            smt_commands.append(
-                f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT):
-            smt_commands.append(
-                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
-            is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (* ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
-            is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (div ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
-            is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (mod ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
-            smt_commands.append(
-                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (>= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (< ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (<= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (not ({expr_map[expr.children[0]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-            operands = " ".join(
-                [f"({expr_map[child]} k len)" for child in expr.children]
-            )
-            smt_commands.append(f"({fun_signature} (and (> len k) (and {operands})))")
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-            operands = " ".join(
-                [f"({expr_map[child]} k len)" for child in expr.children]
-            )
-            smt_commands.append(f"({fun_signature} (and (> len k) (or {operands})))")
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) ({expr_map[expr.children[0]]} i len))))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[0]]} i len)))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) (< i len)) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len)))))))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.ONCE):
-            # pi,k |= O[lb,ub] p iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
-            # and pi,i |= p
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (and (< {lb} k) (< k len)) (exists ((i Int)) (and (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.HISTORICAL):
-            # pi,k |= H[lb,ub] p iff ! (lb < k < |pi|) or for all i such that k-ub <= i <= k-lb it
-            # holds that pi,i |= p
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
-            )
-        elif cpt.is_operator(expr, cpt.OperatorKind.SINCE):
-            # pi,k |= p S[lb,ub] q iff lb < k < |pi| and there exists i such that k-ub <= i <= k-lb
-            # and pi,i |= p and for all j such that i < j <= k it holds that pi,j |= q
-            expr = cast(cpt.TemporalOperator, expr)
-            lb = expr.interval.lb
-            ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (not (and (< {lb} k) (< k len))) (forall ((i Int)) (=> (<= (- k {ub}) i) (<= i (- k {lb})) (> i 0) ({expr_map[expr.children[0]]} i len)))))"
-            )
-        else:
-            log.error(f"unsupported operator ({expr} {type(expr)})")
-            return ""
-
-    smt_commands.append(f"(assert (exists ((len Int)) ({expr_map[start]} 0 len)))")
-    smt_commands.append("(check-sat)")
-
-    if is_nonlinear:
-        log.warning("nonlinear arithmetic detected, setting logic to UFNIA")
-        smt_commands[1] = "(set-logic UFNIA)"
-
-    smt = "\n".join(smt_commands)
-
-    return smt
-
-def to_uflia_cplen(
+def to_uflia_smtlib2(
     start: cpt.Expression,
     context: cpt.Context,
-) -> str:
-    log.debug(1, f"encoding MLTL formula in UFLIA logic (infinite-trace semantics):\n\t{repr(start)}")
+    strict: bool,
+) -> Optional[str]:
+    """Encodes the given expression into an SMT encoding using the UFLIA theory and returns it. Returns None if the encoding fails."""
     log.debug(1, f"bounds: {context.bounds}")
     log.debug(1, f"constraints: {context.constraints}")
     is_nonlinear: bool = False
     has_mission_time: bool = False
+    status: bool = True
 
     def smt_min_expr(expr1: str, expr2: str) -> str:
         return f"(ite (<= {expr1} {expr2}) {expr1} {expr2})"
@@ -830,6 +625,8 @@ def to_uflia_cplen(
     def interval_constraint_to_smt(constraint: cpt.Expression, cache: dict[cpt.Expression, str]) -> str:
         nonlocal is_nonlinear
         nonlocal has_mission_time
+        nonlocal status
+
         for expr in cpt.postorder(constraint, context):
             if expr in cache:
                 continue
@@ -871,49 +668,33 @@ def to_uflia_cplen(
                 cache[expr] = smt_max_expr(cache[expr.children[0]], cache[expr.children[1]])
             else:
                 log.error(f"unsupported constraint expression {expr} {type(expr)}")
+                status = False
                 return ""
 
         return cache[constraint]
 
-    smt_commands: list[str] = [PREAMBLE]
+    def expr_to_smt(
+        expr: cpt.Expression,
+        cnt: int,
+        expr_map: dict[cpt.Expression, str],
+        expr_cache: dict[str, cpt.Expression],
+        constr_cache: dict[cpt.Expression, str],
+    ) -> str:
+        """Converts an expression to an SMT-LIB2 encoding using the given expression map, expression cache, and constraint cache."""
+        nonlocal is_nonlinear
+        nonlocal has_mission_time
+        nonlocal status
 
-    smt_commands.append("(set-logic UFLIA)")
-
-    smt_commands.append("(declare-fun M () Int)")
-    smt_commands.append("(assert (>= M 0))")
-
-    # Declare symbolic interval variables and constraints on them
-    for bound in context.bounds:
-        smt_commands.append(f"(declare-fun {bound.symbol} () Int)")
-        smt_commands.append(f"(assert (>= {bound.symbol} 0))")
-
-    constr_cache: dict[cpt.Expression, str] = {}
-    for constraint in context.constraints:
-        smt_commands.append(f"(assert {interval_constraint_to_smt(constraint, constr_cache)})")
-
-    atomic_map: dict[str, str] = {}
-    for signal, typ in context.signals.items():
-        if typ != types.BoolType() and typ != types.IntType():
-            log.error(f"unsupported type '{typ}' ({signal})")
-            return ""
-        atomic_map[signal] = f"f_{signal}"
-        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
-
-    expr_map: dict[cpt.Expression, str] = {}
-    expr_cache: dict[str, cpt.Expression] = {}
-    cnt = 0
-
-    for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
             log.error(f"unsupported type '{expr.type}' ({expr})")
+            status = False
             return ""
 
         if str(expr) in expr_cache:
             expr_map[expr] = expr_map[expr_cache[str(expr)]]
-            continue
+            return ""
 
         expr_id = f"f_e{cnt}"
-        cnt += 1
         expr_map[expr] = expr_id
         expr_cache[str(expr)] = expr
 
@@ -922,100 +703,64 @@ def to_uflia_cplen(
         )
 
         if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and expr.value:
-            smt_commands.append(f"({fun_signature} true)")
+            return f"({fun_signature} true)"
         elif isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type) and not expr.value:
-            smt_commands.append(f"({fun_signature} false)")
+            return f"({fun_signature} false)"
         elif isinstance(expr, cpt.Constant):
-            smt_commands.append(f"({fun_signature} {expr.value})")
+            return f"({fun_signature} {expr.value})"
         elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
-            smt_commands.append(
-                f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
-            )
+            return f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
         elif isinstance(expr, cpt.Signal):
-            smt_commands.append(f"({fun_signature} ({atomic_map[expr.symbol]} k))")
+            return f"({fun_signature} ({atomic_map[expr.symbol]} k))"
         elif isinstance(expr, cpt.Atomic):
-            smt_commands.append(f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))")
+            return f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
-            smt_commands.append(
-                f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (+ ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT) and len(expr.children) == 2:
-            smt_commands.append(
-                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (- ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_SUBTRACT) and len(expr.children) == 1:
             # FIXME: Somewhere arithmetic negation is being encoded as arithmetic subtract with one operand
-            smt_commands.append(
-                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
-            )
+            return f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MULTIPLY):
             is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (* ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (* ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_DIVIDE):
             is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (div ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (div ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_MODULO):
             is_nonlinear = True
-            smt_commands.append(
-                f"({fun_signature} (mod ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (mod ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_NEGATE):
-            smt_commands.append(
-                f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
-            )
+            return f"({fun_signature} (- ({expr_map[expr.children[0]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.NOT_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
-            )
+            return f"({fun_signature} (not (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len))))"
         elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN):
-            smt_commands.append(
-                f"({fun_signature} (> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.GREATER_THAN_OR_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (>= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (>= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN):
-            smt_commands.append(
-                f"({fun_signature} (< ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (< ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LESS_THAN_OR_EQUAL):
-            smt_commands.append(
-                f"({fun_signature} (<= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (<= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
-            smt_commands.append(
-                f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
-            )
+            return f"({fun_signature} (not ({expr_map[expr.children[0]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND):
-            operands = " ".join(
-                [f"({expr_map[child]} k len)" for child in expr.children]
-            )
-            smt_commands.append(f"({fun_signature} (and {operands}))")
+            operands = " ".join([f"({expr_map[child]} k len)" for child in expr.children])
+            return f"({fun_signature} (and {operands}))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR):
-            operands = " ".join(
-                [f"({expr_map[child]} k len)" for child in expr.children]
-            )
-            smt_commands.append(f"({fun_signature} (or {operands}))")
+            operands = " ".join([f"({expr_map[child]} k len)" for child in expr.children])
+            return f"({fun_signature} (or {operands}))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
-            smt_commands.append(
-                f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (=> ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
-            smt_commands.append(
-                f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
-            )
+            return f"({fun_signature} (= ({expr_map[expr.children[0]]} k len) ({expr_map[expr.children[1]]} k len)))"
         elif cpt.is_operator(expr, cpt.OperatorKind.GLOBAL):
             # pi,k |= G[lb,ub] p iff for all i such that lb+k <= i <= ub+k it holds that pi,i |= p
+            result = ""
             if isinstance(expr, cpt.SymbolicTemporalOperator):
+                # If symbolic constraints are used we need to assert that the lower bound is less than or equal to the upper bound
                 expr = cast(cpt.SymbolicTemporalOperator, expr)
                 lb = interval_constraint_to_smt(expr.interval.lb, constr_cache)
                 ub = interval_constraint_to_smt(expr.interval.ub, constr_cache)
@@ -1023,90 +768,99 @@ def to_uflia_cplen(
                 # Special case for G[0,0] phi and G[1,1] phi -- no need for quantifier
                 # This is necessary for performance reasons, many FRET formulas timeout without this optimization
                 if lb == "0" and ub == "0":
-                    smt_commands.append(
-                        f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
-                    )
-                    continue
+                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
                 elif lb == "1" and ub == "1":
-                    smt_commands.append(
-                        f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
-                    )
-                    continue
+                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
 
-                smt_commands.append(f"(assert (<= {lb} {ub}))")
+                result = f"(assert (<= {lb} {ub}))\n"
             else: 
                 expr = cast(cpt.TemporalOperator, expr)
                 lb = expr.interval.lb
                 ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
-            )
+
+                if lb == 0 and ub == 0:
+                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
+                elif lb == 1 and ub == 1:
+                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
+
+            return result + f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) ({expr_map[expr.children[0]]} i len)))))"
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             # pi,k |= F[lb,ub] p iff there exists i such that lb+k <= i <= ub+k and pi,i |= p
+            result = ""
             if isinstance(expr, cpt.SymbolicTemporalOperator):
                 expr = cast(cpt.SymbolicTemporalOperator, expr)
                 lb = interval_constraint_to_smt(expr.interval.lb, constr_cache)
                 ub = interval_constraint_to_smt(expr.interval.ub, constr_cache)
 
-                # Special case for F[1,1] phi -- no need for quantifier
+                # Special case for F[0,0] phi and F[1,1] phi -- no need for quantifier
                 # This is necessary for performance reasons, many FRET formulas timeout without this optimization
-                if lb == "1" and ub == "1":
-                    smt_commands.append(
-                        f"({fun_signature} (and (> len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
-                    )
-                    continue
+                if lb == "0" and ub == "0":
+                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
+                elif lb == "1" and ub == "1":
+                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
 
-                smt_commands.append(f"(assert (<= {lb} {ub}))")
+                result = f"(assert (<= {lb} {ub}))\n"
             else: 
                 expr = cast(cpt.TemporalOperator, expr)
                 lb = expr.interval.lb
                 ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[0]]} i len)))))"
-            )
+
+                if lb == 0 and ub == 0:
+                    return f"({fun_signature} (or (<= len k) ({expr_map[expr.children[0]]} k len)))"
+                elif lb == 1 and ub == 1:
+                    return f"({fun_signature} (or (<= len (+ 1 k)) ({expr_map[expr.children[0]]} (+ 1 k) len)))"
+
+            return result + f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[0]]} i len)))))"
         elif cpt.is_operator(expr, cpt.OperatorKind.UNTIL):
             # pi,k |= p U[lb,ub] q iff there exists i such that lb+k <= i <= ub+k and 
             #   pi,i |= q and for all j such that lb+k <= j < i it holds that pi,j |= p
+            result = ""
             if isinstance(expr, cpt.SymbolicTemporalOperator):
                 expr = cast(cpt.SymbolicTemporalOperator, expr)
                 lb = interval_constraint_to_smt(expr.interval.lb, constr_cache)
                 ub = interval_constraint_to_smt(expr.interval.ub, constr_cache)
-                smt_commands.append(f"(assert (<= {lb} {ub}))")
+                result = f"(assert (<= {lb} {ub}))\n"
             else: 
                 expr = cast(cpt.TemporalOperator, expr)
                 lb = expr.interval.lb
                 ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
-            )
+
+            return result + f"({fun_signature} (and (> len (+ {lb} k)) (exists ((i Int)) (and (<= (+ {lb} k) i) (<= i (+ {ub} k)) ({expr_map[expr.children[1]]} i len) (forall ((j Int)) (=> (and (<= (+ {lb} k) j) (< j i)) ({expr_map[expr.children[0]]} j len)))))))"
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             # pi,k |= p R[lb,ub] q iff for all i such that lb+k <= i <= ub+k it holds that
             #   pi,i |= q or there exists j such that lb+k <= j < i it holds that pi,j |= p
+            result = ""
             if isinstance(expr, cpt.SymbolicTemporalOperator):
                 expr = cast(cpt.SymbolicTemporalOperator, expr)
                 lb = interval_constraint_to_smt(expr.interval.lb, constr_cache)
                 ub = interval_constraint_to_smt(expr.interval.ub, constr_cache)
-                smt_commands.append(f"(assert (<= {lb} {ub}))")
+                result = f"(assert (<= {lb} {ub}))\n"
             else: 
                 expr = cast(cpt.TemporalOperator, expr)
                 lb = expr.interval.lb
                 ub = expr.interval.ub
-            smt_commands.append(
-                f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len))))))))"
-            )
+
+            return result + f"({fun_signature} (or (<= len (+ {lb} k)) (forall ((i Int)) (=> (and (<= (+ {lb} k) i) (<= i (+ {ub} k))) (or ({expr_map[expr.children[1]]} i len) (exists ((j Int)) (and (<= (+ {lb} k) j) (< j i) ({expr_map[expr.children[0]]} j len))))))))"
         else:
-            log.error(f"unsupported operator ({repr(expr)} {type(expr)})")
+            log.error(f"unsupported expression {expr}")
+            status = False
             return ""
 
-    def expr_to_cplen(expr_: cpt.Expression, constr_cache: dict[cpt.Expression, str], cplen_cache: dict[cpt.Expression, str]) -> str:
+    def expr_to_cplen(
+        expr_: cpt.Expression,
+        constr_cache: dict[cpt.Expression, str],
+        cplen_cache: dict[cpt.Expression, str],
+    ) -> str:
         """cplen(phi) is the computation length of phi:
-            cplen(p) = 1
-            cplen(! phi) = cplen(phi)
-            cplen(phi and psi) = max(cplen(phi), cplen(psi))
-            cplen(F[lb,ub] phi) = cplen(phi) + ub
-            cplen(phi U[lb,ub] psi) = max(cplen(phi) - 1, cplen(psi)) + ub
+
+        - cplen(p) = 1
+        - cplen(! phi) = cplen(phi)
+        - cplen(phi and psi) = max(cplen(phi), cplen(psi))
+        - cplen(F[lb,ub] phi) = cplen(phi) + ub
+        - cplen(phi U[lb,ub] psi) = max(cplen(phi) - 1, cplen(psi)) + ub
         """
         nonlocal has_mission_time
+        nonlocal status
 
         if has_mission_time:
             cplen = "(+ M 1)"
@@ -1169,17 +923,61 @@ def to_uflia_cplen(
                     ub = expr.interval.ub
                 cplen = f"(+ (ite (> (- {cplen_cache[expr.children[0]]} 1) {cplen_cache[expr.children[1]]}) {cplen_cache[expr.children[0]]} {cplen_cache[expr.children[1]]}) {ub})"
             else:
-                log.error(f"unsupported operator ({expr} {type(expr)})")   
+                log.error(f"unsupported expression {expr}")   
+                status = False
                 return ""
 
             cplen_cache[expr] = cplen
 
         return cplen_cache[expr_]
 
-    cplen_cache: dict[cpt.Expression, str] = {}
-    cplen = expr_to_cplen(start, constr_cache, cplen_cache)
-    smt_commands.append(f"(define-fun cplen () Int {cplen})")
-    smt_commands.append(f"(assert ({expr_map[start]} 0 cplen))")
+    smt_commands: list[str] = [PREAMBLE]
+
+    smt_commands.append("(set-logic UFLIA)")
+    smt_commands.append("(declare-fun M () Int)")
+    smt_commands.append("(assert (>= M 0))")
+
+    # Declare symbolic interval variables and constraints on them
+    for bound in context.bounds:
+        smt_commands.append(f"(declare-fun {bound.symbol} () Int)")
+        smt_commands.append(f"(assert (>= {bound.symbol} 0))")
+
+    constr_cache: dict[cpt.Expression, str] = {}
+    for constraint in context.constraints:
+        smt_commands.append(f"(assert {interval_constraint_to_smt(constraint, constr_cache)})")
+
+    atomic_map: dict[str, str] = {}
+    for signal, typ in context.signals.items():
+        if typ != types.BoolType() and typ != types.IntType():
+            log.error(f"unsupported type '{typ}' ({signal})")
+            return ""
+        atomic_map[signal] = f"f_{signal}"
+        smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
+
+    expr_map: dict[cpt.Expression, str] = {}
+    expr_cache: dict[str, cpt.Expression] = {}
+    cnt = 0
+    for expr in cpt.postorder(start, context):
+        if expr in expr_cache:
+            continue
+        smt_expr = expr_to_smt(expr, cnt, expr_map, expr_cache, constr_cache)
+        if smt_expr == "":
+            continue
+        smt_commands.append(smt_expr)
+        cnt += 1
+
+    if not strict:
+        cplen_cache: dict[cpt.Expression, str] = {}
+        cplen = expr_to_cplen(start, constr_cache, cplen_cache)
+        smt_commands.append(f"(define-fun cplen () Int {cplen})")
+        smt_commands.append(f"(assert ({expr_map[start]} 0 cplen))")
+    else:
+        smt_commands.append("(declare-fun len () Int)")
+        smt_commands.append(f"(assert ({expr_map[start]} 0 len))")
+
+    if not status:
+        return None
+
     smt_commands.append("(check-sat)")
 
     if is_nonlinear:
@@ -1194,23 +992,20 @@ def to_smt(
     expr: cpt.Expression,
     context: cpt.Context,
     theory: SMTTheory,
+    strict: bool,
 ) -> Optional[str]:
     """Encodes the given expression into an SMT encoding and returns it. Returns None if the encoding fails."""
     log.debug(1, f"encoding expression:\n\t{repr(expr)}")
 
     start = util.get_rusage_time()
     if theory == SMTTheory.UFLIA:
-        smt = to_uflia_smtlib2(expr, context)
+        smt = to_uflia_smtlib2(expr, context, strict)
     elif theory == SMTTheory.QF_UFLIA:
-        smt = to_qfuflia_smtlib2(expr, context)
+        smt = to_qf_uflia_smtlib2(expr, context, strict)
     elif theory == SMTTheory.QF_BV:
-        smt = to_qfbv_smtlib2(expr, context, expr.wpd + 1)
-    # elif context.smt_encoding == SMTTheories.QF_BV_INCR:
-    #     return None
-    elif theory == SMTTheory.UFLIA_INF:
-        smt = to_uflia_cplen(expr, context)
+        smt = to_qf_bv_smtlib2(expr, context, strict)
     else:
-        log.error(f"unsupported SMT theory '{theory}'")
+        log.error(f"unsupported SMT theory {theory}")
         return None
 
     end = util.get_rusage_time()
@@ -1225,12 +1020,20 @@ def write_smt_encoding(program: cpt.Program, context: cpt.Context, options: dict
     `options` is a dictionary of options for the writing.
     - `location`: The path to write the SMT encoding to
     - `theory`: The SMT theory to use
+    - `strict`: Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.
+    - `formula`: The formula to write the SMT encoding for. If not provided, all formulas will be written
 
     Returns:
         a ReturnCode.SUCCESS if the encoding was written successfully, ReturnCode.ERROR otherwise
     """
-    def write_smt(formula: cpt.Formula, theory: SMTTheory, location: pathlib.Path, output_is_dir: bool) -> command.ReturnCode:
-        smt_encoding = to_smt(formula.get_expr(), context, theory)
+    def write_smt(
+        formula: cpt.Formula,
+        theory: SMTTheory,
+        location: pathlib.Path,
+        output_is_dir: bool,
+        strict: bool,
+    ) -> command.ReturnCode:
+        smt_encoding = to_smt(formula.get_expr(), context, theory, strict)
         if smt_encoding is None:
             log.error(f"failed to write SMT encoding for {formula.symbol}", formula.loc)
             return command.ReturnCode.ERROR
@@ -1260,7 +1063,7 @@ def write_smt_encoding(program: cpt.Program, context: cpt.Context, options: dict
         elif isinstance(formula, cpt.Contract):
             log.error(f"formula '{options['formula']}' is a contract")
             return command.ReturnCode.ERROR
-        return write_smt(formula, theory, location, output_is_dir)
+        return write_smt(formula, theory, location, output_is_dir, options["strict"])
 
     if len(program.ft_spec_set.get_specs()) > 1:
         output_is_dir = True
@@ -1272,7 +1075,7 @@ def write_smt_encoding(program: cpt.Program, context: cpt.Context, options: dict
         if isinstance(formula, cpt.Contract):
             log.debug(2, f"found contract '{formula.symbol}', skipping")
             continue
-        result = write_smt(formula, theory, location, output_is_dir)
+        result = write_smt(formula, theory, location, output_is_dir, options["strict"])
         if result != command.ReturnCode.SUCCESS:
             return result
 
@@ -1296,6 +1099,13 @@ write_smt_encoding_command = command.Command(
         "default": None,
         "choices": [member.value for member in SMTTheory]
     }, {
+        "name": "strict",
+        "description": "Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
+    }, {
         "name": "formula",
         "description": "The formula to write the SMT encoding for. If not provided, all formulas will be written",
         "required": False,
@@ -1313,12 +1123,15 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
     
     `options` is a dictionary of options for the checking.
     - `theory`: The SMT theory to use
-    - `quiet`: Whether to print output
+    - `strict`: Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.
+    - `print`: Whether to print the results of the satisfiability checks. If not provided, unsat and unknown results will be sent as warnings.
     - `smt_max_time`: The maximum time to allow for the SMT solver in seconds
     - `smt_max_memory`: The maximum memory to allow for the SMT solver in MB, use 0 for no maximum
 
     Returns:
         a ReturnCode.SUCCESS if the satisfiability was checked successfully, ReturnCode.ERROR otherwise
+
+    TODO: Add back incremental encoding support for strict encoding
     """
     theory = SMTTheory(options["theory"]) # We have to cast to SMTTheory since the command parser will return a string
 
@@ -1333,7 +1146,7 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
         expr = spec.get_expr()
         exprs.append(expr)
 
-        sat_smt_encoding = to_smt(expr, context, theory)
+        sat_smt_encoding = to_smt(expr, context, theory, options["strict"])
         if sat_smt_encoding is None:
             log.error("failed to generate SMT encoding for specification", spec.loc)
             return command.ReturnCode.ERROR
@@ -1344,17 +1157,30 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
             options["smt_max_memory"],
             context.stats,
         )
-        status = status and check_sat_result(result, symbol=spec.symbol, quiet=options["quiet"])
+        status = status and check_sat_result(result)
+        spec_str_reference = cpt.get_spec_str_reference(spec)
+
+        log.debug(1, f"specification '{spec_str_reference}' is {result.value}")
+
+        if not check_sat_result(result):
+            log.error(f"unexpected result from SMT solver for specification '{spec_str_reference}': {result}")
+            return command.ReturnCode.ERROR
+        elif not options["print"] and result in [SatResult.UNSAT, SatResult.UNKNOWN]:
+            log.warning(f"specification '{spec_str_reference}' is {result.value}")
+            continue
+        elif options["print"]:
+            print(f"{spec_str_reference} : {result.value}")
 
     # we only check the conjunction of all specifications if there are more than one
     if len(exprs) <= 1:
         return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
 
     formula = cpt.Operator.LogicalAnd(program.loc, exprs, set_parents=False)
-    sat_smt_encoding = to_smt(formula, context, theory)
+    sat_smt_encoding = to_smt(formula, context, theory, options["strict"])
     if sat_smt_encoding is None:
         log.error("failed to generate SMT encoding for program", program.loc)
         return command.ReturnCode.ERROR
+
     result = run_smt_solver(
         sat_smt_encoding,
         theory,
@@ -1362,7 +1188,17 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
         options["smt_max_memory"],
         context.stats,
     )
-    status = status and check_sat_result(result, symbol="program", quiet=options["quiet"])
+    status = status and check_sat_result(result)
+
+    log.debug(1, f"program is {result.value}")
+
+    if not check_sat_result(result):
+        log.error(f"unexpected result from SMT solver for program: {result}")
+    elif not options["print"] and result in [SatResult.UNSAT, SatResult.UNKNOWN]:
+        log.warning(f"program is {result.value}")
+    elif options["print"]:
+        print(f"program : {result.value}")
+
     return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
 
 check_sat_command = command.Command(
@@ -1376,8 +1212,15 @@ check_sat_command = command.Command(
         "default": None,
         "choices": [member.value for member in SMTTheory]
     }, {
-        "name": "quiet",
-        "description": "Whether to print output",
+        "name": "strict",
+        "description": "Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
+    }, {
+        "name": "print",
+        "description": "Whether to print the results of the satisfiability checks. If not provided, unsat and unknown results will be sent as warnings.",
         "required": False,
         "type": bool,
         "default": False,
@@ -1407,6 +1250,7 @@ def to_smt_equiv(
     expr2: cpt.Expression,
     context: cpt.Context,
     theory: SMTTheory,
+    strict: bool,
 ) -> Optional[str]:
     log.debug(
         1, f"encoding equivalence SMT encoding for:\n\t{repr(expr1)}\n\t\t<->\n\t{repr(expr2)}",
@@ -1418,7 +1262,7 @@ def to_smt_equiv(
         set_parents=False,
     )
 
-    return to_smt(neg_equiv_expr, context, theory)
+    return to_smt(neg_equiv_expr, context, theory, strict)
 
 def write_equiv_smt(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """
@@ -1427,6 +1271,7 @@ def write_equiv_smt(program: cpt.Program, context: cpt.Context, options: dict[st
     `options` is a dictionary of options for the writing.
     - `location`: The path to write the SMT encoding(s) to
     - `theory`: The SMT theory to use
+    - `strict`: Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.
 
     Returns:
         a ReturnCode.SUCCESS if the encoding was written successfully, ReturnCode.ERROR otherwise
@@ -1462,7 +1307,7 @@ def write_equiv_smt(program: cpt.Program, context: cpt.Context, options: dict[st
             log.debug(2, f"found contract '{formula2.symbol}', skipping")
             continue
 
-        equiv_smt = to_smt_equiv(formula1.get_expr(), formula2.get_expr(), context, theory)
+        equiv_smt = to_smt_equiv(formula1.get_expr(), formula2.get_expr(), context, theory, options["strict"])
         if not equiv_smt:
             log.error("failed to generate SMT encoding for equivalence", formula1.loc)
             return command.ReturnCode.ERROR
@@ -1490,6 +1335,13 @@ write_equiv_smt_command = command.Command(
         "type": str,
         "default": None,
         "choices": [member.value for member in SMTTheory]
+    }, {
+        "name": "strict",
+        "description": "Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
     }],
     func=write_equiv_smt,
     guards=[command.DESUGARED],
@@ -1497,20 +1349,27 @@ write_equiv_smt_command = command.Command(
 command.CommandRegistry.register(write_equiv_smt_command)
 
 def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
-    """Check that all formulas in the program are equivalent.
+    """Checks that all formulas in the program are equivalent.
     
     `options` is a dictionary of options for the checking.
     - `theory`: The SMT theory to use
+    - `strict`: Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.
+    - `quiet`: Whether to print the results of the equivalence checks.
     - `smt_max_time`: The maximum time to allow for the SMT solver in seconds
     - `smt_max_memory`: The maximum memory to allow for the SMT solver in MB, use 0 for no maximum
 
     Returns:
         a ReturnCode.SUCCESS if the equivalence was checked successfully, ReturnCode.ERROR otherwise
     """
+    class EquivResult(enum.Enum):
+        EQUIV = "equiv"
+        NOT_EQUIV = "not-equiv"
+        UNKNOWN = "unknown"
+
+    status = True
+    equiv = EquivResult.EQUIV
     theory = SMTTheory(options["theory"]) # We have to cast to SMTTheory since the command parser will return a string
 
-    log.debug(1, "checking equivalence of program")
-    
     for spec1, spec2 in zip(program.get_specs(), program.get_specs()[1:]):
         if isinstance(spec1, cpt.Contract):
             log.warning("found contract, skipping")
@@ -1519,13 +1378,16 @@ def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, A
         if isinstance(spec2, cpt.Contract):
             log.warning("found contract, skipping")
             continue
-            
+
+        log.debug(1, f"checking equivalence of '{cpt.get_spec_str_reference(spec1)}' and '{cpt.get_spec_str_reference(spec2)}'")
+
         expr1 = spec1.get_expr()
         expr2 = spec2.get_expr()
-        equiv_smt = to_smt_equiv(expr1, expr2, context, theory)
+        equiv_smt = to_smt_equiv(expr1, expr2, context, theory, options["strict"])
         if equiv_smt is None:
             log.error("failed to generate SMT encoding for equivalence", spec1.loc)
-            return command.ReturnCode.ERROR
+            status = False
+            continue
 
         result = run_smt_solver(
             equiv_smt,
@@ -1534,19 +1396,22 @@ def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, A
             options["smt_max_memory"],
             context.stats,
         )
-        if not check_sat_result(result, quiet=True):
-            return command.ReturnCode.ERROR
-        elif result == SatResult.SAT:
-            print("not equivalent") if not options["quiet"] else None
-            return command.ReturnCode.ERROR
-        elif result == SatResult.UNSAT:
-            print("equivalent") if not options["quiet"] else None
-            return command.ReturnCode.SUCCESS
-        else:
-            print("unknown") if not options["quiet"] else None
-            return command.ReturnCode.ERROR
+        status = status and check_sat_result(result)
+        spec_str_reference = f"{cpt.get_spec_str_reference(spec1)} = {cpt.get_spec_str_reference(spec2)}"
 
-    return command.ReturnCode.SUCCESS
+        if result == SatResult.SAT:
+            equiv = EquivResult.NOT_EQUIV
+            log.debug(1, f"'{spec_str_reference}' does not hold")
+        elif result == SatResult.UNSAT:
+            log.debug(1, f"'{spec_str_reference}' holds")
+        else:
+            equiv = equiv if equiv == EquivResult.NOT_EQUIV else EquivResult.UNKNOWN
+            log.debug(1, f"'{spec_str_reference}' is unknown")
+
+    if not options["quiet"]:
+        print(equiv.value)
+
+    return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
 
 check_equiv_command = command.Command(
     name="check_equiv",
@@ -1560,8 +1425,16 @@ check_equiv_command = command.Command(
         "choices": [member.value for member in SMTTheory]
     }, 
     {
+        "name": "strict",
+        "description": "Whether to use the strict SMT encoding. If not provided, the encoding will be non-strict. Strict encoding checks whether a trace of any length satisfies the encoding, non-strict encoding only checks whether a trace of length cplen satisfies the encoding.",
+        "required": False,
+        "type": bool,
+        "default": False,
+        "choices": None
+    },
+    {
         "name": "quiet",
-        "description": "Whether to print output",
+        "description": "Whether to print the results of the equivalence checks.",
         "required": False,
         "type": bool,
         "default": False,
@@ -1586,103 +1459,3 @@ check_equiv_command = command.Command(
     guards=[command.DESUGARED],
 )   
 command.CommandRegistry.register(check_equiv_command)
-
-# def check_sat_qfbv_incr(start: cpt.Expression, context: cpt.Context) -> SatResult:
-#     """Incrementally searches for an int `len` up to `start.wpd` such that `check_sat(to_qfbv_smtlib2(start, context, len))` is not unknown."""
-#     total_sat_time: float = 0
-#     total_enc_time: float = 0
-#     trace_len: int = 1
-
-#     def update_stats(enc_time: float, sat_time: float, result: SatResult) -> None:
-#         context.stats.smt_num_calls += 1
-#         context.stats.smt_solver_time += sat_time
-#         context.stats.smt_encoding_time += enc_time
-#         context.stats.smt_solver_result = result.value
-
-#     def done(result: SatResult) -> bool:
-#         # We know we are done when the result is sat, timeout, or failure or we have checked traces with length up to start.wpd + 1
-#         nonlocal trace_len
-#         return result in {SatResult.SAT, SatResult.TIMEOUT, SatResult.MEMOUT, SatResult.FAILURE} or trace_len >= (start.wpd + 1)
-
-#     log.debug(
-#         MODULE_CODE,
-#         1,
-#         f"Checking satisfiability of MLTL formula in QF_BV logic:\n\t{repr(start)}",
-#     )
-
-#     if context.enable_booleanizer:
-#         log.warning(
-#             MODULE_CODE,
-#             "Booleanizer enabled, skipping QF_BV sat check.\n\t"
-#             "Consider using a different SMT theory.",
-#         )
-#         return SatResult.UNKNOWN
-
-#     # start with a quick check
-#     enc_start = util.get_rusage_time()
-#     smt = to_qfbv_smtlib2(start, context, trace_len)
-#     enc_end = util.get_rusage_time()
-#     enc_time = enc_end - enc_start
-#     total_enc_time += enc_time
-
-#     smt_path = context.workdir / "qfbv_incr_1.smt2"
-#     with open(smt_path, "w") as f:
-#         f.write(smt)
-#     (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.smt_max_time)
-
-#     total_sat_time += sat_time
-#     update_stats(enc_time, sat_time, result)
-#     if done(result):
-#         return result
-
-#     # if wpd is less than 256 then just go straight for it
-#     if start.wpd <= 255:
-#         trace_len = start.wpd + 1
-#         enc_start = util.get_rusage_time()
-#         smt = to_qfbv_smtlib2(start, context, trace_len)
-#         enc_end = util.get_rusage_time()
-#         enc_time = enc_end - enc_start
-#         total_enc_time += enc_time
-
-#         smt_path = context.workdir / "qfbv_incr_2.smt2"
-#         with open(smt_path, "w") as f:
-#             f.write(smt)
-#         (result, sat_time) = run_smt_solver(smt_path, context, timeout=context.smt_max_time)
-
-#         total_sat_time += sat_time
-#         update_stats(enc_time, sat_time, result)
-#         return result
-
-#     # otherwise wpd >= 256, so try its bpd first, then its wpd
-#     trace_len = start.bpd + 1
-#     enc_start = util.get_rusage_time()
-#     smt = to_qfbv_smtlib2(start, context, trace_len)
-#     enc_end = util.get_rusage_time()
-#     enc_time = enc_end - enc_start
-#     total_enc_time += enc_time
-
-#     smt_path = context.workdir / "qfbv_incr_3.smt2"
-#     with open(smt_path, "w") as f:
-#         f.write(smt)
-#     (result, sat_time) = run_smt_solver(smt_path, context)
-
-#     total_sat_time += sat_time
-#     update_stats(enc_time, sat_time, result)
-#     if done(result):
-#         return result
-    
-#     trace_len = start.wpd + 1
-#     enc_start = util.get_rusage_time()
-#     smt = to_qfbv_smtlib2(start, context, trace_len)
-#     enc_end = util.get_rusage_time()
-#     enc_time += enc_end - enc_start
-#     total_enc_time += enc_time
-
-#     smt_path = context.workdir / "qfbv_incr_4.smt2"
-#     with open(smt_path, "w") as f:
-#         f.write(smt)
-#     (result, sat_time) = run_smt_solver(smt_path, context)
-
-#     total_sat_time += sat_time
-#     update_stats(enc_time, sat_time, result)
-#     return result

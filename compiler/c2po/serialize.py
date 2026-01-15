@@ -1,5 +1,5 @@
 from typing import Any
-from c2po import cpt, command
+from c2po import cpt, command, log
 
 def write_c2po(
     program: cpt.Program,
@@ -61,8 +61,14 @@ def write_mltl(
     options: dict[str, Any]
 ) -> command.ReturnCode:
     """Writes the MLTL standard representation of the program to the given filename."""
+    content = cpt.to_mltl_std(program, context)
+    if content == "":
+        log.error("failed to generate MLTL standard representation")
+        return command.ReturnCode.ERROR
+
     with open(options["filename"], "w") as f:
-        f.write(cpt.to_mltl_std(program, context))
+        f.write(content)
+
     return command.ReturnCode.SUCCESS
 
 write_mltl_command = command.Command(
@@ -79,7 +85,7 @@ write_mltl_command = command.Command(
         },
     ],
     func=write_mltl,
-    guards=[],
+    guards=[command.COMPUTED_ATOMICS],
 )
 command.CommandRegistry.register(write_mltl_command)
 

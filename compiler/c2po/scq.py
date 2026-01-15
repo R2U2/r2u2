@@ -8,7 +8,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
     """Computes SCQ sizes for each node. Returns the total SCQ size.
     
     `options` is a dictionary of options for the SCQ size computation.
-    - `scq_constant`: A constant to add to the SCQ size of each node
+    - `scq-constant`: A constant to add to the SCQ size of each node
     """
     scq_constant = options["scq_constant"]
     total_scq_size = 0
@@ -55,7 +55,7 @@ compute_scq_sizes_command = command.Command(
     name="compute_scq_sizes",
     description="Compute SCQ sizes for the program. Likely does not need to be run manually.",
     options=[{
-        "name": "scq_constant",
+        "name": "scq-constant",
         "description": "A constant to add to the SCQ size of each node",
         "required": False,
         "type": int,

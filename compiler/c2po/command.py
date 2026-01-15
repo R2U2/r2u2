@@ -157,7 +157,13 @@ class Command:
         return None
 
     def parse_args(self, args: list[str]) -> dict[str, Any]:
-        return vars(self.argparser.parse_args(args))
+        """
+        Parse the command arguments and return a dictionary of options.
+        Convert all hyphenated options to underscored options for consistency. 
+        argparse does this automatically for non-positional arguments, so we do it for positional arguments as well.
+        For example, "--mission-time" becomes "mission_time".
+        """
+        return {n.replace("-", "_"): v for n, v in vars(self.argparser.parse_args(args)).items()}
         
     def execute(self, program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> Union[ReturnCode, cpt.Program, None]:
         log.debug(1, f"executing {self.name} {self.parsed_options_to_str(options)}")
@@ -205,7 +211,7 @@ class CompositeCommand(Command):
             name=name,
             description=description,
             options=options,
-            func=lambda program, context, options: self.execute(program, context, options),
+            func=self.execute,
             guards=guards,
         )
         self.commands = commands
@@ -367,7 +373,11 @@ print_program_c2po_command = Command(
 CommandRegistry.register(print_program_c2po_command)
 
 def print_program_mltl(program: cpt.Program, context: cpt.Context) -> ReturnCode:
-    print(cpt.to_mltl_std(program, context))
+    content = cpt.to_mltl_std(program, context)
+    if content == "":
+        log.error("failed to generate MLTL standard representation")
+        return ReturnCode.ERROR
+    print(content[:-1]) # Remove the trailing newline
     return ReturnCode.SUCCESS
 
 print_program_mltl_command = Command(

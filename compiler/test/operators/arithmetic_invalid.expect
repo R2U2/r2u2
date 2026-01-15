@@ -1,8 +1,8 @@
 type_check: error: arithmetic_invalid.c2po:5: power function invalid for integer expressions with negative exponents (-1).
-	(i0 pow -1)
+    (i0 pow -1)
 type_check: error: arithmetic_invalid.c2po:6: power function invalid for integer expressions with possible negative integer exponents (i1).
-	(i0 pow i1)
+    (i0 pow i1)
 type_check: error: arithmetic_invalid.c2po:7: square root invalid for integer expressions (1).
-	(sqrt 1)
+    (sqrt 1)
 type_check: error: arithmetic_invalid.c2po:8: square root invalid for integer expressions (i1).
-	(sqrt i1)
+    (sqrt i1)
