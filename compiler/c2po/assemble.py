@@ -1074,12 +1074,14 @@ unsafe_assemble_command = command.Command(
     func=assemble,
     guards=[
         command.VALID_PROGRAM,
+        command.VALID_SIGNAL_MAPPING,
         command.WELL_TYPED,
         command.DESUGARED,
         command.VALID_SCQ_SIZES,
         command.COMPUTED_ATOMICS,
         command.ONLY_BINARY_OPERATORS,
         command.NO_EXTENDED_OPERATORS,
+        command.ATOMIC_CONSISTENT_SIGNAL_MAPPING,
     ],
 )
 command.CommandRegistry.register(unsafe_assemble_command)

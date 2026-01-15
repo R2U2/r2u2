@@ -1,3 +1,1 @@
-parse_map: error: ../default.map:1: map file does not contain all signals in the program: b100
-error: guard condition not met for type_check: valid signal mapping
-    consider trying one of the following commands: parse_map, parse_trace
+parse_map: error: ../default.map:1: map file does not contain all signals in the program: b100, b100

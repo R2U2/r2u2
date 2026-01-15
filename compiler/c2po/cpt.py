@@ -1373,6 +1373,13 @@ class Program(Node):
         self.ft_spec_set = SpecificationSet(loc, ft_specs)
         self.pt_spec_set = SpecificationSet(loc, pt_specs)
 
+        self.definitions: list[Definition] = [
+            d
+            for section in sections
+            if isinstance(section, DefineSection)
+            for d in section.defines
+        ]
+
         self.total_scq_size = -1
         self.is_dummy = False
         self.is_well_typed = False
@@ -1419,6 +1426,18 @@ class Program(Node):
             yield expr
 
         for expr in preorder(self.pt_spec_set, context):
+            yield expr
+
+    def postorder_with_definitions(self, context: Context):
+        """Performs a postorder traversal of each Definition, FT and PT specification in this `Program`."""
+        for definition in self.definitions:
+            for expr in postorder(definition.expr, context):
+                yield expr
+
+        for expr in self.postorder(context):
+            yield expr
+        
+        for expr in self.preorder(context):
             yield expr
 
     def pickle(self) -> bytes:
@@ -2079,6 +2098,21 @@ def is_valid_program(program: Program, context: Context) -> bool:
 def has_valid_signal_mapping(program: Program, context: Context) -> bool:
     return all(
         expr.symbol in context.signal_mapping
+        and expr.signal_id == context.signal_mapping[expr.symbol]
+        for expr in program.postorder(context)
+        if isinstance(expr, Signal)
+    )
+
+def has_atomic_consistent_signal_mapping(program: Program, context: Context) -> bool:
+    """
+    Returns True if the signal mapping is consistent with the atomic mapping.
+    This is only used when the booleanizer is disabled, i.e., signals are directly loaded as atomics.
+    In this case, each signal's atomic ID must be the same as its signal ID.    
+    """
+    if context.enable_booleanizer:
+        return True
+    return all(
+        expr in context.atomic_id_map and context.atomic_id_map[expr] == expr.signal_id
         for expr in program.postorder(context)
         if isinstance(expr, Signal)
     )

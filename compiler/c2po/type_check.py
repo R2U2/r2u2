@@ -59,13 +59,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             expr.type = types.IntType()
         elif isinstance(expr, cpt.Signal):
-            if expr.symbol not in context.signal_mapping:
-                log.error(
-                    f"mapping does not contain signal '{expr.symbol}'",
-                    expr.loc,
-                )
-                return False
-
             if (
                 not context.enable_booleanizer
                 and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
@@ -79,9 +72,6 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if context.enable_booleanizer:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
-
-            if expr.symbol in context.signal_mapping:
-                expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.Variable):
@@ -580,6 +570,6 @@ type_check_command = command.Command(
     description="Type check the program and construct a context.",
     options=[],
     func=type_check,
-    guards=[command.VALID_PROGRAM, command.VALID_SIGNAL_MAPPING],
+    guards=[command.VALID_PROGRAM],
 )
 command.CommandRegistry.register(type_check_command)

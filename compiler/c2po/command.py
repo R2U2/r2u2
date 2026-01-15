@@ -36,26 +36,50 @@ class CommandGuard(NamedTuple):
     predicate: Callable[[cpt.Program, cpt.Context], bool]
 
 VALID_PROGRAM = CommandGuard(name="valid program", predicate=cpt.is_valid_program)
-VALID_SIGNAL_MAPPING = CommandGuard(name="valid signal mapping", predicate=cpt.has_valid_signal_mapping)
+VALID_SIGNAL_MAPPING = CommandGuard(
+    name="valid signal mapping", predicate=cpt.has_valid_signal_mapping
+)
 WELL_TYPED = CommandGuard(name="well-typed", predicate=cpt.is_well_typed_program)
 DESUGARED = CommandGuard(name="desugared", predicate=cpt.is_desugared)
-VALID_SCQ_SIZES = CommandGuard(name="valid SCQ sizes", predicate=cpt.has_valid_scq_sizes)
-COMPUTED_ATOMICS = CommandGuard(name="computed atomics", predicate=cpt.has_computed_atomics)
-ONLY_BINARY_OPERATORS = CommandGuard(name="only binary operators", predicate=cpt.is_only_binary_operators)
-NO_EXTENDED_OPERATORS = CommandGuard(name="no extended operators", predicate=cpt.has_no_extended_operators)
+VALID_SCQ_SIZES = CommandGuard(
+    name="valid SCQ sizes", predicate=cpt.has_valid_scq_sizes
+)
+COMPUTED_ATOMICS = CommandGuard(
+    name="computed atomics", predicate=cpt.has_computed_atomics
+)
+ONLY_BINARY_OPERATORS = CommandGuard(
+    name="only binary operators", predicate=cpt.is_only_binary_operators
+)
+NO_EXTENDED_OPERATORS = CommandGuard(
+    name="no extended operators", predicate=cpt.has_no_extended_operators
+)
 ASSEMBLED = CommandGuard(name="assembled", predicate=cpt.is_assembled)
+ATOMIC_CONSISTENT_SIGNAL_MAPPING = CommandGuard(
+    name="atomic ID consistent with signal ID, try running compute_atomics after parse_map",
+    predicate=cpt.has_atomic_consistent_signal_mapping,
+)
 
 # Dependency graph of guard conditions.
 GUARD_DEPENDENCIES: dict[CommandGuard, list[CommandGuard]] = {
     VALID_PROGRAM: [],
     VALID_SIGNAL_MAPPING: [],
-    WELL_TYPED: [VALID_PROGRAM, VALID_SIGNAL_MAPPING],
+    WELL_TYPED: [VALID_PROGRAM],
     DESUGARED: [WELL_TYPED],
     VALID_SCQ_SIZES: [DESUGARED],
     COMPUTED_ATOMICS: [DESUGARED],
     ONLY_BINARY_OPERATORS: [DESUGARED],
     NO_EXTENDED_OPERATORS: [DESUGARED],
-    ASSEMBLED: [DESUGARED, VALID_SCQ_SIZES, COMPUTED_ATOMICS, ONLY_BINARY_OPERATORS, NO_EXTENDED_OPERATORS],
+    ATOMIC_CONSISTENT_SIGNAL_MAPPING: [VALID_SIGNAL_MAPPING, COMPUTED_ATOMICS],
+    ASSEMBLED: [
+        VALID_PROGRAM,
+        VALID_SIGNAL_MAPPING,
+        DESUGARED,
+        VALID_SCQ_SIZES,
+        COMPUTED_ATOMICS,
+        ONLY_BINARY_OPERATORS,
+        NO_EXTENDED_OPERATORS,
+        ATOMIC_CONSISTENT_SIGNAL_MAPPING,
+    ],
 }
 
 class Command:
@@ -226,12 +250,15 @@ class CompositeCommand(Command):
         for command in self.commands:
             failed_guard = command.check_guards(program, context)
             if failed_guard is not None:
-                log.error(f"guard condition not met for {command.name}: {failed_guard.name}")
                 return ReturnCode.GUARD_CONDITION_NOT_MET
             result = command.execute(program, context, options)
             if result is None or result != ReturnCode.SUCCESS:
                 return result
         return ReturnCode.SUCCESS
+
+    def check_guards(self, program: cpt.Program, context: cpt.Context) -> Optional[CommandGuard]:
+        """Check that the guard conditions are valid for the first sub-command."""
+        return self.commands[0].check_guards(program, context)
 
     def __str__(self) -> str:
         return "\n".join([str(command) for command in self.commands])

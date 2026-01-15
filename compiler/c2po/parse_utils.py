@@ -2,13 +2,21 @@ import re
 from typing import Any
 from c2po import types, log, command, cpt, util
 
-def missing_signals(program: cpt.Program, context: cpt.Context) -> list[str]:
-    return [
-        expr.symbol
-        for expr in program.postorder(context)
-        if isinstance(expr, cpt.Signal)
-        and expr.symbol not in context.signal_mapping
-    ]
+def assign_signal_ids(program: cpt.Program, context: cpt.Context, signal_mapping: types.SignalMapping) -> list[str]:
+    """
+    Assign signal IDs to the signals in the program.
+
+    Returns:
+        A list of signals that were not present in the signal mapping.
+    """
+    missing_signals = []
+    for expr in program.postorder_with_definitions(context):
+        if isinstance(expr, cpt.Signal):
+            if expr.symbol not in signal_mapping:
+                missing_signals.append(expr.symbol)
+            else:
+                expr.signal_id = signal_mapping[expr.symbol]
+    return missing_signals
 
 def parse_trace_file(
     program: cpt.Program,
@@ -64,7 +72,7 @@ def parse_trace_file(
         cnt += 1
 
     context.signal_mapping = signal_mapping
-    missing = missing_signals(program, context)
+    missing = assign_signal_ids(program, context, signal_mapping)
     if len(missing) > 0:
         log.error(
             f"trace file does not contain all signals in the program: {', '.join(missing)}",
@@ -132,7 +140,7 @@ def parse_map_file(program: cpt.Program, context: cpt.Context, options: dict[str
             return command.ReturnCode.ERROR
 
     context.signal_mapping = mapping
-    missing = missing_signals(program, context)
+    missing = assign_signal_ids(program, context, mapping)
     if len(missing) > 0:
         log.error(
             f"map file does not contain all signals in the program: {', '.join(missing)}",

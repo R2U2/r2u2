@@ -240,7 +240,9 @@ class MLTLParser(sly.Parser):
     @_("TL_ATOMIC")
     def expr(self, p):
         self.atomics.add(p[0])
-        return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
+        signal = cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
+        signal.signal_id = int(p[0][1:])
+        return signal
 
     # Shorthand interval
     @_("LBRACK bound RBRACK")

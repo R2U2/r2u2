@@ -1,6 +1,7 @@
 parse_c2po struct.c2po
 parse_map ../default.map
-enable_booleanizer
 type_check
 desugar
-print_prefix
+compute_atomics
+compute_scq_sizes
+assemble /dev/null --print

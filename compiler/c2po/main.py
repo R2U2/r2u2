@@ -57,15 +57,15 @@ command.CommandRegistry.register(compile_command)
 
 # A dictionary of failed guard conditions to the command that will likely fix them
 FAILED_GUARD_SUGGESTIONS: dict[command.CommandGuard, list[command.Command]] = {
-    command.VALID_PROGRAM: [parse_c2po.parse_c2po_command],
-    command.VALID_SIGNAL_MAPPING: [parse_utils.parse_map_command, parse_utils.parse_trace_command],
+    command.VALID_PROGRAM: [parse_c2po.parse_c2po_command, parse_mltl.parse_mltl_command],
+    command.VALID_SIGNAL_MAPPING: [parse_utils.parse_map_command, parse_utils.parse_trace_command, parse_mltl.parse_mltl_command],
     command.WELL_TYPED: [type_check.type_check_command],
     command.DESUGARED: [desugar.desugar_command],
     command.VALID_SCQ_SIZES: [scq.compute_scq_sizes_command],
     command.COMPUTED_ATOMICS: [atomics.compute_atomics_command],
     command.ONLY_BINARY_OPERATORS: [transform.multi_operators_to_binary_command],
     command.NO_EXTENDED_OPERATORS: [transform.remove_extended_operators_command],
-    command.ASSEMBLED: [assemble.assemble_command]
+    command.ASSEMBLED: [assemble.assemble_command],
 }
 
 class CommandConsole(code.InteractiveConsole):
