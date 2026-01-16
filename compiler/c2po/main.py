@@ -219,6 +219,7 @@ def cli(
     trace_filename: Optional[str],
     map_filename: Optional[str],
     output_filename: Optional[str],
+    write_bounds_filename: Optional[str],
     quiet: bool,
     debug: bool,
     only_parse: bool,
@@ -315,6 +316,16 @@ def cli(
     if output_filename:
         script_lines.append(f"assemble {'--aux' if enable_aux else ''} {'--print' if not quiet else ''} {'--scq-constant ' + str(scq_constant) if scq_constant > 0 else ''} {output_filename}")
 
+    if write_bounds_filename:
+        bounds_path = pathlib.Path(write_bounds_filename)
+        if bounds_path.suffix == ".h":
+            script_lines.append(f"write_bounds_c {bounds_path}")
+        elif bounds_path.suffix == ".toml":
+            script_lines.append(f"write_bounds_rust {bounds_path}")
+        else:
+            log.error(f"invalid bounds file: {bounds_path}")
+            return command.ReturnCode.FILE_NOT_FOUND
+
     try:
         with tempfile.NamedTemporaryFile() as temp_file:
             temp_file.write("\n".join(script_lines).encode('utf-8'))
@@ -328,7 +339,6 @@ def main_rs(
     spec_filename: str,
     trace_filename: str,
     map_filename: str,
-    impl_str: str,
     output_filename: str,
     write_bounds_filename: str,
     enable_aux: bool,
@@ -338,12 +348,20 @@ def main_rs(
     enable_sat: bool,
     timeout_sat: int
 ):
-    """Wrapper for main function to allow for easier interfacing with Rust CLI tool and playground."""
+    """
+    Wrapper for main function to allow for easier interfacing with Rust CLI tool and playground. 
+    
+    The library used for interfacing the Python code in Rust is PyO3 and has a small limit on the
+    number of arguments that can be passed (~10), so we wrap the main function in a wrapper and pass
+    in default values for the arguments that are not needed. These arguments are not able to be used
+    in the Rust CLI tool and playground as a result.
+    """
     return cli(
         spec_filename=spec_filename,
         trace_filename=trace_filename if trace_filename != "" else None,
         map_filename=map_filename if map_filename != "" else None,
         output_filename=output_filename if output_filename != "" else None,
+        write_bounds_filename=write_bounds_filename if write_bounds_filename != "" else None,
         enable_aux=enable_aux,
         enable_booleanizer=enable_booleanizer,
         enable_cse=enable_cse,

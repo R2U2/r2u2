@@ -46,6 +46,12 @@ parser.add_argument(
     help="location where specification binary will be written (default: %(default)s)",
 )
 parser.add_argument(
+    "--write-bounds",
+    type=str,
+    help="location where bounds file will be written, must have .h or .toml extension (default: none)",
+    default="",
+)
+parser.add_argument(
     "-q",
     "--quiet",
     action="store_const",
@@ -237,6 +243,7 @@ elif args.spec:
         trace_filename=args.trace,
         map_filename=args.map,
         output_filename=args.output,
+        write_bounds_filename=args.write_bounds,
         quiet=args.quiet,
         debug=args.debug,
         only_parse=args.parse,

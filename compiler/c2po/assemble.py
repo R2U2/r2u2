@@ -1115,6 +1115,90 @@ assemble_command = command.CompositeCommand(
 )
 command.CommandRegistry.register(assemble_command)
 
+def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tuple[Union[int, float], str, str]]:
+    """
+    Computes values for bounds file. Returns a dictionary of bounds, their descriptions, and the language they target. 
+    The language targets are "c" for C and "rust" for Rust or "c rust" for both.
+    """
+    assembly = context.assembly
+    num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
+    num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
+    num_temporal_instructions = len([i for i in assembly if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
+    num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
+    num_aliases_bytes = sum([
+        (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
+    ])
+    num_signals = len(context.signals)
+    num_atomics = len(set(context.atomic_id_map.values()))
+    total_scq_size = sum([
+        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
+    ])
+
+    return {
+        "R2U2_MAX_AUX_BYTES": (
+            num_aliases_bytes + num_aliases, # each alias string + null terminator
+            "Size of string arena, in bytes, for auxiliary output. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c"
+        ),  
+        "R2U2_MAX_OUTPUT_VERDICTS": (
+            # TODO: This is currently just an estimate
+            2 * len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]), 
+            "Maximum number of output verdicts that can be returned at a single timestamp",
+            "rust"
+        ),  
+        "R2U2_MAX_OUTPUT_CONTRACTS": (
+            # TODO: This is currently just an estimate
+            2 * len([i for i in context.contracts.items()]), 
+            "Maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)",
+            "rust"
+        ),  
+        "R2U2_AUX_MAX_FORMULAS": (
+            len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]),
+            "Maximum number of formulas being monitored. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c rust"
+        ),
+        "R2U2_AUX_MAX_CONTRACTS": (
+            len([i for i in context.contracts.items()]),
+            "Maximum number of assume-guarantee contracts being monitored. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c rust"
+        ),
+        "R2U2_MAX_SIGNALS": (
+            num_signals if context.enable_booleanizer else 0,
+            "Maximum number of input signals",
+            "c rust"
+        ),
+        "R2U2_MAX_ATOMICS": (
+            num_atomics,
+            "Maximum number of Booleans passed from the frontend (from the booleanizer or directly loaded atomics) to the temporal logic engine",
+            "c rust"
+        ),
+        "R2U2_MAX_BZ_INSTRUCTIONS": (
+            num_bz,
+            "Maximum number of booleanizer instructions. Reserved for the booleanizer engine.",
+            "c rust"
+        ),
+        "R2U2_MAX_TL_INSTRUCTIONS": (
+            num_tl,
+            "Maximum number of temporal logic instructions. Reserved for the temporal logic engine.",
+            "c rust"
+        ),
+        "R2U2_MAX_TEMPORAL_OPERATORS": (
+            num_temporal_instructions,
+            "Maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)",
+            "c"
+        ),
+        "R2U2_MAX_QUEUE_SLOTS": (
+            total_scq_size,
+            "Maximum number of SCQ slots for both future-time and past-time reasoning",
+            "c rust"
+        ),
+        "R2U2_FLOAT_EPSILON": (
+            0.00001,
+            "Error value used for float comparisons",
+            "c"
+        ),
+    }
+
 def write_bounds_c(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """
     Computes values for C `bounds.h` file and writes to file.
@@ -1123,34 +1207,16 @@ def write_bounds_c(program: cpt.Program, context: cpt.Context, options: dict[str
     - `filename`: The filename to write the bounds file to
     - `print`: Whether to print the bounds file to the console
     """
-    num_bz = len([i for i in context.assembly if isinstance(i, BZInstruction)])
-    num_tl = len([i for i in context.assembly if isinstance(i, TLInstruction)])
-    num_aliases = len([i for i in context.assembly if isinstance(i, AliasInstruction)])
-    num_signals = len(context.signals)
-    num_atomics = len(context.atomic_id_map.values())
-    total_scq_size = sum([
-        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in context.assembly if isinstance(i, CGInstruction)
-    ])
+    bounds = compute_bounds(program, context)
 
-    bounds: dict[str, Any] = {}
-    bounds["R2U2_MAX_INSTRUCTIONS"] = num_bz + num_tl
-    bounds["R2U2_MAX_SIGNALS"] = num_signals if context.enable_booleanizer else 0
-    bounds["R2U2_MAX_ATOMICS"] = num_atomics
-    bounds["R2U2_MAX_INST_LEN"] = len(context.binary)
-    bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    bounds["R2U2_MAX_AUX_STRINGS"] = num_aliases * 51 # each alias string is at most 50 bytes + null terminator
-    bounds["R2U2_SCQ_BYTES"] = num_tl * 32 + total_scq_size * 4
-    bounds["R2U2_FLOAT_EPSILON"] = 0.00001
-
-    contents = ""
     contents =  "#ifndef R2U2_BOUNDS_H\n"
     contents += "#define R2U2_BOUNDS_H\n"
     contents += "\n".join(
         [
-            f"#define {key} {value:F}"
-            if type(value) is float
-            else f"#define {key} {value}"
-            for key, value in bounds.items()
+            f"// {description}\n"
+            f"#define {key} {value:{'F' if type(value) is float else ''}}\n"
+            for key, (value, description, target) in bounds.items()
+            if "c" in target
         ]
     )
     contents += "\n#endif\n"
@@ -1197,35 +1263,15 @@ def write_bounds_rust(program: cpt.Program, context: cpt.Context, options: dict[
     - `filename`: The filename to write the bounds file to
     - `print`: Whether to print the bounds file to the console
     """
-    num_bz = len([i for i in context.assembly if isinstance(i, BZInstruction)])
-    num_tl = len([i for i in context.assembly if isinstance(i, TLInstruction)])
-    num_temporal_instructions = len([i for i in context.assembly if isinstance(i, TLInstruction) and i.operator.is_temporal()])
-    num_signals = len(context.signals)
-    num_atomics = len(context.atomic_id_map.values())
-    total_scq_size = sum([
-        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in context.assembly if isinstance(i, CGInstruction)
-    ])
+    bounds = compute_bounds(program, context)
 
-    bounds: dict[str, Any] = {}
-    bounds["R2U2_MAX_SPECS"] = sum(
-        [
-            spec.get_expr().wpd
-            for spec in program.get_specs()
-            if isinstance(spec, cpt.Formula)
-        ]
-    )
-    bounds["R2U2_MAX_SIGNALS"] = num_signals if context.enable_booleanizer else 0
-    bounds["R2U2_MAX_ATOMICS"] = num_atomics
-    bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    bounds["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    bounds["R2U2_TOTAL_QUEUE_MEM"] = total_scq_size - (4 * num_temporal_instructions)
-
-    contents = ""
     contents =  "[env]\n"
     contents += "\n".join(
         [
-            f'{key} = {{ value = "{value}", force = true }}'
-            for key, value in bounds.items()
+            f'# {description}\n'
+            f'{key} = {{ value = "{value}", force = true }}\n'
+            for key, (value, description, target) in bounds.items()
+            if "rust" in target
         ]
     )
     contents += "\n"
