@@ -167,7 +167,7 @@ def run_egglog(
         try:
             proc = subprocess.Popen(
                 command,
-                preexec_fn=util.set_max_memory(max_memory),
+                preexec_fn=util.set_max_memory_offset(max_memory),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )

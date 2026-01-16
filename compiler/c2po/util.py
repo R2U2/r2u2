@@ -1,7 +1,7 @@
 import resource
 import sys
 import re
-from typing import Optional
+from typing import Callable, Optional
 from c2po import log
 
 def read_file(filename: str) -> Optional[str]:
@@ -26,7 +26,6 @@ def format_bytes(bytes: int) -> str:
     else:
         return f"{bytes / 1024 / 1024 / 1024:.2f} GB"
     
-
 def get_rusage_time() -> float:
     """Returns sum of user and system mode times for the current and child processes in seconds. See https://docs.python.org/3/library/resource.html."""
     rusage_self = resource.getrusage(resource.RUSAGE_SELF)
@@ -38,43 +37,36 @@ def get_rusage_time() -> float:
         + rusage_child.ru_stime
     )
 
-
-def set_max_memory(bytes: int) -> None:
-    """Set the maximum memory in bytes."""
+def set_max_memory(mb: int) -> Callable[[], None]:
+    """Return a callable that sets the maximum memory in MB (for use with preexec_fn)."""
     if sys.platform == "darwin":
         log.debug(
             1, "macOS does not support setrlimit for RLIMIT_AS, ignoring max memory limit",
         )
-        return
-    
-    log.debug(1, f"setting max memory to {format_bytes(bytes)}")
+        return lambda: None
+    elif mb <= 0:
+        return lambda: None
+    else:
+        bytes = mb * 1024 * 1024
+        log.debug(1, f"setting max memory to {format_bytes(bytes)}")
+        return lambda: resource.setrlimit(resource.RLIMIT_AS, (bytes, resource.RLIM_INFINITY))
 
-    try:
-        resource.setrlimit(resource.RLIMIT_AS, (bytes, resource.RLIM_INFINITY))
-    except ValueError:
-        log.warning(
-            "failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
-        )
-    except OverflowError:
-        log.warning(
-            "failed to set max memory limit, provided limit is likely over current hard limit or OS does not support setrlimit for RLIMIT_AS",
-        )
+def set_max_memory_offset(mb: int) -> Callable[[], None]:
+    """Return a callable that sets the maximum memory in MB, offset by the current memory usage (for use with preexec_fn). Returns a no-op if the offset is zero or negative."""
+    if mb <= 0:
+        return lambda: None
 
-
-def set_max_memory_offset(bytes: int) -> None:
-    """Set the maximum memory in bytes, offset by the current memory usage. Does nothing if the offset is zero or negative."""
-    if bytes <= 0:
-        return
-
-    # these values are in kilobytes
+    # these values are in kilobytes (or bytes on macOS)
     rusage_self = resource.getrusage(resource.RUSAGE_SELF)
     rusage_child = resource.getrusage(resource.RUSAGE_CHILDREN)
     current_memory = rusage_self.ru_maxrss + rusage_child.ru_maxrss
     if sys.platform == "darwin":
-        # macOS returns memory usage in bytes
+        # macOS returns memory usage in bytes, convert to kilobytes
         current_memory = current_memory // 1024
 
     log.debug(1, f"current memory usage: {format_bytes(current_memory * 1024)}")
 
-    new_memory = bytes + current_memory
-    set_max_memory(new_memory)
+    current_memory_mb = current_memory // 1024
+    new_memory = mb + current_memory_mb
+
+    return set_max_memory(new_memory)
