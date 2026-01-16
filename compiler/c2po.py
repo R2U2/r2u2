@@ -255,7 +255,6 @@ elif args.spec:
         enable_eqsat_associative=args.eqsat_associative,
         enable_eqsat_commutative=args.eqsat_commutative,
         enable_eqsat_multi_arity=args.eqsat_multi_arity,
-        enable_eqsat_logical=args.eqsat_logical,
         enable_eqsat_temporal=args.eqsat_temporal,
         eqsat_max_time=args.eqsat_max_time,
         eqsat_max_memory=args.eqsat_max_memory,
