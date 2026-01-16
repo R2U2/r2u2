@@ -4,7 +4,6 @@ import sys
 import pathlib
 import tempfile
 import os
-import copy
 import shlex
 from typing import Optional
 from types import ModuleType
@@ -175,9 +174,7 @@ class CommandConsole(code.InteractiveConsole):
 
     def push_state(self) -> None:
         """Push the current state onto the state stack."""
-        self.state_stack.append(
-            (copy.deepcopy(self.program), copy.deepcopy(self.context))
-        )
+        self.state_stack.append(cpt.deepcopy_program_with_context(self.program, self.context))
 
     def pop_state(self) -> None:
         """Pop the current state from the state stack."""
@@ -194,7 +191,7 @@ def interactive() -> command.ReturnCode:
     console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)", exitmsg="")
     return console.last_return_code
 
-def script(script_filename: str) -> command.ReturnCode:
+def script(script_filename: str, chdir: bool = True) -> command.ReturnCode:
     """Execute REPL commands from a script file using the code library.
     
     This function reads commands from script_filename, executes them in a REPL context, then exits.
@@ -209,7 +206,8 @@ def script(script_filename: str) -> command.ReturnCode:
     # Set current working directory to the directory of the script file so that all paths are
     # relative to the script file
     script_path = pathlib.Path(script_filename)
-    os.chdir(script_path.parent)
+    if chdir:
+        os.chdir(script_path.parent)
 
     for line in contents.splitlines():
         console.runsource(line.strip())
@@ -321,7 +319,7 @@ def cli(
         with tempfile.NamedTemporaryFile() as temp_file:
             temp_file.write("\n".join(script_lines).encode('utf-8'))
             temp_file.flush()
-            return script(temp_file.name)
+            return script(temp_file.name, chdir=False)
     except OSError:
         log.error("problem writing temporary script file")
         return command.ReturnCode.FILE_NOT_FOUND

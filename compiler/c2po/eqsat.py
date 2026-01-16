@@ -85,8 +85,12 @@ def to_egglog(
 
     stack: list["tuple[int, cpt.Expression]"] = []
     stack.append((0, start))
-
+    
+    # Assign an integer to every non-Booleanizer expression (that is not an Atomic) in the program
     for expr in cpt.postorder(start, context):
+        if expr.engine == types.R2U2Engine.BOOLEANIZER and not isinstance(expr, cpt.Atomic):
+            continue
+
         expr_map[expr] = expr_cnt
         expr_cnt += 1
 

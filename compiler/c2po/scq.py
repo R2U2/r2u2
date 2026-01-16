@@ -12,6 +12,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
     """
     scq_constant = options["scq_constant"]
     total_scq_size = 0
+
     for expr in cpt.postorder(cast("list[cpt.Expression]", program.get_specs()), context):
         if isinstance(expr, cpt.SpecSection):
             continue
@@ -38,6 +39,9 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
             total_scq_size - expr.scq_size,
             total_scq_size,
         )
+
+        log.debug(2, f"siblings of {repr(expr)} = {[repr(sibling) for sibling in expr.get_siblings()]}")
+        log.debug(2, f"max_wpd: {max_wpd}, expr.bpd: {expr.bpd}")
 
     for expr in program.postorder(context):
         if (

@@ -1,6 +1,5 @@
 """C2PO Parse Tree (CPT) represents structure of a .c2po or .mltl file."""
 from __future__ import annotations
-import copy
 import enum
 import pickle
 import re
@@ -127,6 +126,9 @@ class Expression(Node):
     def __repr__(self) -> str:
         return to_prefix_str(self, with_internal_labels=True)
 
+    def deepcopy(self, context: Context) -> Expression:
+        return deepcopy_expr(self, context, {})
+
 class Constant(Expression):
     def __init__(self, loc: log.FileLocation, value: Any) -> None:
         super().__init__(loc, [])
@@ -143,11 +145,6 @@ class Constant(Expression):
         else:
             raise ValueError(f"Bad value ({value})")
 
-    def __deepcopy__(self, memo):
-        new = Constant(self.loc, self.value)
-        self.copy_attrs(new)
-        return new
-
 class MissionTime(Expression):
     """MissionTime is a special variable that represents the symbolic mission time. This is only
     used in equivalence checking when the input format is .equiv. It is not used in any other
@@ -160,11 +157,6 @@ class MissionTime(Expression):
         super().__init__(loc, [])
         self.symbol = "M"
         self.type = types.IntType(True)
-
-    def __deepcopy__(self, memo):
-        new = MissionTime(self.loc)
-        self.copy_attrs(new)
-        return new
 
 class CurrentTimestamp(Expression):
     first_time_seen = True
@@ -181,11 +173,6 @@ class CurrentTimestamp(Expression):
             )
         CurrentTimestamp.first_time_seen = False
 
-    def __deepcopy__(self, memo):
-        new = CurrentTimestamp(self.loc)
-        self.copy_attrs(new)
-        return new
-
 class Variable(Expression):
     """Variables represent bound variables in set aggregations."""
     def __init__(self, loc: log.FileLocation, s: str) -> None:
@@ -196,16 +183,13 @@ class Variable(Expression):
         return isinstance(__o, Variable) and __o.symbol == self.symbol
 
     def __hash__(self) -> int:
+        # TODO: Check that this is correct, seems like if two objects are equal their hashes should
+        # be the same
+
         # note how this compares to __eq__
         # we hash the id so that in sets/dicts different
         # instances of the same variable are distinct
         return id(self)
-
-    def __deepcopy__(self, memo):
-        new = Variable(self.loc, self.symbol)
-        self.copy_attrs(new)
-        return new
-
 
 class Signal(Expression):
     def __init__(self, loc: log.FileLocation, s: str, t: types.Type) -> None:
@@ -214,12 +198,6 @@ class Signal(Expression):
         self.type: types.Type = t
         self.signal_id: int = -1
 
-    def __deepcopy__(self, memo) -> Signal:
-        new = Signal(self.loc, self.symbol, self.type)
-        self.copy_attrs(new)
-        new.signal_id = self.signal_id
-        return new
-
 class SymbolicIntervalVariable(Expression):
     """SymbolicIntervalVariables are used when defining symbolic intervals and their constraints. They
     are only used in the context of equivalence checking when the input format is .equiv."""
@@ -227,11 +205,6 @@ class SymbolicIntervalVariable(Expression):
         super().__init__(loc, [])
         self.symbol: str = s
         self.type = types.IntType(True)
-
-    def __deepcopy__(self, memo) -> SymbolicIntervalVariable:
-        new = SymbolicIntervalVariable(self.loc, self.symbol)
-        self.copy_attrs(new)
-        return new
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, SymbolicIntervalVariable) and __o.symbol == self.symbol
@@ -250,12 +223,6 @@ class ArrayExpression(Expression):
         super().__init__(loc, members)
         self.max_size: int = len(members)
 
-    def __deepcopy__(self, memo):
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = ArrayExpression(self.loc, children)
-        self.copy_attrs(new)
-        return new
-
 class ArrayIndex(Expression):
     def __init__(self, loc: log.FileLocation, array: Expression, index: int) -> None:
         super().__init__(loc, [array])
@@ -267,12 +234,6 @@ class ArrayIndex(Expression):
 
     def get_index(self) -> int:
         return self.index
-
-    def __deepcopy__(self, memo) -> ArrayIndex:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children[0], self.index)
-        self.copy_attrs(new)
-        return new
 
 class Struct(Expression):
     def __init__(
@@ -302,12 +263,6 @@ class Struct(Expression):
 
         return cast(Expression, member)
 
-    def __deepcopy__(self, memo) -> Struct:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Struct(self.loc, self.symbol, self.members, children)
-        self.copy_attrs(new)
-        return new
-
 class StructAccess(Expression):
     def __init__(self, loc: log.FileLocation, struct: Expression, member: str) -> None:
         super().__init__(loc, [struct])
@@ -317,25 +272,12 @@ class StructAccess(Expression):
     def get_struct(self) -> Struct:
         return cast(Struct, self.children[0])
 
-    def __deepcopy__(self, memo) -> StructAccess:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = type(self)(self.loc, children[0], self.member)
-        self.copy_attrs(new)
-        return new
-
 class FunctionCall(Expression):
     def __init__(
         self, loc: log.FileLocation, s: str, operands: list[Expression]
     ) -> None:
         super().__init__(loc, operands)
         self.symbol: str = s
-
-    def __deepcopy__(self, memo) -> FunctionCall:
-        return FunctionCall(
-            self.loc,
-            self.symbol,
-            copy.deepcopy(cast("list[Expression]", self.children), memo),
-        )
 
 class Bind(Expression):
     """Dummy class used for traversal of set aggregation operators. See constructor for the operators in the `Operator` class."""
@@ -355,11 +297,6 @@ class Bind(Expression):
 
     def __str__(self) -> str:
         return ""
-
-    def __deepcopy__(self, memo):
-        new = Bind(self.loc, self.bound_var, self.set_expr)
-        self.copy_attrs(new)
-        return new
 
 class SetAggregationKind(enum.Enum):
     FOR_EACH = "foreach"
@@ -441,12 +378,10 @@ class SetAggregation(Expression):
     ) -> SetAggregation:
         return SetAggregation(loc, SetAggregationKind.FOR_AT_LEAST, var, set, num, expr)
 
-    def get_num(self) -> Expression:
+    def get_num(self) -> Optional[Expression]:
         if len(self.children) < 4:
-            raise ValueError(
-                f"Attempting to access num for set agg operator that does not have one ({self})"
-            )
-        return self.children[1]
+            return None
+        return cast(Expression, self.children[1])
 
     def get_set(self) -> ArrayExpression:
         return cast(ArrayExpression, self.children[0])
@@ -454,19 +389,6 @@ class SetAggregation(Expression):
     def get_expr(self) -> Expression:
         """Returns the aggregated `Expression`. This is always the last child, see docstring of `SetAggregation` for a visual."""
         return cast(Expression, self.children[-1])
-
-    def __deepcopy__(self, memo):
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = SetAggregation(
-            self.loc,
-            self.operator,
-            cast(Variable, copy.deepcopy(self.bound_var, memo)),
-            cast(ArrayExpression, children[0]),
-            children[1] if len(self.children) == 4 else None,
-            cast(Expression, children[-1]),
-        )
-        self.copy_attrs(new)
-        return new
 
 class OperatorKind(enum.Enum):
     # Bitwise
@@ -560,6 +482,9 @@ class Operator(Expression):
         super().__init__(loc, children, type, set_parents)
         self.operator: OperatorKind = op_kind
         self.symbol: str = op_kind.value
+
+        self.wpd = max([c.wpd for c in children])
+        self.bpd = min([c.bpd for c in children])
 
         if is_temporal_operator(self) or is_logical_operator(self):
             self.engine = types.R2U2Engine.TEMPORAL_LOGIC
@@ -748,24 +673,18 @@ class Operator(Expression):
         # We use LogicalAnd in the SAT encoding (for encoding the conjunction of all
         # specifications), so we may not want to set parents
         operator = Operator(loc, OperatorKind.LOGICAL_AND, operands, set_parents=set_parents)
-        operator.bpd = min([opnd.bpd for opnd in operands])
-        operator.wpd = max([opnd.wpd for opnd in operands])
         operator.type = types.BoolType()
         return operator
 
     @staticmethod
     def LogicalOr(loc: log.FileLocation, operands: list[Expression]) -> Operator:
         operator = Operator(loc, OperatorKind.LOGICAL_OR, operands)
-        operator.bpd = min([opnd.bpd for opnd in operands])
-        operator.wpd = max([opnd.wpd for opnd in operands])
         operator.type = types.BoolType()
         return operator
 
     @staticmethod
     def LogicalXor(loc: log.FileLocation, operands: list[Expression]) -> Operator:
         operator = Operator(loc, OperatorKind.LOGICAL_XOR, operands)
-        operator.bpd = min([opnd.bpd for opnd in operands])
-        operator.wpd = max([opnd.wpd for opnd in operands])
         operator.type = types.BoolType()
         return operator
 
@@ -780,8 +699,6 @@ class Operator(Expression):
         operator = Operator(
             loc, OperatorKind.LOGICAL_EQUIV, [lhs, rhs], set_parents=set_parents
         )
-        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
-        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
         operator.type = types.BoolType()
         return operator
 
@@ -790,8 +707,6 @@ class Operator(Expression):
         loc: log.FileLocation, lhs: Expression, rhs: Expression
     ) -> Operator:
         operator = Operator(loc, OperatorKind.LOGICAL_IMPLIES, [lhs, rhs])
-        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]])
-        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]])
         operator.type = types.BoolType()
         return operator
 
@@ -803,16 +718,8 @@ class Operator(Expression):
         operator = Operator(
             loc, OperatorKind.LOGICAL_NEGATE, [operand], set_parents=set_parents
         )
-        operator.bpd = operand.bpd
-        operator.wpd = operand.wpd
         operator.type = types.BoolType()
         return operator
-
-    def __deepcopy__(self, memo) -> Operator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Operator(self.loc, self.operator, children)
-        self.copy_attrs(new)
-        return new
 
 class Atomic(Expression):
     def __init__(self, loc: log.FileLocation, child: Expression) -> None:
@@ -820,10 +727,8 @@ class Atomic(Expression):
         self.engine = types.R2U2Engine.BOOLEANIZER
         self.type = types.BoolType()
 
-    def __deepcopy__(self, memo):
-        new = Atomic(self.loc, self.children[0])
-        self.copy_attrs(new)
-        return new
+    def get_expr(self) -> Expression:
+        return cast(Expression, self.children[0])
 
     def __repr__(self) -> str:
         return f"Atomic({repr(self.children[0])})"
@@ -840,14 +745,14 @@ class TemporalOperator(Operator):
         super().__init__(loc, operator, children)
         self.interval = ConcreteInterval(lb, ub)
         self.symbol = f"{operator.value}[{lb},{ub}]"
+        self.bpd = min([c.bpd for c in children]) + lb
+        self.wpd = max([c.wpd for c in children]) + ub
 
     @staticmethod
     def Global(
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.GLOBAL, lb, ub, [operand])
-        operator.bpd = operand.bpd + lb
-        operator.wpd = operand.wpd + ub
         operator.type = types.BoolType()
         return operator
 
@@ -856,8 +761,6 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, operand: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.FUTURE, lb, ub, [operand])
-        operator.bpd = operand.bpd + lb
-        operator.wpd = operand.wpd + ub
         operator.symbol = f"F[{lb},{ub}]"
         operator.type = types.BoolType()
         return operator
@@ -867,8 +770,6 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.UNTIL, lb, ub, [lhs, rhs])
-        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
-        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
         operator.type = types.BoolType()
         return operator
 
@@ -877,8 +778,6 @@ class TemporalOperator(Operator):
         loc: log.FileLocation, lb: int, ub: int, lhs: Expression, rhs: Expression
     ) -> TemporalOperator:
         operator = TemporalOperator(loc, OperatorKind.RELEASE, lb, ub, [lhs, rhs])
-        operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) + lb
-        operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) + ub
         operator.type = types.BoolType()
         return operator
 
@@ -920,14 +819,6 @@ class TemporalOperator(Operator):
         operator.bpd = min([opnd.bpd for opnd in [lhs, rhs]]) - lb
         operator.wpd = max([opnd.wpd for opnd in [lhs, rhs]]) - lb
         return operator
-
-    def __deepcopy__(self, memo) -> Operator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = TemporalOperator(
-            self.loc, self.operator, self.interval.lb, self.interval.ub, children
-        )
-        self.copy_attrs(new)
-        return new
 
 class SymbolicTemporalOperator(Operator):
     """SymbolicTemporalOperators are the same as TemporalOperators, but their interval is symbolic.
@@ -1007,14 +898,6 @@ class SymbolicTemporalOperator(Operator):
     ) -> SymbolicTemporalOperator:
         operator = SymbolicTemporalOperator(loc, OperatorKind.TRIGGER, lb, ub, [lhs, rhs])
         return operator
-
-    def __deepcopy__(self, memo) -> SymbolicTemporalOperator:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = SymbolicTemporalOperator(
-            self.loc, self.operator, self.interval.lb, self.interval.ub, children
-        )
-        self.copy_attrs(new)
-        return new
 
 # Helpful predicates -- especially for type checking
 def is_operator(expr: Expression, operator: OperatorKind) -> bool:
@@ -1154,12 +1037,6 @@ class Formula(Expression):
         """
         return re.match(r'^__.*__$', self.symbol) is not None
 
-    def __deepcopy__(self, memo) -> Formula:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Formula(self.loc, self.symbol, self.formula_number, children[0])
-        self.copy_attrs(new)
-        return new
-
 class Contract(Expression):
     def __init__(
         self,
@@ -1187,20 +1064,6 @@ class Contract(Expression):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
-    def __deepcopy__(self, memo) -> Contract:
-        children = [copy.deepcopy(c, memo) for c in self.children]
-        new = Contract(
-            self.loc,
-            self.symbol,
-            self.formula_numbers[0],
-            self.formula_numbers[1],
-            self.formula_numbers[2],
-            children[0],
-            children[1],
-        )
-        self.copy_attrs(new)
-        return new
-
 Specification = Union[Formula, Contract]
 
 def get_spec_str_reference(spec: Specification) -> str:
@@ -1219,8 +1082,8 @@ class SpecificationSet(Expression):
     def __str__(self) -> str:
         return "spec_set"
 
-    def __deepcopy__(self, memo) -> SpecificationSet:
-        children = [copy.deepcopy(c, memo) for c in self.children]
+    def deepcopy(self, context: Context) -> SpecificationSet:
+        children = [c.deepcopy(context) for c in self.children]
         new = SpecificationSet(self.loc, cast("list[Specification]", children))
         self.copy_attrs(new)
         return new
@@ -1232,7 +1095,7 @@ class StructDefinition(Node):
         super().__init__(loc)
         self.symbol = symbol
         self.var_decls = var_decls
-        self.members = {}
+        self.members: dict[str, types.Type] = {}
         for var_decl in var_decls:
             for sym in var_decl.variables:
                 self.members[sym] = var_decl.type
@@ -1241,8 +1104,8 @@ class StructDefinition(Node):
         members_str_list = [str(s) + ";" for s in self.var_decls]
         return self.symbol + ": {" + " ".join(members_str_list) + "}"
 
-    def __deepcopy__(self, memo) -> StructDefinition:
-        var_decls = [copy.deepcopy(v, memo) for v in self.var_decls]
+    def deepcopy(self, context: Context) -> StructDefinition:
+        var_decls = [v.deepcopy(context) for v in self.var_decls]
         new = StructDefinition(self.loc, self.symbol, var_decls)
         return new
 
@@ -1255,8 +1118,8 @@ class VariableDeclaration(Node):
     def __str__(self) -> str:
         return f"{','.join(self.variables)}: {str(self.type)}"
 
-    def __deepcopy__(self, memo) -> VariableDeclaration:
-        variables = [copy.deepcopy(v, memo) for v in self.variables]
+    def deepcopy(self, context: Context) -> VariableDeclaration:
+        variables = [str(v) for v in self.variables]
         new = VariableDeclaration(self.loc, variables, self.type)
         return new
 
@@ -1269,8 +1132,8 @@ class Definition(Node):
     def __str__(self) -> str:
         return f"{self.symbol} := {self.expr}"
 
-    def __deepcopy__(self, memo) -> Definition:
-        new = Definition(self.loc, self.symbol, copy.deepcopy(self.expr, memo))
+    def deepcopy(self, context: Context) -> Definition:
+        new = Definition(self.loc, self.symbol, self.expr.deepcopy(context))
         return new
 
 class StructSection(Node):
@@ -1284,9 +1147,14 @@ class StructSection(Node):
         structs_str_list = [str(s) + ";" for s in self.struct_defs]
         return "STRUCT\n\t" + "\n\t".join(structs_str_list)
 
-    def __deepcopy__(self, memo) -> StructSection:
-        struct_defs = [copy.deepcopy(s, memo) for s in self.struct_defs]
+    def deepcopy(self, context: Context) -> StructSection:
+        struct_defs = [s.deepcopy(context) for s in self.struct_defs]
         new = StructSection(self.loc, struct_defs)
+
+        # Update context
+        for struct_def in new.struct_defs:
+            context.add_struct(struct_def.symbol, struct_def.members)
+
         return new
 
 class InputSection(Node):
@@ -1300,9 +1168,15 @@ class InputSection(Node):
         signals_str_list = [str(s) + ";" for s in self.signal_decls]
         return "INPUT\n\t" + "\n\t".join(signals_str_list)
 
-    def __deepcopy__(self, memo) -> InputSection:
-        signal_decls = [copy.deepcopy(s, memo) for s in self.signal_decls]
+    def deepcopy(self, context: Context) -> InputSection:
+        signal_decls = [s.deepcopy(context) for s in self.signal_decls]
         new = InputSection(self.loc, signal_decls)
+
+        # Update context
+        for signal_decl in new.signal_decls:
+            for signal in signal_decl.variables:
+                context.add_signal(signal, signal_decl.type)
+
         return new
 
 class DefineSection(Node):
@@ -1314,9 +1188,14 @@ class DefineSection(Node):
         defines_str_list = [str(s) + ";" for s in self.defines]
         return "DEFINE\n\t" + "\n\t".join(defines_str_list)
 
-    def __deepcopy__(self, memo) -> DefineSection:
-        defines = [copy.deepcopy(d, memo) for d in self.defines]
+    def deepcopy(self, context: Context) -> DefineSection:
+        defines = [d.deepcopy(context) for d in self.defines]
         new = DefineSection(self.loc, defines)
+
+        # Update context
+        for define in new.defines:
+            context.add_definition(define.symbol, define.expr)
+
         return new
 
 class SpecSection(Node):
@@ -1324,9 +1203,17 @@ class SpecSection(Node):
         super().__init__(loc)
         self.specs = specs
 
-    def __deepcopy__(self, memo) -> SpecSection:
-        specs = [copy.deepcopy(s, memo) for s in self.specs]
-        new = SpecSection(self.loc, specs)
+    def deepcopy(self, context: Context) -> SpecSection:
+        specs = [cast(Specification, s.deepcopy(context)) for s in self.specs]
+        new = type(self)(self.loc, specs)
+
+        # Update context
+        for spec in new.specs:
+            if isinstance(spec, Formula):
+                context.add_formula(spec.symbol, spec)
+            elif isinstance(spec, Contract):
+                context.add_contract(spec.symbol, spec)
+
         return new
 
 class FutureTimeSpecSection(SpecSection):
@@ -1336,22 +1223,12 @@ class FutureTimeSpecSection(SpecSection):
     def __str__(self) -> str:
         return "FTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
 
-    def __deepcopy__(self, memo) -> FutureTimeSpecSection:
-        specs = [copy.deepcopy(s, memo) for s in self.specs]
-        new = FutureTimeSpecSection(self.loc, specs)
-        return new
-
 class PastTimeSpecSection(SpecSection):
     def __init__(self, loc: log.FileLocation, specs: list[Specification]) -> None:
         super().__init__(loc, specs)
 
     def __str__(self) -> str:
         return "PTSPEC\n\t" + "\n\t".join([str(spec) for spec in self.specs])
-
-    def __deepcopy__(self, memo) -> PastTimeSpecSection:
-        specs = [copy.deepcopy(s, memo) for s in self.specs]
-        new = PastTimeSpecSection(self.loc, specs)
-        return new
 
 ProgramSection = Union[StructSection, InputSection, DefineSection, SpecSection]
 
@@ -1449,8 +1326,8 @@ class Program(Node):
     def __repr__(self) -> str:
         return "\n".join([repr(s) for s in self.get_specs()])
 
-    def __deepcopy__(self, memo) -> Program:
-        sections = [copy.deepcopy(s, memo) for s in self.sections]
+    def deepcopy(self, context: Context) -> Program:
+        sections = [s.deepcopy(context) for s in self.sections]
         new = Program(self.loc, sections)
         new.total_scq_size = self.total_scq_size
         new.is_dummy = self.is_dummy
@@ -1577,23 +1454,34 @@ class Context:
     def remove_variable(self, symbol) -> None:
         del self.variables[symbol]
 
-    def __deepcopy__(self, memo) -> Context:
+    def deepcopy(self) -> Context:
+        """
+        Deep copies the context, creating a new context with the same global options and statistics.
+
+        Expressions are not deep copied, keeps the references to the original Expressions in case the program is not copied.
+        If the program is to be copied as well, the Expressions will be deep copied in the program.deepcopy() method.
+        In that case, use the `deepcopy_program_context()` function.
+        """
         new = Context()
-        new.definitions = copy.deepcopy(self.definitions, memo)
-        new.structs = copy.deepcopy(self.structs, memo)
-        new.signals = copy.deepcopy(self.signals, memo)
-        new.variables = copy.deepcopy(self.variables, memo)
-        new.specifications = copy.deepcopy(self.specifications, memo)
-        new.contracts = copy.deepcopy(self.contracts, memo)
-        new.atomic_id_map = copy.deepcopy(self.atomic_id_map, memo)
-        new.atomic_expr_map = copy.deepcopy(self.atomic_expr_map, memo)
-        new.bound_vars = copy.deepcopy(self.bound_vars, memo)
-        new.signal_mapping = copy.deepcopy(self.signal_mapping, memo)
-        new.assembly = copy.deepcopy(self.assembly, memo)
+        new.definitions = { k: v for k, v in self.definitions.items() }
+        new.structs = { k: v for k, v in self.structs.items() }
+        new.signals = { k: v for k, v in self.signals.items() }
+        new.variables = { k: v for k, v in self.variables.items() }
+        new.specifications = { k: v for k, v in self.specifications.items() }
+        new.contracts = { k: v for k, v in self.contracts.items() }
+        new.atomic_id_map = { k: v for k, v in self.atomic_id_map.items() }
+        new.atomic_expr_map = { k: v for k, v in self.atomic_expr_map.items() }
+        new.bound_vars = { k: v for k, v in self.bound_vars.items() }
+        new.signal_mapping = { k: v for k, v in self.signal_mapping.items() }
+
+        # Deepcopy is not needed for the assembly list
+        # TODO: Consider warning user? Or have a check that assembly matches the program?
+        new.assembly = self.assembly 
+
         new.binary = self.binary
-        new.bounds = copy.deepcopy(self.bounds, memo)
-        new.constraints = copy.deepcopy(self.constraints, memo)
-        new.stats = copy.deepcopy(self.stats, memo)
+        new.bounds = [cast(SymbolicIntervalVariable, b.deepcopy(new)) for b in self.bounds]
+        new.constraints = [c.deepcopy(new) for c in self.constraints]
+        new.stats = self.stats.deepcopy()
         new.trace_length = self.trace_length
         new.is_ft = self.is_ft
         new.has_future_time = self.has_future_time
@@ -1607,6 +1495,7 @@ class Context:
         new.mission_time = self.mission_time
         new.enable_booleanizer = self.enable_booleanizer
         new.script_filename = self.script_filename
+
         return new
 
 def postorder(
@@ -1671,6 +1560,106 @@ def preorder(
         for child in reversed(cur.children):
             stack.append(child)
 
+def deepcopy_expr(start: Expression, context: Context, memo: dict[int, Expression]) -> Expression:
+    """
+    Deeply copies an expression `start` using the given context `context` and memo dictionary `memo`.
+    Care must be taken to consider the atomic ID mappings when copying expressions.
+    If we copy an Atomic, we ensure that the atomic ID mappings are updated to reflect the new expression.
+    """
+    for expr in postorder(start, context):
+        if id(expr) in memo:
+            continue
+
+        if isinstance(expr, Atomic):
+            new = Atomic(expr.loc, memo[id(expr.get_expr())])
+
+            # Update the atomic ID mappings to reflect the new expression
+            atomic_id = context.atomic_id_map[expr]
+            context.atomic_id_map[new] = atomic_id
+            context.atomic_expr_map[atomic_id] = new
+            # del context.atomic_id_map[expr] # FIXME: Is this necessary?
+        elif isinstance(expr, Constant):
+            new = Constant(expr.loc, expr.value)
+        elif isinstance(expr, MissionTime):
+            new = MissionTime(expr.loc)
+        elif isinstance(expr, CurrentTimestamp):
+            new = CurrentTimestamp(expr.loc)
+        elif isinstance(expr, Variable):
+            new = Variable(expr.loc, expr.symbol)
+        elif isinstance(expr, Signal):
+            new = Signal(expr.loc, expr.symbol, expr.type)
+        elif isinstance(expr, SymbolicIntervalVariable):
+            new = SymbolicIntervalVariable(expr.loc, expr.symbol)
+        elif isinstance(expr, ArrayExpression):
+            new = ArrayExpression(expr.loc, [memo[id(c)] for c in expr.children])
+        elif isinstance(expr, ArrayIndex):
+            new = ArrayIndex(expr.loc, memo[id(expr.children[0])], expr.index)
+        elif isinstance(expr, Struct):
+            new = Struct(expr.loc, expr.symbol, expr.members, [memo[id(c)] for c in expr.children])
+        elif isinstance(expr, StructAccess):
+            new = StructAccess(expr.loc, memo[id(expr.children[0])], expr.member)
+        elif isinstance(expr, FunctionCall):
+            new = FunctionCall(expr.loc, expr.symbol, [memo[id(c)] for c in expr.children])
+        elif isinstance(expr, Bind):
+            new_bound_var = Variable(expr.loc, expr.bound_var.symbol)
+            new_set_expr = cast(ArrayExpression, memo[id(expr.set_expr)])
+            new = Bind(expr.loc, new_bound_var, new_set_expr)
+        elif isinstance(expr, SetAggregation):
+            new_bound_var = Variable(expr.loc, expr.bound_var.symbol)
+            new_set_expr = cast(ArrayExpression, memo[id(expr.get_set())])
+            new_num = memo[id(expr.get_num())] if expr.get_num() else None
+            new_expr = memo[id(expr.get_expr())]
+            new = SetAggregation(
+                expr.loc, expr.operator, new_bound_var, new_set_expr, new_num, new_expr
+            )
+        elif isinstance(expr, TemporalOperator):
+            new_children = [memo[id(c)] for c in expr.children]
+            new = TemporalOperator(
+                expr.loc,
+                expr.operator,
+                expr.interval.lb,
+                expr.interval.ub,
+                new_children,
+            )
+        elif isinstance(expr, SymbolicTemporalOperator):
+            new_children = [memo[id(c)] for c in expr.children]
+            new = SymbolicTemporalOperator(
+                expr.loc,
+                expr.operator,
+                expr.interval.lb,
+                expr.interval.ub,
+                new_children,
+            )
+        elif isinstance(expr, Operator):
+            new = Operator(expr.loc, expr.operator, [memo[id(c)] for c in expr.children], expr.type)
+        elif isinstance(expr, Formula):
+            new_expr = memo[id(expr.get_expr())]
+            new = Formula(expr.loc, expr.symbol, expr.formula_number, new_expr)
+        elif isinstance(expr, Contract):
+            new_assumption = memo[id(expr.get_assumption())]
+            new_guarantee = memo[id(expr.get_guarantee())]
+            new = Contract(
+                expr.loc,
+                expr.symbol,
+                expr.formula_numbers[0],
+                expr.formula_numbers[1],
+                expr.formula_numbers[2],
+                new_assumption,
+                new_guarantee,
+            )
+        else:
+            raise NotImplementedError(f"deepcopy not implemented for expression type: {type(expr)}")
+
+        expr.copy_attrs(new)
+        memo[id(expr)] = new
+
+    return memo[id(start)]
+
+def deepcopy_program_with_context(program: Program, context: Context) -> tuple[Program, Context]:
+    new_program = program.deepcopy(context)
+    new_context = context.deepcopy()
+    return new_program, new_context
+
 def rename(
     target: Expression, repl: Expression, expr: Expression, context: Context
 ) -> Expression:
@@ -1679,7 +1668,7 @@ def rename(
     if expr == target:
         return repl
 
-    new: Node = copy.deepcopy(expr)
+    new: Node = expr.deepcopy(context)
 
     for node in postorder(new, context):
         if target == node:
@@ -1689,7 +1678,7 @@ def rename(
 
 def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
     """Unrolls the given expression `expr` using the given context `context`"""
-    new = copy.deepcopy(expr)
+    new = expr.deepcopy(context)
 
     def unrolled_expr(expr: Expression) -> Expression:
         if is_operator(expr, OperatorKind.FUTURE):
@@ -1752,7 +1741,7 @@ def unroll_temporal_operators(expr: Expression, context: Context) -> Expression:
 def decompose_intervals(expr: Expression, context: Context) -> Expression:
     """Decomposes temporal operators in `start` to combinations of intervals with sizes that are
     powers of 2. For example: F[2,22] p ==> F[2,2] F[0,15] F[0,3] F[0,1] F[0,1] p."""
-    new = copy.deepcopy(expr)
+    new = expr.deepcopy(context)
 
     def decompose(expr: Expression) -> Expression:
         if is_operator(expr, OperatorKind.FUTURE):
@@ -2177,21 +2166,14 @@ def has_no_extended_operators(program: Program, context: Context) -> bool:
     )
 
 def has_computed_atomics(program: Program, context: Context) -> bool:
-    """Returns True if the program contains computed atomics. Computed atomics should be present for all Atomics and Signals with TL parents."""
+    """Returns True if the program contains computed atomics. Computed atomics should be present for all Atomics or, if the booleanizer is disabled, for all Signals."""
     return all(
         expr in context.atomic_id_map
         for expr in program.postorder(context)
-        if isinstance(expr, Expression)
-        and (
-            isinstance(expr, Atomic)
+        if (isinstance(expr, Atomic)
             or (
-                isinstance(expr, Signal)
-                and len(expr.parents) > 0
-                and any(
-                    parent.engine == types.R2U2Engine.TEMPORAL_LOGIC
-                    for parent in expr.parents
-                )
+                not context.enable_booleanizer
+                and isinstance(expr, Signal)
             )
         )
     )
-

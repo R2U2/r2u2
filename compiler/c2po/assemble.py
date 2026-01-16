@@ -500,9 +500,6 @@ def gen_ft_instruction(
     ftid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
-        if expr.get_expr() not in instructions:
-            log.internal(f"formula {expr.get_expr()} not found in instructions")
-            return None
         operand1_type, operand1_value = (
             TLOperandType.SUBFORMULA,
             instructions[expr.get_expr()].id,
@@ -556,9 +553,6 @@ def gen_pt_instruction(
     ptid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
-        if expr.get_expr() not in instructions:
-            log.internal(f"formula {expr.get_expr()} not found in instructions")
-            return None
         operand1_type, operand1_value = (
             TLOperandType.SUBFORMULA,
             instructions[expr.get_expr()].id,
@@ -623,7 +617,7 @@ def gen_ft_scq_instructions(
                 0,
             ),
         )
-        log.debug(1, f"generating ft scq instruction: {expr}\n\t" f"{cg_scq}")
+        log.debug(1, f"Generating: {expr}\n\t" f"{cg_scq}")
         return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
@@ -658,7 +652,7 @@ def gen_ft_scq_instructions(
     )
 
     log.debug(
-        1, f"generating ft scq and temp instructions: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
+        1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
     return [cg_scq, cg_temp]
@@ -682,7 +676,7 @@ def gen_pt_scq_instructions(
                 0,
             ),
         )
-        log.debug(1, f"generating pt scq instruction: {expr}\n\t" f"{cg_scq}")
+        log.debug(1, f"Generating: {expr}\n\t" f"{cg_scq}")
         return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
@@ -717,11 +711,10 @@ def gen_pt_scq_instructions(
     )
 
     log.debug(
-        1, f"generating pt scq and temp instructions: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
+        1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
     return [cg_scq, cg_temp]
-
 
 def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
@@ -784,7 +777,7 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
                 TLOperandType.NONE,
                 0,
             )
-            log.debug(1, f"generating pt load instruction: {expr}\n\t" f"{pt_instructions[expr]}")
+            log.debug(1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
             cg_instructions[expr] = gen_pt_scq_instructions(expr, pt_instructions)
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
@@ -808,13 +801,24 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if bz_instructions[key].operator is BZOperator.PREV:
             bz_instructions[key] = bz_instructions.pop(key)
 
+    # Move all CG TEMP instructions to the end (i.e., always completely configure the SCQ size
+    # for all SCQ's before configuring temporal metadata)
+    cg_instructions_ordered = [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+    idx = 0
+    end_of_instructions = len(cg_instructions_ordered)
+    while idx < end_of_instructions:
+        if cg_instructions_ordered[idx].type is CGType.TEMP:
+            cg_instructions_ordered.append(cg_instructions_ordered.pop(idx))
+            end_of_instructions -= 1
+        else:
+            idx += 1
+
     return (
         list(bz_instructions.values())
         + list(ft_instructions.values())
         + list(pt_instructions.values())
-        + [cg_instr for cg_instrs in cg_instructions.values() for cg_instr in cg_instrs]
+        + cg_instructions_ordered
     )
-
 
 def pack_bz_instruction(
     instruction: BZInstruction,
@@ -1031,6 +1035,8 @@ def assemble(
 
     with open(options["binary_filename"], "wb") as f:
         f.write(binary)
+
+    context.assembly = assembly
 
     return command.ReturnCode.SUCCESS
 

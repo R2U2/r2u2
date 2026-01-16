@@ -59,3 +59,18 @@ class Stats:
         format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))
         format_str = format_str.replace("\\n", "\n")
         return format_str
+
+    def deepcopy(self) -> "Stats":
+        return Stats(
+            spec_filename=self.spec_filename,
+            total_scq_size=self.total_scq_size,
+            smt_encoding_time=self.smt_encoding_time,
+            smt_solver_time=self.smt_solver_time,
+            smt_solver_result=self.smt_solver_result,
+            smt_num_calls=self.smt_num_calls,
+            eqsat_encoding_time=self.eqsat_encoding_time,
+            eqsat_solver_time=self.eqsat_solver_time,
+            eqsat_equiv_result=self.eqsat_equiv_result,
+            eqsat_equiv_encoding_time=self.eqsat_equiv_encoding_time,
+            eqsat_equiv_solver_time=self.eqsat_equiv_solver_time,
+        )
