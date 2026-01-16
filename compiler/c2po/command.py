@@ -11,8 +11,13 @@ class ReturnCode(enum.Enum):
     BAG_ARGS = 2
     FILE_NOT_FOUND = 3
     PARSE_ERROR = 4
-    REQUIRES_PROGRAM = 5
-    GUARD_CONDITION_NOT_MET = 6
+    GUARD_CONDITION_NOT_MET = 5
+    SHLEX_ERROR = 6
+    NO_STATE_TO_POP = 7
+    UNKNOWN_COMMAND = 8
+    UNKNOWN_RESULT_TYPE = 9
+    ARGPARSE_EXIT = 10
+    ASSEMBLY_ERROR = 11
 
 class CommandOption(TypedDict):
     """A CommandOption is an option for a command.
@@ -187,8 +192,11 @@ class Command:
         argparse does this automatically for non-positional arguments, so we do it for positional arguments as well.
         For example, "--mission-time" becomes "mission_time".
         """
-        return {n.replace("-", "_"): v for n, v in vars(self.argparser.parse_args(args)).items()}
-        
+        return {
+            name.replace("-", "_"): value
+            for name, value in vars(self.argparser.parse_args(args)).items()
+        }
+
     def execute(self, program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> Union[ReturnCode, cpt.Program, None]:
         log.debug(1, f"executing {self.name} {self.parsed_options_to_str(options)}")
         log.set_current_command_name(self.name)

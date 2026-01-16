@@ -1000,7 +1000,7 @@ def assemble(
     assembly = gen_assembly(program, context)
 
     if not assembly:
-        return command.ReturnCode.ERROR
+        return command.ReturnCode.ASSEMBLY_ERROR
 
     binary = bytes()
     binary_header = (

@@ -170,12 +170,6 @@ parser.add_argument(
     help="enable multi-arity rewrite rule for equality saturation"
 )
 parser.add_argument(
-    "--eqsat-logical",
-    action=argparse.BooleanOptionalAction,
-    default=True,
-    help="enable logical rewrite rule for equality saturation"
-)
-parser.add_argument(
     "--eqsat-temporal",
     action=argparse.BooleanOptionalAction,
     default=True,

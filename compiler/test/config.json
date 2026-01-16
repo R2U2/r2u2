@@ -389,5 +389,119 @@
             "output": "sat/strict_sat_2.expect"
         }
 
+    ],
+    "eqsat": [
+        {
+            "script": "eqsat/and_global_01.cmd",
+            "output": "eqsat/and_global_01.expect"
+        },
+        {
+            "script": "eqsat/and_global_01_no_temporal.cmd",
+            "output": "eqsat/and_global_01_no_temporal.expect"
+        },
+        {
+            "script": "eqsat/and_global_02.cmd",
+            "output": "eqsat/and_global_02.expect"
+        },
+        {
+            "script": "eqsat/and_global_03.cmd",
+            "output": "eqsat/and_global_03.expect"
+        },
+        {
+            "script": "eqsat/and_until_01.cmd",
+            "output": "eqsat/and_until_01.expect"
+        },
+        {
+            "script": "eqsat/bz.cmd",
+            "output": "eqsat/bz.expect"
+        },
+        {
+            "script": "eqsat/future_01.cmd",
+            "output": "eqsat/future_01.expect"
+        },
+        {
+            "script": "eqsat/future_02.cmd",
+            "output": "eqsat/future_02.expect"
+        },
+        {
+            "script": "eqsat/future_03.cmd",
+            "output": "eqsat/future_03.expect"
+        },
+        {
+            "script": "eqsat/future_04.cmd",
+            "output": "eqsat/future_04.expect"
+        },
+        {
+            "script": "eqsat/future_05.cmd",
+            "output": "eqsat/future_05.expect"
+        },
+        {
+            "script": "eqsat/future_06.cmd",
+            "output": "eqsat/future_06.expect"
+        },
+        {
+            "script": "eqsat/future_07.cmd",
+            "output": "eqsat/future_07.expect"
+        },
+        {
+            "script": "eqsat/future_08.cmd",
+            "output": "eqsat/future_08.expect"
+        },
+        {
+            "script": "eqsat/future_09.cmd",
+            "output": "eqsat/future_09.expect"
+        },
+        {
+            "script": "eqsat/future_until_01.cmd",
+            "output": "eqsat/future_until_01.expect"
+        },
+        {
+            "script": "eqsat/future_until_02.cmd",
+            "output": "eqsat/future_until_02.expect"
+        },
+        {
+            "script": "eqsat/global_01.cmd",
+            "output": "eqsat/global_01.expect"
+        },
+        {
+            "script": "eqsat/global_02.cmd",
+            "output": "eqsat/global_02.expect"
+        },
+        {
+            "script": "eqsat/global_03.cmd",
+            "output": "eqsat/global_03.expect"
+        },
+        {
+            "script": "eqsat/global_04.cmd",
+            "output": "eqsat/global_04.expect"
+        },
+        {
+            "script": "eqsat/global_05.cmd",
+            "output": "eqsat/global_05.expect"
+        },
+        {
+            "script": "eqsat/global_06.cmd",
+            "output": "eqsat/global_06.expect"
+        },
+        {
+            "script": "eqsat/global_07.cmd",
+            "output": "eqsat/global_07.expect"
+        },
+        {
+            "script": "eqsat/global_07_no_commutative.cmd",
+            "output": "eqsat/global_07_no_commutative.expect"
+        },
+        {
+            "script": "eqsat/global_08.cmd",
+            "output": "eqsat/global_08.expect"
+        },
+        {
+            "script": "eqsat/global_09.cmd",
+            "output": "eqsat/global_09.expect"
+        },
+        {
+            "script": "eqsat/multi_formula.cmd",
+            "output": "eqsat/multi_formula.expect"
+        }
     ]
 }

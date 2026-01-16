@@ -119,9 +119,6 @@ def to_egglog(
         elif cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
             expr = cast(cpt.TemporalOperator, expr)
             egglog += f"(let $e{expr_map[expr]} (Release (Interval {expr.interval.lb} {expr.interval.ub}) $e{expr_map[expr.children[0]]} $e{expr_map[expr.children[1]]}))\n"
-        else:
-            log.error(f"bad expression {repr(expr)}\nDid you run compute_atomics?", expr.loc)
-            return None
 
     egglog = egglog + f"""
 (run-schedule (saturate mltl-rewrites))
@@ -271,7 +268,7 @@ write_eqsat_encoding_command = command.Command(
         },
         {
             "name": "const-folding",
-            "description": "Whether to enable const folding",
+            "description": "Whether to enable const folding rewrites",
             "required": False,
             "type": bool,
             "default": True,
@@ -302,16 +299,8 @@ write_eqsat_encoding_command = command.Command(
             "choices": None,
         },
         {
-            "name": "logical",
-            "description": "Whether to enable logical rewrites",
-            "required": False,
-            "type": bool,
-            "default": True,
-            "choices": None,
-        },
-        {
             "name": "temporal",
-            "description": "Whether to enable temporal rewrites",
+            "description": "Whether to enable temporal and logical rewrites",
             "required": False,
             "type": bool,
             "default": True,
@@ -331,7 +320,6 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
-    - `logical`: Whether to enable logical rewrites
     - `temporal`: Whether to enable temporal rewrites
     - `egglog-max-time`: The maximum time to allow for egglog in seconds
     - `egglog-max-memory`: The maximum memory to allow for egglog in MB, use 0 for no maximum
@@ -449,14 +437,6 @@ optimize_eqsat_command = command.Command(
         {
             "name": "multi-arity",
             "description": "Whether to enable multi-arity rewrites",
-            "required": False,
-            "type": bool,
-            "default": True,
-            "choices": None,
-        },
-        {
-            "name": "logical",
-            "description": "Whether to enable logical rewrites",
             "required": False,
             "type": bool,
             "default": True,

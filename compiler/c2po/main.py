@@ -5,6 +5,7 @@ import pathlib
 import tempfile
 import os
 import copy
+import shlex
 from typing import Optional
 from types import ModuleType
 from c2po import (
@@ -102,14 +103,18 @@ class CommandConsole(code.InteractiveConsole):
         """
         source = source.strip()
         
-        # Check if the input matches a command
-        if source == "":
+        # Ignore empty lines and comments
+        if source == "" or source.startswith("#"):
             return False
 
-        # Split the input to get the command name and arguments
-        parts = source.split(None, 1)
-        command_name = parts[0] if parts else ""
-        command_args = parts[1] if len(parts) > 1 else ""
+        try:
+            parts = shlex.split(source)
+            command_name = parts[0] if parts else ""
+            command_args = parts[1:] if len(parts) > 1 else []
+        except ValueError:
+            log.error("error parsing command")
+            self.last_return_code = command.ReturnCode.SHLEX_ERROR
+            return False
 
         if command_name == "exit":
             sys.exit(0)
@@ -119,20 +124,20 @@ class CommandConsole(code.InteractiveConsole):
         elif command_name == "pop":
             if len(self.state_stack) == 0:
                 log.error("no state to pop, use 'push' to create a new state")
-                self.last_return_code = command.ReturnCode.ERROR
+                self.last_return_code = command.ReturnCode.NO_STATE_TO_POP
                 return False
             self.pop_state()
             return False
         elif command_name not in self.command_dict:
             log.error(f"unknown command: {command_name}\nUse 'help' to see all available commands.")
-            self.last_return_code = command.ReturnCode.ERROR
+            self.last_return_code = command.ReturnCode.UNKNOWN_COMMAND
             return False
 
         cur_command = self.command_dict[command_name]
 
         try:
             # Parse the command arguments (for validation and --help) and add the global options
-            options = cur_command.parse_args(command_args.split() if command_args else [])
+            options = cur_command.parse_args(command_args)
 
             failed_guard = cur_command.check_guards(self.program, self.context)
             if failed_guard is None:
@@ -159,11 +164,11 @@ class CommandConsole(code.InteractiveConsole):
                 self.last_return_code = result
             else:
                 log.internal(f"'{command_name}' returned unexpected result type {type(result)}")
-                self.last_return_code = command.ReturnCode.ERROR
+                self.last_return_code = command.ReturnCode.UNKNOWN_RESULT_TYPE
 
         except SystemExit:
             # argparse calls sys.exit() on --help or errors, catch it
-            self.last_return_code = command.ReturnCode.ERROR
+            self.last_return_code = command.ReturnCode.ARGPARSE_EXIT
             return False
 
         return False
@@ -286,7 +291,6 @@ def cli(
                   f"--{'no-' if not enable_eqsat_associative else ''}associative " \
                   f"--{'no-' if not enable_eqsat_commutative else ''}commutative " \
                   f"--{'no-' if not enable_eqsat_multi_arity else ''}multi-arity " \
-                  f"--{'no-' if not enable_eqsat_logical else ''}logical " \
                   f"--{'no-' if not enable_eqsat_temporal else ''}temporal" \
                   f"{f'--egglog-bin {egglog_path}' if egglog_path else ''} " \
                   f"{f'--smt-solver-path {smt_solver_path}' if smt_solver_path else ''}"

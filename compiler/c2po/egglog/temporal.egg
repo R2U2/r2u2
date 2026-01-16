@@ -1,3 +1,44 @@
+(rewrite
+  (And2 a0 (Bool true))
+  a0
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 a0 (Bool false))
+  a0
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Not (Not a0))
+  a0
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Implies a0 a1)
+  (Or2 (Not a0) a1)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Equiv a0 a1)
+  (Or2 (And2 a0 a1) (And2 (Not a0) (Not a1)))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (And2 a0 a1))
+  (Or2 (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Or2 a0 a1))
+  (And2 (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
 
 (birewrite
   (Not (Future (Interval b0 b1) a0))
@@ -182,12 +223,6 @@
 )
 
 (rewrite
-  (Or2 (Future (Interval b0 b1) a0) (Global (Interval b0 b1) (Not a0)))
-  (Bool true)
-  :ruleset mltl-rewrites
-)
-
-(rewrite
   (Or2 (Global (Interval b0 b1) a0) (Release (Interval b2 b3) a1 a0))
   (Or2 (Global (Interval b0 b1) a0) (Release (Interval b2 b1) a1 a0))
   :when ((<= b1 b3) (<= b2 b0))
@@ -220,3 +255,4 @@
   (Implies (And2 a0 (Future (Interval b0 b1) a1)) (Until (Interval b0 b1) a2 a1))
   :ruleset mltl-rewrites
 )
+
