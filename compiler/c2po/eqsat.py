@@ -47,7 +47,6 @@ def find_egglog() -> Optional[str]:
         return egglog_in_path if check_egglog(egglog_in_path) else None
     
     # If not in PATH, check in compiler/deps/egglog-experimental/target/release
-    # Get the compiler directory (parent of c2po directory)
     compiler_dir = pathlib.Path(__file__).parent.parent
     deps_path = compiler_dir / "deps" / "egglog-experimental" / "target" / "release" / "egglog-experimental"
     if deps_path.exists() and deps_path.is_file():
@@ -157,11 +156,11 @@ def run_egglog(
             return "", -1.0
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_file = f"{temp_dir}/egglog.egglog"
+        temp_file = f"{temp_dir}/tmp.egglog"
         with open(temp_file, "w") as f:
             f.write(egglog_encoding)
 
-        command = [str(egglog_bin), temp_file]
+        command = [egglog_bin, temp_file]
         log.debug(1, f"running command '{' '.join(command)}'")
 
         start_time = util.get_rusage_time()

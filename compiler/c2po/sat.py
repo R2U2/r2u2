@@ -71,7 +71,7 @@ def run_smt_solver(
         command += ["--finite-model-find", "--fmf-bound"]
     
     with tempfile.TemporaryDirectory() as temp_dir:
-        temp_file = f"{temp_dir}/smt.smt2"
+        temp_file = f"{temp_dir}/tmp.smt2"
         with open(temp_file, "w") as f:
             f.write(smt_encoding)
         command += [temp_file]
