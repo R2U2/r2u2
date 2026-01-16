@@ -21,7 +21,7 @@ The `xxd -i [file path to C2PO binary]` terminal command will dump the binary co
 
 ## Signal Input
 
-System state values, called signals, are read from the signal vector by the monitor on each tic.
+System state values, called signals, are read from the signal vector by the monitor on each step.
 It is the user's responsibility to set these values correctly using the `load_bool_signal`, `load_float_signal`, `load_int_signal`, and `load_string_signal` functions. The signal vector itself is an array on integers/floats/booleans. 
 
 In the R2U2 CLI, the CSV helper is used to read signal values and load them into the monitor's signal vector.

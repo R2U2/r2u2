@@ -1,6 +1,6 @@
 use crate::instructions::{booleanizer::BooleanizerInstruction, mltl::MLTLInstruction};
 use crate::internals::types::*;
-use crate::memory::scq::SCQMemoryArena;
+use crate::memory::scq::{SCQMemoryArena, SCQCtrlBlock};
 
 #[cfg(feature = "aux_string_specs")]
 use crate::instructions::aux_info::*;
@@ -29,7 +29,9 @@ pub struct Monitor{
     pub mltl_program_count: ProgramCount,
     pub mltl_instruction_table: [MLTLInstruction; R2U2_MAX_TL_INSTRUCTIONS],
     #[cfg(feature = "aux_string_specs")]
-    pub aux_string_table: [AuxiliaryInfo; R2U2_MAX_SPECS],
+    pub formula_aux_string_table: [FormulaAuxiliaryInfo; R2U2_AUX_MAX_FORMULAS],
+    #[cfg(feature = "aux_string_specs")]
+    pub contract_aux_string_table: [ContractAuxiliaryInfo; R2U2_AUX_MAX_CONTRACTS],
     pub queue_arena: SCQMemoryArena,
     pub signal_buffer: [r2u2_value; R2U2_MAX_SIGNALS],
     pub value_buffer: [r2u2_value; R2U2_MAX_BZ_INSTRUCTIONS],
@@ -54,7 +56,9 @@ impl Default for Monitor{
             mltl_program_count: ProgramCount{curr_program_count: 0, max_program_count: 0},
             mltl_instruction_table: [MLTLInstruction::empty_instr(); R2U2_MAX_TL_INSTRUCTIONS],
             #[cfg(feature = "aux_string_specs")]
-            aux_string_table: [AuxiliaryInfo::default(); if cfg!(feature = "aux_string_specs") {R2U2_MAX_SPECS} else {0}],
+            formula_aux_string_table: [FormulaAuxiliaryInfo::default(); R2U2_AUX_MAX_FORMULAS],
+            #[cfg(feature = "aux_string_specs")]
+            contract_aux_string_table: [ContractAuxiliaryInfo::default(); R2U2_AUX_MAX_CONTRACTS],
             queue_arena: SCQMemoryArena::initialize(),
             signal_buffer: [r2u2_value::default(); R2U2_MAX_SIGNALS],
             value_buffer: [r2u2_value::default(); R2U2_MAX_BZ_INSTRUCTIONS],
@@ -71,7 +75,21 @@ impl Default for Monitor{
 }
 
 impl Monitor{
+    pub fn clock_reset(&mut self) {
+        self.time_stamp = 0;
+        self.progress = MonitorProgressState::FirstLoop;
+        self.bz_program_count.curr_program_count = 0;
+        self.mltl_program_count.curr_program_count = 0;
+        for elem in self.queue_arena.queue_mem.iter_mut() {
+            *elem = r2u2_verdict::default()
+        }
+    }
     pub fn reset(&mut self) {
-        *self = Monitor::default();
+        self.clock_reset();
+        self.bz_program_count.max_program_count = 0;
+        self.bz_program_count.max_program_count = 0;
+        for elem in self.queue_arena.control_blocks.iter_mut() {
+            *elem = SCQCtrlBlock::default();
+        }
     }
 }

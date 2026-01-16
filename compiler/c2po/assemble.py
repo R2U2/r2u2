@@ -379,8 +379,6 @@ class CGInstruction:
         if self.type == CGType.SCQ:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"|{self.instruction.operand1_value}|")
-            if self.instruction.operand2_type == TLOperandType.ATOMIC:
-                field_strs.append(f"<{self.instruction.operand2_value}>")
         elif self.type == CGType.TEMP:
             field_strs.append(f"q{self.instruction.id}")
             field_strs.append(f"[{self.instruction.operand1_value}, "
@@ -630,9 +628,8 @@ def gen_ft_scq_instructions(
             instructions[expr].id,
             FTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
+            (expr.scq[1] - expr.scq[0]),
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -689,9 +686,8 @@ def gen_pt_scq_instructions(
             instructions[expr].id,
             PTOperator.CONFIG,
             TLOperandType.ATOMIC,
-            # TODO: Move magic number (size of temporal block)
-            (expr.scq[1] - expr.scq[0]) + 4,
-            TLOperandType.NONE,
+            (expr.scq[1] - expr.scq[0]),
+            TLOperandType.ATOMIC, #signals that its a temporal operator
             0,
         ),
     )
@@ -962,7 +958,15 @@ def pack_instruction(
     return binary_len + binary
 
 
-def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[AliasInstruction], bytes]:
+def pack_aliases(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> tuple[list[AliasInstruction], bytes]:
+    """
+    `options` is a dictionary of options for the assembly.
+    - `aux`: Whether to include aux data (e.g., contract status and specification naming)
+
+    Returns a tuple of (list of AliasInstructions, bytes)
+    - The list of AliasInstructions to be packed
+    - The bytes of the packed AliasInstructions
+    """
     aliases: list[AliasInstruction] = []
     binary = bytes()
 
@@ -971,6 +975,13 @@ def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[Alias
             log.internal(f"contract found during assembly: {spec}")
             return ([], bytes())
         elif not isinstance(spec, cpt.Formula):
+            return ([], bytes())
+
+        if options["aux"] and len(spec.symbol) > 50:
+            log.error(
+                f"specification identifier name '{spec.symbol}' is too long, please choose a shorter name (limit 50 characters)", 
+                spec.loc,
+            )
             return ([], bytes())
 
         alias = AliasInstruction(AliasType.FORMULA, spec.symbol, [str(spec.formula_number)])
@@ -1008,7 +1019,7 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 1.0.0 for R2U2 V3.1 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
+        f"C2PO Version 4.1.0 for R2U2 V4.1.0 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
@@ -1018,7 +1029,7 @@ def assemble(
     binary += b"\x00"
 
     if options["aux"]:
-        (aliases, binary_aliases) = pack_aliases(program, context)
+        (aliases, binary_aliases) = pack_aliases(program, context, options)
         assembly += aliases
         binary += binary_aliases
     else:

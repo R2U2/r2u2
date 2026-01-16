@@ -1,46 +1,47 @@
 #ifndef R2U2_H
 #define R2U2_H
 
-#include "internals/config.h"
 #include "internals/errors.h"
-#include "internals/debug.h"
-#include "internals/types.h"
-
 #include "memory/monitor.h"
 
-#include "engines/engines.h"
+/// @brief      Update monitor with new spec file
+/// @param[in]  spec  Pointer to binary spec file
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @return     r2u2_status_t
+r2u2_status_t r2u2_load_specification(uint8_t* spec, r2u2_monitor_t* monitor);
 
-r2u2_status_t r2u2_init(r2u2_monitor_t *monitor);
+/// @brief      Take a step with runtime monitor
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @return     r2u2_status_t
+r2u2_status_t r2u2_step(r2u2_monitor_t* monitor);
 
-// Options for geting a monitor:
-//  1. Hardcode one in
-//  2. Read in at runtime:
-//     a. into freshly allocated heap memory
-//     b. into reservered .bbs space
+/// @brief      Load a boolean value into R2U2
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @param[in]  index  Mapping index into R2U2 (configured in CSV trace header or map file
+///                    when specifications were compiled in C2PO)
+/// @param[in]  value  Boolean value of type r2u2_bool to load
+void r2u2_load_bool_signal(r2u2_monitor_t* monitor, size_t index, r2u2_bool value);
 
+/// @brief      Load an integer value into R2U2
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @param[in]  index  Mapping index into R2U2 (configured in CSV trace header or map file
+///                    when specifications were compiled in C2PO)
+/// @param[in]  value  Integer value of type r2u2_int to load
+void r2u2_load_int_signal(r2u2_monitor_t* monitor, size_t index, r2u2_int value);
 
-/// @brief      Get descptive string for an r2u2_status
-/// @param[in]  status  A valid r2u2_status_t enum value
-/// @return     A pointer to the C string describing the given status enum,
-///             crashes with assert if status is out of range.
-r2u2_status_t r2u2_run(r2u2_monitor_t *monitor);
+/// @brief      Load a float value into R2U2
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @param[in]  index  Mapping index into R2U2 (configured in CSV trace header or map file
+///                    when specifications were compiled in C2PO)
+/// @param[in]  value  Float value of type r2u2_float to load
+void r2u2_load_float_signal(r2u2_monitor_t* monitor, size_t index, r2u2_float value);
 
-/// @brief      Execute instructions until t_now increments
-/// @param[in]  monitor  Pointer to monitor loaded with spec to step
-/// @return     r2u2_status
-r2u2_status_t r2u2_tic(r2u2_monitor_t *monitor);
-
-/// @brief      Execute all instructions once, might increment t_now
-/// @param[in]  monitor  Pointer to monitor loaded with spec to step
-/// @return     r2u2_status
-r2u2_status_t r2u2_spin(r2u2_monitor_t *monitor);
-
-/// @brief      Execute next instruction
-/// @param[in]  monitor  Pointer to monitor loaded with spec to step
-/// @return     r2u2_status
-r2u2_status_t r2u2_step(r2u2_monitor_t *monitor);
-
-// TODO(bckempa): Macro this - must be done at compile time for .bbs placement
-r2u2_status_t r2u2_create_monitor(void);
+/// @brief      Load a string value into R2U2
+/// @param[in]  monitor  Pointer to (configured) R2U2 monitor
+/// @param[in]  index  Mapping index into R2U2 (configured in CSV trace header or map file
+///                    when specifications were compiled in C2PO)
+/// @param[in]  value  String value to load. String will get parsed as float if decimal point 
+///                   is found; otherwise will be parsed as boolean/integer
+void r2u2_load_string_signal(r2u2_monitor_t* monitor, size_t index, char* value);
 
 #endif

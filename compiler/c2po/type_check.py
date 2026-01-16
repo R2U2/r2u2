@@ -14,7 +14,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
-
+                
             context.add_formula(expr.symbol, expr)
 
             expr.type = types.BoolType()

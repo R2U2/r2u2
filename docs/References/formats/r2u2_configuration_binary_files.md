@@ -65,6 +65,10 @@ Offset of 0 is used to signify end of the instruction section.
 
 Since header must be present, initial offset can't be zero but you can set it to point to the header string's null terminator for an easy "empty file" that can pass header checks.
 
+All formulas auxilary statements (specified with 'F') always appear in-order before contract auxiliary statements (specified with 'C') in the binary
+
+All CG TL SCQ instructions must be placed before CG TL TEMP instructions to always completely configure the SCQ size for all SCQ's before configuring temporal metadata
+
 ## Decoding Hints
 ```
 Header: data[1] to data[data[0] - 1]

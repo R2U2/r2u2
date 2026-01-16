@@ -10,10 +10,8 @@
 /* Enable POSIX.1 complaint fmemopen in stdio.h when building with -std=c99. */
 #define _POSIX_C_SOURCE 200112L
 
-#include <stdio.h>
-
 #define R2U2_C_VERSION_MAJOR 4
-#define R2U2_C_VERSION_MINOR 0
+#define R2U2_C_VERSION_MINOR 1
 #define R2U2_C_VERSION_PATCH 0
 
 /* Target and feature flags */
@@ -34,24 +32,9 @@
 #define INHIBIT 0
 #define R2U2_WITH(X) R2U2_##X
 
-#ifndef R2U2_TL_SCQ_Verdict_Aggregation
-    /* Compress SCQs with verdict aggregation */
-    #define R2U2_TL_Formula_Names EXHIBIT
-#endif
-
-#ifndef R2U2_TL_Formula_Names
-    /* Enables named formula verdicts */
-    #define R2U2_TL_Formula_Names INHIBIT
-#endif
-
-#ifndef R2U2_TL_Contract_Status
-    /* Enables printing tri-state reports of assume-guarantee contracts */
-    #define R2U2_TL_Contract_Status INHIBIT
-#endif
-
-#ifndef R2U2_CSV_Header_Mapping
-    /* Enables reordering header imports to match signal vector mapping */
-    #define R2U2_CSV_Header_Mapping INHIBIT
+#ifndef R2U2_AUX_STRING_SPECS
+    /* Enables named formula verdicts and  tri-state reports of assume-guarantee contracts*/
+    #define R2U2_AUX_STRING_SPECS INHIBIT
 #endif
 
 #ifndef R2U2_DEBUG
@@ -64,7 +47,14 @@
     #define R2U2_TRACE INHIBIT
 #endif
 
-// TODO(bckempa): Require a flag for unsupported platform builds?
+#if defined(__GNUC__)
+    #define ALWAYS_INLINE __attribute__((always_inline))
+#elif defined( __llvm__)
+    #define ALWAYS_INLINE __attribute__((always_inline))
+#else
+    #define ALWAYS_INLINE
+#endif
+
 /* Platform compatibility enforcement, this will intentionally cause a
  * pre-processor warning a feature status is changed due to platform
  */
@@ -76,9 +66,9 @@
     // No known feature incompatibilities
 #elif defined(_WIN32)
     // No known feature incompatibilities
-    // #warning Windows is an unsupported platform
+    #warning Windows is an unsupported platform
 #else
-    // #warning Unknown, unsupported platform
+    #warning Unknown, unsupported platform
 #endif
 
 #endif /* R2U2_CONFIG_H */

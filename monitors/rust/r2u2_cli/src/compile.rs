@@ -5,7 +5,9 @@ use pyo3::ffi::c_str;
 pub fn c2po_compile(spec_filename: &str,
     trace_filename: &str,
     map_filename: &str,
+    impl_str: &str,
     output_filename: &str,
+    write_bounds_filename: &str,
     enable_booleanizer: bool,
     enable_aux: bool,
     enable_rewrite: bool,
@@ -41,7 +43,7 @@ pub fn c2po_compile(spec_filename: &str,
     let parse_equiv_code = c_str!(include_str!("../compiler/c2po/parse_equiv.py"));
     let main_code = c_str!(include_str!("../compiler/c2po/main.py"));
 
-    let from_python = Python::with_gil(|py| -> PyResult<()> {
+    let from_python = Python::attach(|py| -> PyResult<()> {
         // Import modules in dependency order
         // Base modules (no c2po dependencies)
         PyModule::from_code(py, c2po_code, c_str!("c2po/__init__.py"), c_str!("c2po"))?;
@@ -87,7 +89,9 @@ pub fn c2po_compile(spec_filename: &str,
             spec_filename,
             trace_filename,
             map_filename,
+            impl_str,
             output_filename,
+            write_bounds_filename,
             enable_booleanizer,
             enable_aux,
             enable_rewrite,
