@@ -87,6 +87,25 @@ unknown_files=()
 cached_sat_files=()
 cached_unsat_files=()
 
+# Cleanup function to kill all cvc5 and z3 processes
+cleanup_processes() {
+    # Kill all cvc5 processes (suppress errors)
+    pkill -9 cvc5 2>/dev/null || true
+    
+    # Kill all z3 processes (suppress errors)
+    pkill -9 z3 2>/dev/null || true
+    
+    # Wait briefly for processes to terminate
+    sleep 0.5 2>/dev/null || sleep 0.5
+    
+    # Double-check and force kill any remaining processes
+    pgrep -f "cvc5" >/dev/null 2>&1 && pkill -9 -f "cvc5" 2>/dev/null || true
+    pgrep -f "^z3 " >/dev/null 2>&1 && pkill -9 -f "^z3 " 2>/dev/null || true
+}
+
+# Set up trap to cleanup on exit (normal, error, interrupt, or termination)
+trap cleanup_processes EXIT INT TERM
+
 echo -e "${BLUE}Starting parallel cvc5/z3 benchmark on SMT2 files...${NC}"
 echo "Directory: $SMT2_DIR"
 echo "Timeout: ${TIMEOUT_SECONDS}s per file"
