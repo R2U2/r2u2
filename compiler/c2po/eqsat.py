@@ -165,12 +165,17 @@ def run_egglog(
         log.debug(1, f"running command '{' '.join(command)}'")
 
         start_time = util.get_rusage_time()
-        proc = subprocess.Popen(
-            command,
-            preexec_fn=util.set_max_memory(max_memory),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        try:
+            proc = subprocess.Popen(
+                command,
+                preexec_fn=util.set_max_memory(max_memory),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except OSError as e:
+            log.internal(f"error running command '{' '.join(command)}': {e}")
+            return "", -1.0
+
         try:
             (stdout, stderr) = proc.communicate(timeout=max_time)
         except subprocess.TimeoutExpired:
