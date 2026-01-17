@@ -15,6 +15,7 @@ class Stats:
 
     eqsat_encoding_time: float = 0.0
     eqsat_solver_time: float = 0.0
+    eqsat_solver_status: str = "ok"
     eqsat_equiv_result: str = "none"
     eqsat_equiv_encoding_time: float = 0.0
     eqsat_equiv_solver_time: float = 0.0
@@ -40,10 +41,11 @@ class Stats:
         - %se = SMT encoding time
         - %st = SMT solver time
         - %sn = SMT solver number of calls
-        - %ee = Eqsat encoding time
+        - %en = Eqsat encoding time
         - %et = Eqsat solver time
+        - %es = Eqsat solver status
         - %eq = Eqsat equivalence result
-        - %es = Eqsat equivalence solver time
+        - %ee = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
         """
         format_str = format_str.replace("%F", str(self.spec_filename))
@@ -52,10 +54,11 @@ class Stats:
         format_str = format_str.replace("%st", str(self.smt_solver_time))
         format_str = format_str.replace("%sr", self.smt_solver_result)
         format_str = format_str.replace("%sn", str(self.smt_num_calls))
-        format_str = format_str.replace("%ee", str(self.eqsat_encoding_time))
+        format_str = format_str.replace("%en", str(self.eqsat_encoding_time))
         format_str = format_str.replace("%et", str(self.eqsat_solver_time))
+        format_str = format_str.replace("%es", self.eqsat_solver_status)
         format_str = format_str.replace("%eq", self.eqsat_equiv_result)
-        format_str = format_str.replace("%es", str(self.eqsat_equiv_solver_time))
+        format_str = format_str.replace("%ee", str(self.eqsat_equiv_solver_time))
         format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))
         format_str = format_str.replace("\\n", "\n")
         return format_str

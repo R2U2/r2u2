@@ -141,7 +141,7 @@ def run_egglog(
     max_time: int,
     max_memory: int,
     egglog_bin: Optional[str] = None,
-) -> tuple[str, float]:
+) -> tuple[str, str, float]:
     """Runs egglog on the given egglog encoding file and returns the result as a string and the time taken.
     
     Args:
@@ -151,13 +151,13 @@ def run_egglog(
         `egglog_bin`: The path to the egglog executable. If not provided, will be found using `find_egglog()`.
 
     Returns:
-        A tuple containing the egglog output and the time taken
+        A tuple containing the egglog output, the status of the egglog run, and the time taken
     """
     if egglog_bin is None:  
         egglog_bin = find_egglog()
         if egglog_bin is None:
             log.error("could not find egglog executable, please set the egglog-path option")
-            return "", -1.0
+            return "", "failure", -1.0
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file = f"{temp_dir}/tmp.egglog"
@@ -177,24 +177,27 @@ def run_egglog(
             )
         except OSError as e:
             log.internal(f"error running command '{' '.join(command)}': {e}")
-            return "", -1.0
+            return "", "failure", -1.0
 
         try:
             (stdout, stderr) = proc.communicate(timeout=max_time)
         except subprocess.TimeoutExpired:
             proc.kill()
             log.warning(f"{egglog_bin} timed out")
-            return "", -1.0
+            return "", "timeout", -1.0
 
     end_time = util.get_rusage_time()
     stdout = stdout.decode()
     stderr = stderr.decode()
 
-    if proc.returncode:
-        log.error(f"error running egglog\n{stderr}")
-        return "", -1.0
+    if proc.returncode == -6:
+        log.error(f"error running egglog (out of memory)\n{stderr}")
+        return "", "memout", -1.0
+    elif proc.returncode != 0:
+        log.error(f"error running egglog ({proc.returncode})\n{stderr}")
+        return "", "failure", -1.0
 
-    return stdout, end_time - start_time
+    return stdout, "ok", end_time - start_time
 
 def write_eqsat_encoding(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """Writes the EQSat encoding for the program to the given file.
@@ -353,14 +356,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             return command.ReturnCode.ERROR
 
         old = formula.get_expr()
-        output, time = run_egglog(
+        output, status, time = run_egglog(
             egglog_encoding,
             options["egglog_max_time"],
             options["egglog_max_memory"],
             options["egglog_bin"],
         )
         context.stats.eqsat_solver_time += time
-        if output == "":
+        context.stats.eqsat_solver_status = status
+        if status != "ok":
             log.warning(f"eqsat failed for {formula.symbol}, skipping")
             continue
 
