@@ -19,6 +19,9 @@ class ReturnCode(enum.Enum):
     ARGPARSE_EXIT = 10
     ASSEMBLY_ERROR = 11
 
+    def is_error(self) -> bool:
+        return self.value >= 1
+
 class CommandOption(TypedDict):
     """A CommandOption is an option for a command.
 

@@ -196,7 +196,6 @@ def run_egglog(
 
     return stdout, end_time - start_time
 
-
 def write_eqsat_encoding(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """Writes the EQSat encoding for the program to the given file.
     

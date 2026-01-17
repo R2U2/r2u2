@@ -49,7 +49,6 @@ parser.add_argument(
     "--write-bounds",
     type=str,
     help="location where bounds file will be written, must have .h or .toml extension (default: none)",
-    default="",
 )
 parser.add_argument(
     "-q",

@@ -2,8 +2,6 @@ from __future__ import annotations
 from typing import cast, Any
 from c2po import cpt, log, types, command
 
-MODULE_CODE = "SCQ"
-
 def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """Computes SCQ sizes for each node. Returns the total SCQ size.
     

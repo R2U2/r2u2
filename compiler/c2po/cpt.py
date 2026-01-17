@@ -134,7 +134,6 @@ class Constant(Expression):
         super().__init__(loc, [])
         self.value: bool = value
         self.symbol = str(value)
-        self.engine = types.R2U2Engine.BOOLEANIZER
 
         if isinstance(value, bool):
             self.type = types.BoolType(True)
@@ -144,6 +143,11 @@ class Constant(Expression):
             self.type = types.FloatType(True)
         else:
             raise ValueError(f"Bad value ({value})")
+
+        if types.is_bool_type(self.type):
+            self.engine = types.R2U2Engine.TEMPORAL_LOGIC
+        else:
+            self.engine = types.R2U2Engine.BOOLEANIZER
 
 class MissionTime(Expression):
     """MissionTime is a special variable that represents the symbolic mission time. This is only
@@ -1577,7 +1581,15 @@ def deepcopy_expr(start: Expression, context: Context, memo: dict[int, Expressio
             atomic_id = context.atomic_id_map[expr]
             context.atomic_id_map[new] = atomic_id
             context.atomic_expr_map[atomic_id] = new
-            # del context.atomic_id_map[expr] # FIXME: Is this necessary?
+        elif isinstance(expr, Signal):
+            new = Signal(expr.loc, expr.symbol, expr.type)
+
+            # If the Booleanizer is disabled then signals are treated as atomics, so we need to
+            # update the atomic ID mappings to reflect the new expression
+            if not context.enable_booleanizer and expr in context.atomic_id_map:
+                atomic_id = context.atomic_id_map[expr]
+                context.atomic_id_map[new] = atomic_id
+                context.atomic_expr_map[atomic_id] = new
         elif isinstance(expr, Constant):
             new = Constant(expr.loc, expr.value)
         elif isinstance(expr, MissionTime):
@@ -1586,8 +1598,6 @@ def deepcopy_expr(start: Expression, context: Context, memo: dict[int, Expressio
             new = CurrentTimestamp(expr.loc)
         elif isinstance(expr, Variable):
             new = Variable(expr.loc, expr.symbol)
-        elif isinstance(expr, Signal):
-            new = Signal(expr.loc, expr.symbol, expr.type)
         elif isinstance(expr, SymbolicIntervalVariable):
             new = SymbolicIntervalVariable(expr.loc, expr.symbol)
         elif isinstance(expr, ArrayExpression):

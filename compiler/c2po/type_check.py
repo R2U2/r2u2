@@ -65,7 +65,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             ):
                 log.error(
                     f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n"
-                    "    Did you mean to enable the booleanizer?",
+                    "    did you mean to enable the booleanizer?",
                     expr.loc,
                 )
                 return False
@@ -233,7 +233,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             }:
                 if not context.enable_booleanizer:
                     log.error(
-                        "parameterized set aggregation operators require Booleanizer\n    Did you mean to enable the booleanizer?",
+                        "parameterized set aggregation operators require Booleanizer\n    did you mean to enable the booleanizer?",
                         expr.loc,
                     )
                     return False
