@@ -5,7 +5,6 @@ use pyo3::ffi::c_str;
 pub fn c2po_compile(spec_filename: &str,
     trace_filename: &str,
     map_filename: &str,
-    impl_str: &str,
     output_filename: &str,
     write_bounds_filename: &str,
     enable_booleanizer: bool,

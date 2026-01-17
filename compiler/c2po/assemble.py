@@ -1246,7 +1246,7 @@ write_bounds_c_command = command.Command(
             "description": "Print the bounds file to the console",
             "required": False,
             "type": bool,
-            "default": True,
+            "default": False,
             "choices": None
         },
     ],
@@ -1301,7 +1301,7 @@ write_bounds_rust_command = command.Command(
             "description": "Print the bounds file to the console",
             "required": False,
             "type": bool,
-            "default": True,
+            "default": False,
             "choices": None
         },
     ],
