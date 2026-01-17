@@ -189,6 +189,10 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
+            num = expr.get_num()
+            if not num:
+                raise ValueError(f"Number of exactly aggregation is required ({expr})")
+
             new = cpt.Operator.Equal(
                 expr.loc,
                 cpt.Operator.ArithmeticAdd(
@@ -199,7 +203,7 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
                     ],
                     types.IntType(),
                 ),
-                expr.get_num(),
+                num,
             )
 
             expr.replace(new)
@@ -209,6 +213,10 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
         elif expr.operator is cpt.SetAggregationKind.FOR_AT_LEAST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
+
+            num = expr.get_num()
+            if not num:
+                raise ValueError(f"Number of at least aggregation is required ({expr})")
 
             new = cpt.Operator.GreaterThanOrEqual(
                 expr.loc,
@@ -220,7 +228,7 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
                     ],
                     types.IntType(),
                 ),
-                expr.get_num(),
+                num,
             )
 
             expr.replace(new)
@@ -230,6 +238,10 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
         elif expr.operator is cpt.SetAggregationKind.FOR_AT_MOST:
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
+
+            num = expr.get_num()
+            if not num:
+                raise ValueError(f"Number of at most aggregation is required ({expr})")
 
             new = cpt.Operator.LessThanOrEqual(
                 expr.loc,
@@ -241,7 +253,7 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
                     ],
                     types.IntType(),
                 ),
-                expr.get_num(),
+                num,
             )
 
             expr.replace(new)
