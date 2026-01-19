@@ -16,6 +16,12 @@ class Stats:
     eqsat_encoding_time: float = 0.0
     eqsat_solver_time: float = 0.0
     eqsat_solver_status: str = "ok"
+
+    eqsat_gurobi_encoding_time: float = 0.0
+    eqsat_gurobi_solver_time: float = 0.0
+    eqsat_gurobi_solver_status: str = "ok"
+    eqsat_cycle_removal_time: float = 0.0
+
     eqsat_equiv_result: str = "none"
     eqsat_equiv_encoding_time: float = 0.0
     eqsat_equiv_solver_time: float = 0.0
@@ -44,6 +50,10 @@ class Stats:
         - %en = Eqsat encoding time
         - %et = Eqsat solver time
         - %es = Eqsat solver status
+        - %ge = Eqsat Gurobi encoding time
+        - %gt = Eqsat Gurobi solver time
+        - %gs = Eqsat Gurobi solver result
+        - %cr = Eqsat cycle removal time
         - %eq = Eqsat equivalence result
         - %ee = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
@@ -57,6 +67,10 @@ class Stats:
         format_str = format_str.replace("%en", str(self.eqsat_encoding_time))
         format_str = format_str.replace("%et", str(self.eqsat_solver_time))
         format_str = format_str.replace("%es", self.eqsat_solver_status)
+        format_str = format_str.replace("%ge", str(self.eqsat_gurobi_encoding_time))
+        format_str = format_str.replace("%gt", str(self.eqsat_gurobi_solver_time))
+        format_str = format_str.replace("%gs", self.eqsat_gurobi_solver_status)
+        format_str = format_str.replace("%cr", str(self.eqsat_cycle_removal_time))
         format_str = format_str.replace("%eq", self.eqsat_equiv_result)
         format_str = format_str.replace("%ee", str(self.eqsat_equiv_solver_time))
         format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))

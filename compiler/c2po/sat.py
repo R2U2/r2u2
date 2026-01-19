@@ -44,7 +44,7 @@ def run_smt_solver(
     stats: stats.Stats,
 ) -> SatResult:
     """Runs the SMT solver on the given SMT-LIB2 encoding string and returns the result."""
-    log.debug(1, "running SMT solver.")
+    log.debug(2, "running SMT solver.")
 
     smt_solver_path = find_smt_solver()
     if smt_solver_path is None:
@@ -68,7 +68,7 @@ def run_smt_solver(
             f.write(smt_encoding)
         command += [temp_file]
 
-        log.debug(1, f"running '{' '.join(command)}'")
+        log.debug(2, f"running '{' '.join(command)}'")
 
         start_time = util.get_rusage_time()
         try:
@@ -138,18 +138,18 @@ def run_smt_solver(
         log.error(
             f"{smt_solver_path} failed with return code {proc.returncode}",
         )
-        log.debug(1, "stdout:" + stdout[:-1])
-        log.debug(1, "stderr:" + stderr[:-1])
+        log.debug(2, "stdout:" + stdout[:-1])
+        log.debug(2, "stderr:" + stderr[:-1])
         return SatResult.FAILURE
 
     if stdout.find("unsat") > -1:
-        log.debug(1, "unsat")
+        log.debug(2, "unsat")
         result = SatResult.UNSAT
     elif stdout.find("sat") > -1:
-        log.debug(1, "sat")
+        log.debug(2, "sat")
         result = SatResult.SAT
     else:
-        log.debug(1, "unknown")
+        log.debug(2, "unknown")
         result = SatResult.UNKNOWN
 
     stats.smt_solver_time += end_time - start_time
@@ -607,8 +607,8 @@ def to_uflia_smtlib2(
     strict: bool,
 ) -> Optional[str]:
     """Encodes the given expression into an SMT encoding using the UFLIA theory and returns it. Returns None if the encoding fails."""
-    log.debug(1, f"bounds: {context.bounds}")
-    log.debug(1, f"constraints: {context.constraints}")
+    log.debug(2, f"bounds: {context.bounds}")
+    log.debug(2, f"constraints: {context.constraints}")
     is_nonlinear: bool = False
     has_mission_time: bool = False
     status: bool = True
@@ -992,7 +992,7 @@ def to_smt(
     strict: bool,
 ) -> Optional[str]:
     """Encodes the given expression into an SMT encoding and returns it. Returns None if the encoding fails."""
-    log.debug(1, f"encoding expression:\n\t{repr(expr)}")
+    log.debug(2, f"encoding expression:\n\t{repr(expr)}")
 
     start = util.get_rusage_time()
     if theory == SMTTheory.UFLIA:
@@ -1157,7 +1157,7 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
         status = status and check_sat_result(result)
         spec_str_reference = cpt.get_spec_str_reference(spec)
 
-        log.debug(1, f"specification '{spec_str_reference}' is {result.value}")
+        log.debug(2, f"specification '{spec_str_reference}' is {result.value}")
 
         if not check_sat_result(result):
             log.error(f"unexpected result from SMT solver for specification '{spec_str_reference}': {result}")
@@ -1187,7 +1187,7 @@ def check_sat(program: cpt.Program, context: cpt.Context, options: dict[str, Any
     )
     status = status and check_sat_result(result)
 
-    log.debug(1, f"program is {result.value}")
+    log.debug(2, f"program is {result.value}")
 
     if not check_sat_result(result):
         log.error(f"unexpected result from SMT solver for program: {result}")
@@ -1376,7 +1376,7 @@ def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, A
             log.warning("found contract, skipping")
             continue
 
-        log.debug(1, f"checking equivalence of '{cpt.get_spec_str_reference(spec1)}' and '{cpt.get_spec_str_reference(spec2)}'")
+        log.debug(2, f"checking equivalence of '{cpt.get_spec_str_reference(spec1)}' and '{cpt.get_spec_str_reference(spec2)}'")
 
         expr1 = spec1.get_expr()
         expr2 = spec2.get_expr()
@@ -1398,12 +1398,12 @@ def check_equiv(program: cpt.Program, context: cpt.Context, options: dict[str, A
 
         if result == SatResult.SAT:
             equiv = EquivResult.NOT_EQUIV
-            log.debug(1, f"'{spec_str_reference}' does not hold")
+            log.debug(2, f"'{spec_str_reference}' does not hold")
         elif result == SatResult.UNSAT:
-            log.debug(1, f"'{spec_str_reference}' holds")
+            log.debug(2, f"'{spec_str_reference}' holds")
         else:
             equiv = equiv if equiv == EquivResult.NOT_EQUIV else EquivResult.UNKNOWN
-            log.debug(1, f"'{spec_str_reference}' is unknown")
+            log.debug(2, f"'{spec_str_reference}' is unknown")
 
     if not options["quiet"]:
         print(equiv.value)

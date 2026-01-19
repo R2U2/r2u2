@@ -58,7 +58,7 @@ def set_max_memory(mb: int) -> Callable[[], None]:
         return lambda: None
     else:
         bytes = mb * 1024 * 1024
-        log.debug(1, f"setting max memory to {format_bytes(bytes)}")
+        log.debug(2, f"setting max memory to {format_bytes(bytes)}")
         return lambda: resource.setrlimit(resource.RLIMIT_AS, (bytes, resource.RLIM_INFINITY))
 
 def set_max_memory_offset(mb: int) -> Callable[[], None]:
@@ -74,7 +74,7 @@ def set_max_memory_offset(mb: int) -> Callable[[], None]:
         # macOS returns memory usage in bytes, convert to kilobytes
         current_memory = current_memory // 1024
 
-    log.debug(1, f"current memory usage: {format_bytes(current_memory * 1024)}")
+    log.debug(2, f"current memory usage: {format_bytes(current_memory * 1024)}")
 
     current_memory_mb = current_memory // 1024
     new_memory = mb + current_memory_mb

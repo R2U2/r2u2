@@ -48,7 +48,7 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
         ):
             continue
         log.debug(2, f"scq_size({repr(expr)}) = {expr.scq_size}")
-    log.debug(1, f"program SCQ size: {total_scq_size}")
+    log.debug(2, f"program SCQ size: {total_scq_size}")
 
     program.total_scq_size = total_scq_size
     context.stats.total_scq_size = total_scq_size

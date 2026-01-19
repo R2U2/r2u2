@@ -28,7 +28,7 @@ def optimize_cse(program: cpt.Program, context: cpt.Context, options: dict[str, 
     for expr in cpt.postorder(program.pt_spec_set, context):
         _optimize_cse(expr)
 
-    log.debug(1, f"post CSE:\n{repr(program)}")
+    log.debug(2, f"post CSE:\n{repr(program)}")
     return command.ReturnCode.SUCCESS
 
 optimize_cse_command = command.Command(

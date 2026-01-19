@@ -223,10 +223,11 @@ class Command:
     def parsed_options_to_str(self, options: dict[str, Any]) -> str:
         s = ""
         for option in self.options:
-            if option["name"] in options:
-                s += f"{option['name']}={options[option['name']]} "
+            name = option["name"].replace("-", "_")
+            if name in options:
+                s += f"{name}={options[name]} "
             else:
-                s += f"{option['name']}={option['default']} "
+                s += f"{name}={option['default']} "
         return s
 
     def __str__(self) -> str:

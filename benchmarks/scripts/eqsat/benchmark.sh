@@ -119,28 +119,28 @@ optimize_cse
 compute_scq_sizes
 print_stats \"%F,%S,\"
 
-optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,\"
+print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
 
 pop
-optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --no-associative
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,\"
+print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
 
 pop
-optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --no-commutative
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes 
-print_stats \"%S,%et,%es,\"
+print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
 
 pop
-optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --no-associative --no-commutative
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es\n\""
+print_stats \"%S,%et,%es%ge,%gt,%gs,%cr,\n\""
     
     # Generate template by prepending the appropriate command(s) to the template content
     if [[ "$basename_file" == *.c2po ]]; then

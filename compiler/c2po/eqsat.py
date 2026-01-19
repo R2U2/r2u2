@@ -191,7 +191,7 @@ def run_egglog(
         command = [egglog_bin, str(egglog_encoding_path)]
         if with_json:
             command += ["--to-json"]
-        log.debug(1, f"running command '{' '.join(command)}'")
+        log.debug(2, f"running command '{' '.join(command)}'")
 
         start_time = util.get_rusage_time()
         try:
@@ -439,7 +439,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
         else:
             new = parse_egglog_output.parse(str(egglog_output), context, options)
 
-        log.debug(1, f"eqsat result: {repr(new)}")
+        log.debug(2, f"eqsat result: {repr(new)}")
         if new is None:
             status = False
             continue
@@ -469,7 +469,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
         )
 
         if sat_result is sat.SatResult.UNSAT:
-            log.debug(1, "equality saturation produced equivalent formula")
+            log.debug(2, "equality saturation produced equivalent formula")
             equiv_result = "equiv"
             old.replace(new)
         elif sat_result is sat.SatResult.SAT:
@@ -484,7 +484,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
 
         context.stats.eqsat_equiv_result = equiv_result
 
-    log.debug(1, f"post EQSat:\n{repr(program)}")
+    log.debug(2, f"post EQSat:\n{repr(program)}")
     return command.ReturnCode.SUCCESS if status else command.ReturnCode.ERROR
 
 optimize_eqsat_command = command.Command(
