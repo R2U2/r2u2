@@ -1,8 +1,18 @@
 import resource
 import sys
 import re
+import subprocess
 from typing import Callable, Optional
 from c2po import log
+
+def check_executable(executable: str) -> bool:
+    """Check if the given executable is valid."""
+    try:
+        proc1 = subprocess.run([executable, "--version"], capture_output=True)
+        proc2 = subprocess.run([executable, "-version"], capture_output=True)
+        return proc1.returncode == 0 or proc2.returncode == 0
+    except FileNotFoundError:
+        return False
 
 def read_file(filename: str) -> Optional[str]:
     """Read the contents of a file and return it as a string."""

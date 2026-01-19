@@ -389,7 +389,7 @@
             "output": "sat/strict_sat_2.expect"
         }
     ],
-    "eqsat": [
+    "eqsat-heuristic": [
         {
             "script": "eqsat/and_global_01.cmd",
             "output": "eqsat/and_global_01.expect"
@@ -500,6 +500,120 @@
         },
         {
             "script": "eqsat/multi_formula.cmd",
+            "output": "eqsat/multi_formula.expect"
+        }
+    ],
+    "eqsat-optimal": [
+        {
+            "script": "eqsat/and_global_01_optimal.cmd",
+            "output": "eqsat/and_global_01.expect"
+        },
+        {
+            "script": "eqsat/and_global_01_no_temporal_optimal.cmd",
+            "output": "eqsat/and_global_01_no_temporal.expect"
+        },
+        {
+            "script": "eqsat/and_global_02_optimal.cmd",
+            "output": "eqsat/and_global_02.expect"
+        },
+        {
+            "script": "eqsat/and_global_03_optimal.cmd",
+            "output": "eqsat/and_global_03.expect"
+        },
+        {
+            "script": "eqsat/and_until_01_optimal.cmd",
+            "output": "eqsat/and_until_01.expect"
+        },
+        {
+            "script": "eqsat/bz_optimal.cmd",
+            "output": "eqsat/bz.expect"
+        },
+        {
+            "script": "eqsat/future_01_optimal.cmd",
+            "output": "eqsat/future_01.expect"
+        },
+        {
+            "script": "eqsat/future_02_optimal.cmd",
+            "output": "eqsat/future_02.expect"
+        },
+        {
+            "script": "eqsat/future_03_optimal.cmd",
+            "output": "eqsat/future_03.expect"
+        },
+        {
+            "script": "eqsat/future_04_optimal.cmd",
+            "output": "eqsat/future_04.expect"
+        },
+        {
+            "script": "eqsat/future_05_optimal.cmd",
+            "output": "eqsat/future_05.expect"
+        },
+        {
+            "script": "eqsat/future_06_optimal.cmd",
+            "output": "eqsat/future_06.expect"
+        },
+        {
+            "script": "eqsat/future_07_optimal.cmd",
+            "output": "eqsat/future_07.expect"
+        },
+        {
+            "script": "eqsat/future_08_optimal.cmd",
+            "output": "eqsat/future_08.expect"
+        },
+        {
+            "script": "eqsat/future_09_optimal.cmd",
+            "output": "eqsat/future_09.expect"
+        },
+        {
+            "script": "eqsat/future_until_01_optimal.cmd",
+            "output": "eqsat/future_until_01.expect"
+        },
+        {
+            "script": "eqsat/future_until_02_optimal.cmd",
+            "output": "eqsat/future_until_02.expect"
+        },
+        {
+            "script": "eqsat/global_01_optimal.cmd",
+            "output": "eqsat/global_01.expect"
+        },
+        {
+            "script": "eqsat/global_02_optimal.cmd",
+            "output": "eqsat/global_02.expect"
+        },
+        {
+            "script": "eqsat/global_03_optimal.cmd",
+            "output": "eqsat/global_03.expect"
+        },
+        {
+            "script": "eqsat/global_04_optimal.cmd",
+            "output": "eqsat/global_04.expect"
+        },
+        {
+            "script": "eqsat/global_05_optimal.cmd",
+            "output": "eqsat/global_05.expect"
+        },
+        {
+            "script": "eqsat/global_06_optimal.cmd",
+            "output": "eqsat/global_06.expect"
+        },
+        {
+            "script": "eqsat/global_07_optimal.cmd",
+            "output": "eqsat/global_07.expect"
+        },
+        {
+            "script": "eqsat/global_07_no_commutative_optimal.cmd",
+            "output": "eqsat/global_07_no_commutative.expect"
+        },
+        {
+            "script": "eqsat/global_08_optimal.cmd",
+            "output": "eqsat/global_08.expect"
+        },
+        {
+            "script": "eqsat/global_09_optimal.cmd",
+            "output": "eqsat/global_09.expect"
+        },
+        {
+            "script": "eqsat/multi_formula_optimal.cmd",
             "output": "eqsat/multi_formula.expect"
         }
     ]

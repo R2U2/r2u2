@@ -120,6 +120,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("subset", nargs="?", default="",
                         help="name of subset to run")
+    parser.add_argument("--disable-subset", action="append", default=[],
+                        help="subset to disable when no subset is specified (can be used multiple times)")
     args = parser.parse_args()
 
     # tests is an array of JSON objects
@@ -130,8 +132,9 @@ if __name__ == "__main__":
 
     if args.subset == "":
         # no subset given, so concatenate all the tests together
-        # tests = {name:s for name,arr in config.items() for s in arr}
-        tests = config
+        # Filter out disabled subsets
+        disabled_subsets = set(args.disable_subset) if args.disable_subset else set()
+        tests = {name: tests for name, tests in config.items() if name not in disabled_subsets}
     elif args.subset in config:
         tests = {args.subset: config[args.subset]}
     else:

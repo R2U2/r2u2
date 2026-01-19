@@ -28,20 +28,12 @@ class SMTTheory(enum.Enum):
     QF_UFLIA = "qf_uflia"
     QF_BV = "qf_bv"
 
-def check_solver(smt_solver: str) -> bool:
-    try:
-        proc0 = subprocess.run([smt_solver, "-version"], capture_output=True)
-        proc1 = subprocess.run([smt_solver, "--version"], capture_output=True)
-        return proc0.returncode == 0 or proc1.returncode == 0
-    except FileNotFoundError:
-        return False
-
 def find_smt_solver() -> Optional[str]:
     """Finds the SMT solver in the PATH. Returns the path to the SMT solver if found, otherwise returns None."""
     for solver in ["z3", "cvc5", "yices-smt2", "mathsat", "bitwuzla"]:
         smt_solver_path = shutil.which(solver)
         if smt_solver_path is not None:
-            return smt_solver_path if check_solver(smt_solver_path) else None
+            return smt_solver_path if util.check_executable(smt_solver_path) else None
     return None
 
 def run_smt_solver(
