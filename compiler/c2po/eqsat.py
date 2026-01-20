@@ -441,7 +441,6 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
 
         log.debug(2, f"eqsat result: {repr(new)}")
         if new is None:
-            status = False
             continue
 
         # If equivalence checking is disabled, we can just replace the old expression with the new one

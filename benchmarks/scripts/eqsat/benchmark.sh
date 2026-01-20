@@ -140,7 +140,7 @@ pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es%ge,%gt,%gs,%cr,\n\""
+print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr\n\""
     
     # Generate template by prepending the appropriate command(s) to the template content
     if [[ "$basename_file" == *.c2po ]]; then
@@ -183,7 +183,7 @@ print_stats \"%S,%et,%es%ge,%gt,%gs,%cr,\n\""
 export -f process_file
 export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT
 
-echo "# filename,orig_scq,full_scq,full_time,full_status,no_associative_scq,no_associative_time,no_associative_status,no_commutative_scq,no_commutative_time,no_commutative_status,no_associative_no_commutative_scq,no_associative_no_commutative_time,no_associative_no_commutative_status" > "$OUTPUT_CSV"
+echo "# filename,orig_scq,full_scq,full_eqsat_time,full_egglog_status,full_gurobi_encoding_time,full_gurobi_solver_time,full_gurobi_solver_status,full_cycle_removal_time,no_assoc_scq,no_assoc_eqsat_time,no_assoc_egglog_status,no_assoc_gurobi_encoding_time,no_assoc_gurobi_solver_time,no_assoc_gurobi_solver_status,no_assoc_cycle_removal_time,no_comm_scq,no_comm_eqsat_time,no_comm_egglog_status,no_comm_gurobi_encoding_time,no_comm_gurobi_solver_time,no_comm_gurobi_solver_status,no_comm_cycle_removal_time,no_assoc_no_comm_scq,no_assoc_no_comm_eqsat_time,no_assoc_no_comm_egglog_status,no_assoc_no_comm_gurobi_encoding_time,no_assoc_no_comm_gurobi_solver_time,no_assoc_no_comm_gurobi_solver_status,no_assoc_no_comm_cycle_removal_time" > "$OUTPUT_CSV"
 
 # Process files in parallel with progress bar
 # Use --progress to show progress bar

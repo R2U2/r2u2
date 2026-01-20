@@ -5,7 +5,8 @@ from __future__ import annotations
 import pathlib
 import dataclasses
 import pprint
-from typing import Optional, NewType
+import signal   
+from typing import Optional, NewType, Any
 from c2po import cpt, log, util
 
 try:
@@ -17,6 +18,9 @@ except ImportError:
 ENodeID = NewType('ENodeID', str)
 EClassID = NewType('EClassID', str)
 Interval = NewType('Interval', tuple[int, int])
+
+def timeout_handler(signum: int, frame: Any) -> None:
+    raise TimeoutError("Gurobi optimization timed out")
 
 @dataclasses.dataclass
 class ENode:
@@ -311,33 +315,33 @@ class EGraph:
                 
             # Stack with elements (EClassID, depth)
             stack: list[tuple[EClassID, int]] = [(c, 0) for c in enode.child_eclass_ids]
-            log.debug(5, f"Initial stack: {stack}")
+            # log.debug(5, f"Initial stack: {stack}")
             result: set[EClassID] = set()
             while len(stack) > 0:
                 cur, depth = stack.pop()
-                log.debug(5, f"Popped: {cur}, {depth}")
+                # log.debug(5, f"Popped: {cur}, {depth}")
                 if depth == i:
                     result.add(cur)
-                    log.debug(5, f"Added {cur} to result at depth {depth}")
+                    # log.debug(5, f"Added {cur} to result at depth {depth}")
                     continue
                 for enode in self.eclasses[cur]:
                     for child_eclass_id in enode.child_eclass_ids:
-                        log.debug(5, f"Pushing {child_eclass_id} at depth {depth + 1}")
+                        # log.debug(5, f"Pushing {child_eclass_id} at depth {depth + 1}")
                         stack.append((child_eclass_id, depth + 1))
 
             return result
 
-        log.debug(5, "-"*100)
-        log.debug(5, f"Computing children of {enode} at depth {max_loop_len}")
-        log.debug(5, "")
+        # log.debug(5, "-"*100)
+        # log.debug(5, f"Computing children of {enode} at depth {max_loop_len}")
+        # log.debug(5, "")
 
         for i in range(max_loop_len):
             result = get_children(enode, i)
             if enode.eclass_id in result:
-                log.debug(5, "")
-                log.debug(5, f"Children of {enode} at depth {max_loop_len}: {result}")
-                log.debug(5, f"{result}")
-                log.debug(5, "CYCLE FOUND\n" if enode.eclass_id in result else "")
+                # log.debug(5, "")
+                # log.debug(5, f"Children of {enode} at depth {max_loop_len}: {result}")
+                # log.debug(5, f"{result}")
+                # log.debug(5, "CYCLE FOUND\n" if enode.eclass_id in result else "")
                 return True
 
         return False
@@ -359,9 +363,12 @@ class EGraph:
                 siblings_with_parent.add((sibling_eclass_id, parent))
         return siblings_with_parent
 
-    def build_gurobi_model_(self, env: gp.Env) -> gp.Model:
+    def build_gurobi_model_(self, env: gp.Env, timeout: int) -> gp.Model:
         """Returns a Gurobi model representing the EGraph."""
         start_time = util.get_rusage_time()
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout)
+
         model = gp.Model("EGraph", env=env)
         # model.setParam("OutputFlag", 0)
 
@@ -505,6 +512,8 @@ class EGraph:
             model.addConstr(cost_active_var == enode_vars[enode] * (cost_var + 1))
 
         model.setObjective(gp.quicksum(cost_active_vars[enode] for enode in self.enodes), GRB.MINIMIZE)
+        signal.alarm(0) # Disable the alarm
+
         self.gurobi_enode_vars_ = enode_vars
         self.gurobi_eclass_vars_ = eclass_vars
 
@@ -532,7 +541,6 @@ class EGraph:
         log.debug(2, "building expr")
 
         def build_expr_recur(enode: ENode) -> cpt.Expression:
-            log.debug(2, f"building expr for {repr(enode)}")
             if enode.op == "Bool":
                 return cpt.Constant(log.EMPTY_FILE_LOC, True)
             elif enode.op == "Var":
@@ -575,11 +583,19 @@ class EGraph:
             if max_memory > 0:
                 env.setParam('SoftMemLimit', max_memory)
             env.start()
-            model = self.build_gurobi_model_(env)
+
+            try:
+                model = self.build_gurobi_model_(env, int(max_time))
+            except TimeoutError:
+                log.warning(f"gurobi encoding timed out after {max_time} seconds")
+                self.context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                self.context.stats.eqsat_gurobi_solver_time = -1.0
+                return None
 
             start_time = util.get_rusage_time()
             model.optimize()
             self.context.stats.eqsat_gurobi_solver_time = util.get_rusage_time() - start_time
+            self.context.stats.eqsat_gurobi_solver_status = "ok"
 
             if model.status == GRB.INFEASIBLE:
                 iis_path = pathlib.Path("model.ilp")
@@ -589,15 +605,20 @@ class EGraph:
                 )
                 model.computeIIS()
                 model.write(str(iis_path))
+                self.context.stats.eqsat_gurobi_solver_status = "infeasible"
                 return None
             elif model.status == GRB.TIME_LIMIT:
-                log.internal(f"gurobi optimization timed out after {max_time} seconds")
+                log.warning(f"gurobi timed out after {max_time} seconds")
+                self.context.stats.eqsat_gurobi_solver_status = "timeout"
+                self.context.stats.eqsat_gurobi_solver_time = -1.0
                 return None
             elif model.status == GRB.MEM_LIMIT:
-                log.internal(f"gurobi optimization ran out of memory after {max_memory} MB")
+                log.warning(f"gurobi ran out of memory after {max_memory} MB")
+                self.context.stats.eqsat_gurobi_solver_status = "mem_limit"
                 return None
             elif model.status != GRB.OPTIMAL:
-                log.internal(f"gurobi optimization failed with status {model.status}")
+                log.internal(f"gurobi failed with status {model.status}")
+                self.context.stats.eqsat_gurobi_solver_status = "failure"
                 return None
 
             log.debug(3, "Gurobi variables:")
