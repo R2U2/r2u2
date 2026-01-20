@@ -593,7 +593,20 @@ class EGraph:
                 return None
 
             start_time = util.get_rusage_time()
-            model.optimize()
+            log.debug(2, "optimizing gurobi model")
+            try:
+                model.optimize()
+            except Exception as e:
+                if "Model too large for size-limited license" in str(e):
+                    log.error("gurobi model too large for size-limited license; see https://gurobi.com/unrestricted for more information")
+                    self.context.stats.eqsat_gurobi_solver_status = "bad_license"
+                    self.context.stats.eqsat_gurobi_solver_time = -1.0
+                    return None
+                log.internal(f"gurobi optimization failed: {e}")
+                self.context.stats.eqsat_gurobi_solver_status = "failure"
+                self.context.stats.eqsat_gurobi_solver_time = -1.0
+                return None
+
             self.context.stats.eqsat_gurobi_solver_time = util.get_rusage_time() - start_time
             self.context.stats.eqsat_gurobi_solver_status = "ok"
 
