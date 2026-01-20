@@ -114,6 +114,9 @@ compute_atomics
 push
 push
 push
+push
+push
+push
 
 optimize_cse
 compute_scq_sizes
@@ -140,7 +143,25 @@ pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr\n\""
+print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
+
+pop
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --extraction-method heuristic
+optimize_cse
+compute_scq_sizes
+print_stats \"%S,%et,%es,\"
+
+pop
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-commutative --extraction-method heuristic
+optimize_cse
+compute_scq_sizes 
+print_stats \"%S,%et,%es,\"
+
+pop
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method heuristic
+optimize_cse
+compute_scq_sizes
+print_stats \"%S,%et,%es,\n\""
     
     # Generate template by prepending the appropriate command(s) to the template content
     if [[ "$basename_file" == *.c2po ]]; then

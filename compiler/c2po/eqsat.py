@@ -13,7 +13,6 @@ from c2po import cpt, log, util, types, sat, command, parse_egglog_output
 try:
     from c2po import egraph
 except ImportError:
-    log.warning("gurobipy is not installed, please install it and try again")
     egraph = None
 
 SRC_DIR = pathlib.Path(__file__).parent

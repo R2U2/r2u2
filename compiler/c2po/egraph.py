@@ -13,7 +13,7 @@ try:
     import gurobipy as gp # type: ignore
     from gurobipy import GRB # type: ignore
 except ImportError:
-    raise ImportError("gurobipy is not installed, please install it and try again")
+    raise ImportError("gurobipy is not installed")
 
 ENodeID = NewType('ENodeID', str)
 EClassID = NewType('EClassID', str)
