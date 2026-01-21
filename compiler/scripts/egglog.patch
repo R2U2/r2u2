@@ -1,0 +1,102 @@
+diff --git a/src/cli.rs b/src/cli.rs
+index ee636e05..97abfd46 100644
+--- a/src/cli.rs
++++ b/src/cli.rs
+@@ -93,10 +93,11 @@ pub mod bin {
+                 }
+ 
+                 if args.to_json || args.to_dot || args.to_svg {
+-                    let mut serialized = egraph.serialize(SerializeConfig::default());
+-                    if args.serialize_split_primitive_outputs {
+-                        serialized.split_classes(|id, _| egraph.from_node_id(id).is_primitive())
+-                    }
++                    let root_eclasses = egraph.collect_root_eclasses();
++                    let mut serialized = egraph.serialize(SerializeConfig {
++                        root_eclasses,
++                        ..SerializeConfig::default()
++                    });
+                     for _ in 0..args.serialize_n_inline_leaves {
+                         serialized.inline_leaves();
+                     }
+diff --git a/src/lib.rs b/src/lib.rs
+index 59d26a71..c33eae99 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -449,6 +449,8 @@ pub struct EGraph {
+     overall_run_report: RunReport,
+     /// Messages to be printed to the user. If this is `None`, then we are ignoring messages.
+     msgs: Option<Vec<String>>,
++    /// The name of the last let-bound variable (for root eclass tracking)
++    last_let_variable: Option<Symbol>,
+ }
+ 
+ impl Default for EGraph {
+@@ -471,6 +473,7 @@ impl Default for EGraph {
+             overall_run_report: Default::default(),
+             msgs: Some(vec![]),
+             type_info: Default::default(),
++            last_let_variable: None,
+         };
+         egraph
+             .rulesets
+@@ -700,6 +703,12 @@ impl EGraph {
+             );
+         }
+ 
++        // Track the last let-bound variable (functions from let statements have 0 inputs,
++        // ignore_viz: true, and unextractable: true)
++        if decl.schema.input.is_empty() && decl.ignore_viz && decl.unextractable {
++            self.last_let_variable = Some(decl.name);
++        }
++
+         Ok(())
+     }
+ 
+diff --git a/src/serialize.rs b/src/serialize.rs
+index 127ca813..e2cb2ad2 100644
+--- a/src/serialize.rs
++++ b/src/serialize.rs
+@@ -63,6 +63,21 @@ impl SerializedNode {
+ }
+ 
+ impl EGraph {
++    /// Collect root eclasses from the last let-bound variable.
++    pub fn collect_root_eclasses(&self) -> Vec<(ArcSort, Value)> {
++        let mut root_eclasses = Vec::new();
++        // Get the last let-bound variable (the final let expression in the program)
++        if let Some(var_name) = self.last_let_variable {
++            if let Some(function) = self.functions.get(&var_name) {
++                // Get the value if it exists
++                if let Some(value) = function.get(&[]) {
++                    root_eclasses.push((function.schema.output.clone(), value));
++                }
++            }
++        }
++        root_eclasses
++    }
++
+     /// Serialize the egraph into a format that can be read by the egraph-serialize crate.
+     ///
+     /// There are multiple different semantically valid ways to do this. This is how this implementation does it:
+@@ -102,7 +117,7 @@ impl EGraph {
+             .map(|(name, function)| {
+                 function
+                     .nodes
+-                    .iter_range(0..function.nodes.num_offsets(), true)
++                    .iter_range(0..function.nodes.num_offsets(), false)
+                     .take(config.max_calls_per_function.unwrap_or(usize::MAX))
+                     .map(|(offset, input, output)| {
+                         (
+@@ -180,6 +195,12 @@ impl EGraph {
+             );
+         }
+ 
++        // Serialize root eclasses to ensure they appear in the output
++        for (sort, value) in &config.root_eclasses {
++            let class_id = self.value_to_class_id(sort, value);
++            self.serialize_value(&mut serializer, sort, value, &class_id);
++        }
++
+         serializer.result.root_eclasses = config
+             .root_eclasses
+             .iter()

@@ -19,8 +19,8 @@ ENodeID = NewType('ENodeID', str)
 EClassID = NewType('EClassID', str)
 Interval = NewType('Interval', tuple[int, int])
 
-def timeout_handler(signum: int, frame: Any) -> None:
-    raise TimeoutError("Gurobi optimization timed out")
+def encoding_timeout_handler(signum: int, frame: Any) -> None:
+    raise TimeoutError("Gurobi encoding timed out")
 
 @dataclasses.dataclass
 class ENode:
@@ -180,103 +180,47 @@ class ENode:
             s += f" {self.child_eclass_ids}"
         return s + f" ({self.eclass_id})"
 
-def find_match(start: cpt.Expression, eclasses: dict[EClassID, set[ENode]], context: cpt.Context) -> Optional[ENode]:
-    """Find the matching ENode for the given expression."""
-    def enode_matches_expr(enode: ENode, expr: cpt.Expression) -> bool:
-        nonlocal eclasses
-        
-        if isinstance(expr, cpt.Atomic):
-            log.debug(5, f"{repr(expr)} : {enode.string} : atomic_id {context.atomic_id_map[expr]}")
-        if isinstance(expr, cpt.Atomic) and enode.string == f"a{context.atomic_id_map[expr]}":
-            log.debug(5, f"{enode.enode_id} matches expr {repr(expr)}")
-            return True
-
-        if any(
-            [
-                isinstance(expr, cpt.Constant) and enode.op != "Bool",
-                cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE) and enode.op != "Not",
-                cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_AND) and enode.op[0:3] != "And",
-                cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_OR) and enode.op[0:2] != "Or",
-                cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES) and enode.op != "Implies",
-                cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV) and enode.op != "Equiv",
-                cpt.is_operator(expr, cpt.OperatorKind.GLOBAL) and enode.op != "Global",
-                cpt.is_operator(expr, cpt.OperatorKind.FUTURE) and enode.op != "Future",
-                cpt.is_operator(expr, cpt.OperatorKind.UNTIL) and enode.op != "Until",
-                cpt.is_operator(expr, cpt.OperatorKind.RELEASE) and enode.op != "Release",
-            ]
-        ):
-            log.debug(5, f"{enode.enode_id} does not match expr {repr(expr)}")
-            return False
-
-        # Check that the interval matches
-        if isinstance(expr, cpt.TemporalOperator):
-            lb, ub = expr.interval.lb, expr.interval.ub
-            if enode.interval is None:
-                log.debug(5, f"{enode.enode_id} does not have an interval")
-                return False
-            if enode.interval[0] != lb or enode.interval[1] != ub:
-                log.debug(5, f"{enode.enode_id} does not have the correct interval {lb, ub}")
-                return False
-
-        # Check that the children match
-        relevant_child_eclasses = [
-            c
-            for c in enode.child_eclass_ids
-            if "Interval" not in c
-            and "String" not in c
-            and "i64" not in c
-            and "bool" not in c
-        ]
-
-        if len(relevant_child_eclasses) != len(expr.children):
-            log.debug(5, f"{enode.enode_id} does not have the correct number of children {len(relevant_child_eclasses)} != {len(expr.children)}")
-            return False
-
-        for i in range(len(relevant_child_eclasses)):
-            if not eclass_matches_expr(relevant_child_eclasses[i], expr.children[i]):
-                log.debug(5, f"{enode.enode_id} does not have the correct child {repr(relevant_child_eclasses[i])} != {repr(expr.children[i])}")
-                return False
-
-        log.debug(5, f"{enode.enode_id} matches expr {repr(expr)}")
-        return True
-
-    def eclass_matches_expr(eclass: EClassID, expr: cpt.Expression) -> bool:
-        nonlocal eclasses
-        log.debug(5, f"Checking {eclass} against expr {repr(expr)}")
-        return any(enode_matches_expr(enode, expr) for enode in eclasses[eclass])
-        
-    for eclass_id in eclasses:
-        for enode in eclasses[eclass_id]:
-            if enode_matches_expr(enode, start):
-                return enode
-
-    log.internal(f"no match found for {start}")
-    return None
-
 class EGraph:
     """An EGraph is a set of equivalence classes (EClasses) and a root ENode."""
     
-    def __init__(self, eclasses: dict[EClassID, set[ENode]], root_enode: ENode, root_expr: cpt.Expression, context: cpt.Context):
+    def __init__(
+        self,
+        eclasses: dict[EClassID, set[ENode]],
+        root_eclass: EClassID,
+        original_expr: cpt.Expression,
+        context: cpt.Context,
+    ):
         self.eclasses = eclasses
-        self.root_enode = root_enode
-        self.root_expr = root_expr
+        self.root_eclass = root_eclass
+        self.original_expr = original_expr
         self.gurobi_enode_vars_ = {}
         self.gurobi_eclass_vars_ = {}
         self.context = context
         self.enodes = { n for n in eclasses.values() for n in n }
-        self.enode_wpds: dict[ENode, int] = { n: 0 for n in self.enodes }
-        self.eclass_wpds: dict[EClassID, int] = { c: 0 for c in eclasses.keys() }
-        self.enode_bpds: dict[ENode, int] = { n: 0 for n in self.enodes }
-        self.eclass_bpds: dict[EClassID, int] = { c: 0 for c in eclasses.keys() }
+        self.gurobi_status = "ok"
 
     @staticmethod
-    def from_json(content: dict[str, dict], start: cpt.Expression, context: cpt.Context) -> Optional[EGraph]:
+    def from_json(
+        content: dict[str, dict],
+        root_eclass: EClassID,
+        start: cpt.Expression,
+        context: cpt.Context,
+        timeout: int,
+    ) -> Optional[EGraph]:
         """Return an `EClass` from egglog-generated JSON. Content should the "nodes" key of the JSON."""
         eclasses: dict[EClassID, set[ENode]] = {}
 
+        signal.signal(signal.SIGALRM, encoding_timeout_handler)
+        signal.alarm(timeout)
+
         for enode_id in content:
             # Skip interval, string, and boolean nodes
-            if "Interval" in enode_id or "String" in enode_id or "i64" in enode_id or "bool" in enode_id:
+            if (
+                "Interval" in enode_id
+                or "String" in enode_id
+                or "i64" in enode_id
+                or "bool" in enode_id
+            ):
                 continue
 
             enode = ENode.from_json(enode_id, content)
@@ -285,66 +229,11 @@ class EGraph:
                 eclasses[enode.eclass_id] = set()
             eclasses[enode.eclass_id].add(enode)
 
-        root_enode = find_match(start, eclasses, context)
-        if root_enode is None:
-            return None
-        egraph = EGraph(eclasses, root_enode, start, context)
-
-        # Remove all cycles of length 2 or less
-        # This is sound since our rewrites only introduce cycles of at most 2
-        # One such rewrite is !!p |-> p        
-        log.debug(2, "removing cycles from egraph")
-        start_time = util.get_rusage_time()
-        for enode in egraph.enodes:
-            if egraph.has_cycle(enode, 2) and len(egraph.eclasses[enode.eclass_id]) > 1:
-                log.debug(3, f"Removing cycle from {enode}")
-                egraph.eclasses[enode.eclass_id].remove(enode)
-        egraph.context.stats.eqsat_cycle_removal_time = util.get_rusage_time() - start_time
+        egraph = EGraph(eclasses, root_eclass, start, context)
+        log.debug(3, "egraph:")
+        log.debug(3, "\n" + str(egraph))
 
         return egraph
-
-    def has_cycle(self, enode: ENode, max_loop_len: int) -> bool:
-        """Returns True if the EGraph has a cycle up to length i starting from the given ENode."""
-        def get_children(enode: ENode, i: int) -> set[EClassID]:
-            """ 
-            Returns the children of the given ENode at depth i.
-            i=1 means immediate children, i=2 means children of children, etc.
-            """
-            if i == 0:
-                return set()
-                
-            # Stack with elements (EClassID, depth)
-            stack: list[tuple[EClassID, int]] = [(c, 0) for c in enode.child_eclass_ids]
-            # log.debug(5, f"Initial stack: {stack}")
-            result: set[EClassID] = set()
-            while len(stack) > 0:
-                cur, depth = stack.pop()
-                # log.debug(5, f"Popped: {cur}, {depth}")
-                if depth == i:
-                    result.add(cur)
-                    # log.debug(5, f"Added {cur} to result at depth {depth}")
-                    continue
-                for enode in self.eclasses[cur]:
-                    for child_eclass_id in enode.child_eclass_ids:
-                        # log.debug(5, f"Pushing {child_eclass_id} at depth {depth + 1}")
-                        stack.append((child_eclass_id, depth + 1))
-
-            return result
-
-        # log.debug(5, "-"*100)
-        # log.debug(5, f"Computing children of {enode} at depth {max_loop_len}")
-        # log.debug(5, "")
-
-        for i in range(max_loop_len):
-            result = get_children(enode, i)
-            if enode.eclass_id in result:
-                # log.debug(5, "")
-                # log.debug(5, f"Children of {enode} at depth {max_loop_len}: {result}")
-                # log.debug(5, f"{result}")
-                # log.debug(5, "CYCLE FOUND\n" if enode.eclass_id in result else "")
-                return True
-
-        return False
 
     def get_children(self, enode: ENode) -> list[EClassID]:
         return enode.child_eclass_ids
@@ -363,14 +252,10 @@ class EGraph:
                 siblings_with_parent.add((sibling_eclass_id, parent))
         return siblings_with_parent
 
-    def build_gurobi_model_(self, env: gp.Env, timeout: int) -> gp.Model:
+    def build_gurobi_model_(self, env: gp.Env) -> gp.Model:
         """Returns a Gurobi model representing the EGraph."""
         start_time = util.get_rusage_time()
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)
-
         model = gp.Model("EGraph", env=env)
-        # model.setParam("OutputFlag", 0)
 
         eclass_vars: dict[EClassID, gp.Var] = {}
         enode_vars: dict[ENode, gp.Var] = {}
@@ -410,12 +295,12 @@ class EGraph:
                 )
 
             max_sib_wpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"max_sib_wpd({enode.enode_id})")
-            wpb_bpd_diff_vars[enode] = model.addVar(lb=(- self.root_expr.wpd), vtype=GRB.INTEGER, name=f"wpb_bpd_diff({enode.enode_id})")
+            wpb_bpd_diff_vars[enode] = model.addVar(lb=(- self.original_expr.wpd), vtype=GRB.INTEGER, name=f"wpb_bpd_diff({enode.enode_id})")
             cost_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost({enode.enode_id})")
             cost_active_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost_active({enode.enode_id})")
 
         model.addConstr(
-            eclass_vars[self.root_enode.eclass_id] == 1,
+            eclass_vars[self.root_eclass] == 1,
             name="root_eclass"
         )
         
@@ -450,7 +335,7 @@ class EGraph:
                 model.addConstr(
                     bpd_var == gp.min_(
                         *[bpd_vars[n] for c in enode.child_eclass_ids for n in self.eclasses[c]],
-                        constant=self.root_expr.bpd
+                        constant=self.original_expr.bpd
                     ),
                 )
             else:
@@ -467,7 +352,7 @@ class EGraph:
                 model.addConstr(
                     tmp_bpd_var == gp.min_(
                         *[bpd_vars[n] for c in enode.child_eclass_ids for n in self.eclasses[c]],
-                        constant=self.root_expr.bpd
+                        constant=self.original_expr.bpd
                     ),
                     f"tmp_bpd_var_constr_{enode.enode_id}"
                 )
@@ -512,7 +397,6 @@ class EGraph:
             model.addConstr(cost_active_var == enode_vars[enode] * (cost_var + 1))
 
         model.setObjective(gp.quicksum(cost_active_vars[enode] for enode in self.enodes), GRB.MINIMIZE)
-        signal.alarm(0) # Disable the alarm
 
         self.gurobi_enode_vars_ = enode_vars
         self.gurobi_eclass_vars_ = eclass_vars
@@ -522,11 +406,22 @@ class EGraph:
         return model
 
     def build_repr_map_(self) -> dict[EClassID, ENode]:
+        """
+        Builds a map of ENode representative for each active EClass based on the Gurobi variables.
+        The representative is the ENode that is active in the EClass. An EClass or ENode is active
+        if its Gurobi variable value is 1.
+        """
         log.debug(2, "building repr map")
 
         repr_map: dict[EClassID, ENode] = {}
-        for eclass_id in [c for c in self.eclasses if self.gurobi_eclass_vars_[c].X == 1]:
-            enode = next(enode for enode in self.eclasses[eclass_id] if self.gurobi_enode_vars_[enode].X == 1)
+        for eclass_id in [
+            c for c in self.eclasses if self.gurobi_eclass_vars_[c].X == 1
+        ]:
+            enode = next(
+                enode
+                for enode in self.eclasses[eclass_id]
+                if self.gurobi_enode_vars_[enode].X == 1
+            )
             repr_map[eclass_id] = enode
 
         log.debug(3, "repr_map:")
@@ -536,7 +431,8 @@ class EGraph:
 
     def build_expr_(self, repr_map: dict[EClassID, ENode]) -> cpt.Expression:
         """
-        Converts the Gurobi variables to a CPT Expression.
+        Converts the repr_map into a CPT Expression. The repr_map is a map of active EClassIDs to
+        ENodes, where each ENode is the representative of the EClass.
         """
         log.debug(2, "building expr")
 
@@ -546,31 +442,79 @@ class EGraph:
             elif enode.op == "Var":
                 if not enode.string:
                     raise ValueError("No string for Var")
-                expr = next(e for e,i in self.context.atomic_id_map.items() if i == int(enode.string.replace('"','')[1:]))
+
+                expr = next(
+                    e
+                    for e, i in self.context.atomic_id_map.items()
+                    if i == int(enode.string.replace('"', "")[1:])
+                )
+
+                # Clear the parents since we are building a new expression.
+                # If we keep the old parents, the new expression will have the old expression's
+                # parents, which will cause incorrect sibling relationships during SCQ computation.
                 expr.parents.clear()
                 return expr
             elif enode.op == "Not":
-                return cpt.Operator.LogicalNegate(log.EMPTY_FILE_LOC, build_expr_recur(repr_map[enode.child_eclass_ids[0]]))
+                return cpt.Operator.LogicalNegate(
+                    log.EMPTY_FILE_LOC,
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                )
             elif enode.op[0:3] == "And":
-                return cpt.Operator.LogicalAnd(log.EMPTY_FILE_LOC, [build_expr_recur(repr_map[c]) for c in enode.child_eclass_ids])
+                return cpt.Operator.LogicalAnd(
+                    log.EMPTY_FILE_LOC,
+                    [build_expr_recur(repr_map[c]) for c in enode.child_eclass_ids],
+                )
             elif enode.op[0:2] == "Or":
-                return cpt.Operator.LogicalOr(log.EMPTY_FILE_LOC, [build_expr_recur(repr_map[c]) for c in enode.child_eclass_ids])
+                return cpt.Operator.LogicalOr(
+                    log.EMPTY_FILE_LOC,
+                    [build_expr_recur(repr_map[c]) for c in enode.child_eclass_ids],
+                )
             elif enode.op == "Equiv":
-                return cpt.Operator.LogicalIff(log.EMPTY_FILE_LOC, build_expr_recur(repr_map[enode.child_eclass_ids[0]]), build_expr_recur(repr_map[enode.child_eclass_ids[1]]))
+                return cpt.Operator.LogicalIff(
+                    log.EMPTY_FILE_LOC,
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                    build_expr_recur(repr_map[enode.child_eclass_ids[1]]),
+                )
             elif enode.op == "Implies":
-                return cpt.Operator.LogicalImplies(log.EMPTY_FILE_LOC, build_expr_recur(repr_map[enode.child_eclass_ids[0]]), build_expr_recur(repr_map[enode.child_eclass_ids[1]]))
+                return cpt.Operator.LogicalImplies(
+                    log.EMPTY_FILE_LOC,
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                    build_expr_recur(repr_map[enode.child_eclass_ids[1]]),
+                )
             elif enode.op == "Global" and enode.interval is not None:
-                return cpt.TemporalOperator.Global(log.EMPTY_FILE_LOC, enode.interval[0], enode.interval[1], build_expr_recur(repr_map[enode.child_eclass_ids[0]]))
+                return cpt.TemporalOperator.Global(
+                    log.EMPTY_FILE_LOC,
+                    enode.interval[0],
+                    enode.interval[1],
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                )
             elif enode.op == "Future" and enode.interval is not None:
-                return cpt.TemporalOperator.Future(log.EMPTY_FILE_LOC, enode.interval[0], enode.interval[1], build_expr_recur(repr_map[enode.child_eclass_ids[0]]))
+                return cpt.TemporalOperator.Future(
+                    log.EMPTY_FILE_LOC,
+                    enode.interval[0],
+                    enode.interval[1],
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                )
             elif enode.op == "Until" and enode.interval is not None:
-                return cpt.TemporalOperator.Until(log.EMPTY_FILE_LOC, enode.interval[0], enode.interval[1], build_expr_recur(repr_map[enode.child_eclass_ids[0]]), build_expr_recur(repr_map[enode.child_eclass_ids[1]]))
+                return cpt.TemporalOperator.Until(
+                    log.EMPTY_FILE_LOC,
+                    enode.interval[0],
+                    enode.interval[1],
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                    build_expr_recur(repr_map[enode.child_eclass_ids[1]]),
+                )
             elif enode.op == "Release" and enode.interval is not None:
-                return cpt.TemporalOperator.Release(log.EMPTY_FILE_LOC, enode.interval[0], enode.interval[1], build_expr_recur(repr_map[enode.child_eclass_ids[0]]), build_expr_recur(repr_map[enode.child_eclass_ids[1]]))
+                return cpt.TemporalOperator.Release(
+                    log.EMPTY_FILE_LOC,
+                    enode.interval[0],
+                    enode.interval[1],
+                    build_expr_recur(repr_map[enode.child_eclass_ids[0]]),
+                    build_expr_recur(repr_map[enode.child_eclass_ids[1]]),
+                )
             else:
                 raise ValueError(f"Invalid node type {enode.op}")
 
-        return build_expr_recur(repr_map[self.root_enode.eclass_id])
+        return build_expr_recur(repr_map[self.root_eclass])
 
     def extract(self, max_time: float, max_memory: int) -> Optional[cpt.Expression]:
         """
@@ -584,15 +528,12 @@ class EGraph:
                 env.setParam('SoftMemLimit', max_memory)
             env.start()
 
-            try:
-                model = self.build_gurobi_model_(env, int(max_time))
-            except TimeoutError:
-                log.warning(f"gurobi encoding timed out after {max_time} seconds")
-                self.context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
-                self.context.stats.eqsat_gurobi_solver_time = -1.0
-                return None
+            model = self.build_gurobi_model_(env)
 
-            start_time = util.get_rusage_time()
+            # This is where encoding is complete. We disable the alarm to avoid the timeout
+            # handler from interrupting the optimization.
+            signal.alarm(0) 
+
             log.debug(2, "optimizing gurobi model")
             try:
                 model.optimize()
@@ -607,7 +548,7 @@ class EGraph:
                 self.context.stats.eqsat_gurobi_solver_time = -1.0
                 return None
 
-            self.context.stats.eqsat_gurobi_solver_time = util.get_rusage_time() - start_time
+            self.context.stats.eqsat_gurobi_solver_time = model.getAttr("Runtime")
             self.context.stats.eqsat_gurobi_solver_status = "ok"
 
             if model.status == GRB.INFEASIBLE:
@@ -619,19 +560,23 @@ class EGraph:
                 model.computeIIS()
                 model.write(str(iis_path))
                 self.context.stats.eqsat_gurobi_solver_status = "infeasible"
+                self.gurobi_status = "infeasible"
                 return None
             elif model.status == GRB.TIME_LIMIT:
                 log.warning(f"gurobi timed out after {max_time} seconds")
                 self.context.stats.eqsat_gurobi_solver_status = "timeout"
                 self.context.stats.eqsat_gurobi_solver_time = -1.0
+                self.gurobi_status = "timeout"
                 return None
             elif model.status == GRB.MEM_LIMIT:
                 log.warning(f"gurobi ran out of memory after {max_memory} MB")
                 self.context.stats.eqsat_gurobi_solver_status = "mem_limit"
+                self.gurobi_status = "memout"
                 return None
             elif model.status != GRB.OPTIMAL:
                 log.internal(f"gurobi failed with status {model.status}")
                 self.context.stats.eqsat_gurobi_solver_status = "failure"
+                self.gurobi_status = "failure"
                 return None
 
             log.debug(3, "Gurobi variables:")
@@ -643,12 +588,14 @@ class EGraph:
             log.debug(3, f"enodes active: {[enode.enode_id for enode in self.enodes if self.gurobi_enode_vars_[enode].X == 1]}")
 
         repr_map = self.build_repr_map_()
-        return self.build_expr_(repr_map)
+        result = self.build_expr_(repr_map)
+        return result
 
-    def print(self) -> None:
-        """Prints a string representation of the entire EGraph."""
-        print(f"Root: {self.root_enode}")
+    def __str__(self) -> str:
+        """Returns a string representation of the entire EGraph."""
+        result = f"Root: {self.root_eclass}\n"
         for eclass_id, enodes in sorted(self.eclasses.items()):
-            print(f"EClass({eclass_id}):")
+            result += f"EClass({eclass_id}):\n"
             for enode in sorted(enodes, key=lambda x: x.enode_id):
-                print(f"  {enode}")
+                result += f"  {enode}\n"
+        return result[:-1] # Remove the last newline

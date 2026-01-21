@@ -1,18 +1,21 @@
 (rewrite
   (And2 a0 (Bool true))
   a0
+  :subsume
   :ruleset mltl-rewrites
 )
 
 (rewrite
   (Or2 a0 (Bool false))
   a0
+  :subsume
   :ruleset mltl-rewrites
 )
 
 (rewrite
   (Not (Not a0))
   a0
+  :subsume
   :ruleset mltl-rewrites
 )
 
@@ -144,6 +147,7 @@
   (Or2 (Global (Interval b0 b1) a0) (Global (Interval b2 b3) a0))
   (Global (Interval b2 b3) a0)
   :when ((>= b2 b0) (<= b3 b1))
+  :subsume
   :ruleset mltl-rewrites
 )
 
@@ -151,6 +155,7 @@
   (And2 (Future (Interval b0 b1) a0) (Future (Interval b2 b3) a0))
   (Future (Interval b2 b3) a0)
   :when ((>= b2 b0) (<= b3 b1))
+  :subsume
   :ruleset mltl-rewrites
 )
 
@@ -187,12 +192,28 @@
 (rewrite
   (Global (Interval 0 0) a0)
   a0
+  :subsume
   :ruleset mltl-rewrites
 )
 
 (rewrite
   (Future (Interval 0 0) a0)
   a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval 0 0) a0 a1)
+  a1
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Release (Interval 0 0) a0 a1)
+  a1
+  :subsume
   :ruleset mltl-rewrites
 )
 
@@ -233,6 +254,7 @@
   (And2 (Until (Interval b0 b1) a0 a1) (Future (Interval b2 b3) a1))
   (Until (Interval b0 b1) a0 a1)
   :when ((<= b1 b3) (<= b2 b0))
+  :subsume
   :ruleset mltl-rewrites
 )
 

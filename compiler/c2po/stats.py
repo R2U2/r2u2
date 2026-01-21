@@ -20,7 +20,6 @@ class Stats:
     eqsat_gurobi_encoding_time: float = 0.0
     eqsat_gurobi_solver_time: float = 0.0
     eqsat_gurobi_solver_status: str = "ok"
-    eqsat_cycle_removal_time: float = 0.0
 
     eqsat_equiv_result: str = "none"
     eqsat_equiv_encoding_time: float = 0.0
@@ -53,7 +52,6 @@ class Stats:
         - %ge = Eqsat Gurobi encoding time
         - %gt = Eqsat Gurobi solver time
         - %gs = Eqsat Gurobi solver result
-        - %cr = Eqsat cycle removal time
         - %eq = Eqsat equivalence result
         - %ee = Eqsat equivalence solver time
         - %ed = Eqsat equivalence encoding time
@@ -70,11 +68,11 @@ class Stats:
         format_str = format_str.replace("%ge", str(self.eqsat_gurobi_encoding_time))
         format_str = format_str.replace("%gt", str(self.eqsat_gurobi_solver_time))
         format_str = format_str.replace("%gs", self.eqsat_gurobi_solver_status)
-        format_str = format_str.replace("%cr", str(self.eqsat_cycle_removal_time))
         format_str = format_str.replace("%eq", self.eqsat_equiv_result)
         format_str = format_str.replace("%ee", str(self.eqsat_equiv_solver_time))
         format_str = format_str.replace("%ed", str(self.eqsat_equiv_encoding_time))
         format_str = format_str.replace("\\n", "\n")
+        format_str = format_str.replace("\\\"", "\"")
         return format_str
 
     def deepcopy(self) -> "Stats":

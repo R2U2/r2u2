@@ -6,7 +6,7 @@
 #
 # Arguments:
 #   input_file_list: File containing list of files to process (one per line)
-#   output_csv: Output CSV file to write results to
+#   output_file: Output file to write results to
 #   timeout: Timeout value for optimize_eqsat in seconds (required)
 #   memout: Memory limit for optimize_eqsat in MB (required)
 #   num_jobs: Number of parallel jobs to run (required)
@@ -25,7 +25,7 @@ if [ $# -lt 5 ]; then
 fi
 
 INPUT_FILE="$1"
-OUTPUT_CSV="$2"
+OUTPUT_FILE="$2"
 TIMEOUT="$3"
 MEMOUT="$4"
 NUM_JOBS="$5"
@@ -45,7 +45,7 @@ fi
 
 # Convert to absolute paths
 INPUT_FILE="$(cd "$(dirname "$INPUT_FILE")" && pwd)/$(basename "$INPUT_FILE")"
-OUTPUT_CSV="$(cd "$(dirname "$OUTPUT_CSV")" && pwd)/$(basename "$OUTPUT_CSV")"
+OUTPUT_FILE="$(cd "$(dirname "$OUTPUT_FILE")" && pwd)/$(basename "$OUTPUT_FILE")"
 C2PO_PATH="$(cd "$(dirname "$C2PO_PATH")" && pwd)/$(basename "$C2PO_PATH")"
 
 # Check if input file exists
@@ -117,51 +117,89 @@ push
 push
 push
 push
+push
 
 optimize_cse
 compute_scq_sizes
-print_stats \"%F,%S,\"
+print_stats \"    {\n\"
+print_stats \"      \\\"filename\\\": \\\"%F\\\",\n\"
+print_stats \"      \\\"original-scq\\\": %S,\n\"
 
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
+print_stats \"      \\\"optimal-full-scq\\\": %S,\n\"
+print_stats \"      \\\"optimal-full-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"optimal-full-egglog-status\\\": \\\"%es\\\",\n\"
+print_stats \"      \\\"optimal-full-gurobi-encoding-time\\\": %ge,\n\"
+print_stats \"      \\\"optimal-full-gurobi-solving-time\\\": %gt,\n\"
+print_stats \"      \\\"optimal-full-gurobi-status\\\": \\\"%gs\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
+print_stats \"      \\\"optimal-no-assoc-scq\\\": %S,\n\"
+print_stats \"      \\\"optimal-no-assoc-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"optimal-no-assoc-egglog-status\\\": \\\"%es\\\",\n\"
+print_stats \"      \\\"optimal-no-assoc-gurobi-encoding-time\\\": %ge,\n\"
+print_stats \"      \\\"optimal-no-assoc-gurobi-solving-time\\\": %gt,\n\"
+print_stats \"      \\\"optimal-no-assoc-gurobi-status\\\": \\\"%gs\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes 
-print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
+print_stats \"      \\\"optimal-no-comm-scq\\\": %S,\n\"
+print_stats \"      \\\"optimal-no-comm-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"optimal-no-comm-egglog-status\\\": \\\"%es\\\",\n\"
+print_stats \"      \\\"optimal-no-comm-gurobi-encoding-time\\\": %ge,\n\"
+print_stats \"      \\\"optimal-no-comm-gurobi-solving-time\\\": %gt,\n\"
+print_stats \"      \\\"optimal-no-comm-gurobi-status\\\": \\\"%gs\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method optimal
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,%ge,%gt,%gs,%cr,\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-scq\\\": %S,\n\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-egglog-status\\\": \\\"%es\\\",\n\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-gurobi-encoding-time\\\": %ge,\n\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-gurobi-solving-time\\\": %gt,\n\"
+print_stats \"      \\\"optimal-no-assoc-no-comm-gurobi-status\\\": \\\"%gs\\\",\n\"
+
+pop
+optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --extraction-method heuristic
+optimize_cse
+compute_scq_sizes
+print_stats \"      \\\"heuristic-full-scq\\\": %S,\n\"
+print_stats \"      \\\"heuristic-full-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"heuristic-full-egglog-status\\\": \\\"%es\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --extraction-method heuristic
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,\"
+print_stats \"      \\\"heuristic-no-assoc-scq\\\": %S,\n\"
+print_stats \"      \\\"heuristic-no-assoc-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"heuristic-no-assoc-egglog-status\\\": \\\"%es\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-commutative --extraction-method heuristic
 optimize_cse
 compute_scq_sizes 
-print_stats \"%S,%et,%es,\"
+print_stats \"      \\\"heuristic-no-comm-scq\\\": %S,\n\"
+print_stats \"      \\\"heuristic-no-comm-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"heuristic-no-comm-egglog-status\\\": \\\"%es\\\",\n\"
 
 pop
 optimize_eqsat --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --no-associative --no-commutative --extraction-method heuristic
 optimize_cse
 compute_scq_sizes
-print_stats \"%S,%et,%es,\n\""
+print_stats \"      \\\"heuristic-no-assoc-no-comm-scq\\\": %S,\n\"
+print_stats \"      \\\"heuristic-no-assoc-no-comm-egglog-time\\\": %et,\n\"
+print_stats \"      \\\"heuristic-no-assoc-no-comm-egglog-status\\\": \\\"%es\\\"\n\"
+print_stats \"    },\n\""
     
     # Generate template by prepending the appropriate command(s) to the template content
     if [[ "$basename_file" == *.c2po ]]; then
@@ -204,10 +242,11 @@ print_stats \"%S,%et,%es,\n\""
 export -f process_file
 export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT
 
-echo "# filename,orig_scq,full_scq,full_eqsat_time,full_egglog_status,full_gurobi_encoding_time,full_gurobi_solver_time,full_gurobi_solver_status,full_cycle_removal_time,no_assoc_scq,no_assoc_eqsat_time,no_assoc_egglog_status,no_assoc_gurobi_encoding_time,no_assoc_gurobi_solver_time,no_assoc_gurobi_solver_status,no_assoc_cycle_removal_time,no_comm_scq,no_comm_eqsat_time,no_comm_egglog_status,no_comm_gurobi_encoding_time,no_comm_gurobi_solver_time,no_comm_gurobi_solver_status,no_comm_cycle_removal_time,no_assoc_no_comm_scq,no_assoc_no_comm_eqsat_time,no_assoc_no_comm_egglog_status,no_assoc_no_comm_gurobi_encoding_time,no_assoc_no_comm_gurobi_solver_time,no_assoc_no_comm_gurobi_solver_status,no_assoc_no_comm_cycle_removal_time" > "$OUTPUT_CSV"
+echo "{" > "$OUTPUT_FILE"
+echo "  \"results\": [" >> "$OUTPUT_FILE"
 
 # Process files in parallel with progress bar
-# Use --progress to show progress bar
+# Use --progress/--bar to show progress bar
 # Use --line-buffer to show output as it arrives
 # Use --jobs to limit number of parallel jobs
 # Filter out empty lines and whitespace-only lines
@@ -217,6 +256,11 @@ grep -v '^[[:space:]]*$' "$INPUT_FILE" | parallel \
     --bar \
     --line-buffer \
     --jobs "$NUM_JOBS" \
-    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" >> "$OUTPUT_CSV"
+    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" >> "$OUTPUT_FILE"
 
-echo "Processing complete. Results saved to: $OUTPUT_CSV"
+# Remove trailing comma from last line only
+sed -i '$s/,$//' "$OUTPUT_FILE"
+echo "  ]" >> "$OUTPUT_FILE"
+echo "}" >> "$OUTPUT_FILE"
+
+echo "Processing complete. Results saved to: $OUTPUT_FILE"

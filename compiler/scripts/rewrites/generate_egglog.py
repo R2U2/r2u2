@@ -249,6 +249,12 @@ Examples:
             # Convert to egglog format
             pre_expr = expr_to_egglog(pre_spec.get_expr())
             post_expr = expr_to_egglog(post_spec.get_expr())
+
+            is_subsumed = False
+            for expr in cpt.postorder(pre_spec.get_expr(), context):
+                if repr(expr) == repr(post_spec.get_expr()):
+                    is_subsumed = True
+                    break
             
             # Get birewrite information from rewrites.json
             is_birewrite = rewrites[rule_index].get("birewrite", False)
@@ -264,6 +270,9 @@ Examples:
             rule_content += f"  {post_expr}\n"
             if when_clause:
                 rule_content += f"  {when_clause}\n"
+
+            if is_subsumed:
+                rule_content += "  :subsume\n"
 
             # If the post expression is a constant, use the const-folding ruleset
             # If we do not, the performance of egglog is terrible

@@ -413,34 +413,70 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
         )
         context.stats.eqsat_solver_time += time
         context.stats.eqsat_solver_status = status
-        if status != "ok":
+        if status == "timeout":
+            return command.ReturnCode.SUCCESS
+        elif status == "memout":
+            return command.ReturnCode.SUCCESS
+        elif status != "ok":
             log.warning(f"eqsat failed for {formula.symbol}, skipping")
             continue
 
         if options["extraction_method"] == "optimal":
             if egraph is None:
-                log.error("gurobipy is not installed, please install it and try again or use `heuristic` extraction")
+                log.error(
+                    "gurobipy is not installed, please install it and try again or use `heuristic` extraction"
+                )
                 return command.ReturnCode.ERROR
 
-            if not isinstance(egglog_output, dict) or "nodes" not in egglog_output:
-                log.error(f"error running egglog (no nodes)\n{repr(egglog_output)}")
-                return command.ReturnCode.ERROR
-            
-            egraph_instance = egraph.EGraph.from_json(egglog_output["nodes"], old, context)
-            if egraph_instance is None:
-                log.error(f"failed to generate EGraph for {formula.symbol}", formula.loc)
+            if (
+                not isinstance(egglog_output, dict)
+                or "nodes" not in egglog_output
+                or "root_eclasses" not in egglog_output
+            ):
+                log.error(
+                    f"error in egglog output (no nodes or no root eclasses)\n{repr(egglog_output)}"
+                )
                 return command.ReturnCode.ERROR
 
-            new = egraph_instance.extract(
-                options["gurobi_max_time"],
-                options["gurobi_max_memory"],
-            )
+            root_eclass = egraph.EClassID(egglog_output["root_eclasses"][0])
+
+            try:
+                egraph_instance = egraph.EGraph.from_json(
+                    egglog_output["nodes"],
+                    root_eclass,
+                    old,
+                    context,
+                    options["gurobi_max_time"],
+                )
+                if egraph_instance is None:
+                    log.error(
+                        f"failed to generate EGraph for {formula.symbol}", formula.loc
+                    )
+                    return command.ReturnCode.ERROR
+
+                new = egraph_instance.extract(
+                    options["gurobi_max_time"],
+                    options["gurobi_max_memory"],
+                )
+
+                if egraph_instance.gurobi_status == "timeout":
+                    return command.ReturnCode.SUCCESS
+                elif egraph_instance.gurobi_status == "memout":
+                    return command.ReturnCode.SUCCESS
+                elif egraph_instance.gurobi_status != "ok":
+                    return command.ReturnCode.ERROR
+            except TimeoutError: # This catches the encoding timeout
+                log.warning(f"gurobi encoding timed out after {options["gurobi_max_time"]} seconds")
+                context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                context.stats.eqsat_gurobi_encoding_time = -1.0
+                return command.ReturnCode.SUCCESS
         else:
             new = parse_egglog_output.parse(str(egglog_output), context, options)
 
         log.debug(2, f"eqsat result: {repr(new)}")
         if new is None:
-            continue
+            log.error(f"failed to extract equivalent expression for {formula.symbol}", formula.loc)
+            return command.ReturnCode.ERROR
 
         # If equivalence checking is disabled, we can just replace the old expression with the new one
         if not options["check_equiv"]:

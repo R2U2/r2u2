@@ -499,6 +499,10 @@
             "output": "eqsat/global_09.expect"
         },
         {
+            "script": "eqsat/bad_heuristic.cmd",
+            "output": "eqsat/bad_heuristic.expect"
+        },
+        {
             "script": "eqsat/multi_formula.cmd",
             "output": "eqsat/multi_formula.expect"
         }
@@ -611,6 +615,14 @@
         {
             "script": "eqsat/global_09_optimal.cmd",
             "output": "eqsat/global_09.expect"
+        },
+        {
+            "script": "eqsat/double_negation.cmd",
+            "output": "eqsat/double_negation.expect"
+        },
+        {
+            "script": "eqsat/bad_heuristic_optimal.cmd",
+            "output": "eqsat/bad_heuristic_optimal.expect"
         },
         {
             "script": "eqsat/multi_formula_optimal.cmd",

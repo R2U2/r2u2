@@ -86,7 +86,7 @@ class CommandConsole(code.InteractiveConsole):
         self.context: cpt.Context = cpt.Context()
         self.commands = command.CommandRegistry.commands
         self.command_dict = {command.name: command for command in self.commands}
-        self.last_return_code = command.ReturnCode.SUCCESS
+        self.return_code = command.ReturnCode.SUCCESS
         self.state_stack: list[tuple[cpt.Program, cpt.Context]] = []
 
     def runsource(self, source: str, filename: str = "<input>", symbol: str = "single") -> bool:
@@ -112,24 +112,24 @@ class CommandConsole(code.InteractiveConsole):
             command_args = parts[1:] if len(parts) > 1 else []
         except ValueError:
             log.error("error parsing command")
-            self.set_last_return_code(command.ReturnCode.SHLEX_ERROR)
+            self.set_return_code(command.ReturnCode.SHLEX_ERROR)
             return False
 
         if command_name == "exit":
-            sys.exit(0)
+            sys.exit(self.return_code.value)
         elif command_name == "push":
             self.push_state()
             return False
         elif command_name == "pop":
             if len(self.state_stack) == 0:
                 log.error("no state to pop, use 'push' to create a new state")
-                self.set_last_return_code(command.ReturnCode.NO_STATE_TO_POP)
+                self.set_return_code(command.ReturnCode.NO_STATE_TO_POP)
                 return False
             self.pop_state()
             return False
         elif command_name not in self.command_dict:
             log.error(f"unknown command: {command_name}\nUse 'help' to see all available commands.")
-            self.set_last_return_code(command.ReturnCode.UNKNOWN_COMMAND)
+            self.set_return_code(command.ReturnCode.UNKNOWN_COMMAND)
             return False
 
         cur_command = self.command_dict[command_name]
@@ -146,36 +146,36 @@ class CommandConsole(code.InteractiveConsole):
                 failed_guard_suggestion_names = [suggestion.name for suggestion in failed_guard_suggestions]
                 log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}\n" + \
                           f"    consider trying one of the following commands: {', '.join(failed_guard_suggestion_names)}")
-                self.set_last_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
+                self.set_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
                 return False
             else:
                 log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}")
-                self.set_last_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
+                self.set_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
                 return False
 
             # Parse functions return a program or None, all other functions return a ReturnCode
             if isinstance(result, cpt.Program):
                 self.program = result
-                self.set_last_return_code(command.ReturnCode.SUCCESS)
+                self.set_return_code(command.ReturnCode.SUCCESS)
             elif result is None: # parse functions return None on error
-                self.set_last_return_code(command.ReturnCode.PARSE_ERROR)
+                self.set_return_code(command.ReturnCode.PARSE_ERROR)
             elif isinstance(result, command.ReturnCode):
-                self.set_last_return_code(result)
+                self.set_return_code(result)
             else:
                 log.internal(f"'{command_name}' returned unexpected result type {type(result)}")
-                self.set_last_return_code(command.ReturnCode.UNKNOWN_RESULT_TYPE)
+                self.set_return_code(command.ReturnCode.UNKNOWN_RESULT_TYPE)
 
         except SystemExit:
             # argparse calls sys.exit() on --help or errors, catch it
-            self.set_last_return_code(command.ReturnCode.ARGPARSE_EXIT)
+            self.set_return_code(command.ReturnCode.ARGPARSE_EXIT)
             return False
 
         return False
 
-    def set_last_return_code(self, return_code: command.ReturnCode) -> None:
-        """Set the last return code to the given return code if the current last return code is not an error."""
-        if not self.last_return_code.is_error():
-            self.last_return_code = return_code
+    def set_return_code(self, return_code: command.ReturnCode) -> None:
+        """Sets the return code to the given return code if the given return code is an error."""
+        if return_code.is_error():
+            self.return_code = return_code
 
     def push_state(self) -> None:
         """Push the current state onto the state stack."""
@@ -194,7 +194,7 @@ def interactive() -> command.ReturnCode:
     """
     console = CommandConsole()
     console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)", exitmsg="")
-    return console.last_return_code
+    return console.return_code
 
 def script(script_filename: str, chdir: bool = True) -> command.ReturnCode:
     """Execute REPL commands from a script file using the code library.
@@ -217,7 +217,7 @@ def script(script_filename: str, chdir: bool = True) -> command.ReturnCode:
     for line in contents.splitlines():
         console.runsource(line.strip())
 
-    return console.last_return_code
+    return console.return_code
 
 def cli(
     spec_filename: str,

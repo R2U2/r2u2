@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import pickle
 import re
-from typing import Iterator, Optional, Union, cast, Any, NamedTuple
+from typing import Iterator, Optional, Union, cast, Any, NamedTuple, Callable
 from c2po import log, types, stats
 
 class C2POSection(enum.Enum):
@@ -128,6 +128,21 @@ class Expression(Node):
 
     def deepcopy(self, context: Context) -> Expression:
         return deepcopy_expr(self, context, {})
+
+class Match(Expression):
+    def __init__(self, loc: log.FileLocation, name: str, match_function: Callable[[str], bool]) -> None:
+        super().__init__(loc, [])
+        self.match_function = match_function
+        self.symbol = name
+
+    def matches(self, arg: str) -> bool:
+        return self.match_function(arg)
+
+    def __str__(self) -> str:
+        return self.symbol
+
+    def __repr__(self) -> str:
+        return self.symbol
 
 class Constant(Expression):
     def __init__(self, loc: log.FileLocation, value: Any) -> None:
@@ -1845,7 +1860,7 @@ def to_infix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
             s += expr.symbol
         elif isinstance(expr, ArrayIndex):
             if seen == 0:
@@ -1959,7 +1974,7 @@ def to_prefix_str(start: Expression, with_internal_labels: bool = False) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime)):
+        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
             s += expr.symbol + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:

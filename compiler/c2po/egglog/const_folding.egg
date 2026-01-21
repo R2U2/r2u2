@@ -13,12 +13,14 @@
 (rewrite
   (And2 a0 (Bool false))
   (Bool false)
+  :subsume
   :ruleset const-folding
 )
 
 (rewrite
   (Or2 a0 (Bool true))
   (Bool true)
+  :subsume
   :ruleset const-folding
 )
 
@@ -37,24 +39,28 @@
 (rewrite
   (Global (Interval b0 b1) (Bool false))
   (Bool false)
+  :subsume
   :ruleset const-folding
 )
 
 (rewrite
   (Global (Interval b0 b1) (Bool true))
   (Bool true)
+  :subsume
   :ruleset const-folding
 )
 
 (rewrite
   (Future (Interval b0 b1) (Bool false))
   (Bool false)
+  :subsume
   :ruleset const-folding
 )
 
 (rewrite
   (Future (Interval b0 b1) (Bool true))
   (Bool true)
+  :subsume
   :ruleset const-folding
 )
 
