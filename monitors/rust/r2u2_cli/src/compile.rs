@@ -24,7 +24,6 @@ pub fn c2po_compile(spec_filename: &str,
     let lex_code = c_str!(include_str!("../compiler/c2po/sly/lex.py"));
     let yacc_code = c_str!(include_str!("../compiler/c2po/sly/yacc.py"));
     let sly_code = c_str!(include_str!("../compiler/c2po/sly/__init__.py"));
-    let parse_utils_code = c_str!(include_str!("../compiler/c2po/parse_utils.py"));
     let desugar_code = c_str!(include_str!("../compiler/c2po/desugar.py"));
     let rewrite_code = c_str!(include_str!("../compiler/c2po/rewrite.py"));
     let cse_code = c_str!(include_str!("../compiler/c2po/cse.py"));
@@ -40,6 +39,11 @@ pub fn c2po_compile(spec_filename: &str,
     let parse_mltl_code = c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
     let parse_c2po_code = c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
     let parse_equiv_code = c_str!(include_str!("../compiler/c2po/parse_equiv.py"));
+    let egraph_code = c_str!(include_str!("../compiler/c2po/egraph.py"));
+    let trace_code = c_str!(include_str!("../compiler/c2po/trace.py"));
+    let map_code = c_str!(include_str!("../compiler/c2po/map.py"));
+    let r2u2_code = c_str!(include_str!("../compiler/c2po/r2u2.py"));
+    let wcet_code = c_str!(include_str!("../compiler/c2po/wcet.py"));
     let main_code = c_str!(include_str!("../compiler/c2po/main.py"));
 
     let from_python = Python::attach(|py| -> PyResult<()> {
@@ -60,9 +64,6 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, yacc_code, c_str!("sly/yacc.py"), c_str!("c2po.sly.yacc"))?;
         PyModule::from_code(py, sly_code, c_str!("sly/__init__.py"), c_str!("c2po.sly"))?;
         
-        // Parse modules
-        PyModule::from_code(py, parse_utils_code, c_str!("c2po/parse_utils.py"), c_str!("c2po.parse_utils"))?;
-        
         // Transform and optimization modules
         PyModule::from_code(py, desugar_code, c_str!("c2po/desugar.py"), c_str!("c2po.desugar"))?;
         PyModule::from_code(py, rewrite_code, c_str!("c2po/rewrite.py"), c_str!("c2po.rewrite"))?;
@@ -75,10 +76,15 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, sat_code, c_str!("c2po/sat.py"), c_str!("c2po.sat"))?;
         PyModule::from_code(py, parse_egglog_output_code, c_str!("c2po/parse_egglog_output.py"), c_str!("c2po.parse_egglog_output"))?;
         PyModule::from_code(py, eqsat_code, c_str!("c2po/eqsat.py"), c_str!("c2po.eqsat"))?;
+        PyModule::from_code(py, egraph_code, c_str!("c2po/egraph.py"), c_str!("c2po.egraph"))?;
         PyModule::from_code(py, serialize_code, c_str!("c2po/serialize.py"), c_str!("c2po.serialize"))?;
         PyModule::from_code(py, parse_mltl_code, c_str!("c2po/parse_mltl.py"), c_str!("c2po.parse_mltl"))?;
         PyModule::from_code(py, parse_c2po_code, c_str!("c2po/parse_c2po.py"), c_str!("c2po.parse_c2po"))?;
         PyModule::from_code(py, parse_equiv_code, c_str!("c2po/parse_equiv.py"), c_str!("c2po.parse_equiv"))?;
+        PyModule::from_code(py, trace_code, c_str!("c2po/trace.py"), c_str!("c2po.trace"))?;
+        PyModule::from_code(py, map_code, c_str!("c2po/map.py"), c_str!("c2po.map"))?;
+        PyModule::from_code(py, r2u2_code, c_str!("c2po/r2u2.py"), c_str!("c2po.r2u2"))?;
+        PyModule::from_code(py, wcet_code, c_str!("c2po/wcet.py"), c_str!("c2po.wcet"))?;
         
         // Main module (depends on all others)
         let main_py = PyModule::from_code(py, main_code, c_str!("c2po/main.py"), c_str!("c2po.main"))?;
