@@ -121,16 +121,14 @@ def generate_trace(program: cpt.Program, context: cpt.Context, options: dict[str
     output_lines = [f"#{','.join(var_name for var_name, _ in variables)}"]
     for _ in range(length):
         output_lines.append(
-            f"{
-                ','.join(
-                    str(random.randint(0, 1)) 
-                    if types.is_bool_type(var_type)
-                    else str(random.uniform(min_val, max_val))[:float_precision]
-                    if types.is_float_type(var_type)
-                    else str(random.randint(int(min_val), int(max_val)))
-                    for _, var_type in variables
-                )
-            }"
+            ','.join(
+                str(random.randint(0, 1)) 
+                if types.is_bool_type(var_type)
+                else str(random.uniform(min_val, max_val))[:float_precision]
+                if types.is_float_type(var_type)
+                else str(random.randint(int(min_val), int(max_val)))
+                for _, var_type in variables
+            )
         )
 
     end_time = util.get_rusage_time()
