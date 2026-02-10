@@ -628,5 +628,11 @@
             "script": "eqsat/multi_formula_optimal.cmd",
             "output": "eqsat/multi_formula.expect"
         }
+    ],
+    "r2u2": [
+        {
+            "script": "r2u2/arbiter.cmd",
+            "output": "r2u2/arbiter.expect"
+        }
     ]
 }

@@ -1,0 +1,510 @@
+debug: executing optimize_eqsat const_folding=True associative=True commutative=True multi_arity=True temporal=True egglog_max_time=5 egglog_max_memory=0 egglog_bin=None extraction_method=optimal gurobi_max_time=10 gurobi_max_memory=0 check_equiv=True equiv_smt_encoding_filename=None theory=uflia smt_max_time=5 smt_max_memory=0 
+optimize_eqsat: debug: running command '/home/cgjohann/Git/r2u2/compiler/deps/egglog/target/release/egglog /tmp/tmp8nl7h0n9/tmp.egg --to-json'
+optimize_eqsat: debug: egraph:
+optimize_eqsat: debug: 
+Root: MLTL-10
+EClass(MLTL-0):
+  function-0-Var: Var a0 (MLTL-0)
+EClass(MLTL-10):
+  function-0-And2: And2 ['MLTL-5', 'MLTL-9'] (MLTL-10)
+  function-12-Not: Not ['MLTL-24'] (MLTL-10)
+EClass(MLTL-11):
+  function-3-Not: Not ['MLTL-0'] (MLTL-11)
+EClass(MLTL-16):
+  function-0-Future: Future[0,10] ['MLTL-2'] (MLTL-16)
+  function-1-Until: Until[0,10] ['MLTL-26', 'MLTL-2'] (MLTL-16)
+EClass(MLTL-2):
+  function-1-And2: And2 ['MLTL-0', 'MLTL-22'] (MLTL-2)
+EClass(MLTL-21):
+  function-17-Not: Not ['MLTL-29'] (MLTL-21)
+  function-4-Var: Var a2 (MLTL-21)
+EClass(MLTL-22):
+  function-16-Not: Not ['MLTL-30'] (MLTL-22)
+  function-3-Var: Var a1 (MLTL-22)
+EClass(MLTL-24):
+  function-0-Or2: Or2 ['MLTL-16', 'MLTL-8'] (MLTL-24)
+EClass(MLTL-26):
+  function-1-Bool: Bool True (MLTL-26)
+EClass(MLTL-29):
+  function-13-Not: Not ['MLTL-21'] (MLTL-29)
+EClass(MLTL-3):
+  function-0-Implies: Implies ['MLTL-0', 'MLTL-30'] (MLTL-3)
+  function-0-Not: Not ['MLTL-2'] (MLTL-3)
+  function-2-Or2: Or2 ['MLTL-11', 'MLTL-30'] (MLTL-3)
+EClass(MLTL-30):
+  function-14-Not: Not ['MLTL-22'] (MLTL-30)
+EClass(MLTL-32):
+  function-15-Not: Not ['MLTL-26'] (MLTL-32)
+  function-2-Bool: Bool False (MLTL-32)
+EClass(MLTL-5):
+  function-0-Global: Global[0,10] ['MLTL-3'] (MLTL-5)
+  function-0-Release: Release[0,10] ['MLTL-32', 'MLTL-3'] (MLTL-5)
+  function-8-Not: Not ['MLTL-16'] (MLTL-5)
+EClass(MLTL-8):
+  function-2-And2: And2 ['MLTL-29', 'MLTL-30'] (MLTL-8)
+  function-7-Not: Not ['MLTL-9'] (MLTL-8)
+EClass(MLTL-9):
+  function-1-Implies: Implies ['MLTL-29', 'MLTL-22'] (MLTL-9)
+  function-1-Or2: Or2 ['MLTL-21', 'MLTL-22'] (MLTL-9)
+  function-2-Not: Not ['MLTL-8'] (MLTL-9)
+optimize_eqsat: debug: optimizing gurobi model
+optimize_eqsat: debug: Gurobi variables:
+optimize_eqsat: debug:   bpd(function-0-And2)              0
+optimize_eqsat: debug:   bpd(function-0-Future)            0
+optimize_eqsat: debug:   bpd(function-0-Global)            0
+optimize_eqsat: debug:   bpd(function-0-Implies)           0
+optimize_eqsat: debug:   bpd(function-0-Not)               0
+optimize_eqsat: debug:   bpd(function-0-Or2)               0
+optimize_eqsat: debug:   bpd(function-0-Release)           0
+optimize_eqsat: debug:   bpd(function-0-Var)               0
+optimize_eqsat: debug:   bpd(function-1-And2)              0
+optimize_eqsat: debug:   bpd(function-1-Bool)              0
+optimize_eqsat: debug:   bpd(function-1-Implies)           0
+optimize_eqsat: debug:   bpd(function-1-Or2)               0
+optimize_eqsat: debug:   bpd(function-1-Until)             0
+optimize_eqsat: debug:   bpd(function-12-Not)              0
+optimize_eqsat: debug:   bpd(function-13-Not)              0
+optimize_eqsat: debug:   bpd(function-14-Not)              0
+optimize_eqsat: debug:   bpd(function-15-Not)              0
+optimize_eqsat: debug:   bpd(function-16-Not)              0
+optimize_eqsat: debug:   bpd(function-17-Not)              0
+optimize_eqsat: debug:   bpd(function-2-And2)              0
+optimize_eqsat: debug:   bpd(function-2-Bool)              0
+optimize_eqsat: debug:   bpd(function-2-Not)               0
+optimize_eqsat: debug:   bpd(function-2-Or2)               0
+optimize_eqsat: debug:   bpd(function-3-Not)               0
+optimize_eqsat: debug:   bpd(function-3-Var)               0
+optimize_eqsat: debug:   bpd(function-4-Var)               0
+optimize_eqsat: debug:   bpd(function-7-Not)               0
+optimize_eqsat: debug:   bpd(function-8-Not)               0
+optimize_eqsat: debug:   bpd_tmp_function-0-Future         0
+optimize_eqsat: debug:   bpd_tmp_function-0-Global         0
+optimize_eqsat: debug:   bpd_tmp_function-0-Release        0
+optimize_eqsat: debug:   bpd_tmp_function-1-Until          0
+optimize_eqsat: debug:   cost(function-0-And2)             0
+optimize_eqsat: debug:   cost(function-0-Future)           0
+optimize_eqsat: debug:   cost(function-0-Global)           0
+optimize_eqsat: debug:   cost(function-0-Implies)          0
+optimize_eqsat: debug:   cost(function-0-Not)              0
+optimize_eqsat: debug:   cost(function-0-Or2)              0
+optimize_eqsat: debug:   cost(function-0-Release)          0
+optimize_eqsat: debug:   cost(function-0-Var)              0
+optimize_eqsat: debug:   cost(function-1-And2)             0
+optimize_eqsat: debug:   cost(function-1-Bool)             0
+optimize_eqsat: debug:   cost(function-1-Implies)          10
+optimize_eqsat: debug:   cost(function-1-Or2)              10
+optimize_eqsat: debug:   cost(function-1-Until)            0
+optimize_eqsat: debug:   cost(function-12-Not)             0
+optimize_eqsat: debug:   cost(function-13-Not)             0
+optimize_eqsat: debug:   cost(function-14-Not)             0
+optimize_eqsat: debug:   cost(function-15-Not)             0
+optimize_eqsat: debug:   cost(function-16-Not)             0
+optimize_eqsat: debug:   cost(function-17-Not)             0
+optimize_eqsat: debug:   cost(function-2-And2)             0
+optimize_eqsat: debug:   cost(function-2-Bool)             0
+optimize_eqsat: debug:   cost(function-2-Not)              10
+optimize_eqsat: debug:   cost(function-2-Or2)              0
+optimize_eqsat: debug:   cost(function-3-Not)              0
+optimize_eqsat: debug:   cost(function-3-Var)              0
+optimize_eqsat: debug:   cost(function-4-Var)              0
+optimize_eqsat: debug:   cost(function-7-Not)              0
+optimize_eqsat: debug:   cost(function-8-Not)              0
+optimize_eqsat: debug:   cost_active(function-0-And2)      1
+optimize_eqsat: debug:   cost_active(function-0-Future)    0
+optimize_eqsat: debug:   cost_active(function-0-Global)    1
+optimize_eqsat: debug:   cost_active(function-0-Implies)   0
+optimize_eqsat: debug:   cost_active(function-0-Not)       1
+optimize_eqsat: debug:   cost_active(function-0-Or2)       0
+optimize_eqsat: debug:   cost_active(function-0-Release)   0
+optimize_eqsat: debug:   cost_active(function-0-Var)       1
+optimize_eqsat: debug:   cost_active(function-1-And2)      1
+optimize_eqsat: debug:   cost_active(function-1-Bool)      0
+optimize_eqsat: debug:   cost_active(function-1-Implies)   0
+optimize_eqsat: debug:   cost_active(function-1-Or2)       11
+optimize_eqsat: debug:   cost_active(function-1-Until)     0
+optimize_eqsat: debug:   cost_active(function-12-Not)      0
+optimize_eqsat: debug:   cost_active(function-13-Not)      0
+optimize_eqsat: debug:   cost_active(function-14-Not)      0
+optimize_eqsat: debug:   cost_active(function-15-Not)      0
+optimize_eqsat: debug:   cost_active(function-16-Not)      0
+optimize_eqsat: debug:   cost_active(function-17-Not)      0
+optimize_eqsat: debug:   cost_active(function-2-And2)      0
+optimize_eqsat: debug:   cost_active(function-2-Bool)      0
+optimize_eqsat: debug:   cost_active(function-2-Not)       0
+optimize_eqsat: debug:   cost_active(function-2-Or2)       0
+optimize_eqsat: debug:   cost_active(function-3-Not)       0
+optimize_eqsat: debug:   cost_active(function-3-Var)       1
+optimize_eqsat: debug:   cost_active(function-4-Var)       1
+optimize_eqsat: debug:   cost_active(function-7-Not)       0
+optimize_eqsat: debug:   cost_active(function-8-Not)       0
+optimize_eqsat: debug:   eclass(MLTL-0)                    1
+optimize_eqsat: debug:   eclass(MLTL-10)                   1
+optimize_eqsat: debug:   eclass(MLTL-11)                   0
+optimize_eqsat: debug:   eclass(MLTL-16)                   0
+optimize_eqsat: debug:   eclass(MLTL-2)                    1
+optimize_eqsat: debug:   eclass(MLTL-21)                   1
+optimize_eqsat: debug:   eclass(MLTL-22)                   1
+optimize_eqsat: debug:   eclass(MLTL-24)                   0
+optimize_eqsat: debug:   eclass(MLTL-26)                   1
+optimize_eqsat: debug:   eclass(MLTL-29)                   -0
+optimize_eqsat: debug:   eclass(MLTL-3)                    1
+optimize_eqsat: debug:   eclass(MLTL-30)                   0
+optimize_eqsat: debug:   eclass(MLTL-32)                   1
+optimize_eqsat: debug:   eclass(MLTL-5)                    1
+optimize_eqsat: debug:   eclass(MLTL-8)                    0
+optimize_eqsat: debug:   eclass(MLTL-9)                    1
+optimize_eqsat: debug:   eclass_order(MLTL-0)              4
+optimize_eqsat: debug:   eclass_order(MLTL-10)             0
+optimize_eqsat: debug:   eclass_order(MLTL-11)             3
+optimize_eqsat: debug:   eclass_order(MLTL-16)             2
+optimize_eqsat: debug:   eclass_order(MLTL-2)              3
+optimize_eqsat: debug:   eclass_order(MLTL-21)             2
+optimize_eqsat: debug:   eclass_order(MLTL-22)             4
+optimize_eqsat: debug:   eclass_order(MLTL-24)             1
+optimize_eqsat: debug:   eclass_order(MLTL-26)             3
+optimize_eqsat: debug:   eclass_order(MLTL-29)             3
+optimize_eqsat: debug:   eclass_order(MLTL-3)              2
+optimize_eqsat: debug:   eclass_order(MLTL-30)             5
+optimize_eqsat: debug:   eclass_order(MLTL-32)             2
+optimize_eqsat: debug:   eclass_order(MLTL-5)              1
+optimize_eqsat: debug:   eclass_order(MLTL-8)              2
+optimize_eqsat: debug:   eclass_order(MLTL-9)              1
+optimize_eqsat: debug:   enode(function-0-And2)            1
+optimize_eqsat: debug:   enode(function-0-Future)          -0
+optimize_eqsat: debug:   enode(function-0-Global)          1
+optimize_eqsat: debug:   enode(function-0-Implies)         0
+optimize_eqsat: debug:   enode(function-0-Not)             1
+optimize_eqsat: debug:   enode(function-0-Or2)             0
+optimize_eqsat: debug:   enode(function-0-Release)         -0
+optimize_eqsat: debug:   enode(function-0-Var)             1
+optimize_eqsat: debug:   enode(function-1-And2)            1
+optimize_eqsat: debug:   enode(function-1-Bool)            1
+optimize_eqsat: debug:   enode(function-1-Implies)         -0
+optimize_eqsat: debug:   enode(function-1-Or2)             1
+optimize_eqsat: debug:   enode(function-1-Until)           -0
+optimize_eqsat: debug:   enode(function-12-Not)            0
+optimize_eqsat: debug:   enode(function-13-Not)            -0
+optimize_eqsat: debug:   enode(function-14-Not)            -0
+optimize_eqsat: debug:   enode(function-15-Not)            -0
+optimize_eqsat: debug:   enode(function-16-Not)            0
+optimize_eqsat: debug:   enode(function-17-Not)            -0
+optimize_eqsat: debug:   enode(function-2-And2)            0
+optimize_eqsat: debug:   enode(function-2-Bool)            1
+optimize_eqsat: debug:   enode(function-2-Not)             0
+optimize_eqsat: debug:   enode(function-2-Or2)             0
+optimize_eqsat: debug:   enode(function-3-Not)             0
+optimize_eqsat: debug:   enode(function-3-Var)             1
+optimize_eqsat: debug:   enode(function-4-Var)             1
+optimize_eqsat: debug:   enode(function-7-Not)             -0
+optimize_eqsat: debug:   enode(function-8-Not)             -0
+optimize_eqsat: debug:   max_sib_wpd(function-0-And2)      0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Future)    0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Global)    0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Implies)   0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Not)       0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Or2)       0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Release)   0
+optimize_eqsat: debug:   max_sib_wpd(function-0-Var)       0
+optimize_eqsat: debug:   max_sib_wpd(function-1-And2)      0
+optimize_eqsat: debug:   max_sib_wpd(function-1-Bool)      0
+optimize_eqsat: debug:   max_sib_wpd(function-1-Implies)   10
+optimize_eqsat: debug:   max_sib_wpd(function-1-Or2)       10
+optimize_eqsat: debug:   max_sib_wpd(function-1-Until)     0
+optimize_eqsat: debug:   max_sib_wpd(function-12-Not)      0
+optimize_eqsat: debug:   max_sib_wpd(function-13-Not)      -0
+optimize_eqsat: debug:   max_sib_wpd(function-14-Not)      -0
+optimize_eqsat: debug:   max_sib_wpd(function-15-Not)      0
+optimize_eqsat: debug:   max_sib_wpd(function-16-Not)      -0
+optimize_eqsat: debug:   max_sib_wpd(function-17-Not)      0
+optimize_eqsat: debug:   max_sib_wpd(function-2-And2)      0
+optimize_eqsat: debug:   max_sib_wpd(function-2-Bool)      0
+optimize_eqsat: debug:   max_sib_wpd(function-2-Not)       10
+optimize_eqsat: debug:   max_sib_wpd(function-2-Or2)       0
+optimize_eqsat: debug:   max_sib_wpd(function-3-Not)       0
+optimize_eqsat: debug:   max_sib_wpd(function-3-Var)       0
+optimize_eqsat: debug:   max_sib_wpd(function-4-Var)       0
+optimize_eqsat: debug:   max_sib_wpd(function-7-Not)       0
+optimize_eqsat: debug:   max_sib_wpd(function-8-Not)       0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-And2)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Future)   0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Global)   0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Implies)  0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Not)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Or2)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Release)  0
+optimize_eqsat: debug:   wpb_bpd_diff(function-0-Var)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-1-And2)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-1-Bool)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-1-Implies)  10
+optimize_eqsat: debug:   wpb_bpd_diff(function-1-Or2)      10
+optimize_eqsat: debug:   wpb_bpd_diff(function-1-Until)    0
+optimize_eqsat: debug:   wpb_bpd_diff(function-12-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-13-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-14-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-15-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-16-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-17-Not)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-2-And2)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-2-Bool)     0
+optimize_eqsat: debug:   wpb_bpd_diff(function-2-Not)      10
+optimize_eqsat: debug:   wpb_bpd_diff(function-2-Or2)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-3-Not)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-3-Var)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-4-Var)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-7-Not)      0
+optimize_eqsat: debug:   wpb_bpd_diff(function-8-Not)      0
+optimize_eqsat: debug:   wpd(function-0-And2)              10
+optimize_eqsat: debug:   wpd(function-0-Future)            10
+optimize_eqsat: debug:   wpd(function-0-Global)            10
+optimize_eqsat: debug:   wpd(function-0-Implies)           0
+optimize_eqsat: debug:   wpd(function-0-Not)               0
+optimize_eqsat: debug:   wpd(function-0-Or2)               10
+optimize_eqsat: debug:   wpd(function-0-Release)           10
+optimize_eqsat: debug:   wpd(function-0-Var)               0
+optimize_eqsat: debug:   wpd(function-1-And2)              0
+optimize_eqsat: debug:   wpd(function-1-Bool)              0
+optimize_eqsat: debug:   wpd(function-1-Implies)           -0
+optimize_eqsat: debug:   wpd(function-1-Or2)               -0
+optimize_eqsat: debug:   wpd(function-1-Until)             10
+optimize_eqsat: debug:   wpd(function-12-Not)              10
+optimize_eqsat: debug:   wpd(function-13-Not)              -0
+optimize_eqsat: debug:   wpd(function-14-Not)              0
+optimize_eqsat: debug:   wpd(function-15-Not)              0
+optimize_eqsat: debug:   wpd(function-16-Not)              0
+optimize_eqsat: debug:   wpd(function-17-Not)              0
+optimize_eqsat: debug:   wpd(function-2-And2)              -0
+optimize_eqsat: debug:   wpd(function-2-Bool)              0
+optimize_eqsat: debug:   wpd(function-2-Not)               0
+optimize_eqsat: debug:   wpd(function-2-Or2)               0
+optimize_eqsat: debug:   wpd(function-3-Not)               0
+optimize_eqsat: debug:   wpd(function-3-Var)               0
+optimize_eqsat: debug:   wpd(function-4-Var)               0
+optimize_eqsat: debug:   wpd(function-7-Not)               -0
+optimize_eqsat: debug:   wpd(function-8-Not)               10
+optimize_eqsat: debug:   wpd_active(function-0-And2)       10
+optimize_eqsat: debug:   wpd_active(function-0-Future)     0
+optimize_eqsat: debug:   wpd_active(function-0-Global)     10
+optimize_eqsat: debug:   wpd_active(function-0-Implies)    0
+optimize_eqsat: debug:   wpd_active(function-0-Not)        0
+optimize_eqsat: debug:   wpd_active(function-0-Or2)        0
+optimize_eqsat: debug:   wpd_active(function-0-Release)    0
+optimize_eqsat: debug:   wpd_active(function-0-Var)        0
+optimize_eqsat: debug:   wpd_active(function-1-And2)       0
+optimize_eqsat: debug:   wpd_active(function-1-Bool)       0
+optimize_eqsat: debug:   wpd_active(function-1-Implies)    0
+optimize_eqsat: debug:   wpd_active(function-1-Or2)        0
+optimize_eqsat: debug:   wpd_active(function-1-Until)      0
+optimize_eqsat: debug:   wpd_active(function-12-Not)       0
+optimize_eqsat: debug:   wpd_active(function-13-Not)       0
+optimize_eqsat: debug:   wpd_active(function-14-Not)       0
+optimize_eqsat: debug:   wpd_active(function-15-Not)       0
+optimize_eqsat: debug:   wpd_active(function-16-Not)       0
+optimize_eqsat: debug:   wpd_active(function-17-Not)       0
+optimize_eqsat: debug:   wpd_active(function-2-And2)       0
+optimize_eqsat: debug:   wpd_active(function-2-Bool)       0
+optimize_eqsat: debug:   wpd_active(function-2-Not)        0
+optimize_eqsat: debug:   wpd_active(function-2-Or2)        0
+optimize_eqsat: debug:   wpd_active(function-3-Not)        0
+optimize_eqsat: debug:   wpd_active(function-3-Var)        0
+optimize_eqsat: debug:   wpd_active(function-4-Var)        0
+optimize_eqsat: debug:   wpd_active(function-7-Not)        0
+optimize_eqsat: debug:   wpd_active(function-8-Not)        0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Future,function-0-Or2,function-2-And2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Future,function-0-Or2,function-7-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Global,function-0-And2,function-1-Implies) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Global,function-0-And2,function-1-Or2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Global,function-0-And2,function-2-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Implies,function-0-Release,function-15-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Implies,function-0-Release,function-2-Bool) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Not,function-0-Release,function-15-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Not,function-0-Release,function-2-Bool) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Release,function-0-And2,function-1-Implies) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Release,function-0-And2,function-1-Or2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Release,function-0-And2,function-2-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Var,function-0-Implies,function-14-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Var,function-1-And2,function-16-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-0-Var,function-1-And2,function-3-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-And2,function-1-Until,function-1-Bool) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Bool,function-1-Until,function-1-And2) -0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Implies,function-0-And2,function-0-Global) 10
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Implies,function-0-And2,function-0-Release) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Implies,function-0-And2,function-8-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Or2,function-0-And2,function-0-Global) 10
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Or2,function-0-And2,function-0-Release) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Or2,function-0-And2,function-8-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Until,function-0-Or2,function-2-And2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-1-Until,function-0-Or2,function-7-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-13-Not,function-1-Implies,function-16-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-13-Not,function-1-Implies,function-3-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-13-Not,function-2-And2,function-14-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-14-Not,function-0-Implies,function-0-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-14-Not,function-2-And2,function-13-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-14-Not,function-2-Or2,function-3-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-15-Not,function-0-Release,function-0-Implies) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-15-Not,function-0-Release,function-0-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-15-Not,function-0-Release,function-2-Or2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-16-Not,function-1-And2,function-0-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-16-Not,function-1-Implies,function-13-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-16-Not,function-1-Or2,function-17-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-16-Not,function-1-Or2,function-4-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-17-Not,function-1-Or2,function-16-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-17-Not,function-1-Or2,function-3-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-And2,function-0-Or2,function-0-Future) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-And2,function-0-Or2,function-1-Until) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Bool,function-0-Release,function-0-Implies) -0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Bool,function-0-Release,function-0-Not) -0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Bool,function-0-Release,function-2-Or2) -0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Not,function-0-And2,function-0-Global) 10
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Not,function-0-And2,function-0-Release) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Not,function-0-And2,function-8-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Or2,function-0-Release,function-15-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-2-Or2,function-0-Release,function-2-Bool) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-3-Not,function-2-Or2,function-14-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-3-Var,function-1-And2,function-0-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-3-Var,function-1-Implies,function-13-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-3-Var,function-1-Or2,function-17-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-3-Var,function-1-Or2,function-4-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-4-Var,function-1-Or2,function-16-Not) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-4-Var,function-1-Or2,function-3-Var) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-7-Not,function-0-Or2,function-0-Future) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-7-Not,function-0-Or2,function-1-Until) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-8-Not,function-0-And2,function-1-Implies) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-8-Not,function-0-And2,function-1-Or2) 0
+optimize_eqsat: debug:   wpd_active_sibling(function-8-Not,function-0-And2,function-2-Not) 0
+optimize_eqsat: debug:   wpd_tmp_function-0-Future         -0
+optimize_eqsat: debug:   wpd_tmp_function-0-Global         0
+optimize_eqsat: debug:   wpd_tmp_function-0-Release        0
+optimize_eqsat: debug:   wpd_tmp_function-1-Until          -0
+optimize_eqsat: debug: Minimum cost: 18
+optimize_eqsat: debug: num enodes active: 10
+optimize_eqsat: debug: enodes active: ['function-4-Var', 'function-1-Bool', 'function-1-Or2', 'function-2-Bool', 'function-0-Not', 'function-1-And2', 'function-0-Global', 'function-0-And2', 'function-3-Var', 'function-0-Var']
+optimize_eqsat: debug: building repr map
+optimize_eqsat: debug: repr_map:
+optimize_eqsat: debug: {'MLTL-0': ENode(enode_id='function-0-Var',
+                 op='Var',
+                 interval=None,
+                 string='a0',
+                 value=None,
+                 child_eclass_ids=[],
+                 eclass_id='MLTL-0'),
+ 'MLTL-10': ENode(enode_id='function-0-And2',
+                  op='And2',
+                  interval=None,
+                  string=None,
+                  value=None,
+                  child_eclass_ids=['MLTL-5', 'MLTL-9'],
+                  eclass_id='MLTL-10'),
+ 'MLTL-2': ENode(enode_id='function-1-And2',
+                 op='And2',
+                 interval=None,
+                 string=None,
+                 value=None,
+                 child_eclass_ids=['MLTL-0', 'MLTL-22'],
+                 eclass_id='MLTL-2'),
+ 'MLTL-21': ENode(enode_id='function-4-Var',
+                  op='Var',
+                  interval=None,
+                  string='a2',
+                  value=None,
+                  child_eclass_ids=[],
+                  eclass_id='MLTL-21'),
+ 'MLTL-22': ENode(enode_id='function-3-Var',
+                  op='Var',
+                  interval=None,
+                  string='a1',
+                  value=None,
+                  child_eclass_ids=[],
+                  eclass_id='MLTL-22'),
+ 'MLTL-26': ENode(enode_id='function-1-Bool',
+                  op='Bool',
+                  interval=None,
+                  string=None,
+                  value=True,
+                  child_eclass_ids=[],
+                  eclass_id='MLTL-26'),
+ 'MLTL-3': ENode(enode_id='function-0-Not',
+                 op='Not',
+                 interval=None,
+                 string=None,
+                 value=None,
+                 child_eclass_ids=['MLTL-2'],
+                 eclass_id='MLTL-3'),
+ 'MLTL-32': ENode(enode_id='function-2-Bool',
+                  op='Bool',
+                  interval=None,
+                  string=None,
+                  value=False,
+                  child_eclass_ids=[],
+                  eclass_id='MLTL-32'),
+ 'MLTL-5': ENode(enode_id='function-0-Global',
+                 op='Global',
+                 interval=(0, 10),
+                 string=None,
+                 value=None,
+                 child_eclass_ids=['MLTL-3'],
+                 eclass_id='MLTL-5'),
+ 'MLTL-9': ENode(enode_id='function-1-Or2',
+                 op='Or2',
+                 interval=None,
+                 string=None,
+                 value=None,
+                 child_eclass_ids=['MLTL-21', 'MLTL-22'],
+                 eclass_id='MLTL-9')}
+optimize_eqsat: debug: building expr
+optimize_eqsat: debug: eqsat result: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))
+optimize_eqsat: debug: encoding equivalence SMT encoding for:
+	(&& (G[0,10] (! (&& a0 a1))) (! (! (|| a2 a1))))
+		<->
+	(&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))
+optimize_eqsat: debug: encoding expression:
+	(! (<-> (&& (G[0,10] (! (&& a0 a1))) (! (! (|| a2 a1)))) (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))))
+optimize_eqsat: debug: bounds: []
+optimize_eqsat: debug: constraints: []
+optimize_eqsat: debug: running SMT solver.
+optimize_eqsat: debug: running '/usr/local/bin/z3 /tmp/tmpf1n77d1g/tmp.smt2'
+optimize_eqsat: debug: unsat
+optimize_eqsat: debug: equality saturation produced equivalent formula
+optimize_eqsat: debug: post EQSat:
+__f1__: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))
+debug: executing optimize_cse 
+optimize_cse: debug: visiting --- a0 -> 130933866143024
+optimize_cse: debug: visiting --- a1 -> 130933866142544
+optimize_cse: debug: visiting --- (&& a0 a1) -> 130933865918640
+optimize_cse: debug: visiting --- (! (&& a0 a1)) -> 130933865919072
+optimize_cse: debug: visiting --- (G[0,10] (! (&& a0 a1))) -> 130933865919120
+optimize_cse: debug: visiting --- a2 -> 130933866142352
+optimize_cse: debug: visiting --- (|| a2 a1) -> 130933865918688
+optimize_cse: debug: visiting --- (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1)) -> 130933948631280
+optimize_cse: debug: visiting --- __f1__: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1)) -> 130933866143072
+optimize_cse: debug: replacing -- __f1__: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1)) -> 130933866143072
+optimize_cse: debug: visiting ---  -> 130933866140864
+optimize_cse: debug: post CSE:
+__f1__: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))
+debug: executing compute_scq_sizes scq_constant=0 
+compute_scq_sizes: debug: siblings of a0 = ['a1']
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of a1 = ['a2']
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of (&& a0 a1) = []
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of (! (&& a0 a1)) = []
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of (G[0,10] (! (&& a0 a1))) = ['(|| a2 a1)']
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of a2 = ['a1']
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: siblings of (|| a2 a1) = ['(G[0,10] (! (&& a0 a1)))']
+compute_scq_sizes: debug: max_wpd: 10, expr.bpd: 0
+compute_scq_sizes: debug: siblings of (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1)) = []
+compute_scq_sizes: debug: max_wpd: 0, expr.bpd: 0
+compute_scq_sizes: debug: scq_size(a0) = 1
+compute_scq_sizes: debug: scq_size(a1) = 1
+compute_scq_sizes: debug: scq_size((&& a0 a1)) = 1
+compute_scq_sizes: debug: scq_size((! (&& a0 a1))) = 1
+compute_scq_sizes: debug: scq_size((G[0,10] (! (&& a0 a1)))) = 1
+compute_scq_sizes: debug: scq_size(a2) = 1
+compute_scq_sizes: debug: scq_size((|| a2 a1)) = 11
+compute_scq_sizes: debug: scq_size((&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))) = 1
+compute_scq_sizes: debug: scq_size(__f1__: (&& (G[0,10] (! (&& a0 a1))) (|| a2 a1))) = 1
+compute_scq_sizes: debug: program SCQ size: 19
+debug: executing print_stats format=%S\n 

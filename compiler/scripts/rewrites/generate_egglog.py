@@ -39,6 +39,8 @@ def expr_to_egglog(expr: cpt.Expression, context: Optional[cpt.Context] = None) 
             return str(expr.value)
     elif isinstance(expr, cpt.Signal):
         return expr.symbol
+    elif isinstance(expr, cpt.Variable):
+        return f"(Var \"{expr.symbol}\")"
     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
         return f"(Not {expr_to_egglog(expr.children[0], context)})"
     elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_IMPLIES):
@@ -186,7 +188,23 @@ Examples:
     
     # Load rewrites.json to get birewrite information
     with open(rewrites_json, 'r') as f:
-        rewrites = json.load(f)
+        data = json.load(f)
+    
+    # Handle both formats: nested object (complete.json) or flat array (rewrites.json)
+    if isinstance(data, dict):
+        # Nested format: flatten all rules from all categories
+        rewrites = []
+        for category, category_rules in data.items():
+            if isinstance(category_rules, list):
+                rewrites.extend(category_rules)
+            else:
+                print(f"Warning: Category '{category}' does not contain a list, skipping", file=sys.stderr)
+    elif isinstance(data, list):
+        # Flat array format
+        rewrites = data
+    else:
+        print("Error: JSON file must contain either an object with category arrays or a flat array of rules", file=sys.stderr)
+        sys.exit(1)
     
     # Get all .equiv files
     equiv_files = sorted(equiv_dir.glob("*.equiv"))
@@ -199,7 +217,8 @@ Examples:
     error_count = 0
     temporal_rules_content = []
     const_folding_rules_content = []
-    
+    extended_operators_rules_content = []
+
     # Process each .equiv file
     for equiv_file in equiv_files:
         # Extract rule number from filename (e.g., "rule_000.equiv" -> 0)
@@ -250,14 +269,31 @@ Examples:
             pre_expr = expr_to_egglog(pre_spec.get_expr())
             post_expr = expr_to_egglog(post_spec.get_expr())
 
+            has_extended_operators = False
+            for expr in cpt.postorder(pre_spec.get_expr(), context):
+                if isinstance(expr, cpt.Operator) and expr.operator.is_extended_operator():
+                    has_extended_operators = True
+                    break
+
             is_subsumed = False
             for expr in cpt.postorder(pre_spec.get_expr(), context):
                 if repr(expr) == repr(post_spec.get_expr()):
                     is_subsumed = True
                     break
-            
+
             # Get birewrite information from rewrites.json
             is_birewrite = rewrites[rule_index].get("birewrite", False)
+
+            # If manually marked for subsumption, use that instead of checking for equality
+            is_subsumed = rewrites[rule_index].get("subsume", is_subsumed) 
+            
+            # Check if rule is both birewrite and marked for subsumption
+            # If so, warn and convert to regular rewrite
+            if is_birewrite and is_subsumed:
+                print(f"Warning: Rule {rule_index} ({equiv_file.name}) is both a birewrite and marked for subsumption. Converting to regular rewrite.", file=sys.stderr)
+                is_birewrite = False
+
+            is_const_folding = rewrites[rule_index].get("const", False)
             
             # Convert constraints to :when format
             when_clause = constraints_to_when(constraints)
@@ -274,12 +310,16 @@ Examples:
             if is_subsumed:
                 rule_content += "  :subsume\n"
 
-            # If the post expression is a constant, use the const-folding ruleset
-            # If we do not, the performance of egglog is terrible
-            if "Bool" in post_expr:
+            # If the post expression is a constant or the rule is marked for const-folding, use the const-folding ruleset
+            # If we do not, the performance of egglog is terrible. We also separate extended operator rules into their own files.
+            if "Bool" in post_expr or is_const_folding:
                 rule_content += "  :ruleset const-folding\n"
                 rule_content += ")\n"
                 const_folding_rules_content.append(rule_content)
+            elif has_extended_operators:
+                rule_content += "  :ruleset mltl-rewrites\n"
+                rule_content += ")\n"
+                extended_operators_rules_content.append(rule_content)
             else:
                 rule_content += "  :ruleset mltl-rewrites\n"
                 rule_content += ")\n"
@@ -322,6 +362,18 @@ Examples:
     except Exception as e:
         print(f"✗ Error writing output file: {e}")
         error_count += 1
+    print()
+    print(f"Writing {len(extended_operators_rules_content)} extended operator rules to {output_directory / 'extended.egg'}...", end=" ", flush=True)
+    try:
+        with open(output_directory / "extended.egg", 'w') as f:
+            # Write all rules
+            for rule_content in extended_operators_rules_content:
+                f.write(rule_content)
+                f.write("\n")
+    except Exception as e:
+        print(f"✗ Error writing output file: {e}")
+        error_count += 1
+    print("✓")
     print()
     print(f"Summary: {success_count} rules processed, {error_count} failed")
     print(f"Output written to: {output_directory}")

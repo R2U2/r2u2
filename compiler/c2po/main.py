@@ -25,8 +25,10 @@ from c2po import (
     parse_c2po,
     parse_mltl, # noqa: F401
     parse_equiv, # noqa: F401
-    parse_utils,
     util,
+    r2u2, # noqa: F401
+    trace, # noqa: F401
+    map, # noqa: F401
 )
 
 # Try and import readline for better REPL experience
@@ -35,6 +37,8 @@ try:
     import readline
 except ImportError:
     readline = None
+
+C2PO_RC_PATH = util.C2PO_SRC_DIR.parent / ".c2porc"
 
 sys.ps1 = "c2po> "
 sys.ps2 = "    "
@@ -58,7 +62,7 @@ command.CommandRegistry.register(compile_command)
 # A dictionary of failed guard conditions to the command that will likely fix them
 FAILED_GUARD_SUGGESTIONS: dict[command.CommandGuard, list[command.Command]] = {
     command.VALID_PROGRAM: [parse_c2po.parse_c2po_command, parse_mltl.parse_mltl_command],
-    command.VALID_SIGNAL_MAPPING: [parse_utils.parse_map_command, parse_utils.parse_trace_command, parse_mltl.parse_mltl_command],
+    command.VALID_SIGNAL_MAPPING: [map.parse_map_command, map.generate_map_command, trace.parse_trace_command, parse_mltl.parse_mltl_command],
     command.WELL_TYPED: [type_check.type_check_command],
     command.DESUGARED: [desugar.desugar_command],
     command.VALID_SCQ_SIZES: [scq.compute_scq_sizes_command],
@@ -67,6 +71,20 @@ FAILED_GUARD_SUGGESTIONS: dict[command.CommandGuard, list[command.Command]] = {
     command.NO_EXTENDED_OPERATORS: [transform.remove_extended_operators_command],
     command.ASSEMBLED: [assemble.assemble_command],
 }
+
+def print_failed_guard_message(failed_guard: command.CommandGuard, cur_command: command.Command) -> None:
+    """Prints a message for a failed guard condition."""
+    if failed_guard in FAILED_GUARD_SUGGESTIONS:
+        failed_guard_suggestions = FAILED_GUARD_SUGGESTIONS[failed_guard]
+        failed_guard_suggestion_names = [
+            suggestion.name for suggestion in failed_guard_suggestions
+        ]
+        log.error(
+            f"guard condition not met for {cur_command.name}: {failed_guard.name}\n"
+            + f"    consider trying one of the following commands: {', '.join(failed_guard_suggestion_names)}"
+        )
+    else:
+        log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}")
 
 class CommandConsole(code.InteractiveConsole):
     """Interactive console that supports custom Commands.
@@ -141,15 +159,8 @@ class CommandConsole(code.InteractiveConsole):
             failed_guard = cur_command.check_guards(self.program, self.context)
             if failed_guard is None:
                 result = cur_command.execute(self.program, self.context, options)
-            elif failed_guard in FAILED_GUARD_SUGGESTIONS:
-                failed_guard_suggestions = FAILED_GUARD_SUGGESTIONS[failed_guard]
-                failed_guard_suggestion_names = [suggestion.name for suggestion in failed_guard_suggestions]
-                log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}\n" + \
-                          f"    consider trying one of the following commands: {', '.join(failed_guard_suggestion_names)}")
-                self.set_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
-                return False
             else:
-                log.error(f"guard condition not met for {cur_command.name}: {failed_guard.name}")
+                print_failed_guard_message(failed_guard, cur_command)
                 self.set_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
                 return False
 
@@ -159,6 +170,10 @@ class CommandConsole(code.InteractiveConsole):
                 self.set_return_code(command.ReturnCode.SUCCESS)
             elif result is None: # parse functions return None on error
                 self.set_return_code(command.ReturnCode.PARSE_ERROR)
+            elif isinstance(result, tuple): 
+                # Commands return the failed command and guard condition on error
+                print_failed_guard_message(result[1], result[0])
+                self.set_return_code(command.ReturnCode.GUARD_CONDITION_NOT_MET)
             elif isinstance(result, command.ReturnCode):
                 self.set_return_code(result)
             else:
@@ -186,6 +201,14 @@ class CommandConsole(code.InteractiveConsole):
         self.program, self.context = self.state_stack.pop()
 
 
+def run_rc_script(console: CommandConsole) -> None:
+    """Runs the given RC script file."""
+    with open(C2PO_RC_PATH, "r") as file:
+        for line in file:
+            line = line.strip()
+            console.runsource(line)
+
+
 def interactive() -> command.ReturnCode:
     """Start an interactive REPL loop using the code library.
     
@@ -193,6 +216,8 @@ def interactive() -> command.ReturnCode:
     and executes commands in a REPL loop.
     """
     console = CommandConsole()
+    if C2PO_RC_PATH.exists():
+        run_rc_script(console)
     console.interact(banner="C2PO Interactive REPL (type 'exit', 'quit', or Ctrl-D to quit)", exitmsg="")
     return console.return_code
 
@@ -203,6 +228,9 @@ def script(script_filename: str, chdir: bool = True) -> command.ReturnCode:
     """
     console = CommandConsole()
     console.context.script_filename = script_filename
+
+    if C2PO_RC_PATH.exists():
+        run_rc_script(console)
 
     contents = util.read_file(script_filename)
     if contents is None:

@@ -489,6 +489,15 @@ class OperatorKind(enum.Enum):
             OperatorKind.COUNT,
         }
 
+    def is_extended_operator(self) -> bool:
+        return self in {
+            OperatorKind.LOGICAL_XOR,
+            OperatorKind.LOGICAL_IMPLIES,
+            OperatorKind.FUTURE,
+            OperatorKind.GLOBAL,
+            OperatorKind.HISTORICAL,
+        }
+
 class Operator(Expression):
     def __init__(
         self,
@@ -1299,6 +1308,10 @@ class Program(Node):
     def get_specs(self) -> list[Specification]:
         return self.ft_spec_set.get_specs() + self.pt_spec_set.get_specs()
 
+    def get_max_wpd(self) -> int:
+        """Returns the maximum worst-case propagation delay of all specifications in this `Program`."""
+        return max([spec.get_expr().wpd for spec in self.get_specs() if isinstance(spec, Formula)])
+
     def get_spec(self, symbol: str) -> Specification | None:
         for spec in self.ft_spec_set.get_specs():
             if spec.symbol == symbol:
@@ -1366,9 +1379,15 @@ class Context:
         self.bound_vars: dict[str, ArrayExpression] = {}
         self.signal_mapping: types.SignalMapping = {}
 
+        # Trace
+        self.trace: list[str] = []
+
         # Assembly and binary (we attach to context since we need to access it in write_bounds functions)
         self.assembly: list = []
         self.binary: bytes = bytes()
+
+        # R2U2 output string
+        self.r2u2_output: str = ""
 
         # Used in equivalence checking
         self.bounds: list[SymbolicIntervalVariable] = []
@@ -1391,8 +1410,12 @@ class Context:
         self.spec_filename: str = ""
         self.trace_filename: str = ""
         self.map_filename: str = ""
-        self.egglog_path: str = ""
-        self.smt_solver_path: str = ""
+
+        # Paths to executables
+        self.egglog_path: Optional[str] = None
+        self.smt_solver_path: Optional[str] = None
+        self.r2u2_c_path: Optional[str] = None
+        self.r2u2_bin_path: Optional[str] = None
 
     def set_mission_time(self, mission_time: int) -> None:
         """Sets the mission time for the context."""
@@ -1453,7 +1476,6 @@ class Context:
 
     def add_signal(self, symbol: str, t: types.Type) -> None:
         self.signals[symbol] = t
-        self.variables[symbol] = t
 
     def add_variable(self, symbol: str, t: types.Type) -> None:
         self.variables[symbol] = t
@@ -1469,9 +1491,6 @@ class Context:
 
     def add_contract(self, symbol, c: Contract) -> None:
         self.contracts[symbol] = c
-
-    def remove_variable(self, symbol) -> None:
-        del self.variables[symbol]
 
     def deepcopy(self) -> Context:
         """
@@ -1497,6 +1516,7 @@ class Context:
         # TODO: Consider warning user? Or have a check that assembly matches the program?
         new.assembly = self.assembly 
 
+        new.trace = self.trace
         new.binary = self.binary
         new.bounds = [cast(SymbolicIntervalVariable, b.deepcopy(new)) for b in self.bounds]
         new.constraints = [c.deepcopy(new) for c in self.constraints]
@@ -1598,6 +1618,7 @@ def deepcopy_expr(start: Expression, context: Context, memo: dict[int, Expressio
             context.atomic_expr_map[atomic_id] = new
         elif isinstance(expr, Signal):
             new = Signal(expr.loc, expr.symbol, expr.type)
+            new.signal_id = expr.signal_id
 
             # If the Booleanizer is disabled then signals are treated as atomics, so we need to
             # update the atomic ID mappings to reflect the new expression
@@ -1850,6 +1871,23 @@ def decompose_intervals(expr: Expression, context: Context) -> Expression:
         subexpr.replace(new)
 
     return new
+
+def assign_signal_ids(program: Program, context: Context, signal_mapping: types.SignalMapping) -> list[str]:
+    """
+    Assign signal IDs to the signals in the program.
+
+    Returns:
+        A list of signals that were not present in the signal mapping.
+    """
+    missing_signals = []
+    for expr in program.postorder_with_definitions(context):
+        if isinstance(expr, Signal):
+            if expr.symbol not in signal_mapping:
+                missing_signals.append(expr.symbol)
+            else:
+                expr.signal_id = signal_mapping[expr.symbol]
+
+    return missing_signals
 
 def to_infix_str(start: Expression) -> str:
     s = ""
@@ -2111,8 +2149,10 @@ def is_valid_program(program: Program, context: Context) -> bool:
 
 def has_valid_signal_mapping(program: Program, context: Context) -> bool:
     return all(
-        expr.symbol in context.signal_mapping
-        and expr.signal_id == context.signal_mapping[expr.symbol]
+        (
+            expr.symbol in context.signal_mapping
+            and expr.signal_id == context.signal_mapping[expr.symbol]
+        )
         for expr in program.postorder(context)
         if isinstance(expr, Signal)
     )
@@ -2147,7 +2187,6 @@ def is_desugared(program: Program, context: Context) -> bool:
                 ArrayIndex,
                 SetAggregation,
                 Contract,
-                Variable,
             ),
         ):
             return False

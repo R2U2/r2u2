@@ -30,6 +30,15 @@ def compute_scq_sizes(program: cpt.Program, context: cpt.Context, options: dict[
         ):
             continue
 
+        # Constant booleans have no SCQ size
+        if isinstance(expr, cpt.Constant) and types.is_bool_type(expr.type):
+            expr.scq_size = 0
+            expr.scq = (
+                total_scq_size,
+                total_scq_size,
+            )
+            continue
+
         max_wpd = max([sibling.wpd for sibling in expr.get_siblings()] + [0])
         expr.scq_size = max(max_wpd - expr.bpd, 0) + 1 + scq_constant
         total_scq_size += expr.scq_size

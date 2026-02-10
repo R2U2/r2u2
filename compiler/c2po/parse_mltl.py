@@ -241,7 +241,6 @@ class MLTLParser(sly.Parser):
     def expr(self, p):
         self.atomics.add(p[0])
         signal = cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
-        signal.signal_id = int(p[0][1:])
         return signal
 
     # Shorthand interval
@@ -284,6 +283,7 @@ def parse_mltl(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Pr
 
     program, signal_mapping = output
     context.signal_mapping = signal_mapping
+    cpt.assign_signal_ids(program, context, signal_mapping)
     return program
 
 parse_mltl_command = command.Command(

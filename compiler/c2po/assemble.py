@@ -1048,6 +1048,7 @@ def assemble(
         f.write(binary)
 
     context.assembly = assembly
+    context.binary = binary
 
     return command.ReturnCode.SUCCESS
 

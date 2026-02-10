@@ -182,7 +182,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
-        elif isinstance(expr, cpt.FunctionCall):
+        elif isinstance(expr, (cpt.FunctionCall, cpt.Struct)):
             # For now, this can only be a struct instantiation
             if expr.symbol not in context.structs:
                 log.error(
@@ -470,19 +470,20 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
     return True
 
 
-def type_check_section(section: cpt.ProgramSection, context: cpt.Context, options: dict[str, Any]) -> bool:
+def type_check_section(section: cpt.ProgramSection, symbols: set[str], context: cpt.Context, options: dict[str, Any]) -> bool:
     status = True
 
     if isinstance(section, cpt.InputSection):
         for declaration in section.signal_decls:
             for signal in declaration.variables:
-                if signal in context.get_symbols():
+                if signal in symbols:
                     status = False
                     log.error(
                         f"symbol '{signal}' already in use",
                         declaration.loc,
                     )
 
+                symbols.add(signal)
                 context.add_signal(signal, declaration.type)
 
                 if not isinstance(declaration.type, types.ArrayType):
@@ -506,25 +507,28 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context, option
                 [type_check_expr(sig, context, options) for sig in signals]
     elif isinstance(section, cpt.DefineSection):
         for definition in section.defines:
-            if definition.symbol in context.get_symbols():
+            if definition.symbol in symbols:
                 status = False
                 log.error(
                     f"symbol '{definition.symbol}' already in use",
                     definition.loc, 
                 )
 
+            symbols.add(definition.symbol)
             is_good_def = type_check_expr(definition.expr, context, options)
             if is_good_def:
                 context.add_definition(definition.symbol, definition.expr)
             status = status and is_good_def
     elif isinstance(section, cpt.StructSection):
         for struct in section.struct_defs:
-            if struct.symbol in context.get_symbols():
+            if struct.symbol in symbols:
                 status = False
                 log.error(
                     f"symbol '{struct.symbol}' already in use",
                     struct.loc,
                 )
+
+            symbols.add(struct.symbol)
             context.add_struct(struct.symbol, struct.members)
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
@@ -533,13 +537,14 @@ def type_check_section(section: cpt.ProgramSection, context: cpt.Context, option
             context.set_past_time()
 
         for spec in section.specs:
-            if spec.symbol != "" and spec.symbol in context.get_symbols():
+            if spec.symbol != "" and spec.symbol in symbols:
                 status = False
                 log.error(
                     f"symbol '{spec.symbol}' already in use",
                     spec.loc,
                 )
 
+            symbols.add(spec.symbol)
             is_good_spec = type_check_expr(spec, context, options)
             status = status and is_good_spec
 
@@ -558,7 +563,7 @@ def type_check(program: cpt.Program, context: cpt.Context, options: dict[str, An
     """
     status = True
     for section in program.sections:
-        is_good = type_check_section(section, context, options)
+        is_good = type_check_section(section, set(), context, options)
         status = status and is_good
 
     log.debug(1, f"type checking result: {status}")

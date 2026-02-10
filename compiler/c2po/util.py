@@ -2,15 +2,23 @@ import resource
 import sys
 import re
 import subprocess
+import pathlib
 from typing import Callable, Optional
 from c2po import log
 
+C2PO_SRC_DIR = pathlib.Path(__file__).parent
+
 def check_executable(executable: str) -> bool:
     """Check if the given executable is valid."""
+    if not pathlib.Path(executable).exists():
+        return False
+    if not pathlib.Path(executable).is_file():
+        return False
     try:
         proc1 = subprocess.run([executable, "--version"], capture_output=True)
         proc2 = subprocess.run([executable, "-version"], capture_output=True)
-        return proc1.returncode == 0 or proc2.returncode == 0
+        proc3 = subprocess.run([executable, "-v"], capture_output=True)
+        return proc1.returncode == 0 or proc2.returncode == 0 or proc3.returncode == 0
     except FileNotFoundError:
         return False
 
@@ -40,12 +48,12 @@ def get_rusage_time() -> float:
     """Returns sum of user and system mode times for the current and child processes in seconds. See https://docs.python.org/3/library/resource.html."""
     rusage_self = resource.getrusage(resource.RUSAGE_SELF)
     rusage_child = resource.getrusage(resource.RUSAGE_CHILDREN)
-    return (
-        rusage_self.ru_utime
-        + rusage_child.ru_utime
-        + rusage_self.ru_stime
-        + rusage_child.ru_stime
-    )
+    return rusage_self.ru_utime + rusage_child.ru_utime + rusage_self.ru_stime + rusage_child.ru_stime
+
+def get_children_rusage_time() -> float:
+    """Returns the user and system mode times for the child processes in seconds."""
+    rusage_child = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return rusage_child.ru_utime + rusage_child.ru_stime
 
 def set_max_memory(mb: int) -> Callable[[], None]:
     """Return a callable that sets the maximum memory in MB (for use with preexec_fn)."""

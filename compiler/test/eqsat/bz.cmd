@@ -4,9 +4,9 @@ type_check
 compute_atomics 
 
 compute_scq_sizes
-print_stats "%S "
+print_stats "%scq "
 
 optimize_eqsat --check-equiv
 
 compute_scq_sizes
-print_stats "%S\n"
+print_stats "%scq\n"

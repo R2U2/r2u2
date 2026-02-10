@@ -70,7 +70,7 @@ def run_smt_solver(
 
         log.debug(2, f"running '{' '.join(command)}'")
 
-        start_time = util.get_rusage_time()
+        start_time = util.get_children_rusage_time()
         try:
             proc = subprocess.Popen(
                 command,
@@ -89,7 +89,7 @@ def run_smt_solver(
             log.warning(f"{smt_solver_path} timed out")
             return SatResult.TIMEOUT
     
-    end_time = util.get_rusage_time()
+    end_time = util.get_children_rusage_time()
     stdout = stdout.decode() if stdout else ""
     stderr = stderr.decode() if stderr else ""
 
@@ -208,6 +208,10 @@ def to_qf_bv_smtlib2(start: cpt.Expression, context: cpt.Context, strict: bool) 
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} () {bv_sort})")
 
+    for variable in context.variables.keys():
+        atomic_map[variable] = f"f_{variable}"
+        smt_commands.append(f"(declare-fun f_{variable} () {bv_sort})")
+
     # TODO: Remove since we do not need to decompose intervals for QF_BV encoding
     decomposed_expr = cpt.decompose_intervals(start, context)
 
@@ -235,7 +239,7 @@ def to_qf_bv_smtlib2(start: cpt.Expression, context: cpt.Context, strict: bool) 
             smt_commands.append(f"({fun_signature.format(expr_id)} {ones()})")
         elif isinstance(expr, cpt.Constant) and not expr.value:
             smt_commands.append(f"({fun_signature.format(expr_id)} {zeros()})")
-        elif isinstance(expr, cpt.Signal):
+        elif isinstance(expr, (cpt.Signal, cpt.Variable)):
             smt_commands.append(f"({fun_signature.format(expr_id)} {atomic_map[expr.symbol]})")
         elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_NEGATE):
             smt_commands.append(
@@ -423,6 +427,10 @@ def to_qf_uflia_smtlib2(start: cpt.Expression, context: cpt.Context, strict: boo
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
 
+    for variable in context.variables.keys():
+        atomic_map[variable] = f"p_{variable}"
+        smt_commands.append(f"(declare-fun p_{variable} (Int) {to_smt_type(context.variables[variable])})")
+
     status = True
     for expr in cpt.postorder(start, context):
         if expr.type != types.BoolType() and expr.type != types.IntType():
@@ -455,7 +463,7 @@ def to_qf_uflia_smtlib2(start: cpt.Expression, context: cpt.Context, strict: boo
             smt_commands.append(
                 f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
             )
-        elif isinstance(expr, cpt.Signal):
+        elif isinstance(expr, (cpt.Signal, cpt.Variable)):
             smt_commands.append(f"({fun_signature} ({atomic_map[expr.symbol]} k))")
         elif cpt.is_operator(expr, cpt.OperatorKind.ARITHMETIC_ADD):
             smt_commands.append(
@@ -705,9 +713,9 @@ def to_uflia_smtlib2(
             return f"({fun_signature} false)"
         elif isinstance(expr, cpt.Constant):
             return f"({fun_signature} {expr.value})"
-        elif isinstance(expr, cpt.Signal) and types.is_bool_type(expr.type):
+        elif isinstance(expr, (cpt.Signal, cpt.Variable)) and types.is_bool_type(expr.type):
             return f"({fun_signature} (and (> len k) ({atomic_map[expr.symbol]} k)))"
-        elif isinstance(expr, cpt.Signal):
+        elif isinstance(expr, (cpt.Signal, cpt.Variable)):
             return f"({fun_signature} ({atomic_map[expr.symbol]} k))"
         elif isinstance(expr, cpt.Atomic):
             return f"({fun_signature} (and (> len k) ({expr_map[expr.children[0]]} k len)))"
@@ -871,7 +879,7 @@ def to_uflia_smtlib2(
                 cplen = cplen_cache[expr.children[0]]
             elif isinstance(expr, cpt.Constant):
                 cplen = "1"
-            elif isinstance(expr, cpt.Signal):
+            elif isinstance(expr, (cpt.Signal, cpt.Variable)):
                 cplen = "1"
             elif cpt.is_arithmetic_operator(expr):
                 cplen = "1"
@@ -950,6 +958,13 @@ def to_uflia_smtlib2(
             return ""
         atomic_map[signal] = f"f_{signal}"
         smt_commands.append(f"(declare-fun f_{signal} (Int) {to_smt_type(typ)})")
+
+    for variable, typ in context.variables.items():
+        if typ != types.BoolType() and typ != types.IntType():
+            log.error(f"unsupported type '{typ}' ({variable})")
+            return ""
+        atomic_map[variable] = f"p_{variable}"
+        smt_commands.append(f"(declare-fun p_{variable} (Int) {to_smt_type(typ)})")
 
     expr_map: dict[cpt.Expression, str] = {}
     expr_cache: dict[str, cpt.Expression] = {}

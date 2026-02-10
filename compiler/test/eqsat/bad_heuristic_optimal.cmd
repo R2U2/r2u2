@@ -4,10 +4,10 @@ compute_atomics
 
 optimize_cse
 compute_scq_sizes
-print_stats "%S "
+print_stats "%scq "
 
 optimize_eqsat --check-equiv --extraction-method optimal
 
 optimize_cse
 compute_scq_sizes
-print_stats "%S\n"
+print_stats "%scq\n"

@@ -71,14 +71,25 @@ def main():
     # Read the JSON file
     try:
         with open(json_path, 'r') as f:
-            rules = json.load(f)
+            data = json.load(f)
     except json.JSONDecodeError as e:
         print(f"Error: Invalid JSON file: {e}")
         return 1
     
-    # Validate that rules is a list
-    if not isinstance(rules, list):
-        print("Error: JSON file must contain an array of rules")
+    # Handle both formats: nested object (complete.json) or flat array (rewrites.json)
+    if isinstance(data, dict):
+        # Nested format: flatten all rules from all categories
+        rules = []
+        for category, category_rules in data.items():
+            if isinstance(category_rules, list):
+                rules.extend(category_rules)
+            else:
+                print(f"Warning: Category '{category}' does not contain a list, skipping")
+    elif isinstance(data, list):
+        # Flat array format
+        rules = data
+    else:
+        print("Error: JSON file must contain either an object with category arrays or a flat array of rules")
         return 1
     
     # Generate .equiv file for each rule

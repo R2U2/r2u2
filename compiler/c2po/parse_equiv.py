@@ -8,7 +8,7 @@ class MLTLEquivLexer(sly.Lexer):
 
     tokens = { TL_GLOBAL, TL_FUTURE, TL_UNTIL, TL_RELEASE, 
                # TL_HIST, TL_ONCE, TL_SINCE, TL_TRIGGER,
-               TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC, TL_BOUND,
+               TL_MISSION_TIME, TL_TRUE, TL_FALSE, TL_ATOMIC, TL_BOUND, TL_PROPOSITION,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, 
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
                ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, MIN, MAX,
@@ -69,6 +69,7 @@ class MLTLEquivLexer(sly.Lexer):
     TL_FALSE   = r"false"
     TL_ATOMIC  = r"a([1-9][0-9]*|0)"
     TL_BOUND  = r"b([1-9][0-9]*|0)"
+    TL_PROPOSITION  = r"p([1-9][0-9]*|0)"
 
     # Extra action for newlines
     def NEWLINE(self, t):
@@ -105,6 +106,7 @@ class MLTLEquivParser(sly.Parser):
         self.filename = filename
         self.spec_num: int = 0
         self.atomics = set()
+        self.variables = {}
         self.bounds = []
         self.constraints = []
         self.is_ft = False
@@ -299,6 +301,11 @@ class MLTLEquivParser(sly.Parser):
         self.atomics.add(p[0])
         return cpt.Signal(log.FileLocation(self.filename, p.lineno), p[0], types.NoType())
 
+    @_("TL_PROPOSITION")
+    def expr(self, p):
+        self.variables[p[0]] = types.BoolType()
+        return cpt.Variable(log.FileLocation(self.filename, p.lineno), p[0])
+
     # Standard interval
     @_("LBRACK constraint_expr COMMA constraint_expr RBRACK")
     def interval(self, p):
@@ -325,6 +332,7 @@ def parse_equiv(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.P
     context.bounds = parser.bounds
     context.constraints = parser.constraints
     context.signal_mapping = signal_mapping
+    context.variables = parser.variables
 
     log.debug(1, f"constraints: {context.constraints}")
     log.debug(1, f"bounds: {context.bounds}")

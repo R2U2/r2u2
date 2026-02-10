@@ -7,7 +7,7 @@ import shutil
 import pathlib
 import tempfile
 import json
-from typing import cast, Any, Optional, Union
+from typing import cast, Any, Optional
 from c2po import cpt, log, util, types, sat, command, parse_egglog_output
 
 try:
@@ -16,35 +16,58 @@ except ImportError:
     egraph = None
 
 SRC_DIR = pathlib.Path(__file__).parent
+EGGLOG_DIR = SRC_DIR / "egglog"
+HEURISTIC_DIR = EGGLOG_DIR / "heuristic"
+OPTIMAL_DIR = EGGLOG_DIR / "optimal"
+REWRITES_DIR = EGGLOG_DIR / "rewrites"
+COMPLETE_REWRITE_DIR = REWRITES_DIR / "complete"
+INCOMPLETE_REWRITE_DIR = REWRITES_DIR / "incomplete"
 
-REQUIRED_PATHS = [
-    SRC_DIR / "egglog" / "mltl.egg",
-    SRC_DIR / "egglog" / "wpd.egg",
-    SRC_DIR / "egglog" / "bpd.egg",
-    SRC_DIR / "egglog" / "cost.egg"
+HEURISITIC_EXTRACTION_PATHS = [
+    HEURISTIC_DIR / "mltl.egg",
+    HEURISTIC_DIR / "wpd.egg",
+    HEURISTIC_DIR / "bpd.egg",
 ]
 
-REWRITE_PATHS = {
-    "const_folding": SRC_DIR / "egglog" / "const_folding.egg",
-    "associative": SRC_DIR / "egglog" / "associative.egg",
-    "commutative": SRC_DIR / "egglog" / "commutative.egg",
-    "multi_arity": SRC_DIR / "egglog" / "multi_arity.egg",
-    "logical": SRC_DIR / "egglog" / "logical.egg",
-    "temporal": SRC_DIR / "egglog" / "temporal.egg",
+HEURISTIC_EXTENDED_COST_PATH = HEURISTIC_DIR / "cost_extended.egg"
+HUERISTIC_COST_PATH = HEURISTIC_DIR / "cost.egg"
+
+OPTIMAL_EXTRACTION_PATHS = [
+    OPTIMAL_DIR / "mltl.egg"
+]
+
+COMPLETE_REWRITE_PATHS = {
+    "associative": REWRITES_DIR / "associative.egg",
+    "commutative": REWRITES_DIR / "commutative.egg",
+    "multi_arity": REWRITES_DIR / "multi_arity.egg",
+    "const_folding": COMPLETE_REWRITE_DIR / "const_folding.egg",
+    "temporal": COMPLETE_REWRITE_DIR / "temporal.egg",
 }
 
-def find_egglog(experimental: bool = False) -> Optional[str]:
-    """Find egglog executable by checking PATH first, then compiler/deps/egglog[-experimental]/target/release.
+INCOMPLETE_REWRITE_PATHS = {
+    "associative": REWRITES_DIR / "associative.egg",
+    "commutative": REWRITES_DIR / "commutative.egg",
+    "multi_arity": REWRITES_DIR / "multi_arity.egg",
+    "const_folding": INCOMPLETE_REWRITE_DIR / "const_folding.egg",
+    "temporal": INCOMPLETE_REWRITE_DIR / "temporal.egg",
+}
+
+def find_egglog(context: cpt.Context, use_experimental: bool = False) -> Optional[str]:
+    """Find egglog executable by checking the context first, then checking PATH, then compiler/deps/egglog[-experimental]/target/release.
 
     Args:
-        `experimental`: Whether to check for egglog-experimental executable (default: False)
+        `use_experimental`: Whether to check for egglog-experimental executable (default: False)
 
     Returns:
         The path to egglog if found, otherwise returns None.
     """
+    # First, check if the egglog path is set in the context and is executable
+    if context.egglog_path is not None and util.check_executable(context.egglog_path):
+        return context.egglog_path
+
     # First, check if 'egglog' or 'egglog-experimental' is in PATH
     egglog_in_path = shutil.which(
-        "egglog" if not experimental else "egglog-experimental"
+        "egglog" if not use_experimental else "egglog-experimental"
     )
     if egglog_in_path is not None and util.check_executable(egglog_in_path):
         return egglog_in_path
@@ -54,12 +77,12 @@ def find_egglog(experimental: bool = False) -> Optional[str]:
     deps_path = (
         compiler_dir
         / "deps"
-        / ("egglog" if not experimental else "egglog-experimental")
+        / ("egglog" if not use_experimental else "egglog-experimental")
         / "target"
         / "release"
-        / ("egglog" if not experimental else "egglog-experimental")
+        / ("egglog" if not use_experimental else "egglog-experimental")
     )
-    if deps_path.exists() and deps_path.is_file() and util.check_executable(str(deps_path)):
+    if util.check_executable(str(deps_path)):
         return str(deps_path)
     return None
     
@@ -69,33 +92,57 @@ def to_egglog(
     """Generates the egglog encoding for `start` and returns it as a string.
     
     `options` is a dictionary of options for the writing.
-    - `const-folding`: Whether to enable const folding
+    - `heuristic-extraction`: Whether to enable heuristic extraction of the egglog output
+    - `rewrites`: The set of rewrites to enable
+        - `incomplete`: Enable the incomplete set of rewrites (default)
+        - `complete`: Enable the complete set of rewrites
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
-    - `logical`: Whether to enable logical rewrites
+    - `const-folding`: Whether to enable const folding
     - `temporal`: Whether to enable temporal rewrites
-    - `with-analysis`: Whether to enable analysis and (heuristic) extraction of the egglog output
+    - `extended`: Whether to enable extended operator rewrites
 
     Returns:
         The egglog encoding for `start`, or None if an error occurs.
     """
     egglog = ""
-    if not options["with_analysis"]:
-        with open(SRC_DIR / "egglog" / "mltl_no_analysis.egg", "r") as f:
-            egglog += f.read()
-    else:
-        for path in REQUIRED_PATHS:
-            with open(path, "r") as f:
-                egglog += f.read()
-                egglog += "\n\n"
 
-    for rewrite, path in REWRITE_PATHS.items():
-        if options.get(rewrite, False):
-            with open(path, "r") as f:
-                egglog += f.read()
-                egglog += "\n\n"
-    
+    for path in (
+        HEURISITIC_EXTRACTION_PATHS
+        if options["heuristic_extraction"]
+        else OPTIMAL_EXTRACTION_PATHS
+    ):
+        with open(path, "r") as f:
+            egglog += f.read()
+            egglog += "\n\n"
+
+    if options["extended"] and options["heuristic_extraction"]:
+        with open(HEURISTIC_EXTENDED_COST_PATH, "r") as f:
+            egglog += f.read()
+            egglog += "\n\n"
+    elif options["heuristic_extraction"]:
+        with open(HUERISTIC_COST_PATH, "r") as f:
+            # To force extraction to avoid extended operators, we set their costs to wpd * 2. 
+            # No term in the egraph will have a cost greater than this.
+            egglog += f.read().replace("MAX_COST", str(start.wpd * 2))
+            egglog += "\n\n"
+
+    if options["rewrites"] == "incomplete":
+        for rewrite, path in INCOMPLETE_REWRITE_PATHS.items():
+            if options.get(rewrite, False):
+                with open(path, "r") as f:
+                    egglog += f.read()
+                    egglog += "\n\n"
+    else:
+        for rewrite, path in COMPLETE_REWRITE_PATHS.items():
+            if rewrite == "commutative" or rewrite == "associative":
+                continue
+            if options.get(rewrite, False):
+                with open(path, "r") as f:
+                    egglog += f.read()
+                    egglog += "\n\n"
+
     start_time = util.get_rusage_time()
 
     expr_cnt = 0
@@ -148,7 +195,7 @@ def to_egglog(
     egglog += "(run-schedule (saturate mltl-rewrites))\n"
     egglog += "(run-schedule (saturate const-folding))\n"
 
-    if options["with_analysis"]:
+    if options["heuristic_extraction"]:
         egglog += "(run-schedule (saturate analysis))\n"
         egglog += f"(extract $e{expr_map[start]})\n"
 
@@ -161,38 +208,35 @@ def run_egglog(
     egglog_encoding: str,
     max_time: int,
     max_memory: int,
-    with_json: bool = False,
-    egglog_bin: Optional[str] = None,
-) -> tuple[Union[dict, str], str, float]:
+    context: cpt.Context,
+    use_experimental_egglog: bool = False,
+) -> tuple[str, dict, str, float]:
     """Runs egglog on the given egglog encoding file and returns the result as a string and the time taken.
     
     Args:
         `egglog_encoding`: The egglog encoding to run
         `max_time`: The maximum time to allow for egglog in seconds
         `max_memory`: The maximum memory to allow for egglog in MB, use 0 for no maximum
-        `with_json`: Whether to return the egglog output as a JSON object
-        `egglog_bin`: The path to the egglog executable. If not provided, will be found using `find_egglog()`.
+        `context`: The context to use for finding the egglog executable
+        `use_experimental_egglog`: Whether to use the experimental egglog executable
 
     Returns:
         A tuple containing the egglog output, the status of the egglog run, and the time taken
     """
-    if egglog_bin is None:  
-        egglog_bin = find_egglog(not with_json) # If we are doing analysis, we need to use the experimental egglog
-        if egglog_bin is None:
-            log.error("could not find egglog executable, please set the `egglog-bin` option")
-            return "", "failure", -1.0
+    egglog_bin = find_egglog(context, use_experimental_egglog) 
+    if egglog_bin is None:
+        log.error("could not find egglog executable, please set the `egglog-path` option")
+        return "", {}, "failure", -1.0
 
     with tempfile.TemporaryDirectory() as temp_dir:
         egglog_encoding_path = pathlib.Path(temp_dir) / "tmp.egg"
         with open(egglog_encoding_path, "w") as f:
             f.write(egglog_encoding)
 
-        command = [egglog_bin, str(egglog_encoding_path)]
-        if with_json:
-            command += ["--to-json"]
+        command = [egglog_bin, str(egglog_encoding_path), "--to-json"]
         log.debug(2, f"running command '{' '.join(command)}'")
 
-        start_time = util.get_rusage_time()
+        start_time = util.get_children_rusage_time()
         try:
             proc = subprocess.Popen(
                 command,
@@ -202,31 +246,29 @@ def run_egglog(
             )
         except OSError as e:
             log.internal(f"error running command '{' '.join(command)}': {e}")
-            return "", "failure", -1.0
+            return "", {}, "failure", -1.0
 
         try:
             (stdout, stderr) = proc.communicate(timeout=max_time)
         except subprocess.TimeoutExpired:
             proc.kill()
             log.warning(f"{egglog_bin} timed out")
-            return "", "timeout", -1.0
+            return "", {}, "timeout", -1.0
 
-        end_time = util.get_rusage_time()
+        end_time = util.get_children_rusage_time()
 
         if proc.returncode == -6:
             log.error(f"error running egglog (out of memory)\n{stderr.decode()}")
-            return "", "memout", -1.0
+            return "", {}, "memout", -1.0
         elif proc.returncode != 0:
             log.error(f"error running egglog ({proc.returncode})\n{stderr.decode()}")
-            return "", "failure", -1.0
+            return "", {}, "failure", -1.0
 
-        if with_json:
-            json_output_path = pathlib.Path(temp_dir) / "tmp.json"
-            with open(json_output_path, "r") as f:
-                output = json.loads(f.read())
-            return output, "ok", end_time - start_time
+        json_output_path = pathlib.Path(temp_dir) / "tmp.json"
+        with open(json_output_path, "r") as f:
+            json_output = json.loads(f.read())
 
-    return stdout.decode(), "ok", end_time - start_time
+    return stdout.decode(), json_output, "ok", end_time - start_time
 
 def write_eqsat_encoding(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """Writes the EQSat encoding for the program to the given file.
@@ -234,7 +276,10 @@ def write_eqsat_encoding(program: cpt.Program, context: cpt.Context, options: di
     `options` is a dictionary of options for the writing.
     - `location`: The path to write the EQSat encoding to
     - `formula`: The formula to write the EQSat encoding for. If not provided, all formulas will be written
-    - `with-analysis`: Whether to enable analysis and (heuristic) extraction of the egglog output
+    - `heuristic-extraction`: Whether to enable heuristic extraction of the egglog output
+    - `rewrites`: The set of rewrites to enable
+        - `incomplete`: Enable the incomplete set of rewrites (default)
+        - `complete`: Enable the complete set of rewrites
 
     Returns:
         a ReturnCode.SUCCESS if the encoding was written successfully, ReturnCode.ERROR otherwise
@@ -307,12 +352,20 @@ write_eqsat_encoding_command = command.Command(
             "choices": None,
         },
         {
-            "name": "const-folding",
-            "description": "Whether to enable const folding rewrites",
+            "name": "heuristic-extraction",
+            "description": "Whether to enable heuristic extraction of the egglog output",
             "required": False,
             "type": bool,
-            "default": True,
+            "default": False,
             "choices": None,
+        },
+        {
+            "name": "rewrites",
+            "description": "The set of rewrites to enable",
+            "required": False,
+            "type": str,
+            "default": "incomplete",
+            "choices": ["incomplete", "complete"],
         },
         {
             "name": "associative",
@@ -339,21 +392,21 @@ write_eqsat_encoding_command = command.Command(
             "choices": None,
         },
         {
-            "name": "temporal",
-            "description": "Whether to enable temporal and logical rewrites",
+            "name": "const-folding",
+            "description": "Whether to enable const folding rewrites",
             "required": False,
             "type": bool,
             "default": True,
             "choices": None,
         },
         {
-            "name": "with-analysis",
-            "description": "Whether to enable analysis and (heuristic) extraction of the egglog output",
+            "name": "temporal",
+            "description": "Whether to enable temporal and logical rewrites",
             "required": False,
             "type": bool,
-            "default": False,
+            "default": True,
             "choices": None,
-        },
+        }
     ],
     func=write_eqsat_encoding,
     guards=[command.COMPUTED_ATOMICS],
@@ -364,17 +417,21 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     """Performs equality saturation using the egglog encodings stored in `context`. Fails if equivalence checking is enabled and the optimized formula is not equivalent to the original formula.
     
     `options` is a dictionary of options for the optimization.
+    - `rewrites`: The set of rewrites to enable
+        - `incomplete`: Enable the incomplete set of rewrites (default)
+        - `complete`: Enable the complete set of rewrites
+    - `extraction-method`: The method to use for extraction.
+        - `heuristic`: Use heuristic extraction (default)
+        - `optimal`: Use optimal extraction using Gurobi (requires gurobipy to be installed)
     - `const-folding`: Whether to enable const folding
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
     - `temporal`: Whether to enable temporal rewrites
+    - `extended`: Whether to enable extended operator rewrites
     - `egglog-max-time`: The maximum time to allow for egglog in seconds
     - `egglog-max-memory`: The maximum memory to allow for egglog in MB, use 0 for no maximum
     - `egglog-bin`: The path to the egglog executable
-    - `extraction-method`: The method to use for extraction
-        - `heuristic`: Use heuristic extraction (default)
-        - `optimal`: Use optimal extraction using Gurobi (requires gurobipy to be installed)
     - `gurobi-max-time`: The maximum time to allow for Gurobi in seconds if `extraction-method` is `optimal`
     - `gurobi-max-memory`: The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `optimal`
     - `equiv-smt-encoding-filename`: The path to write the SMT encoding for equivalence checking to
@@ -394,9 +451,9 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             continue
 
         if options["extraction_method"] == "optimal":
-            options["with_analysis"] = False
+            options["heuristic_extraction"] = False
         else:
-            options["with_analysis"] = True
+            options["heuristic_extraction"] = True
 
         egglog_encoding = to_egglog(formula.get_expr(), context, options)
         if egglog_encoding is None:
@@ -404,12 +461,12 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             return command.ReturnCode.ERROR
 
         old = formula.get_expr()
-        egglog_output, status, time = run_egglog(
+        egglog_output, json_output, status, time = run_egglog(
             egglog_encoding,
             options["egglog_max_time"],
             options["egglog_max_memory"],
-            options["extraction_method"] == "optimal", # Have egglog return JSON if we are using optimal extraction
-            options["egglog_bin"],
+            context,
+            options["extraction_method"] == "heuristic", # Use experimental egglog if we are using heuristic extraction
         )
         context.stats.eqsat_solver_time += time
         context.stats.eqsat_solver_status = status
@@ -421,6 +478,37 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             log.warning(f"eqsat failed for {formula.symbol}, skipping")
             continue
 
+        if "nodes" not in json_output or "class_data" not in json_output:
+            log.error(f"error in egglog output (no nodes or no class data)\n{repr(json_output)}")
+            return command.ReturnCode.ERROR
+
+        # Count the number of enodes and eclasses that are not interval, string, or boolean
+        context.stats.eqsat_num_enodes = len(
+            [
+                n
+                for n in json_output["nodes"].values()
+                if n["op"]
+                in {
+                    "Bool",
+                    "Var",
+                    "Not",
+                    "And2",
+                    "And3",
+                    "And4",
+                    "Or2",
+                    "Or3",
+                    "Or4",
+                    "Global",
+                    "Future",
+                    "Until",
+                    "Release",
+                }
+            ]
+        )
+        context.stats.eqsat_num_eclasses = len(
+            [c for c in json_output["class_data"].keys() if c.startswith("MLTL-")]
+        )
+
         if options["extraction_method"] == "optimal":
             if egraph is None:
                 log.error(
@@ -428,21 +516,17 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                 )
                 return command.ReturnCode.ERROR
 
-            if (
-                not isinstance(egglog_output, dict)
-                or "nodes" not in egglog_output
-                or "root_eclasses" not in egglog_output
-            ):
+            if "root_eclasses" not in json_output:
                 log.error(
-                    f"error in egglog output (no nodes or no root eclasses)\n{repr(egglog_output)}"
+                    f"error in egglog output (no root eclass)\n{repr(json_output)}"
                 )
                 return command.ReturnCode.ERROR
 
-            root_eclass = egraph.EClassID(egglog_output["root_eclasses"][0])
+            root_eclass = egraph.EClassID(json_output["root_eclasses"][0])
 
             try:
                 egraph_instance = egraph.EGraph.from_json(
-                    egglog_output["nodes"],
+                    json_output["nodes"],
                     root_eclass,
                     old,
                     context,
@@ -457,6 +541,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                 new = egraph_instance.extract(
                     options["gurobi_max_time"],
                     options["gurobi_max_memory"],
+                    options["extended"],
                 )
 
                 if egraph_instance.gurobi_status == "timeout":
@@ -466,7 +551,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                 elif egraph_instance.gurobi_status != "ok":
                     return command.ReturnCode.ERROR
             except TimeoutError: # This catches the encoding timeout
-                log.warning(f"gurobi encoding timed out after {options["gurobi_max_time"]} seconds")
+                log.warning(f"gurobi encoding timed out after {options['gurobi_max_time']} seconds")
                 context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
                 context.stats.eqsat_gurobi_encoding_time = -1.0
                 return command.ReturnCode.SUCCESS
@@ -508,6 +593,8 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             old.replace(new)
         elif sat_result is sat.SatResult.SAT:
             log.warning("equality saturation produced non-equivalent formula, defaulting to non-optimized formula")
+            log.warning(f"original: {repr(old)}")
+            log.warning(f"optimized: {repr(new)}")
             equiv_result = "not-equiv"
             status = False
         else:
@@ -526,12 +613,20 @@ optimize_eqsat_command = command.Command(
     description="Optimize the program via EQSat",
     options=[
         {
-            "name": "const-folding",
-            "description": "Whether to enable const folding",
+            "name": "rewrites",
+            "description": "The set of rewrites to enable",
             "required": False,
-            "type": bool,
-            "default": True,
-            "choices": None,
+            "type": str,
+            "default": "incomplete",
+            "choices": ["incomplete", "complete"],
+        },
+        {
+            "name": "extraction-method",
+            "description": "The method to use for extraction",
+            "required": False,
+            "type": str,
+            "default": "heuristic",
+            "choices": ["heuristic", "optimal"],
         },
         {
             "name": "associative",
@@ -552,6 +647,22 @@ optimize_eqsat_command = command.Command(
         {
             "name": "multi-arity",
             "description": "Whether to enable multi-arity rewrites",
+            "required": False,
+            "type": bool,
+            "default": True,
+            "choices": None,
+        },
+        {
+            "name": "const-folding",
+            "description": "Whether to enable const folding",
+            "required": False,
+            "type": bool,
+            "default": True,
+            "choices": None,
+        },
+        {
+            "name": "extended",
+            "description": "Whether to enable extended operator rewrites",
             "required": False,
             "type": bool,
             "default": True,
@@ -588,14 +699,6 @@ optimize_eqsat_command = command.Command(
             "type": str,
             "default": None,
             "choices": None,
-        },
-        {
-            "name": "extraction-method",
-            "description": "The method to use for extraction",
-            "required": False,
-            "type": str,
-            "default": "heuristic",
-            "choices": ["heuristic", "optimal"],
         },
         {
             "name": "gurobi-max-time",
