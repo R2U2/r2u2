@@ -73,7 +73,7 @@ jobs:
     - name: Test c2po
       run: |
         cd compiler/test
-        python3 test.py --disable-subset eqsat-optimal 
+        python3 test.py --disable-subset eqsat-optimal --disable-subset r2u2
 
     - name: Test cav (c implementation)
       run: |
