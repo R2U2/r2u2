@@ -77,7 +77,7 @@ C2PO also supports user-definable C-style enums. We can define an enum with memb
     ENUM 
         RequestState: {Waiting: 0, Granted: 1, Rejected: 2};
 
-We can also define enums without specifying the value such that the first value is equal to 1, the second value is equal to 2, etc.
+We can also define enums without specifying the value such that the first value is equal to 0, the second value is equal to 1, etc.
 Therefore, the following is equivalent to the enum above:
     ENUM 
         RequestState: {Waiting, Granted, Rejected};
