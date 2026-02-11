@@ -61,7 +61,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
         elif isinstance(expr, cpt.Signal):
             if (
                 not context.enable_booleanizer
-                and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
+                and (types.is_enum_type(context.signals[expr.symbol]) 
+                    or context.signals[expr.symbol] in {types.IntType(), types.FloatType()})
             ):
                 log.error(
                     f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n"
@@ -72,6 +73,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if context.enable_booleanizer:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
+
+            if expr.signal_id == -1 and expr.symbol in context.signal_mapping:
+                expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.Variable):
@@ -295,7 +299,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -338,7 +342,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -352,7 +356,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.IntType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -383,7 +387,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     return False
                 elif child.type != new_type or not types.is_integer_type(child.type):
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -435,7 +439,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                                 expr.loc,
                             )
                             return False
-                    elif types.IntType.is_signed:
+                    elif rhs.type.is_signed and not isinstance(rhs, cpt.CurrentTimestamp):
                         log.error(
                             f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n    {expr}",
                             expr.loc,
@@ -499,7 +503,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if lhs.type != rhs.type:
                 log.error(
-                    f"invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n    {expr}",
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -513,7 +517,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False

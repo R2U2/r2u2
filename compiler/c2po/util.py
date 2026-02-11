@@ -1,3 +1,4 @@
+import resource
 import sys
 import re
 import subprocess

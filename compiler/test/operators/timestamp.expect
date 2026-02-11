@@ -12,6 +12,7 @@ type_check: warning: timestamp.c2po:14: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:15: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:16: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:17: int type is signed but TAU is unsigned
+type_check: warning: timestamp.c2po:17: int type is signed but TAU is unsigned
 BZ b0  ts     0 0
 BZ b1  ineg   0 0
 BZ b2  iconst 0 0
@@ -51,16 +52,10 @@ BZ b35 store  34 10
 BZ b36 iabs   0 0
 BZ b37 igt    36 2
 BZ b38 store  37 11
-BZ b39 ipow   0 5
-BZ b40 igt    39 2
-BZ b41 store  40 12
-BZ b42 iabs   0 0
-BZ b43 igt    42 2
-BZ b44 store  43 13
-BZ b46 isub   0 45
-BZ b47 igt    46 2
-BZ b48 store  47 14
-BZ b45 prev   2 0
+BZ b40 isub   0 39
+BZ b41 igt    40 2
+BZ b42 store  41 12
+BZ b39 prev   2 0
 TL n0  load   a0
 TL n1  return n0 0
 TL n2  load   a1

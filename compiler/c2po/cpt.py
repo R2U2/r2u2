@@ -2019,7 +2019,7 @@ def to_infix_str(start: Expression) -> str:
                 if is_prev_operator(expr):
                     s += f","
                 else:
-                    s += f"){expr.symbol}("
+                    s += f" {expr.symbol} "
                 stack.append((seen + 1, expr))
                 stack.append((0, expr.children[1]))
             else:
