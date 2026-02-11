@@ -1,0 +1,4 @@
+(b0 == True) : sat
+((b0 == True) -> (F[1,3] ((i0 > i1) || ((i0 == i1) && (i2 > i3))))) : sat
+((b0 == True) && (F[1,3] ((i0 > i1) || ((i0 == i1) && (i2 > i3))))) : sat
+program : sat

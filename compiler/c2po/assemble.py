@@ -1,27 +1,21 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
 from struct import Struct as CStruct
 from typing import Any, Optional, Union, cast
-
-from c2po import cpt, log, types
+from c2po import cpt, log, types, command, scq, atomics
 
 # See the documentation of the 'struct' package for info:
 # https://docs.python.org/3/library/struct.html
 
-MODULE_CODE = "ASM"
 ENDIAN = "<" # Little Endian
-
 
 def check_sizes():
     mem_ref_size = CStruct("I").size
     if mem_ref_size != 4:
         log.warning(
-            MODULE_CODE,
             f"MLTL memory reference is 32-bit by default, but platform specifies {mem_ref_size} bytes",
         )
-
 
 class EngineTag(Enum):
     NA = 0  # Null instruction tag - acts as ENDSEQ
@@ -32,7 +26,6 @@ class EngineTag(Enum):
 
     def __str__(self) -> str:
         return self.name
-
 
 class BZOperator(Enum):
     NONE = 0b000000
@@ -137,7 +130,6 @@ class ATRelOp(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
-
 AT_REL_OP_MAP = {
     cpt.OperatorKind.EQUAL: ATRelOp.EQ,
     cpt.OperatorKind.NOT_EQUAL: ATRelOp.NEQ,
@@ -146,7 +138,6 @@ AT_REL_OP_MAP = {
     cpt.OperatorKind.GREATER_THAN: ATRelOp.GT,
     cpt.OperatorKind.GREATER_THAN_OR_EQUAL: ATRelOp.GEQ,
 }
-
 
 class ATFilter(Enum):
     NONE = 0b0000
@@ -161,20 +152,17 @@ class ATFilter(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
-
 AT_FILTER_MAP = {
     types.BoolType: ATFilter.BOOL,
     types.IntType: ATFilter.INT,
     types.FloatType: ATFilter.FLOAT,
 }
 
-
 class TLOperandType(Enum):
     DIRECT = 0b01
     ATOMIC = 0b00
     SUBFORMULA = 0b10
     NONE = 0b11
-
 
 class FTOperator(Enum):
     # See monitors/c/src/engines/mltl.h
@@ -202,7 +190,6 @@ class FTOperator(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
-
 FT_OPERATOR_MAP = {
     cpt.OperatorKind.GLOBAL: FTOperator.GLOBAL,
     cpt.OperatorKind.FUTURE: FTOperator.EVENTUALLY,
@@ -215,7 +202,6 @@ FT_OPERATOR_MAP = {
     cpt.OperatorKind.LOGICAL_EQUIV: FTOperator.EQUIV,
     cpt.OperatorKind.LOGICAL_XOR: FTOperator.XOR,
 }
-
 
 class PTOperator(Enum):
     NOP = 0b11111
@@ -247,7 +233,6 @@ class PTOperator(Enum):
     def __str__(self) -> str:
         return self.name.lower()
 
-
 PT_OPERATOR_MAP = {
     cpt.OperatorKind.ONCE: PTOperator.ONCE,
     cpt.OperatorKind.HISTORICAL: PTOperator.HIST,
@@ -265,7 +250,6 @@ PT_OPERATOR_MAP = {
 Operator = Union[FTOperator, PTOperator, BZOperator]
 TLOperator = Union[FTOperator, PTOperator]
 
-
 class CGType(Enum):
     SCQ = 0
     TEMP = 1
@@ -273,14 +257,12 @@ class CGType(Enum):
     def __str__(self) -> str:
         return self.name
 
-
 class AliasType(Enum):
     FORMULA = "F"
     CONTRACT = "C"
 
     def __str__(self) -> str:
         return self.name
-
 
 class FieldType(Enum):
     ENGINE_TAG = 0
@@ -305,14 +287,13 @@ class FieldType(Enum):
     TL_OPERAND_TYPE = 18
     TL_OPERAND_VALUE = 19
 
-
 field_format_str_map = {
     FieldType.ENGINE_TAG: "B",
     FieldType.INSTR_SIZE: "B",
     FieldType.BZ_ID: "I",
-    FieldType.BZ_OPERAND_ID: "Ixxxx",
-    FieldType.BZ_OPERAND_INT: "ixxxx",
-    FieldType.BZ_OPERAND_FLOAT: "d",
+    FieldType.BZ_OPERAND_ID: "Ixxxx", # TODO: These are hand-coded but should be computed from types.IntType.width
+    FieldType.BZ_OPERAND_INT: "ixxxx", # TODO: These are hand-coded but should be computed from types.IntType.width   
+    FieldType.BZ_OPERAND_FLOAT: "d", # TODO: This is hand-coded but should be computed from types.FloatType.width
     FieldType.BZ_OPERATOR: "B",
     FieldType.AT_VALUE: "8s",
     # FieldType.AT_VALUE_BOOL:    "?xxxxxxx",
@@ -328,7 +309,6 @@ field_format_str_map = {
     FieldType.TL_OPERAND_TYPE: "B",
     FieldType.TL_OPERAND_VALUE: "I",
 }
-
 
 @dataclass
 class BZInstruction:
@@ -350,7 +330,6 @@ class BZInstruction:
             field_strs.append(f"{self.operand2}")
 
         return " ".join(field_strs)
-
 
 @dataclass
 class TLInstruction:
@@ -385,7 +364,6 @@ class TLInstruction:
 
         return " ".join(field_strs)
 
-
 @dataclass
 class CGInstruction:
     engine_tag: EngineTag
@@ -407,7 +385,6 @@ class CGInstruction:
             field_strs.append(f"n{self.instruction.operand1_value:<2}")
             field_strs.append(f"{self.instruction.id}")
         return " ".join(field_strs)
-
 @dataclass
 class AliasInstruction:
     type: AliasType
@@ -416,7 +393,6 @@ class AliasInstruction:
 
     def __str__(self) -> str:
         return f"{self.type.value} {self.symbol} {' '.join(self.args)}"
-    
 
 Instruction = Union[BZInstruction, TLInstruction, CGInstruction]
 
@@ -425,6 +401,7 @@ def gen_bz_instruction(
     context: cpt.Context,
     instructions: dict[cpt.Expression, BZInstruction],
 ) -> BZInstruction:
+    log.debug(1, f"generating bz instruction for {expr}")
     bzid = len(instructions)
 
     if isinstance(expr, cpt.Signal):
@@ -449,7 +426,7 @@ def gen_bz_instruction(
         operator = BZOperator.TS
     elif isinstance(expr, cpt.Atomic):
         operand1 = instructions[expr.children[0]].id
-        operand2 = 0 if expr not in context.atomic_id else context.atomic_id[expr]
+        operand2 = 0 if expr not in context.atomic_id_map else context.atomic_id_map[expr]
         operator = BZOperator.STORE
     elif len(expr.children) == 1:
         operand1 = instructions[expr.children[0]].id
@@ -491,7 +468,7 @@ def gen_bz_instruction(
         operand2,
     )
 
-    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{bz_instr}")
+    log.debug(1, str(bz_instr))
 
     return bz_instr
 
@@ -515,6 +492,7 @@ def gen_tl_operand(
 def gen_ft_instruction(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> Optional[TLInstruction]:
+    log.debug(1, f"generating ft instruction for {expr}")
     ftid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
@@ -544,9 +522,7 @@ def gen_ft_instruction(
         operator = FT_OPERATOR_MAP[expr.operator]
     else:
         log.error(
-            MODULE_CODE,
-            "Trying to assemble operator with more than 2 arguments. "
-            "Did you enable an optimization incompatible with R2U2?\n\t"
+            "trying to assemble operator with more than 2 arguments, did you run multi_operators_to_binary?\n\t"
             f"{expr}"
         )
         return None
@@ -561,7 +537,7 @@ def gen_ft_instruction(
         operand2_value,
     )
 
-    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instr}")
+    log.debug(1, str(ft_instr))
 
     return ft_instr
 
@@ -569,6 +545,7 @@ def gen_ft_instruction(
 def gen_pt_instruction(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction], offset: int
 ) -> Optional[TLInstruction]:
+    log.debug(1, f"generating pt instruction for {expr}")
     ptid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
@@ -598,9 +575,7 @@ def gen_pt_instruction(
         operator = PT_OPERATOR_MAP[expr.operator]
     else:
         log.error(
-            MODULE_CODE,
-            "Trying to assemble operator with more than 2 arguments. "
-            "Did you enable an optimization incompatible with R2U2?\n\t"
+            "trying to assemble operator with more than 2 arguments, did you enable an optimization incompatible with R2U2?\n\t"
             f"{expr}"
         )
         return None
@@ -615,7 +590,7 @@ def gen_pt_instruction(
         operand2_value,
     )
 
-    log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instr}")
+    log.debug(1, str(pt_instr))
 
     return pt_instr
 
@@ -623,7 +598,6 @@ def gen_pt_instruction(
 def gen_ft_scq_instructions(
     expr: cpt.Expression, instructions: dict[cpt.Expression, TLInstruction]
 ) -> list[CGInstruction]:
-
     # Propositional operators only need simple queues
     if not isinstance(expr, cpt.TemporalOperator):
         cg_scq = CGInstruction(
@@ -639,7 +613,7 @@ def gen_ft_scq_instructions(
                 0,
             ),
         )
-        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
+        log.debug(1, f"Generating: {expr}\n\t" f"{cg_scq}")
         return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
@@ -673,7 +647,7 @@ def gen_ft_scq_instructions(
     )
 
     log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
+        1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
     return [cg_scq, cg_temp]
@@ -697,7 +671,7 @@ def gen_pt_scq_instructions(
                 0,
             ),
         )
-        log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}")
+        log.debug(1, f"Generating: {expr}\n\t" f"{cg_scq}")
         return [cg_scq]
 
     # Temporal operators need to reserve queue length for temporal parameter
@@ -731,11 +705,10 @@ def gen_pt_scq_instructions(
     )
 
     log.debug(
-        MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
+        1, f"Generating: {expr}\n\t" f"{cg_scq}\n\t" f"{cg_temp}"
     )
 
     return [cg_scq, cg_temp]
-
 
 def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[Instruction]]:
     bz_instructions: dict[cpt.Expression, BZInstruction] = {}
@@ -746,25 +719,24 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
     # For tracking scq usage across FT and PT
     ft_scqs: int = 0
 
-    log.debug(MODULE_CODE, 1, f"Generating assembly for program:\n{program}")
+    log.debug(1, f"generating assembly for program:\n{program}")
 
     for expr in cpt.postorder(program.ft_spec_set, context):
         if expr == program.ft_spec_set:
             continue
 
-        if expr in context.atomic_id:
+        if expr in context.atomic_id_map:
             ftid = len(ft_instructions)
             ft_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ftid,
                 FTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                context.atomic_id[expr],
+                context.atomic_id_map[expr],
                 TLOperandType.NONE,
                 0,
             )
 
-            log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{ft_instructions[expr]}")
             cg_instructions[expr] = gen_ft_scq_instructions(expr, ft_instructions)
             ft_scqs += 1
 
@@ -788,18 +760,18 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         if expr == program.pt_spec_set:
             continue
 
-        if expr in context.atomic_id:
+        if expr in context.atomic_id_map:
             ptid = len(pt_instructions)
             pt_instructions[expr] = TLInstruction(
                 EngineTag.TL,
                 ptid + ft_scqs,
                 PTOperator.LOAD,
                 TLOperandType.ATOMIC,
-                context.atomic_id[expr],
+                context.atomic_id_map[expr],
                 TLOperandType.NONE,
                 0,
             )
-            log.debug(MODULE_CODE, 1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
+            log.debug(1, f"Generating: {expr}\n\t" f"{pt_instructions[expr]}")
             cg_instructions[expr] = gen_pt_scq_instructions(expr, pt_instructions)
 
         # Special case for bool -- TL ops directly embed bool literals in their operands,
@@ -842,14 +814,13 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         + cg_instructions_ordered
     )
 
-
 def pack_bz_instruction(
     instruction: BZInstruction,
     format_strs: dict[FieldType, str],
 ) -> bytes:
     log.debug(
-        MODULE_CODE, 1,
-        f"Packing: {instruction}\n\t"
+        1,
+        f"packing bz instruction: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_ID] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_INT])} "
         f"{format_strs[FieldType.BZ_ID]:2} "
@@ -898,8 +869,8 @@ def pack_tl_instruction(
     format_strs: dict[FieldType, str],
 ) -> bytes:
     log.debug(
-        MODULE_CODE, 1,
-        f"Packing: {instruction}\n\t"
+        1,
+        f"packing tl instruction: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
         f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
         f"{format_strs[FieldType.TL_OPERAND_VALUE]:4} "
@@ -948,8 +919,8 @@ def pack_cg_instruction(
     format_strs: dict[FieldType, str]
 ) -> bytes:
     log.debug(
-        MODULE_CODE, 1,
-        f"Packing: {instruction}\n\t"
+        1,
+        f"packing cg instruction: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:<2}"
         f"\n\t"
         f"{instruction.engine_tag.value:<2}",
@@ -978,79 +949,71 @@ def pack_instruction(
     elif isinstance(instruction, CGInstruction):
         binary = pack_cg_instruction(instruction, format_strs)
     else:
-        log.error(MODULE_CODE, f"Invalid instruction type ({type(instruction)}).")
+        log.error(f"invalid instruction type ({type(instruction)}).")
         binary = bytes()
 
     binary_len = CStruct(f"{ENDIAN}B").pack(len(binary) + 1)
     return binary_len + binary
 
 
-def pack_aliases(program: cpt.Program, context: cpt.Context) -> tuple[list[AliasInstruction], bytes]:
+def pack_aliases(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> tuple[list[AliasInstruction], bytes]:
+    """
+    `options` is a dictionary of options for the assembly.
+    - `aux`: Whether to include aux data (e.g., contract status and specification naming)
+
+    Returns a tuple of (list of AliasInstructions, bytes)
+    - The list of AliasInstructions to be packed
+    - The bytes of the packed AliasInstructions
+    """
     aliases: list[AliasInstruction] = []
     binary = bytes()
 
     for spec in program.get_specs():
-        if not isinstance(spec, cpt.Formula):
-            log.internal(
-                "Contract found during assembly. Why didn't transform_contracts catch this?",
-                MODULE_CODE,
+        if isinstance(spec, cpt.Contract):
+            log.internal(f"contract found during assembly: {spec}")
+            return ([], bytes())
+        elif not isinstance(spec, cpt.Formula):
+            return ([], bytes())
+
+        if options["aux"] and len(spec.symbol) > 50:
+            log.error(
+                f"specification identifier name '{spec.symbol}' is too long, please choose a shorter name (limit 50 characters)", 
+                spec.loc,
             )
-            continue
+            return ([], bytes())
 
         alias = AliasInstruction(AliasType.FORMULA, spec.symbol, [str(spec.formula_number)])
         aliases.append(alias)
         binary += str(alias).encode("ascii") + b"\x00"
 
-        log.debug(MODULE_CODE, 1, f"Packing: {alias}")
+        log.debug(1, f"packing formula alias instruction: {alias}")
 
     for label, contract in context.contracts.items():
         alias = AliasInstruction(AliasType.CONTRACT, label, [str(f) for f in contract.formula_numbers])
         aliases.append(alias)
         binary += str(alias).encode("ascii") + b"\x00"
 
-        log.debug(MODULE_CODE, 1, f"Packing: {alias}")
+        log.debug(1, f"packing contract alias instruction: {alias}")
 
     return (aliases, binary)
 
-
-def compute_bounds(program: cpt.Program, context: cpt.Context, assembly: list[Instruction]) -> None:
-    """Computes values for bounds file, setting the values in `program.bounds`."""
-    num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
-    num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
-    num_temporal_instructions = len([i for i in assembly if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
-    num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
-    num_aliases_bytes = sum([
-        (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
-    ])
-    num_signals = len(context.signals)
-    num_atomics = len(set(context.atomic_id.values()))
-    total_scq_size = sum([
-        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
-    ])
-
-    program.bounds["R2U2_MAX_AUX_BYTES"] = num_aliases_bytes + num_aliases # each alias string + null terminator
-    program.bounds["R2U2_MAX_OUTPUT_VERDICTS"] = 2 * len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]) #To-Do: This is currently just an estimate
-    program.bounds["R2U2_MAX_OUTPUT_CONTRACTS"] = 2 * len([i for i in context.contracts.items()]) #To-Do: This is currently just an estimate
-    program.bounds["R2U2_AUX_MAX_FORMULAS"] = len([i for i in program.get_specs() if isinstance(i, cpt.Formula)])
-    program.bounds["R2U2_AUX_MAX_CONTRACTS"] = len([i for i in context.contracts.items()])
-    program.bounds["R2U2_MAX_SIGNALS"] = num_signals if context.options.enable_booleanizer else 0
-    program.bounds["R2U2_MAX_ATOMICS"] = num_atomics
-    program.bounds["R2U2_MAX_BZ_INSTRUCTIONS"] = num_bz
-    program.bounds["R2U2_MAX_TL_INSTRUCTIONS"] = num_tl
-    program.bounds["R2U2_MAX_TEMPORAL_OPERATORS"] = num_temporal_instructions
-    program.bounds["R2U2_MAX_QUEUE_SLOTS"] = total_scq_size
-
-
 def assemble(
-    program: cpt.Program, context: cpt.Context
-) -> tuple[list[Union[Instruction, AliasInstruction]], bytes]:
-    log.debug(MODULE_CODE, 1, "Assembling")
-
+    program: cpt.Program, context: cpt.Context, options: dict[str, Any]
+) -> command.ReturnCode:
+    """
+    Assemble a program into a binary.
+    
+    `options` is a dictionary of options for the assembly.
+    - `binary-filename`: The filename to write the binary to
+    - `assembly-filename`: The filename to write the assembly to
+    - `print`: Whether to print the assembly to the console
+    - `aux`: Whether to include aux data (e.g., contract status and specification naming)
+    """
     check_sizes()
     assembly = gen_assembly(program, context)
 
     if not assembly:
-        return ([], bytes())
+        return command.ReturnCode.ASSEMBLY_ERROR
 
     binary = bytes()
     binary_header = (
@@ -1063,8 +1026,8 @@ def assemble(
 
     binary += b"\x00"
 
-    if context.options.enable_aux:
-        (aliases, binary_aliases) = pack_aliases(program, context)
+    if options["aux"]:
+        (aliases, binary_aliases) = pack_aliases(program, context, options)
         assembly += aliases
         binary += binary_aliases
     else:
@@ -1072,6 +1035,276 @@ def assemble(
 
     binary += b"\x00"
 
-    compute_bounds(program, context, assembly) # type: ignore
+    if options["assembly_filename"]:
+        with open(options["assembly_filename"], "w") as f:
+            f.write("\n".join([str(i) for i in assembly]))
+    
+    if options["print"]:
+        print("\n".join([str(i) for i in assembly]))
 
-    return (assembly, binary) #type: ignore
+    with open(options["binary_filename"], "wb") as f:
+        f.write(binary)
+
+    context.assembly = assembly
+    context.binary = binary
+
+    return command.ReturnCode.SUCCESS
+
+unsafe_assemble_command = command.Command(
+    name="unsafe_assemble",
+    description="Assemble a program into a binary. Does not compute atomics or SCQ sizes beforehand. Use at your own risk, will fail if atomics or SCQ sizes are not computed or were computed before the program was modified.",
+    options=[
+        {
+            "name": "binary-filename",
+            "description": "The filename to write the binary to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+        {
+            "name": "assembly-filename",
+            "description": "The filename to write the assembly to",
+            "required": False,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+        {
+            "name": "print",
+            "description": "Print the assembly to the console",
+            "required": False,
+            "type": bool,
+            "default": False,
+            "choices": None,
+        },
+        {
+            "name": "aux",
+            "description": "Enable aux data (e.g., contract status and specification naming)",
+            "required": False,
+            "type": bool,
+            "default": True,
+            "choices": None,
+        },
+    ],
+    func=assemble,
+    guards=[
+        command.VALID_PROGRAM,
+        command.VALID_SIGNAL_MAPPING,
+        command.WELL_TYPED,
+        command.DESUGARED,
+        command.VALID_SCQ_SIZES,
+        command.COMPUTED_ATOMICS,
+        command.ONLY_BINARY_OPERATORS,
+        command.NO_EXTENDED_OPERATORS,
+        command.ATOMIC_CONSISTENT_SIGNAL_MAPPING,
+    ],
+)
+command.CommandRegistry.register(unsafe_assemble_command)
+
+assemble_command = command.CompositeCommand(
+    name="assemble",
+    description="Assemble a program into a binary. Computes atomics and SCQ sizes beforehand.",
+    commands=[
+        atomics.compute_atomics_command,
+        scq.compute_scq_sizes_command,
+        unsafe_assemble_command,
+    ],
+    guards=[],
+)
+command.CommandRegistry.register(assemble_command)
+
+def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tuple[Union[int, float], str, str]]:
+    """
+    Computes values for bounds file. Returns a dictionary of bounds, their descriptions, and the language they target. 
+    The language targets are "c" for C and "rust" for Rust or "c rust" for both.
+    """
+    assembly = context.assembly
+    num_bz = len([i for i in assembly if isinstance(i, BZInstruction)])
+    num_tl = len([i for i in assembly if isinstance(i, TLInstruction)])
+    num_temporal_instructions = len([i for i in assembly if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
+    num_aliases = len([i for i in assembly if isinstance(i, AliasInstruction)])
+    num_aliases_bytes = sum([
+        (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
+    ])
+    num_signals = len(context.signals)
+    num_atomics = len(set(context.atomic_id_map.values()))
+    total_scq_size = sum([
+        (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
+    ])
+
+    return {
+        "R2U2_MAX_AUX_BYTES": (
+            num_aliases_bytes + num_aliases, # each alias string + null terminator
+            "Size of string arena, in bytes, for auxiliary output. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c"
+        ),  
+        "R2U2_MAX_OUTPUT_VERDICTS": (
+            # TODO: This is currently just an estimate
+            2 * len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]), 
+            "Maximum number of output verdicts that can be returned at a single timestamp",
+            "rust"
+        ),  
+        "R2U2_MAX_OUTPUT_CONTRACTS": (
+            # TODO: This is currently just an estimate
+            2 * len([i for i in context.contracts.items()]), 
+            "Maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)",
+            "rust"
+        ),  
+        "R2U2_AUX_MAX_FORMULAS": (
+            len([i for i in program.get_specs() if isinstance(i, cpt.Formula)]),
+            "Maximum number of formulas being monitored. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c rust"
+        ),
+        "R2U2_AUX_MAX_CONTRACTS": (
+            len([i for i in context.contracts.items()]),
+            "Maximum number of assume-guarantee contracts being monitored. Only reserved if R2U2_AUX_STRING_SPECS feature is enabled.",
+            "c rust"
+        ),
+        "R2U2_MAX_SIGNALS": (
+            num_signals if context.enable_booleanizer else 0,
+            "Maximum number of input signals",
+            "c rust"
+        ),
+        "R2U2_MAX_ATOMICS": (
+            num_atomics,
+            "Maximum number of Booleans passed from the frontend (from the booleanizer or directly loaded atomics) to the temporal logic engine",
+            "c rust"
+        ),
+        "R2U2_MAX_BZ_INSTRUCTIONS": (
+            num_bz,
+            "Maximum number of booleanizer instructions. Reserved for the booleanizer engine.",
+            "c rust"
+        ),
+        "R2U2_MAX_TL_INSTRUCTIONS": (
+            num_tl,
+            "Maximum number of temporal logic instructions. Reserved for the temporal logic engine.",
+            "c rust"
+        ),
+        "R2U2_MAX_TEMPORAL_OPERATORS": (
+            num_temporal_instructions,
+            "Maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)",
+            "c"
+        ),
+        "R2U2_MAX_QUEUE_SLOTS": (
+            total_scq_size,
+            "Maximum number of SCQ slots for both future-time and past-time reasoning",
+            "c rust"
+        ),
+        "R2U2_FLOAT_EPSILON": (
+            0.00001,
+            "Error value used for float comparisons",
+            "c"
+        ),
+    }
+
+def write_bounds_c(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Computes values for C `bounds.h` file and writes to file.
+    
+    `options` is a dictionary of options for the bounds file.
+    - `filename`: The filename to write the bounds file to
+    - `print`: Whether to print the bounds file to the console
+    """
+    bounds = compute_bounds(program, context)
+
+    contents =  "#ifndef R2U2_BOUNDS_H\n"
+    contents += "#define R2U2_BOUNDS_H\n"
+    contents += "\n".join(
+        [
+            f"// {description}\n"
+            f"#define {key} {value:{'F' if type(value) is float else ''}}\n"
+            for key, (value, description, target) in bounds.items()
+            if "c" in target
+        ]
+    )
+    contents += "\n#endif\n"
+
+    with open(options["filename"], "w") as f:
+        f.write(contents)
+        
+    if options["print"]:
+        print(contents)
+
+    return command.ReturnCode.SUCCESS
+
+write_bounds_c_command = command.Command(
+    name="write_bounds_c",
+    description="Write bounds file for C",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the bounds file to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+        {
+            "name": "print",
+            "description": "Print the bounds file to the console",
+            "required": False,
+            "type": bool,
+            "default": False,
+            "choices": None
+        },
+    ],
+    func=write_bounds_c,
+    guards=[command.ASSEMBLED],
+)
+command.CommandRegistry.register(write_bounds_c_command)
+
+def write_bounds_rust(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Computes values for rust `config.toml` file and writes to file.
+    
+    `options` is a dictionary of options for the bounds file.
+    - `filename`: The filename to write the bounds file to
+    - `print`: Whether to print the bounds file to the console
+    """
+    bounds = compute_bounds(program, context)
+
+    contents =  "[env]\n"
+    contents += "\n".join(
+        [
+            f'# {description}\n'
+            f'{key} = {{ value = "{value}", force = true }}\n'
+            for key, (value, description, target) in bounds.items()
+            if "rust" in target
+        ]
+    )
+    contents += "\n"
+
+    with open(options["filename"], "w") as f:
+        f.write(contents)
+        
+    if options["print"]:
+        print(contents)
+
+    return command.ReturnCode.SUCCESS
+
+write_bounds_rust_command = command.Command(
+    name="write_bounds_rust",
+    description="Write bounds file for rust",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the bounds file to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+        {
+            "name": "print",
+            "description": "Print the bounds file to the console",
+            "required": False,
+            "type": bool,
+            "default": False,
+            "choices": None
+        },
+    ],
+    func=write_bounds_rust,  
+    guards=[command.ASSEMBLED],
+)
+command.CommandRegistry.register(write_bounds_rust_command)

@@ -1,0 +1,83 @@
+#include "../../oss/header.h"
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ACDR_inst : ACDR(intention_near, intention_mid, intention_far, 
+	    	      	     ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+	    	      	     ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+	    	      	     ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+	    	      	     ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+	    	             ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+			     ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+			     ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+			     ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+			     self_id, burdening_rule);
+        VAR
+            intention_near : TRJ_TYPE;
+            intention_mid  : TRJ_TYPE;
+            intention_far  : TRJ_TYPE;
+            ac_1_intention_near : TRJ_TYPE;
+            ac_1_intention_mid : TRJ_TYPE;
+            ac_1_intention_far : TRJ_TYPE;
+            ac_2_intention_near : TRJ_TYPE;
+            ac_2_intention_mid : TRJ_TYPE;
+            ac_2_intention_far : TRJ_TYPE;
+            ac_3_intention_near : TRJ_TYPE;
+            ac_3_intention_mid : TRJ_TYPE;
+            ac_3_intention_far : TRJ_TYPE;
+            ac_4_intention_near : TRJ_TYPE;
+            ac_4_intention_mid : TRJ_TYPE;
+            ac_4_intention_far : TRJ_TYPE;
+        FROZENVAR
+            self_id : AC_ID_TYPE;
+            burdening_rule : B_TYPE;
+	    ac_1_ts_sa_agent : SA_TYPE;
+	    ac_1_ss_sa_agent : SA_TYPE;
+	    ac_2_ts_sa_agent : SA_TYPE;
+	    ac_2_ss_sa_agent : SA_TYPE;
+	    ac_3_ts_sa_agent : SA_TYPE;
+	    ac_3_ss_sa_agent : SA_TYPE;
+	    ac_4_ts_sa_agent : SA_TYPE;
+	    ac_4_ss_sa_agent : SA_TYPE;
+
+        DEFINE
+            suggestion_near := ACDR_inst.suggestion_near;
+            suggestion_mid := ACDR_inst.suggestion_mid;
+            suggestion_far := ACDR_inst.suggestion_far;
+
+            predicted_conflict_near := ACDR_inst.predicted_conflict_near;
+            predicted_conflict_mid := ACDR_inst.predicted_conflict_mid;
+            predicted_conflict_far := ACDR_inst.predicted_conflict_far;
+
+	    request_ts_sa_ground := ACDR_inst.request_ts_sa_ground;
+            request_ss_sa_ground := ACDR_inst.request_ss_sa_ground;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ACDR(intention_near, intention_mid, intention_far, 
+       	   	ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+       	   	ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+       	   	ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+       	   	ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+    	   	ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+		ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+		ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+		ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+		self_id, burdening_rule)
+        VAR
+            suggestion_near : TRJ_TYPE;
+            suggestion_mid : TRJ_TYPE;
+            suggestion_far : TRJ_TYPE;
+            predicted_conflict_near: boolean;
+            predicted_conflict_mid : boolean;
+            predicted_conflict_far : boolean;
+	    request_ts_sa_ground : boolean;
+	    request_ss_sa_ground : boolean;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

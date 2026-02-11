@@ -4,6 +4,7 @@ Error messaging (source file location) are inspired by GNU error message standar
 """
 import enum
 import sys
+import inspect
 from typing import NamedTuple, Optional
 
 ISSUE_URL: str = "https://github.com/R2U2/r2u2/issues"
@@ -15,6 +16,16 @@ VERSION: str = f"{MAJOR_VERSION}.{MINOR_VERSION}.{PATCH_VERSION}"
 log_level = 0
 enable_quiet = False
 
+# This is used to track the current command name for logging purposes. The command name should be
+# set when a command is executed and reset when the command completes.
+current_command_name: Optional[str] = None
+def set_current_command_name(command_name: Optional[str]) -> None:
+    global current_command_name
+    current_command_name = command_name
+
+def reset_current_command_name() -> None:
+    global current_command_name
+    current_command_name = None
 
 class FileLocation(NamedTuple):
     filename: str
@@ -41,34 +52,21 @@ def set_quiet() -> None:
     global enable_quiet
     enable_quiet = True
 
-
 def format(
+    message_type: str,
+    location: Optional[FileLocation],
     message: str,
-    level: str,
-    color: Optional[Color],
-    module: str,
-    location: Optional[FileLocation] = None,
 ) -> str:
     formatted_message = ""
-
-    if module:
-        formatted_message += f"[{module.replace('c2po.', '')}]"
-
-    if color:
-        formatted_message += f"[{color.value}{level}{Color.ENDC.value}]"
-    else:
-        formatted_message += f"[{level}]"
-
+    if current_command_name:
+        formatted_message += f"{current_command_name}: "
+    formatted_message += f"{message_type}: "
     if location:
-        formatted_message += f" {location.filename}:{location.lineno}:"
-
-    formatted_message += f" {message}\n"
-
+        formatted_message += f"{location.filename}:{location.lineno}: "
+    formatted_message += f"{message}\n"
     return formatted_message
 
-
 def debug(
-    module: str,
     level: int,
     message: str,
     location: Optional[FileLocation] = None,
@@ -76,41 +74,38 @@ def debug(
     global log_level
     if level > log_level or enable_quiet:
         return
-    formatted_message = format(
-        message, "DBG", Color.OKBLUE, module, location
-    )
+    formatted_message = format("debug", location, message)
     sys.stderr.write(formatted_message)
-
 
 def warning(
-    module: str,
     message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "WRN", Color.WARN, module, location)
+    formatted_message = format("warning", location, message)
     sys.stderr.write(formatted_message)
-
 
 def error(
-    module: str,
     message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
     if enable_quiet:
         return
-    formatted_message = format(message, "ERR", Color.FAIL, module, location)
+    formatted_message = format("error", location, message)
     sys.stderr.write(formatted_message)
 
-
 def internal(
-    module: str,
     message: str,
-    location: Optional[FileLocation] = None,
+    traceback_str: Optional[str] = None,
 ) -> None:
     if enable_quiet:
         return
-    message_extra = f"\nPlease report this issue at {ISSUE_URL}"
-    formatted_message = format(message + message_extra, "BUG", Color.FAIL, module, location)
+    caller_location = inspect.stack()[1][1:3]
+    caller_location = FileLocation(caller_location[0], caller_location[1])
+    message_extra = ""
+    if traceback_str:
+        message_extra += f"\n{traceback_str}"
+    message_extra += f"\nPlease report this issue with input files and command executed at {ISSUE_URL}"
+    formatted_message = format("internal", caller_location, message + message_extra)
     sys.stderr.write(formatted_message)

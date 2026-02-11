@@ -1,0 +1,862 @@
+#include "../oss/header.h"
+
+--
+-- Hard Constraint H-1
+--
+-- It is never possible to have a LOS.
+INVARSPEC NAME NO-LOS-INVAR := ! LOS;
+
+--
+-- Soft Constraints (Safety-Critical)
+--
+
+-- It is never possible to have a predicted LOS in the Near-window.
+INVARSPEC NAME NO-LOS-Near-INVAR := ! LOS_near;
+-- It is never possible to have a predicted LOS in the Mid-window.
+INVARSPEC NAME NO-LOS-Mid-INVAR := ! LOS_mid;
+-- It is never possible to have a predicted LOS in the Far-window.
+INVARSPEC NAME NO-LOS-Far-INVAR := ! LOS_far;
+
+INVARSPEC NAME Detect-Near-INVAR :=
+  -- Every conflict in the Near-window is detected by at least one
+  -- Agent.
+  ((ac_1.intention_near = ac_2.intention_near) ->
+     (atc.ac_1_predicted_conflict_near | ac_1.predicted_conflict_near) &
+     (atc.ac_2_predicted_conflict_near | ac_2.predicted_conflict_near)) &
+  ((ac_1.intention_near = ac_3.intention_near) ->
+     (atc.ac_1_predicted_conflict_near | ac_1.predicted_conflict_near) &
+     (atc.ac_3_predicted_conflict_near | ac_3.predicted_conflict_near)) &
+  ((ac_1.intention_near = ac_4.intention_near) ->
+     (atc.ac_1_predicted_conflict_near | ac_1.predicted_conflict_near) &
+     (atc.ac_4_predicted_conflict_near | ac_4.predicted_conflict_near)) &
+  ((ac_2.intention_near = ac_3.intention_near) ->
+     (atc.ac_2_predicted_conflict_near | ac_2.predicted_conflict_near) &
+     (atc.ac_3_predicted_conflict_near | ac_3.predicted_conflict_near)) &
+  ((ac_2.intention_near = ac_4.intention_near) ->
+     (atc.ac_2_predicted_conflict_near | ac_2.predicted_conflict_near) &
+     (atc.ac_4_predicted_conflict_near | ac_4.predicted_conflict_near)) &
+  ((ac_3.intention_near = ac_4.intention_near) ->
+     (atc.ac_3_predicted_conflict_near | ac_3.predicted_conflict_near) &
+     (atc.ac_4_predicted_conflict_near | ac_4.predicted_conflict_near));
+
+INVARSPEC NAME Detect-Mid-INVAR :=
+  ((ac_1.intention_mid = ac_2.intention_mid) ->
+     (atc.ac_1_predicted_conflict_mid | ac_1.predicted_conflict_mid) &
+     (atc.ac_2_predicted_conflict_mid | ac_2.predicted_conflict_mid)) &
+  ((ac_1.intention_mid = ac_3.intention_mid) ->
+     (atc.ac_1_predicted_conflict_mid | ac_1.predicted_conflict_mid) &
+     (atc.ac_3_predicted_conflict_mid | ac_3.predicted_conflict_mid)) &
+  ((ac_1.intention_mid = ac_4.intention_mid) ->
+     (atc.ac_1_predicted_conflict_mid | ac_1.predicted_conflict_mid) &
+     (atc.ac_4_predicted_conflict_mid | ac_4.predicted_conflict_mid)) &
+  ((ac_2.intention_mid = ac_3.intention_mid) ->
+     (atc.ac_2_predicted_conflict_mid | ac_2.predicted_conflict_mid) &
+     (atc.ac_3_predicted_conflict_mid | ac_3.predicted_conflict_mid)) &
+  ((ac_2.intention_mid = ac_4.intention_mid) ->
+     (atc.ac_2_predicted_conflict_mid | ac_2.predicted_conflict_mid) &
+     (atc.ac_4_predicted_conflict_mid | ac_4.predicted_conflict_mid)) &
+  ((ac_3.intention_mid = ac_4.intention_mid) ->
+     (atc.ac_3_predicted_conflict_mid | ac_3.predicted_conflict_mid) &
+     (atc.ac_4_predicted_conflict_mid | ac_4.predicted_conflict_mid));
+
+INVARSPEC NAME Detect-Far-INVAR :=
+  ((ac_1.intention_far = ac_2.intention_far) ->
+     (atc.ac_1_predicted_conflict_far | ac_1.predicted_conflict_far) &
+     (atc.ac_2_predicted_conflict_far | ac_2.predicted_conflict_far)) &
+  ((ac_1.intention_far = ac_3.intention_far) ->
+     (atc.ac_1_predicted_conflict_far | ac_1.predicted_conflict_far) &
+     (atc.ac_3_predicted_conflict_far | ac_3.predicted_conflict_far)) &
+  ((ac_1.intention_far = ac_4.intention_far) ->
+     (atc.ac_1_predicted_conflict_far | ac_1.predicted_conflict_far) &
+     (atc.ac_4_predicted_conflict_far | ac_4.predicted_conflict_far)) &
+  ((ac_2.intention_far = ac_3.intention_far) ->
+     (atc.ac_2_predicted_conflict_far | ac_2.predicted_conflict_far) &
+     (atc.ac_3_predicted_conflict_far | ac_3.predicted_conflict_far)) &
+  ((ac_2.intention_far = ac_4.intention_far) ->
+     (atc.ac_2_predicted_conflict_far | ac_2.predicted_conflict_far) &
+     (atc.ac_4_predicted_conflict_far | ac_4.predicted_conflict_far)) &
+  ((ac_3.intention_far = ac_4.intention_far) ->
+     (atc.ac_3_predicted_conflict_far | ac_3.predicted_conflict_far) &
+     (atc.ac_4_predicted_conflict_far | ac_4.predicted_conflict_far));
+
+INVARSPEC NAME New-Conflict-Near-INVAR :=
+  -- Resolving a conflict in the Near-window cannot lead to a new LOS.
+  maneuvering_phase -> ((Count_LOS_Near = 0) | next(Count_LOS) < Count_LOS_Near);
+
+INVARSPEC NAME New-Conflict-Mid-INVAR :=
+  -- Resolving a conflict in the Mid-window cannot lead to a new LOS_Near
+  maneuvering_phase -> ((Count_LOS_Mid = 0) | next(Count_LOS_Near) < Count_LOS_Mid);
+
+INVARSPEC NAME New-Conflict-Far-INVAR :=
+  -- Resolving a conflict in the Near-window cannot lead to a new LOS_Mid
+  maneuvering_phase -> ((Count_LOS_Far = 0) | next(Count_LOS_Mid) < Count_LOS_Far);
+
+
+INVARSPEC NAME Fast-Resolve-Near-INVAR :=
+  -- Every conflict in the Near-window must be resolved in the
+  -- Near-window.
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_near = ac_2.intention_near) ->
+          (next(ac_1.intention_near) != next(ac_2.intention_near))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_near = ac_3.intention_near) ->
+          (next(ac_1.intention_near) != next(ac_3.intention_near))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_near = ac_4.intention_near) ->
+          (next(ac_1.intention_near) != next(ac_4.intention_near))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_near = ac_3.intention_near) ->
+          (next(ac_2.intention_near) != next(ac_3.intention_near))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_near = ac_4.intention_near) ->
+          (next(ac_2.intention_near) != next(ac_4.intention_near))) &
+  ((communication_phase & next(maneuvering_phase) & ac_3.intention_near = ac_4.intention_near) ->
+          (next(ac_3.intention_near) != next(ac_4.intention_near)));
+
+INVARSPEC NAME Fast-Resolve-Mid-INVAR :=
+  -- Every conflict in the Mid-window must be resolved in the
+  -- Mid-window.
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_mid = ac_2.intention_mid) ->
+          (next(ac_1.intention_mid) != next(ac_2.intention_mid))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_mid = ac_3.intention_mid) ->
+          (next(ac_1.intention_mid) != next(ac_3.intention_mid))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_mid = ac_4.intention_mid) ->
+          (next(ac_1.intention_mid) != next(ac_4.intention_mid))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_mid = ac_3.intention_mid) ->
+          (next(ac_2.intention_mid) != next(ac_3.intention_mid))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_mid = ac_4.intention_mid) ->
+          (next(ac_2.intention_mid) != next(ac_4.intention_mid))) &
+  ((communication_phase & next(maneuvering_phase) & ac_3.intention_mid = ac_4.intention_mid) ->
+          (next(ac_3.intention_mid) != next(ac_4.intention_mid)));
+
+INVARSPEC NAME Fast-Resolve-Far-INVAR :=
+  -- Every conflict in the Mid-window must be resolved in the
+  -- Mid-window.
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_far = ac_2.intention_far) ->
+          (next(ac_1.intention_far) != next(ac_2.intention_far))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_far = ac_3.intention_far) ->
+          (next(ac_1.intention_far) != next(ac_3.intention_far))) &
+  ((communication_phase & next(maneuvering_phase) & ac_1.intention_far = ac_4.intention_far) ->
+          (next(ac_1.intention_far) != next(ac_4.intention_far))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_far = ac_3.intention_far) ->
+          (next(ac_2.intention_far) != next(ac_3.intention_far))) &
+  ((communication_phase & next(maneuvering_phase) & ac_2.intention_far = ac_4.intention_far) ->
+          (next(ac_2.intention_far) != next(ac_4.intention_far))) &
+  ((communication_phase & next(maneuvering_phase) & ac_3.intention_far = ac_4.intention_far) ->
+          (next(ac_3.intention_far) != next(ac_4.intention_far)));
+
+
+--
+-- Interesting Properties
+--
+
+-- H-3
+-- The information available to the ATC must be consistent with the
+-- actual state of the airspace: trajectory intention, which aircrafts
+-- are GSEPs and which are SSEPs.
+INVARSPEC NAME H-3-Near-INVAR:=
+  ((ac_1_atc_info_level > INFO_LEVEL_NEAR) -> (atc_ac_1_intention_near = ac_1.intention_near)) &
+  ((ac_2_atc_info_level > INFO_LEVEL_NEAR) -> (atc_ac_2_intention_near = ac_2.intention_near)) &
+  ((ac_3_atc_info_level > INFO_LEVEL_NEAR) -> (atc_ac_3_intention_near = ac_3.intention_near)) &
+  ((ac_4_atc_info_level > INFO_LEVEL_NEAR) -> (atc_ac_4_intention_near = ac_4.intention_near));
+
+INVARSPEC NAME H-3-Mid-INVAR:=
+  ((ac_1_atc_info_level > INFO_LEVEL_MID) -> (atc_ac_1_intention_mid = ac_1.intention_mid)) &
+  ((ac_2_atc_info_level > INFO_LEVEL_MID) -> (atc_ac_2_intention_mid = ac_2.intention_mid)) &
+  ((ac_3_atc_info_level > INFO_LEVEL_MID) -> (atc_ac_3_intention_mid = ac_3.intention_mid)) &
+  ((ac_4_atc_info_level > INFO_LEVEL_MID) -> (atc_ac_4_intention_mid = ac_4.intention_mid));
+
+INVARSPEC NAME H-3-Far-INVAR:=
+  ((ac_1_atc_info_level > INFO_LEVEL_FAR) -> (atc_ac_1_intention_far = ac_1.intention_far)) &
+  ((ac_2_atc_info_level > INFO_LEVEL_FAR) -> (atc_ac_2_intention_far = ac_2.intention_far)) &
+  ((ac_3_atc_info_level > INFO_LEVEL_FAR) -> (atc_ac_3_intention_far = ac_3.intention_far)) &
+  ((ac_4_atc_info_level > INFO_LEVEL_FAR) -> (atc_ac_4_intention_far = ac_4.intention_far));
+
+INVARSPEC NAME H-3-TS-SA-INVAR :=
+  ac_1_ts_sa_agent = atc_ac_1_ts_sa_agent &
+  ac_2_ts_sa_agent = atc_ac_2_ts_sa_agent &
+  ac_3_ts_sa_agent = atc_ac_3_ts_sa_agent &
+  ac_4_ts_sa_agent = atc_ac_4_ts_sa_agent;
+
+INVARSPEC NAME H-3-SS-SA-INVAR :=
+  ac_1_ss_sa_agent = atc_ac_1_ss_sa_agent &
+  ac_2_ss_sa_agent = atc_ac_2_ss_sa_agent &
+  ac_3_ss_sa_agent = atc_ac_3_ss_sa_agent &
+  ac_4_ss_sa_agent = atc_ac_4_ss_sa_agent;
+
+-- H-4
+-- The application of the resolutions by an aircraft would lead it
+-- to the state expected by the SA agent that sent the resolution.
+LTLSPEC NAME H-4-Near-ATC-AC1-LTL :=
+  -- Near-Window with ATC in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-ATC-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-ATC-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-ATC-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-ATC-AC1-LTL :=
+  -- Mid-Window with ATC in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-ATC-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-ATC-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-ATC-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-ATC-AC1-LTL :=
+  -- Far-Window with ATC in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_ATC & atc.ac_1_suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-ATC-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_ATC & atc.ac_2_suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-ATC-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_ATC & atc.ac_3_suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-ATC-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_ATC & atc.ac_4_suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-SELF-AC1-LTL :=
+  -- Near-Window with SELF in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-SELF-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-SELF-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Near-SELF-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_near = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_near = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_near = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_near = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-SELF-AC1-LTL :=
+  -- Mid-Window with SELF in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-SELF-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-SELF-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Mid-SELF-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_mid = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_mid = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_mid = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_mid = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-SELF-AC1-LTL :=
+  -- Far-Window with SELF in charge
+  -- AC 1
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 1)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 2)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 3)) &
+  G ((communication_phase & ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_1.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-SELF-AC2-LTL :=
+  -- AC 2
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 1)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 2)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 3)) &
+  G ((communication_phase & ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_2.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-SELF-AC3-LTL :=
+  -- AC 3
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 1)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 2)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 3)) &
+  G ((communication_phase & ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_3.intention_current = 4));
+
+LTLSPEC NAME H-4-Far-SELF-AC4-LTL :=
+  -- AC 4
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_far = 1) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 1)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_far = 2) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 2)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_far = 3) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 3)) &
+  G ((communication_phase & ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.suggestion_far = 4) ->
+      F (maneuvering_phase -> X ac_4.intention_current = 4));
+
+
+-- H-5
+-- During a conflict, every agent that is responsible for an aircraft
+-- involved in the conflict and that has detected the conflict,
+-- must provide a resolution to the aircraft.
+INVARSPEC NAME H-5-Near-ATC-INVAR :=
+  ((ac_1_ts_sa_agent = SA_ATC & atc.ac_1_predicted_conflict_near) ->
+     (atc.ac_1_suggestion_near != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_ATC & atc.ac_2_predicted_conflict_near) ->
+     (atc.ac_2_suggestion_near != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_ATC & atc.ac_3_predicted_conflict_near) ->
+     (atc.ac_3_suggestion_near != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_ATC & atc.ac_4_predicted_conflict_near) ->
+     (atc.ac_4_suggestion_near != TRJ_NOP));
+
+INVARSPEC NAME H-5-Mid-ATC-INVAR :=
+  ((ac_1_ts_sa_agent = SA_ATC & atc.ac_1_predicted_conflict_mid) ->
+     (atc.ac_1_suggestion_mid != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_ATC & atc.ac_2_predicted_conflict_mid) ->
+     (atc.ac_2_suggestion_mid != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_ATC & atc.ac_3_predicted_conflict_mid) ->
+     (atc.ac_3_suggestion_mid != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_ATC & atc.ac_4_predicted_conflict_mid) ->
+     (atc.ac_4_suggestion_mid != TRJ_NOP));
+
+INVARSPEC NAME H-5-Far-ATC-INVAR :=
+  ((ac_1_ts_sa_agent = SA_ATC & atc.ac_1_predicted_conflict_far) ->
+     (atc.ac_1_suggestion_far != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_ATC & atc.ac_2_predicted_conflict_far) ->
+     (atc.ac_2_suggestion_far != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_ATC & atc.ac_3_predicted_conflict_far) ->
+     (atc.ac_3_suggestion_far != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_ATC & atc.ac_4_predicted_conflict_far) ->
+     (atc.ac_4_suggestion_far != TRJ_NOP));
+
+INVARSPEC NAME H-5-Near-SELF-INVAR :=
+  ((ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.predicted_conflict_near) ->
+       (ac_1.cdr.suggestion_near != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.predicted_conflict_near) ->
+       (ac_2.cdr.suggestion_near != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.predicted_conflict_near) ->
+       (ac_3.cdr.suggestion_near != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.predicted_conflict_near) ->
+       (ac_4.cdr.suggestion_near != TRJ_NOP));
+
+INVARSPEC NAME H-5-Mid-SELF-INVAR :=
+  ((ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.predicted_conflict_mid) ->
+       (ac_1.cdr.suggestion_mid != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.predicted_conflict_mid) ->
+       (ac_2.cdr.suggestion_mid != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.predicted_conflict_mid) ->
+       (ac_3.cdr.suggestion_mid != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.predicted_conflict_mid) ->
+       (ac_4.cdr.suggestion_mid != TRJ_NOP));
+
+INVARSPEC NAME H-5-Far-SELF-INVAR :=
+  ((ac_1_ts_sa_agent = SA_SELF & ac_1.cdr.predicted_conflict_far) ->
+       (ac_1.cdr.suggestion_far != TRJ_NOP)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_2.cdr.predicted_conflict_far) ->
+       (ac_2.cdr.suggestion_far != TRJ_NOP)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_3.cdr.predicted_conflict_far) ->
+       (ac_3.cdr.suggestion_far != TRJ_NOP)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_4.cdr.predicted_conflict_far) ->
+       (ac_4.cdr.suggestion_far != TRJ_NOP));
+
+-- H-6 (By Construction)
+
+
+-- S-4 GSEP
+-- Every conflict involving at least one SSEP and one GSEP is
+-- successfully resolved without issuing a resolution maneuver to the
+-- GSEP(s).
+INVARSPEC NAME S-4-GSEP-Near-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_near = ac_2.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_near = ac_3.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_near = ac_4.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_near = ac_1.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_near = ac_3.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_near = ac_4.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_near = ac_1.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_near = ac_2.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_near = ac_4.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_near = ac_1.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_near = ac_2.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_near = ac_3.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near));
+
+INVARSPEC NAME S-4-GSEP-Mid-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_mid = ac_2.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_mid = ac_3.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_mid = ac_4.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_mid = ac_1.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_mid = ac_3.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_mid = ac_4.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_mid = ac_1.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_mid = ac_2.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_mid = ac_4.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_mid = ac_1.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_mid = ac_2.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_mid = ac_3.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid));
+
+INVARSPEC NAME S-4-GSEP-Far-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_far = ac_2.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_far = ac_3.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  ((ac_1_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_1.intention_far = ac_4.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_far = ac_1.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_far = ac_3.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  ((ac_2_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_2.intention_far = ac_4.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_far = ac_1.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_far = ac_2.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  ((ac_3_ts_sa_agent = SA_ATC & ac_4_ts_sa_agent = SA_SELF & communication_phase &
+      ac_3.intention_far = ac_4.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_ATC & ac_1_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_far = ac_1.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_2_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_far = ac_2.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far)) &
+  ((ac_4_ts_sa_agent = SA_ATC & ac_3_ts_sa_agent = SA_SELF & communication_phase &
+      ac_4.intention_far = ac_3.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far));
+
+
+-- S-4 SSEP
+-- Every conflict involving at least one SSEP and one GSEP is
+-- successfully resolved without issuing a resolution maneuver to the
+-- SSEP(s).
+INVARSPEC NAME S-4-SSEP-Near-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_near = ac_2.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_near = ac_3.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_near = ac_4.intention_near) ->
+         (next(ac_1.intention_near) = ac_1.intention_near)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_near = ac_1.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_near = ac_3.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_near = ac_4.intention_near) ->
+         (next(ac_2.intention_near) = ac_2.intention_near)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_near = ac_1.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_near = ac_2.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_near = ac_4.intention_near) ->
+         (next(ac_3.intention_near) = ac_3.intention_near)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_near = ac_1.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_near = ac_2.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_near = ac_3.intention_near) ->
+         (next(ac_4.intention_near) = ac_4.intention_near));
+
+INVARSPEC NAME S-4-SSEP-Mid-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_mid = ac_2.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_mid = ac_3.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_mid = ac_4.intention_mid) ->
+         (next(ac_1.intention_mid) = ac_1.intention_mid)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_mid = ac_1.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_mid = ac_3.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_mid = ac_4.intention_mid) ->
+         (next(ac_2.intention_mid) = ac_2.intention_mid)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_mid = ac_1.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_mid = ac_2.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_mid = ac_4.intention_mid) ->
+         (next(ac_3.intention_mid) = ac_3.intention_mid)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_mid = ac_1.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_mid = ac_2.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_mid = ac_3.intention_mid) ->
+         (next(ac_4.intention_mid) = ac_4.intention_mid));
+
+INVARSPEC NAME S-4-SSEP-Far-INVAR :=
+  --- AC_1 ATC : AC2 SELF, AC3 SELF, AC4 SELF
+  ((ac_1_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_far = ac_2.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_far = ac_3.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  ((ac_1_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_1.intention_far = ac_4.intention_far) ->
+         (next(ac_1.intention_far) = ac_1.intention_far)) &
+  --- AC_2 ATC : AC1 SELF, AC3 SELF, AC4 SELF
+  ((ac_2_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_far = ac_1.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_far = ac_3.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  ((ac_2_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_2.intention_far = ac_4.intention_far) ->
+         (next(ac_2.intention_far) = ac_2.intention_far)) &
+  --- AC_3 ATC : AC1 SELF, AC2 SELF, AC4 SELF
+  ((ac_3_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_far = ac_1.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_far = ac_2.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  ((ac_3_ts_sa_agent = SA_SELF & ac_4_ts_sa_agent = SA_ATC & communication_phase &
+      ac_3.intention_far = ac_4.intention_far) ->
+         (next(ac_3.intention_far) = ac_3.intention_far)) &
+  --- AC_4 ATC : AC1 SELF, AC2 SELF, AC3 SELF
+  ((ac_4_ts_sa_agent = SA_SELF & ac_1_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_far = ac_1.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_2_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_far = ac_2.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far)) &
+  ((ac_4_ts_sa_agent = SA_SELF & ac_3_ts_sa_agent = SA_ATC & communication_phase &
+      ac_4.intention_far = ac_3.intention_far) ->
+         (next(ac_4.intention_far) = ac_4.intention_far));
+
+
+
+
+
+--
+-- MONITORS FOR PROPERTIES
+--
+
+-- Maneuvering Phase
+DEFINE maneuvering_phase := ! communication_phase;
+
+DEFINE Count_LOS := count(ac_1.intention_current = ac_2.intention_current, ac_1.intention_current = ac_3.intention_current, ac_1.intention_current = ac_4.intention_current) +
+                    count(ac_2.intention_current = ac_3.intention_current, ac_2.intention_current = ac_4.intention_current) +
+                    count(ac_3.intention_current = ac_4.intention_current);
+
+DEFINE Count_LOS_Near := count(ac_1.intention_near = ac_2.intention_near, ac_1.intention_near = ac_3.intention_near, ac_1.intention_near = ac_4.intention_near) +
+                         count(ac_2.intention_near = ac_3.intention_near, ac_2.intention_near = ac_4.intention_near) +
+                         count(ac_3.intention_near = ac_4.intention_near);
+
+DEFINE Count_LOS_Mid := count(ac_1.intention_mid = ac_2.intention_mid, ac_1.intention_mid = ac_3.intention_mid, ac_1.intention_mid = ac_4.intention_mid) +
+                        count(ac_2.intention_mid = ac_3.intention_mid, ac_2.intention_mid = ac_4.intention_mid) +
+                        count(ac_3.intention_mid = ac_4.intention_mid);
+
+DEFINE Count_LOS_Far := count(ac_1.intention_far = ac_2.intention_far, ac_1.intention_far = ac_3.intention_far, ac_1.intention_far = ac_4.intention_far) +
+                        count(ac_2.intention_far = ac_3.intention_far, ac_2.intention_far = ac_4.intention_far) +
+                        count(ac_3.intention_far = ac_4.intention_far);
+
+-- ATC Predicted conflict information
+DEFINE
+  atc.ac_1_predicted_conflict_near := atc.gcdr.ac_1_predicted_conflict_near;
+  atc.ac_2_predicted_conflict_near := atc.gcdr.ac_2_predicted_conflict_near;
+  atc.ac_3_predicted_conflict_near := atc.gcdr.ac_3_predicted_conflict_near;
+  atc.ac_4_predicted_conflict_near := atc.gcdr.ac_4_predicted_conflict_near;
+
+  atc.ac_1_predicted_conflict_mid := atc.gcdr.ac_1_predicted_conflict_mid;
+  atc.ac_2_predicted_conflict_mid := atc.gcdr.ac_2_predicted_conflict_mid;
+  atc.ac_3_predicted_conflict_mid := atc.gcdr.ac_3_predicted_conflict_mid;
+  atc.ac_4_predicted_conflict_mid := atc.gcdr.ac_4_predicted_conflict_mid;
+
+  atc.ac_1_predicted_conflict_far := atc.gcdr.ac_1_predicted_conflict_far;
+  atc.ac_2_predicted_conflict_far := atc.gcdr.ac_2_predicted_conflict_far;
+  atc.ac_3_predicted_conflict_far := atc.gcdr.ac_3_predicted_conflict_far;
+  atc.ac_4_predicted_conflict_far := atc.gcdr.ac_4_predicted_conflict_far;
+
+-- ATC Info Level
+DEFINE
+  ac_1_atc_info_level := com.input_ac_1_atc_info_level;
+  ac_2_atc_info_level := com.input_ac_2_atc_info_level;
+  ac_3_atc_info_level := com.input_ac_3_atc_info_level;
+  ac_4_atc_info_level := com.input_ac_4_atc_info_level;
+
+-- ATC-AC Intentions
+DEFINE
+  atc_ac_1_intention_near := atc.gcdr.input_ac_1_intention_near;
+  atc_ac_1_intention_mid := atc.gcdr.input_ac_1_intention_mid;
+  atc_ac_1_intention_far := atc.gcdr.input_ac_1_intention_far;
+
+  atc_ac_2_intention_near := atc.gcdr.input_ac_2_intention_near;
+  atc_ac_2_intention_mid := atc.gcdr.input_ac_2_intention_mid;
+  atc_ac_2_intention_far := atc.gcdr.input_ac_2_intention_far;
+
+  atc_ac_3_intention_near := atc.gcdr.input_ac_3_intention_near;
+  atc_ac_3_intention_mid := atc.gcdr.input_ac_3_intention_mid;
+  atc_ac_3_intention_far := atc.gcdr.input_ac_3_intention_far;
+
+  atc_ac_4_intention_near := atc.gcdr.input_ac_4_intention_near;
+  atc_ac_4_intention_mid := atc.gcdr.input_ac_4_intention_mid;
+  atc_ac_4_intention_far := atc.gcdr.input_ac_4_intention_far;
+
+-- ATC SA
+DEFINE
+  atc_ac_1_ts_sa_agent := atc.gcdr.input_ac_1_ts_sa_agent;
+  atc_ac_1_ss_sa_agent := atc.gcdr.input_ac_1_ss_sa_agent;
+  atc_ac_2_ts_sa_agent := atc.gcdr.input_ac_2_ts_sa_agent;
+  atc_ac_2_ss_sa_agent := atc.gcdr.input_ac_2_ss_sa_agent;
+  atc_ac_3_ts_sa_agent := atc.gcdr.input_ac_3_ts_sa_agent;
+  atc_ac_3_ss_sa_agent := atc.gcdr.input_ac_3_ss_sa_agent;
+  atc_ac_4_ts_sa_agent := atc.gcdr.input_ac_4_ts_sa_agent;
+  atc_ac_4_ss_sa_agent := atc.gcdr.input_ac_4_ss_sa_agent;

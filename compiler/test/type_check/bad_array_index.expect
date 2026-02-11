@@ -1,0 +1,1 @@
+resolve_array_accesses: error: bad_array_index.c2po:12: out-of-bounds array index ({i0, i1, i2}[3])

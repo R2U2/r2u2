@@ -18,9 +18,3 @@ DEFINE
 FTSPEC
     task.id < 100;
     task.in_sched -> F[0,3] task.exec;
-
-
-
-
-
-    

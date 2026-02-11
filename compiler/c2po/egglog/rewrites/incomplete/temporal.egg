@@ -1,0 +1,295 @@
+(rewrite
+  (And2 a0 (Bool true))
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 a0 (Bool false))
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Not (Not a0))
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 a0 a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 a0 a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Equiv a0 a1)
+  (Or2 (And2 a0 a1) (And2 (Not a0) (Not a1)))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (And2 a0 a1))
+  (Or2 (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Or2 a0 a1))
+  (And2 (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Until (Interval b0 b1) a0 a1))
+  (Release (Interval b0 b1) (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Release (Interval b0 b1) a0 a1))
+  (Until (Interval b0 b1) (Not a0) (Not a1))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Until (Interval b0 b1) (Bool true) a0)
+  (Future (Interval b0 b1) a0)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Release (Interval b0 b1) (Bool false) a0)
+  (Global (Interval b0 b1) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Until (Interval b0 b1) a0 a1) (Until (Interval b0 b2) a2 a1))
+  (Until (Interval b0 b1) (And2 a0 a2) a1)
+  :when ((<= b1 b2))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval b0 b0) a0 a1)
+  (Future (Interval b0 b0) a1)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval 0 0) a0 a1)
+  a1
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Release (Interval 0 0) a0 a1)
+  a1
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Implies a0 a1)
+  (Or2 (Not a0) a1)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Future (Interval b0 b1) a0))
+  (Global (Interval b0 b1) (Not a0))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Not (Global (Interval b0 b1) a0))
+  (Future (Interval b0 b1) (Not a0))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Global (Interval b0 b1) (Global (Interval b2 b3) a0))
+  (Global (Interval (+ b0 b2) (+ b1 b3)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Future (Interval b0 b1) (Future (Interval b2 b3) a0))
+  (Future (Interval (+ b0 b2) (+ b1 b3)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) a0) (Global (Interval b2 b3) a1))
+  (Global (Interval b4 b5) (And2 (Global (Interval (- b0 b4) (- b1 b5)) a0) (Global (Interval (- b2 b4) (- b3 b5)) a1)))
+  :when ((= b4 (min b0 b2)) (= b5 (+ b4 (min (- b1 b0) (- b3 b2)))))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Future (Interval b0 b1) a0) (Future (Interval b2 b3) a1))
+  (Future (Interval b4 b5) (Or2 (Future (Interval (- b0 b4) (- b1 b5)) a0) (Future (Interval (- b2 b4) (- b3 b5)) a1)))
+  :when ((= b4 (min b0 b2)) (= b5 (+ b4 (min (- b1 b0) (- b3 b2)))))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Global (Interval b0 b1) (Future (Interval b2 b2) a0))
+  (Global (Interval (+ b2 b0) (+ b2 b1)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Future (Interval b0 b1) (Global (Interval b2 b2) a0))
+  (Future (Interval (+ b2 b0) (+ b2 b1)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Global (Interval b0 b0) (Future (Interval b1 b2) a0))
+  (Future (Interval (+ b0 b1) (+ b0 b2)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Future (Interval b0 b0) (Global (Interval b1 b2) a0))
+  (Global (Interval (+ b0 b1) (+ b0 b2)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) a0) (Global (Interval b2 b3) a0))
+  (Global (Interval b0 (max b1 b3)) a0)
+  :when ((<= b0 b2) (<= b2 (+ b1 1)))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Future (Interval b0 b1) a0) (Future (Interval b2 b3) a0))
+  (Future (Interval b0 (max b1 b3)) a0)
+  :when ((<= b0 b2) (<= b2 (+ b1 1)))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Global (Interval b0 b1) a0) (Global (Interval b2 b3) a0))
+  (Global (Interval b2 b3) a0)
+  :when ((>= b2 b0) (<= b3 b1))
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Future (Interval b0 b1) a0) (Future (Interval b2 b3) a0))
+  (Future (Interval b2 b3) a0)
+  :when ((>= b2 b0) (<= b3 b1))
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Future (Interval b0 b0) (Until (Interval b1 b2) a0 a1))
+  (Until (Interval (+ b1 b0) (+ b2 b0)) a0 a1)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval b0 b1) (Future (Interval b2 b2) a0) (Future (Interval b2 b2) a1))
+  (Until (Interval (+ b0 b2) (+ b1 b2)) a0 a1)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval b0 b1) a0 (Global (Interval 0 b2) a0))
+  (Global (Interval b0 (+ b0 b2)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval b0 b1) a0 (Future (Interval 0 b2) a0))
+  (Future (Interval b0 (+ b0 b2)) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Global (Interval 0 0) a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Future (Interval 0 0) a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Future (Interval b0 b0) a0)
+  (Global (Interval b0 b0) a0)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Future (Interval b0 b1) a0) (Future (Interval b2 b3) a1))
+  (Future (Interval b0 b0) (And2 (Future (Interval 0 (- b1 b0)) a0) (Future (Interval (- b2 b0) (- b3 b0)) a1)))
+  :when ((<= b0 b2))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Global (Interval b0 b1) a0) (Global (Interval b2 b3) a1))
+  (Global (Interval b0 b0) (Or2 (Global (Interval 0 (- b1 b0)) a0) (Global (Interval (- b2 b0) (- b3 b0)) a1)))
+  :when ((<= b0 b2))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 (Global (Interval b0 b1) a0) (Release (Interval b2 b3) a1 a0))
+  (Or2 (Global (Interval b0 b1) a0) (Release (Interval b2 b1) a1 a0))
+  :when ((<= b1 b3) (<= b2 b0))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Until (Interval b0 b1) a0 a1) (Future (Interval b2 b3) a1))
+  (Until (Interval b0 b1) a0 a1)
+  :when ((<= b1 b3) (<= b2 b0))
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) (Not a0)) (Future (Interval b2 b3) a0))
+  (And2 (Global (Interval b0 b1) (Not a0)) (Future (Interval (+ b1 1) b3) a0))
+  :when ((<= b0 b2) (<= b2 (+ b1 1)) (< b1 b3))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And2 (Global (Interval b0 b1) (Not a0)) (Future (Interval b2 b3) a0))
+  (And2 (Global (Interval b0 b1) (Not a0)) (Future (Interval b2 (- b0 1)) a0))
+  :when ((< b2 b0) (<= b0 b3) (<= b3 b1))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Implies (And2 a0 (Future (Interval b0 b1) a1)) (Or2 (Until (Interval b0 b1) a2 a1) (Global (Interval b0 b1) a2)))
+  (Implies (And2 a0 (Future (Interval b0 b1) a1)) (Until (Interval b0 b1) a2 a1))
+  :ruleset mltl-rewrites
+)
+

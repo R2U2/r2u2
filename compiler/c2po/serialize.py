@@ -1,81 +1,117 @@
-import pathlib
-import shutil
+from typing import Any
+from c2po import cpt, command, log
 
-from c2po import cpt, log, sat, types, options
-
-MODULE_CODE = "SRLZ"
-
-
-def write_outputs(
+def write_c2po(
     program: cpt.Program,
-    context: cpt.Context
-) -> None:
-    """Writes `program` to each of the given filenames if they are not `None`."""
-    if context.options.write_c2po_filename is not None:
-        log.debug(MODULE_CODE, 1, f"Writing C2PO to {context.options.write_c2po_filename}")
-        with open(context.options.write_c2po_filename, "w") as f:
-            f.write(str(program))
-    
-    if context.options.write_prefix_filename is not None:
-        log.debug(MODULE_CODE, 1, f"Writing prefix format to {context.options.write_prefix_filename}")
-        with open(context.options.write_prefix_filename, "w") as f:
-            f.write(repr(program))
+    options: dict[str, Any]
+) -> command.ReturnCode:
+    """Writes the C2PO representation of the program to the given filename."""
+    with open(options["filename"], "w") as f:
+        f.write(str(program))
+    return command.ReturnCode.SUCCESS
 
-    if context.options.write_mltl_filename is not None:
-        log.debug(MODULE_CODE, 1, f"Dumping MLTL standard format to {context.options.write_mltl_filename}")
-        with open(context.options.write_mltl_filename, "w") as f:
-            f.write(cpt.to_mltl_std(program, context))
+write_c2po_command = command.Command(
+    name="write_c2po",
+    description="Write the C2PO representation of the program to the given filename.",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the C2PO representation to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+    ],
+    func=lambda program, context, options: write_c2po(program, options),
+    guards=[],
+)
+command.CommandRegistry.register(write_c2po_command)
 
-    if context.options.write_pickle_filename is not None:
-        log.debug(MODULE_CODE, 1, f"Writing pickled program to {context.options.write_pickle_filename}")
-        with open(context.options.write_pickle_filename, "wb") as f:
-            f.write(program.pickle())
+def write_prefix(
+    program: cpt.Program,
+    options: dict[str, Any]
+) -> command.ReturnCode:
+    """Writes the prefix representation of the program to the given filename."""
+    with open(options["filename"], "w") as f:
+        f.write(repr(program))
+    return command.ReturnCode.SUCCESS
 
-    if context.options.write_smt_dirname is not None:
-        log.debug(MODULE_CODE, 1, f"Writing SMT encoding to {context.options.write_smt_dirname}")
+write_prefix_command = command.Command(
+    name="write_prefix",
+    description="Write the prefix representation of the program to the given filename.",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the prefix representation to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+    ],
+    func=lambda program, context, options: write_prefix(program, options),
+    guards=[],
+)
+command.CommandRegistry.register(write_prefix_command)
 
-        smt_output_path = pathlib.Path(context.options.write_smt_dirname)
-        if smt_output_path.is_file():
-            smt_output_path.unlink()
-        elif smt_output_path.is_dir():
-            shutil.rmtree(smt_output_path)
-        
-        smt_output_path.mkdir()
+def write_mltl(
+    program: cpt.Program,
+    context: cpt.Context,
+    options: dict[str, Any]
+) -> command.ReturnCode:
+    """Writes the MLTL standard representation of the program to the given filename."""
+    content = cpt.to_mltl_std(program, context)
+    if content == "":
+        log.error("failed to generate MLTL standard representation")
+        return command.ReturnCode.ERROR
 
-        for spec in program.ft_spec_set.get_specs():
-            if isinstance(spec, cpt.Contract):
-                continue
-            expr = spec.get_expr()
-            with open(str(smt_output_path / f"{spec.symbol}.smt"), "w") as f:
-                if context.options.smt_encoding == options.SMTTheories.UFLIA:
-                    f.write(sat.to_uflia_smtlib2(expr, context))
-                elif context.options.smt_encoding == options.SMTTheories.QF_UFLIA:
-                     f.write(sat.to_qfuflia_smtlib2(expr, context))
-                elif context.options.smt_encoding == options.SMTTheories.QF_BV:
-                    f.write(sat.to_qfbv_smtlib2(expr, context, expr.wpd + 1))
-                elif context.options.smt_encoding == options.SMTTheories.QF_BV_INCR:
-                    log.warning(MODULE_CODE, "qf_bv_log_incr encoding writes multiple files incrementally depending on SMT results, not writing")
+    with open(options["filename"], "w") as f:
+        f.write(content)
 
-    if context.options.write_bounds_filename is not None:
-        write_bounds_path = pathlib.Path(context.options.write_bounds_filename)
-        if write_bounds_path.is_dir():
-            if context.options.impl == types.R2U2Implementation.C:
-                write_bounds_path = write_bounds_path / 'bounds.h'
-            elif context.options.impl == types.R2U2Implementation.RUST:
-                write_bounds_path = write_bounds_path / 'config.toml'
-        if write_bounds_path.is_file():
-            log.warning(MODULE_CODE, f"File {write_bounds_path} already exists. Overwriting.")
-        elif write_bounds_path.exists():
-            log.warning(MODULE_CODE, f"Path {write_bounds_path} not a file and already exists. Skipping.")
-            return
-        
-        if context.options.impl == types.R2U2Implementation.C:
-            log.debug(MODULE_CODE, 1, f"Writing bounds.h to {write_bounds_path}")
-            with open(write_bounds_path, "w") as f:
-                f.write(program.get_bounds_c_file())
-        elif context.options.impl == types.R2U2Implementation.RUST:
-            log.debug(MODULE_CODE, 1, f"Writing config.toml to {write_bounds_path}")
-            with open(write_bounds_path, "w") as f:
-                f.write(program.get_bounds_rs_file())
-        else:
-            log.warning(MODULE_CODE, f"Unsupported implementation {context.options.impl}, skipping bounds file write")
+    return command.ReturnCode.SUCCESS
+
+write_mltl_command = command.Command(
+    name="write_mltl",
+    description="Write the MLTL standard representation of the program to the given filename.",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the MLTL standard representation to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+    ],
+    func=write_mltl,
+    guards=[command.COMPUTED_ATOMICS],
+)
+command.CommandRegistry.register(write_mltl_command)
+
+def write_pickle(
+    program: cpt.Program,
+    options: dict[str, Any]
+) -> command.ReturnCode:
+    """Writes the pickle representation of the program to the given filename."""
+    with open(options["filename"], "wb") as f:
+        f.write(program.pickle())
+    return command.ReturnCode.SUCCESS
+
+write_pickle_command = command.Command(
+    name="write_pickle",
+    description="Write the pickle representation of the program to the given filename.",
+    options=[
+        {
+            "name": "filename",
+            "description": "The filename to write the pickle representation to",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None
+        },
+    ],
+    func=lambda program, context, options: write_pickle(program, options),
+    guards=[],
+)
+command.CommandRegistry.register(write_pickle_command)

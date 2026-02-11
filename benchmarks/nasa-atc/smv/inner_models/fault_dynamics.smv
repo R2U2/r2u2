@@ -1,0 +1,78 @@
+#ifndef FAULT_DYNAMICS_MODULE
+#define FAULT_DYNAMICS_MODULE
+
+-- This is a collection of fault dynamics:
+--   - Permanent
+--   - Transient
+--   - Bounded
+--
+    MODULE BoundedFault
+        VAR has_fault: boolean;
+        IVAR fault_event: boolean;
+
+        INIT has_fault = FALSE;
+        TRANS next(has_fault) <-> fault_event;
+
+        VAR fault_cnt: -1 .. MAX_CONSECUTIVE_FAULTS;
+
+        -- Bounded dynamic
+        ASSIGN
+          init(fault_cnt) := 0;
+          next(fault_cnt) := case (fault_cnt = -1): 0;
+			       	  fault_event & fault_cnt >= 0: case
+			       	        fault_cnt < MAX_CONSECUTIVE_FAULTS: fault_cnt+1;
+				  	TRUE: -1; -- Reset
+				  esac;
+				  TRUE : -1; --Reset
+			     esac;
+
+        -- Reset of the counter means that we force the system to NOT
+        -- have the given fault.  This guarantees that a fault can
+        -- occur at most MAX_CONSECUTIVE_FAULTS in a row.
+        --
+        DEFINE fault_cnt_reset := fault_cnt = -1;
+        TRANS fault_cnt_reset -> ! fault_event;
+
+        --CTLSPEC NAME Possibility-CTL := AG EF has_fault;
+        --LTLSPEC NAME Bounded-LTL := G ( has_fault -> F ! has_fault);
+
+     MODULE PermanentFault
+         --  The symbol 'has_fault' tells whether the fault occurred in
+         --  the current state.
+         VAR has_fault: boolean;
+         IVAR fault_event: boolean;
+
+         ASSIGN
+             init(has_fault) := FALSE;
+             next(has_fault) := case (has_fault | fault_event): TRUE;
+                                     TRUE: FALSE;
+                                esac;
+
+        --CTLSPEC NAME Possibility-CTL := AG EX has_fault;
+        --LTLSPEC NAME Permanent-LTL   := G (has_fault -> G has_fault);
+
+    MODULE TransientFault
+         --  The symbol 'has_fault' tells whether the fault occurred in
+         --  the current state.
+         VAR has_fault: boolean;
+         IVAR fault_event: boolean;
+
+         INIT has_fault = FALSE;
+         TRANS next(has_fault) <-> fault_event;
+
+        --CTLSPEC NAME Possibility-CTL := AG EX has_fault;
+        --CTLSPEC NAME Transient-CTL :=
+           -- AG (has_fault -> ((EG has_fault) & (EF ! has_fault)));
+
+
+    MODULE PermanentOrBoundedFault
+        DEFINE has_fault := permanent.has_fault |bounded.has_fault;
+        DEFINE fault_event_bounded := bounded.fault_event;
+        DEFINE fault_event_permanent := permanent.fault_event;
+
+        VAR
+            permanent : PermanentFault;
+            bounded : BoundedFault;
+
+
+#endif

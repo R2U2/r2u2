@@ -34,7 +34,6 @@ def compile_and_log(
         spec_filename=spec_filename,
         trace_filename=trace_filename,
         map_filename=map_filename,
-        impl_str=impl_str,
         output_filename=output_filename,
         write_bounds_filename=write_bounds_filename,
         enable_booleanizer = enable_booleanizer,

@@ -1,0 +1,177 @@
+--
+-- The Protocol Policy is responsible for forwarding the correct resolution.
+--
+-- Faults: Forwards the wrong resolution (e.g., ATC when SELF separated)
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ProtocolPolicy_inst : ProtocolPolicy(ts_sa_agent, ss_sa_agent, 
+	    				         request_ts_sa_ground, request_ss_sa_ground,
+	    			  	         suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+						 suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+						 intention_near, intention_mid, intention_far);
+        FROZENVAR
+            ts_sa_agent : SA_TYPE;
+            ss_sa_agent : SA_TYPE;
+        VAR
+            suggestion_near_ground : TRJ_TYPE;
+            suggestion_mid_ground : TRJ_TYPE;
+            suggestion_far_ground : TRJ_TYPE;
+            suggestion_near_cdr : TRJ_TYPE;
+            suggestion_mid_cdr : TRJ_TYPE;
+            suggestion_far_cdr : TRJ_TYPE;
+            intention_near : TRJ_TYPE;
+            intention_mid : TRJ_TYPE;
+            intention_far : TRJ_TYPE;
+            request_ts_sa_ground : boolean;
+            request_ss_sa_ground : boolean;
+
+        DEFINE
+            suggestion_near := ProtocolPolicy_inst.suggestion_near;
+            suggestion_mid := ProtocolPolicy_inst.suggestion_mid;
+            suggestion_far := ProtocolPolicy_inst.suggestion_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ProtocolPolicy(ts_sa_agent, ss_sa_agent, 
+ 	                  request_ts_sa_ground, request_ss_sa_ground,
+    	                  suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+			  suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+			  intention_near, intention_mid, intention_far)
+        VAR
+            nominal : ProtocolPolicy_Nominal(ts_sa_agent, ss_sa_agent, 
+   	    				     request_ts_sa_ground, request_ss_sa_ground,
+	    	      		             suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+					     suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+					     intention_near, intention_mid, intention_far);
+        -- Mirror variables
+        DEFINE
+            param_ts_sa_agent := ts_sa_agent;
+            param_ss_sa_agent := ss_sa_agent;
+
+        DEFINE
+            input_suggestion_near_ground := suggestion_near_ground;
+            input_suggestion_mid_ground := suggestion_mid_ground;
+            input_suggestion_far_ground := suggestion_far_ground;
+            input_suggestion_near_cdr := suggestion_near_cdr;
+            input_suggestion_mid_cdr := suggestion_mid_cdr;
+            input_suggestion_far_cdr := suggestion_far_cdr;
+            input_intention_near := intention_near;
+            input_intention_mid := intention_mid;
+            input_intention_far := intention_far;
+
+
+        #if EXTENDED_MODEL
+        VAR
+          -- Fault Dynamics
+          fault_near__dynamic: TransientFault;
+          fault_mid__dynamic: TransientFault;
+          fault_far__dynamic: TransientFault;
+
+        DEFINE
+          -- Fault events
+          fault_near__event:= fault_near__dynamic.fault_event;
+          fault_mid__event:= fault_mid__dynamic.fault_event;
+          fault_far__event:= fault_far__dynamic.fault_event;
+
+        DEFINE
+          -- Fault State
+          fault_near := fault_near__dynamic.has_fault;
+          fault_mid := fault_mid__dynamic.has_fault;
+          fault_far := fault_far__dynamic.has_fault;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := count(fault_near, fault_mid, fault_far);
+        #endif
+
+        #else
+        DEFINE
+          fault_near := FALSE;
+          fault_mid  := FALSE;
+          fault_far  := FALSE;
+        #endif
+
+        DEFINE
+          suggestion_near := case fault_near & ts_sa_agent = SA_SATC: request_ts_sa_ground ? suggestion_near_cdr : suggestion_near_ground;
+	  		          fault_near & ts_sa_agent = SA_SELF: suggestion_near_ground;
+	  		          -- Curently, if the agent is ATC we do not have any other means of
+				  -- resolving the conflict. Therefore, we do not consider this 
+				  -- fault as relevant. In future versions of the model, this 
+				  -- might need to be revised.
+	  		          fault_near & ts_sa_agent = SA_ATC: nominal.suggestion_near; 
+                                  TRUE: nominal.suggestion_near;
+                             esac;
+          suggestion_mid := case fault_mid & ts_sa_agent = SA_SATC: request_ts_sa_ground ? suggestion_mid_cdr : suggestion_mid_ground;
+	  		    	 fault_mid & ts_sa_agent = SA_SELF: suggestion_mid_ground;
+	  		     	 fault_mid & ts_sa_agent = SA_ATC: nominal.suggestion_mid;
+                                 TRUE: nominal.suggestion_mid;
+                            esac;
+          suggestion_far := case fault_far & ss_sa_agent = SA_SATC: request_ss_sa_ground ? suggestion_far_cdr : suggestion_far_ground;
+	  		    	 fault_far & ss_sa_agent = SA_SELF: suggestion_far_ground;
+				 fault_far & ss_sa_agent = SA_ATC: nominal.suggestion_far;
+                                 TRUE: nominal.suggestion_far;
+                            esac;
+
+        INVARSPEC NAME ProtocolPolicy_ss_ground_norm_guarantee := (ss_sa_agent = SA_ATC -> suggestion_far = suggestion_far_ground);
+        INVARSPEC NAME ProtocolPolicy_ss_self_norm_guarantee := (ss_sa_agent = SA_SELF -> suggestion_far = suggestion_far_cdr);
+        INVARSPEC NAME ProtocolPolicy_ts_ground_norm_guarantee := (ts_sa_agent = SA_ATC -> suggestion_near = suggestion_near_ground) &
+                                                                  (ts_sa_agent = SA_ATC -> suggestion_mid = suggestion_mid_ground);
+        INVARSPEC NAME ProtocolPolicy_ts_self_norm_guarantee := (ts_sa_agent = SA_SELF -> suggestion_near = suggestion_near_cdr) &
+                                                                (ts_sa_agent = SA_SELF -> suggestion_mid = suggestion_mid_cdr);
+    	INVARSPEC NAME ProtocolPolicy_ss_satc_norm_guarantee := (ss_sa_agent = SA_SATC -> ((request_ss_sa_ground -> suggestion_far = suggestion_far_ground) & 
+		       					     		             (!request_ss_sa_ground -> suggestion_far = suggestion_far_cdr)));
+        INVARSPEC NAME ProtocolPolicy_ts_satc_norm_guarantee := (ts_sa_agent = SA_SATC -> ((request_ts_sa_ground -> suggestion_near = suggestion_near_ground) & 
+		       					     		             (!request_ts_sa_ground -> suggestion_near = suggestion_near_cdr))) & 
+							 	(ts_sa_agent = SA_SATC -> ((request_ts_sa_ground -> suggestion_near = suggestion_near_ground) & 
+									             (!request_ts_sa_ground -> suggestion_near = suggestion_near_cdr)));
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ProtocolPolicy_Nominal(ts_sa_agent, ss_sa_agent, 
+    	   	                  request_ts_sa_ground, request_ss_sa_ground,
+    	   		          suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+				  suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+				  intention_near, intention_mid, intention_far)
+        DEFINE
+            suggestion_near := case ts_sa_agent = SA_ATC: suggestion_near_ground;
+	    		       	    ts_sa_agent = SA_SELF: suggestion_near_cdr;
+	    		       	    ts_sa_agent = SA_SATC & request_ts_sa_ground : suggestion_near_ground;
+    	    		       	    ts_sa_agent = SA_SATC & !request_ts_sa_ground : suggestion_near_cdr;
+			       esac;
+            suggestion_mid :=  case ts_sa_agent = SA_ATC: suggestion_mid_ground;
+	    		       	    ts_sa_agent = SA_SELF: suggestion_mid_cdr;
+	    		       	    ts_sa_agent = SA_SATC & request_ts_sa_ground : suggestion_mid_ground;
+    	    		       	    ts_sa_agent = SA_SATC & !request_ts_sa_ground : suggestion_mid_cdr;
+			       esac;
+            suggestion_far :=  case ss_sa_agent = SA_ATC: suggestion_far_ground;
+	    		       	    ss_sa_agent = SA_SELF: suggestion_far_cdr;
+	    		       	    ss_sa_agent = SA_SATC & request_ss_sa_ground : suggestion_far_ground;
+    	    		       	    ss_sa_agent = SA_SATC & !request_ss_sa_ground : suggestion_far_cdr;
+			       esac;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif
