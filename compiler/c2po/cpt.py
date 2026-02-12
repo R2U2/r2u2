@@ -1156,6 +1156,11 @@ class EnumDefinition(Node):
     def __str__(self) -> str:
         members_str_list = [str(s) + "," for s in self.var_defs]
         return self.symbol + ": {" + " ".join(members_str_list) + "}"
+    
+    def deepcopy(self, context: Context) -> EnumDefinition:
+        var_defs = [v.deepcopy(context) for v in self.var_defs]
+        new = EnumDefinition(self.loc, self.symbol, var_defs)
+        return new
 
 class VariableDeclaration(Node):
     def __init__(self, loc: log.FileLocation, vars: list[str], t: types.Type) -> None:

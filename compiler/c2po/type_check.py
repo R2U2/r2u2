@@ -439,7 +439,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                                 expr.loc,
                             )
                             return False
-                    elif rhs.type.is_signed and not isinstance(rhs, cpt.CurrentTimestamp):
+                    elif types.IntType.is_signed and not isinstance(rhs, cpt.CurrentTimestamp):
                         log.error(
                             f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n    {expr}",
                             expr.loc,
