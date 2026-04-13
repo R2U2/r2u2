@@ -3,7 +3,7 @@
 Files for proving correctness of rewrite rules and generating egglog files for use in equality
 saturation.
 
-- `rewrites.json` contains the rewrite rules in a standard format.
+- `complete.json`/`incomplete.json` contain rewrite rules in a standard format.
 - `generate_equiv_files.py` generates .equiv files from rewrites.json.
 - `generate_egglog.py` generates egglog files from .equiv files.
 - `generate_smt2_equiv.sh` generates SMT2 files from .equiv files.
