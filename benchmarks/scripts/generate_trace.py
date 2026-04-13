@@ -11,7 +11,7 @@ import random
 import re
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 def parse_c2po_inputs(c2po_file: Path) -> List[Tuple[str, str]]:
@@ -28,8 +28,8 @@ def parse_c2po_inputs(c2po_file: Path) -> List[Tuple[str, str]]:
     # Find the INPUT section
     input_match = re.search(r'INPUT\s+(.*?)(?=\n\s*(?:FTSPEC|PTSPEC|DEFINE|STRUCT|$))', content, re.DOTALL)
     if not input_match:
-        print(f"Error: No INPUT section found in {c2po_file}", file=sys.stderr)
-        sys.exit(1)
+        print(f"Warning: No INPUT section found in {c2po_file}", file=sys.stderr)
+        return variables
     
     input_section = input_match.group(1)
     
@@ -58,6 +58,69 @@ def parse_c2po_inputs(c2po_file: Path) -> List[Tuple[str, str]]:
             variables.append((var_name, base_type))
     
     return variables
+
+
+def read_file_list(file_list_path: Path) -> List[Path]:
+    """
+    Read a file containing a list of C2PO file paths (one per line).
+    
+    Returns a list of Path objects.
+    """
+    c2po_files = []
+    
+    with open(file_list_path, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue
+            
+            # Try to resolve the path (could be relative to file_list_path's directory or absolute)
+            file_path = Path(line)
+            if not file_path.is_absolute():
+                # If relative, try relative to the file list's directory first
+                file_path = file_list_path.parent / file_path
+            
+            if not file_path.exists():
+                print(f"Warning: C2PO file not found (line {line_num}): {line}", file=sys.stderr)
+                continue
+            
+            c2po_files.append(file_path)
+    
+    return c2po_files
+
+
+def collect_variables_from_files(c2po_files: List[Path]) -> List[Tuple[str, str]]:
+    """
+    Collect all variables from multiple C2PO files into a single list.
+    
+    Uses a dictionary to handle duplicates - if a variable appears in multiple files
+    with the same type, it's only included once. If types differ, a warning is issued
+    and the first type encountered is used.
+    
+    Returns a list of (variable_name, type) tuples.
+    """
+    # Use a dictionary to track variables by name (to handle duplicates)
+    variables_dict: Dict[str, str] = {}
+    
+    for c2po_file in c2po_files:
+        try:
+            file_vars = parse_c2po_inputs(c2po_file)
+            for var_name, var_type in file_vars:
+                if var_name in variables_dict:
+                    # Check if type matches
+                    if variables_dict[var_name] != var_type:
+                        print(f"Warning: Variable '{var_name}' has conflicting types: "
+                              f"'{variables_dict[var_name]}' (from previous file) vs '{var_type}' (from {c2po_file}). "
+                              f"Using '{variables_dict[var_name]}'.", file=sys.stderr)
+                else:
+                    variables_dict[var_name] = var_type
+        except Exception as e:
+            print(f"Error parsing {c2po_file}: {e}", file=sys.stderr)
+            continue
+    
+    # Convert dictionary to list of tuples
+    return [(var_name, var_type) for var_name, var_type in variables_dict.items()]
 
 
 def generate_trace(variables: List[Tuple[str, str]], length: int, min_val: float, max_val: float, output_file: Path):
@@ -100,17 +163,25 @@ def generate_trace(variables: List[Tuple[str, str]], length: int, min_val: float
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Generate a random trace CSV file from a C2PO specification file'
+        description='Generate a random trace CSV file from a C2PO specification file or a list of C2PO files'
     )
     parser.add_argument(
         'c2po_file',
         type=Path,
-        help='Path to the C2PO input file'
+        nargs='?',
+        help='Path to a single C2PO input file (required if --file-list is not provided)'
     )
     parser.add_argument(
         'length',
         type=int,
         help='Length of the trace (number of time steps)'
+    )
+    parser.add_argument(
+        '--file-list',
+        type=Path,
+        metavar='FILE',
+        help='Path to a file containing a list of C2PO file paths (one per line). '
+             'When provided, variables from all files will be collected into a single trace.'
     )
     parser.add_argument(
         '--min',
@@ -127,7 +198,7 @@ def main():
     parser.add_argument(
         '-o', '--output',
         type=Path,
-        help='Output CSV file path (default: <c2po_file_basename>_trace.csv)'
+        help='Output CSV file path (default: <c2po_file_basename>_trace.csv or trace.csv if using --file-list)'
     )
     parser.add_argument(
         '--seed',
@@ -141,9 +212,13 @@ def main():
     if args.seed is not None:
         random.seed(args.seed)
     
-    # Validate inputs
-    if not args.c2po_file.exists():
-        print(f"Error: C2PO file not found: {args.c2po_file}", file=sys.stderr)
+    # Validate that either c2po_file or --file-list is provided
+    if not args.c2po_file and not args.file_list:
+        print("Error: Either a C2PO file or --file-list must be provided", file=sys.stderr)
+        sys.exit(1)
+    
+    if args.c2po_file and args.file_list:
+        print("Error: Cannot specify both a C2PO file and --file-list. Use one or the other.", file=sys.stderr)
         sys.exit(1)
     
     if args.length <= 0:
@@ -154,27 +229,70 @@ def main():
         print(f"Error: min ({args.min}) must be less than max ({args.max})", file=sys.stderr)
         sys.exit(1)
     
-    # Determine output file
-    if args.output:
-        output_file = args.output
-    else:
-        output_file = args.c2po_file.parent / f"{args.c2po_file.stem}_trace.csv"
+    # Collect variables from file(s)
+    variables = []
+    c2po_files_used = []
     
-    # Parse C2PO file
-    try:
-        variables = parse_c2po_inputs(args.c2po_file)
-    except Exception as e:
-        print(f"Error parsing C2PO file: {e}", file=sys.stderr)
-        sys.exit(1)
+    if args.file_list:
+        # Validate file list
+        if not args.file_list.exists():
+            print(f"Error: File list not found: {args.file_list}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Read and validate C2PO files from list
+        try:
+            c2po_files_used = read_file_list(args.file_list)
+        except Exception as e:
+            print(f"Error reading file list: {e}", file=sys.stderr)
+            sys.exit(1)
+        
+        if not c2po_files_used:
+            print(f"Error: No valid C2PO files found in file list: {args.file_list}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Collect variables from all files
+        try:
+            variables = collect_variables_from_files(c2po_files_used)
+        except Exception as e:
+            print(f"Error collecting variables from files: {e}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Determine output file
+        if args.output:
+            output_file = args.output
+        else:
+            output_file = args.file_list.parent / "trace.csv"
+    else:
+        # Single file mode
+        if not args.c2po_file.exists():
+            print(f"Error: C2PO file not found: {args.c2po_file}", file=sys.stderr)
+            sys.exit(1)
+        
+        c2po_files_used = [args.c2po_file]
+        
+        # Parse C2PO file
+        try:
+            variables = parse_c2po_inputs(args.c2po_file)
+        except Exception as e:
+            print(f"Error parsing C2PO file: {e}", file=sys.stderr)
+            sys.exit(1)
+        
+        # Determine output file
+        if args.output:
+            output_file = args.output
+        else:
+            output_file = args.c2po_file.parent / f"{args.c2po_file.stem}_trace.csv"
     
     if not variables:
-        print(f"Error: No input variables found in {args.c2po_file}", file=sys.stderr)
+        print(f"Error: No input variables found in the specified C2PO file(s)", file=sys.stderr)
         sys.exit(1)
     
     # Generate trace
     try:
         generate_trace(variables, args.length, args.min, args.max, output_file)
         print(f"Generated trace with {len(variables)} variables and {args.length} time steps")
+        if args.file_list:
+            print(f"Collected variables from {len(c2po_files_used)} C2PO file(s)")
         print(f"Output written to: {output_file}")
     except Exception as e:
         print(f"Error generating trace: {e}", file=sys.stderr)

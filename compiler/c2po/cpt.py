@@ -1898,7 +1898,9 @@ def to_infix_str(start: Expression) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
+        if isinstance(expr, Constant):
+            s += expr.symbol.lower()
+        elif isinstance(expr, (CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
             s += expr.symbol
         elif isinstance(expr, ArrayIndex):
             if seen == 0:
@@ -2012,7 +2014,9 @@ def to_prefix_str(start: Expression, with_internal_labels: bool = False) -> str:
     while len(stack) > 0:
         (seen, expr) = stack.pop()
 
-        if isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
+        if isinstance(expr, Constant):
+            s += expr.symbol.lower() + " "
+        elif isinstance(expr, (Constant, CurrentTimestamp, Variable, Signal, SymbolicIntervalVariable, MissionTime, Match)):
             s += expr.symbol + " "
         elif isinstance(expr, StructAccess):
             if seen == 0:
@@ -2104,7 +2108,7 @@ def to_mltl_std(program: Program, context: Context) -> str:
             (seen, expr) = stack.pop()
 
             if isinstance(expr, Constant):
-                mltl += expr.symbol + " "
+                mltl += expr.symbol.lower() + " "
             elif expr in context.atomic_id_map:
                 mltl += f"a{context.atomic_id_map[expr]}"
             elif len(expr.children) == 1 and (

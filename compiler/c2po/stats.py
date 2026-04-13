@@ -3,6 +3,16 @@ from dataclasses import dataclass
 STATS_FORMAT_MAP: dict[str, str] = {
     "F": "spec_filename",
     "scq": "total_scq_size",
+    "astsize": "total_ast_tree_size",
+    "asmnum": "asm_num_instructions",
+    "asmbz": "asm_num_bz_instructions",
+    "asmtltemp": "asm_num_tl_temporal_instructions",
+    "asmtl": "asm_num_tl_instructions",
+    "asmcg": "asm_num_cg_instructions",
+    "asmscq": "asm_num_scq_instructions",
+    "asmaliases": "asm_num_aliases",
+    "asmsignals": "asm_num_signals",
+    "asmatomics": "asm_num_atomics",
     "satres": "smt_solver_result",
     "satenc": "smt_encoding_time",
     "sattime": "smt_solver_time",
@@ -32,6 +42,17 @@ class Stats:
     """
     spec_filename: str = ""
     total_scq_size: int = 0
+    total_ast_tree_size: int = 0
+
+    asm_num_instructions: int = 0
+    asm_num_bz_instructions: int = 0
+    asm_num_tl_instructions: int = 0
+    asm_num_tl_temporal_instructions: int = 0
+    asm_num_cg_instructions: int = 0
+    asm_num_scq_instructions: int = 0
+    asm_num_aliases: int = 0
+    asm_num_signals: int = 0
+    asm_num_atomics: int = 0
 
     smt_encoding_time: float = 0.0
     smt_solver_time: float = 0.0
@@ -95,6 +116,15 @@ class Stats:
         return Stats(
             spec_filename=self.spec_filename,
             total_scq_size=self.total_scq_size,
+            total_ast_tree_size=self.total_ast_tree_size,
+            asm_num_instructions=self.asm_num_instructions,
+            asm_num_bz_instructions=self.asm_num_bz_instructions,
+            asm_num_tl_instructions=self.asm_num_tl_instructions,
+            asm_num_cg_instructions=self.asm_num_cg_instructions,
+            asm_num_scq_instructions=self.asm_num_scq_instructions,
+            asm_num_aliases=self.asm_num_aliases,
+            asm_num_signals=self.asm_num_signals,
+            asm_num_atomics=self.asm_num_atomics,
             smt_encoding_time=self.smt_encoding_time,
             smt_solver_time=self.smt_solver_time,
             smt_solver_result=self.smt_solver_result,
@@ -104,4 +134,14 @@ class Stats:
             eqsat_equiv_result=self.eqsat_equiv_result,
             eqsat_equiv_encoding_time=self.eqsat_equiv_encoding_time,
             eqsat_equiv_solver_time=self.eqsat_equiv_solver_time,
+            eqsat_num_eclasses=self.eqsat_num_eclasses,
+            eqsat_num_enodes=self.eqsat_num_enodes,
+            eqsat_gurobi_encoding_time=self.eqsat_gurobi_encoding_time,
+            eqsat_gurobi_solver_time=self.eqsat_gurobi_solver_time,
+            eqsat_gurobi_solver_status=self.eqsat_gurobi_solver_status,
+            r2u2_median_runtime=self.r2u2_median_runtime,
+            r2u2_average_runtime=self.r2u2_average_runtime,
+            r2u2_min_runtime=self.r2u2_min_runtime,
+            r2u2_max_runtime=self.r2u2_max_runtime,
+            r2u2_status=self.r2u2_status,
         )

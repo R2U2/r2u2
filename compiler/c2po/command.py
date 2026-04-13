@@ -555,7 +555,7 @@ def set_mission_time(context: cpt.Context, options: dict[str, Any]) -> ReturnCod
     `options` is a dictionary containing the following key:
         - `mission-time`: The mission time
     """
-    context.set_mission_time(options["mission-time"])
+    context.set_mission_time(options["mission_time"])
     return ReturnCode.SUCCESS
 
 

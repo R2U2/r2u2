@@ -184,7 +184,10 @@ class FTOperator(Enum):
     XOR = 0b10001
 
     def is_temporal(self) -> bool:
-        return self is FTOperator.GLOBAL or self is FTOperator.UNTIL
+        return (
+            self is FTOperator.GLOBAL or self is FTOperator.UNTIL or
+            self is FTOperator.EVENTUALLY or self is FTOperator.RELEASE
+        )
 
     def is_load(self) -> bool:
         return self is FTOperator.LOAD
@@ -809,6 +812,15 @@ def gen_assembly(program: cpt.Program, context: cpt.Context) -> Optional[list[In
         else:
             idx += 1
 
+    context.stats.asm_num_instructions = len(bz_instructions) + len(ft_instructions) + len(pt_instructions) + len(cg_instructions_ordered)
+    context.stats.asm_num_bz_instructions = len(bz_instructions)
+    context.stats.asm_num_tl_instructions = len(ft_instructions) + len(pt_instructions)
+    context.stats.asm_num_tl_temporal_instructions = len([i for i in cg_instructions_ordered if isinstance(i, CGInstruction) and i.type == CGType.TEMP])
+    context.stats.asm_num_signals = len(context.signals)
+    context.stats.asm_num_atomics = len(context.atomic_id_map)
+    context.stats.asm_num_cg_instructions = len(cg_instructions_ordered)
+    context.stats.asm_num_scq_instructions = len([i for i in cg_instructions_ordered if isinstance(i, CGInstruction) and i.type == CGType.SCQ])
+
     return (
         list(bz_instructions.values())
         + list(ft_instructions.values())
@@ -1012,6 +1024,10 @@ def assemble(
     - `aux`: Whether to include aux data (e.g., contract status and specification naming)
     """
     check_sizes()
+
+    if not cpt.has_no_extended_operators(program, context):
+        log.warning("program contains extended operators (xor, ->, F, G, O, H), this may cause issues depending on the target R2U2 version. Try running remove_extended_operators to convert them to binary operators.", program.loc)
+
     assembly = gen_assembly(program, context)
 
     if not assembly:
@@ -1098,7 +1114,7 @@ unsafe_assemble_command = command.Command(
         command.VALID_SCQ_SIZES,
         command.COMPUTED_ATOMICS,
         command.ONLY_BINARY_OPERATORS,
-        command.NO_EXTENDED_OPERATORS,
+        # command.NO_EXTENDED_OPERATORS,
         command.ATOMIC_CONSISTENT_SIGNAL_MAPPING,
     ],
 )
@@ -1164,27 +1180,27 @@ def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tupl
             "c rust"
         ),
         "R2U2_MAX_SIGNALS": (
-            num_signals if context.enable_booleanizer else 0,
+            max(num_signals, 256),
             "Maximum number of input signals",
             "c rust"
         ),
         "R2U2_MAX_ATOMICS": (
-            num_atomics,
+            max(num_atomics, 256),
             "Maximum number of Booleans passed from the frontend (from the booleanizer or directly loaded atomics) to the temporal logic engine",
             "c rust"
         ),
         "R2U2_MAX_BZ_INSTRUCTIONS": (
-            num_bz,
+            max(num_bz, 256),
             "Maximum number of booleanizer instructions. Reserved for the booleanizer engine.",
             "c rust"
         ),
         "R2U2_MAX_TL_INSTRUCTIONS": (
-            num_tl,
+            max(num_tl, 256),
             "Maximum number of temporal logic instructions. Reserved for the temporal logic engine.",
             "c rust"
         ),
         "R2U2_MAX_TEMPORAL_OPERATORS": (
-            num_temporal_instructions,
+            max(num_temporal_instructions, 128),
             "Maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)",
             "c"
         ),

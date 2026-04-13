@@ -74,6 +74,8 @@ def run_r2u2(program: cpt.Program, context: cpt.Context, options: dict[str, Any]
         output = proc.stdout
         if proc.returncode != 0:
             log.error(f"R2U2 returned with code {proc.returncode}")
+            log.error(output.decode("utf-8").strip())
+            log.error(proc.stderr.decode("utf-8").strip())
             context.stats.r2u2_status = "error"
             return command.ReturnCode.ERROR
 
