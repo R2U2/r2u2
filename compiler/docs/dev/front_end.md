@@ -1,9 +1,23 @@
 # R2U2 Front End Selection
 
-R2U2 supports the general-purpose Booleanizer for reasoning about non-Boolean data.
+R2U2 execution is split across TL and Booleanizer (BZ) engines. C2PO controls this through context
+settings and expression typing.
 
-If your specification only has inputs of type `bool`, then the Booleanizer engine is not necessary.
+## Booleanizer Behavior
 
-## Booleanizer
+The Booleanizer is required for non-boolean computation in formulas, including:
 
-The Booleanizer is a general purpose engine that can perform arithmetic, bitwise operations, parameterized set aggregation (`foratleast`, etc.), and other such capabilities. 
+- arithmetic and bitwise expressions
+- relational operators over non-bool values
+- parameterized set aggregation (`foratleast`, `foratmost`, `forexactly`)
+- `prev(...)` over non-trivial expressions
+
+If the Booleanizer is disabled and non-boolean operations are present, type checking fails with an
+explicit error.
+
+## How It Is Enabled
+
+- CLI: `-bz` / `--booleanizer`
+- REPL/script: `enable_booleanizer` and `disable_booleanizer`
+
+Without the Booleanizer, purely boolean specifications can still compile and run through the TL path.

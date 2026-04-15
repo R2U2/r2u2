@@ -1,19 +1,25 @@
 # Output Formats
 
-C2PO supports a number of formats to output (write) a specification. By default, C2PO will output
-the R2U2-readable binary format, but can be configured to output other formats as well.
+C2PO can emit multiple output formats, but they are produced in two different ways:
 
-See the table below for each format and option to pass to output it. Note that R2U2 binary is output
-by default, so its option will **disable** it. All these options are compatible with one another, so
-passing all options will output all file formats given.
+- **CLI mode (`python3 c2po.py --spec ...`)**: writes the assembled R2U2 binary (`--output`), and
+  optionally bounds (`--write-bounds`).
+- **REPL/script mode (`--interactive` / `--script`)**: writes the other representations using REPL
+  commands such as `write_c2po`, `write_prefix`, `write_mltl`, and `write_pickle`.
 
-| Format                                                  | C2PO CLI Option                   | Reason to use |
-|---------------------------------------------------------|-----------------------------------|---------------|
-| R2U2 Binary                                             | (To disable) `--disable-assemble` | Run R2U2 over specification |
-| [C2PO](./language.md)                                   | `--write-c2po`                    | Validate the specification post-compilation or debugging
-| [Prefix Notation C2PO](./language.md)                   | `--write-prefix`                  | Validate the specification post-compilation or debugging. Some operators have multiple arities, so `(&& a b c)` is a conjunction applied to three arguments. In infix notation this is `a && b && c` which is more difficult to discern. This can have impacts on things like SCQ sizing. |
-| [MLTL-STD](./mltl_std.md)                               | `--write-mltl`                    | Convert C2PO files to MLTL-STD files. |
-| [Pickle](https://docs.python.org/3/library/pickle.html) | `--write-pickle`                  | Compare program properties like memory requirements across different C2PO calls. |
+| Format                                                  | How to Generate | Reason to use |
+|---------------------------------------------------------|-----------------|---------------|
+| R2U2 Binary                                             | CLI `--output` or REPL/script `assemble` | Run R2U2 over specification |
+| [C2PO](./language.md)                                   | REPL/script `write_c2po <filename>` | Validate the specification post-compilation or debugging |
+| [Prefix Notation C2PO](./language.md)                   | REPL/script `write_prefix <filename>` | Validate the specification post-compilation or debugging. Some operators have multiple arities, so `(&& a b c)` is a conjunction applied to three arguments. In infix notation this is `a && b && c`, which is more difficult to discern. This can affect SCQ sizing analysis. |
+| [MLTL-STD](./mltl_std.md)                               | REPL/script `write_mltl <filename>` | Convert C2PO files to MLTL-STD files |
+| [Pickle](https://docs.python.org/3/library/pickle.html) | REPL/script `write_pickle <filename>` | Compare program properties like memory requirements across different C2PO calls |
 
-Each option can be followed by a filename to write the output to, otherwise it writes it to the
-filename with the extension changed to match.
+Example script snippet:
+
+    parse_c2po spec.c2po
+    compile out/spec.bin
+    write_c2po out/spec.c2po
+    write_prefix out/spec.prefix
+    write_mltl out/spec.mltl
+    write_pickle out/spec.pickle

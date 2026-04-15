@@ -1,41 +1,53 @@
 # Internal Architecture
 
-C2PO has a fairly standard compiler architecture -- parses input into an abstract syntax tree we
-call the C2PO Parse Tree (CPT), type checks the CPT, performs various passes on the CPT
-(simplification, optimizations), then outputs an assembly program that represents the original
-input.
+C2PO is now organized around a command registry and shared compiler state, instead of a single
+hard-coded pass list.
 
-![](C2PO-System-Diagram.png)
+At runtime, `c2po/main.py` builds a `CommandConsole` with:
 
-## Passes
+- a `cpt.Program` (current specification graph)
+- a `cpt.Context` (symbol tables, mappings, stats, solver paths, assembly output, etc.)
+- all registered commands from `c2po/command.py` and module-level command registrations
 
-The pass pipeline is defined in `passes.py` in the variable `PASS_LIST`. We
-remove passes as necessary in the function `validate_input` in `main.py`.
+The same command system is used by:
 
-1. Expand out all definitions from the `DEFINE` block
-2. Change all valid "function calls" to struct instantiations
-3. Replace assume-guarantee contracts with a three formula encoding
-4. Expand out all enum member references to its referenced value
-5. Expand out all set aggregation operators
-6. Change each struct access to its referenced data
-7. Change each array index to its referenced data
-8. Change each struct access to its referenced data again (in the case that a struct is an element
-   of an array and an array is a member of a struct)
-9. Compute which nodes in the CPT are interfaces between the BZ/AT engines and the TL engine
-10. Perform single-pass of rewrite rules
-11. Perform equality saturation
-12. Rewrite to negative normal form
-13. Rewrite to Boolean normal form
-14. Rewrite extended operators
-15. Convert all multi-arity operators to binary (ex: `&&`)
-16. Perform common sub-expression elimination
-17. Check satisfiability of each specification
-18. Compute the sizes of each node's SCQ
+- interactive REPL mode (`--interactive`)
+- script mode (`--script`)
+- top-level CLI mode (`--spec ...`) via a generated temporary script
 
-## Serialization
+## Compilation Flow
 
-After any stage of the compilation (i.e., parsing, type checking, any pass), the current state of
-the CPT can be serialized into C2PO format, MLTL-STD, C2PO with prefix notation, or pickled. These
-formats can be produced with the functions `to_infix_str`, `to_prefix_str`, or `to_mltl_std` over
-any CPT node (defined in `cpt.py`). Any CPT node can be pickled using the
-`pickle.dump` function from the `pickle` module.
+In CLI mode (`c2po.main.cli`), behavior is assembled from command invocations based on flags.
+The typical flow is:
+
+1. Parse input (`parse_c2po` or `parse_mltl`)
+2. Optional trace/map parsing (`parse_trace`, `parse_map`)
+3. Type check (`type_check`)
+4. Desugar (`desugar`)
+5. Optional optimization stage (`optimize_eqsat` or `optimize_rewrites`)
+6. Optional transforms (`remove_extended_operators`, `optimize_cse`)
+7. Optional SMT checks (`check_sat`)
+8. Lowering for assembly (`multi_operators_to_binary`, `remove_extended_operators`)
+9. Assembly/output (`assemble`, optional bounds writers)
+
+Composite commands (for example `compile` and `assemble`) are defined in code and expand into
+ordered subcommands.
+
+## Guard Conditions
+
+Commands can declare guard preconditions (for example: `DESUGARED`, `COMPUTED_ATOMICS`,
+`ONLY_BINARY_OPERATORS`). Guard checks are centralized in `c2po/command.py`.
+
+If a guard fails in REPL/script mode, C2PO reports the missing condition and suggests commands
+that typically satisfy it.
+
+## Serialization and Output
+
+Serialization/output capabilities are commands, not a separate pipeline stage. Common ones:
+
+- `write_c2po`
+- `write_mltl`
+- `write_prefix`
+- `write_pickle`
+- `assemble` (binary + optional assembly text)
+- `write_bounds_c` / `write_bounds_rust`
