@@ -1151,7 +1151,7 @@ class EnumDefinition(Node):
         self.var_defs = var_defs
         self.members = {}
         for var_def in var_defs:
-                self.members[var_def.symbol] = var_def.expr
+            self.members[var_def.symbol] = var_def.expr
 
     def __str__(self) -> str:
         members_str_list = [str(s) + "," for s in self.var_defs]

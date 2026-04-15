@@ -89,7 +89,7 @@ def resolve_enum_references(program: cpt.Program, context: cpt.Context, options:
 
 resolve_enum_references_command = command.Command(
     name="resolve_enum_references",
-    description="Removes each contract from each specification in Program and adds the corresponding conditions to track.",
+    description="Resolves each enum member to its underlying value.",
     options=[],
     func=resolve_enum_references,
     guards=[command.WELL_TYPED],
