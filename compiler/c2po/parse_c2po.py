@@ -6,14 +6,14 @@ from c2po import types, cpt, log, command, util
 
 class C2POLexer(sly.Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
+    tokens = { KW_STRUCT, KW_ENUM, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST, KW_TIMESTAMP,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, PREV, #ARITH_PM,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, DDOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -56,13 +56,14 @@ class C2POLexer(sly.Lexer):
     # ARITH_PM    = r"\+/-|±"
 
     # Others
-    RATE = r'rate'
+    PREV = r'prev'
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
     # QUEST   = r"\?"
     SEMI    = r";"
     COLON   = r":"
+    DDOT     = r"\.\."
     DOT     = r"\."
     COMMA   = r","
     LBRACK  = r"\["
@@ -74,6 +75,7 @@ class C2POLexer(sly.Lexer):
 
     # Keywords
     SYMBOL["STRUCT"]     = KW_STRUCT
+    SYMBOL["ENUM"]       = KW_ENUM
     SYMBOL["INPUT"]      = KW_INPUT
     SYMBOL["DEFINE"]     = KW_DEFINE
     SYMBOL["FTSPEC"]     = KW_FTSPEC
@@ -132,7 +134,7 @@ class C2POParser(sly.Parser):
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
         ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB),
-        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
+        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, PREV, LBRACK)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -168,6 +170,10 @@ class C2POParser(sly.Parser):
         return p[0] + [p[1]]
 
     @_("section struct_section")
+    def section(self, p):
+        return p[0] + [p[1]]
+    
+    @_("section enum_section")
     def section(self, p):
         return p[0] + [p[1]]
 
@@ -207,6 +213,56 @@ class C2POParser(sly.Parser):
             #     members[v] = type
 
         return cpt.StructDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("KW_ENUM enum enum_list")
+    def enum_section(self, p):
+        return cpt.EnumSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
+
+    @_("enum_list enum")
+    def enum_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_list(self, p):
+        return []
+
+    @_("SYMBOL COLON LBRACE enum_declaration_list enum_declaration_last RBRACE SEMI")
+    def enum(self, p):
+        members = []
+        index = 0
+        for var in p[3]+[p[4]]:
+            (ln, variable, value) = var
+            if value is None:
+                value = cpt.Constant(log.FileLocation(self.filename, p.lineno), int(index))
+                index += 1
+            member_def = cpt.Definition(ln, variable, value)
+            members.append(member_def)
+
+        return cpt.EnumDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("enum_declaration_list enum_declaration")
+    def enum_declaration_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_declaration_list(self, p):
+        return []
+
+    @_("SYMBOL COLON expr COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COLON expr")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
+    
+    @_("SYMBOL")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
 
     @_("KW_INPUT variable_declaration variable_declaration_list")
     def input_section(self, p):
@@ -404,6 +460,11 @@ class C2POParser(sly.Parser):
     @_("expr LBRACK NUMERAL RBRACK")
     def expr(self, p):
         return cpt.ArrayIndex(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
+    
+    # Array slice access
+    @_("expr LBRACK NUMERAL DDOT NUMERAL RBRACK")
+    def expr(self, p):
+        return cpt.ArraySlice(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]), int(p[4]))
 
     # Unary expressions
     @_("LOG_NEG expr")
@@ -425,14 +486,10 @@ class C2POParser(sly.Parser):
     @_("ARITH_ABS LPAREN expr RPAREN")
     def expr(self, p):
         return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[2])
-    
-    @_("expr")
-    def rate(self, p):
-        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[0])
-
-    @_("RATE LPAREN rate RPAREN")
+        
+    @_("PREV LPAREN expr COMMA expr RPAREN")
     def expr(self, p):
-        return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
+        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[2], p[4])
 
     # Binary expressions
     @_("expr LOG_XOR expr")

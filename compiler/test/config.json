@@ -11,6 +11,10 @@
         {
             "script": "desugar/struct.cmd", 
             "output": "desugar/struct.expect"
+        },
+        {
+            "script": "desugar/enum.cmd", 
+            "output": "desugar/enum.expect"
         }
     ],
     "push-pop": [
@@ -33,6 +37,10 @@
         {
             "script": "set_agg/basic_arr.cmd", 
             "output": "set_agg/basic_arr.expect"
+        },
+        {
+            "script": "set_agg/basic_arr2.cmd", 
+            "output": "set_agg/basic_arr2.expect"
         },
         {
             "script": "set_agg/struct_arr.cmd", 
@@ -83,6 +91,10 @@
             "output": "type_check/bad_array.expect"
         },
         {
+            "script": "type_check/bad_array2.cmd", 
+            "output": "type_check/bad_array2.expect"
+        },
+        {
             "script": "type_check/bad_array_index.cmd", 
             "output": "type_check/bad_array_index.expect"
         },
@@ -97,6 +109,14 @@
         {
             "script": "type_check/bad_struct.cmd", 
             "output": "type_check/bad_struct.expect"
+        },
+                {
+            "script": "type_check/bad_enum.cmd", 
+            "output": "type_check/bad_enum.expect"
+        },
+        {
+            "script": "type_check/bad_prev.cmd", 
+            "output": "type_check/bad_prev.expect"
         }
     ],
     "serialize": [

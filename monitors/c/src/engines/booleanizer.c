@@ -324,10 +324,10 @@ r2u2_status_t r2u2_bz_update(r2u2_monitor_t* monitor)
                 (monitor->value_buffer)[instr->memory_reference].f, f1, instr->param1);
             break;
         case R2U2_BZ_OP_PREV:
-            (monitor->value_buffer)[instr->memory_reference] = (monitor->value_buffer)[instr->param1];
+            (monitor->value_buffer)[instr->memory_reference] = (monitor->value_buffer)[instr->param2];
 
             R2U2_DEBUG_PRINT("\tBZ PREV\n");
-            R2U2_DEBUG_PRINT("\tb%d = (s%d)\n", instr->memory_reference, instr->param1);
+            R2U2_DEBUG_PRINT("\tb%d = (b%d)\n", instr->memory_reference, instr->param2);
             break;
         case R2U2_BZ_TS:
             (monitor->value_buffer)[instr->memory_reference].i = (monitor->time_stamp > (INT32_MAX)) ? INT32_MAX : monitor->time_stamp;

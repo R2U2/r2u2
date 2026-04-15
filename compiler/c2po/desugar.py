@@ -71,6 +71,32 @@ convert_function_calls_to_structs_command = command.Command(
 )
 command.CommandRegistry.register(convert_function_calls_to_structs_command)
 
+def resolve_enum_references(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """Resolves enum references to the underlying member expression."""
+    log.debug(1, "Resolving enum references.")
+
+    for expr in program.postorder(context):
+        if not types.is_enum_type(expr.type):
+            continue
+
+        if  expr.symbol not in [name for enum in context.enums.values() for name in enum.keys()]:
+            continue
+
+        expr.replace(context.enums[expr.type.symbol][expr.symbol])
+
+    log.debug(1, f"Post enum member resolution:\n{repr(program)}")
+    return command.ReturnCode.SUCCESS
+
+resolve_enum_references_command = command.Command(
+    name="resolve_enum_references",
+    description="Resolves each enum member to its underlying value.",
+    options=[],
+    func=resolve_enum_references,
+    guards=[command.WELL_TYPED],
+)
+command.CommandRegistry.register(resolve_enum_references_command)
+
+
 def resolve_contracts(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """
     Removes each contract from each specification in Program and adds the corresponding conditions to track.
@@ -317,23 +343,44 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context, options: 
     Returns a ReturnCode.SUCCESS if successful, ReturnCode.ERROR otherwise.
     """
     for expr in program.postorder(context):
-        if not isinstance(expr, cpt.ArrayIndex):
-            continue
+        if isinstance(expr, cpt.ArrayIndex):
 
-        # Not all out-of-bounds errors are checked during type checking
-        # Ex: a struct has an array member type of uninterpreted size,
-        # must check this case here
-        if not isinstance(expr.get_array().type, types.ArrayType):
-            log.error(f"array access on a non-array expression, did you run type_check first? ({expr})", expr.loc)
-            return command.ReturnCode.ERROR
-            
-        array_type = cast(types.ArrayType, expr.get_array().type)
-        if expr.get_index() >= array_type.size:
-            log.error(f"out-of-bounds array index ({expr})", expr.loc)
-            return command.ReturnCode.ERROR
+            # Not all out-of-bounds errors are checked during type checking
+            # Ex: a struct has an array member type of uninterpreted size,
+            # must check this case here
+            if not isinstance(expr.get_array().type, types.ArrayType):
+                log.error(f"array access on a non-array expression, did you run type_check first? ({expr})", expr.loc)
+                return command.ReturnCode.ERROR
+                
+            array_type = cast(types.ArrayType, expr.get_array().type)
+            if expr.get_index() >= array_type.size:
+                log.error(f"out-of-bounds array index ({expr})", expr.loc)
+                return command.ReturnCode.ERROR
 
-        array = expr.get_array()
-        expr.replace(array.children[expr.get_index()])
+            array = expr.get_array()
+            expr.replace(array.children[expr.get_index()])
+        
+        elif isinstance(expr, cpt.ArraySlice):
+
+            # Not all out-of-bounds errors are checked during type checking
+            # Ex: a struct has an array member type of uninterpreted size,
+            # must check this case here
+            array_type = cast(types.ArrayType, expr.get_array().type)
+            if expr.get_indices()[0] >= array_type.size or expr.get_indices()[1] >= array_type.size:
+                log.error(f"Out-of-bounds array index ({expr})", expr.loc)
+                context.status = False
+                continue
+
+            array = expr.get_array()
+
+            new = cpt.ArrayExpression(
+                expr.loc,
+                [
+                    array.children[i]
+                    for i in range(expr.get_indices()[0], expr.get_indices()[1]+1)
+                ],
+            )
+            expr.replace(new)
 
     log.debug(1, f"post array access resolution:\n{repr(program)}")
     return command.ReturnCode.SUCCESS
@@ -347,6 +394,38 @@ resolve_array_accesses_command = command.Command(
 )
 command.CommandRegistry.register(resolve_array_accesses_command)
 
+def unroll_array_accesses(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """Unrolls array operators into equivalent engine-supported operations e.g., array1 == array2 is rewritten into a conjunction."""
+    log.debug(1, "Unrolling array expressions.")
+
+    for expr in program.preorder(context):
+        if (expr.engine != types.R2U2Engine.BOOLEANIZER) or (len(expr.children) != 2):
+            continue
+
+        if isinstance(expr.children[0], cpt.ArrayExpression) and isinstance(expr.children[1], cpt.ArrayExpression):
+            if cpt.is_relational_operator(expr) and isinstance(expr, cpt.Operator): # Only relational operators supported for now
+                new = cpt.Operator.LogicalAnd(
+                    expr.loc,
+                    [
+                        cpt.Operator(expr.loc, expr.operator, [expr.children[0].children[x],expr.children[1].children[x]])
+                        for x in range(len(expr.children[0].children))
+                    ],
+                )
+
+                expr.replace(new)
+
+    log.debug(1, f"Post array unrolling:\n{repr(program)}")
+    return command.ReturnCode.SUCCESS
+
+unroll_array_accesses_command = command.Command(
+    name="unroll_array_accesses",
+    description="Unrolls array operators into equivalent engine-supported operations e.g., array1 == array2 is rewritten into a conjunction.",
+    options=[],
+    func=unroll_array_accesses,
+    guards=[command.WELL_TYPED],
+)
+command.CommandRegistry.register(unroll_array_accesses_command)
+
 desugar_command = command.CompositeCommand(
     name="desugar",
     description="A list of commands to desugar a program. Only C2PO programs need to be desugared.",
@@ -354,10 +433,12 @@ desugar_command = command.CompositeCommand(
         expand_definitions_command,
         convert_function_calls_to_structs_command,
         resolve_contracts_command,
+        resolve_enum_references_command,
         resolve_struct_accesses_command,
+        resolve_array_accesses_command,
         unroll_set_aggregation_command,
         resolve_struct_accesses_command,
-        resolve_array_accesses_command, 
+        unroll_array_accesses_command, 
         resolve_struct_accesses_command,
     ],
     guards=[command.WELL_TYPED],

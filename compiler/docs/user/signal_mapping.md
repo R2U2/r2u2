@@ -32,11 +32,15 @@ type of the value in the signals vector should match the type defined in the C2P
 and `k` are `int`s, then their values in the signal vector must also be of `int` type.
 
 Remember that C2PO also supports input arrays, including things like `Array: int[3];`. To map these
-inputs, we provide a mapping for each index in the array:
+inputs, we can provide a mapping for each index in the array:
 
     Array[0]:0
     Array[1]:1
     Array[2]:2
+
+or define a contiguous mapping utilizing array slice mapping (i.e., the following is equivalent to above):
+
+    Array[0..2]:0
 
 ## Trace File
 
