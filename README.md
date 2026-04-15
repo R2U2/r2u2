@@ -19,7 +19,7 @@ The following dependencies are required to run C2PO:
 - (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3) or any other SMTLIB2-compatible solver.
 - (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
 
-The following dependencies are required to run R2U2 C version:
+The following dependencies are required to run R2U2 C version (Posix Only):
 - Make 
 - C99 compiler 
 
@@ -28,7 +28,7 @@ The following dependencies are required to run R2U2 Rust version:
 
 # Building
 
-## R2U2 C Version
+## R2U2 C Version (Posix Only)
 
 To build R2U2, run `make` from `monitors/c/`:
 ```bash

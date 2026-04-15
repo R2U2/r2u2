@@ -61,7 +61,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
         elif isinstance(expr, cpt.Signal):
             if (
                 not context.enable_booleanizer
-                and context.signals[expr.symbol] in {types.IntType(), types.FloatType()}
+                and (types.is_enum_type(context.signals[expr.symbol]) 
+                    or context.signals[expr.symbol] in {types.IntType(), types.FloatType()})
             ):
                 log.error(
                     f"non-bool type found '{expr.symbol}' ({context.signals[expr.symbol]})\n"
@@ -72,6 +73,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if context.enable_booleanizer:
                 expr.engine = types.R2U2Engine.BOOLEANIZER
+
+            if expr.signal_id == -1 and expr.symbol in context.signal_mapping:
+                expr.signal_id = context.signal_mapping[expr.symbol]
 
             expr.type = context.signals[expr.symbol]
         elif isinstance(expr, cpt.Variable):
@@ -98,6 +102,12 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
+            elif symbol in context.enums:
+                log.error(
+                    "Defined enums may not be used as variables, try utilizing the members of the enum",
+                    expr.loc,
+                )
+                return False
             elif symbol in context.specifications:
                 expr.type = types.BoolType()
             elif symbol in context.contracts:
@@ -106,6 +116,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
+            elif symbol in [name for enum in context.enums.values() for name in enum.keys()]:
+                expr.type = types.EnumType(symbol)
             else:
                 log.error(f"symbol '{symbol}' not recognized", expr.loc)
                 return False
@@ -133,6 +145,30 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             expr.type = types.ArrayType(
                 new_type, is_const=is_const, size=len(expr.children)
+            )
+        elif isinstance(expr, cpt.ArraySlice):
+            array_type = expr.get_array().type
+            if not isinstance(array_type, types.ArrayType):
+                log.error(
+                    f"Array access on a non-array expression ({expr})",
+                    expr.loc,
+                )
+                return False
+
+            if (abs(expr.start) > array_type.size or abs(expr.stop) > array_type.size) and array_type.size > -1:
+                log.error(f"Out-of-bounds array index ({expr})", expr.loc)
+                return False
+
+            if expr.start < 0:
+                expr.start = -expr.start
+            if expr.stop < 0:
+                expr.stop = -expr.stop
+            if expr.start > expr.stop:
+                log.error(f"Invalid array index ({expr}), {expr.start} is greater than {expr.stop}", expr.loc)
+                return False
+
+            expr.type = types.ArrayType(
+                array_type.member_type, is_const=expr.get_array().type.is_const, size=expr.stop - expr.start + 1
             )
         elif isinstance(expr, cpt.ArrayIndex):
             array_type = expr.get_array().type
@@ -263,7 +299,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -306,7 +342,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -320,7 +356,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.IntType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -343,9 +379,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 new_type.is_const = True
 
             for child in expr.children:
-                if child.type != new_type or not types.is_integer_type(child.type):
+                if isinstance(child, cpt.ArrayExpression) or isinstance(child, cpt.ArraySlice):
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
+                        f"Bitwise operators not supported on arrays \n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                elif child.type != new_type or not types.is_integer_type(child.type):
+                    log.error(
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
                         expr.loc,
                     )
                     return False
@@ -397,7 +439,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                                 expr.loc,
                             )
                             return False
-                    elif types.IntType.is_signed:
+                    elif types.IntType.is_signed and not isinstance(rhs, cpt.CurrentTimestamp):
                         log.error(
                             f"power function invalid for integer expressions with possible negative integer exponents ({rhs}).\n    {expr}",
                             expr.loc,
@@ -405,7 +447,13 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                         return False
 
             for child in expr.children:
-                if child.type != new_type:
+                if isinstance(child, cpt.ArrayExpression) or isinstance(child, cpt.ArraySlice):
+                    log.error(
+                        f"Arithmetic operators not supported on arrays \n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                elif child.type != new_type:
                     log.error(
                         f"operand of '{expr}' must be of homogeneous type\n    "
                         f"Found {child.type} and {new_type}",
@@ -428,10 +476,34 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
+            
+            if types.is_enum_type(lhs.type) and lhs.type.symbol not in context.enums and rhs.type.symbol in context.enums:
+                if lhs.type.symbol not in context.enums[rhs.type.symbol]:
+                    log.error(
+                    f"Invalid operands for '{expr.symbol}', {lhs.type.symbol} is not a member of {rhs.type.symbol}\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                lhs.type = rhs.type
+            elif types.is_enum_type(rhs.type) and rhs.type.symbol not in context.enums and lhs.type.symbol in context.enums:
+                if rhs.type.symbol not in context.enums[lhs.type.symbol]:
+                    log.error(
+                    f"Invalid operands for '{expr.symbol}', {rhs.type.symbol} is not a member of {lhs.type.symbol}\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+                rhs.type = lhs.type
+            elif types.is_enum_type(lhs.type) and lhs.type.symbol not in context.enums and \
+                types.is_enum_type(rhs.type) and rhs.type.symbol not in context.enums:
+                    log.error(
+                        f"Invalid operands for '{expr.symbol}', cannot both be enum members\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
 
             if lhs.type != rhs.type:
                 log.error(
-                    f"invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n    {expr}",
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{lhs.type}' and '{rhs.type}')\n    {expr}",
                     expr.loc,
                 )
                 return False
@@ -445,21 +517,64 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 is_const = is_const and child.type.is_const
                 if child.type != types.BoolType():
                     log.error(
-                        f"invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'bool'\n    {expr}",
                         expr.loc,
                     )
                     return False
 
             expr.type = types.BoolType(is_const)
         elif cpt.is_prev_operator(expr):
+            expr = cast(cpt.Operator, expr)
+            
+            initial_expr = expr.children[0]
+            prev_expr = expr.children[1]
+            if types.is_enum_type(initial_expr.type) and initial_expr.type.symbol not in context.enums \
+                and prev_expr.type.symbol in context.enums:
+                    if initial_expr.type.symbol not in context.enums[prev_expr.type.symbol]:
+                        log.error(
+                        f"Invalid operands for '{expr.symbol}', {initial_expr.type.symbol} is not a member of {prev_expr.type.symbol}\n\t{expr}",
+                            expr.loc,
+                        )
+                        return False
+                    initial_expr.type = prev_expr.type
+            elif initial_expr.type.symbol in context.enums:
+                log.error(
+                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{initial_expr}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            elif types.is_enum_type(initial_expr.type) and initial_expr.type.symbol not in context.enums \
+                and types.is_enum_type(prev_expr.type) and prev_expr.type.symbol not in context.enums:
+                    log.error(
+                        f"Invalid operands for '{expr.symbol}', cannot both be enum members\n\t{expr}",
+                        expr.loc,
+                    )
+                    return False
+            elif initial_expr.type != prev_expr.type:
+                log.error(
+                    f"Invalid operands for '{expr.symbol}', must be of same type (found '{initial_expr.type}' and '{prev_expr.type}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
+            
+            if initial_expr.symbol in context.definitions: # Check if definition is constant
+                initial_expr = context.definitions[initial_expr.symbol]
+            
+            if not isinstance(initial_expr, cpt.Constant) and not types.is_enum_type(initial_expr.type):
+                log.error(
+                    f"Invalid initial value for '{expr.symbol}', must be of constant type (found '{initial_expr}')\n\t{expr}",
+                    expr.loc,
+                )
+                return False
             for child in expr.get_descendants():
                 if cpt.is_prev_operator(child):
                     log.error(
-                        f"nested previous statements not allowed ({child}).\n    {expr}",
-                        location=expr.loc,
+                        f"Invalid nested previous statements, ({child}).\n\t{expr}",
+                        expr.loc,
                     )
                     return False
-            expr.type = expr.children[0].type
+            expr.type = initial_expr.type
+
         else:
             log.error(
                 f"invalid expression of type '{type(expr)}'\n    {expr}",
@@ -482,6 +597,9 @@ def type_check_section(section: cpt.ProgramSection, symbols: set[str], context: 
                         f"symbol '{signal}' already in use",
                         declaration.loc,
                     )
+
+                if declaration.type.symbol in context.enums:
+                    declaration.type = types.EnumType(declaration.type.symbol)
 
                 symbols.add(signal)
                 context.add_signal(signal, declaration.type)
@@ -530,6 +648,28 @@ def type_check_section(section: cpt.ProgramSection, symbols: set[str], context: 
 
             symbols.add(struct.symbol)
             context.add_struct(struct.symbol, struct.members)
+    elif isinstance(section, cpt.EnumSection):
+        for enum in section.enum_defs:
+            if enum.symbol in context.get_symbols():
+                status = False
+                log.error(
+                    f"Symbol '{enum.symbol}' already in use",
+                    enum.loc,
+                )
+            for member_name, member_expr in enum.members.items():
+                if (not isinstance(member_expr, cpt.Constant)) or (not types.is_integer_type(member_expr.type)):
+                    status = False
+                    log.error(
+                        f"Enum member {member_name} must be a constant integer, found {member_expr.type}",
+                        enum.loc,
+                    )
+                if member_name in context.get_symbols() or member_name == enum.symbol:
+                    status = False
+                    log.error(
+                        f"Symbol '{member_name}' already in use",
+                        enum.loc,
+                    )
+            context.add_enum(enum.symbol, enum.members)
     elif isinstance(section, cpt.SpecSection):
         if isinstance(section, cpt.FutureTimeSpecSection):
             context.set_future_time()

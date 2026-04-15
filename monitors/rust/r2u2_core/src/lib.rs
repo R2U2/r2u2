@@ -119,6 +119,30 @@ pub fn load_bool_signal(monitor: &mut Monitor, index: usize, value: r2u2_bool){
     }
 }
 
+/// Load boolean signal array
+/// 
+/// # Arguments
+/// 
+/// * `monitor` - A reference to a monitor
+/// * `index` - Starting signal index\mapping as specified when compiled with C2PO
+/// * `array` - The boolean array to load
+/// 
+pub fn load_bool_array(monitor: &mut Monitor, index: usize, array: &[r2u2_bool]){
+    if monitor.bz_program_count.max_program_count == 0 {
+        for n in 0..array.len(){
+            monitor.atomic_buffer[index+n] = array[n];
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index+n, monitor.atomic_buffer[index+n]);
+        }
+    } else{
+        for n in 0..array.len(){
+            monitor.signal_buffer[index+n].i = array[n] as r2u2_int;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loading in signal {}: {}", index+n, monitor.signal_buffer[index+n].i != 0);
+        }
+    }
+}
+
 /// Load integer signal
 /// 
 /// # Arguments
@@ -139,7 +163,31 @@ pub fn load_int_signal(monitor: &mut Monitor, index: usize, value: r2u2_int){
     }
 }
 
-/// Load float signals
+/// Load integer signal array
+/// 
+/// # Arguments
+/// 
+/// * `monitor` - A reference to a monitor
+/// * `index` - Starting signal index\mapping as specified when compiled with C2PO
+/// * `array` - The integer array to load
+/// 
+pub fn load_int_array(monitor: &mut Monitor, index: usize, array: &[r2u2_int]){
+    if monitor.bz_program_count.max_program_count == 0 {
+        for n in 0..array.len(){
+            monitor.atomic_buffer[index+n] = array[n] != 0;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index+n, monitor.atomic_buffer[index+n]);
+        }
+    } else{
+        for n in 0..array.len(){
+            monitor.signal_buffer[index+n].i = array[n];
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loading in signal {}: {}", index+n, monitor.signal_buffer[index+n].i);
+        }
+    }
+}
+
+/// Load float signal
 /// 
 /// # Arguments
 /// 
@@ -157,6 +205,30 @@ pub fn load_float_signal(monitor: &mut Monitor, index: usize, value: r2u2_float)
         #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
         internals::debug::debug_print!("Loading in signal {}: {}", index, monitor.signal_buffer[index].f);
 
+    }
+}
+
+/// Load float signal array
+/// 
+/// # Arguments
+/// 
+/// * `monitor` - A reference to a monitor
+/// * `index` - Starting signal index\mapping as specified when compiled with C2PO
+/// * `array` - The float array to load
+/// 
+pub fn load_float_array(monitor: &mut Monitor, index: usize, array: &[r2u2_float]){
+    if monitor.bz_program_count.max_program_count == 0 {
+        for n in 0..array.len(){
+            monitor.atomic_buffer[index+n] = array[n] >= R2U2_FLOAT_EPSILON || array[n] <= -R2U2_FLOAT_EPSILON;
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loaded atomic in directly at {}: {}", index+n, monitor.atomic_buffer[index+n]);
+        }
+    } else{
+        for n in 0..array.len(){
+            monitor.signal_buffer[index+n].f = array[n];
+            #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+            internals::debug::debug_print!("Loading in signal {}: {}", index+n, monitor.signal_buffer[index+n].f);
+        }
     }
 }
 

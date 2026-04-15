@@ -32,6 +32,8 @@ def run_diff(
     expected_output: "list[str]", test_output: "list[str]", fromfile: str, tofile: str
 ) -> "tuple[bool, str]":
     """Returns a pair whose first element is True if the `expected_output` and `test_output` are the same and False otherwise, and whose second element is the diff between `expected_output` and `test_output`."""
+    test_output = [s.replace('\t', '    ') for s in test_output]
+    expected_output = [s.replace('\t', '    ') for s in expected_output]
     result = difflib.unified_diff(
         expected_output,
         test_output,

@@ -1,0 +1,19 @@
+ENUM 
+    RequestState: {Waiting, Granted, Rejected};
+    RequestState: {Waiting: 0, Granted: 1, Rejected: 2.0};
+    RequestState2: {Wait: 1, Grant: 2, Reject: 3, RequestState2: 4};
+
+INPUT
+    i0: RequestState;
+    i1: RequestState2;
+
+FTSPEC
+    (RequestState == i0) U[0,5] (i0 == Granted || i0 == Rejected);
+    Grant == i0;
+    i0 == Grant;
+    Rejected == Rejected;
+    prev(Reject, i1) == Waiting;
+    prev(Rejected, i1) == Wait;
+    prev(Rejected, Rejected) == Waiting;
+    prev(i1, i0) == Wait;
+    i0 == i1;
