@@ -524,13 +524,13 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
 
             root_eclass = egraph.EClassID(json_output["root_eclasses"][0])
 
-            try:
+            try: 
                 egraph_instance = egraph.EGraph.from_json(
                     json_output["nodes"],
                     root_eclass,
                     old,
                     context,
-                    options["gurobi_max_time"],
+                    int(options["gurobi_max_time"]),
                 )
                 if egraph_instance is None:
                     log.error(
@@ -543,24 +543,23 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                     options["gurobi_max_memory"],
                     options["extended"],
                 )
-
-                if egraph_instance.gurobi_status == "timeout":
-                    return command.ReturnCode.SUCCESS
-                elif egraph_instance.gurobi_status == "memout":
-                    return command.ReturnCode.SUCCESS
-                elif egraph_instance.gurobi_status != "ok":
-                    return command.ReturnCode.ERROR
-            except TimeoutError: # This catches the encoding timeout
-                log.warning(f"gurobi encoding timed out after {options['gurobi_max_time']} seconds")
-                context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
-                context.stats.eqsat_gurobi_encoding_time = -1.0
+            except TimeoutError:
                 return command.ReturnCode.SUCCESS
+
+            if egraph_instance.gurobi_status == "timeout":
+                return command.ReturnCode.SUCCESS
+            elif egraph_instance.gurobi_status == "encoding_timeout":
+                return command.ReturnCode.SUCCESS
+            elif egraph_instance.gurobi_status == "memout":
+                return command.ReturnCode.SUCCESS
+            elif egraph_instance.gurobi_status != "ok":
+                return command.ReturnCode.ERROR
         else:
             new = parse_egglog_output.parse(str(egglog_output), context, options)
 
         log.debug(2, f"eqsat result: {repr(new)}")
         if new is None:
-            log.error(f"failed to extract equivalent expression for {formula.symbol}", formula.loc)
+            log.error(f"failed to extract expression for {formula.symbol}", formula.loc)
             return command.ReturnCode.ERROR
 
         # If equivalence checking is disabled, we can just replace the old expression with the new one

@@ -628,13 +628,16 @@ print_program_prefix_command = Command(
 CommandRegistry.register(print_program_prefix_command)
 
 
-def print_stats(context: cpt.Context, options: dict[str, Any]) -> ReturnCode:
+def print_stats(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> ReturnCode:
     """Command to print the statistics. Does not print a newline at the end.
+    Also computes the DAG size and number of temporal operators in the program.
 
     `context` is the context object.
     `options` is a dictionary containing the following key:
         - `format`: The format string to use for the statistics
     """
+    context.stats.total_dag_size = program.get_dag_size(context)
+    context.stats.num_temporal_operators = program.get_num_temporal_operators(context)
     print(context.stats.format(options["format"]), end="")
     return ReturnCode.SUCCESS
 
@@ -652,7 +655,7 @@ print_stats_command = Command(
             "choices": None,
         },
     ],
-    func=lambda program, context, options: print_stats(context, options),
+    func=print_stats,
     guards=[],
 )
 CommandRegistry.register(print_stats_command)

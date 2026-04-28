@@ -499,6 +499,11 @@ def gen_ft_instruction(
     ftid = len(instructions)
 
     if isinstance(expr, cpt.Formula):
+        # Special case: if formula is a constant, report error
+        if isinstance(expr.get_expr(), cpt.Constant):
+            log.error(f"found constant formula '{expr}', this is not supported")
+            return None
+
         operand1_type, operand1_value = (
             TLOperandType.SUBFORMULA,
             instructions[expr.get_expr()].id,
@@ -1020,11 +1025,17 @@ def assemble(
     - `assembly-filename`: The filename to write the assembly to
     - `print`: Whether to print the assembly to the console
     - `aux`: Whether to include aux data (e.g., contract status and specification naming)
+    - `quiet`: Whether to suppress output and warnings
     """
-    check_sizes()
+    if not options["quiet"]:
+        check_sizes()
 
-    if not cpt.has_no_extended_operators(program, context):
-        log.warning("program contains extended operators (xor, ->, F, G, O, H), this may cause issues depending on the target R2U2 version. Try running remove_extended_operators to convert them to binary operators.", program.loc)
+    if not cpt.has_no_extended_operators(program, context) and not options["quiet"]:
+        log.warning(
+            "program contains extended operators (xor, ->, F, G, O, H), this may cause issues depending on the target R2U2 version."
+            "Try running remove_extended_operators to convert them to binary operators.", 
+            program.loc,
+        )
 
     assembly = gen_assembly(program, context)
 
@@ -1102,6 +1113,14 @@ unsafe_assemble_command = command.Command(
             "default": True,
             "choices": None,
         },
+        {
+            "name": "quiet",
+            "description": "Suppress output and warnings",
+            "required": False,
+            "type": bool,
+            "default": False,
+            "choices": None,
+        }
     ],
     func=assemble,
     guards=[

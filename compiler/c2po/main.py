@@ -29,6 +29,7 @@ from c2po import (
     r2u2, # noqa: F401
     trace, # noqa: F401
     map, # noqa: F401
+    sabre, # noqa: F401
 )
 
 # Try and import readline for better REPL experience

@@ -3,7 +3,8 @@ from dataclasses import dataclass
 STATS_FORMAT_MAP: dict[str, str] = {
     "F": "spec_filename",
     "scq": "total_scq_size",
-    "astsize": "total_ast_tree_size",
+    "dagsize": "total_dag_size",
+    "numtlo": "num_temporal_operators",
     "asmnum": "asm_num_instructions",
     "asmbz": "asm_num_bz_instructions",
     "asmtltemp": "asm_num_tl_temporal_instructions",
@@ -33,6 +34,7 @@ STATS_FORMAT_MAP: dict[str, str] = {
     "r2u2min": "r2u2_min_runtime",
     "r2u2max": "r2u2_max_runtime",
     "r2u2status": "r2u2_status",
+    "sabrebytes": "sabre_total_bytes",
 }
 
 @dataclass
@@ -42,7 +44,8 @@ class Stats:
     """
     spec_filename: str = ""
     total_scq_size: int = 0
-    total_ast_tree_size: int = 0
+    total_dag_size: int = 0
+    num_temporal_operators: int = 0
 
     asm_num_instructions: int = 0
     asm_num_bz_instructions: int = 0
@@ -80,6 +83,8 @@ class Stats:
     r2u2_max_runtime: float = 0.0
     r2u2_status: str = "ok"
 
+    sabre_total_bytes: int = 0
+
     def set_spec_filename(self, filename: str) -> None:
         """Sets the specification filename of the statistics."""
         self.spec_filename = filename
@@ -92,8 +97,7 @@ class Stats:
         self.smt_num_calls = 0
 
     def format(self, format_str: str) -> str:
-        """Formats the statistics according to the format string.
-        """
+        """Formats the statistics according to the format string."""
         for key, value in STATS_FORMAT_MAP.items():
             format_str = format_str.replace(f"%{key}", str(getattr(self, value)))
         format_str = format_str.replace("\\n", "\n")
@@ -116,7 +120,8 @@ class Stats:
         return Stats(
             spec_filename=self.spec_filename,
             total_scq_size=self.total_scq_size,
-            total_ast_tree_size=self.total_ast_tree_size,
+            total_dag_size=self.total_dag_size,
+            num_temporal_operators=self.num_temporal_operators,
             asm_num_instructions=self.asm_num_instructions,
             asm_num_bz_instructions=self.asm_num_bz_instructions,
             asm_num_tl_instructions=self.asm_num_tl_instructions,

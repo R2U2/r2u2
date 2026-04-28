@@ -1343,6 +1343,22 @@ class Program(Node):
         program.is_dummy = True
         return program
 
+    def get_num_signals(self, context: Context) -> int:
+        """Returns the number of signals in the program."""
+        nsigs = 0
+        for expr in self.postorder(context):
+            if isinstance(expr, Signal):
+                nsigs += 1
+        return nsigs
+
+    def get_dag_size(self, context: Context) -> int:
+        """Returns the DAG size of the program."""
+        return len(set(id(expr) for expr in self.postorder(context)))
+
+    def get_num_temporal_operators(self, context: Context) -> int:
+        """Returns the number of temporal operators in the program."""
+        return len([expr for expr in self.postorder(context) if isinstance(expr, TemporalOperator)])
+
     def replace_spec(self, spec: Specification, new: list[Specification]) -> None:
         """Replaces `spec` with `new` in this `Program`, if `spec` is present. Raises `KeyError` if `spec` is not present."""
         try:
@@ -1360,6 +1376,7 @@ class Program(Node):
         return max([spec.get_expr().wpd for spec in self.get_specs() if isinstance(spec, Formula)])
 
     def get_spec(self, symbol: str) -> Specification | None:
+        """Returns the specification with the given symbol, if it exists. Returns None otherwise."""
         for spec in self.ft_spec_set.get_specs():
             if spec.symbol == symbol:
                 return spec
@@ -2024,7 +2041,7 @@ def to_infix_str(start: Expression) -> str:
                 stack.append((0, expr.children[0]))
             elif seen == 1:
                 if is_prev_operator(expr):
-                    s += f","
+                    s += ","
                 else:
                     s += f" {expr.symbol} "
                 stack.append((seen + 1, expr))

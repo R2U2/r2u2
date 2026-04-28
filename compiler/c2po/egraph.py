@@ -462,12 +462,10 @@ class EGraph:
         for eclass_id in [
             c for c in self.eclasses if self.gurobi_eclass_vars_[c].X == 1
         ]:
-            enode = next(
-                enode
-                for enode in self.eclasses[eclass_id]
-                if self.gurobi_enode_vars_[enode].X == 1
-            )
-            repr_map[eclass_id] = enode
+            for enode in self.eclasses[eclass_id]:
+                if self.gurobi_enode_vars_[enode].X == 1:
+                    repr_map[eclass_id] = enode
+                    break
 
         log.debug(3, "repr_map:")
         log.debug(3, pprint.pformat(repr_map))
@@ -488,11 +486,14 @@ class EGraph:
                 if not enode.string:
                     raise ValueError("No string for Var")
 
-                expr = next(
-                    e
-                    for e, i in self.context.atomic_id_map.items()
-                    if i == int(enode.string.replace('"', "")[1:])
-                )
+                expr = None
+                for e, i in self.context.atomic_id_map.items():
+                    if i == int(enode.string.replace('"', "")[1:]):
+                        expr = e
+                        break
+
+                if expr is None:
+                    raise ValueError(f"No expression found for atomic {enode.string}")
 
                 # Clear the parents since we are building a new expression.
                 # If we keep the old parents, the new expression will have the old expression's
@@ -579,9 +580,11 @@ class EGraph:
                 if "Unable to open Gurobi license file" in str(e):
                     log.warning("gurobi failed to open license file")
                     self.context.stats.eqsat_gurobi_solver_status = "bad_license"
+                    self.gurobi_status = "bad_license"
                     return None
                 log.internal(f"gurobi failed to start: {e}")
                 self.context.stats.eqsat_gurobi_solver_status = "start_failure"
+                self.gurobi_status = "failure"
                 return None
 
             try:
@@ -591,18 +594,28 @@ class EGraph:
                 if "Out of memory" in str(e):
                     log.warning(f"gurobi ran out of memory after {max_memory} MB")
                     self.context.stats.eqsat_gurobi_solver_status = "encoding_memout"
+                    self.gurobi_status = "memout"
                     return None
                 log.warning(f"gurobi model building failed: {e}")
                 self.context.stats.eqsat_gurobi_solver_status = "encoding_failure"
+                self.gurobi_status = "failure"
+                return None
+            except TimeoutError:
+                signal.alarm(0) # Disable the timeout handler
+                log.warning(f"gurobi encoding timed out after {max_time} seconds")
+                self.context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                self.gurobi_status = "timeout"
                 return None
             except Exception as e:
                 signal.alarm(0) # Disable the timeout handler
                 if "Out of memory" in str(e):
                     log.warning(f"gurobi ran out of memory after {max_memory} MB")
                     self.context.stats.eqsat_gurobi_solver_status = "encoding_memout"
+                    self.gurobi_status = "memout"
                     return None
                 log.warning(str(e))
                 self.context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                self.gurobi_status = "timeout"
                 return None
 
             # This is where encoding is complete. We disable the alarm to avoid the timeout
@@ -616,9 +629,11 @@ class EGraph:
                 if "Model too large for size-limited license" in str(e):
                     log.error("gurobi model too large for size-limited license; see https://gurobi.com/unrestricted for more information")
                     self.context.stats.eqsat_gurobi_solver_status = "bad_license"
+                    self.gurobi_status = "bad_license"
                     return None
                 log.internal(f"gurobi optimization failed: {e}")
                 self.context.stats.eqsat_gurobi_solver_status = "failure"
+                self.gurobi_status = "failure"
                 return None
 
             self.context.stats.eqsat_gurobi_solver_time = model.getAttr("Runtime")

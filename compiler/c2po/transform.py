@@ -518,3 +518,38 @@ sort_operands_by_pd_command = command.Command(
 )
 command.CommandRegistry.register(sort_operands_by_pd_command)
 
+def remove_release_operators(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Removes release operators (R) from the program.
+    Returns a ReturnCode.SUCCESS if successful, ReturnCode.ERROR otherwise.
+    """
+    for expr in program.postorder(context):
+        if not cpt.is_operator(expr, cpt.OperatorKind.RELEASE):
+            continue
+
+        expr = cast(cpt.TemporalOperator, expr)
+
+        expr.replace(
+            cpt.Operator.LogicalNegate(
+                expr.loc,
+                cpt.TemporalOperator.Until(
+                    expr.loc,
+                    expr.interval.lb,
+                    expr.interval.ub,
+                    cpt.Operator.LogicalNegate(expr.loc, expr.children[0]),
+                    cpt.Operator.LogicalNegate(expr.loc, expr.children[1])
+                )
+            )
+        )
+        
+    log.debug(1, f"post release operator removal:\n{repr(program)}")
+    return command.ReturnCode.SUCCESS
+
+remove_release_operators_command = command.Command(
+    name="remove_release_operators",
+    description="Remove release operators (R) from the program",
+    options=[],
+    func=remove_release_operators,
+    guards=[command.WELL_TYPED],
+)
+command.CommandRegistry.register(remove_release_operators_command)
