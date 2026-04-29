@@ -393,7 +393,15 @@ write_eqsat_encoding_command = command.Command(
         },
         {
             "name": "const-folding",
-            "description": "Whether to enable const folding rewrites",
+            "description": "Whether to enable const folding",
+            "required": False,
+            "type": bool,
+            "default": True,
+            "choices": None,
+        },
+        {
+            "name": "extended",
+            "description": "Whether to enable extended operator rewrites",
             "required": False,
             "type": bool,
             "default": True,
@@ -401,12 +409,12 @@ write_eqsat_encoding_command = command.Command(
         },
         {
             "name": "temporal",
-            "description": "Whether to enable temporal and logical rewrites",
+            "description": "Whether to enable temporal rewrites",
             "required": False,
             "type": bool,
             "default": True,
             "choices": None,
-        }
+        },
     ],
     func=write_eqsat_encoding,
     guards=[command.COMPUTED_ATOMICS],
