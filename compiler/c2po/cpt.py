@@ -2332,3 +2332,17 @@ def has_computed_atomics(program: Program, context: Context) -> bool:
             )
         )
     )
+
+
+def is_pure_mltl(program: Program, context: Context) -> bool:
+    """Returns True if the program is pure MLTL. This means that the program contains only signals, logical operators and temporal operators."""
+    return all(
+        isinstance(expr, Signal)
+        or is_logical_operator(expr)
+        or is_temporal_operator(expr)
+        or (isinstance(expr, Constant) and types.is_bool_type(expr.type))
+        or isinstance(expr, Formula)
+        or isinstance(expr, SpecificationSet)
+        for expr in program.postorder(context)
+        if isinstance(expr, Expression)
+    )

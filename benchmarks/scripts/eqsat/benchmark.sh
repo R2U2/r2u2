@@ -11,7 +11,6 @@
 #   --timeout <seconds>: Timeout value for optimize_eqsat in seconds (non-negative integer)
 #   --memout <mb>: Memory limit for optimize_eqsat in MB (positive integer)
 #   --num-jobs <n>: Number of parallel jobs to run (positive integer)
-#   --rewrites <complete|incomplete>: Type of rewrites
 #   --extraction-method <optimal|heuristic>: Extraction method
 #   --multi-arity / --no-multi-arity: Enable/disable multi-arity rules
 #   --assoc-comm / --no-assoc-comm: Enable/disable associative + commutative rules
@@ -35,7 +34,6 @@ Options:
   --timeout <seconds>             Non-negative integer timeout (seconds)
   --memout <mb>                   Positive integer memory limit (MB)
   --num-jobs <n>                  Positive integer number of parallel jobs
-  --rewrites <complete|incomplete> Rewrite set to use
   --extraction-method <optimal|heuristic>
                                   Extraction method
   --multi-arity | --no-multi-arity
@@ -55,7 +53,6 @@ OUTPUT_FILE=""
 TIMEOUT=""
 MEMOUT=""
 NUM_JOBS=""
-REWRITES=""
 EXTRACTION_METHOD=""
 CONTROL_ENABLED=false
 
@@ -97,10 +94,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --num-jobs)
             NUM_JOBS="${2:-}"
-            shift 2
-            ;;
-        --rewrites)
-            REWRITES="${2:-}"
             shift 2
             ;;
         --extraction-method)
@@ -155,7 +148,7 @@ done
 C2PO_PATH="${C2PO_PATH:-$PROJECT_ROOT/compiler/c2po.py}"
 
 # Validate that required flags are present
-if [ -z "$INPUT_FILE" ] || [ -z "$OUTPUT_FILE" ] || [ -z "$TIMEOUT" ] || [ -z "$MEMOUT" ] || [ -z "$NUM_JOBS" ] || [ -z "$REWRITES" ] || [ -z "$EXTRACTION_METHOD" ]; then
+if [ -z "$INPUT_FILE" ] || [ -z "$OUTPUT_FILE" ] || [ -z "$TIMEOUT" ] || [ -z "$MEMOUT" ] || [ -z "$NUM_JOBS" ] || [ -z "$EXTRACTION_METHOD" ]; then
     echo "Error: missing required options" >&2
     print_help
     exit 1
@@ -186,12 +179,6 @@ fi
 # Validate num_jobs is a positive integer
 if ! [[ "$NUM_JOBS" =~ ^[1-9][0-9]*$ ]]; then
     echo "Error: num_jobs must be a positive integer" >&2
-    exit 1
-fi
-
-# Validate rewrites
-if [ "$REWRITES" != "complete" ] && [ "$REWRITES" != "incomplete" ]; then
-    echo "Error: rewrites must be 'complete' or 'incomplete'" >&2
     exit 1
 fi
 
@@ -270,17 +257,15 @@ process_file() {
     local memout="$3"
     local c2po_path="$4"
     local tmpdir="$5"
-    local rewrites="$6"
-    local extraction_method="$7"
-    local multi_arity_option="$8"
-    local job_slot="$9"
+    local extraction_method="$6"
+    local multi_arity_option="$7"
+    local job_slot="$8"
     # Use environment variables for all options and labels that may contain spaces or special characters
     # This prevents argument splitting issues when passed through parallel
     local assoc_comm_option="${ASSOC_COMM_OPTION}"
     local control_enabled="${CONTROL_ENABLED}"
     # Use environment variables for labels to avoid argument position issues
     local extraction_method_label="${EXTRACTION_METHOD}"
-    local rewrites_label="${REWRITES}"
     local multi_arity_label="${MULTI_ARITY_LABEL}"
     local assoc_comm_label="${ASSOC_COMM_LABEL}"
     
@@ -318,14 +303,15 @@ process_file() {
         optimize_line=""
         run_label="control"
     else
-        run_label="${extraction_method_label}-${rewrites_label}-${assoc_comm_label}"
-        optimize_line="optimize_eqsat --extraction-method $extraction_method --rewrites $rewrites $multi_arity_option $assoc_comm_option --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout"
+        run_label="${extraction_method_label}-${assoc_comm_label}"
+        optimize_line="optimize_eqsat --extraction-method $extraction_method $multi_arity_option $assoc_comm_option --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout"
     fi
     
     # Generate template by writing the embedded template contents directly
     if [[ "$basename_file" == *.c2po ]]; then
         # For .c2po files, prepend enable_booleanizer and parse_c2po
         cat > "$temp_template" <<EOF
+suppress_warnings
 enable_booleanizer
 parse_c2po $abs_input_file
 
@@ -340,6 +326,7 @@ compute_scq_sizes
 print_stats "    {\n"
 print_stats "        \"filename\": \"%F\",\n"
 print_stats "        \"${run_label}\": {\n"
+print_stats "            \"formula\": \"%f0\",\n"
 print_stats "            \"scq\": %scq,\n"
 print_stats "            \"dag-size\": %dagsize,\n"
 print_stats "            \"num-temporal-operators\": %numtlo,\n"
@@ -354,12 +341,13 @@ print_stats "            \"gurobi-solving-time\": %eqsatgurtime,\n"
 
 multi_operators_to_binary
 generate_map
-assemble /dev/null --quiet
+assemble /dev/null
 print_stats "            \"num-tl-temporal-instructions\": %asmtltemp,\n"
 print_stats "            \"num-tl-instructions\": %asmtl,\n"
 
-remove_release_operators
-generate_sabre_code --word-size 8
+remove_release_operators 
+convert_atomics_to_signals
+generate_sabre_code --word-size 8 /dev/null
 print_stats "            \"sabre-total-bytes\": %sabrebytes\n"
 
 print_stats "        }\n"
@@ -368,6 +356,7 @@ EOF
     elif [[ "$basename_file" == *.mltl ]]; then
         # For .mltl files, prepend parse_mltl
         cat > "$temp_template" <<EOF
+suppress_warnings
 parse_mltl $abs_input_file
 
 type_check
@@ -381,6 +370,7 @@ compute_scq_sizes
 print_stats "    {\n"
 print_stats "        \"filename\": \"%F\",\n"
 print_stats "        \"${run_label}\": {\n"
+print_stats "            \"formula\": \"%f0\",\n"
 print_stats "            \"scq\": %scq,\n"
 print_stats "            \"dag-size\": %dagsize,\n"
 print_stats "            \"num-temporal-operators\": %numtlo,\n"
@@ -394,7 +384,7 @@ print_stats "            \"gurobi-encoding-time\": %eqsatgurenc,\n"
 print_stats "            \"gurobi-solving-time\": %eqsatgurtime,\n"
 
 multi_operators_to_binary
-assemble /dev/null --quiet
+assemble /dev/null
 print_stats "            \"num-tl-temporal-instructions\": %asmtltemp,\n"
 print_stats "            \"num-tl-instructions\": %asmtl,\n"
 
@@ -438,7 +428,7 @@ EOF
 
 # Export function and variables for parallel
 export -f process_file
-export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT REWRITES EXTRACTION_METHOD MULTI_ARITY_OPTION ASSOC_COMM_OPTION MULTI_ARITY_LABEL ASSOC_COMM_LABEL CONTROL_ENABLED NUM_JOBS
+export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT EXTRACTION_METHOD MULTI_ARITY_OPTION ASSOC_COMM_OPTION MULTI_ARITY_LABEL ASSOC_COMM_LABEL CONTROL_ENABLED NUM_JOBS
 
 echo "{" > "$OUTPUT_FILE"
 echo "  \"results\": [" >> "$OUTPUT_FILE"
@@ -456,7 +446,7 @@ fi
 PARALLEL_OPTS+=(--line-buffer --jobs "$NUM_JOBS")
 
 grep -v '^[[:space:]]*$' "$INPUT_FILE" | parallel "${PARALLEL_OPTS[@]}" \
-    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" "$REWRITES" "$EXTRACTION_METHOD" "$MULTI_ARITY_OPTION" {%} >> "$OUTPUT_FILE"
+    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" "$EXTRACTION_METHOD" "$MULTI_ARITY_OPTION" {%} >> "$OUTPUT_FILE"
 
 # Remove trailing comma from last line only
 sed -i '$s/,$//' "$OUTPUT_FILE"

@@ -20,8 +20,6 @@ EGGLOG_DIR = SRC_DIR / "egglog"
 HEURISTIC_DIR = EGGLOG_DIR / "heuristic"
 OPTIMAL_DIR = EGGLOG_DIR / "optimal"
 REWRITES_DIR = EGGLOG_DIR / "rewrites"
-COMPLETE_REWRITE_DIR = REWRITES_DIR / "complete"
-INCOMPLETE_REWRITE_DIR = REWRITES_DIR / "incomplete"
 
 HEURISITIC_EXTRACTION_PATHS = [
     HEURISTIC_DIR / "mltl.egg",
@@ -36,20 +34,12 @@ OPTIMAL_EXTRACTION_PATHS = [
     OPTIMAL_DIR / "mltl.egg"
 ]
 
-COMPLETE_REWRITE_PATHS = {
+REWRITE_PATHS = {
     "associative": REWRITES_DIR / "associative.egg",
     "commutative": REWRITES_DIR / "commutative.egg",
     "multi_arity": REWRITES_DIR / "multi_arity.egg",
-    "const_folding": COMPLETE_REWRITE_DIR / "const_folding.egg",
-    "temporal": COMPLETE_REWRITE_DIR / "temporal.egg",
-}
-
-INCOMPLETE_REWRITE_PATHS = {
-    "associative": REWRITES_DIR / "associative.egg",
-    "commutative": REWRITES_DIR / "commutative.egg",
-    "multi_arity": REWRITES_DIR / "multi_arity.egg",
-    "const_folding": INCOMPLETE_REWRITE_DIR / "const_folding.egg",
-    "temporal": INCOMPLETE_REWRITE_DIR / "temporal.egg",
+    "const_folding": REWRITES_DIR / "const_folding.egg",
+    "temporal": REWRITES_DIR / "temporal.egg",
 }
 
 def find_egglog(context: cpt.Context, use_experimental: bool = False) -> Optional[str]:
@@ -93,9 +83,6 @@ def to_egglog(
     
     `options` is a dictionary of options for the writing.
     - `heuristic-extraction`: Whether to enable heuristic extraction of the egglog output
-    - `rewrites`: The set of rewrites to enable
-        - `incomplete`: Enable the incomplete set of rewrites (default)
-        - `complete`: Enable the complete set of rewrites
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
@@ -128,20 +115,11 @@ def to_egglog(
             egglog += f.read().replace("MAX_COST", str(start.wpd * 2))
             egglog += "\n\n"
 
-    if options["rewrites"] == "incomplete":
-        for rewrite, path in INCOMPLETE_REWRITE_PATHS.items():
-            if options.get(rewrite, False):
-                with open(path, "r") as f:
-                    egglog += f.read()
-                    egglog += "\n\n"
-    else:
-        for rewrite, path in COMPLETE_REWRITE_PATHS.items():
-            if rewrite == "commutative" or rewrite == "associative":
-                continue
-            if options.get(rewrite, False):
-                with open(path, "r") as f:
-                    egglog += f.read()
-                    egglog += "\n\n"
+    for rewrite, path in REWRITE_PATHS.items():
+        if options.get(rewrite, False):
+            with open(path, "r") as f:
+                egglog += f.read()
+                egglog += "\n\n"
 
     start_time = util.get_rusage_time()
 
@@ -360,14 +338,6 @@ write_eqsat_encoding_command = command.Command(
             "choices": None,
         },
         {
-            "name": "rewrites",
-            "description": "The set of rewrites to enable",
-            "required": False,
-            "type": str,
-            "default": "incomplete",
-            "choices": ["incomplete", "complete"],
-        },
-        {
             "name": "associative",
             "description": "Whether to enable associative rewrites",
             "required": False,
@@ -425,9 +395,6 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     """Performs equality saturation using the egglog encodings stored in `context`. Fails if equivalence checking is enabled and the optimized formula is not equivalent to the original formula.
     
     `options` is a dictionary of options for the optimization.
-    - `rewrites`: The set of rewrites to enable
-        - `incomplete`: Enable the incomplete set of rewrites (default)
-        - `complete`: Enable the complete set of rewrites
     - `extraction-method`: The method to use for extraction.
         - `heuristic`: Use heuristic extraction (default)
         - `optimal`: Use optimal extraction using Gurobi (requires gurobipy to be installed)
@@ -530,6 +497,12 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                 )
                 return command.ReturnCode.ERROR
 
+            if len(json_output["root_eclasses"]) == 0:
+                log.error(
+                    f"error in egglog output (no root eclass), did you apply the egglog patch?\n{repr(json_output)}"
+                )
+                return command.ReturnCode.ERROR
+
             root_eclass = egraph.EClassID(json_output["root_eclasses"][0])
 
             try: 
@@ -619,14 +592,6 @@ optimize_eqsat_command = command.Command(
     name="optimize_eqsat",
     description="Optimize the program via EQSat",
     options=[
-        {
-            "name": "rewrites",
-            "description": "The set of rewrites to enable",
-            "required": False,
-            "type": str,
-            "default": "incomplete",
-            "choices": ["incomplete", "complete"],
-        },
         {
             "name": "extraction-method",
             "description": "The method to use for extraction",

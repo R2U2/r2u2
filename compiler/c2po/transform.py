@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, cast
-from c2po import cpt, log, command
+from c2po import cpt, log, command, types
 
 def to_bnf(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """Converts program formulas to Boolean Normal Form (BNF). An MLTL formula in BNF has only negation, conjunction, and until operators."""
@@ -553,3 +553,31 @@ remove_release_operators_command = command.Command(
     guards=[command.WELL_TYPED],
 )
 command.CommandRegistry.register(remove_release_operators_command)
+
+def convert_atomics_to_signals(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
+    """
+    Converts all atomics to signals.
+    Returns a ReturnCode.SUCCESS if successful, ReturnCode.ERROR otherwise.
+    """
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.Atomic):
+            continue
+
+        if expr not in context.atomic_id_map:
+            log.error(f"atomic {repr(expr)} not found in atomic ID map")
+            return command.ReturnCode.ERROR
+
+        aid = context.atomic_id_map[expr]
+        expr.replace(cpt.Signal(expr.loc, f"a{aid}", types.BoolType()))
+
+    log.debug(1, f"post atomic to signal conversion:\n{repr(program)}")
+    return command.ReturnCode.SUCCESS
+
+convert_atomics_to_signals_command = command.Command(
+    name="convert_atomics_to_signals",
+    description="Convert all atomics to signals",
+    options=[],
+    func=convert_atomics_to_signals,
+    guards=[command.WELL_TYPED, command.DESUGARED, command.COMPUTED_ATOMICS],
+)
+command.CommandRegistry.register(convert_atomics_to_signals_command)

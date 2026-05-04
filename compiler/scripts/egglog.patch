@@ -1,74 +1,91 @@
 diff --git a/src/cli.rs b/src/cli.rs
-index ee636e05..97abfd46 100644
+index 444e7113..9010f2da 100644
 --- a/src/cli.rs
 +++ b/src/cli.rs
-@@ -93,10 +93,11 @@ pub mod bin {
-                 }
+@@ -31,10 +31,10 @@ struct Args {
+     /// Splits the serialized egraph into primitives and non-primitives
+     #[clap(long)]
+     serialize_split_primitive_outputs: bool,
+-    /// Maximum number of function nodes to render in dot/svg output
++    /// Maximum number of function tables to include when serializing to dot/svg (`--to-json` always serializes the full graph)
+     #[clap(long, default_value = "40")]
+     max_functions: usize,
+-    /// Maximum number of calls per function to render in dot/svg output
++    /// Maximum rows per function when serializing to dot/svg (`--to-json` has no row cap)
+     #[clap(long, default_value = "40")]
+     max_calls_per_function: usize,
+     /// Number of times to inline leaves
+@@ -116,9 +116,17 @@ pub fn cli(mut egraph: EGraph) {
+             }
  
-                 if args.to_json || args.to_dot || args.to_svg {
--                    let mut serialized = egraph.serialize(SerializeConfig::default());
--                    if args.serialize_split_primitive_outputs {
--                        serialized.split_classes(|id, _| egraph.from_node_id(id).is_primitive())
--                    }
-+                    let root_eclasses = egraph.collect_root_eclasses();
-+                    let mut serialized = egraph.serialize(SerializeConfig {
-+                        root_eclasses,
-+                        ..SerializeConfig::default()
-+                    });
-                     for _ in 0..args.serialize_n_inline_leaves {
-                         serialized.inline_leaves();
-                     }
+             if args.to_json || args.to_dot || args.to_svg {
++                let root_eclasses = egraph.collect_root_eclasses();
++                // JSON export should include the full e-graph; dot/svg keep CLI caps for readability.
++                let (max_functions, max_calls_per_function) = if args.to_json {
++                    (None, None)
++                } else {
++                    (Some(args.max_functions), Some(args.max_calls_per_function))
++                };
+                 let serialized_output = egraph.serialize(SerializeConfig {
+-                    max_functions: Some(args.max_functions),
+-                    max_calls_per_function: Some(args.max_calls_per_function),
++                    max_functions,
++                    max_calls_per_function,
++                    root_eclasses,
+                     ..SerializeConfig::default()
+                 });
+                 if !serialized_output.is_complete() {
 diff --git a/src/lib.rs b/src/lib.rs
-index 59d26a71..c33eae99 100644
+index a8c8357b..7748aa9f 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
-@@ -449,6 +449,8 @@ pub struct EGraph {
-     overall_run_report: RunReport,
-     /// Messages to be printed to the user. If this is `None`, then we are ignoring messages.
-     msgs: Option<Vec<String>>,
+@@ -228,6 +228,8 @@ pub struct EGraph {
+     /// Registry for command-level macros
+     command_macros: CommandMacroRegistry,
+     proof_state: EncodingState,
 +    /// The name of the last let-bound variable (for root eclass tracking)
-+    last_let_variable: Option<Symbol>,
++    last_let_variable: Option<String>,
  }
  
- impl Default for EGraph {
-@@ -471,6 +473,7 @@ impl Default for EGraph {
-             overall_run_report: Default::default(),
-             msgs: Some(vec![]),
-             type_info: Default::default(),
+ /// A user-defined command allows users to inject custom command that can be called
+@@ -314,6 +316,7 @@ impl Default for EGraph {
+             warned_about_global_prefix: false,
+             command_macros: Default::default(),
+             proof_state: Default::default(),
 +            last_let_variable: None,
          };
-         egraph
-             .rulesets
-@@ -700,6 +703,12 @@ impl EGraph {
+ 
+         add_base_sort(&mut eg, UnitSort, span!()).unwrap();
+@@ -609,6 +612,12 @@ impl EGraph {
              );
          }
  
 +        // Track the last let-bound variable (functions from let statements have 0 inputs,
-+        // ignore_viz: true, and unextractable: true)
-+        if decl.schema.input.is_empty() && decl.ignore_viz && decl.unextractable {
-+            self.last_let_variable = Some(decl.name);
++        // let_binding: true, and unextractable: true; see ast/remove_globals.rs)
++        if decl.schema.input.is_empty() && decl.let_binding && decl.unextractable {
++            self.last_let_variable = Some(decl.name.clone());
 +        }
 +
          Ok(())
      }
  
 diff --git a/src/serialize.rs b/src/serialize.rs
-index 127ca813..e2cb2ad2 100644
+index a1de140f..0fba65df 100644
 --- a/src/serialize.rs
 +++ b/src/serialize.rs
-@@ -63,6 +63,21 @@ impl SerializedNode {
+@@ -98,6 +98,21 @@ impl SerializedNode {
  }
  
  impl EGraph {
 +    /// Collect root eclasses from the last let-bound variable.
 +    pub fn collect_root_eclasses(&self) -> Vec<(ArcSort, Value)> {
 +        let mut root_eclasses = Vec::new();
-+        // Get the last let-bound variable (the final let expression in the program)
-+        if let Some(var_name) = self.last_let_variable {
-+            if let Some(function) = self.functions.get(&var_name) {
-+                // Get the value if it exists
-+                if let Some(value) = function.get(&[]) {
-+                    root_eclasses.push((function.schema.output.clone(), value));
++        if let Some(var_name) = &self.last_let_variable {
++            if let Some(function) = self.functions.get(var_name) {
++                if function.schema.input.is_empty() {
++                    if let Some(value) = self.lookup_function(var_name, &[]) {
++                        root_eclasses.push((function.schema.output.clone(), value));
++                    }
 +                }
 +            }
 +        }
@@ -78,23 +95,14 @@ index 127ca813..e2cb2ad2 100644
      /// Serialize the egraph into a format that can be read by the egraph-serialize crate.
      ///
      /// There are multiple different semantically valid ways to do this. This is how this implementation does it:
-@@ -102,7 +117,7 @@ impl EGraph {
-             .map(|(name, function)| {
-                 function
-                     .nodes
--                    .iter_range(0..function.nodes.num_offsets(), true)
-+                    .iter_range(0..function.nodes.num_offsets(), false)
-                     .take(config.max_calls_per_function.unwrap_or(usize::MAX))
-                     .map(|(offset, input, output)| {
-                         (
-@@ -180,6 +195,12 @@ impl EGraph {
+@@ -224,6 +239,12 @@ impl EGraph {
              );
          }
  
 +        // Serialize root eclasses to ensure they appear in the output
 +        for (sort, value) in &config.root_eclasses {
-+            let class_id = self.value_to_class_id(sort, value);
-+            self.serialize_value(&mut serializer, sort, value, &class_id);
++            let class_id = self.value_to_class_id(sort, *value);
++            self.serialize_value(&mut serializer, sort, *value, &class_id);
 +        }
 +
          serializer.result.root_eclasses = config

@@ -14,6 +14,7 @@ PATCH_VERSION: str = "0"
 VERSION: str = f"{MAJOR_VERSION}.{MINOR_VERSION}.{PATCH_VERSION}"
 
 log_level = 0
+suppress_warnings = False
 enable_quiet = False
 
 # This is used to track the current command name for logging purposes. The command name should be
@@ -52,6 +53,10 @@ def set_quiet() -> None:
     global enable_quiet
     enable_quiet = True
 
+def set_suppress_warnings() -> None:
+    global suppress_warnings
+    suppress_warnings = True
+
 def format(
     message_type: str,
     location: Optional[FileLocation],
@@ -81,7 +86,7 @@ def warning(
     message: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    if enable_quiet:
+    if enable_quiet or suppress_warnings:
         return
     formatted_message = format("warning", location, message)
     sys.stderr.write(formatted_message)

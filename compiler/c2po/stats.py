@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 STATS_FORMAT_MAP: dict[str, str] = {
     "F": "spec_filename",
+    "f0": "first_formula_string",
     "scq": "total_scq_size",
     "dagsize": "total_dag_size",
     "numtlo": "num_temporal_operators",
@@ -43,6 +44,7 @@ class Stats:
     A class to store statistics for the compiler.
     """
     spec_filename: str = ""
+    first_formula_string: str = ""
     total_scq_size: int = 0
     total_dag_size: int = 0
     num_temporal_operators: int = 0
@@ -119,6 +121,7 @@ class Stats:
     def deepcopy(self) -> "Stats":
         return Stats(
             spec_filename=self.spec_filename,
+            first_formula_string=self.first_formula_string,
             total_scq_size=self.total_scq_size,
             total_dag_size=self.total_dag_size,
             num_temporal_operators=self.num_temporal_operators,

@@ -78,6 +78,20 @@ def gen_code(
                 f"{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
                 f"(~ {fid[lhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}]) | {fid[rhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}];", indent
             )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_EQUIV):
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            return line(
+                f"{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"({fid[lhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}] == {fid[rhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}]);", indent
+            )
+        elif cpt.is_operator(expr, cpt.OperatorKind.LOGICAL_XOR):
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            return line(
+                f"{fid[expr]}[({tau} - {word_wpd[expr]}) % {size[expr]}] = "
+                f"({fid[lhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}] ^ {fid[rhs]}[({tau} - {word_wpd[expr]}) % {size[expr]}]);", indent
+            )
         elif cpt.is_operator(expr, cpt.OperatorKind.FUTURE):
             interval = cast(cpt.TemporalOperator, expr).interval
             lb = interval.lb
@@ -529,9 +543,9 @@ generate_sabre_code_command = command.Command(
             "type": bool,
             "default": False,
             "choices": None,
-        }
+        },
     ],
     func=generate_sabre_code,
-    guards=[command.WELL_TYPED, command.DESUGARED, command.VALID_PROGRAM],
+    guards=[command.WELL_TYPED, command.DESUGARED, command.VALID_PROGRAM, command.PURE_MLTL],
 )
 command.CommandRegistry.register(generate_sabre_code_command)

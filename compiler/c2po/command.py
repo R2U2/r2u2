@@ -2,14 +2,14 @@ from __future__ import annotations
 import argparse
 import enum
 import traceback
-from typing import Optional, Callable, Any, TypedDict, Union, NamedTuple
+from typing import Optional, Callable, Any, TypedDict, Union, NamedTuple, cast
 from c2po import log, cpt, util
 
 
 class ReturnCode(enum.Enum):
     SUCCESS = 0
     ERROR = 1
-    BAG_ARGS = 2
+    BAD_ARGS = 2
     FILE_NOT_FOUND = 3
     PARSE_ERROR = 4
     GUARD_CONDITION_NOT_MET = 5
@@ -66,11 +66,14 @@ ONLY_BINARY_OPERATORS = CommandGuard(
 NO_EXTENDED_OPERATORS = CommandGuard(
     name="no extended operators", predicate=cpt.has_no_extended_operators
 )
-ASSEMBLED = CommandGuard(name="assembled", predicate=cpt.is_assembled)
+PURE_MLTL = CommandGuard(
+    name="pure MLTL", predicate=cpt.is_pure_mltl
+)
 ATOMIC_CONSISTENT_SIGNAL_MAPPING = CommandGuard(
     name="atomic ID consistent with signal ID, try running compute_atomics after parse_map",
     predicate=cpt.has_atomic_consistent_signal_mapping,
 )
+ASSEMBLED = CommandGuard(name="assembled", predicate=cpt.is_assembled)
 
 # Dependency graph of guard conditions.
 GUARD_DEPENDENCIES: dict[CommandGuard, list[CommandGuard]] = {
@@ -82,6 +85,7 @@ GUARD_DEPENDENCIES: dict[CommandGuard, list[CommandGuard]] = {
     COMPUTED_ATOMICS: [DESUGARED],
     ONLY_BINARY_OPERATORS: [DESUGARED],
     NO_EXTENDED_OPERATORS: [DESUGARED],
+    PURE_MLTL: [DESUGARED],
     ATOMIC_CONSISTENT_SIGNAL_MAPPING: [VALID_SIGNAL_MAPPING, COMPUTED_ATOMICS],
     ASSEMBLED: [
         VALID_PROGRAM,
@@ -392,6 +396,21 @@ set_debug_command = Command(
 CommandRegistry.register(set_debug_command)
 
 
+def suppress_warnings() -> ReturnCode:
+    """Command to suppress warnings."""
+    log.set_suppress_warnings()
+    return ReturnCode.SUCCESS
+
+suppress_warnings_command = Command(
+    name="suppress_warnings",
+    description="Suppress warnings",
+    options=[],
+    func=lambda program, context, options: suppress_warnings(),
+    guards=[],
+)
+CommandRegistry.register(suppress_warnings_command)
+
+
 def set_egglog_path(context: cpt.Context, options: dict[str, Any]) -> ReturnCode:
     """Command to set the egglog path.
 
@@ -636,6 +655,7 @@ def print_stats(program: cpt.Program, context: cpt.Context, options: dict[str, A
     `options` is a dictionary containing the following key:
         - `format`: The format string to use for the statistics
     """
+    context.stats.first_formula_string = str(cast(cpt.Formula, program.get_specs()[0]).get_expr())
     context.stats.total_dag_size = program.get_dag_size(context)
     context.stats.num_temporal_operators = program.get_num_temporal_operators(context)
     print(context.stats.format(options["format"]), end="")
@@ -674,3 +694,31 @@ print_stats_format_command = Command(
     guards=[],
 )
 CommandRegistry.register(print_stats_format_command)
+
+
+def echo(options: dict[str, Any]) -> ReturnCode:
+    """Command to echo the given text.
+
+    `options` is a dictionary containing the following key:
+        - `text`: The text to echo
+    """
+    print(options["text"])
+    return ReturnCode.SUCCESS
+
+echo_command = Command(
+    name="echo",
+    description="Echo the given text",
+    options=[
+        {
+            "name": "text",
+            "description": "The text to echo",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: echo(options),
+    guards=[],
+)
+CommandRegistry.register(echo_command)
