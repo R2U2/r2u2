@@ -5,7 +5,7 @@ compute_atomics
 compute_scq_sizes
 print_stats "%scq "
 
-optimize_eqsat --check-equiv --extraction-method optimal --rewrites incomplete --no-multi-arity
+optimize_eqsat --check-equiv --extraction-method optimal --no-multi-arity
 
 compute_scq_sizes
 print_stats "%scq\n"

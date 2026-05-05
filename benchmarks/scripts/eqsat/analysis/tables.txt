@@ -1,0 +1,170 @@
+
+Numeric summary: control.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+==============+==============+
+| metric                       | min          | max          | avg          | median       |
++------------------------------+--------------+--------------+--------------+--------------+
+| dag-size                     |            4 |          192 |    29.150171 |           19 |
+| egglog-encoding-time         |            0 |            0 |            0 |            0 |
+| egglog-solver-time           |            0 |            0 |            0 |            0 |
+| gurobi-encoding-time         |            0 |            0 |            0 |            0 |
+| gurobi-solving-time          |            0 |            0 |            0 |            0 |
+| num-eclasses                 |            0 |            0 |            0 |            0 |
+| num-enodes                   |            0 |            0 |            0 |            0 |
+| num-temporal-operators       |            0 |           12 |     3.359215 |            2 |
+| num-tl-instructions          |            2 |          148 |    21.229522 |           16 |
+| num-tl-temporal-instructions |            0 |           12 |     3.359215 |            2 |
+| sabre-total-bytes            |            1 | 1.155077e+06 |   6160.47099 |          966 |
+| scq                          |            2 |       262174 |  3999.547782 |          308 |
++------------------------------+--------------+--------------+--------------+--------------+
+
+Numeric summary: heuristic_ac.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+==============+==============+
+| metric                       | min          | max          | avg          | median       |
++------------------------------+--------------+--------------+--------------+--------------+
+| dag-size                     |            4 |          192 |    27.142491 |           18 |
+| egglog-encoding-time         | 1.200000e-05 |     0.000457 | 7.607679e-05 | 6.100000e-05 |
+| egglog-solver-time           |           -1 |   1095.73597 |     8.290158 |     0.028337 |
+| gurobi-encoding-time         |            0 |            0 |            0 |            0 |
+| gurobi-solving-time          |            0 |            0 |            0 |            0 |
+| num-eclasses                 |            0 |          213 |    36.069966 |           25 |
+| num-enodes                   |            0 |          470 |    104.22099 |           57 |
+| num-temporal-operators       |            0 |           12 |     3.140785 |            2 |
+| num-tl-instructions          |            2 |          148 |    20.125427 |           14 |
+| num-tl-temporal-instructions |            0 |           12 |     3.140785 |            2 |
+| sabre-total-bytes            |            1 |       581635 |  5069.288396 |        952.5 |
+| scq                          |            2 |       262156 |  3727.239761 |          241 |
++------------------------------+--------------+--------------+--------------+--------------+
+
+Numeric summary: heuristic_no_ac.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+==============+==============+
+| metric                       | min          | max          | avg          | median       |
++------------------------------+--------------+--------------+--------------+--------------+
+| dag-size                     |            4 |          149 |    25.899317 |           18 |
+| egglog-encoding-time         | 1.000000e-05 |     0.000509 | 7.782167e-05 | 6.200000e-05 |
+| egglog-solver-time           |     0.013916 |     0.086066 |     0.028848 |     0.026837 |
+| gurobi-encoding-time         |            0 |            0 |            0 |            0 |
+| gurobi-solving-time          |            0 |            0 |            0 |            0 |
+| num-eclasses                 |            1 |          403 |    38.209898 |           22 |
+| num-enodes                   |            1 |          287 |    56.360922 |           34 |
+| num-temporal-operators       |            0 |           10 |     3.093857 |            2 |
+| num-tl-instructions          |            2 |          139 |    19.786689 |           15 |
+| num-tl-temporal-instructions |            0 |           10 |     3.093857 |            2 |
+| sabre-total-bytes            |            1 |       581635 |  5167.197952 |        915.5 |
+| scq                          |            2 |       262156 |  3758.535836 |          233 |
++------------------------------+--------------+--------------+--------------+--------------+
+
+Numeric summary: optimal_ac.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+===============+==============+
+| metric                       | min          | max          | avg           | median       |
++------------------------------+--------------+--------------+---------------+--------------+
+| dag-size                     |            4 |          192 |    28.778157  |           19 |
+| egglog-encoding-time         | 1.200000e-05 |      0.00114 | 8.548464e-05  | 6.250000e-05 |
+| egglog-solver-time           |           -1 |   723.479581 |     4.449892  |     0.013839 |
+| gurobi-encoding-time         |            0 |   333.388593 |    12.837501  |     0.017438 |
+| gurobi-solving-time          |           -1 |  3591.285644 |   123.379959  |     0.443954 |
+| num-eclasses                 |            0 |         4228 |    69.548635  |           25 |
+| num-enodes                   |            0 | 7.390959e+07 | 508149.831058 |         53.5 |
+| num-temporal-operators       |            0 |           12 |     3.290102  |            2 |
+| num-tl-instructions          |            2 |          148 |    20.846416  |           15 |
+| num-tl-temporal-instructions |            0 |           12 |     3.290102  |            2 |
+| sabre-total-bytes            |            1 |       630789 |   5909.15529  |         1138 |
+| scq                          |            2 |       262156 |   3875.94198  |          263 |
++------------------------------+--------------+--------------+---------------+--------------+
+
+Numeric summary: optimal_no_ac.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+==============+==============+
+| metric                       | min          | max          | avg          | median       |
++------------------------------+--------------+--------------+--------------+--------------+
+| dag-size                     |            4 |          192 |    27.086177 |           19 |
+| egglog-encoding-time         | 1.100000e-05 |     0.000645 | 7.487287e-05 | 5.600000e-05 |
+| egglog-solver-time           |     0.005026 |      0.03424 |     0.012576 |     0.011503 |
+| gurobi-encoding-time         |     0.000632 |      0.34993 |     0.020281 |      0.00802 |
+| gurobi-solving-time          |           -1 |  2908.176784 |    61.706238 |     3.176082 |
+| num-eclasses                 |            1 |          424 |    38.423208 |           22 |
+| num-enodes                   |            1 |          629 |    58.596416 |           31 |
+| num-temporal-operators       |            0 |           10 |     3.109215 |            2 |
+| num-tl-instructions          |            2 |          148 |    19.962457 |           15 |
+| num-tl-temporal-instructions |            0 |           10 |     3.109215 |            2 |
+| sabre-total-bytes            |            1 |       622596 |  5899.972696 |       1107.5 |
+| scq                          |            2 |       262156 |   3499.59215 |          233 |
++------------------------------+--------------+--------------+--------------+--------------+
+
+Numeric summary: virtual_best.json — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++==============================+==============+==============+==============+==============+
+| metric                       | min          | max          | avg          | median       |
++------------------------------+--------------+--------------+--------------+--------------+
+| dag-size                     |            4 |          149 |    25.840444 |           18 |
+| egglog-encoding-time         |            0 |     0.000509 | 5.981826e-05 | 5.300000e-05 |
+| egglog-solver-time           |            0 |   1095.73597 |     8.342736 |     0.021917 |
+| gurobi-encoding-time         |            0 |     0.427381 |     0.005254 |            0 |
+| gurobi-solving-time          |            0 |  3591.285644 |     34.55476 |            0 |
+| num-eclasses                 |            0 |          403 |    40.763652 |           22 |
+| num-enodes                   |            0 |          470 |    97.296928 |           47 |
+| num-temporal-operators       |            0 |           10 |     3.093857 |            2 |
+| num-tl-instructions          |            2 |          139 |    19.627133 |           14 |
+| num-tl-temporal-instructions |            0 |           10 |     3.093857 |            2 |
+| sabre-total-bytes            |            1 |       581635 |  5152.245734 |          927 |
+| scq                          |            2 |       262156 |  3410.777304 |          231 |
++------------------------------+--------------+--------------+--------------+--------------+
+
+Mean signed percent difference vs control.json: (variant-control)/control*100 (control==0 omitted per metric) —
+/home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++======================+============+============+========================+==============================+=====================+===================+
+| file                 | scq        | dag-size   | num-temporal-operators | num-tl-temporal-instructions | num-tl-instructions | sabre-total-bytes |
++----------------------+------------+------------+------------------------+------------------------------+---------------------+-------------------+
+| heuristic_ac.json    |    -9.4925 |    -5.9044 |    -5.1325             |    -5.1325                   |    -4.6366          |    -5.8513        |
+| heuristic_no_ac.json |   -10.0927 |    -6.3430 |    -5.5356             |    -5.5356                   |    -4.5339          |    -5.8044        |
+| optimal_ac.json      |    -7.0599 |    -0.1069 |    -2.7073             |    -2.7073                   |    -2.2435          |    11.6511        |
+| optimal_no_ac.json   |   -11.8852 |    -2.3209 |    -5.3378             |    -5.3378                   |    -4.3124          |     9.9043        |
+| virtual_best.json    |   -13.7312 |    -6.1461 |    -5.5356             |    -5.5356                   |    -5.2588          |    -3.7694        |
++----------------------+------------+------------+------------------------+------------------------------+---------------------+-------------------+
+
+Mean percent reduction vs control.json: (control-variant)/control*100 averaged only over benchmarks with reduction > 0; n red>0 counts scq reductions only
+(control==0 omitted) — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++======================+============+=========+============+========================+==============================+=====================+===================+
+| file                 | scq        | n red>0 | dag-size   | num-temporal-operators | num-tl-temporal-instructions | num-tl-instructions | sabre-total-bytes |
++----------------------+------------+---------+------------+------------------------+------------------------------+---------------------+-------------------+
+| heuristic_ac.json    |    17.3290 | 642     |    12.0087 |    32.6016             |    32.6016                   |    11.7535          |    13.5396        |
+| heuristic_no_ac.json |    19.1460 | 618     |    12.9924 |    34.2066             |    34.2066                   |    11.7262          |    13.6669        |
+| optimal_ac.json      |    22.1239 | 374     |    12.8482 |    38.4782             |    38.4782                   |    14.4456          |    18.3374        |
+| optimal_no_ac.json   |    23.0620 | 604     |    13.5310 |    33.5305             |    33.5305                   |    11.9679          |    15.5373        |
+| virtual_best.json    |    22.2587 | 723     |    13.3068 |    34.2066             |    34.2066                   |    11.7859          |    12.9836        |
++----------------------+------------+---------+------------+------------------------+------------------------------+---------------------+-------------------+
+
+Total absolute amount reduced vs control.json: for each metric, sum over aligned benchmarks of max(0, control-variant) in raw units (not percent); non-numeric
+pairs skipped — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++======================+==================+==================+========================+==============================+=====================+===================+
+| file                 | scq              | dag-size         | num-temporal-operators | num-tl-temporal-instructions | num-tl-instructions | sabre-total-bytes |
++----------------------+------------------+------------------+------------------------+------------------------------+---------------------+-------------------+
+| heuristic_ac.json    |          319,145 |            2,363 |              256       |              256             |            1,324    |        1,281,778  |
+| heuristic_no_ac.json |          282,482 |            3,826 |              311       |              311             |            1,717    |        1,167,308  |
+| optimal_ac.json      |          144,867 |              826 |               81       |               81             |              527    |          798,226  |
+| optimal_no_ac.json   |          585,948 |            2,879 |              293       |              293             |            1,518    |          874,114  |
+| virtual_best.json    |          690,039 |            3,934 |              311       |              311             |            1,899    |        1,262,037  |
++----------------------+------------------+------------------+------------------------+------------------------------+---------------------+-------------------+
+
+Timeout and memout counts per results file (per benchmark row): egglog from egglog-status; gurobi-encoding from gurobi-status when status mentions encoding
+(e.g. encoding_timeout, encoding_memout); gurobi from other gurobi-status timeout/memout — /home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++======================+=================+================+==========================+=========================+=================+================+
+| file                 | egglog timeouts | egglog memouts | gurobi-encoding timeouts | gurobi-encoding memouts | gurobi timeouts | gurobi memouts |
++----------------------+-----------------+----------------+--------------------------+-------------------------+-----------------+----------------+
+| control.json         | 0               | 0              | 0                        | 0                       | 0               | 0              |
+| heuristic_ac.json    | 0               | 75             | 0                        | 0                       | 0               | 0              |
+| heuristic_no_ac.json | 0               | 0              | 0                        | 0                       | 0               | 0              |
+| optimal_ac.json      | 2               | 75             | 2                        | 1                       | 272             | 0              |
+| optimal_no_ac.json   | 0               | 0              | 0                        | 0                       | 23              | 0              |
+| virtual_best.json    | 0               | 0              | 0                        | 0                       | 0               | 0              |
++----------------------+-----------------+----------------+--------------------------+-------------------------+-----------------+----------------+
+
+Average egglog e-graph size per results file: mean of num-enodes and num-eclasses over benchmark rows with numeric values (missing/non-numeric omitted) —
+/home/cgjohann/Git/r2u2/benchmarks/scripts/eqsat/results
++======================+================+==================+
+| file                 | avg num-enodes | avg num-eclasses |
++----------------------+----------------+------------------+
+| control.json         |            0   |            0     |
+| heuristic_ac.json    |    104.22099   |    36.069966     |
+| heuristic_no_ac.json |    56.360922   |    38.209898     |
+| optimal_ac.json      | 508149.831058  |    69.548635     |
+| optimal_no_ac.json   |    58.596416   |    38.423208     |
+| virtual_best.json    |    97.296928   |    40.763652     |
++----------------------+----------------+------------------+

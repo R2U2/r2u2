@@ -415,8 +415,38 @@
             "birewrite": false
         },
         {
-            "pre": "(a0 & F[b0,b1] a1) -> (a2 U[b0,b1] a1 | G[b0,b1] a2)",
-            "post": "(a0 & F[b0,b1] a1) -> (a2 U[b0,b1] a1)",
+            "pre": "(a0 & F[b0,b1] a1) -> (a2 U[b0,b2] a1 | G[b3,b4] a2)",
+            "post": "(a0 & F[b0,b1] a1) -> (a2 U[b0,b2] a1)",
+            "constraints": [
+                "b2 >= b1",
+                "b3 <= b0",
+                "b4 >= b1"
+            ],
+            "birewrite": false
+        },
+        {
+            "pre": "(F[b0, b1] a1) -> ((a0 U[b0, b2] a1) | G[b3, b4] a0)",
+            "post": "(F[b0, b1] a1) -> (a0 U[b0, b1] a1)",
+            "constraints": [
+                "b2 >= b1",
+                "b3 <= b0",
+                "b4 >= b1"
+            ],
+            "birewrite": false
+        },
+        {
+            "pre": "(F[b0, b1] a1) & ((a0 U[b0, b2] a1) | G[b3, b4] a0)",
+            "post": "(F[b0, b1] a1) & (a0 U[b0, b1] a1)",
+            "constraints": [
+                "b2 >= b1",
+                "b3 <= b0",
+                "b4 >= b1"
+            ],
+            "birewrite": false
+        },
+        {
+            "pre": "(a1 U[b0, b1] (a0 & a1)) | G[b0, b1] a1",
+            "post": "a0 R[b0, b1] a1",
             "constraints": [],
             "birewrite": false
         }

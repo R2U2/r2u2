@@ -10,7 +10,7 @@ This file was generated on 12/31/2025 by Cursor AI.
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
-
+from typing import Optional
 
 def extract_formulas_from_xml(xml_path: Path):
     """Extract all formulas from an XML file."""
@@ -916,7 +916,7 @@ def sanitize_spec_name(name: str) -> str:
     return name
 
 
-def convert_formula_to_c2po(original_formula: str, interval: str = "[0, 1000]", spec_name: str = "spec") -> tuple[str, str]:
+def convert_formula_to_c2po(original_formula: str, interval: str = "[0, 1000]", spec_name: str = "spec") -> Optional[tuple[str, str]]:
     """
     Convert a single LTL formula to C2PO format.
     This version keeps operators like =, +, > instead of converting them to propositions.
@@ -1028,10 +1028,10 @@ def convert_formula_to_c2po(original_formula: str, interval: str = "[0, 1000]", 
         var_decls.append(int_line)
     
     # C2PO requires at least one variable declaration in INPUT section
-    # If no variables, add a dummy bool variable
+    # If no variables, then skip since this means the formula is constant
     if not var_decls:
-        var_decls.append("    _dummy: bool;")
-    
+        return None
+        
     input_section = "\n".join(input_lines + var_decls)
     
     # Step 10: Generate FTSPEC section with sanitized spec name
@@ -1106,9 +1106,15 @@ def process_xml_file_c2po(xml_path: Path, output_base_dir: Path, seen_formulas: 
         for interval_str, interval_dir in intervals:
             try:
                 # Convert to C2PO with this interval
-                input_section, ft_spec_section = convert_formula_to_c2po(
+                result = convert_formula_to_c2po(
                     original_formula, interval_str, name
                 )
+
+                if result is None:
+                    print(f"  Skipping formula {index} ({name}) with interval {interval_str}: no variables found")
+                    continue
+
+                input_section, ft_spec_section = result
                 
                 # Combine into full C2PO file
                 c2po_content = f"{input_section}\n\n{ft_spec_section}\n"

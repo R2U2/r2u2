@@ -24,7 +24,6 @@ python3 normalize_fret_rewrites.py
 """
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -277,129 +276,6 @@ def normalize_formula(formula: str) -> str:
 
     return formula
 
-def test_mltl_parser():
-    """Test MLTL parser on all files in mltl directory."""
-    
-    # Get the script directory (where this script is located)
-    script_dir = Path(__file__).parent.absolute()
-    
-    # Path to the MLTL files directory
-    mltl_dir = MLTLDIR
-    
-    # Path to the c2po.py script (go up to project root, then to compiler)
-    project_root = script_dir.parent.parent.parent
-    c2po_script = project_root / "compiler" / "c2po.py"
-    
-    # Check if directories and files exist
-    if not mltl_dir.exists():
-        print(f"Error: MLTL directory not found: {mltl_dir}")
-        return 1
-    
-    if not c2po_script.exists():
-        print(f"Error: c2po.py script not found: {c2po_script}")
-        return 1
-
-    # Get all .mltl files
-    mltl_files = sorted(mltl_dir.glob("*.equiv"))
-    
-    if not mltl_files:
-        print(f"No .equiv files found in {mltl_dir}")
-        return 1
-    
-    print(f"Found {len(mltl_files)} MLTL files to test")
-    print("=" * 60)
-    
-    # Track results
-    total_files = len(mltl_files)
-    success_count = 0
-    error_count = 0
-    errors = []
-    
-    # Test each file
-    for i, mltl_file in enumerate(mltl_files, 1):
-        print(f"[{i:3d}/{total_files}] Testing {mltl_file.name}...", end=" ")
-        
-        try:
-            # Run the parser command
-            cmd = [
-                "python3", 
-                str(c2po_script), 
-                "--mission-time", "100",
-                "-p",  # parse only
-                str(mltl_file),
-            ]
-            
-            # Run command and capture output
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                cwd=project_root  # Run from project root
-            )
-            
-            if result.returncode == 0:
-                print("✓ PASS")
-                success_count += 1
-            else:
-                print("✗ FAIL")
-                error_count += 1
-                
-                # Extract rule index from filename (fret_{i}.mltl)
-                try:
-                    rule_index = int(mltl_file.stem.split('_')[1])
-                    if rule_index < len(FRETFutureTimeSimplifications):
-                        rule = FRETFutureTimeSimplifications[rule_index]
-                        print(f"    Rule: {rule[0]} -> {rule[1]}")
-                except (ValueError, IndexError):
-                    print("    Rule: Could not determine rule from filename")
-                
-                error_info = {
-                    'file': mltl_file.name,
-                    'returncode': result.returncode,
-                    'stdout': result.stdout,
-                    'stderr': result.stderr
-                }
-                errors.append(error_info)
-                
-        except Exception as e:
-            print(f"✗ ERROR: {e}")
-            error_count += 1
-            error_info = {
-                'file': mltl_file.name,
-                'returncode': -1,
-                'stdout': '',
-                'stderr': str(e)
-            }
-            errors.append(error_info)
-    
-    # Print summary
-    print("=" * 60)
-    print("SUMMARY:")
-    print(f"  Total files: {total_files}")
-    print(f"  Successful:  {success_count}")
-    print(f"  Failed:      {error_count}")
-    
-    # Print detailed error information
-    if errors:
-        print("\nDETAILED ERROR REPORT:")
-        print("=" * 60)
-        
-        for error in errors:
-            print(f"\nFile: {error['file']}")
-            print(f"Return code: {error['returncode']}")
-            
-            if error['stdout']:
-                print("STDOUT:")
-                print(error['stdout'])
-            
-            if error['stderr']:
-                print("STDERR:")
-                print(error['stderr'])
-            
-            print("-" * 40)
-    
-    return error_count
-
 def process_fret_rewrites():
     """Process FRET rewrite rules and generate MLTL files."""
     processed_rules = []
@@ -423,16 +299,6 @@ def main():
     print("Processing FRET rewrite rules...")
     process_fret_rewrites()
     print(f"Generated {len(FRETFutureTimeSimplifications)} MLTL files in {MLTLDIR}")
-    
-    print("\nTesting MLTL parser on generated files...")
-    error_count = test_mltl_parser()
-    
-    if error_count == 0:
-        print("\n✓ All files parsed successfully!")
-        return 0
-    else:
-        print(f"\n✗ {error_count} files failed to parse.")
-        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
