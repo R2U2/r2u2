@@ -298,3 +298,6 @@ docs/_*
 
 # python virtual environment
 r2u2env/
+
+# Apptainer images
+*.sif

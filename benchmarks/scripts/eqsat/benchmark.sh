@@ -10,8 +10,9 @@
 #   --output-json <path>: Output JSON file to write results to
 #   --timeout <seconds>: Timeout value for optimize_eqsat in seconds (non-negative integer)
 #   --memout <mb>: Memory limit for optimize_eqsat in MB (positive integer)
+#   --num-gurobi-threads <n>: Number of Gurobi threads for ILP extraction (non-negative integer, optional)
 #   --num-jobs <n>: Number of parallel jobs to run (positive integer)
-#   --extraction-method <optimal|heuristic>: Extraction method
+#   --extraction-method <ilp|greedy>: Extraction method
 #   --multi-arity / --no-multi-arity: Enable/disable multi-arity rules
 #   --assoc-comm / --no-assoc-comm: Enable/disable associative + commutative rules
 #   --control: Control mode (do not run optimize_eqsat)
@@ -33,8 +34,9 @@ Options:
   --output-json <path>            Output JSON file path
   --timeout <seconds>             Non-negative integer timeout (seconds)
   --memout <mb>                   Positive integer memory limit (MB)
+  --num-gurobi-threads <n>        Non-negative integer Gurobi thread count (optional, default: 0)
   --num-jobs <n>                  Positive integer number of parallel jobs
-  --extraction-method <optimal|heuristic>
+  --extraction-method <ilp|greedy>
                                   Extraction method
   --multi-arity | --no-multi-arity
                                   Enable/disable multi-arity
@@ -52,6 +54,7 @@ INPUT_FILE=""
 OUTPUT_FILE=""
 TIMEOUT=""
 MEMOUT=""
+NUM_GUROBI_THREADS="0"
 NUM_JOBS=""
 EXTRACTION_METHOD=""
 CONTROL_ENABLED=false
@@ -96,6 +99,10 @@ while [[ $# -gt 0 ]]; do
             NUM_JOBS="${2:-}"
             shift 2
             ;;
+        --num-gurobi-threads)
+            NUM_GUROBI_THREADS="${2:-}"
+            shift 2
+            ;;
         --extraction-method)
             EXTRACTION_METHOD="${2:-}"
             shift 2
@@ -121,7 +128,7 @@ while [[ $# -gt 0 ]]; do
         --no-assoc-comm)
             ASSOC_COMM_SET=true
             ASSOC_COMM_OPTION="--no-associative --no-commutative"
-            ASSOC_COMM_LABEL="noac"
+            ASSOC_COMM_LABEL="no-ac"
             shift
             ;;
         --control)
@@ -182,9 +189,15 @@ if ! [[ "$NUM_JOBS" =~ ^[1-9][0-9]*$ ]]; then
     exit 1
 fi
 
+# Validate num_gurobi_threads is a non-negative integer
+if ! [[ "$NUM_GUROBI_THREADS" =~ ^[0-9]+$ ]]; then
+    echo "Error: num_gurobi_threads must be a non-negative integer" >&2
+    exit 1
+fi
+
 # Validate extraction_method
-if [ "$EXTRACTION_METHOD" != "optimal" ] && [ "$EXTRACTION_METHOD" != "heuristic" ]; then
-    echo "Error: extraction_method must be 'optimal' or 'heuristic'" >&2
+if [ "$EXTRACTION_METHOD" != "ilp" ] && [ "$EXTRACTION_METHOD" != "greedy" ]; then
+    echo "Error: extraction_method must be 'ilp' or 'greedy'" >&2
     exit 1
 fi
 
@@ -259,7 +272,8 @@ process_file() {
     local tmpdir="$5"
     local extraction_method="$6"
     local multi_arity_option="$7"
-    local job_slot="$8"
+    local num_gurobi_threads="$8"
+    local job_slot="$9"
     # Use environment variables for all options and labels that may contain spaces or special characters
     # This prevents argument splitting issues when passed through parallel
     local assoc_comm_option="${ASSOC_COMM_OPTION}"
@@ -304,7 +318,7 @@ process_file() {
         run_label="control"
     else
         run_label="${extraction_method_label}-${assoc_comm_label}"
-        optimize_line="optimize_eqsat --extraction-method $extraction_method $multi_arity_option $assoc_comm_option --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout"
+        optimize_line="optimize_eqsat --extraction-method $extraction_method $multi_arity_option $assoc_comm_option --egglog-max-time $timeout --egglog-max-memory $memout --gurobi-max-time $timeout --gurobi-max-memory $memout --num-gurobi-threads $num_gurobi_threads"
     fi
     
     # Generate template by writing the embedded template contents directly
@@ -317,6 +331,7 @@ parse_c2po $abs_input_file
 
 type_check
 desugar
+optimize_cse
 compute_atomics
 
 $optimize_line
@@ -361,6 +376,7 @@ parse_mltl $abs_input_file
 
 type_check
 desugar
+optimize_cse
 compute_atomics
 
 $optimize_line
@@ -428,7 +444,7 @@ EOF
 
 # Export function and variables for parallel
 export -f process_file
-export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT EXTRACTION_METHOD MULTI_ARITY_OPTION ASSOC_COMM_OPTION MULTI_ARITY_LABEL ASSOC_COMM_LABEL CONTROL_ENABLED NUM_JOBS
+export C2PO_PATH TEMPLATE_TMPDIR TIMEOUT MEMOUT EXTRACTION_METHOD MULTI_ARITY_OPTION ASSOC_COMM_OPTION MULTI_ARITY_LABEL ASSOC_COMM_LABEL CONTROL_ENABLED NUM_JOBS NUM_GUROBI_THREADS
 
 echo "{" > "$OUTPUT_FILE"
 echo "  \"results\": [" >> "$OUTPUT_FILE"
@@ -446,7 +462,7 @@ fi
 PARALLEL_OPTS+=(--line-buffer --jobs "$NUM_JOBS")
 
 grep -v '^[[:space:]]*$' "$INPUT_FILE" | parallel "${PARALLEL_OPTS[@]}" \
-    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" "$EXTRACTION_METHOD" "$MULTI_ARITY_OPTION" {%} >> "$OUTPUT_FILE"
+    process_file {} "$TIMEOUT" "$MEMOUT" "$C2PO_PATH" "$TEMPLATE_TMPDIR" "$EXTRACTION_METHOD" "$MULTI_ARITY_OPTION" "$NUM_GUROBI_THREADS" {%} >> "$OUTPUT_FILE"
 
 # Remove trailing comma from last line only
 sed -i '$s/,$//' "$OUTPUT_FILE"

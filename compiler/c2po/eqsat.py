@@ -7,6 +7,7 @@ import shutil
 import pathlib
 import tempfile
 import json
+import signal
 from typing import cast, Any, Optional
 from c2po import cpt, log, util, types, sat, command, parse_egglog_output
 
@@ -17,21 +18,21 @@ except ImportError:
 
 SRC_DIR = pathlib.Path(__file__).parent
 EGGLOG_DIR = SRC_DIR / "egglog"
-HEURISTIC_DIR = EGGLOG_DIR / "heuristic"
-OPTIMAL_DIR = EGGLOG_DIR / "optimal"
+GREEDY_DIR = EGGLOG_DIR / "greedy"
+ILP_DIR = EGGLOG_DIR / "ilp"
 REWRITES_DIR = EGGLOG_DIR / "rewrites"
 
-HEURISITIC_EXTRACTION_PATHS = [
-    HEURISTIC_DIR / "mltl.egg",
-    HEURISTIC_DIR / "wpd.egg",
-    HEURISTIC_DIR / "bpd.egg",
+GREEDY_EXTRACTION_PATHS = [
+    GREEDY_DIR / "mltl.egg",
+    GREEDY_DIR / "wpd.egg",
+    GREEDY_DIR / "bpd.egg",
 ]
 
-HEURISTIC_EXTENDED_COST_PATH = HEURISTIC_DIR / "cost_extended.egg"
-HUERISTIC_COST_PATH = HEURISTIC_DIR / "cost.egg"
+GREEDY_EXTENDED_COST_PATH = GREEDY_DIR / "cost_extended.egg"
+GREEDY_COST_PATH = GREEDY_DIR / "cost.egg"
 
-OPTIMAL_EXTRACTION_PATHS = [
-    OPTIMAL_DIR / "mltl.egg"
+ILP_EXTRACTION_PATHS = [
+    ILP_DIR / "mltl.egg"
 ]
 
 REWRITE_PATHS = {
@@ -82,7 +83,7 @@ def to_egglog(
     """Generates the egglog encoding for `start` and returns it as a string.
     
     `options` is a dictionary of options for the writing.
-    - `heuristic-extraction`: Whether to enable heuristic extraction of the egglog output
+    - `greedy-extraction`: Whether to enable greedy extraction of the egglog output
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
     - `multi-arity`: Whether to enable multi-arity rewrites
@@ -96,20 +97,20 @@ def to_egglog(
     egglog = ""
 
     for path in (
-        HEURISITIC_EXTRACTION_PATHS
-        if options["heuristic_extraction"]
-        else OPTIMAL_EXTRACTION_PATHS
+        GREEDY_EXTRACTION_PATHS
+        if options["greedy_extraction"]
+        else ILP_EXTRACTION_PATHS
     ):
         with open(path, "r") as f:
             egglog += f.read()
             egglog += "\n\n"
 
-    if options["extended"] and options["heuristic_extraction"]:
-        with open(HEURISTIC_EXTENDED_COST_PATH, "r") as f:
+    if options["extended"] and options["greedy_extraction"]:
+        with open(GREEDY_EXTENDED_COST_PATH, "r") as f:
             egglog += f.read()
             egglog += "\n\n"
-    elif options["heuristic_extraction"]:
-        with open(HUERISTIC_COST_PATH, "r") as f:
+    elif options["greedy_extraction"]:
+        with open(GREEDY_COST_PATH, "r") as f:
             # To force extraction to avoid extended operators, we set their costs to wpd * 2. 
             # No term in the egraph will have a cost greater than this.
             egglog += f.read().replace("MAX_COST", str(start.wpd * 2))
@@ -173,7 +174,7 @@ def to_egglog(
     egglog += "(run-schedule (saturate mltl-rewrites))\n"
     egglog += "(run-schedule (saturate const-folding))\n"
 
-    if options["heuristic_extraction"]:
+    if options["greedy_extraction"]:
         egglog += "(run-schedule (saturate analysis))\n"
         egglog += f"(extract $e{expr_map[start]})\n"
 
@@ -254,7 +255,7 @@ def write_eqsat_encoding(program: cpt.Program, context: cpt.Context, options: di
     `options` is a dictionary of options for the writing.
     - `location`: The path to write the EQSat encoding to
     - `formula`: The formula to write the EQSat encoding for. If not provided, all formulas will be written
-    - `heuristic-extraction`: Whether to enable heuristic extraction of the egglog output
+    - `greedy-extraction`: Whether to enable greedy extraction of the egglog output
     - `rewrites`: The set of rewrites to enable
         - `incomplete`: Enable the incomplete set of rewrites (default)
         - `complete`: Enable the complete set of rewrites
@@ -330,8 +331,8 @@ write_eqsat_encoding_command = command.Command(
             "choices": None,
         },
         {
-            "name": "heuristic-extraction",
-            "description": "Whether to enable heuristic extraction of the egglog output",
+            "name": "greedy-extraction",
+            "description": "Whether to enable greedy extraction of the egglog output",
             "required": False,
             "type": bool,
             "default": False,
@@ -396,8 +397,8 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     
     `options` is a dictionary of options for the optimization.
     - `extraction-method`: The method to use for extraction.
-        - `heuristic`: Use heuristic extraction (default)
-        - `optimal`: Use optimal extraction using Gurobi (requires gurobipy to be installed)
+        - `greedy`: Use greedy extraction (default)
+        - `ilp`: Use ILP-based extraction using Gurobi (requires gurobipy to be installed)
     - `const-folding`: Whether to enable const folding
     - `associative`: Whether to enable associative rewrites
     - `commutative`: Whether to enable commutative rewrites
@@ -407,13 +408,15 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
     - `egglog-max-time`: The maximum time to allow for egglog in seconds
     - `egglog-max-memory`: The maximum memory to allow for egglog in MB, use 0 for no maximum
     - `egglog-bin`: The path to the egglog executable
-    - `gurobi-max-time`: The maximum time to allow for Gurobi in seconds if `extraction-method` is `optimal`
-    - `gurobi-max-memory`: The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `optimal`
+    - `gurobi-max-time`: The maximum time to allow for Gurobi in seconds if `extraction-method` is `ilp`
+    - `gurobi-max-memory`: The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `ilp`
+    - `num-gurobi-threads`: Number of Gurobi solver threads if `extraction-method` is `ilp`, use 0 for Gurobi default
     - `equiv-smt-encoding-filename`: The path to write the SMT encoding for equivalence checking to
     - `check-equiv`: Whether to check equivalence of the optimized formula
     - `theory`: The SMT theory to use if `check-equiv` is enabled
     - `smt-max-time`: The maximum time to allow for the SMT solver in seconds if `check-equiv` is enabled
     - `smt-max-memory`: The maximum memory to allow for the SMT solver in MB, use 0 for no maximum if `check-equiv` is enabled
+    - `gurobi-model-filename`: The path to write the Gurobi model to (prior to extraction, only supported if `extraction-method` is `ilp`)
 
     Returns:
         a ReturnCode.SUCCESS if the optimization was successful, ReturnCode.ERROR otherwise
@@ -425,10 +428,10 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             log.warning("found contract, skipping")
             continue
 
-        if options["extraction_method"] == "optimal":
-            options["heuristic_extraction"] = False
+        if options["extraction_method"] == "ilp":
+            options["greedy_extraction"] = False
         else:
-            options["heuristic_extraction"] = True
+            options["greedy_extraction"] = True
 
         egglog_encoding = to_egglog(formula.get_expr(), context, options)
         if egglog_encoding is None:
@@ -441,7 +444,7 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             options["egglog_max_time"],
             options["egglog_max_memory"],
             context,
-            options["extraction_method"] == "heuristic", # Use experimental egglog if we are using heuristic extraction
+            options["extraction_method"] == "greedy", # Use experimental egglog if we are using greedy extraction
         )
         context.stats.eqsat_solver_time += time
         context.stats.eqsat_solver_status = status
@@ -484,10 +487,10 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
             [c for c in json_output["class_data"].keys() if c.startswith("MLTL-")]
         )
 
-        if options["extraction_method"] == "optimal":
+        if options["extraction_method"] == "ilp":
             if egraph is None:
                 log.error(
-                    "gurobipy is not installed, please install it and try again or use `heuristic` extraction"
+                    "gurobipy is not installed, please install it and try again or use `greedy` extraction"
                 )
                 return command.ReturnCode.ERROR
 
@@ -505,6 +508,8 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
 
             root_eclass = egraph.EClassID(json_output["root_eclasses"][0])
 
+            mem_budget = egraph.EncodingMemoutBudget(int(options["gurobi_max_memory"]))
+
             try: 
                 egraph_instance = egraph.EGraph.from_json(
                     json_output["nodes"],
@@ -512,19 +517,35 @@ def optimize_eqsat(program: cpt.Program, context: cpt.Context, options: dict[str
                     old,
                     context,
                     int(options["gurobi_max_time"]),
+                    mem_budget,
                 )
                 if egraph_instance is None:
                     log.error(
                         f"failed to generate EGraph for {formula.symbol}", formula.loc
                     )
                     return command.ReturnCode.ERROR
+            except TimeoutError:
+                context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                return command.ReturnCode.SUCCESS
+            except egraph.EncodingMemoutError:
+                signal.alarm(0)
+                context.stats.eqsat_gurobi_solver_status = "encoding_memout"
+                return command.ReturnCode.SUCCESS
 
+            try:
                 new = egraph_instance.extract(
                     options["gurobi_max_time"],
                     options["gurobi_max_memory"],
+                    options["num_gurobi_threads"],
                     options["extended"],
+                    options["gurobi_model_filename"],
+                    memout_budget=mem_budget,
                 )
             except TimeoutError:
+                context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
+                return command.ReturnCode.SUCCESS
+            except egraph.EncodingMemoutError:
+                context.stats.eqsat_gurobi_solver_status = "encoding_memout"
                 return command.ReturnCode.SUCCESS
 
             if egraph_instance.gurobi_status == "timeout":
@@ -597,8 +618,8 @@ optimize_eqsat_command = command.Command(
             "description": "The method to use for extraction",
             "required": False,
             "type": str,
-            "default": "heuristic",
-            "choices": ["heuristic", "optimal"],
+            "default": "greedy",
+            "choices": ["greedy", "ilp"],
         },
         {
             "name": "associative",
@@ -674,7 +695,7 @@ optimize_eqsat_command = command.Command(
         },
         {
             "name": "gurobi-max-time",
-            "description": "The maximum time to allow for Gurobi in seconds if `extraction-method` is `optimal`",
+            "description": "The maximum time to allow for Gurobi in seconds if `extraction-method` is `ilp`",
             "required": False,
             "type": int,
             "default": 10,
@@ -682,7 +703,15 @@ optimize_eqsat_command = command.Command(
         },
         {
             "name": "gurobi-max-memory",
-            "description": "The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `optimal`",
+            "description": "The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `ilp`",
+            "required": False,
+            "type": int,
+            "default": 0,
+            "choices": None,
+        },
+        {
+            "name": "num-gurobi-threads",
+            "description": "Number of Gurobi solver threads if `extraction-method` is `ilp`, use 0 for Gurobi default",
             "required": False,
             "type": int,
             "default": 0,
@@ -728,6 +757,14 @@ optimize_eqsat_command = command.Command(
             "default": 0,
             "choices": None
         },
+        {
+            "name": "gurobi-model-filename",
+            "description": "The path to write the Gurobi model to (prior to extraction, only supported if `extraction-method` is `ilp`)",
+            "required": False,
+            "type": str,
+            "default": None,
+            "choices": None,
+        }
     ],
     func=optimize_eqsat,
     guards=[command.COMPUTED_ATOMICS],

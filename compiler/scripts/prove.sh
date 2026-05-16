@@ -16,7 +16,7 @@ fi
 # Configuration
 SMT2_DIR="$1"
 TIMEOUT_SECONDS="${2:-60}"  # Use second argument if provided, otherwise default to 60
-PORTFOLIO_JOBS="${3:-8}"     # Use third argument if provided, otherwise default to 8
+PORTFOLIO_JOBS="${3:-8}"    # Use third argument if provided, otherwise default to 8
 
 # Validate timeout is a positive number
 if ! [[ "$TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$TIMEOUT_SECONDS" -le 0 ]; then
@@ -135,7 +135,8 @@ check_file_changed() {
         return 0  # File doesn't exist, treat as changed
     fi
     
-    local current_mtime=$(stat -f %m "$file_path" 2>/dev/null || stat -c %Y "$file_path" 2>/dev/null || echo "0")
+    # Try GNU stat first: Linux stat -f prints to stdout then fails, corrupting $(...) if listed first.
+    local current_mtime=$(stat -c %Y "$file_path" 2>/dev/null || stat -f %m "$file_path" 2>/dev/null || echo "0")
     
     # Get cached timestamp (escape filename for safe regex matching)
     local escaped_filename=$(printf '%s\n' "$filename" | sed 's/[[\.*^$()+?{|]/\\&/g')
@@ -160,7 +161,8 @@ update_timestamp_cache() {
     local file_path="$2"
     
     # Get current file modification time
-    local current_mtime=$(stat -f %m "$file_path" 2>/dev/null || stat -c %Y "$file_path" 2>/dev/null || echo "0")
+    # Try GNU stat first: Linux stat -f prints to stdout then fails, corrupting $(...) if listed first.
+    local current_mtime=$(stat -c %Y "$file_path" 2>/dev/null || stat -f %m "$file_path" 2>/dev/null || echo "0")
     
     # Remove old entry if it exists (escape filename for safe regex matching)
     local escaped_filename=$(printf '%s\n' "$filename" | sed 's/[[\.*^$()+?{|]/\\&/g')

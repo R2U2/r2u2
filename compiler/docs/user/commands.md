@@ -1,8 +1,8 @@
 # C2PO Commands Reference
 
-_Auto-generated on 2026-04-15 by `compiler/scripts/generate_commands_doc.py`._
+_Auto-generated on 2026-05-16 by `compiler/scripts/generate_commands_doc.py`._
 
-Total commands: **58**
+Total commands: **63**
 
 ## Source: `assemble.py`
 
@@ -11,8 +11,7 @@ Total commands: **58**
 Assemble a program into a binary. Does not compute atomics or SCQ sizes beforehand. Use at your own risk, will fail if atomics or SCQ sizes are not computed or were computed before the program was modified.
 
 ```text
-usage: unsafe_assemble [-h] [--assembly-filename ASSEMBLY_FILENAME]
-                       [--print | --no-print] [--aux | --no-aux]
+usage: unsafe_assemble [-h] [--assembly-filename ASSEMBLY_FILENAME] [--print | --no-print] [--aux | --no-aux]
                        binary-filename
 ```
 
@@ -68,8 +67,7 @@ No options.
 Assemble a program into a binary. Computes atomics and SCQ sizes beforehand.
 
 ```text
-usage: assemble [-h] [--scq-constant SCQ_CONSTANT]
-                [--assembly-filename ASSEMBLY_FILENAME] [--print | --no-print]
+usage: assemble [-h] [--scq-constant SCQ_CONSTANT] [--assembly-filename ASSEMBLY_FILENAME] [--print | --no-print]
                 [--aux | --no-aux]
                 binary-filename
 ```
@@ -93,8 +91,7 @@ usage: assemble [-h] [--scq-constant SCQ_CONSTANT]
 Compile a program after parsing with basic optimizations. No dependencies on external tools.
 
 ```text
-usage: compile [-h] [--scq-constant SCQ_CONSTANT]
-               [--assembly-filename ASSEMBLY_FILENAME] [--print | --no-print]
+usage: compile [-h] [--scq-constant SCQ_CONSTANT] [--assembly-filename ASSEMBLY_FILENAME] [--print | --no-print]
                [--aux | --no-aux]
                binary-filename
 ```
@@ -149,6 +146,18 @@ usage: disable_booleanizer [-h]
 ```
 
 No options.
+
+### `echo`
+
+Echo the given text
+
+```text
+usage: echo [-h] text
+```
+
+#### Options
+
+- `text` (required, type: `str`, default: none) - The text to echo
 
 ### `enable_booleanizer`
 
@@ -304,6 +313,16 @@ usage: set_smt_solver_path [-h] smt-solver-path
 
 - `smt-solver-path` (required, type: `str`, default: none) - Path to SMT solver executable
 
+### `suppress_warnings`
+
+Suppress warnings
+
+```text
+usage: suppress_warnings [-h]
+```
+
+No options.
+
 ## Source: `cse.py`
 
 ### `optimize_cse`
@@ -405,30 +424,21 @@ No options.
 Optimize the program via EQSat
 
 ```text
-usage: optimize_eqsat [-h] [--rewrites {incomplete,complete}]
-                      [--extraction-method {heuristic,optimal}]
-                      [--associative | --no-associative]
-                      [--commutative | --no-commutative]
-                      [--multi-arity | --no-multi-arity]
-                      [--const-folding | --no-const-folding]
-                      [--extended | --no-extended]
-                      [--temporal | --no-temporal]
-                      [--egglog-max-time EGGLOG_MAX_TIME]
-                      [--egglog-max-memory EGGLOG_MAX_MEMORY]
-                      [--egglog-bin EGGLOG_BIN]
-                      [--gurobi-max-time GUROBI_MAX_TIME]
-                      [--gurobi-max-memory GUROBI_MAX_MEMORY]
-                      [--check-equiv | --no-check-equiv]
-                      [--equiv-smt-encoding-filename EQUIV_SMT_ENCODING_FILENAME]
-                      [--theory {uflia,qf_uflia,qf_bv}]
-                      [--smt-max-time SMT_MAX_TIME]
-                      [--smt-max-memory SMT_MAX_MEMORY]
+usage: optimize_eqsat [-h] [--extraction-method {greedy,ilp}] [--associative | --no-associative]
+                      [--commutative | --no-commutative] [--multi-arity | --no-multi-arity]
+                      [--const-folding | --no-const-folding] [--extended | --no-extended]
+                      [--temporal | --no-temporal] [--egglog-max-time EGGLOG_MAX_TIME]
+                      [--egglog-max-memory EGGLOG_MAX_MEMORY] [--egglog-bin EGGLOG_BIN]
+                      [--gurobi-max-time GUROBI_MAX_TIME] [--gurobi-max-memory GUROBI_MAX_MEMORY]
+                      [--num-gurobi-threads NUM_GUROBI_THREADS] [--check-equiv | --no-check-equiv]
+                      [--equiv-smt-encoding-filename EQUIV_SMT_ENCODING_FILENAME] [--theory {uflia,qf_uflia,qf_bv}]
+                      [--smt-max-time SMT_MAX_TIME] [--smt-max-memory SMT_MAX_MEMORY]
+                      [--gurobi-model-filename GUROBI_MODEL_FILENAME]
 ```
 
 #### Options
 
-- `rewrites` (optional, type: `str`, default: `incomplete`, choices: `incomplete, complete`) - The set of rewrites to enable
-- `extraction-method` (optional, type: `str`, default: `heuristic`, choices: `heuristic, optimal`) - The method to use for extraction
+- `extraction-method` (optional, type: `str`, default: `greedy`, choices: `greedy, ilp`) - The method to use for extraction
 - `associative` (optional, type: `bool`, default: `True`) - Whether to enable associative rewrites
 - `commutative` (optional, type: `bool`, default: `True`) - Whether to enable commutative rewrites
 - `multi-arity` (optional, type: `bool`, default: `True`) - Whether to enable multi-arity rewrites
@@ -438,27 +448,25 @@ usage: optimize_eqsat [-h] [--rewrites {incomplete,complete}]
 - `egglog-max-time` (optional, type: `int`, default: `5`) - The maximum time to allow for egglog in seconds
 - `egglog-max-memory` (optional, type: `int`, default: `0`) - The maximum memory to allow for egglog in MB, use 0 for no maximum
 - `egglog-bin` (optional, type: `str`, default: none) - The path to the egglog executable
-- `gurobi-max-time` (optional, type: `int`, default: `10`) - The maximum time to allow for Gurobi in seconds if `extraction-method` is `optimal`
-- `gurobi-max-memory` (optional, type: `int`, default: `0`) - The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `optimal`
+- `gurobi-max-time` (optional, type: `int`, default: `10`) - The maximum time to allow for Gurobi in seconds if `extraction-method` is `ilp`
+- `gurobi-max-memory` (optional, type: `int`, default: `0`) - The maximum memory to allow for Gurobi in MB, use 0 for no maximum if `extraction-method` is `ilp`
+- `num-gurobi-threads` (optional, type: `int`, default: `0`) - Number of Gurobi solver threads if `extraction-method` is `ilp`, use 0 for Gurobi default
 - `check-equiv` (optional, type: `bool`, default: `False`) - Whether to check equivalence of the optimized formula
 - `equiv-smt-encoding-filename` (optional, type: `str`, default: none) - The path to write the SMT encoding for equivalence checking to
 - `theory` (optional, type: `str`, default: `uflia`, choices: `uflia, qf_uflia, qf_bv`) - The SMT theory to use if `check-equiv` is enabled
 - `smt-max-time` (optional, type: `int`, default: `5`) - The maximum time to allow for the SMT solver in seconds
 - `smt-max-memory` (optional, type: `int`, default: `0`) - The maximum memory to allow for the SMT solver in MB, use 0 for no maximum
+- `gurobi-model-filename` (optional, type: `str`, default: none) - The path to write the Gurobi model to (prior to extraction, only supported if `extraction-method` is `ilp`)
 
 ### `write_eqsat_encoding`
 
 Write the EQSat encoding for the program
 
 ```text
-usage: write_eqsat_encoding [-h] [--formula FORMULA]
-                            [--heuristic-extraction | --no-heuristic-extraction]
-                            [--rewrites {incomplete,complete}]
-                            [--associative | --no-associative]
-                            [--commutative | --no-commutative]
-                            [--multi-arity | --no-multi-arity]
-                            [--const-folding | --no-const-folding]
-                            [--temporal | --no-temporal]
+usage: write_eqsat_encoding [-h] [--formula FORMULA] [--greedy-extraction | --no-greedy-extraction]
+                            [--associative | --no-associative] [--commutative | --no-commutative]
+                            [--multi-arity | --no-multi-arity] [--const-folding | --no-const-folding]
+                            [--extended | --no-extended] [--temporal | --no-temporal]
                             location
 ```
 
@@ -466,13 +474,13 @@ usage: write_eqsat_encoding [-h] [--formula FORMULA]
 
 - `location` (required, type: `str`, default: none) - The path to write the EQSat encoding to
 - `formula` (optional, type: `str`, default: none) - The formula to write the EQSat encoding for. If not provided, all formulas will be written
-- `heuristic-extraction` (optional, type: `bool`, default: `False`) - Whether to enable heuristic extraction of the egglog output
-- `rewrites` (optional, type: `str`, default: `incomplete`, choices: `incomplete, complete`) - The set of rewrites to enable
+- `greedy-extraction` (optional, type: `bool`, default: `False`) - Whether to enable greedy extraction of the egglog output
 - `associative` (optional, type: `bool`, default: `True`) - Whether to enable associative rewrites
 - `commutative` (optional, type: `bool`, default: `True`) - Whether to enable commutative rewrites
 - `multi-arity` (optional, type: `bool`, default: `True`) - Whether to enable multi-arity rewrites
-- `const-folding` (optional, type: `bool`, default: `True`) - Whether to enable const folding rewrites
-- `temporal` (optional, type: `bool`, default: `True`) - Whether to enable temporal and logical rewrites
+- `const-folding` (optional, type: `bool`, default: `True`) - Whether to enable const folding
+- `extended` (optional, type: `bool`, default: `True`) - Whether to enable extended operator rewrites
+- `temporal` (optional, type: `bool`, default: `True`) - Whether to enable temporal rewrites
 
 ## Source: `map.py`
 
@@ -551,9 +559,7 @@ usage: parse_mltl [-h] [--mission-time MISSION_TIME] filename
 Run R2U2 over the trace attached to the context using the assembly attached to the context.
 
 ```text
-usage: run_r2u2 [-h] [--num-runs NUM_RUNS] [--print | --no-print]
-                [--output OUTPUT] [--r2u2dir R2U2DIR]
-                binary trace
+usage: run_r2u2 [-h] [--num-runs NUM_RUNS] [--print | --no-print] [--output OUTPUT] [--r2u2dir R2U2DIR] binary trace
 ```
 
 #### Options
@@ -577,6 +583,27 @@ usage: optimize_rewrites [-h]
 
 No options.
 
+## Source: `sabre.py`
+
+### `generate_sabre_code`
+
+Generate the Sabre code for the program
+
+```text
+usage: generate_sabre_code [-h] [--formula FORMULA] [--word-size {8,16,32,64}] [--nsigs NSIGS]
+                           [--raw-bytes | --no-raw-bytes] [--profile | --no-profile]
+                           output
+```
+
+#### Options
+
+- `output` (required, type: `str`, default: none) - The path to write the Sabre code to. If a directory is provided, the code will be written to a file named after the formula symbol in the directory.
+- `formula` (optional, type: `str`, default: none) - The formula symbol or index to generate the Sabre code for. If not provided, only the first FT formula will be generated.
+- `word-size` (optional, type: `int`, default: `8`, choices: `8, 16, 32, 64`) - The word size to use for the code
+- `nsigs` (optional, type: `int`, default: `-1`) - The number of signals to use for the code. If not provided, the number of signals will be inferred from the formula.
+- `raw-bytes` (optional, type: `bool`, default: `False`) - Whether to use raw bytes mode
+- `profile` (optional, type: `bool`, default: `False`) - Whether to profile the code
+
 ## Source: `sat.py`
 
 ### `check_equiv`
@@ -584,8 +611,7 @@ No options.
 Check that all formulas in the program are equivalent using the SMT encoding
 
 ```text
-usage: check_equiv [-h] [--strict | --no-strict] [--quiet | --no-quiet]
-                   [--smt-max-time SMT_MAX_TIME]
+usage: check_equiv [-h] [--strict | --no-strict] [--quiet | --no-quiet] [--smt-max-time SMT_MAX_TIME]
                    [--smt-max-memory SMT_MAX_MEMORY]
                    {uflia,qf_uflia,qf_bv}
 ```
@@ -603,8 +629,7 @@ usage: check_equiv [-h] [--strict | --no-strict] [--quiet | --no-quiet]
 Check the satisfiability of the program using the SMT encoding
 
 ```text
-usage: check_sat [-h] [--strict | --no-strict] [--print | --no-print]
-                 [--smt-max-time SMT_MAX_TIME]
+usage: check_sat [-h] [--strict | --no-strict] [--print | --no-print] [--smt-max-time SMT_MAX_TIME]
                  [--smt-max-memory SMT_MAX_MEMORY]
                  {uflia,qf_uflia,qf_bv}
 ```
@@ -622,8 +647,7 @@ usage: check_sat [-h] [--strict | --no-strict] [--print | --no-print]
 Write the SMT encoding(s) for the equivalence of all formulas in the program to the given location. If there are more than two formulas, the encodings will be written to a directory.
 
 ```text
-usage: write_equiv_smt_encoding [-h] [--strict | --no-strict]
-                                location {uflia,qf_uflia,qf_bv}
+usage: write_equiv_smt_encoding [-h] [--strict | --no-strict] location {uflia,qf_uflia,qf_bv}
 ```
 
 #### Options
@@ -637,8 +661,7 @@ usage: write_equiv_smt_encoding [-h] [--strict | --no-strict]
 Write the SMT encoding for the program or formula to the given location
 
 ```text
-usage: write_smt_encoding [-h] [--strict | --no-strict] [--formula FORMULA]
-                          location {uflia,qf_uflia,qf_bv}
+usage: write_smt_encoding [-h] [--strict | --no-strict] [--formula FORMULA] location {uflia,qf_uflia,qf_bv}
 ```
 
 #### Options
@@ -719,8 +742,7 @@ usage: write_prefix [-h] filename
 Generate a random trace for a given program.
 
 ```text
-usage: generate_trace [-h] [--seed SEED] [--float-precision FLOAT_PRECISION]
-                      [--output OUTPUT] [--print | --no-print]
+usage: generate_trace [-h] [--seed SEED] [--float-precision FLOAT_PRECISION] [--output OUTPUT] [--print | --no-print]
                       length min max
 ```
 
@@ -748,6 +770,16 @@ usage: parse_trace [-h] filename
 
 ## Source: `transform.py`
 
+### `convert_atomics_to_signals`
+
+Convert all atomics to signals
+
+```text
+usage: convert_atomics_to_signals [-h]
+```
+
+No options.
+
 ### `flatten_multi_operators`
 
 Flatten all multi-arity operators (i.e., &&, ||, +, *)
@@ -774,6 +806,16 @@ Remove extended operators (xor, ->, F, G, O, H) from the program and make all op
 
 ```text
 usage: remove_extended_operators [-h]
+```
+
+No options.
+
+### `remove_release_operators`
+
+Remove release operators (R) from the program
+
+```text
+usage: remove_release_operators [-h]
 ```
 
 No options.

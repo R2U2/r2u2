@@ -2155,7 +2155,12 @@ def to_prefix_str(start: Expression, with_internal_labels: bool = False) -> str:
             else:
                 s = s[:-1] + ") "
         elif isinstance(expr, Atomic):
-            stack.append((0, expr.children[0]))
+            if seen == 0:
+                s += "Atomic("
+                stack.append((seen + 1, expr))
+                stack.append((0, expr.children[0]))
+            else:
+                s = s[:-1] + ") "
         elif isinstance(expr, Formula):
             if not expr.is_internal_label() or with_internal_labels:
                 s += f"{expr.symbol}: "

@@ -51,6 +51,30 @@
   :ruleset mltl-rewrites
 )
 
+(rewrite
+  (And2 a0 (Or2 a1 a2))
+  (Or2 (And2 a0 a1) (And2 a0 a2))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or2 a0 (And2 a1 a2))
+  (And2 (Or2 a0 a1) (Or2 a0 a2))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Until (Interval b0 b1) a0 a1)
+  (Not (Release (Interval b0 b1) (Not a0) (Not a1)))
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Release (Interval b0 b1) a0 a1)
+  (Not (Until (Interval b0 b1) (Not a0) (Not a1)))
+  :ruleset mltl-rewrites
+)
+
 (birewrite
   (Not (Until (Interval b0 b1) a0 a1))
   (Release (Interval b0 b1) (Not a0) (Not a1))

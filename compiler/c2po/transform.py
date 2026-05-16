@@ -559,17 +559,27 @@ def convert_atomics_to_signals(program: cpt.Program, context: cpt.Context, optio
     Converts all atomics to signals.
     Returns a ReturnCode.SUCCESS if successful, ReturnCode.ERROR otherwise.
     """
-    for expr in program.postorder(context):
-        if not isinstance(expr, cpt.Atomic):
-            continue
+    replaced_count = 0
 
-        if expr not in context.atomic_id_map:
-            log.error(f"atomic {repr(expr)} not found in atomic ID map")
-            return command.ReturnCode.ERROR
+    # Replace via parent->children edges from the live AST, rather than relying on Atomic.parents,
+    # which may be stale after earlier transformations.
+    for expr in program.preorder(context):
+        for i, child in enumerate(expr.children):
+            if not isinstance(child, cpt.Atomic):
+                continue
 
-        aid = context.atomic_id_map[expr]
-        expr.replace(cpt.Signal(expr.loc, f"a{aid}", types.BoolType()))
+            if child not in context.atomic_id_map:
+                log.error(f"atomic {repr(child)} not found in atomic ID map")
+                return command.ReturnCode.ERROR
 
+            aid = context.atomic_id_map[child]
+            signal = cpt.Signal(child.loc, f"a{aid}", types.BoolType())
+            signal.signal_id = aid
+            expr.children[i] = signal
+            signal.parents.add(expr)
+            replaced_count += 1
+
+    log.debug(2, f"replaced {replaced_count} atomic nodes with signals")
     log.debug(1, f"post atomic to signal conversion:\n{repr(program)}")
     return command.ReturnCode.SUCCESS
 

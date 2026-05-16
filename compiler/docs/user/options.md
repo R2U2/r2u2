@@ -3,24 +3,16 @@
 The following options are generated from `python3 c2po.py --help`:
 
 ```text
-usage: c2po.py [-h] [--version] [-s SCRIPT] [-i] [--spec SPEC] [--trace TRACE]
-               [--map MAP] [-o OUTPUT] [--write-bounds WRITE_BOUNDS] [-q] [-v]
-               [--debug] [-p] [-tc] [-c] [--mission-time MISSION_TIME]
-               [--scq-constant SCQ_CONSTANT] [-bz] [--aux | --no-aux]
-               [--cse | --no-cse] [--rewrite | --no-rewrite]
-               [--extops | --no-extops] [--eqsat | --no-eqsat]
-               [--eqsat-check-equiv | --no-eqsat-check-equiv]
-               [--eqsat-const-folding | --no-eqsat-const-folding]
-               [--eqsat-associative | --no-eqsat-associative]
-               [--eqsat-commutative | --no-eqsat-commutative]
-               [--eqsat-multi-arity | --no-eqsat-multi-arity]
-               [--eqsat-temporal | --no-eqsat-temporal]
-               [--eqsat-max-time EQSAT_MAX_TIME]
-               [--eqsat-max-memory EQSAT_MAX_MEMORY]
-               [--egglog-path EGGLOG_PATH] [--check-sat | --no-check-sat]
-               [--smt-encoding {uflia,qf_uflia,qf_bv}]
-               [--smt-max-time SMT_MAX_TIME] [--smt-max-memory SMT_MAX_MEMORY]
-               [--smt-solver SMT_SOLVER]
+usage: c2po.py [-h] [--version] [-s SCRIPT] [-i] [--spec SPEC] [--trace TRACE] [--map MAP] [-o OUTPUT]
+               [--write-bounds WRITE_BOUNDS] [-q] [-v] [--debug] [-p] [-tc] [-c] [--mission-time MISSION_TIME]
+               [--scq-constant SCQ_CONSTANT] [-bz] [--aux | --no-aux] [--cse | --no-cse] [--rewrite | --no-rewrite]
+               [--extops | --no-extops] [--eqsat | --no-eqsat] [--eqsat-check-equiv | --no-eqsat-check-equiv]
+               [--eqsat-const-folding | --no-eqsat-const-folding] [--eqsat-associative | --no-eqsat-associative]
+               [--eqsat-commutative | --no-eqsat-commutative] [--eqsat-multi-arity | --no-eqsat-multi-arity]
+               [--eqsat-temporal | --no-eqsat-temporal] [--eqsat-max-time EQSAT_MAX_TIME]
+               [--eqsat-max-memory EQSAT_MAX_MEMORY] [--num-gurobi-threads NUM_GUROBI_THREADS]
+               [--egglog-path EGGLOG_PATH] [--check-sat | --no-check-sat] [--smt-encoding {uflia,qf_uflia,qf_bv}]
+               [--smt-max-time SMT_MAX_TIME] [--smt-max-memory SMT_MAX_MEMORY] [--smt-solver SMT_SOLVER]
 
 C2PO - Configuration Compiler for Property Organization
 ```
@@ -62,6 +54,7 @@ None.
 - `--eqsat-temporal, --no-eqsat-temporal` - enable temporal rewrite rule for equality saturation
 - `--eqsat-max-time EQSAT_MAX_TIME` - set the maximum time to allow for egglog in seconds (default: 5)
 - `--eqsat-max-memory EQSAT_MAX_MEMORY` - set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: 0)
+- `--num-gurobi-threads NUM_GUROBI_THREADS` - set number of Gurobi threads for EQSat ILP extraction, use 0 for Gurobi default (default: 0)
 - `--egglog-path EGGLOG_PATH` - path to egglog executable, if not set will search PATH
 - `--check-sat, --no-check-sat` - enable satisfiability checking of future-time formulas
 - `--smt-encoding {uflia,qf_uflia,qf_bv}` - specify the SMT encoding to use for satisfiability checking (default: uflia)
