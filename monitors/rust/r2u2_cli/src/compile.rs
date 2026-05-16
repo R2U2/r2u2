@@ -39,7 +39,8 @@ pub fn c2po_compile(spec_filename: &str,
     let parse_mltl_code = c_str!(include_str!("../compiler/c2po/parse_mltl.py"));
     let parse_c2po_code = c_str!(include_str!("../compiler/c2po/parse_c2po.py"));
     let parse_equiv_code = c_str!(include_str!("../compiler/c2po/parse_equiv.py"));
-    //let egraph_code = c_str!(include_str!("../compiler/c2po/egraph.py"));
+    // egraph.py requires gurobipy; eqsat imports it optionally via try/except
+    let sabre_code = c_str!(include_str!("../compiler/c2po/sabre.py"));
     let trace_code = c_str!(include_str!("../compiler/c2po/trace.py"));
     let map_code = c_str!(include_str!("../compiler/c2po/map.py"));
     let r2u2_code = c_str!(include_str!("../compiler/c2po/r2u2.py"));
@@ -76,7 +77,6 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, sat_code, c_str!("c2po/sat.py"), c_str!("c2po.sat"))?;
         PyModule::from_code(py, parse_egglog_output_code, c_str!("c2po/parse_egglog_output.py"), c_str!("c2po.parse_egglog_output"))?;
         PyModule::from_code(py, eqsat_code, c_str!("c2po/eqsat.py"), c_str!("c2po.eqsat"))?;
-        //PyModule::from_code(py, egraph_code, c_str!("c2po/egraph.py"), c_str!("c2po.egraph"))?;
         PyModule::from_code(py, serialize_code, c_str!("c2po/serialize.py"), c_str!("c2po.serialize"))?;
         PyModule::from_code(py, parse_mltl_code, c_str!("c2po/parse_mltl.py"), c_str!("c2po.parse_mltl"))?;
         PyModule::from_code(py, parse_c2po_code, c_str!("c2po/parse_c2po.py"), c_str!("c2po.parse_c2po"))?;
@@ -85,6 +85,7 @@ pub fn c2po_compile(spec_filename: &str,
         PyModule::from_code(py, map_code, c_str!("c2po/map.py"), c_str!("c2po.map"))?;
         PyModule::from_code(py, r2u2_code, c_str!("c2po/r2u2.py"), c_str!("c2po.r2u2"))?;
         PyModule::from_code(py, wcet_code, c_str!("c2po/wcet.py"), c_str!("c2po.wcet"))?;
+        PyModule::from_code(py, sabre_code, c_str!("c2po/sabre.py"), c_str!("c2po.sabre"))?;
         
         // Main module (depends on all others)
         let main_py = PyModule::from_code(py, main_code, c_str!("c2po/main.py"), c_str!("c2po.main"))?;
