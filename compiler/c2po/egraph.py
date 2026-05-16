@@ -5,7 +5,9 @@ from __future__ import annotations
 import pathlib
 import dataclasses
 import pprint
-import signal   
+import resource
+import signal
+import sys
 from typing import Optional, NewType, Any
 
 from c2po import cpt, log, util
@@ -22,6 +24,62 @@ Interval = NewType('Interval', tuple[int, int])
 
 def encoding_timeout_handler(signum: int, frame: Any) -> None:
     raise TimeoutError("Gurobi encoding timed out")
+
+
+class EncodingMemoutError(Exception):
+    """Raised when Gurobi model encoding exceeds ``gurobi-max-memory`` (report as encoding_memout)."""
+
+
+def _process_resident_set_mib() -> float:
+    """Best-effort resident set size for this process in MiB (Linux VmRSS preferred)."""
+    if sys.platform == "linux":
+        try:
+            with open("/proc/self/status", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("VmRSS:"):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            return int(parts[1]) / 1024.0
+        except (OSError, ValueError, IndexError):
+            pass
+    ru = resource.getrusage(resource.RUSAGE_SELF)
+    if sys.platform == "darwin":
+        return float(ru.ru_maxrss) / (1024.0 * 1024.0)
+    return float(ru.ru_maxrss) / 1024.0
+
+
+def _raise_if_memory_over_limit(limit_mb: int) -> None:
+    if limit_mb > 0 and _process_resident_set_mib() > float(limit_mb):
+        raise EncodingMemoutError("encoding_memout")
+
+
+# How often ``EncodingMemoutBudget.tick`` performs an RSS read (amortizes /proc and syscall cost).
+_ENCODING_MEMOUT_TICK_INTERVAL = 32
+
+
+@dataclasses.dataclass
+class EncodingMemoutBudget:
+    """
+    Throttled RSS checks against the same MB cap as ``gurobi-max-memory`` for the encoding pipeline:
+    JSON → EGraph, Gurobi model build, and the boundary immediately before ``model.optimize``.
+    """
+
+    limit_mb: int
+    _tick: int = dataclasses.field(default=0, repr=False)
+
+    def tick(self) -> None:
+        """Call from hot loops; only reads RSS every ``_ENCODING_MEMOUT_TICK_INTERVAL`` ticks."""
+        if self.limit_mb <= 0:
+            return
+        self._tick += 1
+        if self._tick % _ENCODING_MEMOUT_TICK_INTERVAL != 0:
+            return
+        _raise_if_memory_over_limit(self.limit_mb)
+
+    def check_now(self) -> None:
+        """Immediate RSS check (e.g. before ``model.optimize``)."""
+        _raise_if_memory_over_limit(self.limit_mb)
+
 
 @dataclasses.dataclass
 class ENode:
@@ -210,6 +268,7 @@ class EGraph:
         start: cpt.Expression,
         context: cpt.Context,
         timeout: int,
+        memout_budget: Optional[EncodingMemoutBudget] = None,
     ) -> Optional[EGraph]:
         """Return an `EClass` from egglog-generated JSON. Content should the "nodes" key of the JSON."""
         eclasses: dict[EClassID, set[ENode]] = {}
@@ -232,6 +291,8 @@ class EGraph:
             if enode.eclass_id not in eclasses:
                 eclasses[enode.eclass_id] = set()
             eclasses[enode.eclass_id].add(enode)
+            if memout_budget is not None:
+                memout_budget.tick()
 
         egraph = EGraph(eclasses, root_eclass, start, context)
         log.debug(3, "egraph:")
@@ -239,12 +300,18 @@ class EGraph:
 
         return egraph
 
+    def get_enodes(self) -> list[ENode]:
+        return sorted(self.enodes, key=lambda x: str(x.enode_id))
+
+    def get_eclasses(self) -> list[EClassID]:
+        return sorted(self.eclasses.keys(), key=lambda x: str(x))
+
     def get_children(self, enode: ENode) -> list[EClassID]:
-        return enode.child_eclass_ids
+        return sorted(enode.child_eclass_ids, key=lambda x: str(x))
 
     def get_parents(self, enode: ENode) -> list[ENode]:
         parents = []
-        for enode_ in self.enodes:
+        for enode_ in self.get_enodes():
             if enode.eclass_id in enode_.child_eclass_ids:
                 parents.append(enode_)
         return parents
@@ -252,203 +319,231 @@ class EGraph:
     def get_siblings_with_parent(self, enode: ENode) -> set[tuple[EClassID, ENode]]:
         siblings_with_parent = set()
         for parent in self.get_parents(enode):
-            for sibling_eclass_id in [c for c in parent.child_eclass_ids if c != enode.eclass_id]:
+            for sibling_eclass_id in sorted([c for c in parent.child_eclass_ids if c != enode.eclass_id], key=lambda x: str(x)):
                 siblings_with_parent.add((sibling_eclass_id, parent))
         return siblings_with_parent
 
-    def build_gurobi_model_(self, env: gp.Env, extended: bool) -> gp.Model:
+    def build_gurobi_model_(self, env: gp.Env, extended: bool, memout_budget: EncodingMemoutBudget) -> gp.Model:
         """Returns a Gurobi model representing the EGraph."""
         start_time = util.get_rusage_time()
-        model = gp.Model("EGraph", env=env)
 
-        eclass_vars: dict[EClassID, gp.Var] = {}
-        eclass_wpd_vars: dict[EClassID, gp.Var] = {}
-        eclass_bpd_vars: dict[EClassID, gp.Var] = {}
-        enode_vars: dict[ENode, gp.Var] = {}
-        enode_wpd_vars: dict[ENode, gp.Var] = {}
-        enode_bpd_vars: dict[ENode, gp.Var] = {}
-        wpd_active_vars: dict[ENode, gp.Var] = {}
-        wpd_active_siblings_vars: dict[ENode, dict[ENode, dict[ENode, gp.Var]]] = {}
-        max_sib_wpd_vars: dict[ENode, gp.Var] = {}
-        wpb_bpd_diff_vars: dict[ENode, gp.Var] = {}
-        cost_vars: dict[ENode, gp.Var] = {}
-        cost_active_vars: dict[ENode, gp.Var] = {}
-        eclass_order_vars: dict[EClassID, gp.Var] = {}
+        finished = False
+        model: Optional[gp.Model] = None
+        try:
+            memout_budget.check_now()
+            model = gp.Model("EGraph", env=env)
 
-        for eclass_id in self.eclasses.keys():
-            eclass_vars[eclass_id] = model.addVar(vtype=GRB.BINARY, name=f"eclass({eclass_id})")
-            eclass_order_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"eclass_order({eclass_id})")
-            eclass_wpd_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_eclass({eclass_id})")
-            eclass_bpd_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"bpd_eclass({eclass_id})")
-
-        for enode in self.enodes:
-            enode_vars[enode] = model.addVar(vtype=GRB.BINARY, name=f"enode({enode.enode_id})")
-            enode_wpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_enode({enode.enode_id})")
-            enode_bpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"bpd_enode({enode.enode_id})")
-            wpd_active_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_active({enode.enode_id})")
-
-            wpd_active_siblings_vars[enode] = {}
-            for sibling_enode, parent_enode in [
-                (sibling_enode, parent_enode)
-                for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
-                    enode
-                )
-                for sibling_enode in self.eclasses[sibling_eclass_id]
-            ]:
-                if parent_enode not in wpd_active_siblings_vars[enode]:
-                    wpd_active_siblings_vars[enode][parent_enode] = {}
-                wpd_active_siblings_vars[enode][parent_enode][sibling_enode] = (
-                    model.addVar(
-                        vtype=GRB.INTEGER,
-                        name=f"wpd_active_sibling({enode.enode_id},{parent_enode.enode_id},{sibling_enode.enode_id})",
+            eclass_vars: dict[EClassID, gp.Var] = {}
+            eclass_wpd_vars: dict[EClassID, gp.Var] = {}
+            eclass_bpd_vars: dict[EClassID, gp.Var] = {}
+            enode_vars: dict[ENode, gp.Var] = {}
+            enode_wpd_vars: dict[ENode, gp.Var] = {}
+            enode_bpd_vars: dict[ENode, gp.Var] = {}
+            wpd_active_vars: dict[ENode, gp.Var] = {}
+            wpd_active_siblings_vars: dict[ENode, dict[ENode, dict[ENode, gp.Var]]] = {}
+            max_sib_wpd_vars: dict[ENode, gp.Var] = {}
+            wpb_bpd_diff_vars: dict[ENode, gp.Var] = {}
+            cost_vars: dict[ENode, gp.Var] = {}
+            cost_active_vars: dict[ENode, gp.Var] = {}
+            eclass_order_vars: dict[EClassID, gp.Var] = {}
+    
+            for eclass_id in self.get_eclasses():
+                memout_budget.tick()
+                eclass_vars[eclass_id] = model.addVar(vtype=GRB.BINARY, name=f"eclass({eclass_id})")
+                eclass_order_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"eclass_order({eclass_id})")
+                eclass_wpd_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_eclass({eclass_id})")
+                eclass_bpd_vars[eclass_id] = model.addVar(vtype=GRB.INTEGER, name=f"bpd_eclass({eclass_id})")
+    
+            for enode in self.get_enodes():
+                memout_budget.tick()
+                enode_vars[enode] = model.addVar(vtype=GRB.BINARY, name=f"enode({enode.enode_id})")
+                enode_wpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_enode({enode.enode_id})")
+                enode_bpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"bpd_enode({enode.enode_id})")
+                wpd_active_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"wpd_active({enode.enode_id})")
+    
+                wpd_active_siblings_vars[enode] = {}
+                for sibling_enode, parent_enode in [
+                    (sibling_enode, parent_enode)
+                    for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
+                        enode
                     )
-                )
-
-            max_sib_wpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"max_sib_wpd({enode.enode_id})")
-            wpb_bpd_diff_vars[enode] = model.addVar(lb=(- self.original_expr.wpd), vtype=GRB.INTEGER, name=f"wpb_bpd_diff({enode.enode_id})")
-            cost_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost({enode.enode_id})")
-            cost_active_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost_active({enode.enode_id})")
-
-        model.addConstr(
-            eclass_vars[self.root_eclass] == 1,
-        )
-
-        if not extended:
-            for enode in [enode for enode in self.enodes if enode.is_extended_operator()]:
-                model.addConstr(enode_vars[enode] == 0)
-
-        # For each enode n, if n=1 then all of n's children must be 1
-        # n * len(children(n)) == n * sum(children(n))
-        for enode in self.enodes:
-            var = enode_vars[enode]
-            child_sum = gp.quicksum(eclass_vars[child] for child in self.get_children(enode))
-            len_child = len(enode.child_eclass_ids)
-            model.addConstr((var * len_child) == (var * child_sum))
-
-        # For each eclass c, if c=1 then n=1 for exactly one of the nodes n in c
-        # c == sum(nodes(c))
-        for eclass_id in self.eclasses:
-            eclass_var = eclass_vars[eclass_id]
-            nodes_sum = gp.quicksum(enode_vars[enode] for enode in self.eclasses[eclass_id])
-            model.addConstr(eclass_var == nodes_sum)
-
-        # For each enode n, wpd(n) = max(wpd(children(n))) + n.interval[1]
-        # bpd(n) = min(bpd(children(n))) + n.interval[0]
-        for enode in self.enodes:
-            enode_wpd_var = enode_wpd_vars[enode]
-            enode_bpd_var = enode_bpd_vars[enode]
-            eclass_wpd_var = eclass_wpd_vars[enode.eclass_id]
-            eclass_bpd_var = eclass_bpd_vars[enode.eclass_id]
-            # Special case for variables and booleans. We check if any of the nodes in the eclass
-            # are variables or booleans in case a temporal operator is in the eclass (probably
-            # something like G[a,b] true). If we don't do this then wpd and bpd constraints become
-            # infeasible.
-            if any([e.op == "Var" or e.op == "Bool" for e in self.eclasses[enode.eclass_id]]):
-                model.addConstr(enode_wpd_var == 0)
-                model.addConstr(enode_bpd_var == 0)
-            elif enode.interval is None:
-                model.addConstr(
-                    enode_wpd_var == gp.max_(
-                        *[eclass_wpd_vars[c] for c in enode.child_eclass_ids],
-                        constant=0
-                    )
-                )
-                model.addConstr(
-                    enode_bpd_var == gp.max_(
-                        *[eclass_bpd_vars[c] for c in enode.child_eclass_ids],
-                        constant=0
-                    )
-                )
-            else:
-                tmp_wpd_var = model.addVar(vtype=GRB.INTEGER, name=f"wpd_tmp_{enode.enode_id}")
-                tmp_bpd_var = model.addVar(vtype=GRB.INTEGER, name=f"bpd_tmp_{enode.enode_id}")
-                model.addConstr(
-                    tmp_wpd_var == gp.max_(
-                        *[eclass_wpd_vars[c] for c in enode.child_eclass_ids],
-                        constant=0
-                    )
-                )
-                model.addConstr(enode_wpd_var == tmp_wpd_var + enode.interval[1])
-                model.addConstr(
-                    tmp_bpd_var == gp.min_(
-                        *[eclass_bpd_vars[c] for c in enode.child_eclass_ids],
-                        constant=0
-                    )
-                )
-                model.addConstr(enode_bpd_var == tmp_bpd_var + enode.interval[0])
-
-        # For each eclass c, wpd(c) = max(enode_vars[n] * wpd_enode(n) for n in c)
-        # bpd(c) = min(enode_vars[n] * bpd_enode(n) for n in c)
-        for eclass_id in self.eclasses:
-            eclass_wpd_var = eclass_wpd_vars[eclass_id]
-            eclass_bpd_var = eclass_bpd_vars[eclass_id]
-            enodes_sum = gp.quicksum(enode_vars[enode] * enode_wpd_vars[enode] for enode in self.eclasses[eclass_id])
-            model.addConstr(eclass_wpd_var == enodes_sum)
-            enodes_sum = gp.quicksum(enode_vars[enode] * enode_bpd_vars[enode] for enode in self.eclasses[eclass_id])
-            model.addConstr(eclass_bpd_var == enodes_sum)
-
-        for enode in self.enodes:
-            wpd_active_var = wpd_active_vars[enode]
-            max_sib_wpd_var = max_sib_wpd_vars[enode]
-            wpb_bpd_diff_var = wpb_bpd_diff_vars[enode]
-            cost_var = cost_vars[enode]
-            cost_active_var = cost_active_vars[enode]
-
-            # Boolean nodes have no SCQ size
-            if enode.op == "Bool":
-                model.addConstr(wpd_active_var == 0)
-                model.addConstr(max_sib_wpd_var == 0)
-                model.addConstr(wpb_bpd_diff_var == 0)
-                model.addConstr(cost_var == 0)
-                model.addConstr(cost_active_var == 0)
-                continue
-
-            model.addConstr(wpd_active_var == enode_vars[enode] * enode_wpd_vars[enode])
-
-            # Siblings are only counted if their shared parent is active
-            for sibling_enode, parent_enode in [
-                (sibling_enode, parent_enode)
-                for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
-                    enode
-                )
-                for sibling_enode in self.eclasses[sibling_eclass_id]
-            ]:
-                model.addConstr(
-                    wpd_active_siblings_vars[enode][parent_enode][sibling_enode]
-                    == enode_vars[parent_enode] * wpd_active_vars[sibling_enode]
-                )
-
-            model.addConstr(max_sib_wpd_var == gp.max_(
-                    *[
-                        wpd_active_siblings_vars[enode][parent_enode][sibling_enode] 
-                        for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
-                            enode
+                    for sibling_enode in sorted(self.eclasses[sibling_eclass_id], key=lambda x: str(x.enode_id))
+                ]:
+                    memout_budget.tick()
+                    if parent_enode not in wpd_active_siblings_vars[enode]:
+                        wpd_active_siblings_vars[enode][parent_enode] = {}
+                    wpd_active_siblings_vars[enode][parent_enode][sibling_enode] = (
+                        model.addVar(
+                            vtype=GRB.INTEGER,
+                            name=f"wpd_active_sibling({enode.enode_id},{parent_enode.enode_id},{sibling_enode.enode_id})",
                         )
-                        for sibling_enode in self.eclasses[sibling_eclass_id]
-                    ],
-                    constant=0
-                ),
+                    )
+    
+                max_sib_wpd_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"max_sib_wpd({enode.enode_id})")
+                wpb_bpd_diff_vars[enode] = model.addVar(lb=(- self.original_expr.wpd), vtype=GRB.INTEGER, name=f"wpb_bpd_diff({enode.enode_id})")
+                cost_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost({enode.enode_id})")
+                cost_active_vars[enode] = model.addVar(vtype=GRB.INTEGER, name=f"cost_active({enode.enode_id})")
+    
+            model.addConstr(
+                eclass_vars[self.root_eclass] == 1,
             )
-
-            model.addConstr(wpb_bpd_diff_var == (max_sib_wpd_var - enode_bpd_vars[enode]))
-            model.addConstr(cost_var == gp.max_(wpb_bpd_diff_var, constant=0))
-            model.addConstr(cost_active_var == enode_vars[enode] * (cost_var + 1))
-
-        # Enforce strict topoligical ordering of active enodes
-        for enode in self.enodes:
-            for eclass_id in self.get_children(enode):
-                model.addConstr(
-                    enode_vars[enode] * eclass_order_vars[eclass_id] <= eclass_order_vars[enode.eclass_id] - 1
+    
+            if not extended:
+                for enode in [enode for enode in self.enodes if enode.is_extended_operator()]:
+                    memout_budget.tick()
+                    model.addConstr(enode_vars[enode] == 0)
+    
+            # For each enode n, if n=1 then all of n's children must be 1
+            # n * len(children(n)) == n * sum(children(n))
+            for enode in self.get_enodes():
+                memout_budget.tick()
+                var = enode_vars[enode]
+                child_sum = gp.quicksum(eclass_vars[child] for child in self.get_children(enode))
+                len_child = len(enode.child_eclass_ids)
+                model.addConstr((var * len_child) == (var * child_sum))
+    
+            # For each eclass c, if c=1 then n=1 for exactly one of the nodes n in c
+            # c == sum(nodes(c))
+            for eclass_id in self.get_eclasses():
+                memout_budget.tick()
+                eclass_var = eclass_vars[eclass_id]
+                nodes_sum = gp.quicksum(enode_vars[enode] for enode in self.eclasses[eclass_id])
+                model.addConstr(eclass_var == nodes_sum)
+    
+            # For each enode n, wpd(n) = max(wpd(children(n))) + n.interval[1]
+            # bpd(n) = min(bpd(children(n))) + n.interval[0]
+            for enode in self.get_enodes():
+                memout_budget.tick()
+                enode_wpd_var = enode_wpd_vars[enode]
+                enode_bpd_var = enode_bpd_vars[enode]
+                eclass_wpd_var = eclass_wpd_vars[enode.eclass_id]
+                eclass_bpd_var = eclass_bpd_vars[enode.eclass_id]
+                # Special case for variables and booleans. We check if any of the nodes in the eclass
+                # are variables or booleans in case a temporal operator is in the eclass (probably
+                # something like G[a,b] true). If we don't do this then wpd and bpd constraints become
+                # infeasible.
+                if any([e.op == "Var" or e.op == "Bool" for e in self.eclasses[enode.eclass_id]]):
+                    model.addConstr(enode_wpd_var == 0)
+                    model.addConstr(enode_bpd_var == 0)
+                elif enode.interval is None:
+                    model.addConstr(
+                        enode_wpd_var == gp.max_(
+                            *[eclass_wpd_vars[c] for c in enode.child_eclass_ids],
+                            constant=0
+                        )
+                    )
+                    model.addConstr(
+                        enode_bpd_var == gp.max_(
+                            *[eclass_bpd_vars[c] for c in enode.child_eclass_ids],
+                            constant=0
+                        )
+                    )
+                else:
+                    tmp_wpd_var = model.addVar(vtype=GRB.INTEGER, name=f"wpd_tmp_{enode.enode_id}")
+                    tmp_bpd_var = model.addVar(vtype=GRB.INTEGER, name=f"bpd_tmp_{enode.enode_id}")
+                    model.addConstr(
+                        tmp_wpd_var == gp.max_(
+                            *[eclass_wpd_vars[c] for c in enode.child_eclass_ids],
+                            constant=0
+                        )
+                    )
+                    model.addConstr(enode_wpd_var == tmp_wpd_var + enode.interval[1])
+                    model.addConstr(
+                        tmp_bpd_var == gp.min_(
+                            *[eclass_bpd_vars[c] for c in enode.child_eclass_ids],
+                            constant=0
+                        )
+                    )
+                    model.addConstr(enode_bpd_var == tmp_bpd_var + enode.interval[0])
+    
+            # For each eclass c, wpd(c) = max(enode_vars[n] * wpd_enode(n) for n in c)
+            # bpd(c) = min(enode_vars[n] * bpd_enode(n) for n in c)
+            for eclass_id in self.get_eclasses():
+                memout_budget.tick()
+                eclass_wpd_var = eclass_wpd_vars[eclass_id]
+                eclass_bpd_var = eclass_bpd_vars[eclass_id]
+                enodes_sum = gp.quicksum(enode_vars[enode] * enode_wpd_vars[enode] for enode in self.eclasses[eclass_id])
+                model.addConstr(eclass_wpd_var == enodes_sum)
+                enodes_sum = gp.quicksum(enode_vars[enode] * enode_bpd_vars[enode] for enode in self.eclasses[eclass_id])
+                model.addConstr(eclass_bpd_var == enodes_sum)
+    
+            for enode in self.get_enodes():
+                memout_budget.tick()
+                wpd_active_var = wpd_active_vars[enode]
+                max_sib_wpd_var = max_sib_wpd_vars[enode]
+                wpb_bpd_diff_var = wpb_bpd_diff_vars[enode]
+                cost_var = cost_vars[enode]
+                cost_active_var = cost_active_vars[enode]
+    
+                # Boolean nodes have no SCQ size
+                if enode.op == "Bool":
+                    model.addConstr(wpd_active_var == 0)
+                    model.addConstr(max_sib_wpd_var == 0)
+                    model.addConstr(wpb_bpd_diff_var == 0)
+                    model.addConstr(cost_var == 0)
+                    model.addConstr(cost_active_var == 0)
+                    continue
+    
+                model.addConstr(wpd_active_var == enode_vars[enode] * enode_wpd_vars[enode])
+    
+                # Siblings are only counted if their shared parent is active
+                for sibling_enode, parent_enode in [
+                    (sibling_enode, parent_enode)
+                    for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
+                        enode
+                    )
+                    for sibling_enode in self.eclasses[sibling_eclass_id]
+                ]:
+                    memout_budget.tick()
+                    model.addConstr(
+                        wpd_active_siblings_vars[enode][parent_enode][sibling_enode]
+                        == enode_vars[parent_enode] * wpd_active_vars[sibling_enode]
+                    )
+    
+                model.addConstr(max_sib_wpd_var == gp.max_(
+                        *[
+                            wpd_active_siblings_vars[enode][parent_enode][sibling_enode] 
+                            for sibling_eclass_id, parent_enode in self.get_siblings_with_parent(
+                                enode
+                            )
+                            for sibling_enode in self.eclasses[sibling_eclass_id]
+                        ],
+                        constant=0
+                    ),
                 )
-
-        model.setObjective(gp.quicksum(cost_active_vars[enode] for enode in self.enodes), GRB.MINIMIZE)
-
-        self.gurobi_enode_vars_ = enode_vars
-        self.gurobi_eclass_vars_ = eclass_vars
-
-        self.context.stats.eqsat_gurobi_encoding_time = util.get_rusage_time() - start_time
-
-        return model
+    
+                model.addConstr(wpb_bpd_diff_var == (max_sib_wpd_var - enode_bpd_vars[enode]))
+                model.addConstr(cost_var == gp.max_(wpb_bpd_diff_var, constant=0))
+                model.addConstr(cost_active_var == enode_vars[enode] * (cost_var + 1))
+    
+            # Enforce strict topological ordering of active enodes
+            for enode in self.get_enodes():
+                memout_budget.tick()
+                for eclass_id in self.get_children(enode):
+                    model.addConstr(
+                        enode_vars[enode] * eclass_order_vars[eclass_id] <= eclass_order_vars[enode.eclass_id] - 1
+                    )
+    
+            model.setObjective(gp.quicksum(cost_active_vars[enode] for enode in self.get_enodes()), GRB.MINIMIZE)
+    
+            self.gurobi_enode_vars_ = enode_vars
+            self.gurobi_eclass_vars_ = eclass_vars
+    
+            self.context.stats.eqsat_gurobi_encoding_time = util.get_rusage_time() - start_time
+    
+            finished = True
+            return model
+        except EncodingMemoutError:
+            raise
+        except gp.GurobiError as e:
+            if "Out of memory" in str(e):
+                raise EncodingMemoutError("encoding_memout") from e
+            raise
+        except MemoryError as e:
+            raise EncodingMemoutError("encoding_memout") from e
+        finally:
+            if not finished and model is not None:
+                model.dispose()
 
     def build_repr_map_(self) -> dict[EClassID, ENode]:
         """
@@ -562,16 +657,37 @@ class EGraph:
 
         return build_expr_recur(repr_map[self.root_eclass])
 
-    def extract(self, max_time: float, max_memory: int, extended: bool) -> Optional[cpt.Expression]:
+    def extract(
+        self,
+        max_time: float,
+        max_memory: int,
+        num_gurobi_threads: int,
+        extended: bool,
+        model_filename: Optional[str] = None,
+        memout_budget: Optional[EncodingMemoutBudget] = None,
+    ) -> Optional[cpt.Expression]:
         """
         Extracts an optimal expression from the EGraph using Gurobi optimizer.
+
+        Args:
+            max_time: The maximum time to allow for the Gurobi optimizer in seconds
+            max_memory: The maximum memory to allow for the Gurobi optimizer in MB
+            num_gurobi_threads: Number of Gurobi solver threads (0 lets Gurobi decide)
+            extended: Whether to include extended operators in the expression
+            model_filename: The path to write the Gurobi model to (prior to extraction, only supported if `extraction-method` is `ilp`)
+            memout_budget: Optional shared RSS budget (JSON ingest through pre-optimize); if omitted, one is created from ``max_memory``.
         """
+        budget = memout_budget if memout_budget is not None else EncodingMemoutBudget(int(max_memory))
         with gp.Env(empty=True) as env:
             env.setParam('OutputFlag', 0)
             if max_time > 0:
                 env.setParam('TimeLimit', max_time)
             if max_memory > 0:
-                env.setParam('SoftMemLimit', max_memory)
+                # Gurobi expects memory in GB, so we convert from MB to GB.
+                max_memory_ = int(max_memory / 1000)
+                env.setParam('MemLimit', max_memory_)
+            if num_gurobi_threads > 0:
+                env.setParam('Threads', int(num_gurobi_threads))
 
             try:
                 env.start()
@@ -588,14 +704,13 @@ class EGraph:
                 return None
 
             try:
-                model = self.build_gurobi_model_(env, extended)
+                model = self.build_gurobi_model_(env, extended, budget)
+            except EncodingMemoutError:
+                signal.alarm(0)
+                log.warning(f"gurobi encoding exceeded memory limit ({max_memory} MB)")
+                raise
             except gp.GurobiError as e:
                 signal.alarm(0) # Disable the timeout handler
-                if "Out of memory" in str(e):
-                    log.warning(f"gurobi ran out of memory after {max_memory} MB")
-                    self.context.stats.eqsat_gurobi_solver_status = "encoding_memout"
-                    self.gurobi_status = "memout"
-                    return None
                 log.warning(f"gurobi model building failed: {e}")
                 self.context.stats.eqsat_gurobi_solver_status = "encoding_failure"
                 self.gurobi_status = "failure"
@@ -608,11 +723,6 @@ class EGraph:
                 return None
             except Exception as e:
                 signal.alarm(0) # Disable the timeout handler
-                if "Out of memory" in str(e):
-                    log.warning(f"gurobi ran out of memory after {max_memory} MB")
-                    self.context.stats.eqsat_gurobi_solver_status = "encoding_memout"
-                    self.gurobi_status = "memout"
-                    return None
                 log.warning(str(e))
                 self.context.stats.eqsat_gurobi_solver_status = "encoding_timeout"
                 self.gurobi_status = "timeout"
@@ -622,14 +732,27 @@ class EGraph:
             # handler from interrupting the optimization.
             signal.alarm(0) 
 
+            if model_filename is not None:
+                budget.tick()
+                model.write(model_filename)
+
             log.debug(2, "optimizing gurobi model")
             try:
+                budget.check_now()
                 model.optimize()
+            except EncodingMemoutError:
+                log.warning(f"gurobi encoding exceeded memory limit ({max_memory} MB)")
+                raise
             except Exception as e:
                 if "Model too large for size-limited license" in str(e):
                     log.error("gurobi model too large for size-limited license; see https://gurobi.com/unrestricted for more information")
                     self.context.stats.eqsat_gurobi_solver_status = "bad_license"
                     self.gurobi_status = "bad_license"
+                    return None
+                elif "Out of memory" in str(e):
+                    log.warning(f"gurobi ran out of memory after {max_memory} MB")
+                    self.context.stats.eqsat_gurobi_solver_status = "memout"
+                    self.gurobi_status = "memout"
                     return None
                 log.internal(f"gurobi optimization failed: {e}")
                 self.context.stats.eqsat_gurobi_solver_status = "failure"
@@ -658,7 +781,7 @@ class EGraph:
                 return None
             elif model.status == GRB.MEM_LIMIT:
                 log.warning(f"gurobi ran out of memory after {max_memory} MB")
-                self.context.stats.eqsat_gurobi_solver_status = "mem_limit"
+                self.context.stats.eqsat_gurobi_solver_status = "memout"
                 self.gurobi_status = "memout"
                 return None
             elif model.status != GRB.OPTIMAL:

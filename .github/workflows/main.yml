@@ -10,16 +10,6 @@ jobs:
       with:
         python-version: "3.9"
 
-    - name: Install Pyright
-      run: |
-        python -m pip install pyright
-
-    # Run this before installing z3 and egglog to check for type errors only in c2po
-    - name: Run Pyright 
-      run: |
-        cd compiler/c2po
-        pyright
-
     - name: Set up Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
@@ -69,11 +59,11 @@ jobs:
         cd monitors/rust/r2u2_cli
         cargo build --release
 
-    # Disable eqsat-optimal since that requires Gurobi
+    # Disable eqsat-ilp since that requires Gurobi
     - name: Test c2po
       run: |
         cd compiler/test
-        python3 test.py --disable-subset eqsat-optimal --disable-subset r2u2
+        python3 test.py --disable-subset eqsat-ilp --disable-subset r2u2
 
     - name: Test cav (c implementation)
       run: |

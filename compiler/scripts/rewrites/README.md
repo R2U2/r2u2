@@ -18,7 +18,7 @@ Then generate the corresponding egglog and place it where c2po can find it:
 
 Finally, re-generate the SMT2 encoding for the equivalence proofs:
 
-    ./generate_smt2_equiv.sh equiv/ smt2/
+    ./generate_smt2_equiv.sh equiv/ smt2/ ../../c2po.py
 
 The proof obligations can be dispatched via the `compiler/scripts/prove.sh` script for parallel
 solving (assuming cvc5 and z3 are installed).

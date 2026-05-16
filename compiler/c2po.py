@@ -193,6 +193,12 @@ parser.add_argument(
     help="set the maximum memory to allow for egglog in MB, use 0 for no maximum (default: %(default)s)"
 )
 parser.add_argument(
+    "--num-gurobi-threads",
+    type=int,
+    default=0,
+    help="set number of Gurobi threads for EQSat ILP extraction, use 0 for Gurobi default (default: %(default)s)"
+)
+parser.add_argument(
     "--egglog-path", 
     default=None,
     help="path to egglog executable, if not set will search PATH"
@@ -264,6 +270,7 @@ elif args.spec:
         enable_eqsat_temporal=args.eqsat_temporal,
         eqsat_max_time=args.eqsat_max_time,
         eqsat_max_memory=args.eqsat_max_memory,
+        num_gurobi_threads=args.num_gurobi_threads,
         egglog_path=args.egglog_path,
         check_sat=args.check_sat,
         smt_theory=args.smt_encoding,

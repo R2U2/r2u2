@@ -275,6 +275,7 @@ def cli(
     enable_eqsat_temporal: bool,
     eqsat_max_time: int,
     eqsat_max_memory: int,
+    num_gurobi_threads: int,
     egglog_path: Optional[str],
     check_sat: bool,
     smt_theory: str,
@@ -317,6 +318,7 @@ def cli(
     
     if enable_eqsat:
         cmd = f"optimize_eqsat --egglog-max-time {eqsat_max_time} --egglog-max-memory {eqsat_max_memory} " \
+                  f"--num-gurobi-threads {num_gurobi_threads} " \
                   f"--theory {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory} " \
                   f"--{'no-' if not enable_eqsat_equiv_check else ''}check-equiv " \
                   f"--{'no-' if not enable_eqsat_const_folding else ''}const-folding " \
@@ -419,6 +421,7 @@ def main_rs(
         enable_eqsat_temporal=False,
         eqsat_max_time=5,
         eqsat_max_memory=0,
+        num_gurobi_threads=0,
         egglog_path="",
         smt_theory="uflia_inf",
         smt_max_memory=0,
