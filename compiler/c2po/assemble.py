@@ -1187,27 +1187,27 @@ def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tupl
             "c rust"
         ),
         "R2U2_MAX_SIGNALS": (
-            max(num_signals, 256),
+            num_signals if context.options.enable_booleanizer else 0,
             "Maximum number of input signals",
             "c rust"
         ),
         "R2U2_MAX_ATOMICS": (
-            max(num_atomics, 256),
+            num_atomics,
             "Maximum number of Booleans passed from the frontend (from the booleanizer or directly loaded atomics) to the temporal logic engine",
             "c rust"
         ),
         "R2U2_MAX_BZ_INSTRUCTIONS": (
-            max(num_bz, 256),
+            num_bz,
             "Maximum number of booleanizer instructions. Reserved for the booleanizer engine.",
             "c rust"
         ),
         "R2U2_MAX_TL_INSTRUCTIONS": (
-            max(num_tl, 256),
+            num_tl,
             "Maximum number of temporal logic instructions. Reserved for the temporal logic engine.",
             "c rust"
         ),
         "R2U2_MAX_TEMPORAL_OPERATORS": (
-            max(num_temporal_instructions, 128),
+            num_temporal_instructions,
             "Maximum number of temporal operators (i.e., F,G,U,R,O,H,T,S)",
             "c"
         ),
