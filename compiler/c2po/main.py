@@ -340,7 +340,7 @@ def cli(
 
     if check_sat:
         script_lines.append(
-            f"check_sat --theory {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory}"
+            f"check_sat {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory}"
         )
 
     if only_compile:
@@ -350,7 +350,7 @@ def cli(
     script_lines.append("remove_extended_operators")
 
     if output_filename:
-        script_lines.append(f"assemble {'--aux' if enable_aux else ''} {'--print' if not quiet else ''} {'--scq-constant ' + str(scq_constant) if scq_constant > 0 else ''} {output_filename}")
+        script_lines.append(f"assemble {'--aux' if enable_aux else '--no-aux'} {'--print' if not quiet else ''} {'--scq-constant ' + str(scq_constant) if scq_constant > 0 else ''} {output_filename}")
 
     if write_bounds_filename:
         bounds_path = pathlib.Path(write_bounds_filename)
@@ -423,7 +423,7 @@ def main_rs(
         eqsat_max_memory=0,
         num_gurobi_threads=0,
         egglog_path="",
-        smt_theory="uflia_inf",
+        smt_theory="uflia",
         smt_max_memory=0,
         smt_solver_path="",
     )

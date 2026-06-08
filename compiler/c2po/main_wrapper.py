@@ -19,7 +19,6 @@ def compile_and_log(
     spec_filename: str,
     trace_filename: str = "",
     map_filename: str = "",
-    impl_str: str = "",
     output_filename: str = "spec.bin",
     write_bounds_filename: str = "",
     enable_booleanizer: bool = False,

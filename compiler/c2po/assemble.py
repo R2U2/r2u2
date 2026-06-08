@@ -1187,7 +1187,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tupl
             "c rust"
         ),
         "R2U2_MAX_SIGNALS": (
-            num_signals if context.options.enable_booleanizer else 0,
+            num_signals if context.enable_booleanizer else 0,
             "Maximum number of input signals",
             "c rust"
         ),
