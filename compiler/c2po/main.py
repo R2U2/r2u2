@@ -340,7 +340,7 @@ def cli(
 
     if check_sat:
         script_lines.append(
-            f"check_sat {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory}"
+            f"check_sat {smt_theory} --smt-max-time {smt_max_time} --smt-max-memory {smt_max_memory} --print"
         )
 
     if only_compile:
