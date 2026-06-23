@@ -57,7 +57,7 @@ defined in [`examples/simple.c2po`](examples/simple.c2po) using
 
 1. Compile the specification using C2PO
 ```bash
-python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
+python3 compiler/c2po.py --spec examples/simple.c2po --map examples/simple.map  --output spec.bin 
 ```
 
 2. Run R2U2 using the compiled specification and the input stream
@@ -90,7 +90,13 @@ false from times 0-4:
 # Examples
 
 Example specifications and traces can be found in the [`examples/`](examples/), [`test/`](test/),
-and  [`compiler/test/`](compiler/test/) directories.
+and [`compiler/test/`](compiler/test/) directories. 
+
+For advanced C2PO usage, consider using the [REPL](compiler/docs/user/repl.md). 
+The [example script](examples/simple.cmd) can be run via
+```
+python3 compiler/c2po.py --script examples/simple.cmd
+```
 
 The [`benchmarks/`](benchmarks/) directory includes sets of larger specifications taken from various
 sources. See each sub-directory's README for its description and source.

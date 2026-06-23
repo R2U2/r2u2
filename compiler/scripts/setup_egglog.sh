@@ -12,7 +12,7 @@ mkdir -p "$DEPS_DIR"
 
 git clone https://github.com/egraphs-good/egglog.git "$DEPS_DIR"/egglog
 cd "$DEPS_DIR"/egglog || { echo "Cannot find egglog git repo at $DEPS_DIR/egglog" 1>&2 ; exit 2; }
-git checkout v1.0.0
+git checkout v2.0.0
 
 # Apply the patch
 if [ -f "$SCRIPT_DIR/egglog.patch" ]; then

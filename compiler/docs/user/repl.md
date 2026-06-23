@@ -31,7 +31,7 @@ suggests commands that can satisfy the missing condition.
 
 Run a script file with:
 
-    python3 c2po.py --script path/to/pipeline.c2posh
+    python3 c2po.py --script path/to/script.cmd
 
 A script file is plain text with one REPL command per line. Lines are parsed with shell-style quoting,
 so quoted paths and string arguments are supported.

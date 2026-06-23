@@ -14,6 +14,5 @@ the CAV 2023 paper in the indicated section:
                               redundant work from specification
 - `set_agg`          Set Aggregation: Specifications beyond binary 
                               inputs
-- `simple`          Simple: A basic R2U2 V2 style specification in the 
-                            V3 input language
+- `simple`          Simple: A basic R2U2 specification with simple C2PO REPL script
 - `struct`          Structure: Use of a structure to group variables

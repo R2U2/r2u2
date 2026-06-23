@@ -7,10 +7,11 @@ if ! type cargo > /dev/null; then
 fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-mkdir -p "$SCRIPT_DIR"/deps/
+DEPS_DIR="$SCRIPT_DIR/../deps"
+mkdir -p "$DEPS_DIR"
 
-git clone https://github.com/egraphs-good/egglog-experimental.git "$SCRIPT_DIR"/deps/egglog-experimental
-cd "$SCRIPT_DIR"/deps/egglog-experimental || { echo "Cannot find egglog-experimental git repo at $SCRIPT_DIR/deps/egglog-experimental" 1>&2 ; exit 2; }
+git clone https://github.com/egraphs-good/egglog-experimental.git "$DEPS_DIR"/egglog-experimental
+cd "$DEPS_DIR"/egglog-experimental || { echo "Cannot find egglog-experimental git repo at $DEPS_DIR/deps/egglog-experimental" 1>&2 ; exit 2; }
 git checkout 38b3898 # This is the commit of egglog-experimental that is compatible with egglog v2.0.0
 
 # Apply the patch
