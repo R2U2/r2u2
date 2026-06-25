@@ -1,0 +1,3 @@
+parse_equiv fret_43.equiv
+type_check
+check_equiv uflia

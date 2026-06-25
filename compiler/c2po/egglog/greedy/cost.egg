@@ -1,0 +1,155 @@
+(rule (
+  (Var a0)
+) (
+  (set-cost (Var a0) 0)
+) :ruleset analysis)
+
+(rule (
+  (Global (Interval b0 b1) a0)
+) (
+  (set-cost (Global (Interval b0 b1) a0) MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (Future (Interval b0 b1) a0)
+) (
+  (set-cost (Future (Interval b0 b1) a0) MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (Not a0)
+) (
+  (set-cost (Not a0) 1)
+) :ruleset analysis)
+
+(rule (
+  (Until (Interval b0 b1) a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (Until (Interval b0 b1) a0 a1) 
+  (+ 2 (+ 
+    (max (- wpd_a0 bpd_a1) 0)
+    (max (- wpd_a1 bpd_a0) 0))
+  ))
+) :ruleset analysis)
+
+(rule (
+  (Release (Interval b0 b1) a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (Release (Interval b0 b1) a0 a1) 
+  (+ 2 (+ 
+    (max (- wpd_a0 bpd_a1) 0)
+    (max (- wpd_a1 bpd_a0) 0))
+  ))
+) :ruleset analysis)
+
+(rule (
+  (And2 a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (And2 a0 a1) 
+  (+ 2 (+ 
+    (max (- wpd_a0 bpd_a1) 0)
+    (max (- wpd_a1 bpd_a0) 0)
+  )))
+) :ruleset analysis)
+
+(rule (
+  (Or2 a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (Or2 a0 a1) 
+  (+ 2 (+ 
+    (max (- wpd_a0 bpd_a1) 0)
+    (max (- wpd_a1 bpd_a0) 0)
+  )))
+) :ruleset analysis)
+
+(rule (
+  (Implies a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (Implies a0 a1) MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (Equiv a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set-cost (Equiv a0 a1) MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (And3 a0 a1 a2)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+) (
+  (set-cost (And3 a0 a1 a2) 
+  MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (Or3 a0 a1 a2)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+) (
+  (set-cost (Or3 a0 a1 a2) 
+  MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (And4 a0 a1 a2 a3)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= wpd_a3 (wpd a3))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+  (= bpd_a3 (bpd a3))
+) (
+  (set-cost (And4 a0 a1 a2 a3) 
+  MAX_COST)
+) :ruleset analysis)
+
+(rule (
+  (Or4 a0 a1 a2 a3)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= wpd_a3 (wpd a3))
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+  (= bpd_a3 (bpd a3))
+) (
+  (set-cost (Or4 a0 a1 a2 a3) 
+  MAX_COST)
+) :ruleset analysis)

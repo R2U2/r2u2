@@ -1,0 +1,17 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index b671651..0fb0840 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -17,9 +17,9 @@ default = ["bin"]
+ bin = ["egglog/bin"]
+ 
+ [dependencies]
+-egglog = { git = "https://github.com/egraphs-good/egglog.git", default-features = false, rev = "57fdb7d" }
+-egglog-ast = { git = "https://github.com/egraphs-good/egglog.git", default-features = false, rev = "57fdb7d" }
+-egglog-reports = { git = "https://github.com/egraphs-good/egglog.git", default-features = false, rev = "57fdb7d" }
++egglog = { path = "../egglog", default-features = false }
++egglog-ast = { path = "../egglog/egglog-ast", default-features = false }
++egglog-reports = { path = "../egglog/egglog-reports", default-features = false }
+ 
+ num = "0.4.3"
+ lazy_static = "1.4"

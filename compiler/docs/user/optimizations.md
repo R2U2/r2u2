@@ -2,13 +2,14 @@
 
 C2PO supports a number of optimizations for MLTL specifications that can reduce the encoding size of
 observers. Importantly, these optimizations will either reduce or maintain the encoding size of a
-specification. Both CSE and rewriting are enabled by default, all others must be enabled manually.
+specification. Common sub-expression elimination and rewrite rules are enabled by default, while
+equality saturation is optional.
 
 ## Common Sub-expression Elimination
-*(To disable, use the `--disable-cse` flag)*
+*(Enabled by default. Disable with `--no-cse`; enable explicitly with `--cse`.)*
 
 This optimization enables sharing of common sub-expression across specifications. As an example,
-notice the sub-expression `G[0,5]a0` in the following specification:
+notice the sub-expression `G[0,5] a0` in the following specification:
 
     (G[0,5] a0) & (F[0,10] a1)
     (G[0,5] a0) | (a0 U[0,10] a2)
@@ -23,7 +24,7 @@ syntactic check, so each expression is hashed by its string representation for (
 efficient lookup.
 
 ## Rewrite Rules
-*(To disable, use the `--disable-rewrite` flag)*
+*(Enabled by default. Disable with `--no-rewrite`; enable explicitly with `--rewrite`.)*
 
 Formula rewriting does a single traversal of the expression tree and performs the rewrites found in
 the [2023 FMICS paper](https://research.temporallogic.org/papers/JKJRW23.pdf). C2PO does a single
@@ -43,7 +44,7 @@ a0)` is `(G[0,8] a1)`, which has a wpd of 8. In its rewritten form, the sibling 
 `G[0,3] a1` which has a wpd of 3.
 
 ## Equality Saturation
-*(To enable, use the `--enable-eqsat` flag)*
+*(Disabled by default. Enable with `--eqsat`; disable with `--no-eqsat`.)*
 
 **This optimization requires [egglog](https://github.com/egraphs-good/egglog) to be installed. See the requirements section of the README.**
 
@@ -53,6 +54,13 @@ thesis](https://cgjohannsen.com/docs/ms-thesis.pdf). It uses
 [egglog](https://github.com/egraphs-good/egglog) to compute the minimally-sized encoding of each
 formula with respect to a set of pre-defined rewrites.
 
+The following CLI options control EQSat behavior:
+
+- `--eqsat-max-time` / `--eqsat-max-memory`: resource limits for egglog
+- `--egglog-path`: explicit path to the egglog binary
+- `--eqsat-check-equiv`: check equivalence of EQSat results
+- `--eqsat-const-folding`, `--eqsat-associative`, `--eqsat-commutative`, `--eqsat-multi-arity`, `--eqsat-temporal`: enable or disable specific rewrite families (each also supports a `--no-...` form)
+
 This feature currently only runs on each formula individually. There are plans to extend this
 feature to this feature to the [entire formula set](https://github.com/R2U2/r2u2/issues/8).
 
@@ -60,7 +68,7 @@ feature to this feature to the [entire formula set](https://github.com/R2U2/r2u2
 
 ***(Unsupported by R2U2)***
 
-*(To enable, use the `--extops` flag)*
+*(Disabled by default. Enable with `--extops`; disable with `--no-extops`.)*
 
 By default, R2U2 supports only the negation, conjunction, global, and until MLTL operators. C2PO
 allows unsupported operators (like disjunction) in its input but replaces them with the equivalent

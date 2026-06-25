@@ -20,12 +20,12 @@ DEFINE
     vertAccBelowCoastMax := vert_acc <= 0.0;
     vertAccBelowZero := vert_acc < 0.0;
     vertAccAboveZero := vert_acc > 0.0;
-    absTempBelowThresholdRC := abs(rate(temperature)) < 0.05;
-    absPresBelowThresholdRC := abs(rate(pressure)) < 250.0;
-    absPresBelowMaxRC := abs(rate(pressure)) < 500.0;
-    absTimeBelowThresholdRC := abs(rate(pressure)) < 55.0;
-    noChangeVertAcc := rate(vert_acc) == 0.0;
-    noChangeVertVelocity := rate(vert_velocity) == 0.0;
+    absTempBelowThresholdRC := abs(temperature - prev(54.5, temperature)) < 0.05;
+    absPresBelowThresholdRC := abs(pressure - prev(82.0, pressure)) < 250.0;
+    absPresBelowMaxRC := abs(pressure- prev(82.0, pressure)) < 500.0;
+    absTimeBelowThresholdRC := abs(pressure - prev(82.0, pressure)) < 55.0;
+    noChangeVertAcc := (vert_acc - prev(-40.0, vert_acc)) == 0.0;
+    noChangeVertVelocity := (vert_velocity - prev(400, vert_velocity)) == 0.0;
     -- accAngleAboveThreshold := 
     -- accMagnitudeAboveThreshold :=
 

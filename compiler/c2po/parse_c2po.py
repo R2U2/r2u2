@@ -1,22 +1,19 @@
 #type: ignore
 from __future__ import annotations
-from typing import Optional
-from pathlib import Path
-
-from c2po import sly, types, cpt, log
-
-MODULE_CODE = "PRSC"
+from typing import Optional, Any
+from c2po import sly
+from c2po import types, cpt, log, command, util
 
 class C2POLexer(sly.Lexer):
 
-    tokens = { KW_STRUCT, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
+    tokens = { KW_STRUCT, KW_ENUM, KW_INPUT, KW_DEFINE, KW_FTSPEC, KW_PTSPEC,
                KW_FOREACH, KW_FORSOME, KW_FOREXACTLY, KW_FORATLEAST, KW_FORATMOST, KW_TIMESTAMP,
                TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE, TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER, TL_MISSION_TIME, TL_TRUE, TL_FALSE,
                LOG_NEG, LOG_AND, LOG_OR, LOG_IMPL, LOG_IFF, LOG_XOR,
                BW_NEG, BW_AND, BW_OR, BW_XOR, BW_SHIFT_LEFT, BW_SHIFT_RIGHT,
                REL_EQ, REL_NEQ, REL_GTE, REL_LTE, REL_GT, REL_LT,
-               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, RATE, #ARITH_PM,
-               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, COMMA, #QUEST,
+               ARITH_ADD, ARITH_SUB, ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW, ARITH_SQRT, ARITH_ABS, PREV, #ARITH_PM,
+               ASSIGN, CONTRACT_ASSIGN, SYMBOL, DECIMAL, NUMERAL, SEMI, COLON, DOT, DDOT, COMMA, #QUEST,
                LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
 
     # String containing ignored characters between tokens
@@ -59,13 +56,14 @@ class C2POLexer(sly.Lexer):
     # ARITH_PM    = r"\+/-|±"
 
     # Others
-    RATE = r'rate'
+    PREV = r'prev'
     CONTRACT_ASSIGN = r"=>"
     ASSIGN  = r":="
     SYMBOL  = r"[a-zA-Z_][a-zA-Z0-9_]*"
     # QUEST   = r"\?"
     SEMI    = r";"
     COLON   = r":"
+    DDOT     = r"\.\."
     DOT     = r"\."
     COMMA   = r","
     LBRACK  = r"\["
@@ -77,6 +75,7 @@ class C2POLexer(sly.Lexer):
 
     # Keywords
     SYMBOL["STRUCT"]     = KW_STRUCT
+    SYMBOL["ENUM"]       = KW_ENUM
     SYMBOL["INPUT"]      = KW_INPUT
     SYMBOL["DEFINE"]     = KW_DEFINE
     SYMBOL["FTSPEC"]     = KW_FTSPEC
@@ -112,7 +111,7 @@ class C2POLexer(sly.Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        log.error(MODULE_CODE, f"Illegal character '%s' {t.value[0]}", log.FileLocation(self.filename, self.lineno))
+        log.error(f"illegal character '{t.value[0]}'", log.FileLocation(self.filename, self.lineno))
         self.index += 1
 
 
@@ -125,6 +124,7 @@ class C2POParser(sly.Parser):
         ("left", LOG_OR),
         ("left", LOG_AND),
         ("left", TL_UNTIL, TL_RELEASE, TL_SINCE, TL_TRIGGER),
+        ("left", TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
         ("left", BW_OR),
         ("left", BW_XOR),
         ("left", BW_AND),
@@ -133,8 +133,8 @@ class C2POParser(sly.Parser):
         ("left", BW_SHIFT_LEFT, BW_SHIFT_RIGHT),
         ("left", ARITH_ADD, ARITH_SUB),
         ("left", ARITH_MUL, ARITH_DIV, ARITH_MOD, ARITH_POW),
-        ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB, TL_GLOBAL, TL_FUTURE, TL_HIST, TL_ONCE),
-        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, RATE, LBRACK)
+        ("right", LOG_NEG, BW_NEG, UNARY_ARITH_SUB),
+        ("right", LPAREN, DOT, ARITH_SQRT, ARITH_ABS, PREV, LBRACK)
     )
 
     def __init__(self, filename: str, mission_time: int) :
@@ -149,15 +149,16 @@ class C2POParser(sly.Parser):
         self.status = False
         lineno = getattr(token, "lineno", 0)
         if token:
-            log.error(MODULE_CODE, f"Syntax error, unexpected token='{token.value}'", 
+            log.error(f"syntax error, unexpected token='{token.value}'", 
                       log.FileLocation(self.filename, lineno)
             )
         else:
-            log.error(MODULE_CODE, f"Syntax error, token is 'None' (EOF)",
+            log.error(f"syntax error, token is 'None' (EOF)",
                       log.FileLocation(self.filename, lineno)
             )
 
     def fresh_label(self) -> str:
+        # TODO: Change this to a more compact name
         return f"__f{self.spec_num}__"
 
     @_("section ft_spec_section")
@@ -169,6 +170,10 @@ class C2POParser(sly.Parser):
         return p[0] + [p[1]]
 
     @_("section struct_section")
+    def section(self, p):
+        return p[0] + [p[1]]
+    
+    @_("section enum_section")
     def section(self, p):
         return p[0] + [p[1]]
 
@@ -208,6 +213,56 @@ class C2POParser(sly.Parser):
             #     members[v] = type
 
         return cpt.StructDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("KW_ENUM enum enum_list")
+    def enum_section(self, p):
+        return cpt.EnumSection(log.FileLocation(self.filename, p.lineno), [p[1]] + p[2])
+
+    @_("enum_list enum")
+    def enum_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_list(self, p):
+        return []
+
+    @_("SYMBOL COLON LBRACE enum_declaration_list enum_declaration_last RBRACE SEMI")
+    def enum(self, p):
+        members = []
+        index = 0
+        for var in p[3]+[p[4]]:
+            (ln, variable, value) = var
+            if value is None:
+                value = cpt.Constant(log.FileLocation(self.filename, p.lineno), int(index))
+                index += 1
+            member_def = cpt.Definition(ln, variable, value)
+            members.append(member_def)
+
+        return cpt.EnumDefinition(log.FileLocation(self.filename, p.lineno), p[0], members)
+    
+    @_("enum_declaration_list enum_declaration")
+    def enum_declaration_list(self, p):
+        return p[0] + [p[1]]
+
+    @_("")
+    def enum_declaration_list(self, p):
+        return []
+
+    @_("SYMBOL COLON expr COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COLON expr")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], p[2])
+    
+    @_("SYMBOL COMMA")
+    def enum_declaration(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
+    
+    @_("SYMBOL")
+    def enum_declaration_last(self, p):
+        return (log.FileLocation(self.filename, p.lineno), p[0], None)
 
     @_("KW_INPUT variable_declaration variable_declaration_list")
     def input_section(self, p):
@@ -270,7 +325,6 @@ class C2POParser(sly.Parser):
         size = int(p[2])
         if size < 0:
             log.error(
-                MODULE_CODE, 
                 f"Array sizes must be greater than zero (found '{size}')", 
                 log.FileLocation(self.filename, p.lineno)
             )
@@ -406,6 +460,11 @@ class C2POParser(sly.Parser):
     @_("expr LBRACK NUMERAL RBRACK")
     def expr(self, p):
         return cpt.ArrayIndex(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]))
+    
+    # Array slice access
+    @_("expr LBRACK NUMERAL DDOT NUMERAL RBRACK")
+    def expr(self, p):
+        return cpt.ArraySlice(log.FileLocation(self.filename, p.lineno), p[0], int(p[2]), int(p[4]))
 
     # Unary expressions
     @_("LOG_NEG expr")
@@ -427,14 +486,10 @@ class C2POParser(sly.Parser):
     @_("ARITH_ABS LPAREN expr RPAREN")
     def expr(self, p):
         return cpt.Operator.ArithmeticAbs(log.FileLocation(self.filename, p.lineno), p[2])
-    
-    @_("expr")
-    def rate(self, p):
-        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[0])
-
-    @_("RATE LPAREN rate RPAREN")
+        
+    @_("PREV LPAREN expr COMMA expr RPAREN")
     def expr(self, p):
-        return cpt.Operator.RateFunction(log.FileLocation(self.filename, p.lineno), p[2].children[0], p[2])
+        return cpt.Operator.PreviousFunction(log.FileLocation(self.filename, p.lineno), p[2], p[4])
 
     # Binary expressions
     @_("expr LOG_XOR expr")
@@ -599,20 +654,19 @@ class C2POParser(sly.Parser):
     # Shorthand interval
     @_("LBRACK bound RBRACK")
     def interval(self, p):
-        return types.Interval(0, p[1])
+        return cpt.ConcreteInterval(0, p[1])
 
     # Standard interval
     @_("LBRACK bound COMMA bound RBRACK")
     def interval(self, p):
-        return types.Interval(p[1], p[3])
+        return cpt.ConcreteInterval(p[1], p[3])
 
     @_("NUMERAL")
     def bound(self, p):
         num = int(p[0])
         if int(p[0]) < 0:
             log.error(
-                MODULE_CODE, 
-                f"Interval bounds must be greater than zero (found '{num}')", 
+                f"interval bounds must be greater than zero (found '{num}')", 
                 log.FileLocation(self.filename, p.lineno)
             )
             self.status = False
@@ -621,20 +675,32 @@ class C2POParser(sly.Parser):
     @_("TL_MISSION_TIME")
     def bound(self, p):
         if self.mission_time < 0:
-            log.error(MODULE_CODE, f"Mission time used but not set. Set using the '--mission-time' option.", log.FileLocation(self.filename, p.lineno))
+            log.error(
+                f"mission time used but not set. Set using the 'set_mission_time' command or the '--mission-time' option.", 
+                log.FileLocation(self.filename, p.lineno)
+            )
             self.status = False
         return self.mission_time
 
 
-def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    log.debug(MODULE_CODE, 1, f"Parsing {input_path}")
+def parse_c2po(context: cpt.Context, options: dict[str, Any]) -> Optional[cpt.Program]:
+    """Parse contents of input and returns corresponding program.
+    
+    `options` is a dictionary containing the following key:
+        - `filename`: The path to the C2PO input file
 
-    with open(input_path, "r") as f:
-        contents = f.read()
+    Returns:
+        A C2PO program on success, else returns None.
+    """
+    contents = util.read_file(options["filename"])
+    if contents is None:
+        return None
+        
+    context.clear() 
+    context.set_spec_filename(options["filename"])
 
-    lexer: C2POLexer = C2POLexer(input_path.name)
-    parser: C2POParser = C2POParser(input_path.name, mission_time)
+    lexer: C2POLexer = C2POLexer(options["filename"])
+    parser: C2POParser = C2POParser(options["filename"], context.mission_time)
     sections: list[cpt.C2POSection] = parser.parse(lexer.tokenize(contents))
 
     if not parser.status:
@@ -642,3 +708,28 @@ def parse_c2po(input_path: Path, mission_time: int) -> Optional[cpt.Program]:
 
     return cpt.Program(0, sections)
 
+parse_c2po_command = command.Command(
+    name="parse_c2po",
+    description="Parse a C2PO input file and return a program",
+    options=[
+        {
+            "name": "filename",
+            "description": "The path to the C2PO input file",
+            "required": True,
+            "type": str,
+            "default": None,
+            "choices": None,
+        },
+        {
+            "name": "mission-time",
+            "description": "The mission time",
+            "required": False,
+            "type": int,
+            "default": -1,
+            "choices": None,
+        }
+    ],
+    func=lambda program, context, options: parse_c2po(context, options),
+    guards=[],
+)
+command.CommandRegistry.register(parse_c2po_command)

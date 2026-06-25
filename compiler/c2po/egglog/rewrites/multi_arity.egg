@@ -1,0 +1,155 @@
+(birewrite 
+  (And2 (And2 a0 a1) a2)
+  (And3 a0 a1 a2)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (And2 (And3 a0 a1 a2) a3)
+  (And4 a0 a1 a2 a3)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (And3 (And2 a0 a1) a2 a3)
+  (And4 a0 a1 a2 a3)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And3 a0 a0 a1)
+  (And2 a0 a1)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And3 a1 a0 a0)
+  (And2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (And3 a0 a1 a0)
+  (And2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a0 a0 a1 a2)
+  (And3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a0 a1 a0 a2)
+  (And3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a0 a1 a2 a0)
+  (And3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a0 a0 a0 a1)
+  (And2 a0 a1)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a1 a0 a0 a0)
+  (And2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (And4 a0 a0 a0 a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (Or2 (Or2 a0 a1) a2)
+  (Or3 a0 a1 a2)
+  :ruleset mltl-rewrites
+)
+
+(birewrite 
+  (Or3 (Or2 a0 a1) a2 a3)
+  (Or4 a0 a1 a2 a3)
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or3 a0 a0 a1)
+  (Or2 a0 a1)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or3 a1 a0 a0)
+  (Or2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite
+  (Or3 a0 a1 a0)
+  (Or2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a0 a0 a1 a2)
+  (Or3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a0 a1 a0 a2)
+  (Or3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a0 a1 a2 a0)
+  (Or3 a0 a1 a2)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a0 a0 a0 a1)
+  (Or2 a0 a1)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a1 a0 a0 a0)
+  (Or2 a1 a0)
+  :subsume
+  :ruleset mltl-rewrites
+)
+
+(rewrite 
+  (Or4 a0 a0 a0 a0)
+  a0
+  :subsume
+  :ruleset mltl-rewrites
+)

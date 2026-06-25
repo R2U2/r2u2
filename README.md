@@ -19,7 +19,7 @@ The following dependencies are required to run C2PO:
 - (Optional) To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3) or any other SMTLIB2-compatible solver.
 - (Optional) To enable equality saturation, first install [Rust](https://www.rust-lang.org/tools/install) then install [egglog](https://github.com/egraphs-good/egglog) via the [`compiler/setup_egglog.sh`](compiler/setup_egglog.sh) script.
 
-The following dependencies are required to run R2U2 C version:
+The following dependencies are required to run R2U2 C version (Posix Only):
 - Make 
 - C99 compiler 
 
@@ -28,7 +28,7 @@ The following dependencies are required to run R2U2 Rust version:
 
 # Building
 
-## R2U2 C Version
+## R2U2 C Version (Posix Only)
 
 To build R2U2, run `make` from `monitors/c/`:
 ```bash
@@ -57,7 +57,7 @@ defined in [`examples/simple.c2po`](examples/simple.c2po) using
 
 1. Compile the specification using C2PO
 ```bash
-python3 compiler/c2po.py --output spec.bin --map examples/simple.map examples/simple.c2po 
+python3 compiler/c2po.py --spec examples/simple.c2po --map examples/simple.map  --output spec.bin 
 ```
 
 2. Run R2U2 using the compiled specification and the input stream
@@ -90,7 +90,13 @@ false from times 0-4:
 # Examples
 
 Example specifications and traces can be found in the [`examples/`](examples/), [`test/`](test/),
-and  [`compiler/test/`](compiler/test/) directories.
+and [`compiler/test/`](compiler/test/) directories. 
+
+For advanced C2PO usage, consider using the [REPL](compiler/docs/user/repl.md). 
+The [example script](examples/simple.cmd) can be run via
+```
+python3 compiler/c2po.py --script examples/simple.cmd
+```
 
 The [`benchmarks/`](benchmarks/) directory includes sets of larger specifications taken from various
 sources. See each sub-directory's README for its description and source.
@@ -100,6 +106,8 @@ sources. See each sub-directory's README for its description and source.
 The documentation for R2U2 can be found [here](https://r2u2.github.io/r2u2/). The documentation includes user and developer guides for both R2U2 and C2PO.
 
 # Support 
+
+To easily play and visualize the outputs of R2U2, try out our R2U2 Playground here: http://r2u2.temporallogic.org/playground
 
 If you have a question about running R2U2, please open a "Question" issue.
 

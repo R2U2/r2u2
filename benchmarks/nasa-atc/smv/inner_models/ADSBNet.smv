@@ -1,0 +1,398 @@
+-- The ADS-B Network forwards information across aircrafts filtering
+-- it according to the defined information level
+--
+-- Faults: 
+--   - Loss of output for an aircraft (both Permanent and Bounded)
+--
+--   - Information provided by the aircraft is incorrect (out != in)
+--     NOTE: This fault need to be explicitely enabled with:
+--              ENABLE_ADSBOUT_PROVIDE_FAULT
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+#if EXTENDED_MODEL
+    #ifndef ENABLE_ADSBOUT_PROVIDE_FAULT
+    #error "Option ENABLE_ADSBOUT_PROVIDE_FAULT must be set before using this file"
+    #endif
+#endif
+
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ADSBNet_inst : ADSBNet(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, 
+	                           ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, 
+				   ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, 
+				   ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, 
+				   ac_1_adsb_info_level, ac_2_adsb_info_level, ac_3_adsb_info_level, ac_4_adsb_info_level);
+        VAR
+            ac_1_intention_current__in : TRJ_TYPE;
+            ac_1_intention_near__in : TRJ_TYPE;
+            ac_1_intention_mid__in : TRJ_TYPE;
+            ac_1_intention_far__in : TRJ_TYPE;
+            ac_2_intention_current__in : TRJ_TYPE;
+            ac_2_intention_near__in : TRJ_TYPE;
+            ac_2_intention_mid__in : TRJ_TYPE;
+            ac_2_intention_far__in : TRJ_TYPE;
+            ac_3_intention_current__in : TRJ_TYPE;
+            ac_3_intention_near__in : TRJ_TYPE;
+            ac_3_intention_mid__in : TRJ_TYPE;
+            ac_3_intention_far__in : TRJ_TYPE;
+            ac_4_intention_current__in : TRJ_TYPE;
+            ac_4_intention_near__in : TRJ_TYPE;
+            ac_4_intention_mid__in : TRJ_TYPE;
+            ac_4_intention_far__in : TRJ_TYPE;
+        FROZENVAR
+            ac_1_adsb_info_level : INFO_LEVEL_TYPE;
+            ac_2_adsb_info_level : INFO_LEVEL_TYPE;
+            ac_3_adsb_info_level : INFO_LEVEL_TYPE;
+            ac_4_adsb_info_level : INFO_LEVEL_TYPE;
+        DEFINE
+            ac_1_intention_current__out := ADSBNet_inst.ac_1_intention_current__out;
+            ac_1_intention_near__out := ADSBNet_inst.ac_1_intention_near__out;
+            ac_1_intention_mid__out := ADSBNet_inst.ac_1_intention_mid__out;
+            ac_1_intention_far__out := ADSBNet_inst.ac_1_intention_far__out;
+            ac_2_intention_current__out := ADSBNet_inst.ac_2_intention_current__out;
+            ac_2_intention_near__out := ADSBNet_inst.ac_2_intention_near__out;
+            ac_2_intention_mid__out := ADSBNet_inst.ac_2_intention_mid__out;
+            ac_2_intention_far__out := ADSBNet_inst.ac_2_intention_far__out;
+            ac_3_intention_current__out := ADSBNet_inst.ac_3_intention_current__out;
+            ac_3_intention_near__out := ADSBNet_inst.ac_3_intention_near__out;
+            ac_3_intention_mid__out := ADSBNet_inst.ac_3_intention_mid__out;
+            ac_3_intention_far__out := ADSBNet_inst.ac_3_intention_far__out;
+            ac_4_intention_current__out := ADSBNet_inst.ac_4_intention_current__out;
+            ac_4_intention_near__out := ADSBNet_inst.ac_4_intention_near__out;
+            ac_4_intention_mid__out := ADSBNet_inst.ac_4_intention_mid__out;
+            ac_4_intention_far__out := ADSBNet_inst.ac_4_intention_far__out;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ADSBNet(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, 
+    	           ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, 
+		   ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, 
+		   ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, 
+		   ac_1_adsb_info_level, ac_2_adsb_info_level, ac_3_adsb_info_level, ac_4_adsb_info_level)
+        VAR
+            -- NOTE: We are not passing down the intentions directly,
+            -- but we are modifying it due to the fault extension
+            -- (ext_*)
+            nominal : ADSBNet_Nominal(ac_1_intention_current__in, ext_ac_1_intention_near__in, ext_ac_1_intention_mid__in, ext_ac_1_intention_far__in, 
+	    	                      ac_2_intention_current__in, ext_ac_2_intention_near__in, ext_ac_2_intention_mid__in, ext_ac_2_intention_far__in, 
+				      ac_3_intention_current__in, ext_ac_3_intention_near__in, ext_ac_3_intention_mid__in, ext_ac_3_intention_far__in, 
+				      ac_4_intention_current__in, ext_ac_4_intention_near__in, ext_ac_4_intention_mid__in, ext_ac_4_intention_far__in, 
+				      ac_1_adsb_info_level, ac_2_adsb_info_level, ac_3_adsb_info_level, ac_4_adsb_info_level);
+
+        DEFINE
+            -- Mirror Variables to export input values
+            input_ac_1_intention_current__in := ac_1_intention_current__in;
+            input_ac_2_intention_current__in := ac_2_intention_current__in;
+            input_ac_3_intention_current__in := ac_3_intention_current__in;
+            input_ac_4_intention_current__in := ac_4_intention_current__in;
+            input_ac_1_intention_near__in := ac_1_intention_near__in;
+            input_ac_2_intention_near__in := ac_2_intention_near__in;
+            input_ac_3_intention_near__in := ac_3_intention_near__in;
+            input_ac_4_intention_near__in := ac_4_intention_near__in;
+            input_ac_1_intention_mid__in := ac_1_intention_mid__in;
+            input_ac_2_intention_mid__in := ac_2_intention_mid__in;
+            input_ac_3_intention_mid__in := ac_3_intention_mid__in;
+            input_ac_4_intention_mid__in := ac_4_intention_mid__in;
+            input_ac_1_intention_far__in := ac_1_intention_far__in;
+            input_ac_2_intention_far__in := ac_2_intention_far__in;
+            input_ac_3_intention_far__in := ac_3_intention_far__in;
+            input_ac_4_intention_far__in := ac_4_intention_far__in;
+
+        #if EXTENDED_MODEL
+        VAR
+          -- Fault Dynamics
+          fault_adsb_out_ac_1__dynamic: PermanentOrBoundedFault;
+          fault_adsb_out_ac_2__dynamic: PermanentOrBoundedFault;
+          fault_adsb_out_ac_3__dynamic: PermanentOrBoundedFault;
+          fault_adsb_out_ac_4__dynamic: PermanentOrBoundedFault;
+
+	  #if ENABLE_ADSBOUT_PROVIDE_FAULT
+	  fault_adsb_out_ac_1_provide_near__dynamic: TransientFault;
+	  fault_adsb_out_ac_1_provide_mid__dynamic: TransientFault;
+	  fault_adsb_out_ac_1_provide_far__dynamic: TransientFault;
+
+	  fault_adsb_out_ac_2_provide_near__dynamic: TransientFault;
+	  fault_adsb_out_ac_2_provide_mid__dynamic: TransientFault;
+	  fault_adsb_out_ac_2_provide_far__dynamic: TransientFault;
+
+	  fault_adsb_out_ac_3_provide_near__dynamic: TransientFault;
+	  fault_adsb_out_ac_3_provide_mid__dynamic: TransientFault;
+	  fault_adsb_out_ac_3_provide_far__dynamic: TransientFault;
+
+	  fault_adsb_out_ac_4_provide_near__dynamic: TransientFault;
+	  fault_adsb_out_ac_4_provide_mid__dynamic: TransientFault;
+	  fault_adsb_out_ac_4_provide_far__dynamic: TransientFault;
+	  #endif
+
+        DEFINE
+          -- Fault events
+          fault_adsb_out_ac_1_permanent__event:= fault_adsb_out_ac_1__dynamic.fault_event_permanent;
+          fault_adsb_out_ac_2_permanent__event:= fault_adsb_out_ac_2__dynamic.fault_event_permanent;
+          fault_adsb_out_ac_3_permanent__event:= fault_adsb_out_ac_3__dynamic.fault_event_permanent;
+          fault_adsb_out_ac_4_permanent__event:= fault_adsb_out_ac_4__dynamic.fault_event_permanent;
+
+          fault_adsb_out_ac_1_bounded__event:= fault_adsb_out_ac_1__dynamic.fault_event_bounded;
+          fault_adsb_out_ac_2_bounded__event:= fault_adsb_out_ac_2__dynamic.fault_event_bounded;
+          fault_adsb_out_ac_3_bounded__event:= fault_adsb_out_ac_3__dynamic.fault_event_bounded;
+          fault_adsb_out_ac_4_bounded__event:= fault_adsb_out_ac_4__dynamic.fault_event_bounded;
+
+	  #if ENABLE_ADSBOUT_PROVIDE_FAULT
+	  fault_adsb_out_ac_1_provide_near__event:= fault_adsb_out_ac_1_provide_near__dynamic.fault_event;
+	  fault_adsb_out_ac_1_provide_mid__event := fault_adsb_out_ac_1_provide_mid__dynamic.fault_event;
+	  fault_adsb_out_ac_1_provide_far__event := fault_adsb_out_ac_1_provide_far__dynamic.fault_event;
+
+	  fault_adsb_out_ac_2_provide_near__event:= fault_adsb_out_ac_2_provide_near__dynamic.fault_event;
+	  fault_adsb_out_ac_2_provide_mid__event := fault_adsb_out_ac_2_provide_mid__dynamic.fault_event;
+	  fault_adsb_out_ac_2_provide_far__event := fault_adsb_out_ac_2_provide_far__dynamic.fault_event;
+
+	  fault_adsb_out_ac_3_provide_near__event:= fault_adsb_out_ac_3_provide_near__dynamic.fault_event;
+	  fault_adsb_out_ac_3_provide_mid__event := fault_adsb_out_ac_3_provide_mid__dynamic.fault_event;
+	  fault_adsb_out_ac_3_provide_far__event := fault_adsb_out_ac_3_provide_far__dynamic.fault_event;
+
+	  fault_adsb_out_ac_4_provide_near__event:= fault_adsb_out_ac_4_provide_near__dynamic.fault_event;
+	  fault_adsb_out_ac_4_provide_mid__event := fault_adsb_out_ac_4_provide_mid__dynamic.fault_event;
+	  fault_adsb_out_ac_4_provide_far__event := fault_adsb_out_ac_4_provide_far__dynamic.fault_event;
+	  #else
+	  fault_adsb_out_ac_1_provide_near__event:= FALSE;
+	  fault_adsb_out_ac_1_provide_mid__event := FALSE;
+	  fault_adsb_out_ac_1_provide_far__event := FALSE;
+
+	  fault_adsb_out_ac_2_provide_near__event:= FALSE;
+	  fault_adsb_out_ac_2_provide_mid__event := FALSE;
+	  fault_adsb_out_ac_2_provide_far__event := FALSE;
+
+	  fault_adsb_out_ac_3_provide_near__event:= FALSE;
+	  fault_adsb_out_ac_3_provide_mid__event := FALSE;
+	  fault_adsb_out_ac_3_provide_far__event := FALSE;
+
+	  fault_adsb_out_ac_4_provide_near__event:= FALSE;
+	  fault_adsb_out_ac_4_provide_mid__event := FALSE;
+	  fault_adsb_out_ac_4_provide_far__event := FALSE;
+	  #endif
+
+          -- Fault State Expression used for fault-extension
+          fault_adsb_out_ac_1 := fault_adsb_out_ac_1__dynamic.has_fault;
+          fault_adsb_out_ac_2 := fault_adsb_out_ac_2__dynamic.has_fault;
+          fault_adsb_out_ac_3 := fault_adsb_out_ac_3__dynamic.has_fault;
+          fault_adsb_out_ac_4 := fault_adsb_out_ac_4__dynamic.has_fault;
+
+	  #if ENABLE_ADSBOUT_PROVIDE_FAULT
+	  fault_adsb_out_ac_1_provide_near:= fault_adsb_out_ac_1_provide_near__dynamic.has_fault;
+	  fault_adsb_out_ac_1_provide_mid := fault_adsb_out_ac_1_provide_mid__dynamic.has_fault;
+	  fault_adsb_out_ac_1_provide_far := fault_adsb_out_ac_1_provide_far__dynamic.has_fault;
+
+	  fault_adsb_out_ac_2_provide_near:= fault_adsb_out_ac_2_provide_near__dynamic.has_fault;
+	  fault_adsb_out_ac_2_provide_mid := fault_adsb_out_ac_2_provide_mid__dynamic.has_fault;
+	  fault_adsb_out_ac_2_provide_far := fault_adsb_out_ac_2_provide_far__dynamic.has_fault;
+
+	  fault_adsb_out_ac_3_provide_near:= fault_adsb_out_ac_3_provide_near__dynamic.has_fault;
+	  fault_adsb_out_ac_3_provide_mid := fault_adsb_out_ac_3_provide_mid__dynamic.has_fault;
+	  fault_adsb_out_ac_3_provide_far := fault_adsb_out_ac_3_provide_far__dynamic.has_fault;
+
+	  fault_adsb_out_ac_4_provide_near:= fault_adsb_out_ac_4_provide_near__dynamic.has_fault;
+	  fault_adsb_out_ac_4_provide_mid := fault_adsb_out_ac_4_provide_mid__dynamic.has_fault;
+	  fault_adsb_out_ac_4_provide_far := fault_adsb_out_ac_4_provide_far__dynamic.has_fault;
+	  #else
+	  fault_adsb_out_ac_1_provide_near:= FALSE;
+	  fault_adsb_out_ac_1_provide_mid := FALSE;
+	  fault_adsb_out_ac_1_provide_far := FALSE;
+
+	  fault_adsb_out_ac_2_provide_near:= FALSE;
+	  fault_adsb_out_ac_2_provide_mid := FALSE;
+	  fault_adsb_out_ac_2_provide_far := FALSE;
+
+	  fault_adsb_out_ac_3_provide_near:= FALSE;
+	  fault_adsb_out_ac_3_provide_mid := FALSE;
+	  fault_adsb_out_ac_3_provide_far := FALSE;
+
+	  fault_adsb_out_ac_4_provide_near:= FALSE;
+	  fault_adsb_out_ac_4_provide_mid := FALSE;
+	  fault_adsb_out_ac_4_provide_far := FALSE;
+	  #endif
+
+	DEFINE
+	  faulty_ac_1_intention_near := 4;
+	  faulty_ac_1_intention_mid := 3;
+	  faulty_ac_1_intention_far := 2;
+
+	  faulty_ac_2_intention_near := 4;
+	  faulty_ac_2_intention_mid := 3;
+	  faulty_ac_2_intention_far := 1;
+
+	  faulty_ac_3_intention_near := 4;
+	  faulty_ac_3_intention_mid := 2;
+	  faulty_ac_3_intention_far := 1;
+
+	  faulty_ac_4_intention_near := 3;
+	  faulty_ac_4_intention_mid := 2;
+	  faulty_ac_4_intention_far := 1;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := count(fault_adsb_out_ac_1, fault_adsb_out_ac_2,
+                               fault_adsb_out_ac_3, fault_adsb_out_ac_4);
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        DEFINE
+          fault_adsb_out_ac_1 := FALSE;
+          fault_adsb_out_ac_2 := FALSE;
+          fault_adsb_out_ac_3 := FALSE;
+          fault_adsb_out_ac_4 := FALSE;
+
+	  fault_adsb_out_ac_1_provide_near:= FALSE;
+	  fault_adsb_out_ac_1_provide_mid := FALSE;
+	  fault_adsb_out_ac_1_provide_far := FALSE;
+
+	  fault_adsb_out_ac_2_provide_near:= FALSE;
+	  fault_adsb_out_ac_2_provide_mid := FALSE;
+	  fault_adsb_out_ac_2_provide_far := FALSE;
+
+	  fault_adsb_out_ac_3_provide_near:= FALSE;
+	  fault_adsb_out_ac_3_provide_mid := FALSE;
+	  fault_adsb_out_ac_3_provide_far := FALSE;
+
+	  fault_adsb_out_ac_4_provide_near:= FALSE;
+	  fault_adsb_out_ac_4_provide_mid := FALSE;
+	  fault_adsb_out_ac_4_provide_far := FALSE;
+
+	DEFINE
+	  faulty_ac_1_intention_near := TRJ_NOP;
+	  faulty_ac_1_intention_mid := TRJ_NOP;
+	  faulty_ac_1_intention_far := TRJ_NOP;
+	  faulty_ac_2_intention_near := TRJ_NOP;
+	  faulty_ac_2_intention_mid := TRJ_NOP;
+	  faulty_ac_2_intention_far := TRJ_NOP;
+	  faulty_ac_3_intention_near := TRJ_NOP;
+	  faulty_ac_3_intention_mid := TRJ_NOP;
+	  faulty_ac_3_intention_far := TRJ_NOP;
+	  faulty_ac_4_intention_near := TRJ_NOP;
+	  faulty_ac_4_intention_mid := TRJ_NOP;
+	  faulty_ac_4_intention_far := TRJ_NOP;
+        #endif
+
+	DEFINE 
+	  ext_ac_1_intention_near__in := fault_adsb_out_ac_1_provide_near ? faulty_ac_1_intention_near :
+	  			      	 				    ac_1_intention_near__in;
+	  ext_ac_1_intention_mid__in := fault_adsb_out_ac_1_provide_mid ? faulty_ac_1_intention_mid :
+	  			      	 				    ac_1_intention_mid__in;
+	  ext_ac_1_intention_far__in := fault_adsb_out_ac_1_provide_far ? faulty_ac_1_intention_far :
+	  			      	 				    ac_1_intention_far__in;
+
+	  ext_ac_2_intention_near__in := fault_adsb_out_ac_2_provide_near ? faulty_ac_2_intention_near :
+	  			      	 				    ac_2_intention_near__in;
+	  ext_ac_2_intention_mid__in := fault_adsb_out_ac_2_provide_mid ? faulty_ac_2_intention_mid :
+	  			      	 				    ac_2_intention_mid__in;
+	  ext_ac_2_intention_far__in := fault_adsb_out_ac_2_provide_far ? faulty_ac_2_intention_far :
+	  			      	 				    ac_2_intention_far__in;
+
+	  ext_ac_3_intention_near__in := fault_adsb_out_ac_3_provide_near ? faulty_ac_3_intention_near :
+	  			      	 				    ac_3_intention_near__in;
+	  ext_ac_3_intention_mid__in := fault_adsb_out_ac_3_provide_mid ? faulty_ac_3_intention_mid :
+	  			      	 				    ac_3_intention_mid__in;
+	  ext_ac_3_intention_far__in := fault_adsb_out_ac_3_provide_far ? faulty_ac_3_intention_far :
+	  			      	 				    ac_3_intention_far__in;
+
+	  ext_ac_4_intention_near__in := fault_adsb_out_ac_4_provide_near ? faulty_ac_4_intention_near :
+	  			      	 				    ac_4_intention_near__in;
+	  ext_ac_4_intention_mid__in := fault_adsb_out_ac_4_provide_mid ? faulty_ac_4_intention_mid :
+	  			      	 				    ac_4_intention_mid__in;
+	  ext_ac_4_intention_far__in := fault_adsb_out_ac_4_provide_far ? faulty_ac_4_intention_far :
+	  			      	 				    ac_4_intention_far__in;
+
+
+        DEFINE
+            ac_1_intention_current__out := fault_adsb_out_ac_1 ? TRJ_NOP : nominal.ac_1_intention_current__out;
+            ac_1_intention_near__out := fault_adsb_out_ac_1 ? TRJ_NOP : nominal.ac_1_intention_near__out;
+            ac_1_intention_mid__out := fault_adsb_out_ac_1 ? TRJ_NOP : nominal.ac_1_intention_mid__out;
+            ac_1_intention_far__out := fault_adsb_out_ac_1 ? TRJ_NOP : nominal.ac_1_intention_far__out;
+
+            ac_2_intention_current__out := fault_adsb_out_ac_2 ? TRJ_NOP : nominal.ac_2_intention_current__out;
+            ac_2_intention_near__out := fault_adsb_out_ac_2 ? TRJ_NOP : nominal.ac_2_intention_near__out;
+            ac_2_intention_mid__out := fault_adsb_out_ac_2 ? TRJ_NOP : nominal.ac_2_intention_mid__out;
+            ac_2_intention_far__out := fault_adsb_out_ac_2 ? TRJ_NOP : nominal.ac_2_intention_far__out;
+
+            ac_3_intention_current__out := fault_adsb_out_ac_3 ? TRJ_NOP : nominal.ac_3_intention_current__out;
+            ac_3_intention_near__out := fault_adsb_out_ac_3 ? TRJ_NOP : nominal.ac_3_intention_near__out;
+            ac_3_intention_mid__out := fault_adsb_out_ac_3 ? TRJ_NOP : nominal.ac_3_intention_mid__out;
+            ac_3_intention_far__out := fault_adsb_out_ac_3 ? TRJ_NOP : nominal.ac_3_intention_far__out;
+
+            ac_4_intention_current__out := fault_adsb_out_ac_4 ? TRJ_NOP : nominal.ac_4_intention_current__out;
+            ac_4_intention_near__out := fault_adsb_out_ac_4 ? TRJ_NOP : nominal.ac_4_intention_near__out;
+            ac_4_intention_mid__out := fault_adsb_out_ac_4 ? TRJ_NOP : nominal.ac_4_intention_mid__out;
+            ac_4_intention_far__out := fault_adsb_out_ac_4 ? TRJ_NOP : nominal.ac_4_intention_far__out;
+
+            INVARSPEC NAME Net_ac_1_norm_guarantee :=
+                ((( ac_1_intention_current__out =  (ac_1_adsb_info_level >= 1 ? ac_1_intention_current__in : 0)  &
+                    ac_1_intention_near__out =  (ac_1_adsb_info_level >= 2 ? ac_1_intention_near__in : 0) ) &
+                    ac_1_intention_mid__out =  (ac_1_adsb_info_level >= 3 ? ac_1_intention_mid__in : 0) ) &
+                     ac_1_intention_far__out =  (ac_1_adsb_info_level >= 4 ? ac_1_intention_far__in : 0) );
+
+            INVARSPEC NAME Net_ac_2_norm_guarantee :=
+                ((( ac_2_intention_current__out =  (ac_2_adsb_info_level >= 1 ? ac_2_intention_current__in : 0)  &
+                    ac_2_intention_near__out =  (ac_2_adsb_info_level >= 2 ? ac_2_intention_near__in : 0) ) &
+                    ac_2_intention_mid__out =  (ac_2_adsb_info_level >= 3 ? ac_2_intention_mid__in : 0) ) &
+                    ac_2_intention_far__out =  (ac_2_adsb_info_level >= 4 ? ac_2_intention_far__in : 0) );
+
+            INVARSPEC NAME Net_ac_3_norm_guarantee :=
+                ((( ac_3_intention_current__out =  (ac_3_adsb_info_level >= 1 ? ac_3_intention_current__in : 0)  &
+                    ac_3_intention_near__out =  (ac_3_adsb_info_level >= 2 ? ac_3_intention_near__in : 0) ) &
+                    ac_3_intention_mid__out =  (ac_3_adsb_info_level >= 3 ? ac_3_intention_mid__in : 0) ) &
+                    ac_3_intention_far__out =  (ac_3_adsb_info_level >= 4 ? ac_3_intention_far__in : 0) );
+
+            INVARSPEC NAME Net_ac_4_norm_guarantee :=
+                ((( ac_4_intention_current__out =  (ac_4_adsb_info_level >= 1 ? ac_4_intention_current__in : 0)  &
+                    ac_4_intention_near__out =  (ac_4_adsb_info_level >= 2 ? ac_4_intention_near__in : 0) ) &
+                    ac_4_intention_mid__out =  (ac_4_adsb_info_level >= 3 ? ac_4_intention_mid__in : 0) ) &
+                    ac_4_intention_far__out =  (ac_4_adsb_info_level >= 4 ? ac_4_intention_far__in : 0) );
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ADSBNet_Nominal(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, ac_1_adsb_info_level, ac_2_adsb_info_level, ac_3_adsb_info_level, ac_4_adsb_info_level)
+
+        DEFINE
+            ac_1_intention_current__out := ( ac_1_adsb_info_level >= INFO_LEVEL_CURRENT ? ac_1_intention_current__in : TRJ_NOP);
+            ac_1_intention_near__out := ( ac_1_adsb_info_level >= INFO_LEVEL_NEAR ? ac_1_intention_near__in : TRJ_NOP);
+            ac_1_intention_mid__out := ( ac_1_adsb_info_level >= INFO_LEVEL_MID ? ac_1_intention_mid__in : TRJ_NOP);
+            ac_1_intention_far__out := ( ac_1_adsb_info_level >= INFO_LEVEL_FAR ? ac_1_intention_far__in : TRJ_NOP);
+
+            ac_2_intention_current__out := ( ac_2_adsb_info_level >= INFO_LEVEL_CURRENT ? ac_2_intention_current__in : TRJ_NOP);
+            ac_2_intention_near__out := ( ac_2_adsb_info_level >= INFO_LEVEL_NEAR ? ac_2_intention_near__in : TRJ_NOP);
+            ac_2_intention_mid__out := ( ac_2_adsb_info_level >= INFO_LEVEL_MID ? ac_2_intention_mid__in : TRJ_NOP);
+            ac_2_intention_far__out := ( ac_2_adsb_info_level >= INFO_LEVEL_FAR ? ac_2_intention_far__in : TRJ_NOP);
+
+            ac_3_intention_current__out := ( ac_3_adsb_info_level >= INFO_LEVEL_CURRENT ? ac_3_intention_current__in : TRJ_NOP);
+            ac_3_intention_near__out := ( ac_3_adsb_info_level >= INFO_LEVEL_NEAR ? ac_3_intention_near__in : TRJ_NOP);
+            ac_3_intention_mid__out := ( ac_3_adsb_info_level >= INFO_LEVEL_MID ? ac_3_intention_mid__in : TRJ_NOP);
+            ac_3_intention_far__out := ( ac_3_adsb_info_level >= INFO_LEVEL_FAR ? ac_3_intention_far__in : TRJ_NOP);
+
+            ac_4_intention_current__out := ( ac_4_adsb_info_level >= INFO_LEVEL_CURRENT ? ac_4_intention_current__in : TRJ_NOP);
+            ac_4_intention_near__out := ( ac_4_adsb_info_level >= INFO_LEVEL_NEAR ? ac_4_intention_near__in : TRJ_NOP);
+            ac_4_intention_mid__out := ( ac_4_adsb_info_level >= INFO_LEVEL_MID ? ac_4_intention_mid__in : TRJ_NOP);
+            ac_4_intention_far__out := ( ac_4_adsb_info_level >= INFO_LEVEL_FAR ? ac_4_intention_far__in : TRJ_NOP);
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

@@ -1,0 +1,25 @@
+(birewrite
+  (And2 a0 a1)
+  (And2 a1 a0)
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Or2 a0 a1)
+  (Or2 a1 a0)
+  :ruleset mltl-rewrites
+)
+
+;(rewrite
+;  (Or2 (Or2 a0 a1) a0)
+;  (Or2 a0 a1)
+;  :ruleset mltl-rewrites
+;  :subsume
+;)
+
+;(rewrite
+;  (Or2 a0 (Or2 a0 a1))
+;  (Or2 a0 a1)
+;  :ruleset mltl-rewrites
+;  :subsume
+;)

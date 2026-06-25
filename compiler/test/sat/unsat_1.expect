@@ -1,0 +1,1 @@
+check_sat: warning: specification '(F[0,10] (a0 && (! a0)))' is unsat

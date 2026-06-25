@@ -37,11 +37,16 @@ int main(int argc, char const* argv[]) {
 
   // Arg Parsing - for now just check for the correct number and look for flags
   //               short-circuiting helps avoid unnecessary checks here
-  if ((argc < 2) || (argc > 3) ||
-      (argv[1][0] == '-') || ((argc == 3) && (argv[2][0] == '-'))) {
+  if ((argc < 2) || (argc > 3)) {
       PRINT_VERSION();
       PRINT_USAGE();
       return 1;
+  }
+
+  int opt = getopt(argc, argv, "v");
+  if (opt == 'v') {
+    PRINT_VERSION();
+    return 0;
   }
 
   uint8_t* spec;

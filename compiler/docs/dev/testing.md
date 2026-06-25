@@ -4,38 +4,43 @@
 
 To run the full test suite, simply execute:
 
-    python3 test.py
+    python3 test/test.py
 
 To run a specific set of tests, pass the set name into the `test.py` script:
 
-    python3 test.py type_check
+    python3 test/test.py type-check
 
-For a complete list of tests and test sets, see `config.json`
+To skip one or more subsets when running all tests:
+
+    python3 test/test.py --disable-subset eqsat --disable-subset sat
+
+For a complete list of subsets and tests, see `test/config.json`.
 
 ## Configuration
 
-The configuration for tests is stored in `config.json`. This file is a JSON object whose members are
-test sets. Each test set is a list of tests, with each test providing an input file, a set of
-options passed to C2PO, and some sort of expected output.
+The configuration is stored in `test/config.json`. It is a JSON object whose keys are subset names.
+Each subset is a list of tests.
 
 ```json
 {
-    "test_set_name": [
-        {
-            "input": "path/to/input.c2po",
-            "options": ["list", "of", "c2po", "options"],
-            "expected_output": "path/to/output.expect",
-            "expected_prefix": "path/to/prefix.expect",
-            "expected_c2po": "path/to/c2po.expect",
-            "expected_mltl": "path/to/mltl.expect"
-        }
-    ]
+  "subset-name": [
+    {
+      "script": "path/to/script.cmd",
+      "output": "path/to/output.expect"
+    },
+    {
+      "spec": "path/to/input.c2po",
+      "options": ["--check-sat", "--smt-encoding", "uflia"],
+      "output": "path/to/output.expect"
+    }
+  ]
 }
 ```
 
-The test script runs `c2po.py` over the input file and options, then compares the output of each
-expected file against the generated output:
-- `"expected_output"` compares stdout of the `c2po.py` call
-- `"expected_prefix"` compares `--write-prefix` output
-- `"expected_c2po"` compares `--write-c2po` output
-- `"expected_mltl"` compares `--write-mltl` output
+### Test Modes
+
+- `script` test: runs `python3 c2po.py --script <script>`
+- `spec` test: runs `python3 c2po.py --spec <spec> [options...]`
+
+In both cases, stdout+stderr are captured and compared against the `output` expectation file via a
+unified diff.

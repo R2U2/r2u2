@@ -1,0 +1,2358 @@
+<properties>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_6_implies_cmd_norm_guarantee</name>
+    <index>0</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr38 > 0) | (mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_6.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_6_norm_guarantee</name>
+    <index>1</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr38 > 0) & wbs_arch1_inst.phys_sys.wheel_6.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_8_norm_guarantee</name>
+    <index>2</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_8.status = rolling | ground_speed = 0) | !__expr30)) | __expr50 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.asymmetrical_left_braking_norm_guarantee</name>
+    <index>3</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G ((((!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_1.status = rolling | ground_speed = 0) | !__expr30)) | __expr48 > 0) & (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_2.status = rolling | ground_speed = 0) | !__expr30)) | __expr46 > 0)) & (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_5.status = rolling | ground_speed = 0) | !__expr30)) | __expr40 > 0)) & (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_6.status = rolling | ground_speed = 0) | !__expr30)) | __expr38 > 0)))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_1_implies_cmd_norm_guarantee</name>
+    <index>4</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr48 > 0) | (mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_1.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_loss_of_all_wheel_braking_norm_guarantee</name>
+    <index>5</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !((((((((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & !(!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_1.status = rolling | ground_speed = 0) | !__expr30)) | __expr48 > 0)) & !(!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_2.status = rolling | ground_speed = 0) | !__expr30)) | __expr46 > 0)) & !(!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_3.status = rolling | ground_speed = 0) | !__expr30)) | __expr44 > 0)) & !(!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_4.status = rolling | ground_speed = 0) | !__expr30)) | __expr42 > 0)) & !(!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_5.status = rolling | ground_speed = 0) | !__expr30)) | __expr40 > 0)) & !(!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_6.status = rolling | ground_speed = 0) | !__expr30)) | __expr38 > 0)) & !(!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_7.status = rolling | ground_speed = 0) | !__expr30)) | __expr35 > 0)) & !(!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_8.status = rolling | ground_speed = 0) | !__expr30)) | __expr50 > 0)))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_3_norm_guarantee</name>
+    <index>6</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_3.status = rolling | ground_speed = 0) | !__expr30)) | __expr44 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_with_all_wheels_locked_norm_guarantee</name>
+    <index>7</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((__expr48 > 0 & __expr46 > 0) & __expr44 > 0) & __expr42 > 0) & __expr40 > 0) & __expr38 > 0) & __expr35 > 0) & __expr50 > 0)) & (((((((wbs_arch1_inst.phys_sys.wheel_1.status = stopped & wbs_arch1_inst.phys_sys.wheel_2.status = stopped) & wbs_arch1_inst.phys_sys.wheel_3.status = stopped) & wbs_arch1_inst.phys_sys.wheel_4.status = stopped) & wbs_arch1_inst.phys_sys.wheel_5.status = stopped) & wbs_arch1_inst.phys_sys.wheel_6.status = stopped) & wbs_arch1_inst.phys_sys.wheel_7.status = stopped) & wbs_arch1_inst.phys_sys.wheel_8.status = stopped)) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_4_implies_cmd_norm_guarantee</name>
+    <index>8</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr42 > 0) | (mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_4.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_2_norm_guarantee</name>
+    <index>9</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr46 > 0) & wbs_arch1_inst.phys_sys.wheel_2.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_6_norm_guarantee</name>
+    <index>10</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_6.status = rolling | ground_speed = 0) | !__expr30)) | __expr38 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_5_norm_guarantee</name>
+    <index>11</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr40 > 0) & wbs_arch1_inst.phys_sys.wheel_5.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_7_implies_cmd_norm_guarantee</name>
+    <index>12</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr35 > 0) | (mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_7.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_8_norm_guarantee</name>
+    <index>13</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr50 > 0) & wbs_arch1_inst.phys_sys.wheel_8.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_1_norm_guarantee</name>
+    <index>14</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_1.status = rolling | ground_speed = 0) | !__expr30)) | __expr48 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_2_implies_cmd_norm_guarantee</name>
+    <index>15</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr46 > 0) | (mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_2.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_4_norm_guarantee</name>
+    <index>17</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_4.status = rolling | ground_speed = 0) | !__expr30)) | __expr42 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_1_norm_guarantee</name>
+    <index>18</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr48 > 0) & wbs_arch1_inst.phys_sys.wheel_1.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_5_implies_cmd_norm_guarantee</name>
+    <index>19</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr40 > 0) | (mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_5.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_4_norm_guarantee</name>
+    <index>20</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr42 > 0) & wbs_arch1_inst.phys_sys.wheel_4.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_7_norm_guarantee</name>
+    <index>21</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_7.status = rolling | ground_speed = 0) | !__expr30)) | __expr35 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_7_norm_guarantee</name>
+    <index>22</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr35 > 0) & wbs_arch1_inst.phys_sys.wheel_7.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_8_implies_cmd_norm_guarantee</name>
+    <index>23</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr50 > 0) | (mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_8.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.asymmetrical_right_braking_norm_guarantee</name>
+    <index>24</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G ((((!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_3.status = rolling | ground_speed = 0) | !__expr30)) | __expr44 > 0) & (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_4.status = rolling | ground_speed = 0) | !__expr30)) | __expr42 > 0)) & (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_7.status = rolling | ground_speed = 0) | !__expr30)) | __expr35 > 0)) & (!(mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_8.status = rolling | ground_speed = 0) | !__expr30)) | __expr50 > 0)))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_2_norm_guarantee</name>
+    <index>25</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_2.status = rolling | ground_speed = 0) | !__expr30)) | __expr46 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.braking_wheel_3_implies_cmd_norm_guarantee</name>
+    <index>27</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(__expr44 > 0) | (mechanical_pedal_pos_R & ((wbs_arch1_inst.phys_sys.wheel_3.status = rolling | ground_speed = 0) | !__expr30))))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_all_wheels_norm_guarantee</name>
+    <index>28</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((__expr48 > 0 & __expr46 > 0) & __expr44 > 0) & __expr42 > 0) & __expr40 > 0) & __expr38 > 0) & __expr35 > 0) & __expr50 > 0)) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.cmd_implies_braking_wheel_5_norm_guarantee</name>
+    <index>29</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G (!(mechanical_pedal_pos_L & ((wbs_arch1_inst.phys_sys.wheel_5.status = rolling | ground_speed = 0) | !__expr30)) | __expr40 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.never_inadvertent_braking_of_wheel_3_norm_guarantee</name>
+    <index>30</index>
+    <formula><![CDATA[
+(!( G ((power & pump_power) & hydraulic_supply = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr44 > 0) & wbs_arch1_inst.phys_sys.wheel_3.status = rolling))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_pedal_R.pedal_position_translation_norm_guarantee</name>
+    <index>31</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_pedal_L.pedal_position_translation_norm_guarantee</name>
+    <index>32</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_8.sensor_translation_norm_guarantee</name>
+    <index>33</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_7.sensor_translation_norm_guarantee</name>
+    <index>34</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_6.sensor_translation_norm_guarantee</name>
+    <index>35</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_5.sensor_translation_norm_guarantee</name>
+    <index>36</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_4.sensor_translation_norm_guarantee</name>
+    <index>37</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_3.sensor_translation_norm_guarantee</name>
+    <index>38</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_2.sensor_translation_norm_guarantee</name>
+    <index>39</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.sensor_1.sensor_translation_norm_guarantee</name>
+    <index>40</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_6_implies_cmd_norm_guarantee</name>
+    <index>41</index>
+    <formula><![CDATA[
+ G (!(__expr38 > 0) | ((__expr27 | mechanical_pedal_pos_L) & !__expr23))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_8_norm_guarantee</name>
+    <index>42</index>
+    <formula><![CDATA[
+ G (!((__expr9 | mechanical_pedal_pos_R) & !__expr11) | __expr50 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.asymmetrical_left_braking_norm_guarantee</name>
+    <index>43</index>
+    <formula><![CDATA[
+ G ((((!((__expr27 | mechanical_pedal_pos_L) & !__expr13) | __expr48 > 0) & (!((__expr27 | mechanical_pedal_pos_L) & !__expr15) | __expr46 > 0)) & (!((__expr27 | mechanical_pedal_pos_L) & !__expr21) | __expr40 > 0)) & (!((__expr27 | mechanical_pedal_pos_L) & !__expr23) | __expr38 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_1_implies_cmd_norm_guarantee</name>
+    <index>44</index>
+    <formula><![CDATA[
+ G (!(__expr48 > 0) | ((__expr27 | mechanical_pedal_pos_L) & !__expr13))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.never_loss_of_all_wheel_braking_norm_guarantee</name>
+    <index>45</index>
+    <formula><![CDATA[
+ G !(((((((!(!((__expr27 | mechanical_pedal_pos_L) & !__expr13) | __expr48 > 0) & !(!((__expr27 | mechanical_pedal_pos_L) & !__expr15) | __expr46 > 0)) & !(!((__expr9 | mechanical_pedal_pos_R) & !__expr17) | __expr44 > 0)) & !(!((__expr9 | mechanical_pedal_pos_R) & !__expr19) | __expr42 > 0)) & !(!((__expr27 | mechanical_pedal_pos_L) & !__expr21) | __expr40 > 0)) & !(!((__expr27 | mechanical_pedal_pos_L) & !__expr23) | __expr38 > 0)) & !(!((__expr9 | mechanical_pedal_pos_R) & !__expr12) | __expr35 > 0)) & !(!((__expr9 | mechanical_pedal_pos_R) & !__expr11) | __expr50 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_3_norm_guarantee</name>
+    <index>46</index>
+    <formula><![CDATA[
+ G (!((__expr9 | mechanical_pedal_pos_R) & !__expr17) | __expr44 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.never_inadvertent_braking_with_all_wheels_locked_norm_guarantee</name>
+    <index>47</index>
+    <formula><![CDATA[
+ G !((((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !__expr27) & !__expr27) & !__expr9) & !__expr9) & !__expr27) & !__expr27) & !__expr9) & !__expr9) & (((((((__expr48 > 0 & __expr46 > 0) & __expr44 > 0) & __expr42 > 0) & __expr40 > 0) & __expr38 > 0) & __expr35 > 0) & __expr50 > 0)) & (((((((wbs_arch1_inst.phys_sys.wheel_1.status = stopped & wbs_arch1_inst.phys_sys.wheel_2.status = stopped) & wbs_arch1_inst.phys_sys.wheel_3.status = stopped) & wbs_arch1_inst.phys_sys.wheel_4.status = stopped) & wbs_arch1_inst.phys_sys.wheel_5.status = stopped) & wbs_arch1_inst.phys_sys.wheel_6.status = stopped) & wbs_arch1_inst.phys_sys.wheel_7.status = stopped) & wbs_arch1_inst.phys_sys.wheel_8.status = stopped)) & __expr0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_4_implies_cmd_norm_guarantee</name>
+    <index>48</index>
+    <formula><![CDATA[
+ G (!(__expr42 > 0) | ((__expr9 | mechanical_pedal_pos_R) & !__expr19))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_6_norm_guarantee</name>
+    <index>49</index>
+    <formula><![CDATA[
+ G (!((__expr27 | mechanical_pedal_pos_L) & !__expr23) | __expr38 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_7_implies_cmd_norm_guarantee</name>
+    <index>50</index>
+    <formula><![CDATA[
+ G (!(__expr35 > 0) | ((__expr9 | mechanical_pedal_pos_R) & !__expr12))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_1_norm_guarantee</name>
+    <index>51</index>
+    <formula><![CDATA[
+ G (!((__expr27 | mechanical_pedal_pos_L) & !__expr13) | __expr48 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_2_implies_cmd_norm_guarantee</name>
+    <index>52</index>
+    <formula><![CDATA[
+ G (!(__expr46 > 0) | ((__expr27 | mechanical_pedal_pos_L) & !__expr15))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_4_norm_guarantee</name>
+    <index>54</index>
+    <formula><![CDATA[
+ G (!((__expr9 | mechanical_pedal_pos_R) & !__expr19) | __expr42 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_5_implies_cmd_norm_guarantee</name>
+    <index>55</index>
+    <formula><![CDATA[
+ G (!(__expr40 > 0) | ((__expr27 | mechanical_pedal_pos_L) & !__expr21))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_7_norm_guarantee</name>
+    <index>56</index>
+    <formula><![CDATA[
+ G (!((__expr9 | mechanical_pedal_pos_R) & !__expr12) | __expr35 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_8_implies_cmd_norm_guarantee</name>
+    <index>57</index>
+    <formula><![CDATA[
+ G (!(__expr50 > 0) | ((__expr9 | mechanical_pedal_pos_R) & !__expr11))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.asymmetrical_right_braking_norm_guarantee</name>
+    <index>58</index>
+    <formula><![CDATA[
+ G ((((!((__expr9 | mechanical_pedal_pos_R) & !__expr17) | __expr44 > 0) & (!((__expr9 | mechanical_pedal_pos_R) & !__expr19) | __expr42 > 0)) & (!((__expr9 | mechanical_pedal_pos_R) & !__expr12) | __expr35 > 0)) & (!((__expr9 | mechanical_pedal_pos_R) & !__expr11) | __expr50 > 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_2_norm_guarantee</name>
+    <index>59</index>
+    <formula><![CDATA[
+ G (!((__expr27 | mechanical_pedal_pos_L) & !__expr15) | __expr46 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.braking_wheel_3_implies_cmd_norm_guarantee</name>
+    <index>61</index>
+    <formula><![CDATA[
+ G (!(__expr44 > 0) | ((__expr9 | mechanical_pedal_pos_R) & !__expr17))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.never_inadvertent_braking_of_all_wheels_norm_guarantee</name>
+    <index>62</index>
+    <formula><![CDATA[
+ G !(((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !__expr27) & !__expr27) & !__expr9) & !__expr9) & !__expr27) & !__expr27) & !__expr9) & !__expr9) & (((((((__expr48 > 0 & __expr46 > 0) & __expr44 > 0) & __expr42 > 0) & __expr40 > 0) & __expr38 > 0) & __expr35 > 0) & __expr50 > 0)) & __expr0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.cmd_implies_braking_wheel_5_norm_guarantee</name>
+    <index>63</index>
+    <formula><![CDATA[
+ G (!((__expr27 | mechanical_pedal_pos_L) & !__expr21) | __expr40 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.addition_gate_hyd_pressure.addition_behavior_norm_guarantee</name>
+    <index>64</index>
+    <formula><![CDATA[
+( G (__expr33 = 10 <-> __expr32 >= 10) &  G (__expr33 = __expr32 <-> __expr32 <= 10))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_8.braking_behavior_norm_guarantee</name>
+    <index>65</index>
+    <formula><![CDATA[
+(( G (!(__expr50 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_8.status) = stopped) &  G (!(__expr50 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_8.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_8.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_7.braking_behavior_norm_guarantee</name>
+    <index>66</index>
+    <formula><![CDATA[
+(( G (!(__expr35 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_7.status) = stopped) &  G (!(__expr35 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_7.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_7.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_6.braking_behavior_norm_guarantee</name>
+    <index>67</index>
+    <formula><![CDATA[
+(( G (!(__expr38 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_6.status) = stopped) &  G (!(__expr38 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_6.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_6.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_5.braking_behavior_norm_guarantee</name>
+    <index>68</index>
+    <formula><![CDATA[
+(( G (!(__expr40 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_5.status) = stopped) &  G (!(__expr40 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_5.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_5.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_4.braking_behavior_norm_guarantee</name>
+    <index>69</index>
+    <formula><![CDATA[
+(( G (!(__expr42 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_4.status) = stopped) &  G (!(__expr42 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_4.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_4.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_3.braking_behavior_norm_guarantee</name>
+    <index>70</index>
+    <formula><![CDATA[
+(( G (!(__expr44 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_3.status) = stopped) &  G (!(__expr44 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_3.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_3.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_2.braking_behavior_norm_guarantee</name>
+    <index>71</index>
+    <formula><![CDATA[
+(( G (!(__expr46 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_2.status) = stopped) &  G (!(__expr46 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_2.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_2.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_1.braking_behavior_norm_guarantee</name>
+    <index>72</index>
+    <formula><![CDATA[
+(( G (!(__expr48 > 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_1.status) = stopped) &  G (!(__expr48 <= 8 & ground_speed > 1) | next(wbs_arch1_inst.phys_sys.wheel_1.status) = rolling)) &  G (!__expr53 | next(wbs_arch1_inst.phys_sys.wheel_1.status) = stopped))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_8.supply_braking_force_norm_guarantee</name>
+    <index>73</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_8.brake_actuator.transform_force_norm_guarantee</name>
+    <index>74</index>
+    <formula><![CDATA[
+ G (__expr50 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_8.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_8.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>76</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_7.supply_braking_force_norm_guarantee</name>
+    <index>77</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_7.brake_actuator.transform_force_norm_guarantee</name>
+    <index>78</index>
+    <formula><![CDATA[
+ G (__expr35 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_7.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_7.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>80</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_6.supply_braking_force_norm_guarantee</name>
+    <index>81</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_6.brake_actuator.transform_force_norm_guarantee</name>
+    <index>82</index>
+    <formula><![CDATA[
+ G (__expr38 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_6.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_6.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>84</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_5.supply_braking_force_norm_guarantee</name>
+    <index>85</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_5.brake_actuator.transform_force_norm_guarantee</name>
+    <index>86</index>
+    <formula><![CDATA[
+ G (__expr40 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_5.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_5.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>88</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_4.supply_braking_force_norm_guarantee</name>
+    <index>89</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_4.brake_actuator.transform_force_norm_guarantee</name>
+    <index>90</index>
+    <formula><![CDATA[
+ G (__expr42 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_4.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_4.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>92</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_3.supply_braking_force_norm_guarantee</name>
+    <index>93</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_3.brake_actuator.transform_force_norm_guarantee</name>
+    <index>94</index>
+    <formula><![CDATA[
+ G (__expr44 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_3.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_3.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>96</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_2.supply_braking_force_norm_guarantee</name>
+    <index>97</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_2.brake_actuator.transform_force_norm_guarantee</name>
+    <index>98</index>
+    <formula><![CDATA[
+ G (__expr46 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_2.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_2.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>100</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_1.supply_braking_force_norm_guarantee</name>
+    <index>101</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_1.brake_actuator.transform_force_norm_guarantee</name>
+    <index>102</index>
+    <formula><![CDATA[
+ G (__expr48 > 0 <-> wbs_arch1_inst.phys_sys.meter_valve_1.hyd_pressure_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.wheel_brake_1.hydraulic_fuse.fuse_behavior_norm_guarantee</name>
+    <index>104</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_8.apply_command_norm_guarantee</name>
+    <index>105</index>
+    <formula><![CDATA[
+ G (((__expr9 | mechanical_pedal_pos_R) & __expr49 > 0) <-> __expr50 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_7.apply_command_norm_guarantee</name>
+    <index>106</index>
+    <formula><![CDATA[
+ G (((__expr9 | mechanical_pedal_pos_R) & __expr34 > 0) <-> __expr35 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_6.apply_command_norm_guarantee</name>
+    <index>107</index>
+    <formula><![CDATA[
+ G (((__expr27 | mechanical_pedal_pos_L) & __expr37 > 0) <-> __expr38 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_5.apply_command_norm_guarantee</name>
+    <index>108</index>
+    <formula><![CDATA[
+ G (((__expr27 | mechanical_pedal_pos_L) & __expr39 > 0) <-> __expr40 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_4.apply_command_norm_guarantee</name>
+    <index>109</index>
+    <formula><![CDATA[
+ G (((__expr9 | mechanical_pedal_pos_R) & __expr41 > 0) <-> __expr42 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_3.apply_command_norm_guarantee</name>
+    <index>110</index>
+    <formula><![CDATA[
+ G (((__expr9 | mechanical_pedal_pos_R) & __expr43 > 0) <-> __expr44 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_2.apply_command_norm_guarantee</name>
+    <index>111</index>
+    <formula><![CDATA[
+ G (((__expr27 | mechanical_pedal_pos_L) & __expr45 > 0) <-> __expr46 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.meter_valve_1.apply_command_norm_guarantee</name>
+    <index>112</index>
+    <formula><![CDATA[
+ G (((__expr27 | mechanical_pedal_pos_L) & __expr47 > 0) <-> __expr48 > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.antiskid_shutoff_valve_1.apply_command_norm_guarantee</name>
+    <index>120</index>
+    <formula><![CDATA[
+( G (!(__expr33 = 0 | __expr13) | __expr47 = 0) &  G (!(__expr33 > 0 & !__expr13) | (__expr47 > 0 & __expr47 = __expr33)))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.accumulator.supply_reserve_norm_guarantee</name>
+    <index>121</index>
+    <formula><![CDATA[
+ G (__expr31 = 0 <-> wbs_arch1_inst.phys_sys.accumulator.reserve_out > 0)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+
+
+  <property>
+    <name>wbs_arch1_inst.phys_sys.hydraulic_pump.supply_hydraulic_norm_guarantee</name>
+    <index>123</index>
+    <formula><![CDATA[
+( G (!(pump_power & hydraulic_supply > 0) | wbs_arch1_inst.phys_sys.hydraulic_pump.hyd_pressure_out > 0) &  G (!(!pump_power | hydraulic_supply = 0) | wbs_arch1_inst.phys_sys.hydraulic_pump.hyd_pressure_out = 0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_8_norm_guarantee</name>
+    <index>124</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_R) <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_1_norm_guarantee</name>
+    <index>125</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr1) <-> ((power & !wbs_arch1_inst.sensor_1.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_3_norm_guarantee</name>
+    <index>126</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_R) <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_4_norm_guarantee</name>
+    <index>127</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr4) <-> ((power & !wbs_arch1_inst.sensor_4.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_5_norm_guarantee</name>
+    <index>128</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_L) <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.system_validity_norm_guarantee</name>
+    <index>129</index>
+    <formula><![CDATA[
+ G (__expr30 <-> ((((((((((((((((power & __expr28) & __expr28) & __expr29) & __expr29) & __expr28) & __expr28) & __expr29) & __expr29) & __expr14) & __expr16) & __expr18) & __expr20) & __expr22) & __expr24) & __expr25) & __expr26))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_7_norm_guarantee</name>
+    <index>130</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr7) <-> ((power & !wbs_arch1_inst.sensor_7.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_4_norm_guarantee</name>
+    <index>131</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_R) <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_2_norm_guarantee</name>
+    <index>132</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr2) <-> ((power & !wbs_arch1_inst.sensor_2.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_6_norm_guarantee</name>
+    <index>133</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_L) <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_5_norm_guarantee</name>
+    <index>134</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr5) <-> ((power & !wbs_arch1_inst.sensor_5.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_1_norm_guarantee</name>
+    <index>135</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_L) <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_8_norm_guarantee</name>
+    <index>136</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr8) <-> ((power & !wbs_arch1_inst.sensor_8.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_7_norm_guarantee</name>
+    <index>137</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_R) <-> __expr9)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_3_norm_guarantee</name>
+    <index>138</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr3) <-> ((power & !wbs_arch1_inst.sensor_3.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_brake_cmd_2_norm_guarantee</name>
+    <index>139</index>
+    <formula><![CDATA[
+ G ((__expr30 & mechanical_pedal_pos_L) <-> __expr27)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.expected_behavior_as_cmd_6_norm_guarantee</name>
+    <index>140</index>
+    <formula><![CDATA[
+ G (((__expr30 & __expr0) & __expr6) <-> __expr23)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_8_norm_guarantee</name>
+    <index>141</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr8) <-> __expr11)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_3_norm_guarantee</name>
+    <index>142</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_3_norm_guarantee</name>
+    <index>143</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr3) <-> __expr17)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_6_norm_guarantee</name>
+    <index>144</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_6_norm_guarantee</name>
+    <index>145</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr6) <-> __expr23)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.system_validity_norm_guarantee</name>
+    <index>146</index>
+    <formula><![CDATA[
+ G (__expr30 <-> ((((((((((((((((power & __expr28) & __expr28) & __expr29) & __expr29) & __expr28) & __expr28) & __expr29) & __expr29) & __expr14) & __expr16) & __expr18) & __expr20) & __expr22) & __expr24) & __expr25) & __expr26))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_1_norm_guarantee</name>
+    <index>147</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_1_norm_guarantee</name>
+    <index>148</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr1) <-> __expr13)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_4_norm_guarantee</name>
+    <index>149</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_4_norm_guarantee</name>
+    <index>150</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr4) <-> __expr19)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_7_norm_guarantee</name>
+    <index>151</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_7_norm_guarantee</name>
+    <index>152</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr7) <-> __expr12)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_2_norm_guarantee</name>
+    <index>153</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_2_norm_guarantee</name>
+    <index>154</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr2) <-> __expr15)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_5_norm_guarantee</name>
+    <index>155</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.as_command_creation_5_norm_guarantee</name>
+    <index>156</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr5) <-> __expr21)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.brake_command_creation_8_norm_guarantee</name>
+    <index>157</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_8_norm_guarantee</name>
+    <index>158</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr8) <-> __expr11)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_3_norm_guarantee</name>
+    <index>159</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_3_norm_guarantee</name>
+    <index>160</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr3) <-> __expr17)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_6_norm_guarantee</name>
+    <index>161</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_6_norm_guarantee</name>
+    <index>162</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr6) <-> __expr23)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_1_norm_guarantee</name>
+    <index>163</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_1_norm_guarantee</name>
+    <index>164</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr1) <-> __expr13)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_4_norm_guarantee</name>
+    <index>165</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_4_norm_guarantee</name>
+    <index>166</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr4) <-> __expr19)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_7_norm_guarantee</name>
+    <index>167</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_7_norm_guarantee</name>
+    <index>168</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr7) <-> __expr12)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_2_norm_guarantee</name>
+    <index>169</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_2_norm_guarantee</name>
+    <index>170</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr2) <-> __expr15)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_5_norm_guarantee</name>
+    <index>171</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.as_command_creation_5_norm_guarantee</name>
+    <index>172</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr5) <-> __expr21)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.brake_command_creation_8_norm_guarantee</name>
+    <index>173</index>
+    <formula><![CDATA[
+ G TRUE
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w8_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>174</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr8) <-> __expr11) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w8_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>175</index>
+    <formula><![CDATA[
+ G (__expr9 <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w8_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>176</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr8) <-> ((power & !wbs_arch1_inst.sensor_8.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w7_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>177</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr7) <-> __expr12) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w7_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>178</index>
+    <formula><![CDATA[
+ G (__expr9 <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w7_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>179</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr7) <-> ((power & !wbs_arch1_inst.sensor_7.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w6_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>180</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr6) <-> __expr23) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w6_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>181</index>
+    <formula><![CDATA[
+ G (__expr27 <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w6_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>182</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr6) <-> ((power & !wbs_arch1_inst.sensor_6.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w5_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>183</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr5) <-> __expr21) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w5_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>184</index>
+    <formula><![CDATA[
+ G (__expr27 <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w5_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>185</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr5) <-> ((power & !wbs_arch1_inst.sensor_5.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w4_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>186</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr4) <-> __expr19) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w4_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>187</index>
+    <formula><![CDATA[
+ G (__expr9 <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w4_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>188</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr4) <-> ((power & !wbs_arch1_inst.sensor_4.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w3_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>189</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr3) <-> __expr17) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w3_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>190</index>
+    <formula><![CDATA[
+ G (__expr9 <-> (power & wbs_arch1_inst.sensor_pedal_R.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w3_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>191</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr3) <-> ((power & !wbs_arch1_inst.sensor_3.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w2_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>192</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr2) <-> __expr15) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w2_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>193</index>
+    <formula><![CDATA[
+ G (__expr27 <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w2_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>194</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr2) <-> ((power & !wbs_arch1_inst.sensor_2.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w1_cmd_sys.commands_creation_norm_guarantee</name>
+    <index>195</index>
+    <formula><![CDATA[
+( G (((power & __expr0) & __expr1) <-> __expr13) &  G TRUE)
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w1_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee</name>
+    <index>196</index>
+    <formula><![CDATA[
+ G (__expr27 <-> (power & wbs_arch1_inst.sensor_pedal_L.electrical_pedal_pos))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.command_sys.w1_cmd_sys.antiskid_command_facility.as_command_creation_norm_guarantee</name>
+    <index>197</index>
+    <formula><![CDATA[
+ G (((power & __expr0) & __expr1) <-> ((power & !wbs_arch1_inst.sensor_1.wheel_rolling) & __expr0))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+  <property>
+    <name>wbs_arch1_inst.ctrl_sys.bscu.monitor_sys.bscu_validity_norm_guarantee</name>
+    <index>198</index>
+    <formula><![CDATA[
+ G (__expr30 <-> ((((((((((((((((power & __expr28) & __expr28) & __expr29) & __expr29) & __expr28) & __expr28) & __expr29) & __expr29) & __expr14) & __expr16) & __expr18) & __expr20) & __expr22) & __expr24) & __expr25) & __expr26))
+]]>
+</formula>
+    <type>LTL</type>
+    <status>UNCHECKED</status>
+    <bound>-1</bound>
+    <trace>0</trace>
+ </property>
+
+</properties>
