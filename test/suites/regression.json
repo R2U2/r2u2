@@ -3,8 +3,7 @@
     "options": {
         "booleanizer":  true,
         "disable-cse":  true,
-        "disable-rewrite":  true,
-        "impl":  "c"
+        "disable-rewrite":  true
     },
     "tests": [
         {

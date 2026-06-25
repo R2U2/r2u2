@@ -27,16 +27,12 @@ enum Commands {
         #[arg(value_parser = valid_map_file)]
         map: PathBuf,
 
-        /// Set implementation type ("c" or "rust")
-        #[arg(short,long,default_value="rust")]
-        impl_str: String,
-
         /// Sets location to save spec.bin file (default = current directory)
         #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
         output: Option<PathBuf>,
 
-        /// Sets location to save bounds.h or config.toml file depending on impl_str (default = current directory)
-        #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
+        /// Sets location to save config.toml file (if not specified, will not be saved)
+        #[arg(short,long, value_name = "PATH", value_parser=valid_bounds_file)]
         bounds: Option<PathBuf>,
 
         /// Disables booleanizer (default = booleanizer enabled)
@@ -177,6 +173,19 @@ fn valid_location(s: &str) -> Result<PathBuf, String> {
     }
 }
 
+fn valid_bounds_file(s: &str) -> Result<PathBuf, String> {
+    let file : PathBuf = s
+        .parse()
+        .map_err(|_| format!("`{s}` isn't a path"))?;
+    if file.extension().and_then(OsStr::to_str) == Some("toml"){
+        Ok(file as PathBuf)
+    } else {
+        Err(format!(
+            "{s} is not a .toml file"
+        ))
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -189,7 +198,6 @@ fn main() {
                 compile::c2po_compile(spec.to_str().unwrap(),
                     trace.to_str().unwrap(),
                     "",
-                    "rust",
                     &random_file,
                     "",
                     true,
@@ -289,7 +297,7 @@ fn main() {
                 }
             }
         },
-        Some(Commands::Compile { spec, map, impl_str, output, bounds, disable_booleanizer, 
+        Some(Commands::Compile { spec, map, output, bounds, disable_booleanizer, 
             disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
             if output.is_some(){
@@ -301,7 +309,6 @@ fn main() {
             compile::c2po_compile(spec.to_str().unwrap(),
                 if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
                 if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
-                impl_str,
                 &out_location,
                 bounds.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(""),
                 !disable_booleanizer,

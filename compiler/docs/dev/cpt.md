@@ -1,34 +1,38 @@
 # C2PO Parse Tree
 
-The C2PO Parse Tree (CPT) is the primary data structure for C2PO and represents the input
-specification throughout compilation. The CPT and its various functions are defined in
-`c2po/cpt.py`. CPT node classes represent program structure (e.g., `cpt.StructSection`) or
-expression values (e.g., `cpt.Until`). 
+The C2PO Parse Tree (CPT), defined in `c2po/cpt.py`, is the core IR used across parsing, type
+checking, transforms, optimization, SMT encoding, and assembly.
 
-Most passes perform a postorder traversal of the CPT, reading or replacing nodes after having
-processed that node's children. This traversal can be done over an expression using the `postorder`
-generator function, which yields each node of the CPT expression in postorder fashion. Traversals
-also usually carry a `cpt.Context` object throughout, that stores information about defined structs,
-declared variables, etc.
+## Core Structures
+
+- `Program`: section-level container (`INPUT`, `STRUCT`, `ENUM`, `DEFINE`, `FTSPEC`, `PTSPEC`) and
+  FT/PT spec sets.
+- `Context`: mutable compiler state (definitions, symbols, signal mapping, atomics, constraints for
+  `.equiv`, generated assembly/binary, stats, and tool paths).
+- `Expression` graph: formulas/operators/signals/constants used by all passes and emitters.
+
+## Traversals and Rewrites
+
+Most command implementations walk expressions with traversal helpers:
+
+- `postorder(...)` for bottom-up analyses/transforms
+- `preorder(...)` for top-down transforms/inspection
+
+These traversals are context-aware (for example, bound-variable handling in set aggregation).
 
 ## SCQ Sizing
 
-Each node in the final CPT representation requires some memory to store its result during the
-execution of R2U2. The exact amount of memory each node requires is determined by the *propagation
-delays* of itself and its sibling nodes. For a formal definition and example, see section 2.2 of the
-[2023 FMICS paper](https://research.temporallogic.org/papers/JKJRW23.pdf). 
+SCQ sizes are computed from expression structure and propagation-delay properties, then attached to
+nodes before assembly (`compute_scq_sizes`).
 
-C2PO traverses the final CPT and computes the propagation delays for each node. Since each node
-tracks its parents, computing the propagation delays of its siblings is fairly trivial. 
+The resulting queue sizes drive temporal memory allocation in generated configuration instructions.
 
-## R2U2 Engines
+## Engine Assignment and Atomics
 
-Each CPT class has an engine type which determines what R2U2 engine will compute that node's value
-at runtime. The available engines in R2U2 are the Temporal Logic (TL) Engine and the Booleanizer (BZ).
+CPT expressions are assigned to either:
 
-In R2U2, BZ engine nodes can only read from other BZ nodes or the *signals vector* and can write to
-the *atomics vector*. TL engine nodes can only read from other TL nodes or the *atomics vector*. As
-a result, we mark any BZ nodes that are read from TL nodes as *atomics*. These nodes are computed
-during the `compute_atomics` pass in `passes.py`. During assembly, these nodes
-emit both a BZ engine instruction to compute their value, a BZ instruction to store its value in the
-atomics vector, and a TL instruction to read it from the atomics vector.
+- Booleanizer engine (BZ), or
+- Temporal Logic engine (TL)
+
+Any BZ expression consumed by TL is treated as an atomic interface value. These interfaces are
+identified by `compute_atomics` and later emitted as coordinated BZ/TL instructions during assembly.
