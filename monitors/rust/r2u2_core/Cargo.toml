@@ -8,7 +8,7 @@ readme = "README.md"
 rust-version = "1.85.1"
 keywords = ["monitoring", "verification"]
 categories = ["no-std", "embedded"]
-repository = "https://github.com/R2U2/r2u2/tree/rust-develop/monitors/rust/r2u2_core"
+repository = "https://github.com/R2U2/r2u2/tree/main/monitors/rust/r2u2_core"
 homepage = "https://r2u2.temporallogic.org"
 license = "MIT OR Apache-2.0"
 
