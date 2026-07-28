@@ -48,8 +48,8 @@ The following words are reserved words and therefore cannot be used as identifie
 
     STRUCT ENUM INPUT DEFINE FTSPEC PTSPEC
     foreach forsome forexactly foratleast foratmost
-    pow sqrt abs xor prev
-    G F H O U R S M
+    pow sqrt abs xor prev TAU
+    G F H O U R S T M
     true false
 
 ## Types

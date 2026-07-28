@@ -418,6 +418,15 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                         expr.loc,
                     )
                     return False
+
+            if expr.operator is cpt.OperatorKind.ARITHMETIC_MODULO:
+                rhs = expr.children[1]
+                if isinstance(rhs, cpt.Constant) and rhs.value == 0:
+                    log.error(
+                        f"modulo by zero\n    {expr}",
+                        expr.loc,
+                    )
+                    return False
                 
             if expr.operator is cpt.OperatorKind.ARITHMETIC_SQRT:
                 rhs = expr.children[0]
