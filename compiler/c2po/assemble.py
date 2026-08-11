@@ -839,7 +839,7 @@ def pack_bz_instruction(
         1,
         f"packing bz instruction: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_ID] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_INT])} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_INT] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_ID])} "
         f"{format_strs[FieldType.BZ_ID]:2} "
         f"{format_strs[FieldType.BZ_ID]:2} "
         f"{format_strs[FieldType.BZ_OPERATOR]:2} "
@@ -857,9 +857,9 @@ def pack_bz_instruction(
     format_str += (
         format_strs[FieldType.BZ_OPERAND_FLOAT]
         if isinstance(instruction.operand1, float)
-        else format_strs[FieldType.BZ_OPERAND_ID]
-        if instruction.operator is BZOperator.ICONST
         else format_strs[FieldType.BZ_OPERAND_INT]
+        if instruction.operator is BZOperator.ICONST
+        else format_strs[FieldType.BZ_OPERAND_ID]
     )
     format_str += (
         format_strs[FieldType.BZ_ID]
