@@ -1,0 +1,25 @@
+ENUM
+    OperatingState: { Idle: 0, Active: 1, Fault: 2 };
+
+STRUCT
+    Test: {
+        m1: int;
+        m2: bool;
+        m3: OperatingState;
+        m4: int[];
+    };
+
+INPUT
+    i0: int;
+    b0: bool;
+    i1: OperatingState;
+    arr1: int[3];
+
+DEFINE
+    t := Test(i0, b0, i1, arr1);
+
+FTSPEC
+    t.m1 >= 0 &&
+    t.m2 &&
+    t.m3 != Fault &&
+    t.m4[0] >= -15;

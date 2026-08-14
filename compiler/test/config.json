@@ -13,6 +13,10 @@
             "output": "desugar/struct.expect"
         },
         {
+            "script": "desugar/struct_enum.cmd",
+            "output": "desugar/struct_enum.expect"
+        },
+        {
             "script": "desugar/enum.cmd", 
             "output": "desugar/enum.expect"
         }
