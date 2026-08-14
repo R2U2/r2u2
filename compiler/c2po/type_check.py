@@ -647,6 +647,11 @@ def type_check_section(section: cpt.ProgramSection, symbols: set[str], context: 
                 )
 
             symbols.add(struct.symbol)
+            for declaration in struct.var_decls:
+                if declaration.type.symbol in context.enums:
+                    declaration.type = types.EnumType(declaration.type.symbol)
+                    for member in declaration.variables:
+                        struct.members[member] = declaration.type
             context.add_struct(struct.symbol, struct.members)
     elif isinstance(section, cpt.EnumSection):
         for enum in section.enum_defs:
