@@ -190,10 +190,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             # avoid repeating code
             if isinstance(expr.get_array(), cpt.Variable):
                 tmp_signal = cpt.Signal(expr.loc, str(expr), array_type.member_type)
-                context.signals[str(expr)] = types.NoType()
-                status = type_check_expr(tmp_signal, context, options)
-                del context.signals[str(expr)]
-                if not status:
+                if not type_check_expr(tmp_signal, context, options):
                     return False
 
             expr.type = array_type.member_type

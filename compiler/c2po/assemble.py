@@ -1152,7 +1152,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tupl
     num_aliases_bytes = sum([
         (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
     ])
-    num_signals = len(context.signals)
+    num_signals = max(context.signal_mapping.values(), default=-1) + 1
     num_atomics = len(set(context.atomic_id_map.values()))
     total_scq_size = sum([
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
