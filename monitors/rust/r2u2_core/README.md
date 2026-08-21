@@ -14,7 +14,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-r2u2_core = "4.2.3"
+r2u2_core = "4.2.4"
 ```
 
 # Example Usage
