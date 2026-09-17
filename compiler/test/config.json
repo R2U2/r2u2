@@ -83,6 +83,10 @@
         {
             "script": "operators/array_index_prec.cmd", 
             "output": "operators/array_index_prec.expect"
+        },
+        {
+            "script": "operators/prev.cmd", 
+            "output": "operators/prev.expect"
         }
     ],
     "type-check": [
