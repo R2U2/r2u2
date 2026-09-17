@@ -1,0 +1,2 @@
+type_check: error: pt_future_ops.c2po:4: mixed-time formulas unsupported, found FT formula in PTSPEC
+    (G[0,1] a)

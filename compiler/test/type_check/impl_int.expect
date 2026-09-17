@@ -1,0 +1,2 @@
+type_check: error: impl_int.c2po:4: Invalid operands for '->', found 'int' ('i') but expected 'bool'
+    (i -> j)

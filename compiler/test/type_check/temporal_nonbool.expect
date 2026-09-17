@@ -1,0 +1,2 @@
+type_check: error: temporal_nonbool.c2po:4: Invalid operands for 'G[0,1]', found 'int' ('i') but expected 'bool'
+    (G[0,1] i)

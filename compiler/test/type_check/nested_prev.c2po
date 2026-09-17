@@ -1,0 +1,4 @@
+INPUT
+    i: int;
+FTSPEC
+    prev(0, prev(0, i)) > 0;

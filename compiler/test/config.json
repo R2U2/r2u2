@@ -87,36 +87,218 @@
     ],
     "type-check": [
         {
-            "script": "type_check/bad_array.cmd", 
+            "script": "type_check/bad_array.cmd",
             "output": "type_check/bad_array.expect"
         },
         {
-            "script": "type_check/bad_array2.cmd", 
+            "script": "type_check/bad_array2.cmd",
             "output": "type_check/bad_array2.expect"
         },
         {
-            "script": "type_check/bad_array_index.cmd", 
+            "script": "type_check/bad_array_index.cmd",
             "output": "type_check/bad_array_index.expect"
         },
         {
-            "script": "type_check/unmapped_input.cmd", 
+            "script": "type_check/unmapped_input.cmd",
             "output": "type_check/unmapped_input.expect"
         },
         {
-            "script": "type_check/bad_int_width.cmd", 
+            "script": "type_check/bad_int_width.cmd",
             "output": "type_check/bad_int_width.expect"
         },
         {
-            "script": "type_check/bad_struct.cmd", 
+            "script": "type_check/bad_struct.cmd",
             "output": "type_check/bad_struct.expect"
         },
-                {
-            "script": "type_check/bad_enum.cmd", 
+        {
+            "script": "type_check/bad_enum.cmd",
             "output": "type_check/bad_enum.expect"
         },
         {
-            "script": "type_check/bad_prev.cmd", 
+            "script": "type_check/bad_prev.cmd",
             "output": "type_check/bad_prev.expect"
+        },
+        {
+            "script": "type_check/neg_array_index.cmd",
+            "output": "type_check/neg_array_index.expect"
+        },
+        {
+            "script": "type_check/empty_array_define.cmd",
+            "output": "type_check/empty_array_define.expect"
+        },
+        {
+            "script": "type_check/empty_array_foreach.cmd",
+            "output": "type_check/empty_array_foreach.expect"
+        },
+        {
+            "script": "type_check/empty_array_eq.cmd",
+            "output": "type_check/empty_array_eq.expect"
+        },
+        {
+            "script": "type_check/array_index_eq_size.cmd",
+            "output": "type_check/array_index_eq_size.expect"
+        },
+        {
+            "script": "type_check/array_index_size_minus_1.cmd",
+            "output": "type_check/array_index_size_minus_1.expect"
+        },
+        {
+            "script": "type_check/array_slice_eq_size.cmd",
+            "output": "type_check/array_slice_eq_size.expect"
+        },
+        {
+            "script": "type_check/negative_index_abs.cmd",
+            "output": "type_check/negative_index_abs.expect"
+        },
+        {
+            "script": "type_check/mod_zero_expr.cmd",
+            "output": "type_check/mod_zero_expr.expect"
+        },
+        {
+            "script": "type_check/div_nonconst.cmd",
+            "output": "type_check/div_nonconst.expect"
+        },
+        {
+            "script": "type_check/float_div_zero_const.cmd",
+            "output": "type_check/float_div_zero_const.expect"
+        },
+        {
+            "script": "type_check/modulo_by_zero.cmd",
+            "output": "type_check/modulo_by_zero.expect"
+        },
+        {
+            "script": "type_check/divide_by_zero.cmd",
+            "output": "type_check/divide_by_zero.expect"
+        },
+        {
+            "script": "type_check/contract_nonbool_assume.cmd",
+            "output": "type_check/contract_nonbool_assume.expect"
+        },
+        {
+            "script": "type_check/contract_as_subexpr.cmd",
+            "output": "type_check/contract_as_subexpr.expect"
+        },
+        {
+            "script": "type_check/formula_ref_as_bool.cmd",
+            "output": "type_check/formula_ref_as_bool.expect"
+        },
+        {
+            "script": "type_check/xor_int.cmd",
+            "output": "type_check/xor_int.expect"
+        },
+        {
+            "script": "type_check/impl_int.cmd",
+            "output": "type_check/impl_int.expect"
+        },
+        {
+            "script": "type_check/temporal_nonbool.cmd",
+            "output": "type_check/temporal_nonbool.expect"
+        },
+        {
+            "script": "type_check/until_mixed_types.cmd",
+            "output": "type_check/until_mixed_types.expect"
+        },
+        {
+            "script": "type_check/eq_bool_int.cmd",
+            "output": "type_check/eq_bool_int.expect"
+        },
+        {
+            "script": "type_check/array_hetero_nested.cmd",
+            "output": "type_check/array_hetero_nested.expect"
+        },
+        {
+            "script": "type_check/struct_wrong_arity.cmd",
+            "output": "type_check/struct_wrong_arity.expect"
+        },
+        {
+            "script": "type_check/struct_wrong_types.cmd",
+            "output": "type_check/struct_wrong_types.expect"
+        },
+        {
+            "script": "type_check/member_missing.cmd",
+            "output": "type_check/member_missing.expect"
+        },
+        {
+            "script": "type_check/setagg_non_array.cmd",
+            "output": "type_check/setagg_non_array.expect"
+        },
+        {
+            "script": "type_check/setagg_nonbool_body.cmd",
+            "output": "type_check/setagg_nonbool_body.expect"
+        },
+        {
+            "script": "type_check/pow_float_neg.cmd",
+            "output": "type_check/pow_float_neg.expect"
+        },
+        {
+            "script": "type_check/abs_float.cmd",
+            "output": "type_check/abs_float.expect"
+        },
+        {
+            "script": "type_check/bitwise_float.cmd",
+            "output": "type_check/bitwise_float.expect"
+        },
+        {
+            "script": "type_check/shift_neg_const.cmd",
+            "output": "type_check/shift_neg_const.expect"
+        },
+        {
+            "script": "type_check/pt_future_ops.cmd",
+            "output": "type_check/pt_future_ops.expect"
+        },
+        {
+            "script": "type_check/ft_past_ops.cmd",
+            "output": "type_check/ft_past_ops.expect"
+        },
+        {
+            "script": "type_check/mission_m_no_set.cmd",
+            "output": "type_check/mission_m_no_set.expect"
+        },
+        {
+            "script": "type_check/interval_lb_gt_ub.cmd",
+            "output": "type_check/interval_lb_gt_ub.expect"
+        },
+        {
+            "script": "type_check/nested_prev.cmd",
+            "output": "type_check/nested_prev.expect"
+        },
+        {
+            "script": "type_check/label_dup.cmd",
+            "output": "type_check/label_dup.expect"
+        },
+        {
+            "script": "type_check/zero_len_array_index.cmd",
+            "output": "type_check/zero_len_array_index.expect"
+        },
+        {
+            "script": "type_check/empty_enum.cmd",
+            "output": "type_check/empty_enum.expect"
+        },
+        {
+            "script": "type_check/bad_enum_syntax.cmd",
+            "output": "type_check/bad_enum_syntax.expect"
+        },
+        {
+            "script": "type_check/illegal_char.cmd",
+            "output": "type_check/illegal_char.expect"
+        },
+        {
+            "script": "type_check/reserved_T.cmd",
+            "output": "type_check/reserved_T.expect"
+        }
+    ],
+    "commands": [
+        {
+            "script": "commands/resolve_array_without_expand.cmd",
+            "output": "commands/resolve_array_without_expand.expect"
+        },
+        {
+            "script": "commands/print_stats_empty.cmd",
+            "output": "commands/print_stats_empty.expect"
+        },
+        {
+            "script": "commands/generate_map_array.cmd",
+            "output": "commands/generate_map_array.expect"
         }
     ],
     "serialize": [

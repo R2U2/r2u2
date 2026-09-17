@@ -84,9 +84,10 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             if symbol in context.bound_vars:
                 set_expr = context.bound_vars[symbol]
                 if not types.is_array_type(set_expr.type):
-                    log.internal(
-                        f"set aggregation set not assigned to type 'set', found '{set_expr.type}'\n    "
+                    log.error(
+                        f"set aggregation set must be Set type (found '{set_expr.type}')\n    "
                         f"{expr}",
+                        expr.loc,
                     )
                     return False
 
@@ -155,20 +156,38 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 )
                 return False
 
-            if (abs(expr.start) > array_type.size or abs(expr.stop) > array_type.size) and array_type.size > -1:
+            # Negative indices count from the end (e.g. [-1] is the last element)
+            begin, end = expr.start, expr.stop
+            if begin < 0 or end < 0:
+                if array_type.size < 0:
+                    log.error(
+                        f"negative array index requires known array size ({expr})",
+                        expr.loc,
+                    )
+                    return False
+                if begin < 0:
+                    begin = array_type.size + begin
+                if end < 0:
+                    end = array_type.size + end
+
+            if begin > end:
+                log.error(
+                    f"Invalid array index ({expr}), {expr.start} is greater than {expr.stop}",
+                    expr.loc,
+                )
+                return False
+
+            # Valid indices are 0 .. size-1 when size is known
+            if array_type.size > -1 and (
+                begin < 0 or end < 0 or begin >= array_type.size or end >= array_type.size
+            ):
                 log.error(f"Out-of-bounds array index ({expr})", expr.loc)
                 return False
 
-            if expr.start < 0:
-                expr.start = -expr.start
-            if expr.stop < 0:
-                expr.stop = -expr.stop
-            if expr.start > expr.stop:
-                log.error(f"Invalid array index ({expr}), {expr.start} is greater than {expr.stop}", expr.loc)
-                return False
-
+            expr.start = begin
+            expr.stop = end
             expr.type = types.ArrayType(
-                array_type.member_type, is_const=expr.get_array().type.is_const, size=expr.stop - expr.start + 1
+                array_type.member_type, is_const=expr.get_array().type.is_const, size=end - begin + 1
             )
         elif isinstance(expr, cpt.ArrayIndex):
             array_type = expr.get_array().type
@@ -179,20 +198,36 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 )
                 return False
 
-            if abs(expr.index) > array_type.size and array_type.size > -1:
+            # Negative indices count from the end (e.g. arr[-1] is the last element)
+            index = expr.index
+            if index < 0:
+                if array_type.size < 0:
+                    log.error(
+                        f"negative array index requires known array size ({expr})",
+                        expr.loc,
+                    )
+                    return False
+                index = array_type.size + index
+
+            # Valid indices are 0 .. size-1 when size is known
+            if array_type.size > -1 and (index < 0 or index >= array_type.size):
                 log.error(f"out-of-bounds array index ({expr})", expr.loc)
                 return False
 
-            if expr.index < 0:
-                expr.index = -expr.index
+            expr.index = index
 
             # Hacky special case where the array is a signal array, we use a temporary signal to
-            # avoid repeating code
+            # avoid repeating code. Do not delete signals already registered from INPUT
+            # (e.g. A[0] for A: int[N]), or generate_map will miss them later.
             if isinstance(expr.get_array(), cpt.Variable):
-                tmp_signal = cpt.Signal(expr.loc, str(expr), array_type.member_type)
-                context.signals[str(expr)] = types.NoType()
+                sig_name = str(expr)
+                already_present = sig_name in context.signals
+                if not already_present:
+                    context.signals[sig_name] = types.NoType()
+                tmp_signal = cpt.Signal(expr.loc, sig_name, array_type.member_type)
                 status = type_check_expr(tmp_signal, context, options)
-                del context.signals[str(expr)]
+                if not already_present:
+                    del context.signals[sig_name]
                 if not status:
                     return False
 
@@ -230,11 +265,9 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             target_types = [m for m in context.structs[expr.symbol].values()]
             actual_types = [c.type for c in expr.children]
 
-            if any(
-                [
-                    target_type != actual_type
-                    for target_type, actual_type in zip(target_types, actual_types)
-                ]
+            if len(target_types) != len(actual_types) or any(
+                target_type != actual_type
+                for target_type, actual_type in zip(target_types, actual_types)
             ):
                 log.error(
                     f"struct instantiation/function call does not match signature."
@@ -254,6 +287,17 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             boundvar: cpt.Variable = expr.bound_var
 
             if isinstance(s.type, types.ArrayType):
+                # Empty sets are allowed for foreach (vacuous true) and forsome (vacuous false).
+                # Parameterized aggregations still require a non-empty set.
+                if s.type.size == 0 and expr.operator not in {
+                    cpt.SetAggregationKind.FOR_EACH,
+                    cpt.SetAggregationKind.FOR_SOME,
+                }:
+                    log.error(
+                        f"set aggregation set must be non-empty (found empty set)\n    {expr}",
+                        expr.loc,
+                    )
+                    return False
                 context.add_variable(boundvar.symbol, s.type.member_type)
             else:
                 log.error(
@@ -290,6 +334,21 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                     expr.loc,
                 )
                 return False
+
+            # Numerical aggregations lower bool bodies into BZ integer ops, which cannot
+            # consume TL temporal results. Reject temporal operators in the body early.
+            if expr.operator in {
+                cpt.SetAggregationKind.FOR_EXACTLY,
+                cpt.SetAggregationKind.FOR_AT_MOST,
+                cpt.SetAggregationKind.FOR_AT_LEAST,
+            }:
+                for subexpr in cpt.postorder(e, context):
+                    if cpt.is_temporal_operator(subexpr):
+                        log.error(
+                            f"parameterized set aggregation expression cannot contain temporal operators\n    {expr}",
+                            expr.loc,
+                        )
+                        return False
 
             expr.type = types.BoolType(expr.type.is_const and s.type.is_const)
         elif isinstance(expr, cpt.TemporalOperator):
@@ -364,7 +423,7 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
             expr.type = types.IntType(is_const)
         elif cpt.is_bitwise_operator(expr):
             expr = cast(cpt.Operator, expr)
-            is_const = True
+            is_const = False
 
             if not context.enable_booleanizer:
                 log.error(
@@ -373,10 +432,8 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                 )
                 return False
 
-            new_type = expr.children[0].type
-
             if all([c.type.is_const for c in expr.children]):
-                new_type.is_const = True
+                is_const = True
 
             for child in expr.children:
                 if isinstance(child, cpt.ArrayExpression) or isinstance(child, cpt.ArraySlice):
@@ -385,14 +442,16 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
                         expr.loc,
                     )
                     return False
-                elif child.type != new_type or not types.is_integer_type(child.type):
+                elif types.is_integer_type(child.type):
+                    is_const = is_const and child.type.is_const
+                else:
                     log.error(
-                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected '{new_type}'\n    {expr}",
+                        f"Invalid operands for '{expr.symbol}', found '{child.type}' ('{child}') but expected 'int'\n    {expr}",
                         expr.loc,
                     )
                     return False
-
-            expr.type = new_type
+                    
+            expr.type = types.IntType(is_const)
         elif cpt.is_arithmetic_operator(expr):
             expr = cast(cpt.Operator, expr)
             is_const = True
@@ -609,6 +668,14 @@ def type_check_section(section: cpt.ProgramSection, symbols: set[str], context: 
 
                 if declaration.type.symbol in context.enums:
                     declaration.type = types.EnumType(declaration.type.symbol)
+
+                if isinstance(declaration.type, types.ArrayType) and declaration.type.size == 0:
+                    status = False
+                    log.error(
+                        f"input signal array size must be greater than zero (found '{signal}: {declaration.type}')",
+                        declaration.loc,
+                    )
+                    continue
 
                 symbols.add(signal)
                 context.add_signal(signal, declaration.type)

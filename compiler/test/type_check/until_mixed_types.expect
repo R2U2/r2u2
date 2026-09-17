@@ -1,0 +1,2 @@
+type_check: error: until_mixed_types.c2po:5: Invalid operands for 'U[0,1]', found 'int' ('i') but expected 'bool'
+    (a U[0,1] i)
