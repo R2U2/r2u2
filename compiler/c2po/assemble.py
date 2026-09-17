@@ -839,7 +839,7 @@ def pack_bz_instruction(
         1,
         f"packing bz instruction: {instruction}\n\t"
         f"{format_strs[FieldType.ENGINE_TAG]:2} "
-        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_ID] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_INT])} "
+        f"{format_strs[FieldType.BZ_OPERAND_FLOAT] if isinstance(instruction.operand1, float) else (format_strs[FieldType.BZ_OPERAND_INT] if (instruction.operator is BZOperator.ICONST) else format_strs[FieldType.BZ_OPERAND_ID])} "
         f"{format_strs[FieldType.BZ_ID]:2} "
         f"{format_strs[FieldType.BZ_ID]:2} "
         f"{format_strs[FieldType.BZ_OPERATOR]:2} "
@@ -857,9 +857,9 @@ def pack_bz_instruction(
     format_str += (
         format_strs[FieldType.BZ_OPERAND_FLOAT]
         if isinstance(instruction.operand1, float)
-        else format_strs[FieldType.BZ_OPERAND_ID]
-        if instruction.operator is BZOperator.ICONST
         else format_strs[FieldType.BZ_OPERAND_INT]
+        if instruction.operator is BZOperator.ICONST
+        else format_strs[FieldType.BZ_OPERAND_ID]
     )
     format_str += (
         format_strs[FieldType.BZ_ID]
@@ -1042,7 +1042,7 @@ def assemble(
 
     binary = bytes()
     binary_header = (
-        f"C2PO Version 4.2.0 for R2U2 V4.2.0 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
+        f"C2PO Version 4.2.4 for R2U2 V4.2.4 - BOM: {ENDIAN}".encode("ascii") + b"\x00"
     )
     binary += CStruct("B").pack(len(binary_header) + 1) + binary_header
 
@@ -1152,7 +1152,7 @@ def compute_bounds(program: cpt.Program, context: cpt.Context) -> dict[str, tupl
     num_aliases_bytes = sum([
         (len(i.symbol)) for i in assembly if isinstance(i, AliasInstruction)
     ])
-    num_signals = len(context.signals)
+    num_signals = max(context.signal_mapping.values(), default=-1) + 1
     num_atomics = len(set(context.atomic_id_map.values()))
     total_scq_size = sum([
         (i.instruction.operand1_value if i.type == CGType.SCQ else 0) for i in assembly if isinstance(i, CGInstruction)
