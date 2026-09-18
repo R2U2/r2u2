@@ -18,7 +18,8 @@
 //! 1. A monitor must be created utilizing **[get_monitor]**. The specification file from C2PO must be passed by reference as
 //! `&[u8]`. The specifications can later be updated with **[update_binary_file]**; this will also reset the monitor to its intial state.
 //! 2. Signals must be loaded in according to the mapping specified when compiling the specification file through **[load_bool_signal]**,
-//! **[load_float_signal]**, **[load_int_signal]**, and **[load_string_signal]**.
+//! **[load_float_signal]**, **[load_int_signal]**, and **[load_string_signal]**. (**[load_bool_array]**,
+//! **[load_float_array]**, and **[load_int_array]** are also available.)
 //! 3. Run the monitor for a single timestep with **[monitor_step]**.
 //! 4. Get output data through **[get_output_buffer]** and **[get_contract_buffer]**.
 //! 5. Repeat steps 2-4. (Optionally check for overflow with the output of **[monitor_step]** or **[get_overflow_error]**.)
