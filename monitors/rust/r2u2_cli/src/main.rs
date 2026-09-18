@@ -31,7 +31,7 @@ enum Commands {
         #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
         output: Option<PathBuf>,
 
-        /// Sets location to save config.toml file (if not specified, will not be saved)
+        /// Sets location to save a C .h or Rust .toml bounds file (if not specified, will not be saved)
         #[arg(short,long, value_name = "PATH", value_parser=valid_bounds_file)]
         bounds: Option<PathBuf>,
 
@@ -177,11 +177,12 @@ fn valid_bounds_file(s: &str) -> Result<PathBuf, String> {
     let file : PathBuf = s
         .parse()
         .map_err(|_| format!("`{s}` isn't a path"))?;
-    if file.extension().and_then(OsStr::to_str) == Some("toml"){
+    if file.extension().and_then(OsStr::to_str) == Some("h") ||
+        file.extension().and_then(OsStr::to_str) == Some("toml") {
         Ok(file as PathBuf)
     } else {
         Err(format!(
-            "{s} is not a .toml file"
+            "{s} is not a .h or .toml file"
         ))
     }
 }
