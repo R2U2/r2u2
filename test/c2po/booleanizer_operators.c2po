@@ -1,8 +1,11 @@
 INPUT
+    b0: bool;
     i0, i1: int;
     f0, f1: float;
 
 FTSPEC
+    prev(true, b0);
+    
     (i0 pow 2) > 1;
     abs(i0) > 1;
     i0 - prev(0, i0) > 1;

@@ -1,0 +1,4 @@
+INPUT
+    A: int[3];
+FTSPEC
+    foreach(x: A[0..3])(x > 0);

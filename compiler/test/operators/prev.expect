@@ -1,0 +1,9 @@
+BZ b0  iconst True 0
+BZ b1  iload  0 0
+BZ b3  store  2 0
+BZ b2  prev   0 1
+TL n0  load   a0
+TL n1  return n0 0
+CG TL SCQ q0 |1|
+CG TL SCQ q1 |1|
+F SPEC0 0

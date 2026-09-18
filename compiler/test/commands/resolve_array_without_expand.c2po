@@ -1,0 +1,5 @@
+INPUT
+    a: bool;
+    A: int[3];
+FTSPEC
+    A[0] > 0;

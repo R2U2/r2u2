@@ -1,0 +1,3 @@
+parse_c2po modulo_by_zero.c2po
+enable_booleanizer
+type_check

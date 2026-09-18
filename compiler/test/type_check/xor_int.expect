@@ -1,0 +1,2 @@
+type_check: error: xor_int.c2po:4: Invalid operands for 'xor', found 'int' ('i') but expected 'bool'
+    (i xor j)

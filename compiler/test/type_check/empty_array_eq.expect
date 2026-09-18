@@ -1,0 +1,2 @@
+type_check: error: empty_array_eq.c2po:4: Invalid operands for '==', must be of same type (found 'int[]' and 'NoType[0]')
+    (A == {})

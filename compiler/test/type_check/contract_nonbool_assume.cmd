@@ -1,0 +1,3 @@
+parse_c2po contract_nonbool_assume.c2po
+enable_booleanizer
+type_check

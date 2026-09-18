@@ -160,10 +160,7 @@ class Constant(Expression):
         else:
             raise ValueError(f"Bad value ({value})")
 
-        if types.is_bool_type(self.type):
-            self.engine = types.R2U2Engine.TEMPORAL_LOGIC
-        else:
-            self.engine = types.R2U2Engine.BOOLEANIZER
+        self.engine = types.R2U2Engine.BOOLEANIZER
 
 class MissionTime(Expression):
     """MissionTime is a special variable that represents the symbolic mission time. This is only
@@ -499,6 +496,7 @@ class OperatorKind(enum.Enum):
             OperatorKind.LESS_THAN,
             OperatorKind.LESS_THAN_OR_EQUAL,
             OperatorKind.COUNT,
+            OperatorKind.PREVIOUS,
         }
 
     def is_extended_operator(self) -> bool:
@@ -523,8 +521,12 @@ class Operator(Expression):
         self.operator: OperatorKind = op_kind
         self.symbol: str = op_kind.value
 
-        self.wpd = max([c.wpd for c in children])
-        self.bpd = min([c.bpd for c in children])
+        if children:
+            self.wpd = max(c.wpd for c in children)
+            self.bpd = min(c.bpd for c in children)
+        else:
+            self.wpd = 0
+            self.bpd = 0
 
         if is_temporal_operator(self) or is_logical_operator(self):
             self.engine = types.R2U2Engine.TEMPORAL_LOGIC
@@ -957,6 +959,8 @@ def is_multi_arity_operator(expr: Expression) -> bool:
     return isinstance(expr, Operator) and expr.operator in {
         OperatorKind.LOGICAL_AND,
         OperatorKind.LOGICAL_OR,
+        OperatorKind.BITWISE_AND,
+        OperatorKind.BITWISE_OR,
         OperatorKind.ARITHMETIC_ADD,
         OperatorKind.ARITHMETIC_MULTIPLY,
     }
@@ -1984,7 +1988,12 @@ def to_infix_str(start: Expression) -> str:
             else:
                 s += f".{expr.member}"
         elif isinstance(expr, ArrayExpression):
-            if seen == len(expr.children):
+            if len(expr.children) == 0:
+                # `seen == len(children)` is also true when both are 0; handle empty
+                # arrays explicitly so we emit "{}" rather than just "}".
+                if seen == 0:
+                    s += "{}"
+            elif seen == len(expr.children):
                 s += "}"
             elif seen == 0:
                 s += "{"

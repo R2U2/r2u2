@@ -1,0 +1,2 @@
+type_check: error: setagg_non_array.c2po:4: set aggregation set must be Set type (found 'int')
+    x

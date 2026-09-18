@@ -1,0 +1,1 @@
+type_check: error: setagg_nonbool_body.c2po:4: set aggregation expression must be 'bool' (found 'bool')
