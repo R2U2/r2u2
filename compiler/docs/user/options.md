@@ -3,16 +3,26 @@
 The following options are generated from `python3 c2po.py --help`:
 
 ```text
-usage: c2po.py [-h] [--version] [-s SCRIPT] [-i] [--spec SPEC] [--trace TRACE] [--map MAP] [-o OUTPUT]
-               [--write-bounds WRITE_BOUNDS] [-q] [-v] [--debug] [-p] [-tc] [-c] [--mission-time MISSION_TIME]
-               [--scq-constant SCQ_CONSTANT] [-bz] [--aux | --no-aux] [--cse | --no-cse] [--rewrite | --no-rewrite]
-               [--extops | --no-extops] [--eqsat | --no-eqsat] [--eqsat-check-equiv | --no-eqsat-check-equiv]
-               [--eqsat-const-folding | --no-eqsat-const-folding] [--eqsat-associative | --no-eqsat-associative]
-               [--eqsat-commutative | --no-eqsat-commutative] [--eqsat-multi-arity | --no-eqsat-multi-arity]
-               [--eqsat-temporal | --no-eqsat-temporal] [--eqsat-max-time EQSAT_MAX_TIME]
-               [--eqsat-max-memory EQSAT_MAX_MEMORY] [--num-gurobi-threads NUM_GUROBI_THREADS]
-               [--egglog-path EGGLOG_PATH] [--check-sat | --no-check-sat] [--smt-encoding {uflia,qf_uflia,qf_bv}]
-               [--smt-max-time SMT_MAX_TIME] [--smt-max-memory SMT_MAX_MEMORY] [--smt-solver SMT_SOLVER]
+usage: c2po.py [-h] [--version] [-s SCRIPT] [-i] [--spec SPEC |
+               --formula FORMULA] [--trace TRACE] [--map MAP] [-o OUTPUT]
+               [--write-bounds WRITE_BOUNDS] [-q] [-v] [--debug] [-p] [-tc]
+               [-c] [--mission-time MISSION_TIME]
+               [--scq-constant SCQ_CONSTANT] [-bz] [--aux | --no-aux]
+               [--cse | --no-cse] [--rewrite | --no-rewrite]
+               [--extops | --no-extops] [--eqsat | --no-eqsat]
+               [--eqsat-check-equiv | --no-eqsat-check-equiv]
+               [--eqsat-const-folding | --no-eqsat-const-folding]
+               [--eqsat-associative | --no-eqsat-associative]
+               [--eqsat-commutative | --no-eqsat-commutative]
+               [--eqsat-multi-arity | --no-eqsat-multi-arity]
+               [--eqsat-temporal | --no-eqsat-temporal]
+               [--eqsat-max-time EQSAT_MAX_TIME]
+               [--eqsat-max-memory EQSAT_MAX_MEMORY]
+               [--num-gurobi-threads NUM_GUROBI_THREADS]
+               [--egglog-path EGGLOG_PATH] [--check-sat | --no-check-sat]
+               [--smt-encoding {uflia,qf_uflia,qf_bv}]
+               [--smt-max-time SMT_MAX_TIME] [--smt-max-memory SMT_MAX_MEMORY]
+               [--smt-solver SMT_SOLVER]
 
 C2PO - Configuration Compiler for Property Organization
 ```
@@ -25,12 +35,13 @@ None.
 
 - `-h, --help` - show this help message and exit
 - `--version` - print version and exit
-- `-s SCRIPT, --script SCRIPT` - script file to execute, ignores all other arguments
+- `-s, --script SCRIPT` - script file to execute, ignores all other arguments
 - `-i, --interactive` - run in interactive mode, ignores all other arguments
 - `--spec SPEC` - specification file (either .c2po, .mltl, or .equiv)
+- `--formula FORMULA` - MLTL formula string, equivalent to a single-formula .mltl file passed to --spec
 - `--trace TRACE` - csv file where variable names are mapped to signal order using file header
 - `--map MAP` - map file where variable names are mapped to signal order
-- `-o OUTPUT, --output OUTPUT` - location where specification binary will be written (default: spec.bin)
+- `-o, --output OUTPUT` - location where specification binary will be written (default: spec.bin)
 - `--write-bounds WRITE_BOUNDS` - location where bounds file will be written, must have .h or .toml extension (default: none)
 - `-q, --quiet` - disable output
 - `-v, --verbose` - logging verbosity, pass twice for trace logging

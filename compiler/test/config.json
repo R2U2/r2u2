@@ -355,6 +355,12 @@
         {
             "script": "mltl/tense_mixing.cmd", 
             "output": "mltl/tense_mixing.expect"
+        },
+        {
+            "name": "mltl/formula",
+            "formula": "G[0,10] (a0 & (F[0,3] a1))",
+            "options": ["-o", "/dev/null"],
+            "output": "mltl/formula.expect"
         }
     ],
     "normal_forms": [
