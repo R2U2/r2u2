@@ -24,7 +24,7 @@ const char* help = "<configuration> [trace]\n"
 
 r2u2_csv_reader_t r2u2_csv_reader = {0};
 
-int main(int argc, char const* argv[]) {
+int main(int argc, char *argv[]) {
 
   r2u2_status_t err_cond;
   int spec_file = -1;
