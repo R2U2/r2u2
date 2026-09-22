@@ -4,11 +4,15 @@ type_check: warning: timestamp.c2po:6: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:7: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:8: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:9: int type is signed but TAU is unsigned
+type_check: warning: timestamp.c2po:9: division by non-const, note that (i0 / TAU)=0 if TAU=0
+    (i0 / TAU)
 type_check: warning: timestamp.c2po:10: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:11: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:12: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:13: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:14: int type is signed but TAU is unsigned
+type_check: warning: timestamp.c2po:14: division by non-const, note that (TAU / i0)=0 if i0=0
+    (TAU / i0)
 type_check: warning: timestamp.c2po:15: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:16: int type is signed but TAU is unsigned
 type_check: warning: timestamp.c2po:17: int type is signed but TAU is unsigned

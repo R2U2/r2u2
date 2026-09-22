@@ -408,13 +408,18 @@ def type_check_expr(start: cpt.Expression, context: cpt.Context, options: dict[s
 
             if expr.operator is cpt.OperatorKind.ARITHMETIC_DIVIDE:
                 rhs = expr.children[1]
-                # TODO: disallow division by non-const expression entirely
                 if isinstance(rhs, cpt.Constant) and rhs.value == 0:
                     log.error(
                         f"divide by zero\n    {expr}",
                         expr.loc,
                     )
                     return False
+                elif not rhs.type.is_const:
+                    lhs = expr.children[0]
+                    log.warning(
+                        f"division by non-const, note that {expr}=0 if {rhs}=0\n    {expr}",
+                        expr.loc
+                    )
                 
             if expr.operator is cpt.OperatorKind.ARITHMETIC_SQRT:
                 rhs = expr.children[0]

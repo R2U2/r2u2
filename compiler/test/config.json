@@ -121,6 +121,10 @@
         {
             "script": "type_check/bad_prev.cmd", 
             "output": "type_check/bad_prev.expect"
+        },
+        {
+            "script": "type_check/division_non_const.cmd",
+            "output": "type_check/division_non_const.expect"
         }
     ],
     "serialize": [
