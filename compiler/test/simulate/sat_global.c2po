@@ -1,0 +1,5 @@
+INPUT
+    a,b: bool;
+
+FTSPEC
+    G[0,1] (a && !b);
