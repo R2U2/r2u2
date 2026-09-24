@@ -658,5 +658,19 @@
             "script": "r2u2/arbiter.cmd",
             "output": "r2u2/arbiter.expect"
         }
+    ],
+    "simulate": [
+        {
+            "script": "simulate/sat_true.cmd",
+            "output": "simulate/sat_true.expect"
+        },
+        {
+            "script": "simulate/unsat_true.cmd",
+            "output": "simulate/unsat_true.expect"
+        },
+        {
+            "script": "simulate/sat_global.cmd",
+            "output": "simulate/sat_global.expect"
+        }
     ]
 }

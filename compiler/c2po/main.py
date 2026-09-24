@@ -30,6 +30,7 @@ from c2po import (
     trace, # noqa: F401
     map, # noqa: F401
     sabre, # noqa: F401
+    simulate, # noqa: F401
 )
 
 # Try and import readline for better REPL experience
