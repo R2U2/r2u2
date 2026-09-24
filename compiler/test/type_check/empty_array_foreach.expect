@@ -1,0 +1,7 @@
+INPUT
+	a: bool;
+DEFINE
+	e := {};
+FTSPEC
+	true;
+	false;

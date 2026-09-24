@@ -1,0 +1,3 @@
+parse_c2po xor_int.c2po
+enable_booleanizer
+type_check

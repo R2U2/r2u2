@@ -1,0 +1,4 @@
+INPUT
+    a: bool;
+PTSPEC
+    G[0,1] a;

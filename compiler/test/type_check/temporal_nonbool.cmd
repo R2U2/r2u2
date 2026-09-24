@@ -1,0 +1,3 @@
+parse_c2po temporal_nonbool.c2po
+enable_booleanizer
+type_check

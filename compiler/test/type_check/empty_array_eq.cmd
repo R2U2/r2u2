@@ -1,0 +1,3 @@
+parse_c2po empty_array_eq.c2po
+enable_booleanizer
+type_check

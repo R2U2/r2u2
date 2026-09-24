@@ -1,0 +1,3 @@
+parse_c2po nested_prev.c2po
+enable_booleanizer
+type_check

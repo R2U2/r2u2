@@ -1,0 +1,5 @@
+parse_c2po empty_array_foreach.c2po
+enable_booleanizer
+type_check
+desugar
+print_c2po

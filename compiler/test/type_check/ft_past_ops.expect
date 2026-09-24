@@ -1,0 +1,2 @@
+type_check: error: ft_past_ops.c2po:4: mixed-time formulas unsupported, found PT formula in FTSPEC
+    (H[0,1] a)
