@@ -15,40 +15,40 @@ It is recommend to run with debug output after changing bounds to enable extra m
 
 ### Array Extents
 
-`R2U2_MAX_INSTRUCTIONS`
-: Maximum number of instructions that will be read from a specification binary. Also used for some debug printing
-: Default: 256
+`R2U2_AUX_MAX_FORMULAS`
+: Number of formula auxilary information metadata blocks; only utilized when `R2U2_AUX_SPEC_STRINGS` feature is enabled. 
+: Default: 128
+
+`R2U2_AUX_MAX_CONTRACTS`
+: Number of assume-guarantee contract (AGC) auxilary information metadata blocks; only utilized when `R2U2_AUX_SPEC_STRINGS` feature is enabled. 
+: Default: 64
 
 `R2U2_MAX_SIGNALS`
-: Size of incoming signal vector, i.e., maximum number of signals. Only used by default monitor constructor
+: Size of incoming signal vector, i.e., maximum number of signals. 
 : Default: 256
 
 `R2U2_MAX_ATOMICS`
 : Size of atomic vector, i.e., maximum number of Booleans passed from the front-end (BZ) to the temporal logic engine
 : Default: 256
 
-`R2U2_MAX_INST_LEN`
-: Total size of instruction memory, i.e., maximum specification binary size. Only used by default monitor constructor
-: Default: 8192
+`R2U2_MAX_TL_INSTRUCTIONS`
+: Size of temporal logic instruction table and number of SCQ metadata blocks; used as working memory by TL front end. 
+: Default: 256
 
 `R2U2_MAX_BZ_INSTRUCTIONS`
-: Size of value buffer, used as working memory by BZ front end. Only used by default monitor constructor
+: Size of booleanizer instruction table and value buffer; used as working memory by BZ front end. 
 : Default: 256
 
 
 ### Memory Arena Sizing
 
-`R2U2_MAX_AUX_STRINGS`
-: Total characters (and nulls) of string arena used by auxiliary output (e.g., formula names, contract names, etc.) if enabled.
+`R2U2_MAX_AUX_BYTES`
+: Total characters (and nulls) of string arena used by auxiliary output (e.g., formula names, contract names, etc.) ; only utilized when `R2U2_AUX_SPEC_STRINGS` feature is enabled. 
 : Default: 1024
 
-`R2U2_MAX_BOXQ_BYTES`
-: Arena size in bytes used for past-time reasoning
-: Default: 256 * 1024
-
-`R2U2_MAX_SCQ_BYTES`
-: Arena size in bytes used for future-time reasoning
-: Default: 256 * 1024
+`R2U2_MAX_SCQ_SLOTS`
+: Total number of SCQ slots for both future-time and past-time reasoning
+: Default: 1024
 
 ### Numeric Parameters
 
@@ -78,20 +78,8 @@ See [building the monitor](./building.md) for details.
 : Enables very verbose memory trace printing to stderr
 
 
-### Input Handling Features
-
-`R2U2_CSV_Header_Mapping`
-: Enables reordering header imports to match signal vector mapping
-
-
 ### Temporal Logic Features
 
-`R2U2_TL_SCQ_Verdict_Aggregation`
-: Compress SCQs with verdict aggregation
-
-`R2U2_TL_Formula_Names`
-: Enables named formula verdicts
-
-`R2U2_TL_Contract_Status`
-: Enables printing tri-state reports of assume-guarantee contracts
+`R2U2_AUX_STRING_SPECS`
+: Enables printing of named formula verdicts and tri-state reports of assume-guarantee contracts
 

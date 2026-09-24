@@ -1,0 +1,22 @@
+#define MAX_FAULTS 1
+#if ENABLE_FAULTS_COUNT
+    DEFINE __fault_cnt := atc.gcdr.__fault_cnt + adsb_net.__fault_cnt + com.__fault_cnt +
+
+                          ac_1.adsb_in.__fault_cnt + ac_1.cdr.__fault_cnt +
+                          ac_1.pilot.route_manager.__fault_cnt +
+                          ac_1.pilot.protocol_policy.__fault_cnt +
+
+                          ac_2.adsb_in.__fault_cnt + ac_2.cdr.__fault_cnt +
+                          ac_2.pilot.route_manager.__fault_cnt +
+                          ac_2.pilot.protocol_policy.__fault_cnt +
+
+                          ac_3.adsb_in.__fault_cnt + ac_3.cdr.__fault_cnt +
+                          ac_3.pilot.route_manager.__fault_cnt +
+                          ac_3.pilot.protocol_policy.__fault_cnt +
+
+                          ac_4.adsb_in.__fault_cnt + ac_4.cdr.__fault_cnt +
+                          ac_4.pilot.route_manager.__fault_cnt +
+                          ac_4.pilot.protocol_policy.__fault_cnt;
+
+    INVAR __fault_cnt <= MAX_FAULTS;
+#endif

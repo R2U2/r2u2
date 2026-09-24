@@ -34,16 +34,16 @@ DEFINE
     Battery_Cell_Temp_2_GT_1 := Battery_Cell_Temp_2 > 1.0;
     Battery_Cell_Temp_3_GT_1 := Battery_Cell_Temp_3 > 1.0;
     Battery_Cell_Temp_4_GT_1 := Battery_Cell_Temp_4 > 1.0;
-    Battery_Cell_Temp_1_RC_LT_1 := abs(rate(Battery_Cell_Temp_1)) < 1.0;
-    Battery_Cell_Temp_2_RC_LT_1 := abs(rate(Battery_Cell_Temp_2)) < 1.0;
-    Battery_Cell_Temp_3_RC_LT_1 := abs(rate(Battery_Cell_Temp_3)) < 1.0;
-    Battery_Cell_Temp_4_RC_LT_1 := abs(rate(Battery_Cell_Temp_4)) < 1.0;
-    Num_Under_Voltage_RC := rate(Num_Under_Voltage) == 0.0;
-    Num_Short_Circuit_RC := rate(Num_Short_Circuit) == 0.0;
-    Num_Over_Temp_RC := rate(Num_Over_Temp) == 0.0;
+    Battery_Cell_Temp_1_RC_LT_1 := abs(Battery_Cell_Temp_1 - prev(22.0, Battery_Cell_Temp_1)) < 1.0;
+    Battery_Cell_Temp_2_RC_LT_1 := abs(Battery_Cell_Temp_1 - prev(22.0, Battery_Cell_Temp_2)) < 1.0;
+    Battery_Cell_Temp_3_RC_LT_1 := abs(Battery_Cell_Temp_1 - prev(22.0, Battery_Cell_Temp_3)) < 1.0;
+    Battery_Cell_Temp_4_RC_LT_1 := abs(Battery_Cell_Temp_1 - prev(22.0, Battery_Cell_Temp_4)) < 1.0;
+    Num_Under_Voltage_RC := (Num_Under_Voltage - prev(10.0, Num_Under_Voltage)) == 0.0;
+    Num_Short_Circuit_RC := (Num_Short_Circuit - prev(10.0, Num_Short_Circuit)) == 0.0;
+    Num_Over_Temp_RC := (Num_Over_Temp - prev(0.0, Num_Over_Temp)) == 0.0;
     Battery_Capacity_LEQ_3 := Battery_Capacity <= 3.0;
     Battery_Capacity_GEQ_8 := Battery_Capacity >= 8.0;
-    I2C_Error_RC := rate(I2C_Errors) == 0.0;
+    I2C_Error_RC := (I2C_Errors - prev(0.0, I2C_Errors)) == 0.0;
 
 FTSPEC
     SPEC1: FiveV_Bus_Enabled -> (FiveV_Bus_Current_LEQ_4 && FiveV_Power_Good);

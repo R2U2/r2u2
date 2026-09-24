@@ -1,0 +1,98 @@
+\ Model EGraph_copy
+\ LP format - for model browsing. Use MPS format to capture full model detail.
+\ Signature: 0xc2b02837e2581747
+Minimize
+  0 bpd_eclass(MLTL-15) + 0 bpd_eclass(MLTL-0) + 0 wpd_eclass(MLTL-5)
+Subject To
+ R0: eclass(MLTL-6) = 1
+ R9: eclass(MLTL-6) - enode(function-5-Global) - enode(function-3-And2)
+   - enode(function-2-Release) - enode(function-0-And2) = 0
+ R11: eclass(MLTL-2) - enode(function-0-Release) - enode(function-0-Global)
+   = 0
+ R18: bpd_enode(function-1-Global) - bpd_tmp_function-1-Global = 1
+ R20: bpd_enode(function-1-Release) - bpd_tmp_function-1-Release = 1
+ R23: wpd_enode(function-5-Global) - wpd_tmp_function-5-Global = 4
+ R34: bpd_enode(function-1-Var) = 0
+ R35: wpd_enode(function-0-Release) - wpd_tmp_function-0-Release = 5
+ R36: bpd_enode(function-0-Release) - bpd_tmp_function-0-Release = 2
+ R41: wpd_enode(function-2-Release) - wpd_tmp_function-2-Release = 4
+ R43: wpd_enode(function-0-Global) - wpd_tmp_function-0-Global = 5
+ R44: bpd_enode(function-0-Global) - bpd_tmp_function-0-Global = 2
+ qc0: 2 enode(function-3-And2) + [
+   - eclass(MLTL-2) * enode(function-3-And2)
+   - eclass(MLTL-5) * enode(function-3-And2) ] = 0
+ qc1: 2 enode(function-0-And2) + [
+   - eclass(MLTL-2) * enode(function-0-And2)
+   - eclass(MLTL-5) * enode(function-0-And2) ] = 0
+ qc2: bpd_eclass(MLTL-3) + [
+   - enode(function-1-Var) * bpd_enode(function-1-Var) ] = 0
+ qc3: wpd_eclass(MLTL-6) + [
+   - enode(function-5-Global) * wpd_enode(function-5-Global)
+   - enode(function-3-And2) * wpd_enode(function-3-And2)
+   - enode(function-2-Release) * wpd_enode(function-2-Release)
+   - enode(function-0-And2) * wpd_enode(function-0-And2) ] = 0
+ qc4: wpd_eclass(MLTL-2) + [
+   - enode(function-0-Release) * wpd_enode(function-0-Release)
+   - enode(function-0-Global) * wpd_enode(function-0-Global) ] = 0
+ qc5: bpd_eclass(MLTL-2) + [
+   - enode(function-0-Release) * bpd_enode(function-0-Release)
+   - enode(function-0-Global) * bpd_enode(function-0-Global) ] = 0
+ qc6: bpd_eclass(MLTL-5) + [
+   - enode(function-1-Global) * bpd_enode(function-1-Global)
+   - enode(function-1-Release) * bpd_enode(function-1-Release) ] = 0
+Bounds
+ bpd_eclass(MLTL-15) free
+ bpd_eclass(MLTL-0) free
+ bpd_eclass(MLTL-3) free
+ wpd_eclass(MLTL-6) free
+ wpd_eclass(MLTL-2) free
+ bpd_eclass(MLTL-2) free
+ wpd_eclass(MLTL-5) free
+ bpd_eclass(MLTL-5) free
+ bpd_enode(function-1-Global) free
+ bpd_enode(function-1-Release) free
+ wpd_enode(function-5-Global) free
+ bpd_enode(function-1-Var) free
+ wpd_enode(function-0-Release) free
+ bpd_enode(function-0-Release) free
+ wpd_enode(function-3-And2) free
+ wpd_enode(function-2-Release) free
+ wpd_enode(function-0-Global) free
+ bpd_enode(function-0-Global) free
+ wpd_enode(function-0-And2) free
+ bpd_tmp_function-1-Global free
+ bpd_tmp_function-1-Release free
+ bpd_tmp_function-0-Release free
+ bpd_tmp_function-0-Global free
+Binaries
+ eclass(MLTL-6) eclass(MLTL-2) eclass(MLTL-5) enode(function-1-Global)
+ enode(function-1-Release) enode(function-5-Global) enode(function-1-Var)
+ enode(function-0-Release) enode(function-3-And2) enode(function-2-Release)
+ enode(function-0-Global) enode(function-0-And2)
+Generals
+ bpd_eclass(MLTL-15) bpd_eclass(MLTL-0) bpd_eclass(MLTL-3)
+ wpd_eclass(MLTL-6) wpd_eclass(MLTL-2) bpd_eclass(MLTL-2)
+ wpd_eclass(MLTL-5) bpd_eclass(MLTL-5) bpd_enode(function-1-Global)
+ bpd_enode(function-1-Release) wpd_enode(function-5-Global)
+ bpd_enode(function-1-Var) wpd_enode(function-0-Release)
+ bpd_enode(function-0-Release) wpd_enode(function-3-And2)
+ wpd_enode(function-2-Release) wpd_enode(function-0-Global)
+ bpd_enode(function-0-Global) wpd_enode(function-0-And2)
+ bpd_tmp_function-1-Global bpd_tmp_function-1-Release
+ wpd_tmp_function-5-Global wpd_tmp_function-0-Release
+ bpd_tmp_function-0-Release wpd_tmp_function-2-Release
+ wpd_tmp_function-0-Global bpd_tmp_function-0-Global
+General Constraints
+ GC3: bpd_tmp_function-1-Global = MIN ( bpd_eclass(MLTL-3) , 1 )
+ GC7: bpd_tmp_function-1-Release = MIN ( bpd_eclass(MLTL-15) ,
+   bpd_eclass(MLTL-3) , 1 )
+ GC17: bpd_tmp_function-0-Release = MIN ( bpd_eclass(MLTL-15) ,
+   bpd_eclass(MLTL-0) , 1 )
+ GC20: wpd_enode(function-3-And2) = MAX ( wpd_eclass(MLTL-5) ,
+   wpd_eclass(MLTL-2) , 0 )
+ GC21: wpd_eclass(MLTL-6) = MAX ( bpd_eclass(MLTL-5) , bpd_eclass(MLTL-2)
+   , 0 )
+ GC27: bpd_tmp_function-0-Global = MIN ( bpd_eclass(MLTL-0) , 1 )
+ GC30: wpd_enode(function-0-And2) = MAX ( wpd_eclass(MLTL-2) ,
+   wpd_eclass(MLTL-5) , 0 )
+End

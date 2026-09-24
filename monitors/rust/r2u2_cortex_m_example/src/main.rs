@@ -86,6 +86,9 @@ fn main() -> ! {
     }
 
     let mut monitor = r2u2_core::get_monitor(&SPEC);
+    // One can also create a monitor by uncommenting the following: 
+    // let mut monitor = r2u2_core::Monitor::default();
+    // r2u2_core::update_binary_file(&SPEC, &mut monitor);
     hprintln!("Initialized monitor!");
     loop{
         unsafe{

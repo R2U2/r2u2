@@ -1,0 +1,126 @@
+(function bpd (MLTL) i64 :merge (max old new))
+
+(rule (
+  (Bool true)
+) (
+  (set (bpd (Bool true)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Bool false)
+) (
+  (set (bpd (Bool false)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Var a0)
+) (
+  (set (bpd (Var a0)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Global (Interval b0 b1) a0)
+  (= bpd_a0 (bpd a0))
+) (
+  (set (bpd (Global (Interval b0 b1) a0)) (+ bpd_a0 b0))
+) :ruleset analysis)
+
+(rule (
+  (Future (Interval b0 b1) a0)
+  (= bpd_a0 (bpd a0))
+) (
+  (set (bpd (Future (Interval b0 b1) a0)) (+ bpd_a0 b0))
+) :ruleset analysis)
+
+(rule (
+  (Not a0)
+  (= bpd_a0 (bpd a0))
+) (
+  (set (bpd (Not a0)) bpd_a0)
+) :ruleset analysis)
+
+(rule (
+  (Until (Interval b0 b1) a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (Until (Interval b0 b1) a0 a1)) (+ (min bpd_a0 bpd_a1) b0))
+) :ruleset analysis)
+
+(rule (
+  (Release (Interval b0 b1) a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (Release (Interval b0 b1) a0 a1)) (+ (min bpd_a0 bpd_a1) b0))
+) :ruleset analysis)
+
+(rule (
+  (And2 a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (And2 a0 a1)) (min bpd_a0 bpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Or2 a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (Or2 a0 a1)) (min bpd_a0 bpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Implies a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (Implies a0 a1)) (min bpd_a0 bpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Equiv a0 a1)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+) (
+  (set (bpd (Equiv a0 a1)) (min bpd_a0 bpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (And3 a0 a1 a2)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+) (
+  (set (bpd (And3 a0 a1 a2)) (min bpd_a0 (min bpd_a1 bpd_a2)))
+) :ruleset analysis)
+
+(rule (
+  (Or3 a0 a1 a2)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+) (
+  (set (bpd (Or3 a0 a1 a2)) (min bpd_a0 (min bpd_a1 bpd_a2)))
+) :ruleset analysis)
+
+(rule (
+  (And4 a0 a1 a2 a3)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+  (= bpd_a3 (bpd a3))
+) (
+  (set (bpd (And4 a0 a1 a2 a3)) (min bpd_a0 (min bpd_a1 (min bpd_a2 bpd_a3))))
+) :ruleset analysis)
+
+(rule (
+  (Or4 a0 a1 a2 a3)
+  (= bpd_a0 (bpd a0))
+  (= bpd_a1 (bpd a1))
+  (= bpd_a2 (bpd a2))
+  (= bpd_a3 (bpd a3))
+) (
+  (set (bpd (Or4 a0 a1 a2 a3)) (min bpd_a0 (min bpd_a1 (min bpd_a2 bpd_a3))))
+) :ruleset analysis)

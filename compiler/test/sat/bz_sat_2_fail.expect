@@ -1,0 +1,8 @@
+check_sat: error: unsupported type 'int' for expression i0
+check_sat: error: unsupported type 'int' for expression i1
+check_sat: error: unsupported type 'int' for expression (i0 + i1)
+check_sat: error: unsupported type 'int' for expression i0
+check_sat: error: unsupported type 'int' for expression i1
+check_sat: error: unsupported type 'int' for expression (i0 + i1)
+check_sat: error: unsupported expression ((i0 + i1) != (i0 + i1))
+check_sat: error: bz_sat_2.c2po:6: failed to generate SMT encoding for specification

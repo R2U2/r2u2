@@ -3,7 +3,7 @@
 ## Dependencies
 
 - Posix environment (Linux, MacOS, Etc.)
-- Python3 (version 3.8 or greater)
+- Python3 (version 3.9 or greater)
 - [Rust](https://www.rust-lang.org/tools/install) 1.82.0 or greater
 
 # Installing

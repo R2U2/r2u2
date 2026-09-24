@@ -1,0 +1,419 @@
+-- One of the main purposes of the communication layer is to provide
+-- a token to all parties, so that they know when communication is
+-- enabled.  This information is provided by the variable
+-- communication_phase. Note, however, that this variable does not
+-- influence the behaviour of the communication link (i.e., does not
+-- prohibit to the clients to send messages).
+--
+-- The secondary objective of having an explicit communication layer
+-- is to simplify the introduction of communication faults.
+--
+-- Faults: Loss of communication of an aircraft with ATC. For each
+--         aircraft the fault fault_com_ac_i_atc is defined. This
+--         fault is defined in two versions Bounded and Permanent
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+-- These are interesting properties to show the dynamics of faults:
+--  check_ltlspec -p "CommunicationLayer_inst.fault_com_type = Bounded -> G F ! CommunicationLayer_inst.fault_com_ac_1_atc"
+--  check_ltlspec -p "(CommunicationLayer_inst.fault_com_type = Bounded & CommunicationLayer_inst.input_ac_1_atc_info_level=4) -> G F ( CommunicationLayer_inst.input_ac_1_intention_near__in = CommunicationLayer_inst.ac_1_intention_near__out)"
+--
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            CommunicationLayer_inst : CommunicationLayer(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in,
+                                                         ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in,
+                                                         ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in,
+                                                         ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in,
+                                                         ac_1_suggestion_near__in, ac_1_suggestion_mid__in, ac_1_suggestion_far__in, ac_2_suggestion_near__in,
+                                                         ac_2_suggestion_mid__in, ac_2_suggestion_far__in, ac_3_suggestion_near__in, ac_3_suggestion_mid__in,
+                                                         ac_3_suggestion_far__in, ac_4_suggestion_near__in, ac_4_suggestion_mid__in, ac_4_suggestion_far__in,
+							 ac_1_request_ts_sa_ground__in, ac_2_request_ts_sa_ground__in, ac_3_request_ts_sa_ground__in, ac_4_request_ts_sa_ground__in, 
+							 ac_1_request_ss_sa_ground__in, ac_2_request_ss_sa_ground__in, ac_3_request_ss_sa_ground__in, ac_4_request_ss_sa_ground__in,
+                                                         ac_1_atc_info_level, ac_2_atc_info_level, ac_3_atc_info_level, ac_4_atc_info_level,
+                                                         com_steps);
+        VAR
+            ac_1_intention_current__in : TRJ_TYPE;
+            ac_1_intention_near__in : TRJ_TYPE;
+            ac_1_intention_mid__in : TRJ_TYPE;
+            ac_1_intention_far__in : TRJ_TYPE;
+            ac_2_intention_current__in : TRJ_TYPE;
+            ac_2_intention_near__in : TRJ_TYPE;
+            ac_2_intention_mid__in : TRJ_TYPE;
+            ac_2_intention_far__in : TRJ_TYPE;
+            ac_3_intention_current__in : TRJ_TYPE;
+            ac_3_intention_near__in : TRJ_TYPE;
+            ac_3_intention_mid__in : TRJ_TYPE;
+            ac_3_intention_far__in : TRJ_TYPE;
+            ac_4_intention_current__in : TRJ_TYPE;
+            ac_4_intention_near__in : TRJ_TYPE;
+            ac_4_intention_mid__in : TRJ_TYPE;
+            ac_4_intention_far__in : TRJ_TYPE;
+            ac_1_suggestion_near__in : TRJ_TYPE;
+            ac_1_suggestion_mid__in : TRJ_TYPE;
+            ac_1_suggestion_far__in : TRJ_TYPE;
+            ac_2_suggestion_near__in : TRJ_TYPE;
+            ac_2_suggestion_mid__in : TRJ_TYPE;
+            ac_2_suggestion_far__in : TRJ_TYPE;
+            ac_3_suggestion_near__in : TRJ_TYPE;
+            ac_3_suggestion_mid__in : TRJ_TYPE;
+            ac_3_suggestion_far__in : TRJ_TYPE;
+            ac_4_suggestion_near__in : TRJ_TYPE;
+            ac_4_suggestion_mid__in : TRJ_TYPE;
+            ac_4_suggestion_far__in : TRJ_TYPE;
+            ac_1_request_ts_sa_ground__in : boolean;
+            ac_2_request_ts_sa_ground__in : boolean;
+            ac_3_request_ts_sa_ground__in : boolean;
+            ac_4_request_ts_sa_ground__in : boolean;
+            ac_1_request_ss_sa_ground__in : boolean;
+            ac_2_request_ss_sa_ground__in : boolean;
+            ac_3_request_ss_sa_ground__in : boolean;
+            ac_4_request_ss_sa_ground__in : boolean;
+
+        FROZENVAR
+            com_steps : 0.. MAX_COM_STEPS;
+            ac_1_atc_info_level : INFO_LEVEL_TYPE;
+            ac_2_atc_info_level : INFO_LEVEL_TYPE;
+            ac_3_atc_info_level : INFO_LEVEL_TYPE;
+            ac_4_atc_info_level : INFO_LEVEL_TYPE;
+        DEFINE
+            ac_1_intention_current__out := CommunicationLayer_inst.ac_1_intention_current__out;
+            ac_1_intention_near__out := CommunicationLayer_inst.ac_1_intention_near__out;
+            ac_1_intention_mid__out := CommunicationLayer_inst.ac_1_intention_mid__out;
+            ac_1_intention_far__out := CommunicationLayer_inst.ac_1_intention_far__out;
+            ac_2_intention_current__out := CommunicationLayer_inst.ac_2_intention_current__out;
+            ac_2_intention_near__out := CommunicationLayer_inst.ac_2_intention_near__out;
+            ac_2_intention_mid__out := CommunicationLayer_inst.ac_2_intention_mid__out;
+            ac_2_intention_far__out := CommunicationLayer_inst.ac_2_intention_far__out;
+            ac_3_intention_current__out := CommunicationLayer_inst.ac_3_intention_current__out;
+            ac_3_intention_near__out := CommunicationLayer_inst.ac_3_intention_near__out;
+            ac_3_intention_mid__out := CommunicationLayer_inst.ac_3_intention_mid__out;
+            ac_3_intention_far__out := CommunicationLayer_inst.ac_3_intention_far__out;
+            ac_4_intention_current__out := CommunicationLayer_inst.ac_4_intention_current__out;
+            ac_4_intention_near__out := CommunicationLayer_inst.ac_4_intention_near__out;
+            ac_4_intention_mid__out := CommunicationLayer_inst.ac_4_intention_mid__out;
+            ac_4_intention_far__out := CommunicationLayer_inst.ac_4_intention_far__out;
+            ac_1_suggestion_near__out := CommunicationLayer_inst.ac_1_suggestion_near__out;
+            ac_1_suggestion_mid__out := CommunicationLayer_inst.ac_1_suggestion_mid__out;
+            ac_1_suggestion_far__out := CommunicationLayer_inst.ac_1_suggestion_far__out;
+            ac_2_suggestion_near__out := CommunicationLayer_inst.ac_2_suggestion_near__out;
+            ac_2_suggestion_mid__out := CommunicationLayer_inst.ac_2_suggestion_mid__out;
+            ac_2_suggestion_far__out := CommunicationLayer_inst.ac_2_suggestion_far__out;
+            ac_3_suggestion_near__out := CommunicationLayer_inst.ac_3_suggestion_near__out;
+            ac_3_suggestion_mid__out := CommunicationLayer_inst.ac_3_suggestion_mid__out;
+            ac_3_suggestion_far__out := CommunicationLayer_inst.ac_3_suggestion_far__out;
+            ac_4_suggestion_near__out := CommunicationLayer_inst.ac_4_suggestion_near__out;
+            ac_4_suggestion_mid__out := CommunicationLayer_inst.ac_4_suggestion_mid__out;
+            ac_4_suggestion_far__out := CommunicationLayer_inst.ac_4_suggestion_far__out;
+	    ac_1_request_ts_sa_ground__out := CommunicationLayer_inst.ac_1_request_ts_sa_ground__out;
+	    ac_2_request_ts_sa_ground__out := CommunicationLayer_inst.ac_2_request_ts_sa_ground__out;
+	    ac_3_request_ts_sa_ground__out := CommunicationLayer_inst.ac_3_request_ts_sa_ground__out;
+	    ac_4_request_ts_sa_ground__out := CommunicationLayer_inst.ac_4_request_ts_sa_ground__out;
+	    ac_1_request_ss_sa_ground__out := CommunicationLayer_inst.ac_1_request_ss_sa_ground__out;
+	    ac_2_request_ss_sa_ground__out := CommunicationLayer_inst.ac_2_request_ss_sa_ground__out;
+	    ac_3_request_ss_sa_ground__out := CommunicationLayer_inst.ac_3_request_ss_sa_ground__out;
+	    ac_4_request_ss_sa_ground__out := CommunicationLayer_inst.ac_4_request_ss_sa_ground__out;
+            communication_phase := CommunicationLayer_inst.communication_phase;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE CommunicationLayer(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, 
+    	   		      ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, 
+			      ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, 
+			      ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, 
+			      ac_1_suggestion_near__in, ac_1_suggestion_mid__in, ac_1_suggestion_far__in, 
+			      ac_2_suggestion_near__in, ac_2_suggestion_mid__in, ac_2_suggestion_far__in, 
+			      ac_3_suggestion_near__in, ac_3_suggestion_mid__in, ac_3_suggestion_far__in, 
+			      ac_4_suggestion_near__in, ac_4_suggestion_mid__in, ac_4_suggestion_far__in, 
+			      ac_1_request_ts_sa_ground__in, ac_2_request_ts_sa_ground__in, ac_3_request_ts_sa_ground__in, ac_4_request_ts_sa_ground__in, 
+			      ac_1_request_ss_sa_ground__in, ac_2_request_ss_sa_ground__in, ac_3_request_ss_sa_ground__in, ac_4_request_ss_sa_ground__in,
+			      ac_1_atc_info_level, ac_2_atc_info_level, ac_3_atc_info_level, ac_4_atc_info_level, com_steps)
+        VAR
+          nominal : CommunicationLayer_Nominal(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in,
+                                               ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in,
+                                               ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in,
+                                               ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in,
+                                               ac_1_suggestion_near__in, ac_1_suggestion_mid__in, ac_1_suggestion_far__in,
+                                               ac_2_suggestion_near__in, ac_2_suggestion_mid__in, ac_2_suggestion_far__in,
+                                               ac_3_suggestion_near__in, ac_3_suggestion_mid__in, ac_3_suggestion_far__in,
+                                               ac_4_suggestion_near__in, ac_4_suggestion_mid__in, ac_4_suggestion_far__in,
+			      		       ac_1_request_ts_sa_ground__in, ac_2_request_ts_sa_ground__in, ac_3_request_ts_sa_ground__in, ac_4_request_ts_sa_ground__in, 
+			      		       ac_1_request_ss_sa_ground__in, ac_2_request_ss_sa_ground__in, ac_3_request_ss_sa_ground__in, ac_4_request_ss_sa_ground__in,
+                                               ac_1_atc_info_level, ac_2_atc_info_level, ac_3_atc_info_level, ac_4_atc_info_level,
+                                               com_steps);
+
+        DEFINE
+            -- Mirror Variables to export input values
+            input_ac_1_atc_info_level := ac_1_atc_info_level;
+            input_ac_1_intention_current__in := ac_1_intention_current__in;
+            input_ac_1_intention_near__in := ac_1_intention_near__in;
+            input_ac_1_intention_mid__in := ac_1_intention_mid__in;
+            input_ac_1_intention_far__in := ac_1_intention_far__in;
+
+            input_ac_2_atc_info_level := ac_2_atc_info_level;
+            input_ac_2_intention_current__in := ac_2_intention_current__in;
+            input_ac_2_intention_near__in := ac_2_intention_near__in;
+            input_ac_2_intention_mid__in := ac_2_intention_mid__in;
+            input_ac_2_intention_far__in := ac_2_intention_far__in;
+
+            input_ac_3_atc_info_level := ac_3_atc_info_level;
+            input_ac_3_intention_current__in := ac_3_intention_current__in;
+            input_ac_3_intention_near__in := ac_3_intention_near__in;
+            input_ac_3_intention_mid__in := ac_3_intention_mid__in;
+            input_ac_3_intention_far__in := ac_3_intention_far__in;
+
+            input_ac_4_atc_info_level := ac_4_atc_info_level;
+            input_ac_4_intention_current__in := ac_4_intention_current__in;
+            input_ac_4_intention_near__in := ac_4_intention_near__in;
+            input_ac_4_intention_mid__in := ac_4_intention_mid__in;
+            input_ac_4_intention_far__in := ac_4_intention_far__in;
+
+            input_ac_1_suggestion_near__in := ac_1_suggestion_near__in;
+            input_ac_1_suggestion_mid__in := ac_1_suggestion_mid__in;
+            input_ac_1_suggestion_far__in := ac_1_suggestion_far__in;
+
+            input_ac_2_suggestion_near__in := ac_2_suggestion_near__in;
+            input_ac_2_suggestion_mid__in := ac_2_suggestion_mid__in;
+            input_ac_2_suggestion_far__in := ac_2_suggestion_far__in;
+
+            input_ac_3_suggestion_near__in := ac_3_suggestion_near__in;
+            input_ac_3_suggestion_mid__in := ac_3_suggestion_mid__in;
+            input_ac_3_suggestion_far__in := ac_3_suggestion_far__in;
+
+            input_ac_4_suggestion_near__in := ac_4_suggestion_near__in;
+            input_ac_4_suggestion_mid__in := ac_4_suggestion_mid__in;
+            input_ac_4_suggestion_far__in := ac_4_suggestion_far__in;
+
+
+        #if EXTENDED_MODEL
+        VAR
+          -- Fault Dynamics
+          fault_com_ac_1_atc__dynamic: PermanentOrBoundedFault;
+          fault_com_ac_2_atc__dynamic: PermanentOrBoundedFault;
+          fault_com_ac_3_atc__dynamic: PermanentOrBoundedFault;
+          fault_com_ac_4_atc__dynamic: PermanentOrBoundedFault;
+
+        DEFINE
+          -- Fault events
+          fault_com_ac_1_atc_permanent__event:= fault_com_ac_1_atc__dynamic.fault_event_permanent;
+          fault_com_ac_2_atc_permanent__event:= fault_com_ac_2_atc__dynamic.fault_event_permanent;
+          fault_com_ac_3_atc_permanent__event:= fault_com_ac_3_atc__dynamic.fault_event_permanent;
+          fault_com_ac_4_atc_permanent__event:= fault_com_ac_4_atc__dynamic.fault_event_permanent;
+
+          fault_com_ac_1_atc_bounded__event:= fault_com_ac_1_atc__dynamic.fault_event_bounded;
+          fault_com_ac_2_atc_bounded__event:= fault_com_ac_2_atc__dynamic.fault_event_bounded;
+          fault_com_ac_3_atc_bounded__event:= fault_com_ac_3_atc__dynamic.fault_event_bounded;
+          fault_com_ac_4_atc_bounded__event:= fault_com_ac_4_atc__dynamic.fault_event_bounded;
+
+        DEFINE
+          -- Fault State Expression used for fault-extension:
+          fault_com_ac_1_atc := fault_com_ac_1_atc__dynamic.has_fault;
+          fault_com_ac_2_atc := fault_com_ac_2_atc__dynamic.has_fault;
+          fault_com_ac_3_atc := fault_com_ac_3_atc__dynamic.has_fault;
+          fault_com_ac_4_atc := fault_com_ac_4_atc__dynamic.has_fault;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := count(fault_com_ac_1_atc, fault_com_ac_2_atc,
+                               fault_com_ac_3_atc, fault_com_ac_4_atc);
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        DEFINE
+           fault_com_ac_1_atc := FALSE;
+           fault_com_ac_2_atc := FALSE;
+           fault_com_ac_3_atc := FALSE;
+           fault_com_ac_4_atc := FALSE;
+        #endif
+
+        DEFINE
+            ac_1_intention_current__out := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_intention_current__out;
+            ac_1_intention_near__out    := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_intention_near__out;
+            ac_1_intention_mid__out     := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_intention_mid__out;
+            ac_1_intention_far__out     := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_intention_far__out;
+            ac_1_request_ts_sa_ground__out := fault_com_ac_1_atc ? FALSE: nominal.ac_1_request_ts_sa_ground__out;
+            ac_1_request_ss_sa_ground__out := fault_com_ac_1_atc ? FALSE: nominal.ac_1_request_ss_sa_ground__out;
+
+            ac_2_intention_current__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_intention_current__out;
+            ac_2_intention_near__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_intention_near__out;
+            ac_2_intention_mid__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_intention_mid__out;
+            ac_2_intention_far__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_intention_far__out;
+            ac_2_request_ts_sa_ground__out := fault_com_ac_2_atc ? FALSE: nominal.ac_2_request_ts_sa_ground__out;
+            ac_2_request_ss_sa_ground__out := fault_com_ac_2_atc ? FALSE: nominal.ac_2_request_ss_sa_ground__out;
+
+            ac_3_intention_current__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_intention_current__out;
+            ac_3_intention_near__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_intention_near__out;
+            ac_3_intention_mid__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_intention_mid__out;
+            ac_3_intention_far__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_intention_far__out;
+            ac_3_request_ts_sa_ground__out := fault_com_ac_3_atc ? FALSE: nominal.ac_3_request_ts_sa_ground__out;
+            ac_3_request_ss_sa_ground__out := fault_com_ac_3_atc ? FALSE: nominal.ac_3_request_ss_sa_ground__out;
+
+            ac_4_intention_current__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_intention_current__out;
+            ac_4_intention_near__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_intention_near__out;
+            ac_4_intention_mid__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_intention_mid__out;
+            ac_4_intention_far__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_intention_far__out;
+            ac_4_request_ts_sa_ground__out := fault_com_ac_4_atc ? FALSE: nominal.ac_4_request_ts_sa_ground__out;
+            ac_4_request_ss_sa_ground__out := fault_com_ac_4_atc ? FALSE: nominal.ac_4_request_ss_sa_ground__out;
+
+            ac_1_suggestion_near__out := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_suggestion_near__out;
+            ac_1_suggestion_mid__out := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_suggestion_mid__out;
+            ac_1_suggestion_far__out := fault_com_ac_1_atc ? TRJ_NOP : nominal.ac_1_suggestion_far__out;
+
+            ac_2_suggestion_near__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_suggestion_near__out;
+            ac_2_suggestion_mid__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_suggestion_mid__out;
+            ac_2_suggestion_far__out := fault_com_ac_2_atc ? TRJ_NOP : nominal.ac_2_suggestion_far__out;
+
+            ac_3_suggestion_near__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_suggestion_near__out;
+            ac_3_suggestion_mid__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_suggestion_mid__out;
+            ac_3_suggestion_far__out := fault_com_ac_3_atc ? TRJ_NOP : nominal.ac_3_suggestion_far__out;
+
+            ac_4_suggestion_near__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_suggestion_near__out;
+            ac_4_suggestion_mid__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_suggestion_mid__out;
+            ac_4_suggestion_far__out := fault_com_ac_4_atc ? TRJ_NOP : nominal.ac_4_suggestion_far__out;
+
+            communication_phase := nominal.communication_phase;
+
+            LTLSPEC NAME CommunicationLayer_liveness_norm_guarantee :=
+                (com_steps > 0 -> ( G ( F communication_phase) &  G ( F !communication_phase)));
+
+            INVARSPEC NAME CommunicationLayer_connection_ac_1_norm_guarantee :=
+                (((( ac_1_intention_current__out =  (ac_1_atc_info_level >= INFO_LEVEL_CURRENT ? ac_1_intention_current__in : TRJ_NOP)  &
+                     ac_1_intention_near__out =  (ac_1_atc_info_level >= INFO_LEVEL_NEAR ? ac_1_intention_near__in : TRJ_NOP) ) &
+                     ac_1_intention_mid__out =  (ac_1_atc_info_level >= INFO_LEVEL_MID ? ac_1_intention_mid__in : TRJ_NOP) ) &
+                     ac_1_intention_far__out =  (ac_1_atc_info_level >= INFO_LEVEL_FAR ? ac_1_intention_far__in : TRJ_NOP) ) &
+                 ((ac_1_suggestion_near__out = ac_1_suggestion_near__in &
+                   ac_1_suggestion_mid__out = ac_1_suggestion_mid__in) &
+                   ac_1_suggestion_far__out = ac_1_suggestion_far__in) &
+		  (ac_1_request_ts_sa_ground__out = ac_1_request_ts_sa_ground__in &
+		   ac_1_request_ss_sa_ground__out = ac_1_request_ss_sa_ground__in));
+
+            INVARSPEC NAME CommunicationLayer_connection_ac_2_norm_guarantee :=
+                (((( ac_2_intention_current__out =  (ac_2_atc_info_level >= INFO_LEVEL_CURRENT ? ac_2_intention_current__in : TRJ_NOP)  &
+                     ac_2_intention_near__out =  (ac_2_atc_info_level >= INFO_LEVEL_NEAR ? ac_2_intention_near__in : TRJ_NOP) ) &
+                     ac_2_intention_mid__out =  (ac_2_atc_info_level >= INFO_LEVEL_MID ? ac_2_intention_mid__in : TRJ_NOP) ) &
+                     ac_2_intention_far__out =  (ac_2_atc_info_level >= INFO_LEVEL_FAR ? ac_2_intention_far__in : TRJ_NOP) ) &
+                  ((ac_2_suggestion_near__out = ac_2_suggestion_near__in &
+                    ac_2_suggestion_mid__out = ac_2_suggestion_mid__in) &
+                    ac_2_suggestion_far__out = ac_2_suggestion_far__in) &
+		  (ac_2_request_ts_sa_ground__out = ac_2_request_ts_sa_ground__in &
+		   ac_2_request_ss_sa_ground__out = ac_2_request_ss_sa_ground__in));
+
+            INVARSPEC NAME CommunicationLayer_connection_ac_3_norm_guarantee :=
+                (((( ac_3_intention_current__out =  (ac_3_atc_info_level >= INFO_LEVEL_CURRENT ? ac_3_intention_current__in : TRJ_NOP)  &
+                     ac_3_intention_near__out =  (ac_3_atc_info_level >= INFO_LEVEL_NEAR ? ac_3_intention_near__in : TRJ_NOP) ) &
+                     ac_3_intention_mid__out =  (ac_3_atc_info_level >= INFO_LEVEL_MID ? ac_3_intention_mid__in : TRJ_NOP) ) &
+                     ac_3_intention_far__out =  (ac_3_atc_info_level >= INFO_LEVEL_FAR ? ac_3_intention_far__in : TRJ_NOP) ) &
+                  ((ac_3_suggestion_near__out = ac_3_suggestion_near__in &
+                    ac_3_suggestion_mid__out = ac_3_suggestion_mid__in) &
+                    ac_3_suggestion_far__out = ac_3_suggestion_far__in) &
+		  (ac_3_request_ts_sa_ground__out = ac_3_request_ts_sa_ground__in &
+		   ac_3_request_ss_sa_ground__out = ac_3_request_ss_sa_ground__in));
+
+            INVARSPEC NAME CommunicationLayer_connection_ac_4_norm_guarantee :=
+                (((( ac_4_intention_current__out =  (ac_4_atc_info_level >= INFO_LEVEL_CURRENT ? ac_4_intention_current__in : TRJ_NOP)  &
+                     ac_4_intention_near__out =  (ac_4_atc_info_level >= INFO_LEVEL_NEAR ? ac_4_intention_near__in : TRJ_NOP) ) &
+                     ac_4_intention_mid__out =  (ac_4_atc_info_level >= INFO_LEVEL_MID ? ac_4_intention_mid__in : TRJ_NOP) ) &
+                     ac_4_intention_far__out =  (ac_4_atc_info_level >= INFO_LEVEL_FAR ? ac_4_intention_far__in : TRJ_NOP) ) &
+                 ((ac_4_suggestion_near__out = ac_4_suggestion_near__in &
+                   ac_4_suggestion_mid__out = ac_4_suggestion_mid__in) &
+                   ac_4_suggestion_far__out = ac_4_suggestion_far__in) &
+		  (ac_4_request_ts_sa_ground__out = ac_4_request_ts_sa_ground__in &
+		   ac_4_request_ss_sa_ground__out = ac_4_request_ss_sa_ground__in));
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE CommunicationLayer_Nominal(ac_1_intention_current__in, ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, 
+                                      ac_2_intention_current__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, 
+				      ac_3_intention_current__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, 
+				      ac_4_intention_current__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, 
+				      ac_1_suggestion_near__in, ac_1_suggestion_mid__in, ac_1_suggestion_far__in, 
+				      ac_2_suggestion_near__in, ac_2_suggestion_mid__in, ac_2_suggestion_far__in, 
+				      ac_3_suggestion_near__in, ac_3_suggestion_mid__in, ac_3_suggestion_far__in, 
+				      ac_4_suggestion_near__in, ac_4_suggestion_mid__in, ac_4_suggestion_far__in, 
+				      ac_1_request_ts_sa_ground__in, ac_2_request_ts_sa_ground__in, ac_3_request_ts_sa_ground__in, ac_4_request_ts_sa_ground__in, 
+				      ac_1_request_ss_sa_ground__in, ac_2_request_ss_sa_ground__in, ac_3_request_ss_sa_ground__in, ac_4_request_ss_sa_ground__in,
+				      ac_1_atc_info_level, ac_2_atc_info_level, ac_3_atc_info_level, ac_4_atc_info_level,
+				      com_steps)
+
+        DEFINE
+            ac_1_intention_current__out := ( ac_1_atc_info_level >= INFO_LEVEL_CURRENT ? ac_1_intention_current__in : TRJ_NOP );
+            ac_1_intention_near__out := ( ac_1_atc_info_level >= INFO_LEVEL_NEAR ? ac_1_intention_near__in : TRJ_NOP );
+            ac_1_intention_mid__out := ( ac_1_atc_info_level >= INFO_LEVEL_MID ? ac_1_intention_mid__in : TRJ_NOP );
+            ac_1_intention_far__out := ( ac_1_atc_info_level >= INFO_LEVEL_FAR ? ac_1_intention_far__in : TRJ_NOP );
+
+            ac_2_intention_current__out := ( ac_2_atc_info_level >= INFO_LEVEL_CURRENT ? ac_2_intention_current__in : TRJ_NOP );
+            ac_2_intention_near__out := ( ac_2_atc_info_level >= INFO_LEVEL_NEAR ? ac_2_intention_near__in : TRJ_NOP );
+            ac_2_intention_mid__out := ( ac_2_atc_info_level >= INFO_LEVEL_MID ? ac_2_intention_mid__in : TRJ_NOP );
+            ac_2_intention_far__out := ( ac_2_atc_info_level >= INFO_LEVEL_FAR ? ac_2_intention_far__in : TRJ_NOP );
+
+            ac_3_intention_current__out := ( ac_3_atc_info_level >= INFO_LEVEL_CURRENT ? ac_3_intention_current__in : TRJ_NOP );
+            ac_3_intention_near__out := ( ac_3_atc_info_level >= INFO_LEVEL_NEAR ? ac_3_intention_near__in : TRJ_NOP );
+            ac_3_intention_mid__out := ( ac_3_atc_info_level >= INFO_LEVEL_MID ? ac_3_intention_mid__in : TRJ_NOP );
+            ac_3_intention_far__out := ( ac_3_atc_info_level >= INFO_LEVEL_FAR ? ac_3_intention_far__in : TRJ_NOP );
+
+            ac_4_intention_current__out := ( ac_4_atc_info_level >= INFO_LEVEL_CURRENT ? ac_4_intention_current__in : TRJ_NOP );
+            ac_4_intention_near__out := ( ac_4_atc_info_level >= INFO_LEVEL_NEAR ? ac_4_intention_near__in : TRJ_NOP );
+            ac_4_intention_mid__out := ( ac_4_atc_info_level >= INFO_LEVEL_MID ? ac_4_intention_mid__in : TRJ_NOP );
+            ac_4_intention_far__out := ( ac_4_atc_info_level >= INFO_LEVEL_FAR ? ac_4_intention_far__in : TRJ_NOP );
+
+            ac_1_suggestion_near__out := ac_1_suggestion_near__in;
+            ac_1_suggestion_mid__out := ac_1_suggestion_mid__in;
+            ac_1_suggestion_far__out := ac_1_suggestion_far__in;
+
+            ac_2_suggestion_near__out := ac_2_suggestion_near__in;
+            ac_2_suggestion_mid__out := ac_2_suggestion_mid__in;
+            ac_2_suggestion_far__out := ac_2_suggestion_far__in;
+
+            ac_3_suggestion_near__out := ac_3_suggestion_near__in;
+            ac_3_suggestion_mid__out := ac_3_suggestion_mid__in;
+            ac_3_suggestion_far__out := ac_3_suggestion_far__in;
+
+            ac_4_suggestion_near__out := ac_4_suggestion_near__in;
+            ac_4_suggestion_mid__out := ac_4_suggestion_mid__in;
+            ac_4_suggestion_far__out := ac_4_suggestion_far__in;
+
+	    ac_1_request_ts_sa_ground__out := ac_1_request_ts_sa_ground__in;
+	    ac_1_request_ss_sa_ground__out := ac_1_request_ss_sa_ground__in;
+	    ac_2_request_ts_sa_ground__out := ac_2_request_ts_sa_ground__in;
+	    ac_2_request_ss_sa_ground__out := ac_2_request_ss_sa_ground__in;
+	    ac_3_request_ts_sa_ground__out := ac_3_request_ts_sa_ground__in;
+	    ac_3_request_ss_sa_ground__out := ac_3_request_ss_sa_ground__in;
+	    ac_4_request_ts_sa_ground__out := ac_4_request_ts_sa_ground__in;
+	    ac_4_request_ss_sa_ground__out := ac_4_request_ss_sa_ground__in;
+
+        VAR
+            communication_counter : 0 .. MAX_COM_STEPS;
+        ASSIGN
+            init(communication_counter) := 0;
+            next(communication_counter) := case
+                                               communication_counter >= com_steps : 0;
+                                               TRUE: communication_counter + 1;
+                                           esac;
+        DEFINE
+            communication_phase := communication_counter != com_steps;
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

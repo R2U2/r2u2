@@ -1,99 +1,75 @@
 #ifndef R2U2_MEMORY_SCQ_H
 #define R2U2_MEMORY_SCQ_H
 
-#include "internals/types.h"
-#include "internals/errors.h"
+#include "../internals/config.h"
+#include "../internals/debug.h"
+#include "../internals/types.h"
+#include "../internals/errors.h"
+#include <stdio.h>
 
-/*
- *
- * Why we use time for so many things - fits because it's max you can meaningfully address
- * for example, we can safely do write_ptr +1 then modulo becase if it was going to overflow there woun't be room for the queue with control block
- *
- * Length, Size, and Capacity:
- * The length is the number of _____ required by the queue and is ...
- * The size is the number of queue slots ...
- * The capacity is the number of elements ...
- *
- */
-
-typedef struct {
-  r2u2_tnt_t length;
-  r2u2_tnt_t write;
-  r2u2_tnt_t read1;
-  r2u2_tnt_t read2;
-  r2u2_tnt_t next_time;
-  /*
-   *
-   * Portable, architecture-agnostic pointer size detection from:
-   * https://stackoverflow.com/a/61017823
-   */
-  #if INTPTR_MAX == INT64_MAX
-    /* 64-bit Platform
-     *   Size:     32 bytes
-     *   Padding:   4 bytes
-     *   Alignment: 8 bytes
-     */
-    uint8_t _pad[4];
-  #elif INTPTR_MAX == INT32_MAX
-    /* 32-bit Platform
-     *   Size:     28 bytes
-     *   Padding:   0 bytes
-     *   Alignment: 4 bytes
-     */
-  #else
-     #error Shared Connection Queues are only aligned for 32 or 64 bit pointer sizes
-  #endif
-  r2u2_tnt_t *queue;
-} r2u2_scq_control_block_t;
-
-// Assumed to have same alignment as r2u2_tnt_t, that is can divide out sizeof
-typedef struct {
-    /* 64 or 32-bit platform:
-     *   Size:     16 bytes
-     *   Padding:   0 bytes
-     *   Alignment: 4 bytes
-     */
-  r2u2_tnt_t lower_bound;
-  r2u2_tnt_t upper_bound;
-  r2u2_tnt_t edge;
-  r2u2_tnt_t previous;
+ typedef struct {
+  r2u2_verdict edge;
+  r2u2_verdict previous;
+  r2u2_time lower_bound;
+  r2u2_time upper_bound;
 } r2u2_scq_temporal_block_t;
 
-/* Shared Connection Queue Arena
- * Used by the monitor to track arena extents.
- * Since we access offsets from both ends of the arena, storing two pointers
- * instead of a pointer and a length is more useful. Also the different typing
- * of the two pointers makes it easier to avoid alignment change warnings.
- */
 typedef struct {
-  r2u2_scq_control_block_t *blocks;
-  r2u2_tnt_t *queues;
+  r2u2_addr length;
+  r2u2_addr write;
+  r2u2_addr read1;
+  r2u2_addr read2;
+  r2u2_time next_time;
+  r2u2_verdict* queue; // Pointer to slice in queue_mem
+} r2u2_scq_control_block_t;
+
+typedef struct {
+  r2u2_scq_control_block_t* control_blocks; // Array of control blocks
+  r2u2_verdict* queue_mem; // Array that stores all SCQ slots + Temporal Block metadata
 } r2u2_scq_arena_t;
 
-static inline r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t *arena, r2u2_time queue_id) {
-  r2u2_scq_control_block_t *ctrl = &((arena->blocks)[queue_id]);
-  return (r2u2_scq_temporal_block_t*)&((ctrl->queue)[ctrl->length]);
+/// @brief      Write SCQ slot
+/// @param[in]  arena  R2U2 SCQ arena (since this is a struct to 2 pointers, this is pass-by-reference)
+/// @param[in]  queue_id  ID of SCQ to write to
+/// @param[in]  value  Verdict-timestamp tuple to be written to SCQ
+/// @return     r2u2_status_t
+r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t arena, r2u2_time queue_id, r2u2_verdict value);
+
+/// @brief      Read SCQ slot
+/// @param[in]  arena  R2U2 SCQ arena (since this is a struct to 2 pointers, this is pass-by-reference)
+/// @param[in]  parent_queue_id  ID of parent SCQ that is trying to read from child node
+/// @param[in]  child_queue_id  ID of child SCQ that is being read from
+/// @param[in]  read_num Indicating left (read_num = 0) or right (read_num = 1) child
+/// @param[in]  result  Verdict-timestamp tuple that was read from SCQ (passed-by-reference)
+/// @return     r2u2_bool Indicates if data is ready and `result` is valid
+r2u2_bool r2u2_scq_read(r2u2_scq_arena_t arena, r2u2_time parent_queue_id, r2u2_time child_queue_id, r2u2_bool read_num, r2u2_verdict* result);
+
+/// @brief      Inline function that returns temporal metadata block (assumes correct configuration)
+/// @param[in]  arena  R2U2 SCQ arena (since this is a struct to 2 pointers, this is pass-by-reference)
+/// @param[in]  queue_id  ID of SCQ to retrieve temporal metadata for
+/// @return     r2u2_scq_temporal_block_t* Pointer to temporal metadata block
+static inline ALWAYS_INLINE r2u2_scq_temporal_block_t* r2u2_scq_temporal_get(r2u2_scq_arena_t arena, r2u2_time queue_id) {
+  return (r2u2_scq_temporal_block_t*) (&(arena.control_blocks[queue_id].queue[arena.control_blocks[queue_id].length]));
 }
 
-/*
- *
- * Assumption: Queues are loaded in sequential order, i.e. when configuring
- * queue `n`, taking the queue pointer + lenght of queue `n-1` yields the ...
- */
-r2u2_status_t r2u2_scq_config(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_time queue_length);
+#if R2U2_DEBUG
+    static void r2u2_scq_arena_print(r2u2_scq_arena_t arena) {
+        R2U2_DEBUG_PRINT("\t\t\tShared Connection Queue Arena:\n\t\t\t\tBlocks: <%p>\n\t\t\t\tQueues: <%p>\n\t\t\t\tSize: %ld\n", arena.control_blocks, arena.queue_mem, ((void*)arena.queue_mem) - ((void*)arena.control_blocks));
+    }
 
-/*
- *
- *
- * Since this moves the queue poninter but reduces the length by the same step
- *
- * Checking for a temporal block by comparing the queue pointer against the
- * previous queue's pointer + length isn't guarenteed but should be sufficent.
- */
-r2u2_status_t r2u2_scq_temporal_config(r2u2_scq_arena_t *arena, r2u2_time queue_id);
+    static void r2u2_scq_queue_print(r2u2_scq_arena_t arena, r2u2_time queue_id) {
+        r2u2_scq_control_block_t* ctrl = &((arena.control_blocks)[queue_id]);
 
-/* SCQ Read and Write */
-r2u2_status_t r2u2_scq_write(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t value);
-r2u2_bool r2u2_scq_check(r2u2_scq_arena_t *arena, r2u2_time queue_id, r2u2_tnt_t *read, r2u2_tnt_t next_time, r2u2_tnt_t *value);
+        R2U2_DEBUG_PRINT("\t\t\tID: |");
+        for (r2u2_time i = 0; i < ctrl->length; ++i) {
+            R2U2_DEBUG_PRINT(" <%p> |", (void*)&((ctrl->queue)[i]));
+        }
+        R2U2_DEBUG_PRINT("\n\t\t\t%3d |", queue_id);
+        for (r2u2_time i = 0; i < ctrl->length; ++i) {
+            R2U2_DEBUG_PRINT("  %s:%9d  |", (get_verdict_truth((ctrl->queue)[i])) ? "T" : "F", get_verdict_time((ctrl->queue)[i]));
+        }
+        R2U2_DEBUG_PRINT("\n");
+    }
+#endif
 
 #endif /* R2U2_MEMORY_SCQ_H */

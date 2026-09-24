@@ -1,0 +1,585 @@
+-- Ground-based Conflict Detection and Resolutions
+--
+-- Faults:
+--   - Stops providing any output (Permanent)
+--   - Fails to detect conflicts (Transient)
+--   - Fails to provide a correct resolution (Transient)
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            GCDR_inst : GCDR(burdening_rule,
+                             -- Aircraft 1
+                             ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+                             ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                             ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                             -- Aircraft 2
+                             ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+                             ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                             ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                             -- Aircraft 3
+                             ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+                             ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                             ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                             -- Aircraft 4
+                             ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+                             ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                             ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground
+                             );
+       FROZENVAR
+            burdening_rule: B_TYPE;
+
+            ac_1_ts_sa_agent : SA_TYPE;
+            ac_1_ss_sa_agent : SA_TYPE;
+
+            ac_2_ts_sa_agent : SA_TYPE;
+            ac_2_ss_sa_agent : SA_TYPE;
+
+            ac_3_ts_sa_agent : SA_TYPE;
+            ac_3_ss_sa_agent : SA_TYPE;
+
+            ac_4_ts_sa_agent : SA_TYPE;
+            ac_4_ss_sa_agent : SA_TYPE;
+
+        VAR
+            ac_1_intention_current : TRJ_TYPE;
+            ac_1_intention_near : TRJ_TYPE;
+            ac_1_intention_mid : TRJ_TYPE;
+            ac_1_intention_far : TRJ_TYPE;
+            ac_1_request_ts_sa_ground : boolean;
+            ac_1_request_ss_sa_ground : boolean;
+
+            ac_2_intention_current : TRJ_TYPE;
+            ac_2_intention_near : TRJ_TYPE;
+            ac_2_intention_mid : TRJ_TYPE;
+            ac_2_intention_far : TRJ_TYPE;
+            ac_2_request_ts_sa_ground : boolean;
+            ac_2_request_ss_sa_ground : boolean;
+
+            ac_3_intention_current : TRJ_TYPE;
+            ac_3_intention_near : TRJ_TYPE;
+            ac_3_intention_mid : TRJ_TYPE;
+            ac_3_intention_far : TRJ_TYPE;
+            ac_3_request_ts_sa_ground : boolean;
+            ac_3_request_ss_sa_ground : boolean;
+
+            ac_4_intention_current : TRJ_TYPE;
+            ac_4_intention_near : TRJ_TYPE;
+            ac_4_intention_mid : TRJ_TYPE;
+            ac_4_intention_far : TRJ_TYPE;
+            ac_4_request_ts_sa_ground : boolean;
+            ac_4_request_ss_sa_ground : boolean;
+
+        DEFINE
+            ac_1_suggestion_near := GCDR_inst.ac_1_suggestion_near;
+            ac_1_suggestion_mid := GCDR_inst.ac_1_suggestion_mid;
+            ac_1_suggestion_far := GCDR_inst.ac_1_suggestion_far;
+
+            ac_1_predicted_conflict_near := GCDR_inst.ac_1_predicted_conflict_near;
+            ac_1_predicted_conflict_mid := GCDR_inst.ac_1_predicted_conflict_mid;
+            ac_1_predicted_conflict_far := GCDR_inst.ac_1_predicted_conflict_far;
+
+            ac_2_suggestion_near := GCDR_inst.ac_2_suggestion_near;
+            ac_2_suggestion_mid := GCDR_inst.ac_2_suggestion_mid;
+            ac_2_suggestion_far := GCDR_inst.ac_2_suggestion_far;
+
+            ac_2_predicted_conflict_near := GCDR_inst.ac_2_predicted_conflict_near;
+            ac_2_predicted_conflict_mid := GCDR_inst.ac_2_predicted_conflict_mid;
+            ac_2_predicted_conflict_far := GCDR_inst.ac_2_predicted_conflict_far;
+
+            ac_3_suggestion_near := GCDR_inst.ac_3_suggestion_near;
+            ac_3_suggestion_mid := GCDR_inst.ac_3_suggestion_mid;
+            ac_3_suggestion_far := GCDR_inst.ac_3_suggestion_far;
+
+            ac_3_predicted_conflict_near := GCDR_inst.ac_3_predicted_conflict_near;
+            ac_3_predicted_conflict_mid := GCDR_inst.ac_3_predicted_conflict_mid;
+            ac_3_predicted_conflict_far := GCDR_inst.ac_3_predicted_conflict_far;
+
+            ac_4_suggestion_near := GCDR_inst.ac_4_suggestion_near;
+            ac_4_suggestion_mid := GCDR_inst.ac_4_suggestion_mid;
+            ac_4_suggestion_far := GCDR_inst.ac_4_suggestion_far;
+
+            ac_4_predicted_conflict_near := GCDR_inst.ac_4_predicted_conflict_near;
+            ac_4_predicted_conflict_mid := GCDR_inst.ac_4_predicted_conflict_mid;
+            ac_4_predicted_conflict_far := GCDR_inst.ac_4_predicted_conflict_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE GCDR(burdening_rule,
+                ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+                ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+                ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+                ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+                ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground)
+        DEFINE
+            input_ac_1_ts_sa_agent := ac_1_ts_sa_agent;
+            input_ac_1_ss_sa_agent := ac_1_ss_sa_agent;
+
+            input_ac_2_ts_sa_agent := ac_2_ts_sa_agent;
+            input_ac_2_ss_sa_agent := ac_2_ss_sa_agent;
+
+            input_ac_3_ts_sa_agent := ac_3_ts_sa_agent;
+            input_ac_3_ss_sa_agent := ac_3_ss_sa_agent;
+
+            input_ac_4_ts_sa_agent := ac_4_ts_sa_agent;
+            input_ac_4_ss_sa_agent := ac_4_ss_sa_agent;
+
+            input_ac_1_intention_current := ac_1_intention_current;
+            input_ac_1_intention_near := ac_1_intention_near;
+            input_ac_1_intention_mid := ac_1_intention_mid;
+            input_ac_1_intention_far := ac_1_intention_far;
+
+            input_ac_2_intention_current := ac_2_intention_current;
+            input_ac_2_intention_near := ac_2_intention_near;
+            input_ac_2_intention_mid := ac_2_intention_mid;
+            input_ac_2_intention_far := ac_2_intention_far;
+
+            input_ac_3_intention_current := ac_3_intention_current;
+            input_ac_3_intention_near := ac_3_intention_near;
+            input_ac_3_intention_mid := ac_3_intention_mid;
+            input_ac_3_intention_far := ac_3_intention_far;
+
+            input_ac_4_intention_current := ac_4_intention_current;
+            input_ac_4_intention_near := ac_4_intention_near;
+            input_ac_4_intention_mid := ac_4_intention_mid;
+            input_ac_4_intention_far := ac_4_intention_far;
+
+        VAR
+            nominal : GCDR_Nominal(burdening_rule,
+                                   ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+                                   ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                                   ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                                   ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+                                   ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                                   ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                                   ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+                                   ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                                   ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                                   ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+                                   ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                                   ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground);
+
+        #if EXTENDED_MODEL
+        VAR
+          -- Fault Dynamics
+          fault_outage__dynamic: PermanentFault;
+          fault_detect_near__dynamic: TransientFault;
+          fault_detect_mid__dynamic: TransientFault;
+          fault_detect_far__dynamic: TransientFault;
+          fault_resolve_near__dynamic: TransientFault;
+          fault_resolve_mid__dynamic: TransientFault;
+          fault_resolve_far__dynamic: TransientFault;
+
+        DEFINE
+          -- Fault events
+          fault_outage__event      := fault_outage__dynamic.fault_event;
+          fault_detect_near__event := fault_detect_near__dynamic.fault_event;
+          fault_detect_mid__event  := fault_detect_mid__dynamic.fault_event;
+          fault_detect_far__event  := fault_detect_far__dynamic.fault_event;
+          fault_resolve_near__event:= fault_resolve_near__dynamic.fault_event;
+          fault_resolve_mid__event := fault_resolve_mid__dynamic.fault_event;
+          fault_resolve_far__event := fault_resolve_far__dynamic.fault_event;
+
+        DEFINE
+          -- Fault State
+          fault_outage := fault_outage__dynamic.has_fault;
+          fault_detect_near := fault_detect_near__dynamic.has_fault;
+          fault_detect_mid  := fault_detect_mid__dynamic.has_fault;
+          fault_detect_far  := fault_detect_far__dynamic.has_fault;
+          fault_resolve_near:= fault_resolve_near__dynamic.has_fault;
+          fault_resolve_mid := fault_resolve_mid__dynamic.has_fault;
+          fault_resolve_far := fault_resolve_far__dynamic.has_fault;
+
+        DEFINE
+          -- Faulty suggestions
+          faulty_ac_1_suggestion_near := 1;
+          faulty_ac_2_suggestion_near := 2;
+          faulty_ac_3_suggestion_near := 3;
+          faulty_ac_4_suggestion_near := 4;
+
+          faulty_ac_1_suggestion_mid := 1;
+          faulty_ac_2_suggestion_mid := 2;
+          faulty_ac_3_suggestion_mid := 3;
+          faulty_ac_4_suggestion_mid := 4;
+
+          faulty_ac_1_suggestion_far := 1;
+          faulty_ac_2_suggestion_far := 2;
+          faulty_ac_3_suggestion_far := 3;
+          faulty_ac_4_suggestion_far := 4;
+
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := count(fault_outage, fault_detect_near, fault_detect_mid, fault_detect_far) +
+                         count(fault_resolve_near, fault_resolve_mid, fault_resolve_far);
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        -- We use DEFINEs to have a smaller nominal model
+        DEFINE
+          fault_outage := FALSE;
+          fault_detect_near := FALSE;
+          fault_detect_mid := FALSE;
+          fault_detect_far := FALSE;
+          fault_resolve_near := FALSE;
+          fault_resolve_mid := FALSE;
+          fault_resolve_far := FALSE;
+
+          faulty_ac_1_suggestion_near := TRJ_NOP;
+          faulty_ac_2_suggestion_near := TRJ_NOP;
+          faulty_ac_3_suggestion_near := TRJ_NOP;
+          faulty_ac_4_suggestion_near := TRJ_NOP;
+
+          faulty_ac_1_suggestion_mid := TRJ_NOP;
+          faulty_ac_2_suggestion_mid := TRJ_NOP;
+          faulty_ac_3_suggestion_mid := TRJ_NOP;
+          faulty_ac_4_suggestion_mid := TRJ_NOP;
+
+          faulty_ac_1_suggestion_far := TRJ_NOP;
+          faulty_ac_2_suggestion_far := TRJ_NOP;
+          faulty_ac_3_suggestion_far := TRJ_NOP;
+          faulty_ac_4_suggestion_far := TRJ_NOP;
+
+        #endif
+
+        DEFINE
+            -- AC 1
+            ac_1_suggestion_near := case fault_outage: TRJ_NOP;
+                                         fault_detect_near: ac_1_intention_near;
+                                         fault_resolve_near & ac_1_predicted_conflict_near: faulty_ac_1_suggestion_near;
+                                         TRUE:  nominal.ac_1_suggestion_near;
+                                    esac;
+            ac_1_suggestion_mid :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_mid: ac_1_intention_mid;
+                                         fault_resolve_mid & ac_1_predicted_conflict_mid: faulty_ac_1_suggestion_mid;
+                                         TRUE:  nominal.ac_1_suggestion_mid;
+                                    esac;
+            ac_1_suggestion_far :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_far: ac_1_intention_far;
+                                         fault_resolve_far & ac_1_predicted_conflict_far: faulty_ac_1_suggestion_far;
+                                         TRUE: nominal.ac_1_suggestion_far;
+                                    esac;
+            ac_1_predicted_conflict_near := (fault_outage | fault_detect_near) ? FALSE : nominal.ac_1_predicted_conflict_near;
+            ac_1_predicted_conflict_mid  := (fault_outage | fault_detect_mid) ? FALSE : nominal.ac_1_predicted_conflict_mid;
+            ac_1_predicted_conflict_far  := (fault_outage | fault_detect_far) ? FALSE : nominal.ac_1_predicted_conflict_far;
+
+            -- AC 2
+            ac_2_suggestion_near := case fault_outage: TRJ_NOP;
+                                         fault_detect_near: ac_2_intention_near;
+                                         fault_resolve_near & ac_2_predicted_conflict_near: faulty_ac_2_suggestion_near;
+                                         TRUE: nominal.ac_2_suggestion_near;
+                                    esac;
+            ac_2_suggestion_mid :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_mid: ac_2_intention_mid;
+                                         fault_resolve_mid & ac_2_predicted_conflict_mid: faulty_ac_2_suggestion_mid;
+                                         TRUE: nominal.ac_2_suggestion_mid;
+                                    esac;
+            ac_2_suggestion_far :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_far: ac_2_intention_far;
+                                         fault_resolve_far & ac_2_predicted_conflict_far: faulty_ac_2_suggestion_far;
+                                         TRUE: nominal.ac_2_suggestion_far;
+                                    esac;
+            ac_2_predicted_conflict_near := (fault_outage | fault_detect_near) ? FALSE : nominal.ac_2_predicted_conflict_near;
+            ac_2_predicted_conflict_mid  := (fault_outage | fault_detect_mid) ? FALSE : nominal.ac_2_predicted_conflict_mid;
+            ac_2_predicted_conflict_far  := (fault_outage | fault_detect_far) ? FALSE : nominal.ac_2_predicted_conflict_far;
+
+            -- AC 3
+            ac_3_suggestion_near := case fault_outage: TRJ_NOP;
+                                         fault_detect_near: ac_3_intention_near;
+                                         fault_resolve_near & ac_3_predicted_conflict_near: faulty_ac_3_suggestion_near;
+                                         TRUE: nominal.ac_3_suggestion_near;
+                                    esac;
+            ac_3_suggestion_mid :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_mid: ac_3_intention_mid;
+                                         fault_resolve_mid & ac_3_predicted_conflict_mid: faulty_ac_3_suggestion_mid;
+                                         TRUE: nominal.ac_3_suggestion_mid;
+                                    esac;
+            ac_3_suggestion_far :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_far: ac_3_intention_far;
+                                         fault_resolve_far & ac_3_predicted_conflict_far: faulty_ac_3_suggestion_far;
+                                         TRUE: nominal.ac_3_suggestion_far;
+                                    esac;
+            ac_3_predicted_conflict_near := (fault_outage | fault_detect_near) ? FALSE : nominal.ac_3_predicted_conflict_near;
+            ac_3_predicted_conflict_mid  := (fault_outage | fault_detect_mid) ? FALSE : nominal.ac_3_predicted_conflict_mid;
+            ac_3_predicted_conflict_far  := (fault_outage | fault_detect_far) ? FALSE : nominal.ac_3_predicted_conflict_far;
+
+            -- AC 4
+            ac_4_suggestion_near := case fault_outage: TRJ_NOP;
+                                         fault_detect_near: ac_4_intention_near;
+                                         fault_resolve_near & ac_4_predicted_conflict_near: faulty_ac_4_suggestion_near;
+                                         TRUE: nominal.ac_4_suggestion_near;
+                                    esac;
+            ac_4_suggestion_mid :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_mid: ac_4_intention_mid;
+                                         fault_resolve_mid & ac_4_predicted_conflict_mid: faulty_ac_4_suggestion_mid;
+                                         TRUE: nominal.ac_4_suggestion_mid;
+                                    esac;
+            ac_4_suggestion_far :=  case fault_outage: TRJ_NOP;
+                                         fault_detect_far: ac_4_intention_far;
+                                         fault_resolve_far: faulty_ac_4_suggestion_far;
+                                         TRUE: nominal.ac_4_suggestion_far;
+                                    esac;
+            ac_4_predicted_conflict_near := (fault_outage | fault_detect_near) ? FALSE : nominal.ac_4_predicted_conflict_near;
+            ac_4_predicted_conflict_mid  := (fault_outage | fault_detect_mid) ? FALSE : nominal.ac_4_predicted_conflict_mid;
+            ac_4_predicted_conflict_far  := (fault_outage | fault_detect_far) ? FALSE : nominal.ac_4_predicted_conflict_far;
+
+
+        INVARSPEC NAME GCDR_suggestion_ground_separated_ts_norm_guarantee := burdening_rule = B_GSEP -> ((( (ac_1_ts_sa_agent = SA_ATC -> (((ac_1_suggestion_near != ac_2_suggestion_near & ac_1_suggestion_near != ac_3_suggestion_near) & ac_1_suggestion_near != ac_4_suggestion_near) & ((ac_1_suggestion_mid != ac_2_suggestion_mid & ac_1_suggestion_mid != ac_3_suggestion_mid) & ac_1_suggestion_mid != ac_4_suggestion_mid))) &  (ac_2_ts_sa_agent = SA_ATC -> (((ac_2_suggestion_near != ac_1_suggestion_near & ac_2_suggestion_near != ac_3_suggestion_near) & ac_2_suggestion_near != ac_4_suggestion_near) & ((ac_2_suggestion_mid != ac_1_suggestion_mid & ac_2_suggestion_mid != ac_3_suggestion_mid) & ac_2_suggestion_mid != ac_4_suggestion_mid)))) &  (ac_3_ts_sa_agent = SA_ATC -> (((ac_3_suggestion_near != ac_1_suggestion_near & ac_3_suggestion_near != ac_2_suggestion_near) & ac_3_suggestion_near != ac_4_suggestion_near) & ((ac_3_suggestion_mid != ac_1_suggestion_mid & ac_3_suggestion_mid != ac_2_suggestion_mid) & ac_3_suggestion_mid != ac_4_suggestion_mid)))) &  (ac_4_ts_sa_agent = SA_ATC -> (((ac_4_suggestion_near != ac_1_suggestion_near & ac_4_suggestion_near != ac_2_suggestion_near) & ac_4_suggestion_near != ac_3_suggestion_near) & ((ac_4_suggestion_mid != ac_1_suggestion_mid & ac_4_suggestion_mid != ac_2_suggestion_mid) & ac_4_suggestion_mid != ac_3_suggestion_mid))));
+        INVARSPEC NAME GCDR_suggestion_ground_separated_ss_norm_guarantee := burdening_rule = B_GSEP -> ((( (ac_1_ss_sa_agent = SA_ATC -> ((ac_1_suggestion_far != ac_2_suggestion_far & ac_1_suggestion_far != ac_3_suggestion_far) & ac_1_suggestion_far != ac_4_suggestion_far)) &  (ac_2_ss_sa_agent = SA_ATC -> ((ac_2_suggestion_far != ac_1_suggestion_far & ac_2_suggestion_far != ac_3_suggestion_far) & ac_2_suggestion_far != ac_4_suggestion_far))) &  (ac_3_ss_sa_agent = SA_ATC -> ((ac_3_suggestion_far != ac_1_suggestion_far & ac_3_suggestion_far != ac_2_suggestion_far) & ac_3_suggestion_far != ac_4_suggestion_far))) & (ac_4_ss_sa_agent = SA_ATC -> ((ac_4_suggestion_far != ac_1_suggestion_far & ac_4_suggestion_far != ac_2_suggestion_far) & ac_4_suggestion_far != ac_3_suggestion_far)));
+
+        INVARSPEC NAME GCDR_suggestion_ground_backup_ts_norm_guarantee := burdening_rule = B_GSEP -> (((((ac_1_ts_sa_agent = SA_SATC & ac_1_request_ts_sa_ground) -> (((ac_1_suggestion_near != ac_2_suggestion_near & ac_1_suggestion_near != ac_3_suggestion_near) & ac_1_suggestion_near != ac_4_suggestion_near) & ((ac_1_suggestion_mid != ac_2_suggestion_mid & ac_1_suggestion_mid != ac_3_suggestion_mid) & ac_1_suggestion_mid != ac_4_suggestion_mid))) &  ((ac_2_ts_sa_agent = SA_SATC & ac_2_request_ts_sa_ground) -> (((ac_2_suggestion_near != ac_1_suggestion_near & ac_2_suggestion_near != ac_3_suggestion_near) & ac_2_suggestion_near != ac_4_suggestion_near) & ((ac_2_suggestion_mid != ac_1_suggestion_mid & ac_2_suggestion_mid != ac_3_suggestion_mid) & ac_2_suggestion_mid != ac_4_suggestion_mid)))) &  ((ac_3_ts_sa_agent = SA_SATC & ac_3_request_ts_sa_ground) -> (((ac_3_suggestion_near != ac_1_suggestion_near & ac_3_suggestion_near != ac_2_suggestion_near) & ac_3_suggestion_near != ac_4_suggestion_near) & ((ac_3_suggestion_mid != ac_1_suggestion_mid & ac_3_suggestion_mid != ac_2_suggestion_mid) & ac_3_suggestion_mid != ac_4_suggestion_mid)))) &  ((ac_4_ts_sa_agent = SA_SATC & ac_4_request_ts_sa_ground) -> (((ac_4_suggestion_near != ac_1_suggestion_near & ac_4_suggestion_near != ac_2_suggestion_near) & ac_4_suggestion_near != ac_3_suggestion_near) & ((ac_4_suggestion_mid != ac_1_suggestion_mid & ac_4_suggestion_mid != ac_2_suggestion_mid) & ac_4_suggestion_mid != ac_3_suggestion_mid))));
+        INVARSPEC NAME GCDR_suggestion_ground_backup_ss_norm_guarantee :=  burdening_rule = B_GSEP -> ((( ((ac_1_ss_sa_agent = SA_SATC & ac_1_request_ss_sa_ground) -> ((ac_1_suggestion_far != ac_2_suggestion_far & ac_1_suggestion_far != ac_3_suggestion_far) & ac_1_suggestion_far != ac_4_suggestion_far)) &  ((ac_2_ss_sa_agent = SA_SATC & ac_2_request_ss_sa_ground) -> ((ac_2_suggestion_far != ac_1_suggestion_far & ac_2_suggestion_far != ac_3_suggestion_far) & ac_2_suggestion_far != ac_4_suggestion_far))) &  ((ac_3_ss_sa_agent = SA_SATC & ac_3_request_ss_sa_ground) -> ((ac_3_suggestion_far != ac_1_suggestion_far & ac_3_suggestion_far != ac_2_suggestion_far) & ac_3_suggestion_far != ac_4_suggestion_far))) &  ((ac_4_ss_sa_agent = SA_SATC & ac_4_request_ss_sa_ground) -> ((ac_4_suggestion_far != ac_1_suggestion_far & ac_4_suggestion_far != ac_2_suggestion_far) & ac_4_suggestion_far != ac_3_suggestion_far)));
+
+        INVARSPEC NAME GCDR_suggestion_self_separating_norm_guarantee := ((((((( (ac_1_ts_sa_agent = SA_SELF -> (ac_1_suggestion_near = ac_1_intention_near & ac_1_suggestion_mid = ac_1_intention_mid)) &  (ac_1_ss_sa_agent = SA_SELF -> ac_1_suggestion_far = ac_1_intention_far)) &  (ac_2_ts_sa_agent = SA_SELF -> (ac_2_suggestion_near = ac_2_intention_near & ac_2_suggestion_mid = ac_2_intention_mid))) &  (ac_2_ss_sa_agent = SA_SELF -> ac_2_suggestion_far = ac_2_intention_far)) &  (ac_3_ts_sa_agent = SA_SELF -> (ac_3_suggestion_near = ac_3_intention_near & ac_3_suggestion_mid = ac_3_intention_mid))) &  (ac_3_ss_sa_agent = SA_SELF -> ac_3_suggestion_far = ac_3_intention_far)) &  (ac_4_ts_sa_agent = SA_SELF -> (ac_4_suggestion_near = ac_4_intention_near & ac_4_suggestion_mid = ac_4_intention_mid))) &  (ac_4_ss_sa_agent = SA_SELF -> ac_4_suggestion_far = ac_4_intention_far));
+        INVARSPEC NAME GCDR_suggestion_not_nop_norm_guarantee := ((((((((((( (ac_1_ts_sa_agent = SA_ATC -> ac_1_suggestion_near != 0) &   (ac_1_ts_sa_agent = SA_ATC -> ac_1_suggestion_mid != 0)) &  (ac_1_ss_sa_agent = SA_ATC -> ac_1_suggestion_far != 0)) &  (ac_2_ts_sa_agent = SA_ATC -> ac_2_suggestion_near != 0)) &  (ac_2_ts_sa_agent = SA_ATC -> ac_2_suggestion_mid != 0)) & (ac_2_ss_sa_agent = SA_ATC -> ac_2_suggestion_far != 0)) &  (ac_3_ts_sa_agent = SA_ATC -> ac_3_suggestion_near != 0)) &  (ac_3_ts_sa_agent = SA_ATC -> ac_3_suggestion_mid != 0)) &  (ac_3_ss_sa_agent = SA_ATC -> ac_3_suggestion_far != 0)) &  (ac_4_ts_sa_agent = SA_ATC -> ac_4_suggestion_near != 0)) &  (ac_4_ts_sa_agent = SA_ATC -> ac_4_suggestion_mid != 0)) &  (ac_4_ss_sa_agent = SA_ATC -> ac_4_suggestion_far != 0));
+
+        LTLSPEC NAME GCDR_predicted_conflict_mid_norm_guarantee := (((( G (ac_1_ts_sa_agent = SA_ATC -> ac_1_intention_mid != 0) &  G (ac_2_ts_sa_agent = SA_ATC -> ac_2_intention_mid != 0)) &  G (ac_3_ts_sa_agent = SA_ATC -> ac_3_intention_mid != 0)) &  G (ac_4_ts_sa_agent = SA_ATC -> ac_4_intention_mid != 0)) -> ((( G (ac_1_intention_mid != 0 -> (ac_1_predicted_conflict_mid <-> !((ac_1_intention_mid != ac_2_intention_mid & ac_1_intention_mid != ac_3_intention_mid) & ac_1_intention_mid != ac_4_intention_mid))) &  G (ac_2_intention_mid != 0 -> (ac_2_predicted_conflict_mid <-> !((ac_2_intention_mid != ac_1_intention_mid & ac_2_intention_mid != ac_3_intention_mid) & ac_2_intention_mid != ac_4_intention_mid)))) &  G (ac_3_intention_mid != 0 -> (ac_3_predicted_conflict_mid <-> !((ac_3_intention_mid != ac_1_intention_mid & ac_3_intention_mid != ac_2_intention_mid) & ac_3_intention_mid != ac_4_intention_mid)))) &  G (ac_4_intention_mid != 0 -> (ac_4_predicted_conflict_mid <-> !((ac_4_intention_mid != ac_1_intention_mid & ac_4_intention_mid != ac_2_intention_mid) & ac_4_intention_mid != ac_3_intention_mid)))));
+        LTLSPEC NAME GCDR_predicted_conflict_near_norm_guarantee := (((( G (ac_1_ts_sa_agent = SA_ATC -> ac_1_intention_near != 0) &  G (ac_2_ts_sa_agent = SA_ATC -> ac_2_intention_near != 0)) &  G (ac_3_ts_sa_agent = SA_ATC -> ac_3_intention_near != 0)) &  G (ac_4_ts_sa_agent = SA_ATC -> ac_4_intention_near != 0)) -> ((( G (ac_1_intention_near != 0 -> (ac_1_predicted_conflict_near <-> !((ac_1_intention_near != ac_2_intention_near & ac_1_intention_near != ac_3_intention_near) & ac_1_intention_near != ac_4_intention_near))) &  G (ac_2_intention_near != 0 -> (ac_2_predicted_conflict_near <-> !((ac_2_intention_near != ac_1_intention_near & ac_2_intention_near != ac_3_intention_near) & ac_2_intention_near != ac_4_intention_near)))) &  G (ac_3_intention_near != 0 -> (ac_3_predicted_conflict_near <-> !((ac_3_intention_near != ac_1_intention_near & ac_3_intention_near != ac_2_intention_near) & ac_3_intention_near != ac_4_intention_near)))) &  G (ac_4_intention_near != 0 -> (ac_4_predicted_conflict_near <-> !((ac_4_intention_near != ac_1_intention_near & ac_4_intention_near != ac_2_intention_near) & ac_4_intention_near != ac_3_intention_near)))));
+        LTLSPEC NAME GCDR_predicted_conflict_far_norm_guarantee := (((( G (ac_1_ts_sa_agent = SA_ATC -> ac_1_intention_far != 0) &  G (ac_2_ts_sa_agent = SA_ATC -> ac_2_intention_far != 0)) &  G (ac_3_ts_sa_agent = SA_ATC -> ac_3_intention_far != 0)) &  G (ac_4_ts_sa_agent = SA_ATC -> ac_4_intention_far != 0)) -> ((( G (ac_1_intention_far != 0 -> (ac_1_predicted_conflict_far <-> !((ac_1_intention_far != ac_2_intention_far & ac_1_intention_far != ac_3_intention_far) & ac_1_intention_far != ac_4_intention_far))) &  G (ac_2_intention_far != 0 -> (ac_2_predicted_conflict_far <-> !((ac_2_intention_far != ac_1_intention_far & ac_2_intention_far != ac_3_intention_far) & ac_2_intention_far != ac_4_intention_far)))) &  G (ac_3_intention_far != 0 -> (ac_3_predicted_conflict_far <-> !((ac_3_intention_far != ac_1_intention_far & ac_3_intention_far != ac_2_intention_far) & ac_3_intention_far != ac_4_intention_far)))) &  G (ac_4_intention_far != 0 -> (ac_4_predicted_conflict_far <-> !((ac_4_intention_far != ac_1_intention_far & ac_4_intention_far != ac_2_intention_far) & ac_4_intention_far != ac_3_intention_far)))));
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+    MODULE GCDR_Nominal(burdening_rule,
+                        ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+                        ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                        ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                        ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+                        ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                        ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                        ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+                        ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                        ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                        ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+                        ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                        ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground)
+        VAR
+            gcdr_near : GCDR_Local(burdening_rule,
+                                   ac_1_ts_sa_agent, ac_1_intention_near, ac_1_request_ts_sa_ground,
+                                   ac_2_ts_sa_agent, ac_2_intention_near, ac_2_request_ts_sa_ground,
+                                   ac_3_ts_sa_agent, ac_3_intention_near, ac_3_request_ts_sa_ground,
+                                   ac_4_ts_sa_agent, ac_4_intention_near, ac_4_request_ts_sa_ground);
+            gcdr_mid  : GCDR_Local(burdening_rule,
+                                   ac_1_ts_sa_agent, ac_1_intention_mid, ac_1_request_ts_sa_ground,
+                                   ac_2_ts_sa_agent, ac_2_intention_mid, ac_2_request_ts_sa_ground,
+                                   ac_3_ts_sa_agent, ac_3_intention_mid, ac_3_request_ts_sa_ground,
+                                   ac_4_ts_sa_agent, ac_4_intention_mid, ac_4_request_ts_sa_ground);
+            gcdr_far  : GCDR_Local(burdening_rule,
+                                   ac_1_ss_sa_agent, ac_1_intention_far, ac_1_request_ss_sa_ground,
+                                   ac_2_ss_sa_agent, ac_2_intention_far, ac_2_request_ss_sa_ground,
+                                   ac_3_ss_sa_agent, ac_3_intention_far, ac_3_request_ss_sa_ground,
+                                   ac_4_ss_sa_agent, ac_4_intention_far, ac_4_request_ss_sa_ground);
+        DEFINE
+            ac_1_suggestion_near := gcdr_near.ac_1_suggestion;
+            ac_1_suggestion_mid := gcdr_mid.ac_1_suggestion;
+            ac_1_suggestion_far := gcdr_far.ac_1_suggestion;
+
+            ac_1_predicted_conflict_near := gcdr_near.ac_1_predicted_conflict;
+            ac_1_predicted_conflict_mid := gcdr_mid.ac_1_predicted_conflict;
+            ac_1_predicted_conflict_far := gcdr_far.ac_1_predicted_conflict;
+
+            ac_2_suggestion_near := gcdr_near.ac_2_suggestion;
+            ac_2_suggestion_mid := gcdr_mid.ac_2_suggestion;
+            ac_2_suggestion_far := gcdr_far.ac_2_suggestion;
+
+            ac_2_predicted_conflict_near := gcdr_near.ac_2_predicted_conflict;
+            ac_2_predicted_conflict_mid := gcdr_mid.ac_2_predicted_conflict;
+            ac_2_predicted_conflict_far := gcdr_far.ac_2_predicted_conflict;
+
+            ac_3_suggestion_near := gcdr_near.ac_3_suggestion;
+            ac_3_suggestion_mid := gcdr_mid.ac_3_suggestion;
+            ac_3_suggestion_far := gcdr_far.ac_3_suggestion;
+
+            ac_3_predicted_conflict_near := gcdr_near.ac_3_predicted_conflict;
+            ac_3_predicted_conflict_mid := gcdr_mid.ac_3_predicted_conflict;
+            ac_3_predicted_conflict_far := gcdr_far.ac_3_predicted_conflict;
+
+            ac_4_suggestion_near := gcdr_near.ac_4_suggestion;
+            ac_4_suggestion_mid := gcdr_mid.ac_4_suggestion;
+            ac_4_suggestion_far := gcdr_far.ac_4_suggestion;
+
+            ac_4_predicted_conflict_near := gcdr_near.ac_4_predicted_conflict;
+            ac_4_predicted_conflict_mid := gcdr_mid.ac_4_predicted_conflict;
+            ac_4_predicted_conflict_far := gcdr_far.ac_4_predicted_conflict;
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE GCDR_Local(burdening_rule,
+                      ac_1_sa_agent, ac_1_intention, ac_1_request_sa_ground,
+                      ac_2_sa_agent, ac_2_intention, ac_2_request_sa_ground,
+                      ac_3_sa_agent, ac_3_intention, ac_3_request_sa_ground,
+                      ac_4_sa_agent, ac_4_intention, ac_4_request_sa_ground)
+        DEFINE
+            -- Possible far conflicts
+            conflict_ac_1_2 := (ac_1_intention != TRJ_NOP) & (ac_1_intention = ac_2_intention);
+            conflict_ac_1_3 := (ac_1_intention != TRJ_NOP) & (ac_1_intention = ac_3_intention);
+            conflict_ac_1_4 := (ac_1_intention != TRJ_NOP) & (ac_1_intention = ac_4_intention);
+            conflict_ac_2_3 := (ac_2_intention != TRJ_NOP) & (ac_2_intention = ac_3_intention);
+            conflict_ac_2_4 := (ac_2_intention != TRJ_NOP) & (ac_2_intention = ac_4_intention);
+            conflict_ac_3_4 := (ac_3_intention != TRJ_NOP) & (ac_3_intention = ac_4_intention);
+
+            ac_1_predicted_conflict := conflict_ac_1_2 | conflict_ac_1_3 | conflict_ac_1_4;
+            ac_2_predicted_conflict := conflict_ac_1_2 | conflict_ac_2_3 | conflict_ac_2_4;
+            ac_3_predicted_conflict := conflict_ac_1_3 | conflict_ac_2_3 | conflict_ac_3_4;
+            ac_4_predicted_conflict := conflict_ac_1_4 | conflict_ac_2_4 | conflict_ac_3_4;
+
+        DEFINE
+            -- The ATC can only move aircrafts under its control.
+            can_move_ac_1 := (ac_1_sa_agent = SA_ATC) | (ac_1_sa_agent = SA_SATC & ac_1_request_sa_ground);
+            can_move_ac_2 := (ac_2_sa_agent = SA_ATC) | (ac_2_sa_agent = SA_SATC & ac_2_request_sa_ground);
+            can_move_ac_3 := (ac_3_sa_agent = SA_ATC) | (ac_3_sa_agent = SA_SATC & ac_3_request_sa_ground);
+            can_move_ac_4 := (ac_4_sa_agent = SA_ATC) | (ac_4_sa_agent = SA_SATC & ac_4_request_sa_ground);
+
+        DEFINE
+            -- Detect conflicts btw gsep and ssep. These conflicts need to be resolved 
+            -- differently depending on the burdening_rule.
+            gsep_ssep_conflict_ac_1_2 := conflict_ac_1_2 & can_move_ac_1 & ! can_move_ac_2;
+            gsep_ssep_conflict_ac_1_3 := conflict_ac_1_3 & can_move_ac_1 & ! can_move_ac_3;
+            gsep_ssep_conflict_ac_1_4 := conflict_ac_1_4 & can_move_ac_1 & ! can_move_ac_4;
+
+            gsep_ssep_conflict_ac_2_1 := conflict_ac_1_2 & can_move_ac_2 & ! can_move_ac_1;
+            gsep_ssep_conflict_ac_2_3 := conflict_ac_2_3 & can_move_ac_2 & ! can_move_ac_3;
+            gsep_ssep_conflict_ac_2_4 := conflict_ac_2_4 & can_move_ac_2 & ! can_move_ac_4;
+
+            gsep_ssep_conflict_ac_3_1 := conflict_ac_1_3 & can_move_ac_3 & ! can_move_ac_1;
+            gsep_ssep_conflict_ac_3_2 := conflict_ac_2_3 & can_move_ac_3 & ! can_move_ac_2;
+            gsep_ssep_conflict_ac_3_4 := conflict_ac_3_4 & can_move_ac_3 & ! can_move_ac_4;
+
+            gsep_ssep_conflict_ac_4_1 := conflict_ac_1_4 & can_move_ac_4 & ! can_move_ac_1;
+            gsep_ssep_conflict_ac_4_2 := conflict_ac_2_4 & can_move_ac_4 & ! can_move_ac_2;
+            gsep_ssep_conflict_ac_4_3 := conflict_ac_3_4 & can_move_ac_4 & ! can_move_ac_3;
+
+            gsep_gsep_conflict_ac_1_2 := conflict_ac_1_2 & can_move_ac_1 & can_move_ac_2;
+            gsep_gsep_conflict_ac_1_3 := conflict_ac_1_3 & can_move_ac_1 & can_move_ac_3;
+            gsep_gsep_conflict_ac_1_4 := conflict_ac_1_4 & can_move_ac_1 & can_move_ac_4;
+
+            gsep_gsep_conflict_ac_2_1 := conflict_ac_1_2 & can_move_ac_2 & can_move_ac_1;
+            gsep_gsep_conflict_ac_2_3 := conflict_ac_2_3 & can_move_ac_2 & can_move_ac_3;
+            gsep_gsep_conflict_ac_2_4 := conflict_ac_2_4 & can_move_ac_2 & can_move_ac_4;
+
+            gsep_gsep_conflict_ac_3_1 := conflict_ac_1_3 & can_move_ac_3 & can_move_ac_1;
+            gsep_gsep_conflict_ac_3_2 := conflict_ac_2_3 & can_move_ac_3 & can_move_ac_2;
+            gsep_gsep_conflict_ac_3_4 := conflict_ac_3_4 & can_move_ac_3 & can_move_ac_4;
+
+            gsep_gsep_conflict_ac_4_1 := conflict_ac_1_4 & can_move_ac_4 & can_move_ac_1;
+            gsep_gsep_conflict_ac_4_2 := conflict_ac_2_4 & can_move_ac_4 & can_move_ac_2;
+            gsep_gsep_conflict_ac_4_3 := conflict_ac_3_4 & can_move_ac_4 & can_move_ac_3;
+
+            mixed_conflict_ac_1 := gsep_ssep_conflict_ac_1_2 | gsep_ssep_conflict_ac_1_3 | gsep_ssep_conflict_ac_1_4;
+            mixed_conflict_ac_2 := gsep_ssep_conflict_ac_2_1 | gsep_ssep_conflict_ac_2_3 | gsep_ssep_conflict_ac_2_4;
+            mixed_conflict_ac_3 := gsep_ssep_conflict_ac_3_1 | gsep_ssep_conflict_ac_3_2 | gsep_ssep_conflict_ac_3_4;
+            mixed_conflict_ac_4 := gsep_ssep_conflict_ac_4_1 | gsep_ssep_conflict_ac_4_2 | gsep_ssep_conflict_ac_4_3;
+
+            gsep_conflict_ac_1 := gsep_gsep_conflict_ac_1_2 | gsep_gsep_conflict_ac_1_3 | gsep_gsep_conflict_ac_1_4;
+            gsep_conflict_ac_2 := gsep_gsep_conflict_ac_2_1 | gsep_gsep_conflict_ac_2_3 | gsep_gsep_conflict_ac_2_4;
+            gsep_conflict_ac_3 := gsep_gsep_conflict_ac_3_1 | gsep_gsep_conflict_ac_3_2 | gsep_gsep_conflict_ac_3_4;
+            gsep_conflict_ac_4 := gsep_gsep_conflict_ac_4_1 | gsep_gsep_conflict_ac_4_2 | gsep_gsep_conflict_ac_4_3;
+
+        DEFINE
+            -- should_move depends on whether:
+            --   - The AC is in conflict
+            --   - The conflict is a mix conflict (gsep-ssep)
+            --   - The current burdening rule
+            --
+            -- If a conflict involving any 2 gsep occurs, then at
+            -- least one of them must move.  However, if a conflict
+            -- involves 1 GSEP and 1 (or more) SSEP, whether the GSEP
+            -- needs to move depends on the burdening_rule.
+            --
+            should_move_ac_1 := gsep_conflict_ac_1 | (burdening_rule = B_GSEP & mixed_conflict_ac_1);
+            should_move_ac_2 := gsep_conflict_ac_2 | (burdening_rule = B_GSEP & mixed_conflict_ac_2);
+            should_move_ac_3 := gsep_conflict_ac_3 | (burdening_rule = B_GSEP & mixed_conflict_ac_3);
+            should_move_ac_4 := gsep_conflict_ac_4 | (burdening_rule = B_GSEP & mixed_conflict_ac_4);
+            
+
+        VAR
+           ac_1_possible_suggestion : TRJ_TYPE;
+           ac_2_possible_suggestion : TRJ_TYPE;
+           ac_3_possible_suggestion : TRJ_TYPE;
+           ac_4_possible_suggestion : TRJ_TYPE;
+
+        DEFINE
+           -- We separate "possible_suggestion" from "suggestion" to
+           -- take into account whether the aircraft is involved in a
+           -- conflict and whether we have the authority to move it.
+           -- We also provide suggestions to aircrafts for which we
+           -- did not get any intention, but that are still under our
+           -- control).
+           --
+           -- For aircrafts that we cannot move, we set "suggestion"
+           -- to their own intention. We leave it up to the Operator
+           -- to avoid sending these vacuous resolutions.
+           --
+           -- ac_1_suggestion := ((ac_1_predicted_conflict | ac_1_intention = TRJ_NOP) & can_move_ac_1) ? ac_1_possible_suggestion : ac_1_intention;
+           -- ac_2_suggestion := ((ac_2_predicted_conflict | ac_2_intention = TRJ_NOP) & can_move_ac_2) ? ac_2_possible_suggestion : ac_2_intention;
+           -- ac_3_suggestion := ((ac_3_predicted_conflict | ac_3_intention = TRJ_NOP) & can_move_ac_3) ? ac_3_possible_suggestion : ac_3_intention;
+           -- ac_4_suggestion := ((ac_4_predicted_conflict | ac_4_intention = TRJ_NOP) & can_move_ac_4) ? ac_4_possible_suggestion : ac_4_intention;
+           ac_1_suggestion := (should_move_ac_1 | (ac_1_intention = TRJ_NOP & can_move_ac_1)) ? ac_1_possible_suggestion : ac_1_intention;
+           ac_2_suggestion := (should_move_ac_2 | (ac_2_intention = TRJ_NOP & can_move_ac_2)) ? ac_2_possible_suggestion : ac_2_intention;
+           ac_3_suggestion := (should_move_ac_3 | (ac_3_intention = TRJ_NOP & can_move_ac_3)) ? ac_3_possible_suggestion : ac_3_intention;
+           ac_4_suggestion := (should_move_ac_4 | (ac_4_intention = TRJ_NOP & can_move_ac_4)) ? ac_4_possible_suggestion : ac_4_intention;
+
+
+        INVAR
+          (ac_1_possible_suggestion != TRJ_NOP) &
+          (ac_1_possible_suggestion != ac_2_suggestion) &
+          (ac_1_possible_suggestion != ac_3_suggestion) &
+          (ac_1_possible_suggestion != ac_4_suggestion);
+
+        INVAR
+          (ac_2_possible_suggestion != TRJ_NOP) &
+          (ac_2_possible_suggestion != ac_1_suggestion) &
+          (ac_2_possible_suggestion != ac_3_suggestion) &
+          (ac_2_possible_suggestion != ac_4_suggestion);
+
+        INVAR
+          (ac_3_possible_suggestion != TRJ_NOP) &
+          (ac_3_possible_suggestion != ac_1_suggestion) &
+          (ac_3_possible_suggestion != ac_2_suggestion) &
+          (ac_3_possible_suggestion != ac_4_suggestion);
+
+        INVAR
+          (ac_4_possible_suggestion != TRJ_NOP) &
+          (ac_4_possible_suggestion != ac_1_suggestion) &
+          (ac_4_possible_suggestion != ac_2_suggestion) &
+          (ac_4_possible_suggestion != ac_3_suggestion);
+
+
+        INVARSPEC ac_1_intention != TRJ_NOP -> ac_1_suggestion != TRJ_NOP ;
+        INVARSPEC ac_2_intention != TRJ_NOP -> ac_2_suggestion != TRJ_NOP ;
+        INVARSPEC ac_3_intention != TRJ_NOP -> ac_3_suggestion != TRJ_NOP ;
+        INVARSPEC ac_4_intention != TRJ_NOP -> ac_4_suggestion != TRJ_NOP ;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

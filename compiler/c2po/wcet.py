@@ -1,11 +1,6 @@
 from __future__ import annotations
-
 from typing import Optional
-
 from c2po import log, assemble
-
-MODULE_CODE = "WCET"
-
 
 DEFAULT_CPU_LATENCY_TABLE: dict[assemble.Operator, int] = { 
     op:10 
@@ -14,7 +9,6 @@ DEFAULT_CPU_LATENCY_TABLE: dict[assemble.Operator, int] = {
      [op for op in assemble.PTOperator] + 
      [op for op in assemble.BZOperator])
 }
-
 
 def compute_cpu_wcet(
     assembly: list[assemble.Instruction], 
@@ -34,15 +28,15 @@ def compute_cpu_wcet(
 
         operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            log.error(MODULE_CODE, f"While computing CPU WCET, found invalid instruction '{instr}'")
+            log.error(f"found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            log.error(MODULE_CODE, f"Operator '{operator.name}' not found in CPU latency table.")
+            log.error(f"operator '{operator.name}' not found in CPU latency table.")
             return 0
         
         wcet = int((latency_table[operator]) / clk)
 
-        log.debug(MODULE_CODE, 2, f"CPU_WCET({instr}) = {wcet}")
+        log.debug(2, f"cpu_wcet({repr(instr)}) = {wcet}")
 
         total_wcet += wcet
 
@@ -73,10 +67,10 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
 
         operator: Optional[assemble.Operator] = instr.operator
         if not operator:
-            log.error(MODULE_CODE, f"While computing FPGA WCET, found invalid instruction '{instr}'")
+            log.error(f"found invalid instruction '{instr}'")
             return 0
         elif operator not in latency_table:
-            log.error(MODULE_CODE, f"Operator '{operator.name}' not found in FPGA latency table.")
+            log.error(f"operator '{operator.name}' not found in FPGA latency table.")
             return 0
         
         init_time, exec_time = latency_table[operator]
@@ -99,7 +93,7 @@ def compute_fpga_wcet(assembly: list[assemble.Instruction], latency_table: dict[
         else:
             wcet = init_time + exec_time
 
-        log.debug(MODULE_CODE, 2, f"FPGA({instr}) = {wcet}")
+        log.debug(2, f"fpga_wcet({repr(instr)}) = {wcet}")
 
         total_wcet += wcet
 

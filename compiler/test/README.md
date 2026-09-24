@@ -15,26 +15,22 @@ For a complete list of tests and test sets, see `config.json`
 ## Configuration
 
 The configuration for tests is stored in `config.json`. This file is a JSON object whose members are
-test sets. Each test set is a list of tests, with each test providing an input file, a set of
-options passed to C2PO, and some sort of expected output.
+test sets. Each test set is a list of tests, with each test providing an input script and a file
+that stores expected output.
 
 ```json
 {
     "test_set_name": [
         {
-            "input": "path/to/input.c2po",
-            "options": ["list", "of", "c2po", "options"],
-            "expected_output": "path/to/output.expect",
-            "expected_serialization": "path/to/serialized.expect"
+            "script": "path/to/script.cmd",
+            "output": "path/to/output.expect",
         }
     ]
 }
 ```
 
-The test script runs `c2po.py` over the input file and options, then compares the output of each
-expected file against the generated output:
-- `"expected_output"` compares stdout of the `c2po.py` call
-- `"expected_serialization"` compares contents of `tmp.out`
+Upon executing `"script"`, the test script compares the combined stdout and stderr of the `c2po.py`
+call to the contents of the argument to `"output"`.
 
 The script assumes that `z3` and `egglog` are in `PATH`. To add these to `PATH` (assuming they are
 installed in `compiler/deps`):

@@ -35,7 +35,7 @@ myst_heading_anchors = 3
 # ones.
 extensions = [
     "myst_parser",
-    "sphinxcontrib.collections",
+    "sphinx_collections",
     "sphinxcontrib.bibtex",
 
     # C/C++ API Documentation Support

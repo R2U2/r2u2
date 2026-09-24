@@ -1,0 +1,126 @@
+(function wpd (MLTL) i64 :merge (min old new))
+
+(rule (
+  (Bool true)
+) (
+  (set (wpd (Bool true)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Bool false)
+) (
+  (set (wpd (Bool false)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Var a0)
+) (
+  (set (wpd (Var a0)) 0)
+) :ruleset analysis)
+
+(rule (
+  (Global (Interval b0 b1) a0)
+  (= wpd_a0 (wpd a0))
+) (
+  (set (wpd (Global (Interval b0 b1) a0)) (+ wpd_a0 b1))
+) :ruleset analysis)
+
+(rule (
+  (Future (Interval b0 b1) a0)
+  (= wpd_a0 (wpd a0))
+) (
+  (set (wpd (Future (Interval b0 b1) a0)) (+ wpd_a0 b1))
+) :ruleset analysis)
+
+(rule (
+  (Not a0)
+  (= wpd_a0 (wpd a0))
+) (
+  (set (wpd (Not a0)) wpd_a0)
+) :ruleset analysis)
+
+(rule (
+  (Until (Interval b0 b1) a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (Until (Interval b0 b1) a0 a1)) (+ (max wpd_a0 wpd_a1) b1))
+) :ruleset analysis)
+
+(rule (
+  (Release (Interval b0 b1) a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (Release (Interval b0 b1) a0 a1)) (+ (max wpd_a0 wpd_a1) b1))
+) :ruleset analysis)
+
+(rule (
+  (And2 a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (And2 a0 a1)) (max wpd_a0 wpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Or2 a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (Or2 a0 a1)) (max wpd_a0 wpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Implies a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (Implies a0 a1)) (max wpd_a0 wpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (Equiv a0 a1)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+) (
+  (set (wpd (Equiv a0 a1)) (max wpd_a0 wpd_a1))
+) :ruleset analysis)
+
+(rule (
+  (And3 a0 a1 a2)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+) (
+  (set (wpd (And3 a0 a1 a2)) (max wpd_a0 (max wpd_a1 wpd_a2)))
+) :ruleset analysis)
+
+(rule (
+  (Or3 a0 a1 a2)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+) (
+  (set (wpd (Or3 a0 a1 a2)) (max wpd_a0 (max wpd_a1 wpd_a2)))
+) :ruleset analysis)
+
+(rule (
+  (And4 a0 a1 a2 a3)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= wpd_a3 (wpd a3))
+) (
+  (set (wpd (And4 a0 a1 a2 a3)) (max wpd_a0 (max wpd_a1 (max wpd_a2 wpd_a3))))
+) :ruleset analysis)
+
+(rule (
+  (Or4 a0 a1 a2 a3)
+  (= wpd_a0 (wpd a0))
+  (= wpd_a1 (wpd a1))
+  (= wpd_a2 (wpd a2))
+  (= wpd_a3 (wpd a3))
+) (
+  (set (wpd (Or4 a0 a1 a2 a3)) (max wpd_a0 (max wpd_a1 (max wpd_a2 wpd_a3))))
+) :ruleset analysis)

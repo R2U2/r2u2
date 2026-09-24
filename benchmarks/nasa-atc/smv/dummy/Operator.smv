@@ -1,0 +1,138 @@
+#include "../../oss/header.h"
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            Operator_inst : Operator(communication_phase,
+                                     ac_1_ts_sa_agent, ac_1_ss_sa_agent, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                                     ac_2_ts_sa_agent, ac_2_ss_sa_agent, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                                     ac_3_ts_sa_agent, ac_3_ss_sa_agent, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                                     ac_4_ts_sa_agent, ac_4_ss_sa_agent, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                                     ac_1_intention_current, ac_2_intention_current, ac_3_intention_current, ac_4_intention_current,
+                                     ac_1_suggestion_near__gcdr, ac_1_suggestion_mid__gcdr, ac_1_suggestion_far__gcdr,
+                                     ac_2_suggestion_near__gcdr, ac_2_suggestion_mid__gcdr, ac_2_suggestion_far__gcdr,
+                                     ac_3_suggestion_near__gcdr, ac_3_suggestion_mid__gcdr, ac_3_suggestion_far__gcdr,
+                                     ac_4_suggestion_near__gcdr, ac_4_suggestion_mid__gcdr, ac_4_suggestion_far__gcdr,
+				     ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground, 
+				     ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground, 
+				     ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground, 
+				     ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground);
+
+        FROZENVAR
+            ac_1_ts_sa_agent : SA_TYPE;
+            ac_1_ss_sa_agent : SA_TYPE;
+            ac_2_ts_sa_agent : SA_TYPE;
+            ac_2_ss_sa_agent : SA_TYPE;
+            ac_3_ts_sa_agent : SA_TYPE;
+            ac_3_ss_sa_agent : SA_TYPE;
+            ac_4_ts_sa_agent : SA_TYPE;
+            ac_4_ss_sa_agent : SA_TYPE;
+
+        VAR
+            communication_phase: boolean;
+            ac_1_intention_near : TRJ_TYPE;
+            ac_1_intention_mid : TRJ_TYPE;
+            ac_1_intention_far : TRJ_TYPE;
+            ac_2_intention_near : TRJ_TYPE;
+            ac_2_intention_mid : TRJ_TYPE;
+            ac_2_intention_far : TRJ_TYPE;
+            ac_3_intention_near : TRJ_TYPE;
+            ac_3_intention_mid : TRJ_TYPE;
+            ac_3_intention_far : TRJ_TYPE;
+            ac_4_intention_near : TRJ_TYPE;
+            ac_4_intention_mid : TRJ_TYPE;
+            ac_4_intention_far : TRJ_TYPE;
+            ac_1_intention_current : TRJ_TYPE;
+            ac_2_intention_current : TRJ_TYPE;
+            ac_3_intention_current : TRJ_TYPE;
+            ac_4_intention_current : TRJ_TYPE;
+            ac_1_suggestion_near__gcdr : TRJ_TYPE;
+            ac_1_suggestion_mid__gcdr : TRJ_TYPE;
+            ac_1_suggestion_far__gcdr : TRJ_TYPE;
+            ac_2_suggestion_near__gcdr : TRJ_TYPE;
+            ac_2_suggestion_mid__gcdr : TRJ_TYPE;
+            ac_2_suggestion_far__gcdr : TRJ_TYPE;
+            ac_3_suggestion_near__gcdr : TRJ_TYPE;
+            ac_3_suggestion_mid__gcdr : TRJ_TYPE;
+            ac_3_suggestion_far__gcdr : TRJ_TYPE;
+            ac_4_suggestion_near__gcdr : TRJ_TYPE;
+            ac_4_suggestion_mid__gcdr : TRJ_TYPE;
+            ac_4_suggestion_far__gcdr : TRJ_TYPE;
+            ac_1_request_ts_sa_ground : boolean;
+            ac_1_request_ss_sa_ground : boolean;
+            ac_2_request_ts_sa_ground : boolean;
+            ac_2_request_ss_sa_ground : boolean;
+            ac_3_request_ts_sa_ground : boolean;
+            ac_3_request_ss_sa_ground : boolean;
+            ac_4_request_ts_sa_ground : boolean;
+            ac_4_request_ss_sa_ground : boolean;
+
+        DEFINE
+            ac_1_suggestion_near := Operator_inst.ac_1_suggestion_near;
+            ac_1_suggestion_mid := Operator_inst.ac_1_suggestion_mid;
+            ac_1_suggestion_far := Operator_inst.ac_1_suggestion_far;
+            ac_2_suggestion_near := Operator_inst.ac_2_suggestion_near;
+            ac_2_suggestion_mid := Operator_inst.ac_2_suggestion_mid;
+            ac_2_suggestion_far := Operator_inst.ac_2_suggestion_far;
+            ac_3_suggestion_near := Operator_inst.ac_3_suggestion_near;
+            ac_3_suggestion_mid := Operator_inst.ac_3_suggestion_mid;
+            ac_3_suggestion_far := Operator_inst.ac_3_suggestion_far;
+            ac_4_suggestion_near := Operator_inst.ac_4_suggestion_near;
+            ac_4_suggestion_mid := Operator_inst.ac_4_suggestion_mid;
+            ac_4_suggestion_far := Operator_inst.ac_4_suggestion_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE Operator(communication_phase,
+                    ac_1_ts_sa_agent, ac_1_ss_sa_agent, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+                    ac_2_ts_sa_agent, ac_2_ss_sa_agent, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+                    ac_3_ts_sa_agent, ac_3_ss_sa_agent, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+                    ac_4_ts_sa_agent, ac_4_ss_sa_agent, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+                    ac_1_intention_current, ac_2_intention_current, ac_3_intention_current, ac_4_intention_current,
+                    ac_1_suggestion_near__gcdr, ac_1_suggestion_mid__gcdr, ac_1_suggestion_far__gcdr,
+                    ac_2_suggestion_near__gcdr, ac_2_suggestion_mid__gcdr, ac_2_suggestion_far__gcdr,
+                    ac_3_suggestion_near__gcdr, ac_3_suggestion_mid__gcdr, ac_3_suggestion_far__gcdr,
+                    ac_4_suggestion_near__gcdr, ac_4_suggestion_mid__gcdr, ac_4_suggestion_far__gcdr,
+                    ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground, 
+		    ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground, 
+		    ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground, 
+		    ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground)
+
+        DEFINE
+            ac_1_suggestion_near := ac_1_suggestion_near__gcdr;
+            ac_1_suggestion_mid :=  ac_1_suggestion_mid__gcdr;
+            ac_1_suggestion_far :=  ac_1_suggestion_far__gcdr;
+
+            ac_2_suggestion_near := ac_2_suggestion_near__gcdr;
+            ac_2_suggestion_mid :=  ac_2_suggestion_mid__gcdr;
+            ac_2_suggestion_far :=  ac_2_suggestion_far__gcdr;
+
+            ac_3_suggestion_near := ac_3_suggestion_near__gcdr;
+            ac_3_suggestion_mid :=  ac_3_suggestion_mid__gcdr;
+            ac_3_suggestion_far :=  ac_3_suggestion_far__gcdr;
+
+            ac_4_suggestion_near := ac_4_suggestion_near__gcdr;
+            ac_4_suggestion_mid :=  ac_4_suggestion_mid__gcdr;
+            ac_4_suggestion_far :=  ac_4_suggestion_far__gcdr;
+
+
+    INVARSPEC NAME Operator_send_resolution_to_ac_1_ts_norm_guarantee := (communication_phase -> (((ac_1_ts_sa_agent = 0 -> (ac_1_suggestion_near = ac_1_suggestion_near__gcdr & ac_1_suggestion_mid = ac_1_suggestion_mid__gcdr)) & ((ac_1_ts_sa_agent = 2 & ac_1_request_ts_sa_ground) -> (ac_1_suggestion_near = ac_1_suggestion_near__gcdr & ac_1_suggestion_mid = ac_1_suggestion_mid__gcdr))) & (ac_1_ts_sa_agent = 1 -> (ac_1_suggestion_near = 0 & ac_1_suggestion_mid = 0))));
+    INVARSPEC NAME Operator_send_resolution_to_ac_2_ts_norm_guarantee := (communication_phase -> (((ac_2_ts_sa_agent = 0 -> (ac_2_suggestion_near = ac_2_suggestion_near__gcdr & ac_2_suggestion_mid = ac_2_suggestion_mid__gcdr)) & ((ac_2_ts_sa_agent = 2 & ac_2_request_ts_sa_ground) -> (ac_2_suggestion_near = ac_2_suggestion_near__gcdr & ac_2_suggestion_mid = ac_2_suggestion_mid__gcdr))) & (ac_2_ts_sa_agent = 1 -> (ac_2_suggestion_near = 0 & ac_2_suggestion_mid = 0))));
+    INVARSPEC NAME Operator_send_resolution_to_ac_3_ts_norm_guarantee := (communication_phase -> (((ac_3_ts_sa_agent = 0 -> (ac_3_suggestion_near = ac_3_suggestion_near__gcdr & ac_3_suggestion_mid = ac_3_suggestion_mid__gcdr)) & ((ac_3_ts_sa_agent = 2 & ac_3_request_ts_sa_ground) -> (ac_3_suggestion_near = ac_3_suggestion_near__gcdr & ac_3_suggestion_mid = ac_3_suggestion_mid__gcdr))) & (ac_3_ts_sa_agent = 1 -> (ac_3_suggestion_near = 0 & ac_3_suggestion_mid = 0))));
+    INVARSPEC NAME Operator_send_resolution_to_ac_4_ts_norm_guarantee := (communication_phase -> (((ac_4_ts_sa_agent = 0 -> (ac_4_suggestion_near = ac_4_suggestion_near__gcdr & ac_4_suggestion_mid = ac_4_suggestion_mid__gcdr)) & ((ac_4_ts_sa_agent = 2 & ac_4_request_ts_sa_ground) -> (ac_4_suggestion_near = ac_4_suggestion_near__gcdr & ac_4_suggestion_mid = ac_4_suggestion_mid__gcdr))) & (ac_4_ts_sa_agent = 1 -> (ac_4_suggestion_near = 0 & ac_4_suggestion_mid = 0))));
+
+    INVARSPEC NAME Operator_send_resolution_to_ac_1_ss_norm_guarantee := (communication_phase -> (((ac_1_ss_sa_agent = 0 -> ac_1_suggestion_far = ac_1_suggestion_far__gcdr) & ((ac_1_ss_sa_agent = 2 & ac_1_request_ss_sa_ground) -> ac_1_suggestion_far = ac_1_suggestion_far__gcdr)) & (ac_1_ss_sa_agent = 1 -> ac_1_suggestion_far = 0)));
+    INVARSPEC NAME Operator_send_resolution_to_ac_2_ss_norm_guarantee := (communication_phase -> (((ac_2_ss_sa_agent = 0 -> ac_2_suggestion_far = ac_2_suggestion_far__gcdr) & ((ac_2_ss_sa_agent = 2 & ac_2_request_ss_sa_ground) -> ac_2_suggestion_far = ac_2_suggestion_far__gcdr)) & (ac_2_ss_sa_agent = 1 -> ac_2_suggestion_far = 0)));
+    INVARSPEC NAME Operator_send_resolution_to_ac_3_ss_norm_guarantee := (communication_phase -> (((ac_3_ss_sa_agent = 0 -> ac_3_suggestion_far = ac_3_suggestion_far__gcdr) & ((ac_3_ss_sa_agent = 2 & ac_3_request_ss_sa_ground) -> ac_3_suggestion_far = ac_3_suggestion_far__gcdr)) & (ac_3_ss_sa_agent = 1 -> ac_3_suggestion_far = 0)));
+    INVARSPEC NAME Operator_send_resolution_to_ac_4_ss_norm_guarantee := (communication_phase -> (((ac_4_ss_sa_agent = 0 -> ac_4_suggestion_far = ac_4_suggestion_far__gcdr) & ((ac_4_ss_sa_agent = 2 & ac_4_request_ss_sa_ground) -> ac_4_suggestion_far = ac_4_suggestion_far__gcdr)) & (ac_4_ss_sa_agent = 1 -> ac_4_suggestion_far = 0)));
+
+    INVARSPEC NAME Operator_nop_during_maneuvering_norm_guarantee := (!communication_phase -> (((((((((((ac_1_suggestion_near = 0 & ac_1_suggestion_mid = 0) & ac_1_suggestion_far = 0) & ac_2_suggestion_near = 0) & ac_2_suggestion_mid = 0) & ac_2_suggestion_far = 0) & ac_3_suggestion_near = 0) & ac_3_suggestion_mid = 0) & ac_3_suggestion_far = 0) & ac_4_suggestion_near = 0) & ac_4_suggestion_mid = 0) & ac_4_suggestion_far = 0));
+
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

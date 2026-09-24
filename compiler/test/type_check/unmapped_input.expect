@@ -1,0 +1,1 @@
+parse_map: error: ../default.map:1: map file does not contain all signals in the program: b100, b100

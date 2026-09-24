@@ -1,0 +1,197 @@
+-- Simplest version of ADS-B In, in which inputs are simply
+-- redirected as outputs
+--
+-- It is possible to turn-off the ADS-B In by setting the input
+-- "disabled". This is usually done for GSEPs.
+--
+-- Faults: Permanent loss of input
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ADSBIn_inst : ADSBIn(ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, ac_1_intention_current__in, ac_2_intention_current__in, ac_3_intention_current__in, ac_4_intention_current__in, disabled);
+        VAR
+            ac_1_intention_current__in : TRJ_TYPE;
+            ac_1_intention_near__in : TRJ_TYPE;
+            ac_1_intention_mid__in : TRJ_TYPE;
+            ac_1_intention_far__in : TRJ_TYPE;
+
+            ac_2_intention_current__in : TRJ_TYPE;
+            ac_2_intention_near__in : TRJ_TYPE;
+            ac_2_intention_mid__in : TRJ_TYPE;
+            ac_2_intention_far__in : TRJ_TYPE;
+
+            ac_3_intention_current__in : TRJ_TYPE;
+            ac_3_intention_near__in : TRJ_TYPE;
+            ac_3_intention_mid__in : TRJ_TYPE;
+            ac_3_intention_far__in : TRJ_TYPE;
+
+            ac_4_intention_current__in : TRJ_TYPE;
+            ac_4_intention_near__in : TRJ_TYPE;
+            ac_4_intention_mid__in : TRJ_TYPE;
+            ac_4_intention_far__in : TRJ_TYPE;
+
+        FROZENVAR
+            disabled : boolean;
+        DEFINE
+            ac_1_intention_current__out := ADSBIn_inst.ac_1_intention_current__out;
+            ac_1_intention_near__out := ADSBIn_inst.ac_1_intention_near__out;
+            ac_1_intention_mid__out := ADSBIn_inst.ac_1_intention_mid__out;
+            ac_1_intention_far__out := ADSBIn_inst.ac_1_intention_far__out;
+
+            ac_2_intention_current__out := ADSBIn_inst.ac_2_intention_current__out;
+            ac_2_intention_near__out := ADSBIn_inst.ac_2_intention_near__out;
+            ac_2_intention_mid__out := ADSBIn_inst.ac_2_intention_mid__out;
+            ac_2_intention_far__out := ADSBIn_inst.ac_2_intention_far__out;
+
+            ac_3_intention_current__out := ADSBIn_inst.ac_3_intention_current__out;
+            ac_3_intention_near__out := ADSBIn_inst.ac_3_intention_near__out;
+            ac_3_intention_mid__out := ADSBIn_inst.ac_3_intention_mid__out;
+            ac_3_intention_far__out := ADSBIn_inst.ac_3_intention_far__out;
+
+            ac_4_intention_current__out := ADSBIn_inst.ac_4_intention_current__out;
+            ac_4_intention_near__out := ADSBIn_inst.ac_4_intention_near__out;
+            ac_4_intention_mid__out := ADSBIn_inst.ac_4_intention_mid__out;
+            ac_4_intention_far__out := ADSBIn_inst.ac_4_intention_far__out;
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ADSBIn(ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, ac_1_intention_current__in, ac_2_intention_current__in, ac_3_intention_current__in, ac_4_intention_current__in, disabled)
+        VAR
+            nominal : ADSBIn_Nominal(ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, ac_1_intention_current__in, ac_2_intention_current__in, ac_3_intention_current__in, ac_4_intention_current__in, disabled);
+
+        #if EXTENDED_MODEL
+        VAR
+          fault_adsb_in__dynamic : PermanentOrBoundedFault;
+
+        DEFINE
+          -- Fault events
+          fault_adsb_in_bounded__event := fault_adsb_in__dynamic.fault_event_bounded;
+          fault_adsb_in_permanent__event := fault_adsb_in__dynamic.fault_event_permanent;
+
+        DEFINE
+          -- Fault State
+          fault_adsb_in:= fault_adsb_in__dynamic.has_fault;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := fault_adsb_in ? 1 : 0;
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        DEFINE
+          fault_adsb_in := FALSE;
+        #endif
+
+        DEFINE
+            ac_1_intention_current__out := fault_adsb_in ? TRJ_NOP : nominal.ac_1_intention_current__out;
+            ac_1_intention_near__out := fault_adsb_in ? TRJ_NOP : nominal.ac_1_intention_near__out;
+            ac_1_intention_mid__out := fault_adsb_in ? TRJ_NOP : nominal.ac_1_intention_mid__out;
+            ac_1_intention_far__out := fault_adsb_in ? TRJ_NOP : nominal.ac_1_intention_far__out;
+
+            ac_2_intention_current__out := fault_adsb_in ? TRJ_NOP : nominal.ac_2_intention_current__out;
+            ac_2_intention_near__out := fault_adsb_in ? TRJ_NOP : nominal.ac_2_intention_near__out;
+            ac_2_intention_mid__out := fault_adsb_in ? TRJ_NOP : nominal.ac_2_intention_mid__out;
+            ac_2_intention_far__out := fault_adsb_in ? TRJ_NOP : nominal.ac_2_intention_far__out;
+
+            ac_3_intention_current__out := fault_adsb_in ? TRJ_NOP : nominal.ac_3_intention_current__out;
+            ac_3_intention_near__out := fault_adsb_in ? TRJ_NOP : nominal.ac_3_intention_near__out;
+            ac_3_intention_mid__out := fault_adsb_in ? TRJ_NOP : nominal.ac_3_intention_mid__out;
+            ac_3_intention_far__out := fault_adsb_in ? TRJ_NOP : nominal.ac_3_intention_far__out;
+
+            ac_4_intention_current__out := fault_adsb_in ? TRJ_NOP : nominal.ac_4_intention_current__out;
+            ac_4_intention_near__out := fault_adsb_in ? TRJ_NOP : nominal.ac_4_intention_near__out;
+            ac_4_intention_mid__out := fault_adsb_in ? TRJ_NOP : nominal.ac_4_intention_mid__out;
+            ac_4_intention_far__out := fault_adsb_in ? TRJ_NOP : nominal.ac_4_intention_far__out;
+
+
+        INVARSPEC NAME ADSBIn_enabled_ac_1_norm_guarantee :=
+            (!disabled -> (((ac_1_intention_current__out = ac_1_intention_current__in &
+                             ac_1_intention_near__out = ac_1_intention_near__in) &
+                             ac_1_intention_mid__out = ac_1_intention_mid__in) &
+                             ac_1_intention_far__out = ac_1_intention_far__in));
+
+        INVARSPEC NAME ADSBIn_enabled_ac_2_norm_guarantee :=
+            (!disabled -> (((ac_2_intention_current__out = ac_2_intention_current__in &
+                             ac_2_intention_near__out = ac_2_intention_near__in) &
+                             ac_2_intention_mid__out = ac_2_intention_mid__in) &
+                             ac_2_intention_far__out = ac_2_intention_far__in));
+
+        INVARSPEC NAME ADSBIn_enabled_ac_3_norm_guarantee :=
+            (!disabled -> (((ac_3_intention_current__out = ac_3_intention_current__in &
+                             ac_3_intention_near__out = ac_3_intention_near__in) &
+                             ac_3_intention_mid__out = ac_3_intention_mid__in) &
+                             ac_3_intention_far__out = ac_3_intention_far__in));
+
+        INVARSPEC NAME ADSBIn_enabled_ac_4_norm_guarantee :=
+            (!disabled -> (((ac_4_intention_current__out = ac_4_intention_current__in &
+                             ac_4_intention_near__out = ac_4_intention_near__in) &
+                             ac_4_intention_mid__out = ac_4_intention_mid__in) &
+                             ac_4_intention_far__out = ac_4_intention_far__in));
+
+        INVARSPEC NAME ADSBIn_disabled_ac_1_norm_guarantee :=
+            (disabled -> (((ac_1_intention_current__out = TRJ_NOP & ac_1_intention_near__out = TRJ_NOP) &
+                             ac_1_intention_mid__out = TRJ_NOP) & ac_1_intention_far__out = TRJ_NOP));
+
+        INVARSPEC NAME ADSBIn_disabled_ac_2_norm_guarantee :=
+            (disabled -> (((ac_2_intention_current__out = TRJ_NOP & ac_2_intention_near__out = TRJ_NOP) &
+                           ac_2_intention_mid__out = TRJ_NOP) & ac_2_intention_far__out = TRJ_NOP));
+
+        INVARSPEC NAME ADSBIn_disabled_ac_3_norm_guarantee :=
+            (disabled -> (((ac_3_intention_current__out = TRJ_NOP & ac_3_intention_near__out = TRJ_NOP) &
+                           ac_3_intention_mid__out = TRJ_NOP) & ac_3_intention_far__out = TRJ_NOP));
+
+        INVARSPEC NAME ADSBIn_disabled_ac_4_norm_guarantee :=
+            (disabled -> (((ac_4_intention_current__out = TRJ_NOP & ac_4_intention_near__out = TRJ_NOP) &
+                            ac_4_intention_mid__out = TRJ_NOP) & ac_4_intention_far__out = TRJ_NOP));
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ADSBIn_Nominal(ac_1_intention_near__in, ac_1_intention_mid__in, ac_1_intention_far__in, ac_2_intention_near__in, ac_2_intention_mid__in, ac_2_intention_far__in, ac_3_intention_near__in, ac_3_intention_mid__in, ac_3_intention_far__in, ac_4_intention_near__in, ac_4_intention_mid__in, ac_4_intention_far__in, ac_1_intention_current__in, ac_2_intention_current__in, ac_3_intention_current__in, ac_4_intention_current__in, disabled)
+        DEFINE
+            ac_1_intention_current__out := disabled ? TRJ_NOP : ac_1_intention_current__in;
+            ac_1_intention_near__out := disabled ? TRJ_NOP : ac_1_intention_near__in;
+            ac_1_intention_mid__out := disabled ? TRJ_NOP : ac_1_intention_mid__in;
+            ac_1_intention_far__out := disabled ? TRJ_NOP : ac_1_intention_far__in;
+
+            ac_2_intention_current__out := disabled ? TRJ_NOP : ac_2_intention_current__in;
+            ac_2_intention_near__out := disabled ? TRJ_NOP : ac_2_intention_near__in;
+            ac_2_intention_mid__out := disabled ? TRJ_NOP : ac_2_intention_mid__in;
+            ac_2_intention_far__out := disabled ? TRJ_NOP : ac_2_intention_far__in;
+
+            ac_3_intention_current__out := disabled ? TRJ_NOP : ac_3_intention_current__in;
+            ac_3_intention_near__out := disabled ? TRJ_NOP : ac_3_intention_near__in;
+            ac_3_intention_mid__out := disabled ? TRJ_NOP : ac_3_intention_mid__in;
+            ac_3_intention_far__out := disabled ? TRJ_NOP : ac_3_intention_far__in;
+
+            ac_4_intention_current__out := disabled ? TRJ_NOP : ac_4_intention_current__in;
+            ac_4_intention_near__out := disabled ? TRJ_NOP : ac_4_intention_near__in;
+            ac_4_intention_mid__out := disabled ? TRJ_NOP : ac_4_intention_mid__in;
+            ac_4_intention_far__out := disabled ? TRJ_NOP : ac_4_intention_far__in;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

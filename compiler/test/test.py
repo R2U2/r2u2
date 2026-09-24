@@ -3,15 +3,13 @@ import json
 import difflib
 import subprocess
 import sys
+import os
 import argparse
 
 TEST_DIR = pathlib.Path(__file__).parent
 
 C2PO_PATH = TEST_DIR / ".." / "c2po.py"
-MAP_PATH = TEST_DIR / "default.map"
 CONFIG_PATH = TEST_DIR / "config.json"
-OUTPUT_PATH = TEST_DIR / "output" # assume that all serialized output is written to a file named 'output'
-
 
 class Color:
     HEADER = "\033[95m"
@@ -24,19 +22,18 @@ class Color:
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
-
 def print_pass(msg: str):
     print(f"[{Color.PASS}PASS{Color.ENDC}] {msg}")
 
-
 def print_fail(msg: str):
     print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
-
 
 def run_diff(
     expected_output: "list[str]", test_output: "list[str]", fromfile: str, tofile: str
 ) -> "tuple[bool, str]":
     """Returns a pair whose first element is True if the `expected_output` and `test_output` are the same and False otherwise, and whose second element is the diff between `expected_output` and `test_output`."""
+    test_output = [s.replace('\t', '    ') for s in test_output]
+    expected_output = [s.replace('\t', '    ') for s in expected_output]
     result = difflib.unified_diff(
         expected_output,
         test_output,
@@ -60,57 +57,63 @@ def run_test(test: dict) -> bool:
     """Runs and prints status of `test` where `test` looks like:
 
     `{
-        "input": "file.c2po",
-        "expected_output": "file.c2po.expect",
-        "options": ["opt", ...]
+        "script": "path/to/script.cmd",
+        "output": "path/to/output.expect",
+    }`
+
+    or
+
+    `{
+        "spec": "path/to/input.c2po",
+        "options": ["list", "of", "c2po", "options"],
+        "output": "path/to/output.expect",
     }`
 
     See `config.json`.
     """
     status, bad_file, diff = True, False, ""
 
-    command = ["python3", str(C2PO_PATH.absolute())] + test["options"] + [test["input"]]
+    # Build command based on test configuration
+    command = ["python3", str(C2PO_PATH.absolute())]
+    
+    if "script" in test:
+        command.extend(["--script", test["script"]])
+        test_name = test["script"]
+    elif "spec" in test:
+        command.extend(["--spec", test["spec"]])
+        if "options" in test:
+            command.extend(test["options"])
+        test_name = test["spec"]
+    else:
+        # Test does nothing if neither script nor spec is provided
+        return True
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     try:
-        if "expected_output" in test:
+        if "output" in test:
             # Both stdout and stderr are captured in proc.stdout
             test_output = proc.stdout.decode().splitlines(keepends=True)
 
-            with open(test["expected_output"], "r") as f:
+            with open(test["output"], "r") as f:
                 expected_output = f.read().splitlines(keepends=True)
 
             status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_output"]
+                expected_output, test_output, test_name, test["output"]
             )
-        elif "expected_serialization" in test:
-            output_path = pathlib.Path("tmp.out")
-
-            with open(str(output_path), "r") as f:
-                test_output = f.read().splitlines(keepends=True)
-
-            with open(test["expected_serialization"], "r") as f:
-                expected_output = f.read().splitlines(keepends=True)
-
-            status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_serialization"]
-            )
-
-            output_path.unlink()
     except FileNotFoundError:
         status = False
         bad_file = True
 
     if status:
-        print_pass(f"{test['input']}")
+        print_pass(f"{test_name}")
     elif diff == "":
-        print_fail(f"{test['input']}\nCommand: {' '.join(command)}")
+        print_fail(f"{test_name}\nCommand: {' '.join(command)}")
     else:
-        print_fail(f"{test['input']}\nCommand: {' '.join(command)}\n{diff}")
+        print_fail(f"{test_name}\nCommand: {' '.join(command)}\n{diff}")
 
     if bad_file:
-        print("Expected output or actual output file does not exist.")
+        print("Expected output file does not exist.")
 
     return status
 
@@ -119,16 +122,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("subset", nargs="?", default="",
                         help="name of subset to run")
+    parser.add_argument("--disable-subset", action="append", default=[],
+                        help="subset to disable when no subset is specified (can be used multiple times)")
     args = parser.parse_args()
 
     # tests is an array of JSON objects
     with open(str(CONFIG_PATH), "r") as f:
         config = json.load(f)
 
+    os.chdir(TEST_DIR)
+
     if args.subset == "":
         # no subset given, so concatenate all the tests together
-        # tests = {name:s for name,arr in config.items() for s in arr}
-        tests = config
+        # Filter out disabled subsets
+        disabled_subsets = set(args.disable_subset) if args.disable_subset else set()
+        tests = {name: tests for name, tests in config.items() if name not in disabled_subsets}
     elif args.subset in config:
         tests = {args.subset: config[args.subset]}
     else:

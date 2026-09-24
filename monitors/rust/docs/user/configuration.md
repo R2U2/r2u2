@@ -52,7 +52,7 @@ in `.cargo/config.toml`.
 
 ### Memory Sizing
 
-`R2U2_TOTAL_QUEUE_SLOTS`
+`R2U2_MAX_QUEUE_SLOTS`
 : Total number of SCQ slots for both future-time and past-time reasoning
 : Default: 2048
 

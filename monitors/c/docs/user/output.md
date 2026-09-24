@@ -27,7 +27,7 @@ Additional information on the internal monitor state is enabled by the [logging 
 ### Debug
 The debug logging level provides information about the internal control flow and some memory integrity checks.
 It can be helpful when debugging a new R2U2 deployment and should be included in any bug reports about monitor behavior.
-It is written to `FILE* r2u2_debug_fptr` which is externally linked from the debug routine and must be set (usually in `lib.c` or `main.c`) prior to use.
+It is written to `FILE* r2u2_debug_fptr` which is externally linked from the debug routine and must be set (usually in `lib.c` or `cli/main.c`) prior to use.
 By default `r2u2_debug_fptr` is set to standard error when building R2U2 as a CLI program.
 
 ### Trace

@@ -1,0 +1,67 @@
+#include "../../oss/header.h"
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ProtocolPolicy_inst : ProtocolPolicy(ts_sa_agent, ss_sa_agent, 
+	    				         request_ts_sa_ground, request_ss_sa_ground,
+	    			  	         suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+						 suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+						 intention_near, intention_mid, intention_far);
+        FROZENVAR
+            ts_sa_agent : SA_TYPE;
+            ss_sa_agent : SA_TYPE;
+        VAR
+            suggestion_near_ground : TRJ_TYPE;
+            suggestion_mid_ground : TRJ_TYPE;
+            suggestion_far_ground : TRJ_TYPE;
+            suggestion_near_cdr : TRJ_TYPE;
+            suggestion_mid_cdr : TRJ_TYPE;
+            suggestion_far_cdr : TRJ_TYPE;
+            intention_near : TRJ_TYPE;
+            intention_mid : TRJ_TYPE;
+            intention_far : TRJ_TYPE;
+            request_ts_sa_ground : boolean;
+            request_ss_sa_ground : boolean;
+
+        DEFINE
+            suggestion_near := ProtocolPolicy_inst.suggestion_near;
+            suggestion_mid := ProtocolPolicy_inst.suggestion_mid;
+            suggestion_far := ProtocolPolicy_inst.suggestion_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ProtocolPolicy(ts_sa_agent, ss_sa_agent, 
+ 	                  request_ts_sa_ground, request_ss_sa_ground,
+    	                  suggestion_near_ground, suggestion_mid_ground, suggestion_far_ground, 
+			  suggestion_near_cdr, suggestion_mid_cdr, suggestion_far_cdr, 
+			  intention_near, intention_mid, intention_far)
+        DEFINE
+            param_ts_sa_agent := ts_sa_agent;
+            param_ss_sa_agent := ss_sa_agent;
+
+        DEFINE
+            input_suggestion_near_ground := suggestion_near_ground;
+            input_suggestion_mid_ground := suggestion_mid_ground;
+            input_suggestion_far_ground := suggestion_far_ground;
+            input_suggestion_near_cdr := suggestion_near_cdr;
+            input_suggestion_mid_cdr := suggestion_mid_cdr;
+            input_suggestion_far_cdr := suggestion_far_cdr;
+            input_intention_near := intention_near;
+            input_intention_mid := intention_mid;
+            input_intention_far := intention_far;
+
+        VAR
+            suggestion_near : TRJ_TYPE;
+            suggestion_mid : TRJ_TYPE;
+            suggestion_far : TRJ_TYPE;
+            LTLSPEC NAME ProtocolPolicy_near_norm_guarantee := (TRUE -> ( G (ts_sa_agent = SA_ATC -> suggestion_near = suggestion_near_ground) &  G (ts_sa_agent = SA_SELF -> suggestion_near = suggestion_near_cdr)));
+            LTLSPEC NAME ProtocolPolicy_mid_norm_guarantee := (TRUE -> ( G (ts_sa_agent = SA_ATC -> suggestion_mid = suggestion_mid_ground) &  G (ts_sa_agent = SA_SELF -> suggestion_mid = suggestion_mid_cdr)));
+            LTLSPEC NAME ProtocolPolicy_far_norm_guarantee := (TRUE -> ( G (ss_sa_agent = SA_ATC -> suggestion_far = suggestion_far_ground) &  G (ss_sa_agent = SA_SELF -> suggestion_far = suggestion_far_cdr)));
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

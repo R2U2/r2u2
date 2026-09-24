@@ -31,6 +31,10 @@ enum Commands {
         #[arg(short,long, value_name = "PATH", value_parser=valid_location)]
         output: Option<PathBuf>,
 
+        /// Sets location to save a C .h or Rust .toml bounds file (if not specified, will not be saved)
+        #[arg(short,long, value_name = "PATH", value_parser=valid_bounds_file)]
+        bounds: Option<PathBuf>,
+
         /// Disables booleanizer (default = booleanizer enabled)
         #[arg(long,default_value_t=false)]
         disable_booleanizer: bool,
@@ -169,6 +173,20 @@ fn valid_location(s: &str) -> Result<PathBuf, String> {
     }
 }
 
+fn valid_bounds_file(s: &str) -> Result<PathBuf, String> {
+    let file : PathBuf = s
+        .parse()
+        .map_err(|_| format!("`{s}` isn't a path"))?;
+    if file.extension().and_then(OsStr::to_str) == Some("h") ||
+        file.extension().and_then(OsStr::to_str) == Some("toml") {
+        Ok(file as PathBuf)
+    } else {
+        Err(format!(
+            "{s} is not a .h or .toml file"
+        ))
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -182,6 +200,7 @@ fn main() {
                     trace.to_str().unwrap(),
                     "",
                     &random_file,
+                    "",
                     true,
                     *enable_aux || !disable_contracts,
                     true,
@@ -279,7 +298,7 @@ fn main() {
                 }
             }
         },
-        Some(Commands::Compile { spec, map, output,  disable_booleanizer, 
+        Some(Commands::Compile { spec, map, output, bounds, disable_booleanizer, 
             disable_aux, disable_rewrite, disable_cse, enable_sat, timeout_sat}) => {
             let mut out_location: String;
             if output.is_some(){
@@ -292,6 +311,7 @@ fn main() {
                 if map.extension().and_then(OsStr::to_str) == Some("csv") { map.to_str().unwrap() } else {""},
                 if map.extension().and_then(OsStr::to_str) == Some("map") { map.to_str().unwrap() } else {""},
                 &out_location,
+                bounds.clone().unwrap_or_else(PathBuf::new).to_str().unwrap_or(""),
                 !disable_booleanizer,
                 !disable_aux,
                 !disable_rewrite,

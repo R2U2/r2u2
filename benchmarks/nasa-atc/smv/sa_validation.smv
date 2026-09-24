@@ -1,0 +1,150 @@
+#include "../oss/header.h"
+
+-- These are properties to validate the separation assurance models.
+-- They do not encode any specific behavior of any scenario, and
+-- should be checked if an implementation changes.
+--
+INVARSPEC NAME AC-Apply-Near-INVAR :=
+  -- An aircraft should apply the suggestion provided by the agent in
+  -- charge (Near-).
+  --
+  ((ac_1_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_1.intention_near) = ac_1_suggestion_near_ground)) &
+  ((ac_1_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_1.intention_near) = ac_1_suggestion_near_cdr)) &
+  ((ac_1_ts_sa_agent = SA_SATC & communication_phase) -> (ac_1.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_1.intention_near) = ac_1_suggestion_near_ground) :
+							       (next(ac_1.intention_near) = ac_1_suggestion_near_cdr))) &
+
+  ((ac_2_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_2.intention_near) = ac_2_suggestion_near_ground)) &
+  ((ac_2_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_2.intention_near) = ac_2_suggestion_near_cdr)) &
+  ((ac_2_ts_sa_agent = SA_SATC & communication_phase) -> (ac_2.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_2.intention_near) = ac_2_suggestion_near_ground) :
+							       (next(ac_2.intention_near) = ac_2_suggestion_near_cdr))) &
+
+  ((ac_3_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_3.intention_near) = ac_3_suggestion_near_ground)) &
+  ((ac_3_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_3.intention_near) = ac_3_suggestion_near_cdr)) &
+  ((ac_3_ts_sa_agent = SA_SATC & communication_phase) -> (ac_3.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_3.intention_near) = ac_3_suggestion_near_ground) :
+							       (next(ac_3.intention_near) = ac_3_suggestion_near_cdr))) &
+
+  ((ac_4_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_4.intention_near) = ac_4_suggestion_near_ground)) &
+  ((ac_4_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_4.intention_near) = ac_4_suggestion_near_cdr)) &
+  ((ac_4_ts_sa_agent = SA_SATC & communication_phase) -> (ac_4.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_4.intention_near) = ac_4_suggestion_near_ground) :
+							       (next(ac_4.intention_near) = ac_4_suggestion_near_cdr)));
+
+
+INVARSPEC NAME AC-Apply-Mid-INVAR :=
+  -- An aircraft should apply the suggestion provided by the agent in
+  -- charge (Mid-).
+
+  ((ac_1_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_1.intention_mid) = ac_1_suggestion_mid_ground)) &
+  ((ac_1_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_1.intention_mid) = ac_1_suggestion_mid_cdr)) &
+  ((ac_1_ts_sa_agent = SA_SATC & communication_phase) -> (ac_1.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_1.intention_mid) = ac_1_suggestion_mid_ground) :
+							       (next(ac_1.intention_mid) = ac_1_suggestion_mid_cdr))) &
+
+  ((ac_2_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_2.intention_mid) = ac_2_suggestion_mid_ground)) &
+  ((ac_2_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_2.intention_mid) = ac_2_suggestion_mid_cdr)) &
+  ((ac_2_ts_sa_agent = SA_SATC & communication_phase) -> (ac_2.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_2.intention_mid) = ac_2_suggestion_mid_ground) :
+							       (next(ac_2.intention_mid) = ac_2_suggestion_mid_cdr))) &
+
+  ((ac_3_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_3.intention_mid) = ac_3_suggestion_mid_ground)) &
+  ((ac_3_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_3.intention_mid) = ac_3_suggestion_mid_cdr)) &
+  ((ac_3_ts_sa_agent = SA_SATC & communication_phase) -> (ac_3.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_3.intention_mid) = ac_3_suggestion_mid_ground) :
+							       (next(ac_3.intention_mid) = ac_3_suggestion_mid_cdr))) &
+
+  ((ac_4_ts_sa_agent = SA_ATC & communication_phase) -> (next(ac_4.intention_mid) = ac_4_suggestion_mid_ground)) &
+  ((ac_4_ts_sa_agent = SA_SELF & communication_phase) -> (next(ac_4.intention_mid) = ac_4_suggestion_mid_cdr)) &
+  ((ac_4_ts_sa_agent = SA_SATC & communication_phase) -> (ac_4.request_ts_sa_ground ? 
+  		       	       	 		               (next(ac_4.intention_mid) = ac_4_suggestion_mid_ground) :
+							       (next(ac_4.intention_mid) = ac_4_suggestion_mid_cdr)));
+
+
+INVARSPEC NAME AC-Apply-Far-INVAR :=
+  -- An aircraft should apply the suggestion provided by the agent in
+  -- charge (Far-).
+
+  ((ac_1_ss_sa_agent = SA_ATC & communication_phase) -> (next(ac_1.intention_far) = ac_1_suggestion_far_ground)) &
+  ((ac_1_ss_sa_agent = SA_SELF & communication_phase) -> (next(ac_1.intention_far) = ac_1_suggestion_far_cdr)) &
+  ((ac_1_ss_sa_agent = SA_SATC & communication_phase) -> (ac_1.request_ss_sa_ground ? 
+  		       	       	 		               (next(ac_1.intention_far) = ac_1_suggestion_far_ground) :
+							       (next(ac_1.intention_far) = ac_1_suggestion_far_cdr))) &
+
+  ((ac_2_ss_sa_agent = SA_ATC & communication_phase) -> (next(ac_2.intention_far) = ac_2_suggestion_far_ground)) &
+  ((ac_2_ss_sa_agent = SA_SELF & communication_phase) -> (next(ac_2.intention_far) = ac_2_suggestion_far_cdr)) &
+  ((ac_2_ss_sa_agent = SA_SATC & communication_phase) -> (ac_2.request_ss_sa_ground ? 
+  		       	       	 		               (next(ac_2.intention_far) = ac_2_suggestion_far_ground) :
+							       (next(ac_2.intention_far) = ac_2_suggestion_far_cdr))) &
+
+  ((ac_3_ss_sa_agent = SA_ATC & communication_phase) -> (next(ac_3.intention_far) = ac_3_suggestion_far_ground)) &
+  ((ac_3_ss_sa_agent = SA_SELF & communication_phase) -> (next(ac_3.intention_far) = ac_3_suggestion_far_cdr)) &
+  ((ac_3_ss_sa_agent = SA_SATC & communication_phase) -> (ac_3.request_ss_sa_ground ? 
+  		       	       	 		               (next(ac_3.intention_far) = ac_3_suggestion_far_ground) :
+							       (next(ac_3.intention_far) = ac_3_suggestion_far_cdr))) &
+
+  ((ac_4_ss_sa_agent = SA_ATC & communication_phase) -> (next(ac_4.intention_far) = ac_4_suggestion_far_ground)) &
+  ((ac_4_ss_sa_agent = SA_SELF & communication_phase) -> (next(ac_4.intention_far) = ac_4_suggestion_far_cdr)) &
+  ((ac_4_ss_sa_agent = SA_SATC & communication_phase) -> (ac_4.request_ss_sa_ground ? 
+  		       	       	 		               (next(ac_4.intention_far) = ac_4_suggestion_far_ground) :
+							       (next(ac_4.intention_far) = ac_4_suggestion_far_cdr)));
+
+
+ INVARSPEC NAME AC-Apply-PRE :=
+     (ac_1_ts_sa_agent = SA_ATC | ac_1_ts_sa_agent = SA_SELF | ac_1_ts_sa_agent = SA_SATC) &
+     (ac_2_ts_sa_agent = SA_ATC | ac_2_ts_sa_agent = SA_SELF | ac_2_ts_sa_agent = SA_SATC) &
+     (ac_3_ts_sa_agent = SA_ATC | ac_3_ts_sa_agent = SA_SELF | ac_3_ts_sa_agent = SA_SATC) &
+     (ac_4_ts_sa_agent = SA_ATC | ac_4_ts_sa_agent = SA_SELF | ac_4_ts_sa_agent = SA_SATC) &
+
+     (ac_1_ss_sa_agent = SA_ATC | ac_1_ss_sa_agent = SA_SELF | ac_1_ss_sa_agent = SA_SATC) &
+     (ac_2_ss_sa_agent = SA_ATC | ac_2_ss_sa_agent = SA_SELF | ac_2_ss_sa_agent = SA_SATC) &
+     (ac_3_ss_sa_agent = SA_ATC | ac_3_ss_sa_agent = SA_SELF | ac_3_ss_sa_agent = SA_SATC) &
+     (ac_4_ss_sa_agent = SA_ATC | ac_4_ss_sa_agent = SA_SELF | ac_4_ss_sa_agent = SA_SATC);
+
+--
+-- Monitors and Helper variables
+--
+DEFINE
+  ac_1_suggestion_near_cdr := ac_1.cdr.suggestion_near;
+  ac_2_suggestion_near_cdr := ac_2.cdr.suggestion_near;
+  ac_3_suggestion_near_cdr := ac_3.cdr.suggestion_near;
+  ac_4_suggestion_near_cdr := ac_4.cdr.suggestion_near;
+
+  ac_1_suggestion_mid_cdr := ac_1.cdr.suggestion_mid;
+  ac_2_suggestion_mid_cdr := ac_2.cdr.suggestion_mid;
+  ac_3_suggestion_mid_cdr := ac_3.cdr.suggestion_mid;
+  ac_4_suggestion_mid_cdr := ac_4.cdr.suggestion_mid;
+
+  ac_1_suggestion_far_cdr := ac_1.cdr.suggestion_far;
+  ac_2_suggestion_far_cdr := ac_2.cdr.suggestion_far;
+  ac_3_suggestion_far_cdr := ac_3.cdr.suggestion_far;
+  ac_4_suggestion_far_cdr := ac_4.cdr.suggestion_far;
+
+DEFINE
+  ac_1_suggestion_near_ground:= ac_1.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_1_suggestion_mid_ground:= ac_1.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_1_suggestion_far_ground:= ac_1.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_2_suggestion_near_ground:= ac_2.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_2_suggestion_mid_ground:= ac_2.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_2_suggestion_far_ground:= ac_2.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_3_suggestion_near_ground:= ac_3.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_3_suggestion_mid_ground:= ac_3.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_3_suggestion_far_ground:= ac_3.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_4_suggestion_near_ground := ac_4.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_4_suggestion_mid_ground:= ac_4.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_4_suggestion_far_ground:= ac_4.pilot.protocol_policy.input_suggestion_far_ground;
+
+DEFINE
+  ac_1_ts_sa_agent := ac_1.pilot.protocol_policy.param_ts_sa_agent;
+  ac_2_ts_sa_agent := ac_2.pilot.protocol_policy.param_ts_sa_agent;
+  ac_3_ts_sa_agent := ac_3.pilot.protocol_policy.param_ts_sa_agent;
+  ac_4_ts_sa_agent := ac_4.pilot.protocol_policy.param_ts_sa_agent;
+
+  ac_1_ss_sa_agent := ac_1.pilot.protocol_policy.param_ss_sa_agent;
+  ac_2_ss_sa_agent := ac_2.pilot.protocol_policy.param_ss_sa_agent;
+  ac_3_ss_sa_agent := ac_3.pilot.protocol_policy.param_ss_sa_agent;
+  ac_4_ss_sa_agent := ac_4.pilot.protocol_policy.param_ss_sa_agent;

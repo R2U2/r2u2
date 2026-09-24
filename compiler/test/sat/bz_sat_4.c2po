@@ -1,5 +1,5 @@
 INPUT
-    b: bool;
+    b0: bool;
     i0, i1, i2, i3: int;
 
 FTSPEC
@@ -15,5 +15,3 @@ FTSPEC
     F[0,10] (i0 <= i1);
     F[0,10] (i0 == i1);
     F[0,10] (i0 != i1);
-
-    F[0,10] (1 == 2);

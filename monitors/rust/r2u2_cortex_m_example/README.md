@@ -90,7 +90,7 @@ R2U2_MAX_SIGNALS = { value = "1", force = true }
 R2U2_MAX_ATOMICS = { value = "1", force = true }
 R2U2_MAX_BZ_INSTRUCTIONS = { value = "1", force = true }
 R2U2_MAX_TL_INSTRUCTIONS = { value = "8", force = true }
-R2U2_TOTAL_QUEUE_SLOTS = { value = "8", force = true }
+R2U2_MAX_QUEUE_SLOTS = { value = "8", force = true }
 ```
 
 **NOTE**: If these values are changed, run `$ cargo clean`.

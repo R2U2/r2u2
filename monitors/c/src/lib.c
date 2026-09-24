@@ -1,63 +1,66 @@
-#include "internals/errors.h"
+#include "internals/config.h"
 #include "r2u2.h"
-#include <stdio.h>
-
-#include "engines/binary_load.h"
+#include "internals/debug.h"
+#include "internals/process_binary.h"
+#include "engines/engines.h"
+#include <string.h>
 
 #if R2U2_DEBUG
 FILE* r2u2_debug_fptr = NULL;
 #endif
 
-r2u2_status_t r2u2_init(r2u2_monitor_t *monitor) {
-    /* Default config and run */
-
+r2u2_status_t r2u2_load_specification(uint8_t* spec, r2u2_monitor_t* monitor) {
     // Memory resets....
-    r2u2_monitor_clock_reset(monitor);
+    r2u2_monitor_soft_reset(monitor); // NOTE: Does not reset SCQ arena.
+    // Optional: Use the following hard reset instead to also reset SCQ arena, 
+    // but the monitor MUST be R2U2_DEFAULT_MONITOR
+    // r2u2_monitor_hard_reset(monitor);
 
     // Populate instruction table from binary spec in instruction memory
-    if (r2u2_process_binary(monitor) != R2U2_OK) {
+    if (r2u2_process_binary(monitor, spec) != R2U2_OK) {
       return R2U2_BAD_SPEC;
     }
 
     return R2U2_OK;
 }
 
-
-r2u2_status_t r2u2_run(r2u2_monitor_t *monitor){
-  r2u2_status_t err_cond;
-
-  do {
-    err_cond = r2u2_step(monitor);
-  } while (err_cond == R2U2_OK);
-
-  return err_cond;
+r2u2_status_t r2u2_step(r2u2_monitor_t* monitor){
+  return r2u2_engine_step(monitor);
 }
 
-r2u2_status_t r2u2_tic(r2u2_monitor_t *monitor){
-  r2u2_status_t err_cond;
-  r2u2_time start_time = monitor->time_stamp;
-
-  do {
-    err_cond = r2u2_step(monitor);
-  } while ((monitor->time_stamp == start_time) && (err_cond == R2U2_OK));
-
-  return err_cond;
+void r2u2_load_bool_signal(r2u2_monitor_t* monitor, size_t index, r2u2_bool value){
+  if (monitor->bz_program_count.max_program_count == 0) {
+    monitor->atomic_buffer[index] = value;
+  } else {
+    monitor->signal_vector[index].i = (r2u2_int) value;
+  }
 }
 
-r2u2_status_t r2u2_spin(r2u2_monitor_t *monitor){
-  r2u2_status_t err_cond;
-
-  do {
-    err_cond = r2u2_step(monitor);
-  } while ((monitor->prog_count != 0) && (err_cond == R2U2_OK));
-
-  return err_cond;
+void r2u2_load_int_signal(r2u2_monitor_t* monitor, size_t index, r2u2_int value){
+  if (monitor->bz_program_count.max_program_count == 0) {
+    monitor->atomic_buffer[index] = value != 0;
+  } else {
+    monitor->signal_vector[index].i = value;
+  }
 }
 
-r2u2_status_t r2u2_step(r2u2_monitor_t *monitor){
-  r2u2_status_t err_cond;
+void r2u2_load_float_signal(r2u2_monitor_t* monitor, size_t index, r2u2_float value){
+  if (monitor->bz_program_count.max_program_count == 0) {
+    monitor->atomic_buffer[index] = value >= R2U2_FLOAT_EPSILON || value <= -R2U2_FLOAT_EPSILON;
+  } else {
+    monitor->signal_vector[index].f = value;
+  }
+}
 
-  err_cond = r2u2_instruction_dispatch(monitor);
-
-  return err_cond;
+void r2u2_load_string_signal(r2u2_monitor_t* monitor, size_t index, char* value){
+  if (monitor->bz_program_count.max_program_count == 0) {
+    monitor->atomic_buffer[index] = (strcmp(value,"0") != 0);
+  } else {
+    //Note that to be interpreted as a float, the string value must include a decimal point
+    if (strchr(value, '.') != NULL){
+      sscanf(value, "%lf", &(monitor->signal_vector[index].f));
+    } else {
+      sscanf(value, "%d", &(monitor->signal_vector[index].i));
+    }
+  }
 }

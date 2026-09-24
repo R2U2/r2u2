@@ -1,0 +1,396 @@
+--
+-- This is an implementation of the Airborne CDR using an asymmetric
+-- algorithm to place each aircraft deterministically in a free
+-- Conflict Area.
+--
+-- To work, this algorithm assumes that:
+--  * All aircrafts are running the same algorithm
+--  * All aircrafts receive the same information in input
+--  * All aircrafts are able to go to any of the Conflict Areas
+--
+-- For N aircraft, it takes at most log2(N) iteration to resolve all
+-- conflicts.
+--
+-- Faults:
+--   - Stops providing any output (Permanent)
+--   - Fails to detect conflicts (Transient)
+--   - Fails to provide a correct resolution (Transient)
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            ACDR_inst : ACDR(intention_near, intention_mid, intention_far, 
+	    	      	     ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+	    	      	     ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+	    	      	     ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+	    	      	     ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+	    	             ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+			     ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+			     ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+			     ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+			     self_id, burdening_rule);
+        VAR
+            intention_near : TRJ_TYPE;
+            intention_mid  : TRJ_TYPE;
+            intention_far  : TRJ_TYPE;
+            ac_1_intention_near : TRJ_TYPE;
+            ac_1_intention_mid : TRJ_TYPE;
+            ac_1_intention_far : TRJ_TYPE;
+            ac_2_intention_near : TRJ_TYPE;
+            ac_2_intention_mid : TRJ_TYPE;
+            ac_2_intention_far : TRJ_TYPE;
+            ac_3_intention_near : TRJ_TYPE;
+            ac_3_intention_mid : TRJ_TYPE;
+            ac_3_intention_far : TRJ_TYPE;
+            ac_4_intention_near : TRJ_TYPE;
+            ac_4_intention_mid : TRJ_TYPE;
+            ac_4_intention_far : TRJ_TYPE;
+        FROZENVAR
+            self_id : AC_ID_TYPE;
+	    burdening_rule: B_TYPE;
+	    ac_1_ts_sa_agent : SA_TYPE;
+	    ac_1_ss_sa_agent : SA_TYPE;
+	    ac_2_ts_sa_agent : SA_TYPE;
+	    ac_2_ss_sa_agent : SA_TYPE;
+	    ac_3_ts_sa_agent : SA_TYPE;
+	    ac_3_ss_sa_agent : SA_TYPE;
+	    ac_4_ts_sa_agent : SA_TYPE;
+	    ac_4_ss_sa_agent : SA_TYPE;
+
+        DEFINE
+            suggestion_near := ACDR_inst.suggestion_near;
+            suggestion_mid := ACDR_inst.suggestion_mid;
+            suggestion_far := ACDR_inst.suggestion_far;
+
+            predicted_conflict_near := ACDR_inst.predicted_conflict_near;
+            predicted_conflict_mid := ACDR_inst.predicted_conflict_mid;
+            predicted_conflict_far := ACDR_inst.predicted_conflict_far;
+
+	    request_ts_sa_ground := ACDR_inst.request_ts_sa_ground;
+            request_ss_sa_ground := ACDR_inst.request_ss_sa_ground;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ACDR(intention_near, intention_mid, intention_far, 
+       	   	ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+       	   	ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+       	   	ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+       	   	ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+    	   	ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+		ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+		ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+		ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+		self_id, burdening_rule)
+        VAR
+            nominal: ACDR_Nominal(intention_near, intention_mid, intention_far, 
+	    	     		  ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+	    	     		  ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+	    	     		  ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+	    	     		  ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+	    	     		  ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+				  ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+				  ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+				  ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+				  self_id, burdening_rule);
+
+        #if EXTENDED_MODEL
+        VAR
+          -- Fault Dynamics
+          fault_outage__dynamic: PermanentFault;
+          fault_detect_near__dynamic: TransientFault;
+          fault_detect_mid__dynamic: TransientFault;
+          fault_detect_far__dynamic: TransientFault;
+          fault_resolve_near__dynamic: TransientFault;
+          fault_resolve_mid__dynamic: TransientFault;
+          fault_resolve_far__dynamic: TransientFault;
+
+        DEFINE
+          -- Fault events
+          fault_outage__event      := fault_outage__dynamic.fault_event;
+          fault_detect_near__event := fault_detect_near__dynamic.fault_event;
+          fault_detect_mid__event  := fault_detect_mid__dynamic.fault_event;
+          fault_detect_far__event  := fault_detect_far__dynamic.fault_event;
+          fault_resolve_near__event:= fault_resolve_near__dynamic.fault_event;
+          fault_resolve_mid__event := fault_resolve_mid__dynamic.fault_event;
+          fault_resolve_far__event := fault_resolve_far__dynamic.fault_event;
+
+
+        DEFINE
+          -- Fault State
+          fault_outage := fault_outage__dynamic.has_fault;
+          fault_detect_near := fault_detect_near__dynamic.has_fault;
+          fault_detect_mid  := fault_detect_mid__dynamic.has_fault;
+          fault_detect_far  := fault_detect_far__dynamic.has_fault;
+          fault_resolve_near:= fault_resolve_near__dynamic.has_fault;
+          fault_resolve_mid := fault_resolve_mid__dynamic.has_fault;
+          fault_resolve_far := fault_resolve_far__dynamic.has_fault;
+
+        DEFINE
+          faulty_suggestion_near := self_id;
+          faulty_suggestion_mid := self_id;
+          faulty_suggestion_far := self_id;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt :=
+              count(fault_outage, fault_detect_near, fault_detect_mid, fault_detect_far) +
+              count(fault_resolve_near, fault_resolve_mid, fault_resolve_far);
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        DEFINE
+          fault_outage := FALSE;
+          fault_detect_near := FALSE;
+          fault_detect_mid := FALSE;
+          fault_detect_far := FALSE;
+          fault_resolve_near := FALSE;
+          fault_resolve_mid := FALSE;
+          fault_resolve_far := FALSE;
+
+          faulty_suggestion_near := TRJ_NOP;
+          faulty_suggestion_mid  := TRJ_NOP;
+          faulty_suggestion_far  := TRJ_NOP;
+        #endif
+
+        DEFINE
+            suggestion_near := case fault_outage: TRJ_NOP;
+                                    fault_detect_near : intention_near;
+                                    fault_resolve_near & predicted_conflict_near: faulty_suggestion_near;
+                                    TRUE: nominal.suggestion_near;
+                               esac;
+            suggestion_mid  := case fault_outage: TRJ_NOP;
+                                    fault_detect_mid : intention_mid;
+                                    fault_resolve_mid & predicted_conflict_mid: faulty_suggestion_mid;
+                                    TRUE: nominal.suggestion_mid;
+                               esac;
+            suggestion_far  := case fault_outage: TRJ_NOP;
+                                    fault_detect_far : intention_far;
+                                    fault_resolve_far & predicted_conflict_far: faulty_suggestion_far;
+                                    TRUE: nominal.suggestion_far;
+                               esac;
+
+            predicted_conflict_near := (fault_outage | fault_detect_near) ? FALSE : nominal.predicted_conflict_near;
+            predicted_conflict_mid  := (fault_outage | fault_detect_mid) ? FALSE : nominal.predicted_conflict_mid;
+            predicted_conflict_far  := (fault_outage | fault_detect_far) ? FALSE : nominal.predicted_conflict_far;
+
+  	    request_ts_sa_ground := nominal.request_ts_sa_ground;
+	    request_ss_sa_ground := nominal.request_ss_sa_ground;
+
+
+        LTLSPEC NAME ACDR_no_conflict_means_maintain_far_norm_guarantee := ( G intention_far != 0 ->  G (!predicted_conflict_far -> suggestion_far = intention_far));
+        LTLSPEC NAME ACDR_no_conflict_means_maintain_near_norm_guarantee := ( G intention_near != 0 ->  G (!predicted_conflict_near -> suggestion_near = intention_near));
+        LTLSPEC NAME ACDR_no_conflict_means_maintain_mid_norm_guarantee := ( G intention_mid != 0 ->  G (!predicted_conflict_mid -> suggestion_mid = intention_mid));
+
+        LTLSPEC NAME ACDR_predicted_mid_norm_guarantee := ( G intention_mid != 0 -> ((((self_id = 1 ->  G (predicted_conflict_mid <-> !((intention_mid != ac_2_intention_mid & intention_mid != ac_3_intention_mid) & intention_mid != ac_4_intention_mid))) & (self_id = 2 ->  G (predicted_conflict_mid <-> !((intention_mid != ac_1_intention_mid & intention_mid != ac_3_intention_mid) & intention_mid != ac_4_intention_mid)))) & (self_id = 3 ->  G (predicted_conflict_mid <-> !((intention_mid != ac_1_intention_mid & intention_mid != ac_2_intention_mid) & intention_mid != ac_4_intention_mid)))) & (self_id = 4 ->  G (predicted_conflict_mid <-> !((intention_mid != ac_1_intention_mid & intention_mid != ac_2_intention_mid) & intention_mid != ac_3_intention_mid)))));
+        LTLSPEC NAME ACDR_predicted_far_norm_guarantee := ( G intention_far != 0 -> ((((self_id = 1 ->  G (predicted_conflict_far <-> !((intention_far != ac_2_intention_far & intention_far != ac_3_intention_far) & intention_far != ac_4_intention_far))) & (self_id = 2 ->  G (predicted_conflict_far <-> !((intention_far != ac_1_intention_far & intention_far != ac_3_intention_far) & intention_far != ac_4_intention_far)))) & (self_id = 3 ->  G (predicted_conflict_far <-> !((intention_far != ac_1_intention_far & intention_far != ac_2_intention_far) & intention_far != ac_4_intention_far)))) & (self_id = 4 ->  G (predicted_conflict_far <-> !((intention_far != ac_1_intention_far & intention_far != ac_2_intention_far) & intention_far != ac_3_intention_far)))));
+        LTLSPEC NAME ACDR_predicted_near_norm_guarantee := ( G intention_near != 0 -> ((((self_id = 1 ->  G (predicted_conflict_near <-> !((intention_near != ac_2_intention_near & intention_near != ac_3_intention_near) & intention_near != ac_4_intention_near))) & (self_id = 2 ->  G (predicted_conflict_near <-> !((intention_near != ac_1_intention_near & intention_near != ac_3_intention_near) & intention_near != ac_4_intention_near)))) & (self_id = 3 ->  G (predicted_conflict_near <-> !((intention_near != ac_1_intention_near & intention_near != ac_2_intention_near) & intention_near != ac_4_intention_near)))) & (self_id = 4 ->  G (predicted_conflict_near <-> !((intention_near != ac_1_intention_near & intention_near != ac_2_intention_near) & intention_near != ac_3_intention_near)))));
+
+        LTLSPEC NAME ACDR_not_nop_norm_guarantee := ( G ((intention_near != 0 & intention_mid != 0) & intention_far != 0) ->  G ((suggestion_near != 0 & suggestion_mid != 0) & suggestion_far != 0));
+
+    	INVARSPEC NAME ACDR_request_ground_norm_guarantee := (((((((((self_id = 1 & ac_1_ts_sa_agent != SA_SATC) -> !request_ts_sa_ground) & 
+		       					            ((self_id = 2 & ac_2_ts_sa_agent != SA_SATC) -> !request_ts_sa_ground)) & 
+								    ((self_id = 3 & ac_3_ts_sa_agent != SA_SATC) -> !request_ts_sa_ground)) & 
+								    ((self_id = 4 & ac_4_ts_sa_agent != SA_SATC) -> !request_ts_sa_ground)) & 
+								    ((self_id = 1 & ac_1_ss_sa_agent != SA_SATC) -> !request_ss_sa_ground)) & 
+								    ((self_id = 2 & ac_2_ss_sa_agent != SA_SATC) -> !request_ss_sa_ground)) & 
+								    ((self_id = 3 & ac_3_ss_sa_agent != SA_SATC) -> !request_ss_sa_ground)) & 
+								    ((self_id = 4 & ac_4_ss_sa_agent != SA_SATC) -> !request_ss_sa_ground));
+
+        LTLSPEC NAME ACDR_separate_from_higher_near_norm_guarantee := ( G ((((intention_near != 0 & (self_id = 1 -> intention_near = ac_1_intention_near)) & (self_id = 2 -> intention_near = ac_2_intention_near)) & (self_id = 3 -> intention_near = ac_3_intention_near)) & (self_id = 4 -> intention_near = ac_4_intention_near)) ->  G ((((self_id = 1 -> (((intention_near = ac_2_intention_near | intention_near = ac_3_intention_near) | intention_near = ac_4_intention_near) -> suggestion_near != intention_near)) & (self_id = 2 -> ((intention_near = ac_3_intention_near | intention_near = ac_4_intention_near) -> suggestion_near != intention_near))) & (self_id = 3 -> (intention_near = ac_4_intention_near -> suggestion_near != intention_near))) & (self_id = 4 -> suggestion_near = intention_near)));
+        LTLSPEC NAME ACDR_separate_from_higher_mid_norm_guarantee := ( G ((((intention_mid != 0 & (self_id = 1 -> intention_mid = ac_1_intention_mid)) & (self_id = 2 -> intention_mid = ac_2_intention_mid)) & (self_id = 3 -> intention_mid = ac_3_intention_mid)) & (self_id = 4 -> intention_mid = ac_4_intention_mid)) ->  G ((((self_id = 1 -> (((intention_mid = ac_2_intention_mid | intention_mid = ac_3_intention_mid) | intention_mid = ac_4_intention_mid) -> suggestion_mid != intention_mid)) & (self_id = 2 -> ((intention_mid = ac_3_intention_mid | intention_mid = ac_4_intention_mid) -> suggestion_mid != intention_mid))) & (self_id = 3 -> (intention_mid = ac_4_intention_mid -> suggestion_mid != intention_mid))) & (self_id = 4 -> suggestion_mid = intention_mid)));
+        LTLSPEC NAME ACDR_separate_from_higher_far_norm_guarantee := ( G ((((intention_far != 0 & (self_id = 1 -> intention_far = ac_1_intention_far)) & (self_id = 2 -> intention_far = ac_2_intention_far)) & (self_id = 3 -> intention_far = ac_3_intention_far)) & (self_id = 4 -> intention_far = ac_4_intention_far)) ->  G ((((self_id = 1 -> (((intention_far = ac_2_intention_far | intention_far = ac_3_intention_far) | intention_far = ac_4_intention_far) -> suggestion_far != intention_far)) & (self_id = 2 -> ((intention_far = ac_3_intention_far | intention_far = ac_4_intention_far) -> suggestion_far != intention_far))) & (self_id = 3 -> (intention_far = ac_4_intention_far -> suggestion_far != intention_far))) & (self_id = 4 -> suggestion_far = intention_far)));
+
+
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+
+    -- ===============================================================================
+    MODULE ACDR_Nominal(intention_near, intention_mid, intention_far, 
+    	   		ac_1_ts_sa_agent, ac_1_ss_sa_agent,
+	    	     	ac_2_ts_sa_agent, ac_2_ss_sa_agent,
+	    	     	ac_3_ts_sa_agent, ac_3_ss_sa_agent,
+	    	     	ac_4_ts_sa_agent, ac_4_ss_sa_agent,
+    	   		ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far, 
+			ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far, 
+			ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far, 
+			ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far, 
+			self_id, burdening_rule)
+        VAR
+            near: ACDR_Asymmetric_Local(intention_near,
+					ac_1_ts_sa_agent, ac_2_ts_sa_agent, ac_3_ts_sa_agent, ac_4_ts_sa_agent,
+					ac_1_intention_near, ac_2_intention_near, ac_3_intention_near, ac_4_intention_near, 
+					self_id, burdening_rule);
+            mid: ACDR_Asymmetric_Local(intention_mid, 
+	    	                       ac_1_ts_sa_agent, ac_2_ts_sa_agent, ac_3_ts_sa_agent, ac_4_ts_sa_agent,
+	    	 		       ac_1_intention_mid, ac_2_intention_mid, ac_3_intention_mid, ac_4_intention_mid, 
+				       self_id, burdening_rule);
+            far: ACDR_Asymmetric_Local(intention_far,
+	    			       ac_1_ss_sa_agent, ac_2_ss_sa_agent, ac_3_ss_sa_agent, ac_4_ss_sa_agent,
+				       ac_1_intention_far, ac_2_intention_far, ac_3_intention_far, ac_4_intention_far, 
+				       self_id, burdening_rule);
+
+            request_ts_sa_ground: boolean;
+	    request_ss_sa_ground: boolean;
+
+	INVAR (self_id = 1 & ac_1_ts_sa_agent != SA_SATC) -> ! request_ts_sa_ground;
+	INVAR (self_id = 2 & ac_2_ts_sa_agent != SA_SATC) -> ! request_ts_sa_ground;
+	INVAR (self_id = 3 & ac_3_ts_sa_agent != SA_SATC) -> ! request_ts_sa_ground;
+	INVAR (self_id = 4 & ac_4_ts_sa_agent != SA_SATC) -> ! request_ts_sa_ground;
+	INVAR (self_id = 1 & ac_1_ss_sa_agent != SA_SATC) -> ! request_ss_sa_ground;
+	INVAR (self_id = 2 & ac_2_ss_sa_agent != SA_SATC) -> ! request_ss_sa_ground;
+	INVAR (self_id = 3 & ac_3_ss_sa_agent != SA_SATC) -> ! request_ss_sa_ground;
+	INVAR (self_id = 4 & ac_4_ss_sa_agent != SA_SATC) -> ! request_ss_sa_ground;
+
+
+        DEFINE
+            suggestion_near := near.suggestion;
+            suggestion_mid  := mid.suggestion;
+            suggestion_far  := far.suggestion;
+
+            predicted_conflict_near := near.predicted_conflict;
+            predicted_conflict_mid  := mid.predicted_conflict;
+            predicted_conflict_far  := far.predicted_conflict;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE ACDR_Asymmetric_Local(intention, 
+    			         ac_1_sa_agent, ac_2_sa_agent, ac_3_sa_agent, ac_4_sa_agent,
+    	   	                 ac_1_intention, ac_2_intention, ac_3_intention, ac_4_intention, 
+				 self_id, burdening_rule)
+
+        DEFINE
+            predicted_conflict_w_ac_1 := (intention != TRJ_NOP) & (intention = ac_1_intention);
+            predicted_conflict_w_ac_2 := (intention != TRJ_NOP) & (intention = ac_2_intention);
+            predicted_conflict_w_ac_3 := (intention != TRJ_NOP) & (intention = ac_3_intention);
+            predicted_conflict_w_ac_4 := (intention != TRJ_NOP) & (intention = ac_4_intention);
+
+        DEFINE
+            predicted_conflict := case
+                                      self_id = 1: predicted_conflict_w_ac_2 | predicted_conflict_w_ac_3 | predicted_conflict_w_ac_4;
+                                      self_id = 2: predicted_conflict_w_ac_1 | predicted_conflict_w_ac_3 | predicted_conflict_w_ac_4;
+                                      self_id = 3: predicted_conflict_w_ac_1 | predicted_conflict_w_ac_2 | predicted_conflict_w_ac_4;
+                                      self_id = 4: predicted_conflict_w_ac_1 | predicted_conflict_w_ac_2 | predicted_conflict_w_ac_3;
+                                  esac;
+
+        DEFINE
+           -- An aircraft has priority over this aircraft in two cases:
+           --  - The aircraft is not a GSEP
+           --  - The burdening rule impose SSEP to resolve conflicts with GSEPs
+           ac_1_has_priority := (ac_1_sa_agent = SA_ATC -> burdening_rule = B_SSEP);
+           ac_2_has_priority := (ac_2_sa_agent = SA_ATC -> burdening_rule = B_SSEP);
+           ac_3_has_priority := (ac_3_sa_agent = SA_ATC -> burdening_rule = B_SSEP);
+           ac_4_has_priority := (ac_4_sa_agent = SA_ATC -> burdening_rule = B_SSEP);
+
+        DEFINE
+            --
+            -- Check if there is any aircraf with a higher ID that is in
+            -- conflict with us. The idea, is to resolve the conflicts by
+            -- sorting them by ID.
+            --
+            -- This also takes into account the burdening rules. If
+            -- SSEPs are responsible for separation from GSEPs, then
+            -- they need to consider the GSEPs as having a higher
+            -- priority. Otherwise, they need to consider them as
+            -- having lower priority.
+            --  See: scenario_template.oss for an explanation of how 
+            --       aircraft are numbered.
+            --
+            higher_conflict_cnt := case
+                                     self_id = 1: count(predicted_conflict_w_ac_2 & ac_2_has_priority,
+                                                        predicted_conflict_w_ac_3 & ac_3_has_priority, 
+                                                        predicted_conflict_w_ac_4 & ac_4_has_priority);
+                                     self_id = 2: count(predicted_conflict_w_ac_3 & ac_3_has_priority, 
+                                                        predicted_conflict_w_ac_4 & ac_4_has_priority);
+                                     self_id = 3: count(predicted_conflict_w_ac_4 & ac_4_has_priority);
+                                     self_id = 4: 0;
+                                    esac;
+
+            has_higher_conflict := higher_conflict_cnt > 0;
+
+        DEFINE
+            -- Clean-up the intention information to take into account
+            -- communication problems. For the ownship we should not
+            -- be using the intention coming from the ADSB, otherwise,
+            -- communication issues could create problems.
+            --
+            ac_1_intention_clean := self_id = 1 ? intention : ac_1_intention;
+            ac_2_intention_clean := self_id = 2 ? intention : ac_2_intention;
+            ac_3_intention_clean := self_id = 3 ? intention : ac_3_intention;
+            ac_4_intention_clean := self_id = 4 ? intention : ac_4_intention;
+
+        DEFINE
+            -- We first define which trajectories are free
+            __is_free_1 := (1 != ac_1_intention_clean) & (1 != ac_2_intention_clean) & (1 != ac_3_intention_clean) & (1 != ac_4_intention_clean);
+            __is_free_2 := (2 != ac_1_intention_clean) & (2 != ac_2_intention_clean) & (2 != ac_3_intention_clean) & (2 != ac_4_intention_clean);
+            __is_free_3 := (3 != ac_1_intention_clean) & (3 != ac_2_intention_clean) & (3 != ac_3_intention_clean) & (3 != ac_4_intention_clean);
+            __is_free_4 := (4 != ac_1_intention_clean) & (4 != ac_2_intention_clean) & (4 != ac_3_intention_clean) & (4 != ac_4_intention_clean);
+
+            --
+            -- We collect the free trajectories in a vector
+            -- Note that there can be at most 3 free trajectoreis (N-1)
+            --
+            __free_1 := case __is_free_1: 1;
+                             __is_free_2: 2;
+                             __is_free_3: 3;
+                             __is_free_4: 4;
+                             TRUE: 0;
+                        esac;
+
+            __free_2 := case (__free_1 != 2 & __is_free_2): 2;
+                             (__free_1 != 3 & __is_free_3): 3;
+                             (__free_1 != 4 & __is_free_4): 4;
+                             TRUE : 0;
+                        esac;
+
+            __free_3 := case (__free_1 != 3 & __free_2 != 3 & __is_free_3): 3;
+                             (__free_1 != 4 & __free_2 != 4 & __is_free_4): 4;
+                             TRUE : 0;
+                        esac;
+
+             free := [intention, __free_1, __free_2, __free_3];
+
+        DEFINE
+            --
+            -- According to how many aircrafts are above the current one,
+            -- we select the target trajectory from the vector of free
+            -- trajectories.
+            --
+            suggestion := case
+                              -- No higher conflict => Maintain intention
+                              higher_conflict_cnt = 0 : intention;
+                              higher_conflict_cnt = 1 : __free_1;
+                              higher_conflict_cnt = 2 : __free_2;
+                              higher_conflict_cnt = 3 : __free_3;
+                              -- Add default to avoid warnings, but it is not possible.
+                              TRUE: TRJ_NOP;
+                          esac;
+
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

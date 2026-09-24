@@ -1,0 +1,287 @@
+#include "../oss/header.h"
+--
+-- These are Airspace Validation properties.
+--
+-- They are verified on a system composition that does not have SA
+-- agents. Properties are evaluated from within the MODULE system
+--
+-- Additional variables/monitor are defined at the end of the file.
+--
+
+
+INVARSPEC NAME AC-Com-INVAR :=
+  -- The trajectory intentions sent by an aircraft to ground must
+  -- coincide with the intentions sent to other aircrafts.
+  ((com.input_ac_1_intention_current__in = adsb_net.input_ac_1_intention_current__in) &
+   (com.input_ac_1_intention_near__in = adsb_net.input_ac_1_intention_near__in) &
+   (com.input_ac_1_intention_mid__in = adsb_net.input_ac_1_intention_mid__in) &
+   (com.input_ac_1_intention_far__in = adsb_net.input_ac_1_intention_far__in)) &
+  ((com.input_ac_2_intention_current__in = adsb_net.input_ac_2_intention_current__in) &
+   (com.input_ac_2_intention_near__in = adsb_net.input_ac_2_intention_near__in) &
+   (com.input_ac_2_intention_mid__in = adsb_net.input_ac_2_intention_mid__in) &
+   (com.input_ac_2_intention_far__in = adsb_net.input_ac_2_intention_far__in)) &
+  ((com.input_ac_3_intention_current__in = adsb_net.input_ac_3_intention_current__in) &
+   (com.input_ac_3_intention_near__in = adsb_net.input_ac_3_intention_near__in) &
+   (com.input_ac_3_intention_mid__in = adsb_net.input_ac_3_intention_mid__in) &
+   (com.input_ac_3_intention_far__in = adsb_net.input_ac_3_intention_far__in)) &
+  ((com.input_ac_4_intention_current__in = adsb_net.input_ac_4_intention_current__in) &
+   (com.input_ac_4_intention_near__in = adsb_net.input_ac_4_intention_near__in) &
+   (com.input_ac_4_intention_mid__in = adsb_net.input_ac_4_intention_mid__in) &
+   (com.input_ac_4_intention_far__in = adsb_net.input_ac_4_intention_far__in));
+
+
+--
+-- V-1, V-1-Predicted
+--
+CTLSPEC NAME V-1-CTL :=
+  -- It is always possible to reach a LOS.
+  --
+  -- AC1: AC2, AC3, AC4
+  AG EF (ac_1.intention_current = ac_2.intention_current) &
+  AG EF (ac_1.intention_current = ac_3.intention_current) &
+  AG EF (ac_1.intention_current = ac_4.intention_current) &
+  -- -- -- AC2: AC3, AC4
+  AG EF (ac_2.intention_current = ac_3.intention_current) &
+  AG EF (ac_2.intention_current = ac_4.intention_current) &
+  -- AC3: AC4
+  AG EF (ac_3.intention_current = ac_4.intention_current);
+
+
+CTLSPEC NAME V-1-Predicted-Near-CTL :=
+  -- It is always possible to reach a Predicted LOS in the maneuvering
+  -- phase. (Near)
+  --
+  -- AC1: AC2, AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_1.intention_near = ac_2.intention_near)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_near = ac_3.intention_near)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_near = ac_4.intention_near)) &
+  -- -- AC2: AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_2.intention_near = ac_3.intention_near)) &
+  AG EF(maneuvering_phase -> EX(ac_2.intention_near = ac_4.intention_near)) &
+  -- -- AC3: AC4
+  AG EF(maneuvering_phase -> EX(ac_3.intention_near = ac_4.intention_near));
+
+
+CTLSPEC NAME V-1-Predicted-Mid-CTL :=
+  -- It is always possible to reach a Predicted LOS in the maneuvering
+  -- phase. (Mid)
+  --
+  --AC1: AC2, AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_1.intention_mid = ac_2.intention_mid)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_mid = ac_3.intention_mid)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_mid = ac_4.intention_mid)) &
+  -- AC2: AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_2.intention_mid = ac_3.intention_mid)) &
+  AG EF(maneuvering_phase -> EX(ac_2.intention_mid = ac_4.intention_mid)) &
+  -- AC3: AC4
+  AG EF(maneuvering_phase -> EX(ac_3.intention_mid = ac_4.intention_mid));
+
+
+CTLSPEC NAME V-1-Predicted-Far-CTL :=
+  -- It is always possible to reach a Predicted LOS in the maneuvering
+  -- phase. (Far)
+  --
+  -- AC1: AC2, AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_1.intention_far = ac_2.intention_far)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_far = ac_3.intention_far)) &
+  AG EF(maneuvering_phase -> EX(ac_1.intention_far = ac_4.intention_far)) &
+  -- AC2: AC3, AC4
+  AG EF(maneuvering_phase -> EX(ac_2.intention_far = ac_3.intention_far)) &
+  AG EF(maneuvering_phase -> EX(ac_2.intention_far = ac_4.intention_far)) &
+  -- AC3: AC4
+  AG EF(maneuvering_phase -> EX(ac_3.intention_far = ac_4.intention_far));
+
+
+--
+-- V-2, V-2-Predicted
+--
+CTLSPEC NAME V-2-CTL :=
+  -- It is always possible to have no LOS.
+  AG EF (ALL_DIFFERENT(ac_1.intention_current, ac_2.intention_current, ac_3.intention_current, ac_4.intention_current));
+
+CTLSPEC NAME V-2-CTL-G :=
+  -- It is possible to have a trace without LOS.
+  EF EG (ALL_DIFFERENT(ac_1.intention_current, ac_2.intention_current, ac_3.intention_current, ac_4.intention_current));
+
+CTLSPEC NAME V-2-Predicted-Near-CTL :=
+  -- It is always possible to have no Predicted LOS in the
+  -- maneuvering phase.
+  AG EF(maneuvering_phase -> EX ALL_DIFFERENT(ac_1.intention_near, ac_2.intention_near, ac_3.intention_near, ac_4.intention_near));
+
+CTLSPEC NAME V-2-Predicted-Mid-CTL :=
+  -- It is always possible to have no Predicted LOS in the
+  -- maneuvering phase.
+  AG EF (maneuvering_phase -> EX ALL_DIFFERENT(ac_1.intention_mid, ac_2.intention_mid, ac_3.intention_mid, ac_4.intention_mid));
+
+CTLSPEC NAME V-2-Predicted-Far-CTL :=
+  -- It is always possible to have no Predicted LOS in the
+  -- maneuvering phase.
+  AG EF (maneuvering_phase -> EX ALL_DIFFERENT(ac_1.intention_far, ac_2.intention_far, ac_3.intention_far, ac_4.intention_far));
+
+
+--
+-- V-3
+--
+CTLSPEC NAME V-3-CTL :=
+  -- It is always possible for an aircraft to maintain its intention_current.
+  AG EF (maneuvering_phase -> EX(ac_1.intention_current = ac_1_last_intention_current)) &
+  AG EF (maneuvering_phase -> EX(ac_2.intention_current = ac_2_last_intention_current)) &
+  AG EF (maneuvering_phase -> EX(ac_3.intention_current = ac_3_last_intention_current)) &
+  AG EF (maneuvering_phase -> EX(ac_4.intention_current = ac_4_last_intention_current));
+
+
+CTLSPEC NAME V-3-CTL-PRE :=
+  -- Precondition of V-3 (All intention_currents can be used)
+ (EF (maneuvering_phase & ac_1.intention_current = 1) & EF (maneuvering_phase & ac_1.intention_current = 2) & EF (maneuvering_phase & ac_1.intention_current = 3) & EF (maneuvering_phase & ac_1.intention_current = 4)) &
+ (EF (maneuvering_phase & ac_2.intention_current = 1) & EF (maneuvering_phase & ac_2.intention_current = 2) & EF (maneuvering_phase & ac_2.intention_current = 3) & EF (maneuvering_phase & ac_2.intention_current = 4)) &
+ (EF (maneuvering_phase & ac_3.intention_current = 1) & EF (maneuvering_phase & ac_3.intention_current = 2) & EF (maneuvering_phase & ac_3.intention_current = 3) & EF (maneuvering_phase & ac_3.intention_current = 4)) &
+ (EF (maneuvering_phase & ac_4.intention_current = 1) & EF (maneuvering_phase & ac_4.intention_current = 2) & EF (maneuvering_phase & ac_4.intention_current = 3) & EF (maneuvering_phase & ac_4.intention_current = 4));
+
+
+--
+-- V-4
+--
+CTLSPEC NAME V-4-CTL :=
+  -- It is always possible for an aircraft to change its intention_current in
+  -- the maneuvering phase.
+  AG EF(maneuvering_phase -> EX(ac_1.intention_current != ac_1_last_intention_current)) &
+  AG EF(maneuvering_phase -> EX(ac_2.intention_current != ac_2_last_intention_current)) &
+  AG EF(maneuvering_phase -> EX(ac_3.intention_current != ac_3_last_intention_current)) &
+  AG EF(maneuvering_phase -> EX(ac_4.intention_current != ac_4_last_intention_current));
+
+
+--
+-- V-5
+--
+CTLSPEC NAME V-5-CTL-Near :=
+  -- It is always possible for an aircraft to define any intention (Near-).
+  AG EF(communication_phase -> ( (EX (ac_1.intention_near = 1)) & (EX (ac_1.intention_near = 2)) & (EX (ac_1.intention_near = 3)) & (EX (ac_1.intention_near = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_2.intention_near = 1)) & (EX (ac_2.intention_near = 2)) & (EX (ac_2.intention_near = 3)) & (EX (ac_2.intention_near = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_3.intention_near = 1)) & (EX (ac_3.intention_near = 2)) & (EX (ac_3.intention_near = 3)) & (EX (ac_3.intention_near = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_4.intention_near = 1)) & (EX (ac_4.intention_near = 2)) & (EX (ac_4.intention_near = 3)) & (EX (ac_4.intention_near = 4))));
+
+CTLSPEC NAME V-5-CTL-Mid :=
+  -- It is always possible for an aircraft to define any intention (Mid-).
+  AG EF(communication_phase -> ( (EX (ac_1.intention_mid = 1)) & (EX (ac_1.intention_mid = 2)) & (EX (ac_1.intention_mid = 3)) & (EX (ac_1.intention_mid = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_2.intention_mid = 1)) & (EX (ac_2.intention_mid = 2)) & (EX (ac_2.intention_mid = 3)) & (EX (ac_2.intention_mid = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_3.intention_mid = 1)) & (EX (ac_3.intention_mid = 2)) & (EX (ac_3.intention_mid = 3)) & (EX (ac_3.intention_mid = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_4.intention_mid = 1)) & (EX (ac_4.intention_mid = 2)) & (EX (ac_4.intention_mid = 3)) & (EX (ac_4.intention_mid = 4))));
+
+CTLSPEC NAME V-5-CTL-Far :=
+  -- It is always possible for an aircraft to define any intention (Far-).
+  AG EF(communication_phase -> ( (EX (ac_1.intention_far = 1)) & (EX (ac_1.intention_far = 2)) & (EX (ac_1.intention_far = 3)) & (EX (ac_1.intention_far = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_2.intention_far = 1)) & (EX (ac_2.intention_far = 2)) & (EX (ac_2.intention_far = 3)) & (EX (ac_2.intention_far = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_3.intention_far = 1)) & (EX (ac_3.intention_far = 2)) & (EX (ac_3.intention_far = 3)) & (EX (ac_3.intention_far = 4)))) &
+  AG EF(communication_phase -> ( (EX (ac_4.intention_far = 1)) & (EX (ac_4.intention_far = 2)) & (EX (ac_4.intention_far = 3)) & (EX (ac_4.intention_far = 4))));
+
+
+--
+-- V-6
+--
+CTLSPEC NAME V-6-CTL-Near :=
+  -- It is always possible for an aircraft to receive any suggestion (Near-).
+  --- Ground
+  AG ((EX (ac_1_suggestion_near_ground = 1)) & (EX (ac_1_suggestion_near_ground = 2)) & (EX (ac_1_suggestion_near_ground = 3)) & (EX (ac_1_suggestion_near_ground = 4))) &
+  AG ((EX (ac_2_suggestion_near_ground = 1)) & (EX (ac_2_suggestion_near_ground = 2)) & (EX (ac_2_suggestion_near_ground = 3)) & (EX (ac_2_suggestion_near_ground = 4))) &
+  AG ((EX (ac_3_suggestion_near_ground = 1)) & (EX (ac_3_suggestion_near_ground = 2)) & (EX (ac_3_suggestion_near_ground = 3)) & (EX (ac_3_suggestion_near_ground = 4))) &
+  AG ((EX (ac_4_suggestion_near_ground = 1)) & (EX (ac_4_suggestion_near_ground = 2)) & (EX (ac_4_suggestion_near_ground = 3)) & (EX (ac_4_suggestion_near_ground = 4))) &
+  --- ACDR
+  AG ((EX (ac_1_suggestion_near_cdr = 1)) & (EX (ac_1_suggestion_near_cdr = 2)) & (EX (ac_1_suggestion_near_cdr = 3)) & (EX (ac_1_suggestion_near_cdr = 4))) &
+  AG ((EX (ac_2_suggestion_near_cdr = 1)) & (EX (ac_2_suggestion_near_cdr = 2)) & (EX (ac_2_suggestion_near_cdr = 3)) & (EX (ac_2_suggestion_near_cdr = 4))) &
+  AG ((EX (ac_3_suggestion_near_cdr = 1)) & (EX (ac_3_suggestion_near_cdr = 2)) & (EX (ac_3_suggestion_near_cdr = 3)) & (EX (ac_3_suggestion_near_cdr = 4))) &
+  AG ((EX (ac_4_suggestion_near_cdr = 1)) & (EX (ac_4_suggestion_near_cdr = 2)) & (EX (ac_4_suggestion_near_cdr = 3)) & (EX (ac_4_suggestion_near_cdr = 4)));
+
+CTLSPEC NAME V-6-CTL-Mid :=
+  -- It is always possible for an aircraft to receive any suggestion (Mid-).
+  --- Ground
+  AG ((EX (ac_1_suggestion_mid_ground = 1)) & (EX (ac_1_suggestion_mid_ground = 2)) & (EX (ac_1_suggestion_mid_ground = 3)) & (EX (ac_1_suggestion_mid_ground = 4))) &
+  AG ((EX (ac_2_suggestion_mid_ground = 1)) & (EX (ac_2_suggestion_mid_ground = 2)) & (EX (ac_2_suggestion_mid_ground = 3)) & (EX (ac_2_suggestion_mid_ground = 4))) &
+  AG ((EX (ac_3_suggestion_mid_ground = 1)) & (EX (ac_3_suggestion_mid_ground = 2)) & (EX (ac_3_suggestion_mid_ground = 3)) & (EX (ac_3_suggestion_mid_ground = 4))) &
+  AG ((EX (ac_4_suggestion_mid_ground = 1)) & (EX (ac_4_suggestion_mid_ground = 2)) & (EX (ac_4_suggestion_mid_ground = 3)) & (EX (ac_4_suggestion_mid_ground = 4))) &
+  --- ACDR
+  AG ((EX (ac_1_suggestion_mid_cdr = 1)) & (EX (ac_1_suggestion_mid_cdr = 2)) & (EX (ac_1_suggestion_mid_cdr = 3)) & (EX (ac_1_suggestion_mid_cdr = 4))) &
+  AG ((EX (ac_2_suggestion_mid_cdr = 1)) & (EX (ac_2_suggestion_mid_cdr = 2)) & (EX (ac_2_suggestion_mid_cdr = 3)) & (EX (ac_2_suggestion_mid_cdr = 4))) &
+  AG ((EX (ac_3_suggestion_mid_cdr = 1)) & (EX (ac_3_suggestion_mid_cdr = 2)) & (EX (ac_3_suggestion_mid_cdr = 3)) & (EX (ac_3_suggestion_mid_cdr = 4))) &
+  AG ((EX (ac_4_suggestion_mid_cdr = 1)) & (EX (ac_4_suggestion_mid_cdr = 2)) & (EX (ac_4_suggestion_mid_cdr = 3)) & (EX (ac_4_suggestion_mid_cdr = 4)));
+
+CTLSPEC NAME V-6-CTL-Far :=
+  -- It is always possible for an aircraft to receive any suggestion (Far-).
+  --- Ground
+  AG ((EX (ac_1_suggestion_far_ground = 1)) & (EX (ac_1_suggestion_far_ground = 2)) & (EX (ac_1_suggestion_far_ground = 3)) & (EX (ac_1_suggestion_far_ground = 4))) &
+  AG ((EX (ac_2_suggestion_far_ground = 1)) & (EX (ac_2_suggestion_far_ground = 2)) & (EX (ac_2_suggestion_far_ground = 3)) & (EX (ac_2_suggestion_far_ground = 4))) &
+  AG ((EX (ac_3_suggestion_far_ground = 1)) & (EX (ac_3_suggestion_far_ground = 2)) & (EX (ac_3_suggestion_far_ground = 3)) & (EX (ac_3_suggestion_far_ground = 4))) &
+  AG ((EX (ac_4_suggestion_far_ground = 1)) & (EX (ac_4_suggestion_far_ground = 2)) & (EX (ac_4_suggestion_far_ground = 3)) & (EX (ac_4_suggestion_far_ground = 4))) &
+  --- ACDR
+  AG ((EX (ac_1_suggestion_far_cdr = 1)) & (EX (ac_1_suggestion_far_cdr = 2)) & (EX (ac_1_suggestion_far_cdr = 3)) & (EX (ac_1_suggestion_far_cdr = 4))) &
+  AG ((EX (ac_2_suggestion_far_cdr = 1)) & (EX (ac_2_suggestion_far_cdr = 2)) & (EX (ac_2_suggestion_far_cdr = 3)) & (EX (ac_2_suggestion_far_cdr = 4))) &
+  AG ((EX (ac_3_suggestion_far_cdr = 1)) & (EX (ac_3_suggestion_far_cdr = 2)) & (EX (ac_3_suggestion_far_cdr = 3)) & (EX (ac_3_suggestion_far_cdr = 4))) &
+  AG ((EX (ac_4_suggestion_far_cdr = 1)) & (EX (ac_4_suggestion_far_cdr = 2)) & (EX (ac_4_suggestion_far_cdr = 3)) & (EX (ac_4_suggestion_far_cdr = 4)));
+
+
+--
+-- MONITORS FOR PROPERTIES
+--
+
+-- Maneuvering Phase
+DEFINE maneuvering_phase := ! communication_phase;
+
+-- Last Intention_Current (V-3)
+VAR
+  ac_1_last_intention_current: TRJ_TYPE;
+ASSIGN
+  init(ac_1_last_intention_current) := ac_1.intention_current;
+  next(ac_1_last_intention_current) := ac_1.intention_current;
+
+VAR
+  ac_2_last_intention_current: TRJ_TYPE;
+ASSIGN
+  init(ac_2_last_intention_current) := ac_2.intention_current;
+  next(ac_2_last_intention_current) := ac_2.intention_current;
+
+VAR
+  ac_3_last_intention_current: TRJ_TYPE;
+ASSIGN
+  init(ac_3_last_intention_current) := ac_3.intention_current;
+  next(ac_3_last_intention_current) := ac_3.intention_current;
+
+VAR
+  ac_4_last_intention_current: TRJ_TYPE;
+ASSIGN
+  init(ac_4_last_intention_current) := ac_4.intention_current;
+  next(ac_4_last_intention_current) := ac_4.intention_current;
+
+
+-- Suggestion from ACDR (V-6)
+DEFINE
+  ac_1_suggestion_near_cdr := ac_1.cdr.suggestion_near;
+  ac_2_suggestion_near_cdr := ac_2.cdr.suggestion_near;
+  ac_3_suggestion_near_cdr := ac_3.cdr.suggestion_near;
+  ac_4_suggestion_near_cdr := ac_4.cdr.suggestion_near;
+
+  ac_1_suggestion_mid_cdr := ac_1.cdr.suggestion_mid;
+  ac_2_suggestion_mid_cdr := ac_2.cdr.suggestion_mid;
+  ac_3_suggestion_mid_cdr := ac_3.cdr.suggestion_mid;
+  ac_4_suggestion_mid_cdr := ac_4.cdr.suggestion_mid;
+
+  ac_1_suggestion_far_cdr := ac_1.cdr.suggestion_far;
+  ac_2_suggestion_far_cdr := ac_2.cdr.suggestion_far;
+  ac_3_suggestion_far_cdr := ac_3.cdr.suggestion_far;
+  ac_4_suggestion_far_cdr := ac_4.cdr.suggestion_far;
+
+-- Suggestions from Ground (V-6)
+DEFINE
+  ac_1_suggestion_near_ground:= ac_1.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_1_suggestion_mid_ground:= ac_1.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_1_suggestion_far_ground:= ac_1.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_2_suggestion_near_ground:= ac_2.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_2_suggestion_mid_ground:= ac_2.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_2_suggestion_far_ground:= ac_2.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_3_suggestion_near_ground:= ac_3.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_3_suggestion_mid_ground:= ac_3.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_3_suggestion_far_ground:= ac_3.pilot.protocol_policy.input_suggestion_far_ground;
+
+  ac_4_suggestion_near_ground := ac_4.pilot.protocol_policy.input_suggestion_near_ground;
+  ac_4_suggestion_mid_ground:= ac_4.pilot.protocol_policy.input_suggestion_mid_ground;
+  ac_4_suggestion_far_ground:= ac_4.pilot.protocol_policy.input_suggestion_far_ground;

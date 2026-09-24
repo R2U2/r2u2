@@ -1,0 +1,172 @@
+--
+-- The Route Manager keeps track of the intentions of the aircraft
+--
+-- Faults: Fails to apply the resolution provided by the Protocol Policy
+--
+--- Author: Marco Gario <gario@fbk.eu>
+#include "../../oss/header.h"
+
+--
+-- !!! Users should #define EXTENDED_MODEL {0,1} !!!
+--
+#ifndef EXTENDED_MODEL
+#error "Option EXTENDED_MODEL must be set before using this file"
+#endif
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            RouteManager_inst : RouteManager(self_id, suggestion_near, suggestion_mid, suggestion_far, communication_phase);
+        FROZENVAR
+            self_id: AC_ID_TYPE;
+        VAR
+            suggestion_near : TRJ_TYPE;
+            suggestion_mid : TRJ_TYPE;
+            suggestion_far : TRJ_TYPE;
+            communication_phase : boolean;
+        DEFINE
+            intention_current := RouteManager_inst.intention_current;
+            intention_near := RouteManager_inst.intention_near;
+            intention_mid := RouteManager_inst.intention_mid;
+            intention_far := RouteManager_inst.intention_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE RouteManager(self_id, suggestion_near, suggestion_mid, suggestion_far, communication_phase)
+        VAR
+            -- NOTE: We are not passing down the suggestion directly,
+            -- but we are modifying it due to the fault extension
+            -- (ext_*)
+            nominal : RouteManager_Nominal(self_id, ext_suggestion_near, ext_suggestion_mid, ext_suggestion_far, communication_phase);
+
+        #if EXTENDED_MODEL
+        VAR
+            -- Fault dynamics
+            fault_apply_near__dynamic: TransientFault;
+            fault_apply_mid__dynamic: TransientFault;
+            fault_apply_far__dynamic: TransientFault;
+
+        DEFINE
+            -- Fault events
+            fault_apply_near__event := fault_apply_near__dynamic.fault_event;
+            fault_apply_mid__event  := fault_apply_mid__dynamic.fault_event;
+            fault_apply_far__event  := fault_apply_far__dynamic.fault_event;
+
+        DEFINE
+            -- Fault State
+            fault_apply_near := fault_apply_near__dynamic.has_fault;
+            fault_apply_mid  := fault_apply_mid__dynamic.has_fault;
+            fault_apply_far  := fault_apply_far__dynamic.has_fault;
+
+        VAR
+            faulty_suggestion_near : TRJ_TYPE;
+            faulty_suggestion_mid : TRJ_TYPE;
+            faulty_suggestion_far : TRJ_TYPE;
+
+        INVAR
+            faulty_suggestion_near != TRJ_NOP &
+            faulty_suggestion_mid != TRJ_NOP &
+            faulty_suggestion_far != TRJ_NOP;
+
+        #if ENABLE_FAULTS_COUNT
+        DEFINE
+          __fault_cnt := count(fault_apply_near, fault_apply_mid, fault_apply_far);
+        #endif
+
+        #else
+        -- Nominal Model -> Fault = FALSE;
+        DEFINE
+            fault_apply_near := FALSE;
+            fault_apply_mid  := FALSE;
+            fault_apply_far  := FALSE;
+            faulty_suggestion_near  := TRJ_NOP;
+            faulty_suggestion_mid   := TRJ_NOP;
+            faulty_suggestion_far   := TRJ_NOP;
+        #endif
+
+        DEFINE
+            ext_suggestion_near := fault_apply_near ? faulty_suggestion_near :
+                                                             suggestion_near;
+            ext_suggestion_mid := fault_apply_mid ? faulty_suggestion_mid :
+                                                           suggestion_mid;
+            ext_suggestion_far := fault_apply_far ? faulty_suggestion_far :
+                                                           suggestion_far;
+
+        DEFINE
+            intention_current := nominal.intention_current;
+            intention_near := nominal.intention_near;
+            intention_mid := nominal.intention_mid;
+            intention_far := nominal.intention_far;
+
+        INVARSPEC NAME RouteManager_apply_suggestions_norm_guarantee :=
+            (communication_phase -> ((next(intention_near) =  (suggestion_near = 0 ? intention_near : suggestion_near)  &
+                                     next(intention_mid) =  (suggestion_mid = 0 ? intention_mid : suggestion_mid) ) &
+                                     next(intention_far) =  (suggestion_far = 0 ? intention_far : suggestion_far) ));
+
+        INVARSPEC NAME RouteManager_shift_windows_norm_guarantee :=
+            (!communication_phase -> (((next(intention_current) = intention_near &
+                                        next(intention_near) = intention_mid) &
+                                        next(intention_mid) = intention_far) &
+                                        next(intention_far) != 0));
+
+        LTLSPEC NAME RouteManager_initial_norm_guarantee :=
+            (((intention_current = self_id & intention_near = self_id) &
+               intention_mid = self_id) & intention_far = self_id);
+
+        INVARSPEC NAME RouteManager_intention_is_not_nop_norm_guarantee :=
+            (((intention_current != 0 & intention_near != 0) & intention_mid != 0) & intention_far != 0);
+
+        INVARSPEC NAME RouteManager_keep_current_norm_guarantee := (communication_phase -> next(intention_current) = intention_current);
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE RouteManager_Nominal(self_id, suggestion_near, suggestion_mid, suggestion_far, communication_phase)
+        VAR
+            intention_current : TRJ_TYPE;
+            intention_near : TRJ_TYPE;
+            intention_mid : TRJ_TYPE;
+            intention_far : TRJ_TYPE;
+
+        ---
+        --- Intentions cannot be NOP: We initialize the intentions to
+        --- the ID of the aircraft
+        ---
+        INIT intention_current = self_id &
+             intention_near = self_id &
+             intention_mid  = self_id &
+             intention_far  = self_id;
+
+        INVAR intention_far != TRJ_NOP;
+
+        ---
+        -- Apply the suggestion during communication phase, otherwise shift the windows
+        ---
+        TRANS next(intention_current) = (communication_phase ?
+                                         intention_current:
+                                         intention_near);
+
+        TRANS next(intention_near) = (communication_phase ?
+                                      DEFAULT_IF_NOP(suggestion_near, intention_near) :
+                                      intention_mid);
+
+        TRANS next(intention_mid) = (communication_phase ?
+                                     DEFAULT_IF_NOP(suggestion_mid, intention_mid) :
+                                     intention_far);
+
+        TRANS next(intention_far) = (communication_phase ?
+                                        DEFAULT_IF_NOP(suggestion_far, intention_far) :
+                                        next(intention_far)); -- non-deterministic choice
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+#if EXTENDED_MODEL
+#include "fault_dynamics.smv"
+#endif

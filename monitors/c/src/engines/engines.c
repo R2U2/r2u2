@@ -1,103 +1,61 @@
-#include "internals/errors.h"
-#include "r2u2.h"
 
-#include <stdio.h>
-#include <string.h> // For memcpy
+#include "engines.h"
+#include "booleanizer.h"
+#include "mltl.h"
+#include "../internals/debug.h"
 
-#include "engines/engines.h"
-#include "engines/booleanizer.h"
-#include "engines/mltl.h"
-
-#include "memory/register.h" // For buffer flip
-// r2u2_status_t (*r2u2_engine_func_table[])(r2u2_instruction_t *) = {
-
-// };
-
-// TODO(bckempa): This should be refactored to seperate out the raw dispatch
-// case statement for use by immediate commands in binary_load.c
-//
-// Assumption: Program counter points at next instruction to execute
-r2u2_status_t r2u2_instruction_dispatch(r2u2_monitor_t *monitor) {
+r2u2_status_t r2u2_engine_step(r2u2_monitor_t* monitor) {
     r2u2_status_t error_cond;
 
-    R2U2_DEBUG_PRINT("%d.%zu.%d\n",monitor->time_stamp, monitor->prog_count, monitor->progress);
-    switch ((*monitor->instruction_tbl)[monitor->prog_count].engine_tag) {
-      case R2U2_ENG_NA: {
-        R2U2_DEBUG_PRINT("\n");
-
-        switch (monitor->progress) {
-          // Yes two of these cases are identical - the compiler will optimize
-          case R2U2_MONITOR_PROGRESS_FIRST_LOOP: {
-            // First pass complete, rerun program counter to check for progress
-            monitor->prog_count = 0;
-            monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
-            break;
-          }
-          case R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS: {
-            // Progress made this loop, rerun program counter
-            monitor->prog_count = 0;
-            monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
-            break;
-          }
-          case R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS: {
-            // End of timestep - setup for next step
-
-            #if R2U2_DEBUG
-            // Debug print atomics at end of timestep
-            R2U2_TRACE_PRINT("ATM VEC ADDR: [%p]\n", monitor->atomic_buffer);
-            R2U2_DEBUG_PRINT("Atomic Vector:\n[");
-            for (int i=0; i < R2U2_MAX_ATOMICS-1; ++i) {
-              R2U2_DEBUG_PRINT("%d, ", (*(monitor->atomic_buffer))[i]);
-            }
-            R2U2_DEBUG_PRINT("%d]\n", (*(monitor->atomic_buffer))[R2U2_MAX_ATOMICS-1]);
-            #endif
-
-            // Update Vector Clock for next timestep
-            monitor->time_stamp++;
-            monitor->prog_count = 0;
-            monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
-            break;
-          }
-          default:{
-            R2U2_DEBUG_PRINT("Warning: Bad Progress State\n");
-            break;
-          }
-        }
-
-        return R2U2_OK; // Early return to keep program counter at 0
-      }
-      case R2U2_ENG_SY: {
-        R2U2_DEBUG_PRINT("Got SY Inst\n");
-        error_cond = R2U2_OK;
-        break;
-      }
-      case R2U2_ENG_CG: {
-        // This header should be stripped before you get here, but we'll
-        // silently allow this for now in case of weird bin layouts
-        // TODO(bckempa): Debug only warning for config cmds at non-zero time
-        error_cond = R2U2_OK;
-        break;
-      }
-      case R2U2_ENG_TL: {
-        error_cond = r2u2_mltl_instruction_dispatch(monitor, (r2u2_mltl_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
-        break;
-      }
-      case R2U2_ENG_BZ: {
-        // Only process BZ once per timestep
-        if (monitor->progress == R2U2_MONITOR_PROGRESS_FIRST_LOOP) {
-          error_cond = r2u2_bz_instruction_dispatch(monitor, (r2u2_bz_instruction_t*)(*monitor->instruction_tbl)[monitor->prog_count].instruction_data);
-        } else {
-          error_cond = R2U2_OK;
-        }
-        break;
-      }
-      default: {
-          R2U2_DEBUG_PRINT("Warning: Bad Engine Type\n");
-          return R2U2_ERR_OTHER;
-      }
+    // Operate over all BZ instructions first and only once on each step forward
+    R2U2_DEBUG_PRINT("(BZ) %d.%zu\n",monitor->time_stamp, monitor->bz_program_count.curr_program_count);
+    while(monitor->bz_program_count.curr_program_count < monitor->bz_program_count.max_program_count){
+      error_cond = r2u2_bz_update(monitor);
+      monitor->bz_program_count.curr_program_count++;
     }
+    monitor->bz_program_count.curr_program_count = 0;
 
-    // Standard return increments PC, any other action like resets return early
-    monitor->prog_count++;
+    // Operate over all MLTL instructions until no further progress is made
+    r2u2_time start_time = monitor->time_stamp;
+    while(start_time == monitor->time_stamp){
+       while(monitor->mltl_program_count.curr_program_count < monitor->mltl_program_count.max_program_count){
+        R2U2_DEBUG_PRINT("(TL) %d.%zu.%d\n",monitor->time_stamp, monitor->mltl_program_count.curr_program_count, monitor->progress);
+        error_cond = r2u2_mltl_update(monitor);
+        monitor->mltl_program_count.curr_program_count++;
+      }
+      switch (monitor->progress) {
+        case R2U2_MONITOR_PROGRESS_FIRST_LOOP: {
+          // First pass complete, rerun program counter to check for progress
+          monitor->mltl_program_count.curr_program_count= 0;
+          monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
+          break;
+        }
+        case R2U2_MONITOR_PROGRESS_RELOOP_WITH_PROGRESS: {
+          // Progress made this loop, rerun program counter
+          monitor->mltl_program_count.curr_program_count= 0;
+          monitor->progress = R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS;
+          break;
+        }
+        case R2U2_MONITOR_PROGRESS_RELOOP_NO_PROGRESS: {
+          // End of timestep - setup for next step
+
+          #if R2U2_DEBUG
+          // Debug print atomics at end of timestep
+          R2U2_TRACE_PRINT("ATM VEC ADDR: [%p]\n", monitor->atomic_buffer);
+          R2U2_DEBUG_PRINT("Atomic Vector:\n[");
+          for (int i=0; i < R2U2_MAX_ATOMICS-1; ++i) {
+            R2U2_DEBUG_PRINT("%d, ", (monitor->atomic_buffer)[i]);
+          }
+          R2U2_DEBUG_PRINT("%d]\n", (monitor->atomic_buffer)[R2U2_MAX_ATOMICS-1]);
+          #endif
+
+          // Update clock for next timestep
+          monitor->time_stamp++;
+          monitor->mltl_program_count.curr_program_count = 0;
+          monitor->progress = R2U2_MONITOR_PROGRESS_FIRST_LOOP;
+          break;
+        }
+    }
+  }
     return error_cond;
 }

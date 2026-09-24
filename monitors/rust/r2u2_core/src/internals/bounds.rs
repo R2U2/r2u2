@@ -1,5 +1,5 @@
 use crate::internals::types::r2u2_float;
-use const_env::from_env;
+use const_env::env_item;
 
 /// Represents maximum number of output verdicts that can be returned at a single timestamp
 /// 
@@ -11,7 +11,7 @@ use const_env::from_env;
 /// R2U2_MAX_OUTPUT_VERDICTS = { value = "32", force = true }
 /// ```
 /// 
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_OUTPUT_VERDICTS: usize = 256;
 
 /// Represents maximum number of output contract statuses that can be returned at a single timestamp (only utilized when aux_string_specs feature is enabled)
@@ -25,22 +25,38 @@ pub const R2U2_MAX_OUTPUT_VERDICTS: usize = 256;
 /// ```
 /// 
 #[cfg(feature = "aux_string_specs")]
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_OUTPUT_CONTRACTS: usize = 128;
 
-/// Represents maximum number of specifications being monitored (only utilized when aux_string_specs feature is enabled)
+/// Number of formula auxilary information metadata blocks
+/// Represents maximum number of formulas being monitored (only utilized when aux_string_specs feature is enabled)
 /// 
 /// Adjust by setting in .cargo/config.toml of parent project
 /// 
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_MAX_SPECS = { value = "32", force = true }
+/// R2U2_AUX_MAX_FORMULAS = { value = "32", force = true }
 /// ```
 /// 
 #[cfg(feature = "aux_string_specs")]
-#[from_env]
-pub const R2U2_MAX_SPECS: usize = 256;
+#[env_item]
+pub const R2U2_AUX_MAX_FORMULAS: usize = 128;
+
+/// Number of assume-guarantee contract (AGC) auxilary information metadata blocks
+/// Represents maximum number of assume-guarantee contracts being monitored (only utilized when aux_string_specs feature is enabled)
+/// 
+/// Adjust by setting in .cargo/config.toml of parent project
+/// 
+/// # Examples
+/// ```
+/// [env]
+/// R2U2_AUX_MAX_CONTRACTS = { value = "32", force = true }
+/// ```
+/// 
+#[cfg(feature = "aux_string_specs")]
+#[env_item]
+pub const R2U2_AUX_MAX_CONTRACTS: usize = 64;
 
 /// Represents maximum number of input signals
 /// 
@@ -52,7 +68,7 @@ pub const R2U2_MAX_SPECS: usize = 256;
 /// R2U2_MAX_SIGNALS = { value = "64", force = true }
 /// ```
 /// 
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_SIGNALS: usize = 256;
 
 /// Represents maximum number of Booleans passed from the front-end (booleanizer or directly loaded atomics) to the temporal logic engine
@@ -65,7 +81,7 @@ pub const R2U2_MAX_SIGNALS: usize = 256;
 /// R2U2_MAX_ATOMICS = { value = "128", force = true }
 /// ```
 /// 
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_ATOMICS: usize = 256;
 
 /// Represents maximum number of booleanizer instructions
@@ -78,7 +94,7 @@ pub const R2U2_MAX_ATOMICS: usize = 256;
 /// R2U2_MAX_BZ_INSTRUCTIONS = { value = "256", force = true }
 /// ```
 /// 
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_BZ_INSTRUCTIONS: usize = 256;
 
 /// Represents maximum number of temporal logic instructions
@@ -91,7 +107,7 @@ pub const R2U2_MAX_BZ_INSTRUCTIONS: usize = 256;
 /// R2U2_MAX_TL_INSTRUCTIONS = { value = "256", force = true }
 /// ```
 /// 
-#[from_env]
+#[env_item]
 pub const R2U2_MAX_TL_INSTRUCTIONS: usize = 256;
 
 /// Represents total number of SCQ slots for both future-time and past-time reasoning
@@ -101,10 +117,10 @@ pub const R2U2_MAX_TL_INSTRUCTIONS: usize = 256;
 /// # Examples
 /// ```
 /// [env]
-/// R2U2_TOTAL_QUEUE_SLOTS = { value = "1024", force = true }
+/// R2U2_MAX_QUEUE_SLOTS = { value = "1024", force = true }
 /// ```
 /// 
-#[from_env]
-pub const R2U2_TOTAL_QUEUE_SLOTS: usize = 2048;
+#[env_item]
+pub const R2U2_MAX_QUEUE_SLOTS: usize = 2048;
 
 pub const R2U2_FLOAT_EPSILON: r2u2_float =  0.00001;

@@ -1,15 +1,14 @@
 #ifndef R2U2_TYPES_H
 #define R2U2_TYPES_H
 
-#include <stddef.h>   // For size_t (used elsewhere but assumed in types.h)
-#include <stdbool.h>  // For booleans
+#include <stddef.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <string.h> // memcpy
-#include <limits.h> // CHAR_BIT
 
-#include "internals/bounds.h"
+#include "bounds.h"
+#include "config.h"
 
-// Use with care! Much better leave off than be wrong, really only for one-off
+// Use with care! Much better to leave off than be wrong; really only for one-off
 // branches, like first time checks.
 #define r2u2_likely(x)       __builtin_expect(!!(x), 1)
 #define r2u2_unlikely(x)     __builtin_expect(!!(x), 0)
@@ -20,8 +19,6 @@
 #endif
 
 #ifndef r2u2_int
-    // Meant to define a signal / AT or BZ int size
-    // TODO(bckempa): in use by Box Queues, to be changed....
     #define r2u2_int int32_t
 #endif
 
@@ -34,40 +31,58 @@
     #define r2u2_time uint32_t
 #endif
 
+#ifndef r2u2_addr
+    #define r2u2_addr uint32_t
+#endif
+
 #ifndef r2u2_infinity
     // If not defined (i.e. limited), assumed to be max of r2u2_time
     // per §6.2.5/9 casting negative 1 to unsigned int gives max value
     #define r2u2_infinity ((r2u2_time)-1)
 #endif
 
-// TODO(bckempa): Need a type gurenteed for indexing
-//                (see binary_load.c)
-
-// Consistency Checks
-// https://stackoverflow.com/questions/174356/ways-to-assert-expressions-at-build-time-in-c
-
 // Common Derived Types
 
-/* Truth-n'-Time (TNT)
- * Combines truth (as the MSB) and the timestamp into a single value.
- * Typdefed seperatly to ensure differentiation from pure timestamps.
+/* Verdict-timestamp tuple in single r2u2_time value.
+ * Combines truth (as the MSB) and the timestamp (as the other 31 bits) into a single value.
+ * Typdefed separately to ensure differentiation from pure timestamps.
  * This signficantly improves queue memory effiency since booleans took full
- * bytes and then required additioanl padding wasting about 31 bits per queue
+ * bytes and then required additional padding wasting about 31 bits per queue
  * slot depending on the platform and timestep width.
  */
-typedef r2u2_time r2u2_tnt_t;
-static const size_t R2U2_TNT_BITS = sizeof(r2u2_tnt_t) * CHAR_BIT;
-static const r2u2_tnt_t R2U2_TNT_TIME = (((r2u2_tnt_t)-1) >> 1);
-static const r2u2_tnt_t R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
-static const r2u2_tnt_t R2U2_TNT_FALSE = 0;
+typedef r2u2_time r2u2_verdict;
+static const r2u2_verdict R2U2_TNT_TIME = (((r2u2_verdict)-1) >> 1);
+static const r2u2_verdict R2U2_TNT_TRUE = ~R2U2_TNT_TIME;
 
-typedef struct {
-    // Time & Truth
-    r2u2_time time;
-    r2u2_bool truth;
-} r2u2_verdict;
+/// @brief      Inline function that returns truth bit of verdict-timestamp tuple
+/// @param[in]  result  Verdict-timestamp tuple of type r2u2_verdict
+/// @return     r2u2_bool Boolean representing truth bit (MSB)
+static inline ALWAYS_INLINE r2u2_bool get_verdict_truth(r2u2_verdict result){
+    return result & R2U2_TNT_TRUE;
+}
 
-typedef union r2u2_value {
+/// @brief      Inline function that returns timestamp of verdict-timestamp tuple
+/// @param[in]  result  Verdict-timestamp tuple of type r2u2_verdict
+/// @return     r2u2_time Integer representing the timestamp (31 LSBs)
+static inline ALWAYS_INLINE r2u2_time get_verdict_time(r2u2_verdict result){
+    return result & R2U2_TNT_TIME;
+}
+
+/// @brief      Inline function that sets the truth bit to true and returns tuple
+/// @param[in]  time  Verdict-timestamp tuple (or just a timestamp) of type r2u2_verdict
+/// @return     r2u2_verdict Verdict-timestamp tuple with the truth bit set to true
+static inline ALWAYS_INLINE r2u2_verdict set_verdict_true(r2u2_verdict time){
+    return time | R2U2_TNT_TRUE;
+}
+
+/// @brief      Inline function that sets the truth bit to false and returns tuple
+/// @param[in]  time  Verdict-timestamp tuple (or just a timestamp) of type r2u2_verdict
+/// @return     r2u2_verdict Verdict-timestamp tuple with the truth bit set to false
+static inline ALWAYS_INLINE r2u2_verdict set_verdict_false(r2u2_verdict time){
+    return time & R2U2_TNT_TIME;
+}
+
+typedef union {
     // Notice that we store booleans as integers so we do not require 
     // boolean specific instructions (e.g., BLOAD or BADD)
     r2u2_int i;

@@ -1,0 +1,7 @@
+INPUT
+    arr1: int[3];
+    arr2: int[5];
+
+FTSPEC
+    arr1 == arr2[0..2];
+    foreach(a:arr2[3..4])(a > 1);

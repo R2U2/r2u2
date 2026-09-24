@@ -1,0 +1,146 @@
+#include "../../oss/header.h"
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            GCDR_inst : GCDR(burdening_rule,
+                             ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+	    	      	     ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+			     ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                             ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+			     ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+			     ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                             ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+			     ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+			     ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                             ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+			     ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+			     ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground);
+        VAR
+            ac_1_intention_current : TRJ_TYPE;
+            ac_1_intention_near : TRJ_TYPE;
+            ac_1_intention_mid : TRJ_TYPE;
+            ac_1_intention_far : TRJ_TYPE;
+            ac_1_request_ts_sa_ground : boolean;
+            ac_1_request_ss_sa_ground : boolean;
+
+            ac_2_intention_current : TRJ_TYPE;
+            ac_2_intention_near : TRJ_TYPE;
+            ac_2_intention_mid : TRJ_TYPE;
+            ac_2_intention_far : TRJ_TYPE;
+            ac_2_request_ts_sa_ground : boolean;
+            ac_2_request_ss_sa_ground : boolean;
+
+            ac_3_intention_current : TRJ_TYPE;
+            ac_3_intention_near : TRJ_TYPE;
+            ac_3_intention_mid : TRJ_TYPE;
+            ac_3_intention_far : TRJ_TYPE;
+            ac_3_request_ts_sa_ground : boolean;
+            ac_3_request_ss_sa_ground : boolean;
+
+            ac_4_intention_current : TRJ_TYPE;
+            ac_4_intention_near : TRJ_TYPE;
+            ac_4_intention_mid : TRJ_TYPE;
+            ac_4_intention_far : TRJ_TYPE;
+            ac_4_request_ts_sa_ground : boolean;
+            ac_4_request_ss_sa_ground : boolean;
+
+        FROZENVAR
+            burdening_rule : B_TYPE;
+            ac_1_ts_sa_agent : SA_TYPE;
+            ac_1_ss_sa_agent : SA_TYPE;
+            ac_2_ts_sa_agent : SA_TYPE;
+            ac_2_ss_sa_agent : SA_TYPE;
+            ac_3_ts_sa_agent : SA_TYPE;
+            ac_3_ss_sa_agent : SA_TYPE;
+            ac_4_ts_sa_agent : SA_TYPE;
+            ac_4_ss_sa_agent : SA_TYPE;
+        DEFINE
+            ac_1_predicted_conflict_near := GCDR_inst.ac_1_predicted_conflict_near;
+            ac_1_predicted_conflict_mid := GCDR_inst.ac_1_predicted_conflict_mid;
+            ac_1_predicted_conflict_far := GCDR_inst.ac_1_predicted_conflict_far;
+
+            ac_1_suggestion_near := GCDR_inst.ac_1_suggestion_near;
+            ac_1_suggestion_mid := GCDR_inst.ac_1_suggestion_mid;
+            ac_1_suggestion_far := GCDR_inst.ac_1_suggestion_far;
+
+            ac_2_predicted_conflict_near := GCDR_inst.ac_2_predicted_conflict_near;
+            ac_2_predicted_conflict_mid := GCDR_inst.ac_2_predicted_conflict_mid;
+            ac_2_predicted_conflict_far := GCDR_inst.ac_2_predicted_conflict_far;
+
+            ac_2_suggestion_near := GCDR_inst.ac_2_suggestion_near;
+            ac_2_suggestion_mid := GCDR_inst.ac_2_suggestion_mid;
+            ac_2_suggestion_far := GCDR_inst.ac_2_suggestion_far;
+
+            ac_3_predicted_conflict_near := GCDR_inst.ac_3_predicted_conflict_near;
+            ac_3_predicted_conflict_mid := GCDR_inst.ac_3_predicted_conflict_mid;
+            ac_3_predicted_conflict_far := GCDR_inst.ac_3_predicted_conflict_far;
+
+            ac_3_suggestion_near := GCDR_inst.ac_3_suggestion_near;
+            ac_3_suggestion_mid := GCDR_inst.ac_3_suggestion_mid;
+            ac_3_suggestion_far := GCDR_inst.ac_3_suggestion_far;
+
+            ac_4_predicted_conflict_near := GCDR_inst.ac_4_predicted_conflict_near;
+            ac_4_predicted_conflict_mid := GCDR_inst.ac_4_predicted_conflict_mid;
+            ac_4_predicted_conflict_far := GCDR_inst.ac_4_predicted_conflict_far;
+
+            ac_4_suggestion_near := GCDR_inst.ac_4_suggestion_near;
+            ac_4_suggestion_mid := GCDR_inst.ac_4_suggestion_mid;
+            ac_4_suggestion_far := GCDR_inst.ac_4_suggestion_far;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE GCDR(burdening_rule,
+                ac_1_ts_sa_agent, ac_1_ss_sa_agent, 
+	       	ac_1_intention_current, ac_1_intention_near, ac_1_intention_mid, ac_1_intention_far,
+		ac_1_request_ts_sa_ground, ac_1_request_ss_sa_ground,
+                ac_2_ts_sa_agent, ac_2_ss_sa_agent, 
+		ac_2_intention_current, ac_2_intention_near, ac_2_intention_mid, ac_2_intention_far,
+		ac_2_request_ts_sa_ground, ac_2_request_ss_sa_ground,
+                ac_3_ts_sa_agent, ac_3_ss_sa_agent, 
+		ac_3_intention_current, ac_3_intention_near, ac_3_intention_mid, ac_3_intention_far,
+		ac_3_request_ts_sa_ground, ac_3_request_ss_sa_ground,
+                ac_4_ts_sa_agent, ac_4_ss_sa_agent, 
+		ac_4_intention_current, ac_4_intention_near, ac_4_intention_mid, ac_4_intention_far,
+		ac_4_request_ts_sa_ground, ac_4_request_ss_sa_ground)
+        VAR
+            ac_1_predicted_conflict_near : boolean;
+            ac_1_predicted_conflict_mid : boolean;
+            ac_1_predicted_conflict_far : boolean;
+
+            ac_1_suggestion_near : TRJ_TYPE;
+            ac_1_suggestion_mid : TRJ_TYPE;
+            ac_1_suggestion_far : TRJ_TYPE;
+
+            ac_2_predicted_conflict_near : boolean;
+            ac_2_predicted_conflict_mid : boolean;
+            ac_2_predicted_conflict_far : boolean;
+
+            ac_2_suggestion_near : TRJ_TYPE;
+            ac_2_suggestion_mid : TRJ_TYPE;
+            ac_2_suggestion_far : TRJ_TYPE;
+
+            ac_3_predicted_conflict_near : boolean;
+            ac_3_predicted_conflict_mid : boolean;
+            ac_3_predicted_conflict_far : boolean;
+
+            ac_3_suggestion_near : TRJ_TYPE;
+            ac_3_suggestion_mid : TRJ_TYPE;
+            ac_3_suggestion_far : TRJ_TYPE;
+
+            ac_4_predicted_conflict_near : boolean;
+            ac_4_predicted_conflict_mid : boolean;
+            ac_4_predicted_conflict_far : boolean;
+
+            ac_4_suggestion_near : TRJ_TYPE;
+            ac_4_suggestion_mid : TRJ_TYPE;
+            ac_4_suggestion_far : TRJ_TYPE;
+
+            LTLSPEC NAME GCDR_suggestion_is_not_nop_norm_guarantee := (TRUE -> ((((((((((( G (ac_1_intention_near != 0 -> ac_1_suggestion_near != 0) &  G (ac_1_intention_mid != 0 -> ac_1_suggestion_mid != 0)) &  G (ac_1_intention_far != 0 -> ac_1_suggestion_far != 0)) &  G (ac_2_intention_near != 0 -> ac_2_suggestion_near != 0)) &  G (ac_2_intention_mid != 0 -> ac_2_suggestion_mid != 0)) &  G (ac_2_intention_far != 0 -> ac_2_suggestion_far != 0)) &  G (ac_3_intention_near != 0 -> ac_3_suggestion_near != 0)) &  G (ac_3_intention_mid != 0 -> ac_3_suggestion_mid != 0)) &  G (ac_3_intention_far != 0 -> ac_3_suggestion_far != 0)) &  G (ac_4_intention_near != 0 -> ac_4_suggestion_near != 0)) &  G (ac_4_intention_mid != 0 -> ac_4_suggestion_mid != 0)) &  G (ac_4_intention_far != 0 -> ac_4_suggestion_far != 0)));
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

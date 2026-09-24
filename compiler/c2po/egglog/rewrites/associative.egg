@@ -1,0 +1,11 @@
+(birewrite
+  (And2 (And2 a0 a1) a2)
+  (And2 a0 (And2 a1 a2))
+  :ruleset mltl-rewrites
+)
+
+(birewrite
+  (Or2 (Or2 a0 a1) a2)
+  (Or2 a0 (Or2 a1 a2))
+  :ruleset mltl-rewrites
+)

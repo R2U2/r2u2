@@ -1,0 +1,23 @@
+(sort IntervalSort)
+(constructor Interval (i64 i64) IntervalSort)
+
+(datatype MLTL
+  (Bool bool)
+  (Var String)
+  (Not MLTL)
+  (Implies MLTL MLTL)
+  (Equiv MLTL MLTL)
+  (And2 MLTL MLTL)
+  (And3 MLTL MLTL MLTL)
+  (And4 MLTL MLTL MLTL MLTL)
+  (Or2 MLTL MLTL)
+  (Or3 MLTL MLTL MLTL)
+  (Or4 MLTL MLTL MLTL MLTL)
+  (Global IntervalSort MLTL)
+  (Future IntervalSort MLTL)
+  (Until IntervalSort MLTL MLTL)
+  (Release IntervalSort MLTL MLTL)
+)
+
+(ruleset const-folding)
+(ruleset mltl-rewrites)

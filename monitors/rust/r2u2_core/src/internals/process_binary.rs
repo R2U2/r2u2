@@ -3,7 +3,7 @@ use crate::{engines, memory};
 use crate::instructions::{booleanizer::*, mltl::*};
 
 #[cfg(feature = "aux_string_specs")]
-use crate::instructions::aux::AuxiliaryInfo;
+use crate::instructions::aux_info::{FormulaAuxiliaryInfo, ContractAuxiliaryInfo};
 
 
 #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
@@ -45,6 +45,14 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
                     debug_print!("b{} = {}", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f);
                 }
                 _ => {
+                    // Special case: PREV instructions need to load initial value before R2U2 starts
+                    if instr.opcode == BZ_OP_PREV {
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+                        debug_print!("BZ PREV");
+                        monitor.value_buffer[instr.memory_reference as usize] = monitor.value_buffer[instr.param1 as usize];
+                        #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
+                        debug_print!("b{} = (b{})", instr.memory_reference, instr.param1);
+                    }                    
                     // Store instruction in table
                     monitor.bz_instruction_table[monitor.bz_program_count.max_program_count] = instr;
                     monitor.bz_program_count.max_program_count += 1;
@@ -86,19 +94,22 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
     }
 
     #[cfg(feature = "aux_string_specs")]{
-        let mut i = 0;
+        let mut aux_formula_num= 0;
+        let mut aux_contract_num = 0;
         let mut length;
         offset += 1;
         loop {
             match spec_file[offset] as char {
                 'C' => { // Contract auxiliary info
-                    (monitor.aux_string_table[i], length) = AuxiliaryInfo::set_contract(&spec_file[offset..]);
+                    (monitor.contract_aux_string_table[aux_contract_num], length) = ContractAuxiliaryInfo::set_contract(&spec_file[offset..]);
+                    aux_contract_num += 1;
                     #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("Mapping contract: {} to {}, {}, and {}", monitor.aux_string_table[i].spec_str, monitor.aux_string_table[i].spec_0,
                     monitor.aux_string_table[i].spec_1,  monitor.aux_string_table[i].spec_2);
                 },
                 'F' => { // Function auxiliary info
-                    (monitor.aux_string_table[i], length) = AuxiliaryInfo::set_function(&spec_file[offset..]);
+                    (monitor.formula_aux_string_table[aux_formula_num], length) = FormulaAuxiliaryInfo::set_function(&spec_file[offset..]);
+                    aux_formula_num += 1;
                     #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
                     debug_print!("Mapping function: {} to {}", monitor.aux_string_table[i].spec_str, monitor.aux_string_table[i].spec_0);
                 },
@@ -110,7 +121,6 @@ pub fn process_binary_file(spec_file: &[u8], monitor: &mut memory::monitor::Moni
             }
 
             offset = offset + length + 1;
-            i += 1;
             
             if spec_file[offset] == 0 { break };
         }

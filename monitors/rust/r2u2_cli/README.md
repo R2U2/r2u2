@@ -16,6 +16,8 @@ This crate allows specifications to be compiled with C2PO and monitored with R2U
 
 Requires a Python 3.x interpreter as required by [PyO3](https://github.com/PyO3/pyo3).
 
+(Windows Only) To allow running on non-posix operating systems, install [psutil](https://pypi.org/project/psutil/) via `pip install psutil`.
+
 To enable satisfiability checking, install [Z3](https://github.com/Z3Prover/z3). On debian-based
 systems, this can be done via `sudo apt-get install z3`.
 

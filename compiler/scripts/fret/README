@@ -1,0 +1,13 @@
+Directory for scripts related to proving correctness of FRET rewrite rules.
+
+- `normalize_fret_rewrites.py`: Normalizes the FRET rewrite rules to a standard format.
+- `process_equiv_files.sh`: Processes the FRET rewrite rules and generates SMT2 files.
+- `prove.sh`: Runs the SMT2 files through cvc5 and z3 in parallel. Assumes that `cvc5` and `z3` are
+  in your PATH. Parameters like timeout and number of parallel processes for cvc5 can be set in the
+  script. `UNSAT` means a rule is proven, `SAT` means it fails.
+
+To prove the rules, run each script in succession:
+
+    $ python3 normalize_fret_rewrites.py
+    $ ./process_equiv_files.sh
+    $ ./prove.sh

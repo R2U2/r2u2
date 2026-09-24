@@ -86,7 +86,6 @@ pub fn mltl_configure_instruction_dispatch(instr: MLTLInstruction, monitor: &mut
             let queue: &mut SCQCtrlBlock = &mut monitor.queue_arena.control_blocks[instr.memory_reference as usize];
             queue.temporal_block.lower_bound = instr.op1_value;
             queue.temporal_block.upper_bound = instr.op2_value;
-            queue.length -= 4; // Required to subtract 4 to use same spec file as C version with SCQs
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug::print_mltl_config_instruction(instr, *queue);
         },
