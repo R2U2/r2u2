@@ -192,7 +192,10 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ INEG");
             let op = monitor.value_buffer[instr.param1 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_negative(op);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_negative(op);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (-1 * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
@@ -209,7 +212,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ IADD");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_add(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_add(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} + {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -227,7 +233,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ ISUB");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_subtract(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_subtract(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} - {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -245,7 +254,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ IMUL");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_multiply(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_multiply(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} * {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -263,7 +275,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ IDIV");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_divide(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_divide(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} / {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -272,7 +287,7 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ FDIV");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
-            (monitor.value_buffer[instr.memory_reference as usize].f, monitor.overflow_error) = float_divide(op0, op1);
+            monitor.value_buffer[instr.memory_reference as usize].f = float_divide(op0, op1);
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} / {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
@@ -281,7 +296,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ MOD");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_mod(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_mod(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} % {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -290,7 +308,10 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ IPOW");
             let op0 = monitor.value_buffer[instr.param1 as usize].i;
             let op1 = monitor.value_buffer[instr.param2 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_power(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_power(op0, op1);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} pow {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op0, op1);
         }
@@ -323,7 +344,10 @@ pub fn bz_update(monitor: &mut Monitor){
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("BZ IABS");
             let op = monitor.value_buffer[instr.param1 as usize].i;
-            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = integer_absolute_value(op);
+            (monitor.value_buffer[instr.memory_reference as usize].i, monitor.overflow_error) = {
+               let (value, overflow) = integer_absolute_value(op);
+               (value, overflow || monitor.overflow_error)
+            };
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = (|{}|)", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].i, op);
         }
@@ -662,7 +686,7 @@ fn integer_divide(op0: r2u2_int, op1: r2u2_int) -> (result: (r2u2_int, r2u2_bool
         Some(n) => { return (n, false); },
         None => {
             if op1 == 0 {
-                return (0, true);
+                return (0, false);
             }
             else if (op0 < 0 && op1 > 0) || (op0 > 0 && op1 < 0){
                 return (r2u2_int::MIN, true);
@@ -675,12 +699,12 @@ fn integer_divide(op0: r2u2_int, op1: r2u2_int) -> (result: (r2u2_int, r2u2_bool
 
 #[verifier::external] // Verus doesn't support evaluation of floats 
 #[inline(always)]
-fn float_divide(op0: r2u2_float, op1: r2u2_float) -> (result: (r2u2_float, r2u2_bool))
+fn float_divide(op0: r2u2_float, op1: r2u2_float) -> (result: r2u2_float)
 {
      if op1 == 0.0 {
-          return (0.0, true);
+          return 0.0;
      } else {
-          return (op0 / op1, false);
+          return op0 / op1;
      }
 }
 
