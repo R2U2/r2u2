@@ -272,7 +272,7 @@ pub fn bz_update(monitor: &mut Monitor){
             debug_print!("BZ FDIV");
             let op0 = monitor.value_buffer[instr.param1 as usize].f;
             let op1 = monitor.value_buffer[instr.param2 as usize].f;
-            monitor.value_buffer[instr.memory_reference as usize].f = float_divide(op0, op1);
+            (monitor.value_buffer[instr.memory_reference as usize].f, monitor.overflow_error) = float_divide(op0, op1);
             #[cfg(any(feature = "debug_print_semihosting", feature = "debug_print_std"))]
             debug_print!("b{} = {} = ({} / {})", instr.memory_reference, monitor.value_buffer[instr.memory_reference as usize].f, op0, op1);
         }
@@ -675,9 +675,13 @@ fn integer_divide(op0: r2u2_int, op1: r2u2_int) -> (result: (r2u2_int, r2u2_bool
 
 #[verifier::external] // Verus doesn't support evaluation of floats 
 #[inline(always)]
-fn float_divide(op0: r2u2_float, op1: r2u2_float) -> (result: r2u2_float)
+fn float_divide(op0: r2u2_float, op1: r2u2_float) -> (result: (r2u2_float, r2u2_bool))
 {
-    return op0 / op1;
+     if op1 == 0.0 {
+          return (0.0, true);
+     } else {
+          return (op0 / op1, false);
+     }
 }
 
 #[verifier::external] // Verus doesn't support mod functionality 

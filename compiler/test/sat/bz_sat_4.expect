@@ -1,3 +1,5 @@
+type_check: warning: bz_sat_4.c2po:9: division by non-const, note that (i0 / i1)=0 if i1=0
+    (i0 / i1)
 check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
 check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
 check_sat: warning: nonlinear arithmetic detected, setting logic to UFNIA
