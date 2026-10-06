@@ -1,0 +1,4 @@
+INPUT
+    a,b: bool;
+FTSPEC
+    (c: a => b) || a;

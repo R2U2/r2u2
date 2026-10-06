@@ -1,0 +1,4 @@
+INPUT
+    i,j: int;
+FTSPEC
+    i xor j;

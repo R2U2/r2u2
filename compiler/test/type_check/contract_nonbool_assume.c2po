@@ -1,0 +1,5 @@
+INPUT
+    i: int;
+    b: bool;
+FTSPEC
+    c: i => b;

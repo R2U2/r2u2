@@ -1,0 +1,4 @@
+INPUT
+    A: int[2];
+FTSPEC
+    foreach(x: A)(x);

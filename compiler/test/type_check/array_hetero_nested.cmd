@@ -1,0 +1,3 @@
+parse_c2po array_hetero_nested.c2po
+enable_booleanizer
+type_check

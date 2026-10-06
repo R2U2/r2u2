@@ -1,0 +1,2 @@
+type_check: error: nested_prev.c2po:4: Invalid nested previous statements, (prev(0,i)).
+	prev(0,prev(0,i))

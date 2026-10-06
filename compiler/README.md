@@ -31,6 +31,12 @@ A simpler compile using an explicit map file:
 
     python3 c2po.py --spec ../examples/simple.c2po --map ../examples/simple.map --output spec.bin
 
+To compile a single MLTL formula without a spec file, pass it with `--formula` (mutually exclusive
+with `--spec`). This is equivalent to writing the formula to a `.mltl` file and passing that file to
+`--spec`:
+
+    python3 c2po.py --formula "G[0,5](a0)" --output spec.bin
+
 The assembled binary is written to `spec.bin` by default (`-o` / `--output`) and is ready to be run
 by a properly configured R2U2 over input data.
 

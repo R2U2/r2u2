@@ -1,0 +1,8 @@
+STRUCT
+    P: { x: int; y: bool; };
+INPUT
+    a: bool;
+DEFINE
+    p := P(true, 1);
+FTSPEC
+    a;

@@ -1,0 +1,3 @@
+parse_c2po negative_index_abs.c2po
+enable_booleanizer
+type_check

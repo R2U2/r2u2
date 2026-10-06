@@ -183,12 +183,15 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.Operator.LogicalAnd(
-                expr.loc,
-                [
-                    cpt.rename(expr.bound_var, e, expr.get_expr(), context)
-                    for e in expr.get_set().children
-                ],
+            members = [
+                cpt.rename(expr.bound_var, e, expr.get_expr(), context)
+                for e in expr.get_set().children
+            ]
+            # Vacuous truth: conjunction over an empty set is true
+            new: cpt.Expression = (
+                cpt.Constant(expr.loc, True)
+                if not members
+                else cpt.Operator.LogicalAnd(expr.loc, members)
             )
 
             expr.replace(new)
@@ -199,12 +202,15 @@ def unroll_set_aggregation(program: cpt.Program, context: cpt.Context, options: 
             for subexpr in cpt.postorder(expr.get_set(), context):
                 resolve_struct_accesses(subexpr, context)
 
-            new = cpt.Operator.LogicalOr(
-                expr.loc,
-                [
-                    cpt.rename(expr.bound_var, e, expr.get_expr(), context)
-                    for e in expr.get_set().children
-                ],
+            members = [
+                cpt.rename(expr.bound_var, e, expr.get_expr(), context)
+                for e in expr.get_set().children
+            ]
+            # Vacuous falsehood: disjunction over an empty set is false
+            new = (
+                cpt.Constant(expr.loc, False)
+                if not members
+                else cpt.Operator.LogicalOr(expr.loc, members)
             )
 
             expr.replace(new)
@@ -301,6 +307,72 @@ unroll_set_aggregation_command = command.Command(
 command.CommandRegistry.register(unroll_set_aggregation_command)
 
 
+_LOGICAL_TO_BITWISE = {
+    cpt.OperatorKind.LOGICAL_AND: cpt.OperatorKind.BITWISE_AND,
+    cpt.OperatorKind.LOGICAL_OR: cpt.OperatorKind.BITWISE_OR,
+    cpt.OperatorKind.LOGICAL_XOR: cpt.OperatorKind.BITWISE_XOR,
+    cpt.OperatorKind.LOGICAL_NEGATE: cpt.OperatorKind.BITWISE_NEGATE,
+}
+
+
+def cast_bool_ops_in_numerical_set_aggregation(
+    program: cpt.Program, context: cpt.Context, options: dict[str, Any]
+) -> command.ReturnCode:
+    """
+    Casts Boolean operators in the argument of numerical set aggregations
+    (`forexactly`, `foratleast`, `foratmost`) to their bitwise variants so the
+    body can be evaluated by the Booleanizer when unrolled into a sum.
+    Returns a ReturnCode.SUCCESS if successful, ReturnCode.ERROR otherwise.
+    """
+    numerical = {
+        cpt.SetAggregationKind.FOR_EXACTLY,
+        cpt.SetAggregationKind.FOR_AT_LEAST,
+        cpt.SetAggregationKind.FOR_AT_MOST,
+    }
+
+    for expr in program.postorder(context):
+        if not isinstance(expr, cpt.SetAggregation):
+            continue
+        if expr.operator not in numerical:
+            continue
+
+        # Deep-copy so shared definition bodies used by foreach/forsome stay logical.
+        old_body = expr.get_expr()
+        body = old_body.deepcopy(context)
+        expr.children[-1] = body
+        body.parents.add(expr)
+        if expr in old_body.parents:
+            old_body.parents.remove(expr)
+
+        for subexpr in cpt.postorder(body, context):
+            if not isinstance(subexpr, cpt.Operator):
+                continue
+            if subexpr.operator not in _LOGICAL_TO_BITWISE:
+                continue
+
+            new_kind = _LOGICAL_TO_BITWISE[subexpr.operator]
+            subexpr.operator = new_kind
+            subexpr.symbol = new_kind.value
+            subexpr.engine = types.R2U2Engine.BOOLEANIZER
+            subexpr.type = types.IntType(subexpr.type.is_const)
+
+    log.debug(1, f"post numerical set aggregation bool-to-bitwise cast:\n{repr(program)}")
+    return command.ReturnCode.SUCCESS
+
+
+cast_bool_ops_in_numerical_set_aggregation_command = command.Command(
+    name="cast_bool_ops_in_numerical_set_aggregation",
+    description=(
+        "Casts Boolean operators in the argument of numerical set aggregations "
+        "(`forexactly`, `foratleast`, `foratmost`) to their bitwise variants."
+    ),
+    options=[],
+    func=cast_bool_ops_in_numerical_set_aggregation,
+    guards=[command.WELL_TYPED],
+)
+command.CommandRegistry.register(cast_bool_ops_in_numerical_set_aggregation_command)
+
+
 def resolve_struct_accesses(program: cpt.Program, context: cpt.Context, options: dict[str, Any]) -> command.ReturnCode:
     """
     Resolves struct access operations to the underlying member expression.
@@ -358,6 +430,13 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context, options: 
                 return command.ReturnCode.ERROR
 
             array = expr.get_array()
+            # Literal/expanded arrays have children; signal arrays must be expanded via
+            # expand_definitions first. Skip (do not crash) if children are unavailable.
+            if not isinstance(array, cpt.ArrayExpression):
+                continue
+            if expr.get_index() >= len(array.children):
+                log.error(f"out-of-bounds array index ({expr})", expr.loc)
+                return command.ReturnCode.ERROR
             expr.replace(array.children[expr.get_index()])
         
         elif isinstance(expr, cpt.ArraySlice):
@@ -365,13 +444,14 @@ def resolve_array_accesses(program: cpt.Program, context: cpt.Context, options: 
             # Not all out-of-bounds errors are checked during type checking
             # Ex: a struct has an array member type of uninterpreted size,
             # must check this case here
-            array_type = cast(types.ArrayType, expr.get_array().type)
+            array = expr.get_array()
+            if not isinstance(array, cpt.ArrayExpression):
+                continue
+            array_type = cast(types.ArrayType, array.type)
             if expr.get_indices()[0] >= array_type.size or expr.get_indices()[1] >= array_type.size:
                 log.error(f"Out-of-bounds array index ({expr})", expr.loc)
                 context.status = False
                 continue
-
-            array = expr.get_array()
 
             new = cpt.ArrayExpression(
                 expr.loc,
@@ -436,6 +516,7 @@ desugar_command = command.CompositeCommand(
         resolve_enum_references_command,
         resolve_struct_accesses_command,
         resolve_array_accesses_command,
+        cast_bool_ops_in_numerical_set_aggregation_command,
         unroll_set_aggregation_command,
         resolve_struct_accesses_command,
         unroll_array_accesses_command, 

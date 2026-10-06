@@ -1,0 +1,2 @@
+type_check: error: float_div_zero_const.c2po:4: divide by zero
+    (x / 0.0)

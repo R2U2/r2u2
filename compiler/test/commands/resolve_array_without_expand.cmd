@@ -1,0 +1,4 @@
+parse_c2po resolve_array_without_expand.c2po
+enable_booleanizer
+type_check
+resolve_array_accesses

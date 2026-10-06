@@ -1,0 +1,1 @@
+type_check: error: contract_nonbool_assume.c2po:5: assume of AGC must be a bool, found 'int'

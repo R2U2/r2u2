@@ -1,0 +1,1 @@
+type_check: error: member_missing.c2po:8: member 'y' invalid for struct 'P'

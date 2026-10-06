@@ -69,6 +69,15 @@ def run_test(test: dict) -> bool:
         "output": "path/to/output.expect",
     }`
 
+    or
+
+    `{
+        "name": "optional-test-name",
+        "formula": "G[0,5](a0)",
+        "options": ["list", "of", "c2po", "options"],
+        "output": "path/to/output.expect",
+    }`
+
     See `config.json`.
     """
     status, bad_file, diff = True, False, ""
@@ -84,8 +93,13 @@ def run_test(test: dict) -> bool:
         if "options" in test:
             command.extend(test["options"])
         test_name = test["spec"]
+    elif "formula" in test:
+        command.extend(["--formula", test["formula"]])
+        if "options" in test:
+            command.extend(test["options"])
+        test_name = test.get("name", test["formula"])
     else:
-        # Test does nothing if neither script nor spec is provided
+        # Test does nothing if neither script, spec, nor formula is provided
         return True
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

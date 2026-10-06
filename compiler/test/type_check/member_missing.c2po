@@ -1,0 +1,8 @@
+STRUCT
+    P: { x: int; };
+INPUT
+    i: int;
+DEFINE
+    p := P(i);
+FTSPEC
+    p.y > 0;

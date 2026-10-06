@@ -1,0 +1,3 @@
+parse_c2po member_missing.c2po
+enable_booleanizer
+type_check

@@ -1,0 +1,3 @@
+type_check: error: struct_wrong_types.c2po:6: struct instantiation/function call does not match signature.
+    Found:    P(bool, int)
+    Expected: P(int, bool)
