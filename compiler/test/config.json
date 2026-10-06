@@ -413,6 +413,88 @@
             "output": "sat/strict_sat_2.expect"
         }
     ],
+    "uf-sat": [
+        {
+            "script": "sat/sat_1_uf.cmd",
+            "output": "sat/sat_1.expect"
+        },
+        {
+            "script": "sat/sat_2_uf.cmd",
+            "output": "sat/sat_2.expect"
+        },
+        {
+            "script": "sat/sat_3_uf.cmd",
+            "output": "sat/sat_3.expect"
+        },
+        {
+            "script": "sat/sat_4_uf.cmd",
+            "output": "sat/sat_4.expect"
+        },
+        {
+            "script": "sat/sat_5_uf.cmd",
+            "output": "sat/sat_5.expect"
+        },
+        {
+            "script": "sat/sat_6_uf.cmd",
+            "output": "sat/sat_6.expect"
+        },
+        {
+            "script": "sat/sat_7_uf.cmd",
+            "output": "sat/sat_7.expect"
+        },
+        {
+            "script": "sat/unsat_1_uf.cmd",
+            "output": "sat/unsat_1.expect"
+        },
+        {
+            "script": "sat/unsat_2_uf.cmd",
+            "output": "sat/unsat_2.expect"
+        },
+        {
+            "script": "sat/unsat_3_uf.cmd",
+            "output": "sat/unsat_3.expect"
+        },
+        {
+            "script": "sat/unsat_4_uf.cmd",
+            "output": "sat/unsat_4.expect"
+        },
+        {
+            "script": "sat/unsat_5_uf.cmd",
+            "output": "sat/unsat_5.expect"
+        },
+        {
+            "script": "sat/unsat_6_uf.cmd",
+            "output": "sat/unsat_6.expect"
+        },
+        {
+            "script": "sat/unsat_7_uf.cmd",
+            "output": "sat/unsat_7.expect"
+        },
+        {
+            "script": "sat/unsat_8_uf.cmd",
+            "output": "sat/unsat_8.expect"
+        },
+        {
+            "script": "sat/unsat_9_uf.cmd",
+            "output": "sat/unsat_9.expect"
+        },
+        {
+            "script": "sat/bz_unsat_1_uf.cmd",
+            "output": "sat/bz_unsat_1.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_uf.cmd",
+            "output": "sat/strict_sat_1.expect"
+        },
+        {
+            "script": "sat/strict_sat_1_uf_no_strict.cmd",
+            "output": "sat/strict_sat_1_no_strict.expect"
+        },
+        {
+            "script": "sat/strict_sat_2_uf.cmd",
+            "output": "sat/strict_sat_2.expect"
+        }
+    ],
     "eqsat-greedy": [
         {
             "script": "eqsat/and_global_01.cmd",
